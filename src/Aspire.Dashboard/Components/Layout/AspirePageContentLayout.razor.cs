@@ -9,17 +9,18 @@ public partial class AspirePageContentLayout : ComponentBase
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 
-    [Parameter] public required RenderFragment PageTitle { get; set; }
+    [Parameter] public required RenderFragment PageTitleSection { get; set; }
 
-    [Parameter] public RenderFragment? MobilePageTitleToolbarContent { get; set; }
+    [Parameter] public RenderFragment? MobilePageTitleToolbarSection { get; set; }
 
-    [Parameter] public RenderFragment? ToolbarContent { get; set; }
+    [Parameter] public RenderFragment? ToolbarSection { get; set; }
     [Parameter] public bool AddNewlineOnDesktopToolbar { get; set; }
 
-    [Parameter] public RenderFragment? MainContent { get; set; }
+    [Parameter] public RenderFragment? MainSection { get; set; }
 
-    [Parameter] public RenderFragment? FooterContent { get; set; }
+    [Parameter] public RenderFragment? FooterSection { get; set; }
     [Parameter] public bool ShouldShowFooter { get; set; } = true;
+    [Parameter] public string? MobileToolbarButtonText { get; set; }
 
     [Inject]
     public required IDialogService DialogService { get; init; }
@@ -28,16 +29,20 @@ public partial class AspirePageContentLayout : ComponentBase
 
     private async Task OpenMobileToolbarAsync()
     {
-        _toolbarPanel = await DialogService.ShowPanelAsync<ToolbarPanel>(ToolbarContent!, new DialogParameters
-        {
-            Alignment = HorizontalAlignment.Center,
-            Title = "Filters",
-            Width = "100%",
-            Height = "90%",
-            Modal = false,
-            PrimaryAction = null,
-            SecondaryAction = null
-        });
+        _toolbarPanel = await DialogService.ShowPanelAsync<ToolbarPanel>(
+            new MobileToolbar(
+                ToolbarSection!,
+                MobileToolbarButtonText ?? LayoutLoc[nameof(Resources.Layout.PageLayoutViewFilters)]),
+            new DialogParameters
+            {
+                Alignment = HorizontalAlignment.Center,
+                Title = "Filters",
+                Width = "100%",
+                Height = "90%",
+                Modal = false,
+                PrimaryAction = null,
+                SecondaryAction = null
+            });
     }
 
     public async Task CloseMobileToolbarAsync()
@@ -47,5 +52,7 @@ public partial class AspirePageContentLayout : ComponentBase
             await _toolbarPanel.CloseAsync();
         }
     }
+
+    public record MobileToolbar(RenderFragment ToolbarSection, string MobileToolbarButtonText);
 }
 

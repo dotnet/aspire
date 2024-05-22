@@ -14,8 +14,10 @@
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Traces.TracesPageTitle)" Loc="@Loc" /></PageTitle>
 
 <AspirePageContentLayout AddNewlineOnDesktopToolbar="true">
-    <PageTitle>@Loc[nameof(Dashboard.Resources.Traces.TracesHeader)]</PageTitle>
-    <ToolbarContent>
+    <PageTitleSection>
+        <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Traces.TracesHeader)]</h1>
+    </PageTitleSection>
+    <ToolbarSection>
         <ResourceSelect Resources="_applicationViewModels"
                         AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
                         @bind-SelectedResource="_selectedApplication"
@@ -26,8 +28,8 @@
                       Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
                       title="@Loc[nameof(Dashboard.Resources.Traces.TracesNameFilter)]"
                       slot="end" />
-    </ToolbarContent>
-    <MainContent>
+    </ToolbarSection>
+    <MainSection>
         <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
             <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpTrace" GridTemplateColumns="0.8fr 2fr 3fr 0.8fr 0.5fr">
                 <ChildContent>
@@ -96,8 +98,8 @@
                 </EmptyContent>
             </FluentDataGrid>
         </div>
-    </MainContent>
-    <FooterContent>
+    </MainSection>
+    <FooterSection>
         <TotalItemsFooter @ref="_totalItemsFooter"/>
-    </FooterContent>
+    </FooterSection>
 </AspirePageContentLayout>

@@ -128,6 +128,10 @@ h1 {
          right: 15% !important;
          height: 130px;
     }
+
+    .page-header {
+        padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 0.5px);
+    }
 }
 
  @media (min-width: 768px) {
@@ -136,6 +140,10 @@ h1 {
         right: 30% !important;
         height: 105px;
     }
+
+     .page-header {
+         padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 2.5px);
+     }
  }
 
 .datagrid-overflow-area,
@@ -258,10 +266,6 @@ fluent-data-grid-cell .long-inner-content {
 
 .validation-message {
     color: var(--error);
-}
-
-.page-header {
-    padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 2.5px);
 }
 
 .selected-row,

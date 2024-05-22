@@ -19,32 +19,6 @@
     margin-right: 7px;
 }
 
-::deep.traces-layout {
-    display: grid;
-    grid-template-rows: auto auto 1fr auto;
-    height: 100%;
-    width: 100%;
-    grid-template-areas:
-        "head"
-        "toolbar"
-        "main"
-        "foot";
-    gap: calc(var(--design-unit) * 2px);
-}
-
-::deep.traces-layout > h1 {
-    grid-area: head;
-}
-
-::deep.traces-layout > fluent-toolbar {
-    grid-area: toolbar;
-    padding: var(--layout-toolbar-padding);
-}
-
-::deep.traces-layout > .datagrid-overflow-area {
-    grid-area: main;
-}
-
 ::deep fluent-progress-ring::part(background) {
     stroke: var(--neutral-fill-input-alt-active);
 }

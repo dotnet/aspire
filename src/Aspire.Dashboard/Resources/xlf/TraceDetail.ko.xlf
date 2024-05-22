@@ -12,6 +12,11 @@
         <target state="translated">기간</target>
         <note />
       </trans-unit>
+      <trans-unit id="TraceDetailMobileToolbarButtonText">
+        <source>View trace details</source>
+        <target state="new">View trace details</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TraceDetailPageTitle">
         <source>{0} trace</source>
         <target state="translated">{0} 추적</target>

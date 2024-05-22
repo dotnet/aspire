@@ -9,8 +9,10 @@
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsPageTitle)" Loc="@Loc" /></PageTitle>
 
 <AspirePageContentLayout AddNewlineOnDesktopToolbar="true">
-    <PageTitle>@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsHeader)]</PageTitle>
-    <ToolbarContent>
+    <PageTitleSection>
+        <h1 class="page-header">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsHeader)]</h1>
+    </PageTitleSection>
+    <ToolbarSection>
         <ResourceSelect @ref="_resourceSelectComponent"
                         Resources="_resources"
                         AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)]"
@@ -20,13 +22,13 @@
         {
             <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@PageViewModel.Status</FluentLabel>
         }
-    </ToolbarContent>
+    </ToolbarSection>
 
-    <MobilePageTitleToolbarContent>
+    <MobilePageTitleToolbarSection>
         <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@PageViewModel.Status</FluentLabel>
-    </MobilePageTitleToolbarContent>
+    </MobilePageTitleToolbarSection>
 
-    <MainContent>
+    <MainSection>
         <LogViewer @ref="_logViewer"/>
-    </MainContent>
+    </MainSection>
 </AspirePageContentLayout>

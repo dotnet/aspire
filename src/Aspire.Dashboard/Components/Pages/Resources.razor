@@ -11,11 +11,11 @@
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Resources.ResourcesPageTitle)" Loc="@Loc" /></PageTitle>
 
 <AspirePageContentLayout>
-    <PageTitle>
-        @Loc[nameof(Dashboard.Resources.Resources.ResourcesHeader)]
-    </PageTitle>
+    <PageTitleSection>
+        <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Resources.ResourcesHeader)]</h1>
+    </PageTitleSection>
 
-    <ToolbarContent>
+    <ToolbarSection>
         @if (ViewportInformation.IsDesktop)
         {
             <FluentButton id="typeFilterButton" slot="end"
@@ -91,9 +91,9 @@
                                   @bind-Value:after="HandleSearchFilterChangedAsync"/>
                 </div>
         }
-    </ToolbarContent>
+    </ToolbarSection>
 
-    <MainContent>
+    <MainSection>
         <SummaryDetailsView DetailsTitle="@(SelectedResource != null ? $"{SelectedResource.ResourceType}: {GetResourceName(SelectedResource)}" : null)"
                             ShowDetails="@(SelectedResource is not null)"
                             OnDismiss="@(() => ClearSelectedResourceAsync(causedByUserAction: true))"
@@ -157,6 +157,6 @@
                 <ResourceDetails Resource="SelectedResource" ShowSpecOnlyToggle="true" />
             </Details>
         </SummaryDetailsView>
-    </MainContent>
+    </MainSection>
 </AspirePageContentLayout>
 

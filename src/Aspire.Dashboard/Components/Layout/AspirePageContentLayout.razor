@@ -7,52 +7,52 @@
         <div style="grid-area: page-header">
             @if (AddNewlineOnDesktopToolbar)
             {
-                <h1 class="page-header">@PageTitle</h1>
+                @PageTitleSection
             }
 
             <FluentToolbar Orientation="Orientation.Horizontal">
                 @if (AddNewlineOnDesktopToolbar)
                 {
-                    @ToolbarContent
+                    @ToolbarSection
                 }
                 else
                 {
-                    <h1 class="page-header">@PageTitle</h1>
-                    @ToolbarContent
+                    @PageTitleSection
+                    @ToolbarSection
                 }
             </FluentToolbar>
         </div>
 
-        <div style="grid-area: main; overflow: auto;">@MainContent</div>
+        <div style="grid-area: main; overflow: auto;">@MainSection</div>
 
-        @if (FooterContent is not null && ShouldShowFooter)
+        @if (FooterSection is not null && ShouldShowFooter)
         {
-            <div style="grid-area: footer">@FooterContent</div>
+            <div style="grid-area: footer">@FooterSection</div>
         }
     }
     else
     {
         <FluentToolbar Orientation="Orientation.Horizontal" Style="grid-area: page-header">
-            <h1 class="page-header">@PageTitle</h1>
-            @MobilePageTitleToolbarContent
+            <h1 class="page-header">@PageTitleSection</h1>
+            @MobilePageTitleToolbarSection
         </FluentToolbar>
 
-        <div style="grid-area: main; overflow: auto;">@MainContent</div>
+        <div style="grid-area: main; overflow: auto;">@MainSection</div>
 
-        if ((FooterContent is not null && ShouldShowFooter) || ToolbarContent is not null)
+        if ((FooterSection is not null && ShouldShowFooter) || ToolbarSection is not null)
         {
             <div style="grid-area: footer">
-                @if (FooterContent is not null && ShouldShowFooter)
+                @if (FooterSection is not null && ShouldShowFooter)
                 {
-                    @FooterContent
+                    @FooterSection
                 }
 
-                @if (ToolbarContent is not null)
+                @if (ToolbarSection is not null)
                 {
                     <FluentButton Class="mobile-toolbar"
                                   Appearance="@Appearance.Accent"
                                   OnClick="@OpenMobileToolbarAsync">
-                        @LayoutLoc[nameof(Layout.PageLayoutViewFilters)]
+                        @(MobileToolbarButtonText ?? LayoutLoc[nameof(Layout.PageLayoutViewFilters)])
                     </FluentButton>
                 }
             </div>
