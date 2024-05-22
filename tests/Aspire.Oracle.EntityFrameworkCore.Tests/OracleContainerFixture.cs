@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using DotNet.Testcontainers.Builders;
 using Testcontainers.Oracle;
 using Xunit;
 
@@ -19,6 +20,7 @@ public sealed class OracleContainerFixture : IAsyncLifetime
         if (RequiresDockerTheoryAttribute.IsSupported)
         {
             Container = new OracleBuilder()
+                .WithWaitStrategy(Wait.ForUnixContainer().UntilMessageIsLogged("Started service freepdb1/freepdb1/freepdb1"))
                 .Build();
 
             await Container.StartAsync();
