@@ -52,6 +52,5 @@
     <MicrosoftEntityFrameworkCoreDesignPackageVersion>8.0.5</MicrosoftEntityFrameworkCoreDesignPackageVersion>
     <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>8.0.5</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
     <MicrosoftEntityFrameworkCoreToolsPackageVersion>8.0.5</MicrosoftEntityFrameworkCoreToolsPackageVersion>
-    <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.0-preview.4.24208.7</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
   </PropertyGroup>
 </Project>
