@@ -59,7 +59,8 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
             }
             else
             {
-                // Use a random prefix if no meaningful name is found e.g., "localhost", "127.0.0.1"
+                // Use a random prefix if no meaningful name is found e.g., "localhost", "127.0.0.1".
+                // This is used to create blob containers names that are unique in the referenced storage account.
                 RandomNumberGenerator.GetHexString(12, true);
             }
         }

@@ -32,20 +32,22 @@ internal sealed class EventHubProducerClientComponent : EventHubsComponent<Azure
         {
             EnsureConnectionStringOrNamespaceProvided(settings, connectionName, configurationSectionName);
 
-            if (!string.IsNullOrEmpty(settings.ConnectionString))
+            // If no connection is provided use TokenCredential
+            if (string.IsNullOrEmpty(settings.ConnectionString))
             {
-                if (!string.IsNullOrEmpty(settings.EventHubName))
-                {
-                    return new EventHubProducerClient(settings.ConnectionString, settings.EventHubName, options);
-                }
-                else
-                {
-                    return new EventHubProducerClient(settings.ConnectionString, options);
-                }
+                return new EventHubProducerClient(settings.FullyQualifiedNamespace, settings.EventHubName, cred, options);
             }
             else
             {
-                return new EventHubProducerClient(settings.FullyQualifiedNamespace, settings.EventHubName, cred, options);
+                // If no specific EventHubName is provided, it has to be in the connection string
+                if (string.IsNullOrEmpty(settings.EventHubName))
+                {
+                    return new EventHubProducerClient(settings.ConnectionString, options);
+                }
+                else
+                {
+                    return new EventHubProducerClient(settings.ConnectionString, settings.EventHubName, options);
+                }
             }
         }, requiresCredential: false);
     }

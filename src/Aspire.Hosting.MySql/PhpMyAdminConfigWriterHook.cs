@@ -14,7 +14,7 @@ internal sealed class PhpMyAdminConfigWriterHook : IDistributedApplicationLifecy
         var serverFileMount = adminResource.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == "/etc/phpmyadmin/config.user.inc.php");
         var mySqlInstances = appModel.Resources.OfType<MySqlServerResource>();
 
-        if (appModel.Resources.OfType<PhpMyAdminContainerResource>().FirstOrDefault() is not { } myAdminResource)
+        if (appModel.Resources.OfType<PhpMyAdminContainerResource>().SingleOrDefault() is not { } myAdminResource)
         {
             // No-op if there is no myAdmin resource (removed after hook added).
             return Task.CompletedTask;

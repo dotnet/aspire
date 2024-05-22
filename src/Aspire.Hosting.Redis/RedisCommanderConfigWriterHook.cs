@@ -11,7 +11,7 @@ internal sealed class RedisCommanderConfigWriterHook : IDistributedApplicationLi
 {
     public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
-        if (appModel.Resources.OfType<RedisCommanderResource>().FirstOrDefault() is not { } commanderResource)
+        if (appModel.Resources.OfType<RedisCommanderResource>().SingleOrDefault() is not { } commanderResource)
         {
             // No-op if there is no commander resource (removed after hook added).
             return Task.CompletedTask;
