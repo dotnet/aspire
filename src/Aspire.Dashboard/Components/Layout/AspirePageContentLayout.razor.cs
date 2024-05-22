@@ -22,6 +22,8 @@ public partial class AspirePageContentLayout : ComponentBase
     [Parameter] public bool ShouldShowFooter { get; set; } = true;
     [Parameter] public string? MobileToolbarButtonText { get; set; }
 
+    [Parameter] public bool IsSummaryDetailsViewOpen { get; set; }
+
     [Inject]
     public required IDialogService DialogService { get; init; }
 

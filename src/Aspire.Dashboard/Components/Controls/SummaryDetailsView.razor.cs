@@ -17,7 +17,7 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
     public RenderFragment? Summary { get; set; }
 
     [Parameter]
-    public RenderFragment? Details { get; set; }
+    public RenderFragment<T>? Details { get; set; }
 
     [Parameter]
     public bool ShowDetails { get; set; }
@@ -49,7 +49,7 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
     public string? ViewKey { get; set; }
 
     [Parameter]
-    public RenderFragment? DetailsTitleTemplate { get; set; }
+    public RenderFragment<T>? DetailsTitleTemplate { get; set; }
 
     [Inject]
     public required ProtectedLocalStorage ProtectedLocalStore { get; set; }
@@ -63,8 +63,8 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
     [Inject]
     public required ShortcutManager ShortcutManager { get; set; }
 
-    private readonly Icon _splitHorizontalIcon = new Icons.Regular.Size16.SplitHorizontal();
-    private readonly Icon _splitVerticalIcon = new Icons.Regular.Size16.SplitVertical();
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
 
     private string _panel1Size { get; set; } = "1fr";
     private string _panel2Size { get; set; } = "1fr";
@@ -107,6 +107,7 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
         // This is required because we only want to show details after resolving size and orientation
         // to avoid a flash of content in the wrong location.
         _internalShowDetails = ShowDetails;
+        SetPanelToFullScreenOnMobile();
     }
 
     private async Task HandleDismissAsync()
@@ -183,6 +184,14 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
         // These need to not use culture-specific formatting because it needs to be a valid CSS value
         _panel1Size = string.Create(CultureInfo.InvariantCulture, $"{panel1Fraction:F3}fr");
         _panel2Size = string.Create(CultureInfo.InvariantCulture, $"{(1 - panel1Fraction):F3}fr");
+    }
+
+    private void SetPanelToFullScreenOnMobile()
+    {
+        if (!ViewportInformation.IsDesktop)
+        {
+            SetPanelSizes(0);
+        }
     }
 
     public IReadOnlySet<AspireKeyboardShortcut> SubscribedShortcuts { get; } = new HashSet<AspireKeyboardShortcut>

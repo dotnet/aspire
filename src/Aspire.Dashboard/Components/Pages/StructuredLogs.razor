@@ -19,7 +19,8 @@
 <AspirePageContentLayout
     @ref="@_pageContentLayout"
     AddNewlineOnDesktopToolbar="true"
-    ShouldShowFooter="@(SelectedLogEntry is null)">
+    ShouldShowFooter="@(SelectedLogEntry is null)"
+    IsSummaryDetailsViewOpen="@(SelectedLogEntry is not null)">
     <PageTitleSection>
         <h1 class="page-header">@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsHeader)]</h1>
     </PageTitleSection>
@@ -100,15 +101,14 @@
             SelectedValue="@SelectedLogEntry">
             <DetailsTitleTemplate>
                 @{
-                    Console.WriteLine(SelectedLogEntry);
-                    var eventName = OtlpHelpers.GetValue(SelectedLogEntry!.LogEntry.Attributes, "event.name")
-                                    ?? OtlpHelpers.GetValue(SelectedLogEntry.LogEntry.Attributes, "logrecord.event.name")
+                    var eventName = OtlpHelpers.GetValue(context!.LogEntry.Attributes, "event.name")
+                                    ?? OtlpHelpers.GetValue(context!.LogEntry.Attributes, "logrecord.event.name")
                                     ?? Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)];
                 }
 
-                <div class="pane-details-title" title="@($"{eventName} ({SelectedLogEntry.LogEntry.Scope.ScopeName})")">
+                <div class="pane-details-title" title="@($"{eventName} ({context!.LogEntry.Scope.ScopeName})")">
                     @eventName
-                    <span class="pane-details-subtext">@SelectedLogEntry.LogEntry.Scope.ScopeName</span>
+                    <span class="pane-details-subtext">@context!.LogEntry.Scope.ScopeName</span>
                 </div>
             </DetailsTitleTemplate>
             <Summary>
@@ -153,7 +153,7 @@
                 </div>
             </Summary>
             <Details>
-                <StructuredLogDetails ViewModel="@SelectedLogEntry" />
+                <StructuredLogDetails ViewModel="context" />
             </Details>
         </SummaryDetailsView>
     </MainSection>

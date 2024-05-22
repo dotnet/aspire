@@ -30,6 +30,10 @@
             <div style="grid-area: footer">@FooterSection</div>
         }
     }
+    else if (IsSummaryDetailsViewOpen)
+    {
+        <div style="grid-area: main; overflow: auto;">@MainSection</div>
+    }
     else
     {
         <FluentToolbar Orientation="Orientation.Horizontal" Style="grid-area: page-header">

@@ -14,7 +14,8 @@
 {
     <AspirePageContentLayout
         AddNewlineOnDesktopToolbar="true"
-        MobileToolbarButtonText="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailMobileToolbarButtonText)]">
+        MobileToolbarButtonText="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailMobileToolbarButtonText)]"
+        IsSummaryDetailsViewOpen="@(SelectedSpan is not null)">
         <PageTitleSection>
             <div class="page-header">
                 <h1 style="display:inline-block">@GetResourceName(trace.FirstSpan.Source): @trace.FirstSpan.Name</h1>
@@ -50,9 +51,9 @@
                 ViewKey="TraceDetail"
                 SelectedValue="@SelectedSpan">
                 <DetailsTitleTemplate>
-                    @{ var shortedSpanId = OtlpHelpers.ToShortenedId(SelectedSpan!.Span.SpanId); }
-                    <div class="pane-details-title" title="@($"{SelectedSpan!.Title} ({shortedSpanId})")">
-                        @SelectedSpan!.Title
+                    @{ var shortedSpanId = OtlpHelpers.ToShortenedId(context!.Span.SpanId); }
+                    <div class="pane-details-title" title="@($"{context!.Title} ({shortedSpanId})")">
+                        @context!.Title
                         <span class="pane-details-subtext">@shortedSpanId</span>
                     </div>
                 </DetailsTitleTemplate>
@@ -186,7 +187,7 @@
                     </FluentDataGrid>
                 </Summary>
                 <Details>
-                    <SpanDetails ViewModel="SelectedSpan" />
+                    <SpanDetails ViewModel="context" />
                 </Details>
             </SummaryDetailsView>
         </MainSection>

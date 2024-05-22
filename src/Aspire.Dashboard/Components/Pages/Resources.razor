@@ -10,7 +10,11 @@
 
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Resources.ResourcesPageTitle)" Loc="@Loc" /></PageTitle>
 
-<AspirePageContentLayout>
+@{
+    var showDetailsView = SelectedResource is not null;
+}
+
+<AspirePageContentLayout IsSummaryDetailsViewOpen="@showDetailsView">
     <PageTitleSection>
         <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Resources.ResourcesHeader)]</h1>
     </PageTitleSection>
@@ -94,7 +98,7 @@
         </FluentPopover>
 
         <SummaryDetailsView DetailsTitle="@(SelectedResource != null ? $"{SelectedResource.ResourceType}: {GetResourceName(SelectedResource)}" : null)"
-                            ShowDetails="@(SelectedResource is not null)"
+                            ShowDetails="@showDetailsView"
                             OnDismiss="@(() => ClearSelectedResourceAsync(causedByUserAction: true))"
                             SelectedValue="@SelectedResource"
                             ViewKey="ResourcesList">
@@ -153,7 +157,7 @@
                 </FluentDataGrid>
             </Summary>
             <Details>
-                <ResourceDetails Resource="SelectedResource" ShowSpecOnlyToggle="true" />
+                <ResourceDetails Resource="context" ShowSpecOnlyToggle="true" />
             </Details>
         </SummaryDetailsView>
     </MainSection>
