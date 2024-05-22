@@ -4,8 +4,8 @@
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Azure.EventHubs;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Nats;
 using Azure.Provisioning;
 using Azure.Provisioning.EventHubs;
 
@@ -108,6 +108,19 @@ public static class AzureEventHubsExtensions
     /// <param name="builder">The Azure Event Hubs resource builder.</param>
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <example>
+    /// The following example shows creates an Azure Event Hubs resource that runs locally
+    /// is an emulator.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var eventHub = builder.AddAzureEventHubs("eventhubns")
+    ///    .RunAsEmulator()
+    ///    .AddEventHub("hub");
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
     public static IResourceBuilder<AzureEventHubsResource> RunAsEmulator(this IResourceBuilder<AzureEventHubsResource> builder, Action<IResourceBuilder<AzureEventHubsEmulatorResource>>? configureContainer = null)
     {
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)

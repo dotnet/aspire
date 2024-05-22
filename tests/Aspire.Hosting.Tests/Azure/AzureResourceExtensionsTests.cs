@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Nats;
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.Azure.EventHubs;
 using Xunit;
 
 namespace Aspire.Hosting.Tests.Azure;
@@ -192,16 +192,27 @@ public class AzureResourceExtensionsTests
             );
     }
 
-    [Fact]
-    public void AzureEventHubsWithEmulatorGetsExpectedImageTag()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("2.3.97-preview")]
+    [InlineData("1.0.7")]
+    public void AzureEventHubsWithEmulatorGetsExpectedImageTag(string imageTag)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var eventHubs = builder.AddAzureEventHubs("eventhubs").RunAsEmulator();
+        var eventHubs = builder.AddAzureEventHubs("eventhubs");
+
+        eventHubs.RunAsEmulator(container =>
+        {
+            if (!string.IsNullOrEmpty(imageTag))
+            {
+                container.WithImageTag(imageTag);
+            }
+        });
 
         var containerImageAnnotation = eventHubs.Resource.Annotations.OfType<ContainerImageAnnotation>().FirstOrDefault();
         Assert.NotNull(containerImageAnnotation);
 
-        Assert.Equal(EventHubsEmulatorContainerImageTags.Tag, containerImageAnnotation.Tag);
+        Assert.Equal(imageTag ?? EventHubsEmulatorContainerImageTags.Tag, containerImageAnnotation.Tag);
         Assert.Equal(EventHubsEmulatorContainerImageTags.Registry, containerImageAnnotation.Registry);
         Assert.Equal(EventHubsEmulatorContainerImageTags.Image, containerImageAnnotation.Image);
     }
