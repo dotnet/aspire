@@ -26,35 +26,37 @@ internal sealed class AzureEventHubsEmulatorConfigWriterHook : IDistributedAppli
             using var stream = new FileStream(configFileMount.Source!, FileMode.Create);
             using var writer = new Utf8JsonWriter(stream);
 
-            writer.WriteStartObject();                         // {
-            writer.WriteStartObject("UserConfig");             //   "UserConfig": {
-            writer.WriteStartArray("NamespaceConfig");         //     "NamespaceConfig": [
-            writer.WriteStartObject();                         //       {
-            writer.WriteString("Type", "EventHub");            //         "Type": "EventHub",
-            writer.WriteString("Name", emulatorResource.Name); //         "Name": "eventhubns"
-            writer.WriteStartArray("Entities");                //         "Entities": [
+            writer.WriteStartObject();                      // {
+            writer.WriteStartObject("UserConfig");          //   "UserConfig": {
+            writer.WriteStartArray("NamespaceConfig");      //     "NamespaceConfig": [
+            writer.WriteStartObject();                      //       {
+            writer.WriteString("Type", "EventHub");         //         "Type": "EventHub",
+
+            // This name is currently required by the emulator
+            writer.WriteString("Name", "emulatorNs1");      //         "Name": "emulatorNs1"
+            writer.WriteStartArray("Entities");             //         "Entities": [
 
             foreach (var hub in emulatorResource.Hubs)
             {
                 // The default consumer group ('$default') is automatically created
 
-                writer.WriteStartObject();                     //           {
-                writer.WriteString("Name", hub.Name);          //             "Name": "hub",
-                writer.WriteString("PartitionCount", "2");     //             "PartitionCount": "2",
-                writer.WriteStartArray("ConsumerGroups");      //             "ConsumerGroups": [
-                writer.WriteEndArray();                        //             ]
-                writer.WriteEndObject();                       //           }
+                writer.WriteStartObject();                  //           {
+                writer.WriteString("Name", hub.Name);       //             "Name": "hub",
+                writer.WriteString("PartitionCount", "2");  //             "PartitionCount": "2",
+                writer.WriteStartArray("ConsumerGroups");   //             "ConsumerGroups": [
+                writer.WriteEndArray();                     //             ]
+                writer.WriteEndObject();                    //           }
             }
 
-            writer.WriteEndArray();                            //         ] (/Entities)
-            writer.WriteEndObject();                           //       }
-            writer.WriteEndArray();                            //     ], (/NamespaceConfig)
-            writer.WriteStartObject("LoggingConfig");          //     "LoggingConfig": {
-            writer.WriteString("Type", "File");                //       "Type": "File"
-            writer.WriteEndObject();                           //     } (/LoggingConfig)
+            writer.WriteEndArray();                         //         ] (/Entities)
+            writer.WriteEndObject();                        //       }
+            writer.WriteEndArray();                         //     ], (/NamespaceConfig)
+            writer.WriteStartObject("LoggingConfig");       //     "LoggingConfig": {
+            writer.WriteString("Type", "File");             //       "Type": "File"
+            writer.WriteEndObject();                        //     } (/LoggingConfig)
 
-            writer.WriteEndObject();                           //   } (/UserConfig)
-            writer.WriteEndObject();                           // } (/Root)
+            writer.WriteEndObject();                        //   } (/UserConfig)
+            writer.WriteEndObject();                        // } (/Root)
 
         }
 
