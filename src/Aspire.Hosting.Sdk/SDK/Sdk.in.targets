@@ -1,5 +1,13 @@
 <Project>
 
+  <Sdk Name="Aspire.Hosting.Orchestration.$(DefaultAppHostRuntimeIdentifier)" Version="@VERSION@" />
+
+  <Sdk Name="Aspire.Dashboard.Sdk.$(DefaultAppHostRuntimeIdentifier)" Version="@VERSION@" />
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="@VERSION@" />
+  </ItemGroup>
+
   <!--
   A property-based workload cannot import props files (except AutoImport.props, which has very tight limitations.
   Instead, we copy everything from Aspire.Hosting.AppHost.props into these targets.

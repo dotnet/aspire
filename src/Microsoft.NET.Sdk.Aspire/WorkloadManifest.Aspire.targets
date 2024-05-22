@@ -1,9 +1,1 @@
-<Project>
-
-  <Import Project="Sdk.targets" Sdk="Aspire.Hosting.Sdk" />
-
-  <Import Project="Sdk.targets" Sdk="Aspire.Hosting.Orchestration" />
-
-  <Import Project="Sdk.targets" Sdk="Aspire.Dashboard.Sdk" />
-
-</Project>
+<Project />
