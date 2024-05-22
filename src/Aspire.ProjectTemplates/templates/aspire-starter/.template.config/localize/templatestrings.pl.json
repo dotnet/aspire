@@ -1,6 +1,6 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire Starter App",
+  "name": "Aplikacja startowa platformy .NET Aspire",
   "description": "Szablon projektu służący do tworzenia aplikacji Aspire platformy .NET z frontonem internetowym platformy Blazor i usługą zaplecza internetowego interfejsu API, opcjonalnie używając usługi Redis do buforowania.",
   "symbols/Framework/description": "Platforma docelowa dla tego projektu.",
   "symbols/Framework/choices/net8.0/description": "Docelowa platforma net8.0",

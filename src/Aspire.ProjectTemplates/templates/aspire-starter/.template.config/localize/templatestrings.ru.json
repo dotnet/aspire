@@ -1,6 +1,6 @@
 ﻿{
   "author": "Майкрософт",
-  "name": ".NET Aspire Starter App",
+  "name": "Начальное приложение .NET Aspire",
   "description": "Шаблон проекта для создания приложения .NET Aspire с веб-интерфейсом Blazor и внутренней службой веб-API, при необходимости с использованием Redis для кэширования.",
   "symbols/Framework/description": "Целевая платформа для проекта.",
   "symbols/Framework/choices/net8.0/description": "Целевая среда net8.0",
