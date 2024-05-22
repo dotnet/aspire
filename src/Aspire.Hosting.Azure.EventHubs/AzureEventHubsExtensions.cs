@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Nats;
 using Azure.Provisioning;
 using Azure.Provisioning.EventHubs;
 
@@ -122,9 +123,9 @@ public static class AzureEventHubsExtensions
             .WithEndpoint(name: "emulator", targetPort: 5672)
             .WithAnnotation(new ContainerImageAnnotation
             {
-                Registry = "messagingemulators.azurecr.io",
-                Image = "microsoft/azure/eventhubs/emulator",
-                Tag = "latest"
+                Registry = EventHubsEmulatorContainerImageTags.Registry,
+                Image = EventHubsEmulatorContainerImageTags.Image,
+                Tag = EventHubsEmulatorContainerImageTags.Tag
             })
             .WithAnnotation(new ContainerMountAnnotation(
                 Path.GetTempFileName(),

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Nats;
 using Aspire.Hosting.Utils;
 using Xunit;
 
@@ -171,5 +172,37 @@ public class AzureResourceExtensionsTests
 
         var actualTag = containerImageAnnotation.Tag;
         Assert.Equal(imageTag ?? "latest", actualTag);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(8081)]
+    [InlineData(9007)]
+    public void AzureEventHubsWithEmulatorGetsExpectedPort(int? port = null)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var eventHubs = builder.AddAzureEventHubs("eventhubs").RunAsEmulator(configureContainer: builder =>
+        {
+            builder.WithGatewayPort(port);
+        });
+
+        Assert.Collection(
+            eventHubs.Resource.Annotations.OfType<EndpointAnnotation>(),
+            e => Assert.Equal(port, e.Port)
+            );
+    }
+
+    [Fact]
+    public void AzureEventHubsWithEmulatorGetsExpectedImageTag()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var eventHubs = builder.AddAzureEventHubs("eventhubs").RunAsEmulator();
+
+        var containerImageAnnotation = eventHubs.Resource.Annotations.OfType<ContainerImageAnnotation>().FirstOrDefault();
+        Assert.NotNull(containerImageAnnotation);
+
+        Assert.Equal(EventHubsEmulatorContainerImageTags.Tag, containerImageAnnotation.Tag);
+        Assert.Equal(EventHubsEmulatorContainerImageTags.Registry, containerImageAnnotation.Registry);
+        Assert.Equal(EventHubsEmulatorContainerImageTags.Image, containerImageAnnotation.Image);
     }
 }
