@@ -1,6 +1,6 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire Empty App",
+  "name": "Aplicativo vazio do .NET Aspire",
   "description": "Um modelo de projeto para a criação de um aplicativo .NET Aspire vazio.",
   "symbols/Framework/description": "A estrutura de destino do projeto.",
   "symbols/Framework/choices/net8.0/description": "Destino net8.0",
