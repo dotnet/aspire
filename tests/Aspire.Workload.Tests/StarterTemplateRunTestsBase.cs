@@ -1,0 +1,143 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Microsoft.Playwright;
+using static Microsoft.Playwright.Assertions;
+using Xunit;
+using Xunit.Abstractions;
+using Aspire.Hosting.Redis;
+
+namespace Aspire.Workload.Tests;
+
+public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClassFixture<T> where T : TemplateAppFixture
+{
+    protected readonly T _testFixture;
+    protected bool HasRedisCache;
+    protected virtual int DashboardResourcesWaitTimeoutSecs => 120;
+
+    public StarterTemplateRunTestsBase(T fixture, ITestOutputHelper testOutput)
+        : base(testOutput)
+    {
+        _testFixture = fixture;
+    }
+
+    [Fact]
+    public async Task ResourcesShowUpOnDashboad()
+    {
+        await using var context = await CreateNewBrowserContextAsync();
+        await CheckDashboardHasResourcesAsync(
+            await _testFixture.Project!.OpenDashboardPageAsync(context).ConfigureAwait(false),
+            GetExpectedResources(_testFixture.Project!, hasRedisCache: HasRedisCache),
+            timeoutSecs: DashboardResourcesWaitTimeoutSecs);
+    }
+
+    [Theory]
+    [InlineData("http://")]
+    [InlineData("https://")]
+    public async Task WebFrontendWorks(string urlPrefix)
+    {
+        await using var context = await CreateNewBrowserContextAsync();
+        var resourceRows = await CheckDashboardHasResourcesAsync(
+            await _testFixture.Project!.OpenDashboardPageAsync(context).ConfigureAwait(false),
+            GetExpectedResources(_testFixture.Project!, hasRedisCache: HasRedisCache),
+            timeoutSecs: DashboardResourcesWaitTimeoutSecs);
+
+        string url = resourceRows.First(r => r.Name == "webfrontend")
+                        .Endpoints.First(e => e.StartsWith(urlPrefix));
+        await CheckWebFrontendWorksAsync(context, url, _testOutput, _testFixture.Project.LogPath, hasRedisCache: HasRedisCache);
+    }
+
+    public static async Task CheckWebFrontendWorksAsync(IBrowserContext context, string url, ITestOutputHelper testOutput, string logPath, bool hasRedisCache = false)
+    {
+        var page = await context.NewPageWithLoggingAsync(testOutput);
+
+        try
+        {
+            // Enabling routing disables the http cache
+            await page.RouteAsync("**", async route => await route.ContinueAsync());
+            await page.GotoAsync(url);
+
+            await page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Weather" }).ClickAsync();
+
+            var tableLoc = page.Locator("//table[//thead/tr/th/text()='Date']");
+            await Expect(tableLoc).ToBeVisibleAsync();
+
+            if (hasRedisCache)
+            {
+                // Compare weather data after refreshes
+                var firstLoadText = string.Join(',', (await GetAndValidateCellTexts(tableLoc)).SelectMany(r => r));
+                await Task.Delay(10_000);
+
+                await page.ReloadAsync(new PageReloadOptions { WaitUntil = WaitUntilState.Load });
+
+                var secondLoadText = string.Join(',', (await GetAndValidateCellTexts(tableLoc)).SelectMany(r => r));
+                Assert.NotEqual(firstLoadText, secondLoadText);
+            }
+        }
+        catch (Exception ex)
+        {
+            testOutput.WriteLine($"Error: {ex}");
+            string screenshotPath = Path.Combine(logPath, "webfrontend-fail.png");
+            await page.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
+            throw;
+        }
+
+        static async Task<List<string[]>> GetAndValidateCellTexts(ILocator tableLoc)
+        {
+            List<string[]> cellTexts = [];
+            var rowsLoc = tableLoc.Locator("//tbody/tr");
+            foreach (var row in await rowsLoc.AllAsync())
+            {
+                var texts = (await row.Locator("//td").AllAsync())
+                    .Select(cell => cell.InnerHTMLAsync())
+                    .Select(t => t.Result)
+                    .ToArray();
+                cellTexts.Add(texts);
+            }
+
+            foreach (var row in cellTexts)
+            {
+                Assert.Collection(row,
+                    r => Assert.True(DateTime.TryParse(r, out _)),
+                    r => Assert.True(int.TryParse(r, out var actualTempC) && actualTempC >= -20 && actualTempC <= 55),
+                    r => Assert.True(int.TryParse(r, out var actualTempF) && actualTempF >= -5 && actualTempF <= 133),
+                    r => Assert.Contains(r, ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"]));
+            }
+
+            return cellTexts;
+        }
+    }
+
+    public static List<ResourceRow> GetExpectedResources(AspireProject project, bool hasRedisCache)
+    {
+        List<ResourceRow> expectedResources = new()
+        {
+            new ResourceRow(
+                Type: "Project",
+                Name: "apiservice",
+                State: "Running",
+                Source: $"{project.Id}.ApiService.csproj",
+                Endpoints: ["http://localhost:\\d+/weatherforecast", "https://localhost:\\d+/weatherforecast"]),
+
+            new ResourceRow(
+                Type: "Project",
+                Name: "webfrontend",
+                State: "Running",
+                Source: $"{project.Id}.Web.csproj",
+                Endpoints: ["https://localhost:\\d+", "http://localhost:\\d+"])
+        };
+        if (hasRedisCache)
+        {
+            expectedResources.Add(
+                new ResourceRow(Type: "Container",
+                                Name: "cache",
+                                State: "Running",
+                                Source: $"{RedisContainerImageTags.Registry}/{RedisContainerImageTags.Image}:{RedisContainerImageTags.Tag}",
+                                Endpoints: ["tcp://localhost:\\d+"]));
+        }
+
+        return expectedResources;
+    }
+}
+
+public sealed record ResourceRow(string Type, string Name, string State, string Source, string[] Endpoints);
