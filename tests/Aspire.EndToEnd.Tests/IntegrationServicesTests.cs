@@ -32,6 +32,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [InlineData(TestResourceNames.redis)]
     [InlineData(TestResourceNames.garnet)]
     [InlineData(TestResourceNames.sqlserver)]
+    [InlineData(TestResourceNames.eventhubs)]
     public Task VerifyComponentWorks(TestResourceNames resourceName)
         => RunTestAsync(async () =>
         {
