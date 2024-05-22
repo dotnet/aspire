@@ -96,7 +96,7 @@
 
     </FluentHeader>
 
-    <FluentMenu Open="@_isNavMenuOpen" Anchored="false" Style="grid-area: nav-menu; height: 100vh">
+    <FluentMenu Open="@_isNavMenuOpen" Anchored="false" Style="grid-area: nav-menu; height: 100vh; margin-top: 2px;">
         @foreach (var item in GetNavMenu())
         {
             <FluentMenuItem OnClick="@(async () => { _isNavMenuOpen = false; await item.OnClick(); })" Style="height: 40px; width: 100vw; margin-bottom: 6px;">
@@ -117,7 +117,7 @@
     <div class="messagebar-container">
         <FluentMessageBarProvider Section="@MessageBarSection" Class="top-messagebar"/>
     </div>
-    <FluentBodyContent Class="custom-body-content">
+    <FluentBodyContent Class="custom-body-content body-content">
         <FluentToastProvider/>
         @LayoutBody
     </FluentBodyContent>

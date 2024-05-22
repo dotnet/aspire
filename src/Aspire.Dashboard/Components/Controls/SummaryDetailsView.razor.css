@@ -1,5 +1,6 @@
 .summary-details-container {
     overflow: auto;
+    height: 100%;
 }
 
 ::deep split-panels {

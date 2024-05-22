@@ -1,7 +1,6 @@
 ﻿@page "/traces"
 @page "/traces/resource/{applicationName}"
 
-@using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
@@ -14,9 +13,9 @@
 
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Traces.TracesPageTitle)" Loc="@Loc" /></PageTitle>
 
-<div class="traces-layout">
-    <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Traces.TracesHeader)]</h1>
-    <FluentToolbar Orientation="Orientation.Horizontal">
+<AspirePageContentLayout AddNewlineOnDesktopToolbar="true">
+    <PageTitle>@Loc[nameof(Dashboard.Resources.Traces.TracesHeader)]</PageTitle>
+    <ToolbarContent>
         <ResourceSelect Resources="_applicationViewModels"
                         AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
                         @bind-SelectedResource="_selectedApplication"
@@ -27,74 +26,78 @@
                       Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
                       title="@Loc[nameof(Dashboard.Resources.Traces.TracesNameFilter)]"
                       slot="end" />
-    </FluentToolbar>
-    <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
-        <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpTrace" GridTemplateColumns="0.8fr 2fr 3fr 0.8fr 0.5fr">
-            <ChildContent>
-                <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
-                    @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Truncated)
-                </TemplateColumn>
-                <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Tooltip="true" TooltipText="@(trace => GetNameTooltip(trace))">
-                    <span><FluentHighlighter HighlightedText="@(TracesViewModel.FilterText)" Text="@(context.FullName)" /></span>
-                    <span class="trace-id">@OtlpHelpers.ToShortenedId(context.TraceId)</span>
-                </TemplateColumn>
-                <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Traces.TracesSpansColumnHeader)]">
-                    <FluentOverflow>
-                        <ChildContent>
-                            @foreach (var item in context.Spans.GroupBy(s => s.Source).OrderBy(g => g.Min(s => s.StartTime)))
-                            {
+    </ToolbarContent>
+    <MainContent>
+        <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
+            <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpTrace" GridTemplateColumns="0.8fr 2fr 3fr 0.8fr 0.5fr">
+                <ChildContent>
+                    <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
+                        @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Truncated)
+                    </TemplateColumn>
+                    <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Tooltip="true" TooltipText="@(trace => GetNameTooltip(trace))">
+                        <span><FluentHighlighter HighlightedText="@(TracesViewModel.FilterText)" Text="@(context.FullName)" /></span>
+                        <span class="trace-id">@OtlpHelpers.ToShortenedId(context.TraceId)</span>
+                    </TemplateColumn>
+                    <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Traces.TracesSpansColumnHeader)]">
+                        <FluentOverflow>
+                            <ChildContent>
+                                @foreach (var item in context.Spans.GroupBy(s => s.Source).OrderBy(g => g.Min(s => s.StartTime)))
+                                {
                                 <FluentOverflowItem>
                                     <span class="trace-tag trace-service-tag" title="@(GetSpansTooltip(item))" style="border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(item.Key)));">
                                         @if (item.Any(s => s.Status == OtlpSpanStatusCode.Error))
                                         {
-                                            <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
+                                        <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
                                         }
                                         @GetResourceName(item.Key) (@item.Count())
                                     </span>
                                 </FluentOverflowItem>
-                            }
-                        </ChildContent>
-                        <MoreButtonTemplate Context="overflow">
+                                }
+                            </ChildContent>
+                            <MoreButtonTemplate Context="overflow">
                             <span class="trace-tag">
                                 @($"+{overflow.ItemsOverflow.Count()}")
                             </span>
-                        </MoreButtonTemplate>
-                        <OverflowTemplate Context="overflow">
-                            @{
+                            </MoreButtonTemplate>
+                            <OverflowTemplate Context="overflow">
+                                @{
                                 var items = overflow.ItemsOverflow.ToList();
-                            }
-                            <FluentTooltip UseTooltipService="false" Anchor="@overflow.IdMoreButton">
-                                @foreach (var item in items)
-                                {
+                                }
+                                <FluentTooltip UseTooltipService="false" Anchor="@overflow.IdMoreButton">
+                                    @foreach (var item in items)
+                                    {
                                     <div style="margin-top: 8px; margin-bottom: 8px;">
                                         @item.ChildContent
                                     </div>
-                                }
-                            </FluentTooltip>
-                        </OverflowTemplate>
-                    </FluentOverflow>
-                </TemplateColumn>
-                <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]">
-                    <div class="duration-container">
-                        <FluentProgressRing Class="duration-ring"
-                                            Min="0"
-                                            Max="@Convert.ToInt32(TracesViewModel.MaxDuration.TotalMilliseconds)"
-                                            Value="@Convert.ToInt32(context.Duration.TotalMilliseconds)"
-                                            aria-label="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]" />
-                        <span class="trace-duration">
+                                    }
+                                </FluentTooltip>
+                            </OverflowTemplate>
+                        </FluentOverflow>
+                    </TemplateColumn>
+                    <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]">
+                        <div class="duration-container">
+                            <FluentProgressRing Class="duration-ring"
+                                                Min="0"
+                                                Max="@Convert.ToInt32(TracesViewModel.MaxDuration.TotalMilliseconds)"
+                                                Value="@Convert.ToInt32(context.Duration.TotalMilliseconds)"
+                                                aria-label="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]" />
+                            <span class="trace-duration">
                             @DurationFormatter.FormatDuration(context.Duration)
                         </span>
-                    </div>
-                </TemplateColumn>
+                        </div>
+                    </TemplateColumn>
 
-                <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
-                    <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.TraceDetailUrl(context.TraceId)">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentAnchor>
-                </TemplateColumn>
-            </ChildContent>
-            <EmptyContent>
-                <FluentIcon Icon="Icons.Regular.Size24.GanttChart" />&nbsp;@Loc[nameof(Dashboard.Resources.Traces.TracesNoTraces)]
-            </EmptyContent>
-        </FluentDataGrid>
-    </div>
-    <TotalItemsFooter @ref="_totalItemsFooter" />
-</div>
+                    <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
+                        <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.TraceDetailUrl(context.TraceId)">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentAnchor>
+                    </TemplateColumn>
+                </ChildContent>
+                <EmptyContent>
+                    <FluentIcon Icon="Icons.Regular.Size24.GanttChart" />&nbsp;@Loc[nameof(Dashboard.Resources.Traces.TracesNoTraces)]
+                </EmptyContent>
+            </FluentDataGrid>
+        </div>
+    </MainContent>
+    <FooterContent>
+        <TotalItemsFooter @ref="_totalItemsFooter"/>
+    </FooterContent>
+</AspirePageContentLayout>

@@ -19,6 +19,7 @@ public partial class AspirePageContentLayout : ComponentBase
     [Parameter] public RenderFragment? MainContent { get; set; }
 
     [Parameter] public RenderFragment? FooterContent { get; set; }
+    [Parameter] public bool ShouldShowFooter { get; set; } = true;
 
     [Inject]
     public required IDialogService DialogService { get; init; }

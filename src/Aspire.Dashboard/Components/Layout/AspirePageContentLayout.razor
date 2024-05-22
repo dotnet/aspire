@@ -23,9 +23,9 @@
             </FluentToolbar>
         </div>
 
-        <div style="grid-area: main">@MainContent</div>
+        <div style="grid-area: main; overflow: auto;">@MainContent</div>
 
-        @if (FooterContent is not null)
+        @if (FooterContent is not null && ShouldShowFooter)
         {
             <div style="grid-area: footer">@FooterContent</div>
         }
@@ -37,20 +37,25 @@
             @MobilePageTitleToolbarContent
         </FluentToolbar>
 
-        <div style="grid-area: main">@MainContent</div>
+        <div style="grid-area: main; overflow: auto;">@MainContent</div>
 
-        if (FooterContent is not null)
+        if ((FooterContent is not null && ShouldShowFooter) || ToolbarContent is not null)
         {
-            <div style="grid-area: footer">@FooterContent</div>
-        }
+            <div style="grid-area: footer">
+                @if (FooterContent is not null && ShouldShowFooter)
+                {
+                    @FooterContent
+                }
 
-        if (ToolbarContent is not null)
-        {
-            <FluentButton Class="mobile-absolute-toolbar"
-                          Appearance="@Appearance.Accent"
-                          OnClick="@OpenMobileToolbarAsync">
-                @LayoutLoc[nameof(Layout.PageLayoutViewFilters)]
-            </FluentButton>
+                @if (ToolbarContent is not null)
+                {
+                    <FluentButton Class="mobile-toolbar"
+                                  Appearance="@Appearance.Accent"
+                                  OnClick="@OpenMobileToolbarAsync">
+                        @LayoutLoc[nameof(Layout.PageLayoutViewFilters)]
+                    </FluentButton>
+                }
+            </div>
         }
     }
 

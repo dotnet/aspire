@@ -45,10 +45,6 @@
     grid-area: main;
 }
 
-::deep.traces-layout > .total-items-footer {
-    grid-area: foot;
-}
-
 ::deep fluent-progress-ring::part(background) {
     stroke: var(--neutral-fill-input-alt-active);
 }

@@ -29,10 +29,6 @@
     overflow: auto;
 }
 
-::deep .logs-summary-layout > .total-items-footer {
-    grid-area: foot;
-}
-
 ::deep .wrap {
     text-wrap: wrap;
     white-space: pre-line;

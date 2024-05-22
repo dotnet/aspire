@@ -15,28 +15,31 @@
             </div>
         </Panel1>
         <Panel2>
-            <div class="details-container">
-                <header Style="height: auto;">
-                    @if (DetailsTitle is not null)
-                    {
-                        <div class="details-header-title" title="@DetailsTitle">@DetailsTitle</div>
-                    }
-                    else if (DetailsTitleTemplate is not null)
-                    {
-                        <div class="details-header-title">@DetailsTitleTemplate</div>
-                    }
-                    <div class="header-actions">
-                        <FluentButton Appearance="Appearance.Stealth"
-                                      IconEnd="@(Orientation == Orientation.Horizontal ? _splitHorizontalIcon : _splitVerticalIcon)"
-                                      OnClick="HandleToggleOrientation"
-                                      Title="@(Orientation == Orientation.Horizontal ? Loc[nameof(ControlsStrings.SummaryDetailsViewSplitHorizontal)] : Loc[nameof(ControlsStrings.SummaryDetailsViewSplitVertical)])"
-                                      aria-label="@(Orientation == Orientation.Horizontal ? Loc[nameof(ControlsStrings.SummaryDetailsViewSplitHorizontal)] : Loc[nameof(ControlsStrings.SummaryDetailsViewSplitVertical)])" />
-                        <FluentButton Appearance="Appearance.Stealth" IconEnd="@(new Icons.Regular.Size16.Dismiss())"
-                                      OnClick="HandleDismissAsync" Title="@Loc[nameof(ControlsStrings.SummaryDetailsViewCloseView)]" aria-label="@Loc[nameof(ControlsStrings.SummaryDetailsViewCloseView)]" />
-                    </div>
-                </header>
-                @Details
-            </div>
+            @if (_internalShowDetails)
+            {
+                <div class="details-container">
+                    <header Style="height: auto;">
+                        @if (DetailsTitle is not null)
+                        {
+                            <div class="details-header-title" title="@DetailsTitle">@DetailsTitle</div>
+                        }
+                        else if (DetailsTitleTemplate is not null)
+                        {
+                            <div class="details-header-title">@DetailsTitleTemplate</div>
+                        }
+                        <div class="header-actions">
+                            <FluentButton Appearance="Appearance.Stealth"
+                                          IconEnd="@(Orientation == Orientation.Horizontal ? _splitHorizontalIcon : _splitVerticalIcon)"
+                                          OnClick="HandleToggleOrientation"
+                                          Title="@(Orientation == Orientation.Horizontal ? Loc[nameof(ControlsStrings.SummaryDetailsViewSplitHorizontal)] : Loc[nameof(ControlsStrings.SummaryDetailsViewSplitVertical)])"
+                                          aria-label="@(Orientation == Orientation.Horizontal ? Loc[nameof(ControlsStrings.SummaryDetailsViewSplitHorizontal)] : Loc[nameof(ControlsStrings.SummaryDetailsViewSplitVertical)])"/>
+                            <FluentButton Appearance="Appearance.Stealth" IconEnd="@(new Icons.Regular.Size16.Dismiss())"
+                                          OnClick="HandleDismissAsync" Title="@Loc[nameof(ControlsStrings.SummaryDetailsViewCloseView)]" aria-label="@Loc[nameof(ControlsStrings.SummaryDetailsViewCloseView)]"/>
+                        </div>
+                    </header>
+                    @Details
+                </div>
+            }
         </Panel2>
     </FluentSplitter>
 </div>

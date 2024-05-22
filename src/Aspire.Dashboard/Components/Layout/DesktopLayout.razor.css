@@ -27,8 +27,8 @@
 }
 
 ::deep.layout {
-    min-height: 100vh;
-    min-width: 100vw;
+    height: 100vh;
+    width: 100vw;
     display: grid;
     grid-template-columns: auto 1fr;
     grid-template-rows: auto auto 1fr;
@@ -61,6 +61,7 @@
 ::deep.layout > .body-content {
     grid-area: main;
     overflow-x: auto; /* allow horizontal scrolling */
+    overflow: auto;
     border-left: 1px solid var(--neutral-stroke-rest);
 }
 
