@@ -163,4 +163,8 @@
   <data name="LogMessageColumnExceptionDetailsTitle" xml:space="preserve">
     <value>Exception details</value>
   </data>
+  <data name="UnknownStateLabel" xml:space="preserve">
+    <value>Unknown</value>
+    <comment>This term is displayed in the "state" column of a grid, and reflects the case where we don't know what state a given resource is in.</comment>
+  </data>
 </root>
