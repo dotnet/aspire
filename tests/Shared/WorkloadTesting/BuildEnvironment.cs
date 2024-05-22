@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.InteropServices;
+using Xunit.Sdk;
 
 namespace Aspire.Workload.Tests;
 
@@ -66,10 +67,11 @@ public class BuildEnvironment
                 {
                     string buildCmd = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".\\build.cmd" : "./build.sh";
                     string workloadsProjString = Path.Combine("tests", "workloads.proj");
-                    throw new InvalidOperationException(
-                        $"Could not find a sdk with the workload installed at {sdkFromArtifactsPath} computed from {nameof(RepoRoot)}={RepoRoot}.{Environment.NewLine}" +
-                        $"Build all the packages with '{buildCmd} -pack'.{Environment.NewLine}" +
-                        $"Then install the sdk+workload with 'dotnet build {workloadsProjString}'");
+                    throw new XunitException(
+                        $"Could not find a sdk with the workload installed at {sdkFromArtifactsPath} computed from {nameof(RepoRoot)}={RepoRoot}." +
+                        $" Build all the packages with '{buildCmd} -pack'." +
+                        $" Then install the sdk+workload with 'dotnet build {workloadsProjString}'." +
+                        " See https://github.com/dotnet/aspire/tree/main/tests/Aspire.Workload.Tests#readme for more details.");
                 }
             }
             else
