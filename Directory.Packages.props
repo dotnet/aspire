@@ -29,26 +29,26 @@
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.20.0" />
     <PackageVersion Include="Azure.Storage.Queues" Version="12.18.0" />
     <PackageVersion Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="7.2.0" />
-    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.39.1" />
+    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.40.0" />
     <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.25.2" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.7.3" />
     <!-- Azure Management SDK for .NET dependencies -->
-    <PackageVersion Include="Azure.Provisioning" Version="0.2.0" />
-    <PackageVersion Include="Azure.Provisioning.AppConfiguration" Version="0.1.0" />
+    <PackageVersion Include="Azure.Provisioning" Version="0.3.0" />
+    <PackageVersion Include="Azure.Provisioning.AppConfiguration" Version="0.2.0" />
     <PackageVersion Include="Azure.Provisioning.ApplicationInsights" Version="0.1.0" />
-    <PackageVersion Include="Azure.Provisioning.CognitiveServices" Version="0.1.0" />
+    <PackageVersion Include="Azure.Provisioning.CognitiveServices" Version="0.2.0" />
     <PackageVersion Include="Azure.Provisioning.CosmosDB" Version="0.1.0" />
     <PackageVersion Include="Azure.Provisioning.EventHubs" Version="0.1.0" />
-    <PackageVersion Include="Azure.Provisioning.KeyVault" Version="0.1.0" />
-    <PackageVersion Include="Azure.Provisioning.OperationalInsights" Version="0.1.0" />
+    <PackageVersion Include="Azure.Provisioning.KeyVault" Version="0.2.0" />
+    <PackageVersion Include="Azure.Provisioning.OperationalInsights" Version="0.2.0" />
     <PackageVersion Include="Azure.Provisioning.PostgreSql" Version="0.1.0" />
-    <PackageVersion Include="Azure.Provisioning.Redis" Version="0.1.0" />
-    <PackageVersion Include="Azure.Provisioning.Resources" Version="0.1.0" />
+    <PackageVersion Include="Azure.Provisioning.Redis" Version="0.2.0" />
+    <PackageVersion Include="Azure.Provisioning.Resources" Version="0.2.0" />
     <PackageVersion Include="Azure.Provisioning.Search" Version="0.1.0" />
     <PackageVersion Include="Azure.Provisioning.ServiceBus" Version="0.1.0" />
-    <PackageVersion Include="Azure.Provisioning.SignalR" Version="0.1.0" />
+    <PackageVersion Include="Azure.Provisioning.SignalR" Version="0.2.0" />
     <PackageVersion Include="Azure.Provisioning.Sql" Version="0.1.0" />
-    <PackageVersion Include="Azure.Provisioning.Storage" Version="0.1.0" />
+    <PackageVersion Include="Azure.Provisioning.Storage" Version="0.2.0" />
     <!-- ASP.NET Core dependencies -->
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.Certificate" Version="$(MicrosoftAspNetCoreAuthenticationCertificatePackageVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="$(MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion)" />
@@ -142,6 +142,7 @@
     <PackageVersion Include="Microsoft.DotNet.XUnitExtensions" Version="$(MicrosoftDotNetXUnitExtensionsPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="$(MicrosoftExtensionsDiagnosticsTestingPackageVersion)" />
     <PackageVersion Include="Microsoft.NET.Runtime.WorkloadTesting.Internal" Version="$(MicrosoftNETRuntimeWorkloadTestingInternalVersion)" />
+    <PackageVersion Include="Microsoft.Playwright" Version="1.44.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.6.1" />
     <PackageVersion Include="Testcontainers.MongoDb" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.MsSql" Version="$(TestcontainersPackageVersion)" />
