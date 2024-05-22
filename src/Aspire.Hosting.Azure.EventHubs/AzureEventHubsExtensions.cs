@@ -109,8 +109,8 @@ public static class AzureEventHubsExtensions
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <example>
-    /// The following example shows creates an Azure Event Hubs resource that runs locally
-    /// is an emulator.
+    /// The following example creates an Azure Event Hubs resource that runs locally is an emulator and referencing that
+    /// resource in a .NET project.
     /// <code lang="C#">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
@@ -118,6 +118,9 @@ public static class AzureEventHubsExtensions
     ///    .RunAsEmulator()
     ///    .AddEventHub("hub");
     ///
+    /// builder.AddProject&lt;Projects.InventoryService&gt;()
+    ///        .WithReference(eventHub);
+    ///        
     /// builder.Build().Run();
     /// </code>
     /// </example>
