@@ -5,7 +5,7 @@ namespace Aspire.Hosting.Azure.EventHubs;
 
 internal static class EventHubsEmulatorContainerImageTags
 {
-    public const string Registry = "messagingemulators.azurecr.io";
-    public const string Image = "microsoft/azure/eventhubs/emulator";
+    public const string Registry = "mcr.microsoft.com";
+    public const string Image = "azure-messaging/eventhubs-emulator";
     public const string Tag = "latest";
 }
