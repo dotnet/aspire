@@ -254,7 +254,6 @@ public static class ProjectResourceBuilderExtensions
                         e.Port = endpoint.BindingAddress.Port;
                         e.UriScheme = endpoint.BindingAddress.Scheme;
                         e.IsProxied = false; // turn off the proxy, as we cannot easily override Kestrel bindings
-                        e.TargetPort = e.Port; // Should be implied, but is needed due to https://github.com/dotnet/aspire/issues/4225
                         e.Transport = adjustTransport(e);
                     },
                     createIfNotExists: true);
