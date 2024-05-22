@@ -1,6 +1,6 @@
 ﻿{
   "author": "Microsoft",
-  "name": ".NET Aspire Empty App",
+  "name": "Application vide .NET Aspire",
   "description": "Un modèle de projet pour créer une application .NET Aspire vide.",
   "symbols/Framework/description": "Framework cible du projet.",
   "symbols/Framework/choices/net8.0/description": "Cible net8.0",

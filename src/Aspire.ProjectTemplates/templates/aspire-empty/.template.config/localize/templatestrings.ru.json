@@ -1,6 +1,6 @@
 ﻿{
   "author": "Майкрософт",
-  "name": ".NET Aspire Empty App",
+  "name": "Пустое приложение .NET Aspire",
   "description": "Шаблон проекта для создания пустого приложения .NET Aspire.",
   "symbols/Framework/description": "Целевая платформа для проекта.",
   "symbols/Framework/choices/net8.0/description": "Целевая среда net8.0",
