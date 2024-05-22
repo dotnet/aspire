@@ -1,7 +1,7 @@
 <Project>
  <ItemGroup>
   <Compile Include="$(MSBuildThisFileDirectory)*.cs" Link="WorkloadTestingCommon" />
-  <Compile Include="$(RepoRoot)tests\Aspire.Components.Common.Tests\RequiresDockerTheoryAttribute.cs" />
+  <Compile Include="$(RepoRoot)tests\Aspire.Components.Common.Tests\RequiresDocker*.cs" />
 
   <PackageReference Include="Microsoft.Playwright" />
  </ItemGroup>
