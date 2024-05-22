@@ -197,7 +197,6 @@ public static class ProjectResourceBuilderExtensions
 
         builder.WithOtlpExporter();
         builder.ConfigureConsoleLogs();
-        builder.SetAspNetCoreUrls();
 
         var projectResource = builder.Resource;
 
@@ -260,6 +259,13 @@ public static class ProjectResourceBuilderExtensions
                     },
                     createIfNotExists: true);
                 }
+            }
+
+            // We don't need to set ASPNETCORE_URLS if we have Kestrel endpoints configured
+            // as Kestrel will get everything it needs from the config.
+            if (!kestrelEndpointsByScheme.Any())
+            {
+                builder.SetAspNetCoreUrls();
             }
 
             // Process the launch profile and turn it into environment variables and endpoints.

@@ -28,8 +28,8 @@ public class KestrelConfigTests
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
 
-        // The Kestrel endpoint overrides the profile endpoint
-        Assert.Equal("http://localhost:5002", config["ASPNETCORE_URLS"]);
+        // When using Kestrel, we should not be setting ASPNETCORE_URLS at all
+        Assert.False(config.ContainsKey("ASPNETCORE_URLS"));
     }
 
     [Fact]
@@ -47,13 +47,10 @@ public class KestrelConfigTests
                 Assert.Equal(7002, a.Port);
             }
             );
-
-        // We skip the EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync() call here,
-        // as it runs into an issue, and does not add that much value to the test
     }
 
     [Fact]
-    public async Task MultipleKestrelHttpEndpointsKeepTheirNames()
+    public void MultipleKestrelHttpEndpointsKeepTheirNames()
     {
         var resource = CreateTestProjectResource<ProjectWithMultipleHttpKestrelEndpoints>(operation: DistributedApplicationOperation.Run);
 
@@ -73,10 +70,6 @@ public class KestrelConfigTests
                 Assert.Equal(5003, a.Port);
             }
             );
-
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
-
-        Assert.Equal("http://localhost:5002;http://localhost:5003", config["ASPNETCORE_URLS"]);
     }
 
     [Fact]
