@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Dialogs;
+using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -54,6 +55,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; set; }
 
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
+
     [Parameter]
     [SupplyParameterFromQuery]
     public string? TraceId { get; set; }
@@ -71,6 +75,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     public string? SerializedLogFilters { get; set; }
 
     public StructureLogsDetailsViewModel? SelectedLogEntry { get; set; }
+    private AspirePageContentLayout? _pageContentLayout;
 
     private ValueTask<GridItemsProviderResult<OtlpLogEntry>> GetData(GridItemsProviderRequest<OtlpLogEntry> request)
     {
@@ -203,6 +208,11 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     private async Task OpenFilterAsync(LogFilter? entry)
     {
+        if (_pageContentLayout is not null)
+        {
+            await _pageContentLayout.CloseMobileToolbarAsync();
+        }
+
         var logPropertyKeys = TelemetryRepository.GetLogPropertyKeys(PageViewModel.SelectedApplication.Id?.InstanceId);
 
         var title = entry is not null ? Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEditFilter)] : Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter)];

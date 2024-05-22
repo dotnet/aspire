@@ -23,9 +23,11 @@ public partial class AspirePageContentLayout : ComponentBase
     [Inject]
     public required IDialogService DialogService { get; init; }
 
+    private IDialogReference? _toolbarPanel;
+
     private async Task OpenMobileToolbarAsync()
     {
-        await DialogService.ShowPanelAsync<ToolbarPanel>(ToolbarContent!, new DialogParameters
+        _toolbarPanel = await DialogService.ShowPanelAsync<ToolbarPanel>(ToolbarContent!, new DialogParameters
         {
             Alignment = HorizontalAlignment.Center,
             Title = "Filters",
@@ -35,6 +37,14 @@ public partial class AspirePageContentLayout : ComponentBase
             PrimaryAction = null,
             SecondaryAction = null
         });
+    }
+
+    public async Task CloseMobileToolbarAsync()
+    {
+        if (_toolbarPanel is not null)
+        {
+            await _toolbarPanel.CloseAsync();
+        }
     }
 }
 
