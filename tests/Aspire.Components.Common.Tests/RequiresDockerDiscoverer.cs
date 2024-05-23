@@ -11,7 +11,7 @@ public class RequiresDockerDiscoverer : ITraitDiscoverer
 {
     public IEnumerable<KeyValuePair<string, string>> GetTraits(IAttributeInfo traitAttribute)
     {
-        if (!RequiresDockerTheoryAttribute.IsSupported)
+        if (!RequiresDockerAttribute.IsSupported)
         {
             yield return new KeyValuePair<string, string>(XunitConstants.Category, "failing");
         }
