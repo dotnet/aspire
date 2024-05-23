@@ -41,12 +41,6 @@
     }
 }
 
-@media (max-width: 768px) {
-    ::deep .details-container > header {
-    }
-}
-
-
 ::deep .details-container > header fluent-button[appearance=stealth]:not(:hover)::part(control) {
     background-color: var(--neutral-layer-4);
 }

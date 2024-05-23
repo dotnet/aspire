@@ -4,7 +4,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Resize;
 
-public partial class BrowserDimensionWatcher : ComponentBase
+public class BrowserDimensionWatcher : ComponentBase
 {
     [Parameter]
     public ViewportInformation? ViewportInformation { get; set; }

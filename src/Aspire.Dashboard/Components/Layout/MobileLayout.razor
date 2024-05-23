@@ -1,74 +1,12 @@
 ﻿@using Aspire.Dashboard.Components.CustomIcons;
 @using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
-@using Aspire.Dashboard.Utils
 
 @inject IStringLocalizer<Layout> Loc
 @inject IStringLocalizer<Layout> LayoutLoc
 @inject IStringLocalizer<Dialogs> DialogsLoc
 @inject NavigationManager NavigationManager
 @inject IDashboardClient DashboardClient
-
-@{
-    Task NavigateToAsync(string url)
-    {
-        NavigationManager.NavigateTo(url);
-        return Task.CompletedTask;
-    }
-    IEnumerable<NavMenuItemEntry> GetNavMenu()
-    {
-        if (DashboardClient.IsEnabled)
-        {
-            yield return new(
-                LayoutLoc[nameof(Layout.NavMenuResourcesTab)],
-                () => NavigateToAsync(DashboardUrls.ResourcesUrl()),
-                NavMenu.ResourcesIcon()
-            );
-
-            yield return new(
-                LayoutLoc[nameof(Layout.NavMenuConsoleLogsTab)],
-                () => NavigateToAsync(DashboardUrls.ConsoleLogsUrl()),
-                NavMenu.ConsoleLogsIcon()
-            );
-        }
-
-        yield return new(
-            LayoutLoc[nameof(Layout.NavMenuStructuredLogsTab)],
-            () => NavigateToAsync(DashboardUrls.StructuredLogsUrl()),
-            NavMenu.StructuredLogsIcon()
-        );
-
-        yield return new(
-            LayoutLoc[nameof(Layout.NavMenuTracesTab)],
-            () => NavigateToAsync(DashboardUrls.TracesUrl()),
-            NavMenu.TracesIcon()
-        );
-
-        yield return new(
-            LayoutLoc[nameof(Layout.NavMenuMetricsTab)],
-            () => NavigateToAsync(DashboardUrls.MetricsUrl()),
-            NavMenu.MetricsIcon()
-        );
-
-        yield return new(
-            LayoutLoc[nameof(Layout.MainLayoutAspireRepoLink)],
-            () => NavigateToAsync("https://aka.ms/dotnet/aspire/repo"),
-            new AspireIcons.Size24.GitHub()
-        );
-
-        yield return new(
-            LayoutLoc[nameof(Layout.MainLayoutAspireDashboardHelpLink)],
-            LaunchHelpAsync,
-            new Icons.Regular.Size24.QuestionCircle()
-        );
-
-        yield return new(
-            LayoutLoc[nameof(Layout.MainLayoutLaunchSettings)],
-            LaunchSettingsAsync,
-            new Icons.Regular.Size24.Settings()
-        );
-    }
-}
 
 <div class="layout">
     <div class="aspire-icon">

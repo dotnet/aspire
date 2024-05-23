@@ -190,7 +190,8 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
     {
         if (!ViewportInformation.IsDesktop)
         {
-            SetPanelSizes(0);
+            // panel 1 will have a height of 0, so its fraction of 1 is also 0
+            SetPanelSizes(panel1Fraction: 0);
         }
     }
 
