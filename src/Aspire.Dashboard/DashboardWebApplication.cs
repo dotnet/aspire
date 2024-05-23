@@ -17,7 +17,6 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Grpc;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Hosting;
-using BlazorPro.BlazorSize;
 using Microsoft.AspNetCore.Authentication.Certificate;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -152,9 +151,6 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddScoped<BrowserTimeProvider>();
 
         builder.Services.AddLocalization();
-
-        builder.Services.AddMediaQueryService();
-        builder.Services.AddResizeListener();
 
         _app = builder.Build();
 

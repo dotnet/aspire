@@ -5,7 +5,6 @@ using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
-using BlazorPro.BlazorSize;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
