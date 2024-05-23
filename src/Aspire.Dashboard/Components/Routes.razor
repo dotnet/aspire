@@ -6,6 +6,8 @@
 
 @if (_viewportInformation is null)
 {
+    // prevent render until we've determined the browser viewport so that we don't have to re-render
+    // if we guess wrong
     return;
 }
 

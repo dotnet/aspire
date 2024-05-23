@@ -1,3 +1,6 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -43,8 +46,9 @@ public class BrowserDimensionWatcher : ComponentBase
 
     private static ViewportInformation GetViewportInformation(ViewportSize viewportSize)
     {
-        var isSmall = viewportSize.Width < 768;
-        return new ViewportInformation(!isSmall, viewportSize.Height, viewportSize.Width);
+        // set our mobile cutoff at 768 pixels, which is ~medium tablet size
+        var isDesktop = viewportSize.Width > 768;
+        return new ViewportInformation(!isDesktop, viewportSize.Height, viewportSize.Width);
     }
 
     public record ViewportSize(int Width, int Height);

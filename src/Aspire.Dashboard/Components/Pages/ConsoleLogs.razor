@@ -20,6 +20,7 @@
                         @bind-SelectedResource:after="HandleSelectedOptionChangedAsync" />
         @if (ViewportInformation.IsDesktop)
         {
+            // This takes up too much horizontal space on mobile, so show on a new line on mobile
             <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@PageViewModel.Status</FluentLabel>
         }
     </ToolbarSection>

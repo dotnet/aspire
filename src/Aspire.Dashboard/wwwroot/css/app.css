@@ -129,6 +129,7 @@ h1 {
          height: 130px;
     }
 
+    /* we want less padding on mobile screens to preserve screen height for other elements */
     .page-header {
         padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 0.5px);
     }
@@ -448,7 +449,7 @@ fluent-data-grid-cell.no-ellipsis {
 }
 
 .mobile-absolute-toolbar {
- position: absolute;
- left: 0;
- bottom: 0;
+     position: absolute;
+     left: 0;
+     bottom: 0;
 }
