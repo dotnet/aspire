@@ -14,11 +14,11 @@ using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration;
 
-public class FrontendAuthTests
+public class FrontendBrowserTokenAuthTests
 {
     private readonly ITestOutputHelper _testOutputHelper;
 
-    public FrontendAuthTests(ITestOutputHelper testOutputHelper)
+    public FrontendBrowserTokenAuthTests(ITestOutputHelper testOutputHelper)
     {
         _testOutputHelper = testOutputHelper;
     }
