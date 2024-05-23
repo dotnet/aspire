@@ -32,7 +32,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [InlineData(TestResourceNames.redis)]
     [InlineData(TestResourceNames.garnet)]
     [InlineData(TestResourceNames.sqlserver)]
-    [InlineData(TestResourceNames.eventhubs)]
     public Task VerifyComponentWorks(TestResourceNames resourceName)
         => RunTestAsync(async () =>
         {
@@ -50,6 +49,11 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
                 throw;
             }
         });
+
+    [Fact]
+    [Trait("scenario", "eventhubs")]
+    public Task VerifyAzureEventHubsComponentWorks()
+        => VerifyComponentWorks(TestResourceNames.eventhubs);
 
     [ConditionalFact]
     [SkipOnCI("https://github.com/dotnet/aspire/issues/3161")]

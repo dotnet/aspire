@@ -152,6 +152,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         {
             "oracle" => TestResourceNames.oracledatabase,
             "cosmos" => TestResourceNames.cosmos,
+            "eventhubs" => TestResourceNames.eventhubs,
             "basicservices" => TestResourceNames.kafka
                               | TestResourceNames.mongodb
                               | TestResourceNames.rabbitmq
@@ -161,8 +162,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                               | TestResourceNames.efnpgsql
                               | TestResourceNames.mysql
                               | TestResourceNames.efmysql
-                              | TestResourceNames.sqlserver
-                              | TestResourceNames.eventhubs,
+                              | TestResourceNames.sqlserver,
             "" or null => TestResourceNames.All,
             _ => throw new ArgumentException($"Unknown test scenario '{TestScenario}'")
         };
