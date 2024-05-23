@@ -17,6 +17,10 @@ internal sealed class ContainerSpec
     [JsonPropertyName("image")]
     public string? Image { get; set; }
 
+    // Optional configuration to build an image from a Dockerfile instead of using a pre-built image
+    [JsonPropertyName("build")]
+    public BuildContext? Build { get; set; }
+
     // Volumes that should be mounted into the container
     [JsonPropertyName("volumeMounts")]
     public List<VolumeMount>? VolumeMounts { get; set; }
@@ -48,6 +52,25 @@ internal sealed class ContainerSpec
     // Additional arguments to pass to the container run command
     [JsonPropertyName("runArgs")]
     public List<string>? RunArgs { get; set; }
+}
+
+internal sealed class BuildContext
+{
+    // The path to the directory that will serve as the root of the image build context
+    [JsonPropertyName("context")]
+    public string? Context { get; set; }
+
+    // Optional path to a specific Dockerfile to use in the build (defaults to looking for a Dockerfile in the root Context folder)
+    [JsonPropertyName("dockerfile")]
+    public string? Dockerfile { get; set;}
+
+    // Optional build --build-args to pass to the build command
+    [JsonPropertyName("args")]
+    public List<EnvVar>? Args { get; set; }
+
+    // Optional specific stage to use when building a multiple stage Dockerfile
+    [JsonPropertyName("stage")]
+    public string? Stage { get; set; }
 }
 
 internal static class VolumeMountType
