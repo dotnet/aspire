@@ -219,10 +219,4 @@
     <Compile Include="$(SharedDir)LoggingHelpers.cs" Link="Utils\LoggingHelpers.cs" />
     <Compile Include="$(SharedDir)StringUtils.cs" Link="Utils\StringUtils.cs" />
   </ItemGroup>
-
-  <ItemGroup>
-    <None Update="Components\Layout\DesktopLayout.razor.css">
-      <DependentUpon>DesktopLayout.razor</DependentUpon>
-    </None>
-  </ItemGroup>
 </Project>

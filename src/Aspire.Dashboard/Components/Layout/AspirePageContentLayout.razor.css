@@ -11,11 +11,10 @@
     grid-template-rows: auto 1fr auto;
 }
 
-
-@media (min-width: 768px) {
-
+::deep .title-toolbar-inline {
+    padding-left: 0px;
 }
 
-@media (max-width: 768px) {
-
+::deep .title-toolbar-inline > h1 {
+    margin-left: 0;
 }

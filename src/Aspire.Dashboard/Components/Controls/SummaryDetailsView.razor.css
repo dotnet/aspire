@@ -27,7 +27,6 @@
 ::deep .details-container > header {
     height: auto;
     grid-row-start: 1;
-    background-color: var(--neutral-layer-4);
     color: var(--neutral-foreground-rest);
     padding: calc(var(--design-unit) * 2px) calc(var(--design-unit) * 3px);
     display: grid;
@@ -35,6 +34,18 @@
     grid-template-areas: "title actions";
     align-items: center;
 }
+
+@media (min-width: 768px) {
+    ::deep .details-container > header {
+        background-color: var(--neutral-layer-4);
+    }
+}
+
+@media (max-width: 768px) {
+    ::deep .details-container > header {
+    }
+}
+
 
 ::deep .details-container > header fluent-button[appearance=stealth]:not(:hover)::part(control) {
     background-color: var(--neutral-layer-4);

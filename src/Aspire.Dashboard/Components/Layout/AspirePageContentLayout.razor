@@ -7,20 +7,22 @@
         <div style="grid-area: page-header">
             @if (AddNewlineOnDesktopToolbar)
             {
-                @PageTitleSection
+                <div class="title-toolbar-inline">@PageTitleSection</div>
             }
 
-            <FluentToolbar Orientation="Orientation.Horizontal">
-                @if (AddNewlineOnDesktopToolbar)
-                {
+            @if (AddNewlineOnDesktopToolbar)
+            {
+                <FluentToolbar Orientation="Orientation.Horizontal">
                     @ToolbarSection
-                }
-                else
-                {
+                </FluentToolbar>
+            }
+            else
+            {
+                <FluentToolbar Class="title-toolbar-inline" Orientation="Orientation.Horizontal">
                     @PageTitleSection
                     @ToolbarSection
-                }
-            </FluentToolbar>
+                </FluentToolbar>
+            }
         </div>
 
         <div style="grid-area: main; overflow: auto;">@MainSection</div>
