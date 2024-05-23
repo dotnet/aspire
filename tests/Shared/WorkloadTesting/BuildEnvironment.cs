@@ -200,14 +200,8 @@ public class BuildEnvironment
             {
                 Directory.Delete(TestRootPath, recursive: true);
             }
-            catch (IOException)
+            catch (IOException) when (!EnvironmentVariables.IsRunningOnCI)
             {
-                if (EnvironmentVariables.IsRunningOnCI)
-                {
-                    // Investigate failures on CI, so don't guard against exceptions
-                    return;
-                }
-
                 // there might be lingering processes that are holding onto the files
                 // try deleting the subdirectories instead
                 Console.WriteLine($"\tFailed to delete {TestRootPath} . Deleting subdirectories.");
