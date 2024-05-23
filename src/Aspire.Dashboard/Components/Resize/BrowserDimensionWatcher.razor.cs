@@ -1,14 +1,16 @@
-﻿using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Utils;
+using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Resize;
 
-public partial class BrowserDimensionWatcher : ComponentBase, IAsyncDisposable
+public partial class BrowserDimensionWatcher : ComponentBase
 {
-    private IJSObjectReference? _jsModule;
-    public event BrowserResizedEventHandler? OnBrowserResize;
+    [Parameter]
+    public ViewportInformation? ViewportInformation { get; set; }
+
+    [Parameter]
+    public EventCallback<ViewportInformation?> ViewportInformationChanged { get; set; }
 
     [Inject]
     public required IJSRuntime JS { get; init; }
@@ -17,20 +19,12 @@ public partial class BrowserDimensionWatcher : ComponentBase, IAsyncDisposable
     {
         if (firstRender)
         {
-            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/Components/Resize/BrowserDimensionWatcher.razor.js");
-            var viewport = await _jsModule.InvokeAsync<ViewportSize>("getWindowDimensions");
-            OnBrowserResize?.Invoke(this, new BrowserResizeEventArgs(GetViewportInformation(viewport)));
+            var viewport = await JS.InvokeAsync<ViewportSize>("window.getWindowDimensions");
+            ViewportInformation = GetViewportInformation(viewport);
+            await ViewportInformationChanged.InvokeAsync(ViewportInformation);
         }
 
         await base.OnAfterRenderAsync(firstRender);
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_jsModule != null)
-        {
-            await JSInteropHelpers.SafeDisposeAsync(_jsModule);
-        }
     }
 
     private static ViewportInformation GetViewportInformation(ViewportSize viewportSize)
@@ -38,8 +32,6 @@ public partial class BrowserDimensionWatcher : ComponentBase, IAsyncDisposable
         var isSmall = viewportSize.Width < 768;
         return new ViewportInformation(!isSmall, viewportSize.Height, viewportSize.Width);
     }
-
-    public delegate void BrowserResizedEventHandler(object sender, BrowserResizeEventArgs e);
 
     private record ViewportSize(int Width, int Height);
 }

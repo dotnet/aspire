@@ -435,3 +435,10 @@ window.focusElement = function(selector) {
         element.focus();
     }
 }
+
+window.getWindowDimensions = function() {
+    return {
+        width: window.innerWidth,
+        height: window.innerHeight
+    }
+}

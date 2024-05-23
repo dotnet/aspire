@@ -1,6 +1,15 @@
-﻿@inject IStringLocalizer<Resources.Routes> Loc
+﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Components.Resize
+@inject IStringLocalizer<Resources.Routes> Loc
 
-<MediaQueryList>
+<BrowserDimensionWatcher @bind-ViewportInformation="@_viewportInformation" />
+
+@if (_viewportInformation is null)
+{
+    return;
+}
+
+<CascadingValue Value="@_viewportInformation">
     <Router AppAssembly="@typeof(App).Assembly">
         <Found Context="routeData">
             <!-- AuthorizeRouteView protects pages from being accessed when authorization is required -->
@@ -13,4 +22,8 @@
             </LayoutView>
         </NotFound>
     </Router>
-</MediaQueryList>
+</CascadingValue>
+
+@code {
+    private ViewportInformation? _viewportInformation;
+}
