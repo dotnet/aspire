@@ -75,17 +75,12 @@ app.MapGet("/create", async (MilvusClient milvusClient, ILogger<Program> logger)
     // Check result
     logger.LogInformation("Insert status: {0},", result.ToString());
 
-    return Results.Ok("Collection created");
-});
-
-app.MapGet("/search", async (MilvusClient milvusClient, ILogger<Program> logger) =>
-{
-    MilvusCollection collection = milvusClient.GetCollection("book");
+    // Create index
     await collection.CreateIndexAsync(
-        "book_intro",
-        //MilvusIndexType.IVF_FLAT,//Use MilvusIndexType.IVF_FLAT.
-        IndexType.AutoIndex,//Use MilvusIndexType.AUTOINDEX when you are using zilliz cloud.
-        SimilarityMetricType.L2);
+    "book_intro",
+    //MilvusIndexType.IVF_FLAT,//Use MilvusIndexType.IVF_FLAT.
+    IndexType.AutoIndex,//Use MilvusIndexType.AUTOINDEX when you are using zilliz cloud.
+    SimilarityMetricType.L2);
 
     // Check index status
     IList<MilvusIndexInfo> indexInfos = await collection.DescribeIndexAsync("book_intro");
@@ -95,17 +90,19 @@ app.MapGet("/search", async (MilvusClient milvusClient, ILogger<Program> logger)
         logger.LogInformation("FieldName:{0}, IndexName:{1}, IndexId:{2}", info.FieldName, info.IndexName, info.IndexId);
     }
 
+    logger.LogInformation("Index created");
+
     // Then load it
     await collection.LoadAsync();
 
-    // Search
-    List<string> search_output_fields = new() { "book_id" };
-    List<List<float>> search_vectors = new() { new() { 0.1f, 0.2f } };
-    SearchResults searchResult = await collection.SearchAsync(
-        "book_intro",
-        new ReadOnlyMemory<float>[] { new[] { 0.1f, 0.2f } },
-        SimilarityMetricType.L2,
-        limit: 2);
+    logger.LogInformation("Collection loaded");
+
+    return Results.Ok("Collection created");
+});
+
+app.MapGet("/search", async (MilvusClient milvusClient, ILogger<Program> logger) =>
+{
+    MilvusCollection collection = milvusClient.GetCollection("book");
 
     // Query
     string expr = "book_id in [2,4,6,8]";
