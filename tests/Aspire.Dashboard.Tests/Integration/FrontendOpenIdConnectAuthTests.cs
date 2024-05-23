@@ -29,6 +29,8 @@ public class FrontendOpenIdConnectAuthTests(ITestOutputHelper testOutputHelper)
                 config["Authentication:Schemes:OpenIdConnect:Authority"] = authority.Url;
                 config["Authentication:Schemes:OpenIdConnect:ClientId"] = "MyClientId";
                 config["Authentication:Schemes:OpenIdConnect:ClientSecret"] = "MyClientSecret";
+                // Allow the requirement of HTTPS communication with the OpenIdConnect authority to be relaxed during tests.
+                config["Authentication:Schemes:OpenIdConnect:RequireHttpsMetadata"] = "false";
             });
 
         await app.StartAsync();

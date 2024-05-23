@@ -32,7 +32,9 @@ public static class IntegrationTestHelpers
             [DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "http://127.0.0.1:0",
             [DashboardConfigNames.DashboardOtlpUrlName.ConfigKey] = "http://127.0.0.1:0",
             [DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey] = nameof(OtlpAuthMode.Unsecured),
-            [DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = nameof(FrontendAuthMode.Unsecured)
+            [DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = nameof(FrontendAuthMode.Unsecured),
+            // Allow the requirement of HTTPS communication with the OpenIdConnect authority to be relaxed during tests.
+            ["Authentication:Schemes:OpenIdConnect:RequireHttpsMetadata"] = "false"
         };
 
         additionalConfiguration?.Invoke(initialData);
@@ -55,7 +57,7 @@ public static class IntegrationTestHelpers
                 {
                     sources.Remove(item);
                 }
-            }            
+            }
             builder.Configuration.AddConfiguration(config);
 
             builder.Logging.AddXunit(testOutputHelper);
@@ -71,8 +73,7 @@ public static class IntegrationTestHelpers
                     options.ServerCertificate = s_testCertificate;
                 });
             });
-        },
-        requireHttpsMetadataForOpenIdConnect: false);
+        });
 
         return dashboardWebApplication;
     }

@@ -62,8 +62,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     /// Create a new instance of the <see cref="DashboardWebApplication"/> class.
     /// </summary>
     /// <param name="configureBuilder">Configuration the internal app builder. This is for unit testing.</param>
-    /// <param name="requireHttpsMetadataForOpenIdConnect">Allows the OpenIdConnect infrastructure to work without HTTPS, for unit testing purposes only.</param>
-    public DashboardWebApplication(Action<WebApplicationBuilder>? configureBuilder = null, bool requireHttpsMetadataForOpenIdConnect = true)
+    public DashboardWebApplication(Action<WebApplicationBuilder>? configureBuilder = null)
     {
         var builder = WebApplication.CreateBuilder();
 
@@ -117,7 +116,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             builder.Services.Configure<HttpsRedirectionOptions>(options => options.HttpsPort = browserHttpsPort);
         }
 
-        ConfigureAuthentication(builder, dashboardOptions, requireHttpsMetadataForOpenIdConnect);
+        ConfigureAuthentication(builder, dashboardOptions);
 
         // Add services to the container.
         builder.Services.AddRazorComponents().AddInteractiveServerComponents();
@@ -444,7 +443,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
     }
 
-    private static void ConfigureAuthentication(WebApplicationBuilder builder, DashboardOptions dashboardOptions, bool requireHttpsMetadataForOpenIdConnect)
+    private static void ConfigureAuthentication(WebApplicationBuilder builder, DashboardOptions dashboardOptions)
     {
         var authentication = builder.Services
             .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -514,10 +513,6 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
                     // Avoid "message.State is null or empty" due to use of CallbackPath above.
                     options.SkipUnrecognizedRequests = true;
-
-                    // Allow the requirement of HTTPS communication with the OpenIdConnect authority to be
-                    // relaxed, for unit testing purposes only.
-                    options.RequireHttpsMetadata = requireHttpsMetadataForOpenIdConnect;
                 });
                 break;
             case FrontendAuthMode.BrowserToken:
