@@ -6,7 +6,7 @@ using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Aspire.Dashboard.Model;
 
-namespace Aspire.V1;
+namespace Aspire.ResourceService.Proto.V1;
 
 partial class Resource
 {

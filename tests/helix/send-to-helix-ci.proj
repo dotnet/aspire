@@ -4,8 +4,7 @@
       <TestCategory Include="basictests" />
       <!-- no docker on windows -->
       <TestCategory Condition="'$(OS)' != 'Windows_NT'" Include="endtoendtests" />
-      <!-- build broken on windows for internal pipeline -->
-      <TestCategory Condition="'$(OS)' != 'Windows_NT' or '$(SYSTEM_TEAMPROJECT)' != 'internal'" Include="workloadtests" />
+      <TestCategory Include="workloadtests" />
 
       <AdditionalProperties Condition="'$(Configuration)' != ''" Include="Configuration=$(Configuration)" />
       <_ProjectsToBuild Include="send-to-helix-inner.proj"
