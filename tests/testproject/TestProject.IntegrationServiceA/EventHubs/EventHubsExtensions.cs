@@ -4,6 +4,7 @@
 using System.Text;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
+using Azure.Messaging.EventHubs.Consumer;
 
 public static class EventHubsExtensions
 {
@@ -12,17 +13,20 @@ public static class EventHubsExtensions
         app.MapGet("/eventhubs/verify", VerifyEventHubsAsync);
     }
 
-    private static async Task<IResult> VerifyEventHubsAsync(EventHubProducerClient producerClient)
+    private static async Task<IResult> VerifyEventHubsAsync(EventHubProducerClient producerClient, EventHubConsumerClient consumerClient)
     {
         try
         {
-            var binaryData = Encoding.UTF8.GetBytes("hello worlds");
-
             // If no exception is thrown when awaited, the Event Hubs service has acknowledged
             // receipt and assumed responsibility for delivery of the set of events to its partition.
-            await producerClient.SendAsync([new EventData(binaryData)]);
+            await producerClient.SendAsync([new EventData(Encoding.UTF8.GetBytes("hello worlds"))]);
 
-            return Results.Ok();
+            await foreach (var partition in consumerClient.ReadEventsAsync(new ReadEventOptions { MaximumWaitTime = TimeSpan.FromSeconds(5) }))
+            {
+                return Results.Ok();
+            }
+
+            return Results.Problem("No events were read.");
         }
         catch (Exception e)
         {

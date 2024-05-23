@@ -56,7 +56,8 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
 }
 if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
 {
-    builder.AddAzureEventHubProducerClient("eventhubsns");
+    builder.AddAzureEventHubProducerClient("eventhubsns", settings => settings.EventHubName = "hub");
+    builder.AddAzureEventHubConsumerClient("eventhubsns", settings => settings.EventHubName = "hub");
 }
 if (!resourcesToSkip.HasFlag(TestResourceNames.oracledatabase))
 {
@@ -80,6 +81,11 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
 if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
 {
     builder.AddAzureEventHubProducerClient("eventhubns", settings =>
+    {
+        settings.EventHubName = "hub";
+    });
+
+    builder.AddAzureEventHubConsumerClient("eventhubns", settings =>
     {
         settings.EventHubName = "hub";
     });
