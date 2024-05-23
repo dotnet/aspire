@@ -147,8 +147,7 @@ public static class AzureEventHubsExtensions
                 Path.GetTempFileName(),
                 AzureEventHubsEmulatorResource.EmulatorConfigJsonPath,
                 ContainerMountType.BindMount,
-                isReadOnly: false))
-            ;
+                isReadOnly: false));
 
         // Create a separate storage emulator for the Event Hub one
         var storageResource = builder.ApplicationBuilder
