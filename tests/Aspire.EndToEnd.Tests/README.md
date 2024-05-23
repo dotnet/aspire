@@ -30,7 +30,7 @@ The following changes need to be made to when adding a new component:
 * Add entries to the Program.cs of both the AppHost and IntegrationServiceA projects.
 * Add a test in [IntegrationServicesTests](../Aspire.EndToEnd.Tests/IntegrationServicesTests.cs)
   * If the component's container starts in a reasonable time, the new test can just be a new `[InlineData]` entry to the existing `VerifyComponentWorks` test.
-  * If the container takes a long time to start, or is flakey, add a separate test sceanrio (similar to Oracle and Cosmos).
+  * If the container takes a long time to start, or is flaky, add a separate test scenario (similar to Oracle and Cosmos).
 
 See https://github.com/dotnet/aspire/pull/4179 for an example.
 
