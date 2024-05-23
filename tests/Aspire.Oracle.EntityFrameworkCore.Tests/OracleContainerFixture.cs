@@ -39,3 +39,9 @@ public sealed class OracleContainerFixture : IAsyncLifetime
         }
     }
 }
+
+[CollectionDefinition("Oracle Database collection")]
+public class DatabaseCollection : ICollectionFixture<OracleContainerFixture>
+{
+
+}

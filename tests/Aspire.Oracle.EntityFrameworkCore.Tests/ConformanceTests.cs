@@ -12,7 +12,8 @@ using Xunit;
 
 namespace Aspire.Oracle.EntityFrameworkCore.Tests;
 
-public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFrameworkCoreSettings>, IClassFixture<OracleContainerFixture>
+[Collection("Oracle Database collection")]
+public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFrameworkCoreSettings>
 {
     private readonly OracleContainerFixture? _containerFixture;
     protected string ConnectionString { get; private set; }
