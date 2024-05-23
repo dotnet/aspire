@@ -23,11 +23,11 @@ public sealed class OracleContainerFixture : IAsyncLifetime
                 .WithWaitStrategy(Wait
                     .ForUnixContainer()
                     .UntilMessageIsLogged("Started service freepdb1/freepdb1/freepdb1")
+                    .UntilMessageIsLogged("Completed: ALTER DATABASE OPEN")
                 )
                 .Build();
 
             await Container.StartAsync();
-            Thread.Sleep(5000);
         }
     }
 
