@@ -168,12 +168,12 @@ public class BuildEnvironment
             LogRootPath = Path.Combine(AppContext.BaseDirectory, "logs");
         }
 
-        if (Directory.Exists(TestRootPath))
+        Console.WriteLine($"*** [{TargetFramework}] Using path for projects: {TestRootPath}");
+        CleanupTestRootPath();
+        if (!Directory.Exists(TestRootPath))
         {
-            Directory.Delete(TestRootPath, recursive: true);
+            Directory.CreateDirectory(TestRootPath);
         }
-
-        Directory.CreateDirectory(TestRootPath);
 
         Console.WriteLine($"*** [{TargetFramework}] Using workload path: {sdkForWorkloadPath}");
         if (HasWorkloadFromArtifacts)
@@ -191,7 +191,43 @@ public class BuildEnvironment
                 Console.WriteLine($"*** [{TargetFramework}] Using NuGet cache (never deleted automatically): {NuGetPackagesPath}");
             }
         }
-        Console.WriteLine($"*** [{TargetFramework}] Using path for projects: {TestRootPath}");
+
+        static void CleanupTestRootPath()
+        {
+            if (!Directory.Exists(TestRootPath))
+            {
+                return;
+            }
+
+            try
+            {
+                Directory.Delete(TestRootPath, recursive: true);
+            }
+            catch (IOException)
+            {
+                if (EnvironmentVariables.IsRunningOnCI)
+                {
+                    // Investigate failures on CI, so don't guard against exceptions
+                    return;
+                }
+
+                // there might be lingering processes that are holding onto the files
+                // try deleting the subdirectories instead
+                Console.WriteLine($"\tFailed to delete {TestRootPath} . Deleting subdirectories.");
+                foreach (var dir in Directory.GetDirectories(TestRootPath))
+                {
+                    try
+                    {
+                        Directory.Delete(dir, recursive: true);
+                    }
+                    catch (IOException ioex)
+                    {
+                        // ignore
+                        Console.WriteLine($"\tFailed to delete {dir} : {ioex.Message}. Ignoring.");
+                    }
+                }
+            }
+        }
     }
 
     public BuildEnvironment(BuildEnvironment otherBuildEnvironment)
