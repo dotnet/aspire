@@ -442,3 +442,13 @@ window.getWindowDimensions = function() {
         height: window.innerHeight
     }
 }
+
+window.listenToWindowResize = function(dotnetHelper) {
+    window.addEventListener('load', () => {
+        dotnetHelper.invokeMethodAsync('OnResizeAsync', { width: window.innerWidth, height: window.innerHeight });
+    });
+
+    window.addEventListener('resize', () => {
+        dotnetHelper.invokeMethodAsync('OnResizeAsync', { width: window.innerWidth, height: window.innerHeight });
+    });
+}

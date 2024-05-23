@@ -22,9 +22,23 @@ public partial class BrowserDimensionWatcher : ComponentBase
             var viewport = await JS.InvokeAsync<ViewportSize>("window.getWindowDimensions");
             ViewportInformation = GetViewportInformation(viewport);
             await ViewportInformationChanged.InvokeAsync(ViewportInformation);
+
+            await JS.InvokeVoidAsync("window.listenToWindowResize", DotNetObjectReference.Create(this));
         }
 
         await base.OnAfterRenderAsync(firstRender);
+    }
+
+    [JSInvokable]
+    public async Task OnResizeAsync(ViewportSize viewportSize)
+    {
+        if (ViewportInformation?.Width == viewportSize.Width && ViewportInformation?.Height == viewportSize.Height)
+        {
+            return;
+        }
+
+        ViewportInformation = GetViewportInformation(viewportSize);
+        await ViewportInformationChanged.InvokeAsync(ViewportInformation);
     }
 
     private static ViewportInformation GetViewportInformation(ViewportSize viewportSize)
@@ -33,6 +47,6 @@ public partial class BrowserDimensionWatcher : ComponentBase
         return new ViewportInformation(!isSmall, viewportSize.Height, viewportSize.Width);
     }
 
-    private record ViewportSize(int Width, int Height);
+    public record ViewportSize(int Width, int Height);
 }
 
