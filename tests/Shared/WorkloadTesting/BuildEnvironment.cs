@@ -170,10 +170,7 @@ public class BuildEnvironment
 
         Console.WriteLine($"*** [{TargetFramework}] Using path for projects: {TestRootPath}");
         CleanupTestRootPath();
-        if (!Directory.Exists(TestRootPath))
-        {
-            Directory.CreateDirectory(TestRootPath);
-        }
+        Directory.CreateDirectory(TestRootPath);
 
         Console.WriteLine($"*** [{TargetFramework}] Using workload path: {sdkForWorkloadPath}");
         if (HasWorkloadFromArtifacts)
