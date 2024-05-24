@@ -5,7 +5,7 @@ using Xunit.Sdk;
 
 namespace Aspire.Components.Common.Tests;
 
-[TraitDiscoverer("Aspire.Components.Common.Tests.RequiresDockerDiscoverer", "Aspire.Workload.Tests")]
+[TraitDiscoverer("Aspire.Components.Common.Tests.RequiresDockerDiscoverer", "Aspire.Components.Common.Tests")]
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
 public class RequiresDockerAttribute : Attribute, ITraitAttribute
 {
