@@ -244,8 +244,8 @@ internal static class ContainerState
     // Container finished execution
     public const string Exited = "Exited";
 
-    // Container was running at some point, but has been removed.
-    public const string Removed = "Removed";
+    // Container is in the process of stopping (waiting for container processes to exit, etc.).
+    public const string Stopping = "Stopping";
 
     // Unknown means for some reason container state is unavailable.
     public const string Unknown = "Unknown";
@@ -271,6 +271,7 @@ internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
     public bool LogsAvailable =>
         this.Status?.State == ContainerState.Running
         || this.Status?.State == ContainerState.Paused
+        || this.Status?.State == ContainerState.Stopping
         || this.Status?.State == ContainerState.Exited
         || (this.Status?.State == ContainerState.FailedToStart && this.Status?.ContainerId is not null);
 }
