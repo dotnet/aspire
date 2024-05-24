@@ -14,8 +14,6 @@ public static class KeycloakResouceBuilderExtensions
 {
     private const string AdminEnvVarName = "KEYCLOAK_ADMIN";
     private const string AdminPasswordEnvVarName = "KEYCLOAK_ADMIN_PASSWORD";
-    private const string DefaultAdmin = "admin";
-    private const string DefaultAdminPassword = "admin";
     private const int DefaultContainerPort = 8080;
 
     /// <summary>
@@ -34,7 +32,9 @@ public static class KeycloakResouceBuilderExtensions
         IResourceBuilder<ParameterResource>? admin = null,
         IResourceBuilder<ParameterResource>? adminPassword = null)
     {
-        var resource = new KeycloakResource(name);
+        var passwordParameter = adminPassword?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
+
+        var resource = new KeycloakResource(name, admin?.Resource, passwordParameter);
 
         var keycloak = builder
             .AddResource(resource)
@@ -42,8 +42,11 @@ public static class KeycloakResouceBuilderExtensions
             .WithImageRegistry(KeycloakContainerImageTags.Registry)
             .WithImageTag(KeycloakContainerImageTags.Tag)
             .WithHttpEndpoint(port: port, targetPort: DefaultContainerPort)
-            .WithEnvironment(AdminEnvVarName, admin?.Resource.Value ?? DefaultAdmin)
-            .WithEnvironment(AdminPasswordEnvVarName, adminPassword?.Resource.Value ?? DefaultAdminPassword);
+            .WithEnvironment(context =>
+            {
+                context.EnvironmentVariables[AdminEnvVarName] = resource.AdminReference;
+                context.EnvironmentVariables[AdminPasswordEnvVarName] = resource.AdminPasswordParameter;
+            });
 
         if (builder.ExecutionContext.IsRunMode)
         {
