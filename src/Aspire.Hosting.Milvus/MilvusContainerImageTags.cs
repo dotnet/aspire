@@ -10,6 +10,6 @@ internal static class MilvusContainerImageTags
     public const string Tag = "2.3-latest";
 
     public const string AttuImage = "zilliz/attu";
-    public const string AttuTag = "v2.3.10";
+    public const string AttuTag = "v2.3";
 }
 
