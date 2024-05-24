@@ -5,6 +5,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
+using System.Reflection;
+using System.Text.Json;
 
 namespace Aspire.Hosting.Testing;
 
@@ -154,14 +156,64 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         applicationOptions.AssemblyName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
         applicationOptions.DisableDashboard = true;
         var cfg = hostBuilderOptions.Configuration ??= new();
-        cfg.AddInMemoryCollection(new Dictionary<string, string?>
+        var additionalConfig = new Dictionary<string, string?>
         {
             ["DcpPublisher:RandomizePorts"] = "true",
             ["DcpPublisher:DeleteResourcesOnShutdown"] = "true",
             ["DcpPublisher:ResourceNameSuffix"] = $"{Random.Shared.Next():x}",
-        });
+        };
+
+        var appHostProjectPath = ResolveProjectPath(_entryPoint.Assembly);
+        if (!string.IsNullOrEmpty(appHostProjectPath))
+        {
+            hostBuilderOptions.ContentRootPath = appHostProjectPath;
+        }
+
+        var appHostLaunchSettings = GetLaunchSettings(appHostProjectPath);
+        if (appHostLaunchSettings?.Profiles.FirstOrDefault().Key is { } profileName)
+        {
+            additionalConfig["AppHost:DefaultLaunchProfileName"] = profileName;
+        }
+
+        cfg.AddInMemoryCollection(additionalConfig);
 
         OnBuilderCreating(applicationOptions, hostBuilderOptions);
+    }
+
+    private static string? ResolveProjectPath(Assembly? assembly)
+    {
+        var assemblyMetadata = assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
+        return GetMetadataValue(assemblyMetadata, "AppHostProjectPath");
+    }
+
+    private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)
+    {
+        return assemblyMetadata?.FirstOrDefault(m => string.Equals(m.Key, key, StringComparison.OrdinalIgnoreCase))?.Value;
+    }
+
+    private static LaunchSettings? GetLaunchSettings(string? appHostPath)
+    {
+        if (appHostPath is null || !Directory.Exists(appHostPath))
+        {
+            return null;
+        }
+
+        var projectFileInfo = new DirectoryInfo(appHostPath);
+        var launchSettingsFilePath = projectFileInfo.FullName switch
+        {
+            null => Path.Combine("Properties", "launchSettings.json"),
+            _ => Path.Combine(projectFileInfo.FullName, "Properties", "launchSettings.json")
+        };
+
+        // It isn't mandatory that the launchSettings.json file exists!
+        if (!File.Exists(launchSettingsFilePath))
+        {
+            return null;
+        }
+
+        using var stream = File.OpenRead(launchSettingsFilePath);
+        var settings = JsonSerializer.Deserialize(stream, LaunchSettingsSerializerContext.Default.LaunchSettings);
+        return settings;
     }
 
     private void OnBuilderCreatedCore(DistributedApplicationBuilder applicationBuilder)
@@ -324,10 +376,10 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
             return;
         }
 
-        if (_hostApplicationLifetime is { } hostLifetime && hostLifetime.ApplicationStarted.IsCancellationRequested)
-        {
-            hostLifetime.StopApplication();
-        }
+        // If the application has started, or when it starts, stop it.
+        using var applicationStartedRegistration = _hostApplicationLifetime?.ApplicationStarted.Register(
+            static state => (state as IHostApplicationLifetime)?.StopApplication(),
+            _hostApplicationLifetime);
 
         await _exitTcs.Task.ConfigureAwait(false);
 
