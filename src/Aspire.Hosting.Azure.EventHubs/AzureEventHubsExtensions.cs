@@ -191,7 +191,7 @@ public static class AzureEventHubsExtensions
     /// </summary>
     /// <param name="builder">Builder for the Azure Event Hubs emulator container</param>
     /// <param name="port">Host port to bind to the emulator gateway port.</param>
-    /// <returns>Cosmos emulator resource builder.</returns>
+    /// <returns>Azure Event Hubs emulator resource builder.</returns>
     public static IResourceBuilder<AzureEventHubsEmulatorResource> WithGatewayPort(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, int? port)
     {
         return builder.WithEndpoint("emulator", endpoint =>
