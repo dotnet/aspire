@@ -1,10 +1,15 @@
 <Project>
-
   <Import Project="..\Directory.Build.props" />
   <PropertyGroup>
+    <!-- Set RunSettingsFilePath property which is read by VSTest. -->
+    <RunSettingsFilePath>$(RepositoryEngineeringDir)testing\.runsettings</RunSettingsFilePath>
     <TestArchiveTestsDir Condition="'$(TestArchiveTestsDir)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'tests'))</TestArchiveTestsDir>
     <TestArchiveTestsDirForWorkloadTests Condition="'$(TestArchiveTestsDirForWorkloadTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'workload-tests'))</TestArchiveTestsDirForWorkloadTests>
     <TestArchiveTestsDirForEndToEndTests Condition="'$(TestArchiveTestsDirForEndToEndTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'e2e-tests'))</TestArchiveTestsDirForEndToEndTests>
+    <PlaywrightDependenciesDirectory>$(ArtifactsBinDir)playwright-deps</PlaywrightDependenciesDirectory>
+
+    <!-- This is useful for local runs -->
+    <VSTestResultsDirectory>$(ArtifactsTestResultsDir)</VSTestResultsDirectory>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -12,6 +17,11 @@
   </PropertyGroup>
 
   <Import Project="Shared\Aspire.Workload.Testing.props" Condition="'$(IsWorkloadTestProject)' == 'true'" />
+
+  <PropertyGroup Condition="'$(IsWorkloadTestProject)' == 'true'">
+    <BuiltNuGetsDir>$(ArtifactsShippingPackagesDir)</BuiltNuGetsDir>
+    <PackageVersionForWorkloadManifests>$(PackageVersion)</PackageVersionForWorkloadManifests>
+  </PropertyGroup>
 
   <PropertyGroup>
     <!--

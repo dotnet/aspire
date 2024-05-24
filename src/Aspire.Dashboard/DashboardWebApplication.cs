@@ -121,6 +121,13 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         // Add services to the container.
         builder.Services.AddRazorComponents().AddInteractiveServerComponents();
         builder.Services.AddCascadingAuthenticationState();
+        builder.Services.AddResponseCompression(options =>
+        {
+            options.EnableForHttps = true;
+            // Limit to compressing static text assets to mitigate user supplied data being compressed over HTTPS
+            // See https://learn.microsoft.com/aspnet/core/performance/response-compression#compression-with-https for more information
+            options.MimeTypes = ["text/javascript", "application/javascript", "text/css", "image/svg+xml"];
+        });
 
         // Data from the server.
         builder.Services.AddScoped<IDashboardClient, DashboardClient>();
@@ -218,6 +225,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 _app.UseHsts();
             }
         }
+
+        _app.UseResponseCompression();
 
         _app.UseStatusCodePagesWithReExecute("/error/{0}");
 

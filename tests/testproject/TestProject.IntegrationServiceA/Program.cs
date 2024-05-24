@@ -32,7 +32,11 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.efmysql))
 }
 if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 {
-    builder.AddRedisClient("redis");
+    builder.AddKeyedRedisClient("redis");
+}
+if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
+{
+    builder.AddKeyedRedisClient("garnet");
 }
 if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
@@ -49,6 +53,11 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.rabbitmq))
 if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
 {
     builder.AddMongoDBClient("mymongodb");
+}
+if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
+{
+    builder.AddAzureEventHubProducerClient("eventhubsns", settings => settings.EventHubName = "hub");
+    builder.AddAzureEventHubConsumerClient("eventhubsns", settings => settings.EventHubName = "hub");
 }
 if (!resourcesToSkip.HasFlag(TestResourceNames.oracledatabase))
 {
@@ -69,6 +78,19 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
     builder.AddAzureCosmosClient("cosmos");
 }
 
+if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
+{
+    builder.AddAzureEventHubProducerClient("eventhubns", settings =>
+    {
+        settings.EventHubName = "hub";
+    });
+
+    builder.AddAzureEventHubConsumerClient("eventhubns", settings =>
+    {
+        settings.EventHubName = "hub";
+    });
+}
+
 // Ensure healthChecks are added. Some components like Cosmos
 // don't add this
 builder.Services.AddHealthChecks();
@@ -84,6 +106,11 @@ app.MapGet("/pid", () => Environment.ProcessId);
 if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 {
     app.MapRedisApi();
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
+{
+    app.MapGarnetApi();
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
@@ -133,6 +160,11 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
 if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
 {
     app.MapCosmosApi();
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
+{
+    app.MapEventHubsApi();
 }
 
 app.Run();

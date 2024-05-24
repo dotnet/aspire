@@ -10,7 +10,7 @@ public static class RedisExtensions
         app.MapGet("/redis/verify", VerifyRedisAsync);
     }
 
-    private static async Task<IResult> VerifyRedisAsync(IConnectionMultiplexer cm)
+    private static async Task<IResult> VerifyRedisAsync([FromKeyedServices("redis")] IConnectionMultiplexer cm)
     {
         try
         {

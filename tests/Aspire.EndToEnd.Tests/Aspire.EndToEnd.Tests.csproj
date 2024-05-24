@@ -11,23 +11,25 @@
     <TestUsingWorkloads Condition="! ('$(ContinuousIntegrationBuild)' == 'true' and '$(OS)' == 'Windows_NT')">true</TestUsingWorkloads>
     <InstallWorkloadForTesting>$(TestUsingWorkloads)</InstallWorkloadForTesting>
 
-    <BuiltNuGetsDir>$(ArtifactsShippingPackagesDir)</BuiltNuGetsDir>
-    <PackageVersionForWorkloadManifests>$(PackageVersion)</PackageVersionForWorkloadManifests>
+    <TestsRunningOutsideOfRepo Condition="'$(TestsRunningOutsideOfRepo)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</TestsRunningOutsideOfRepo>
     <DefineConstants Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">TESTS_RUNNING_OUTSIDE_OF_REPO;$(DefineConstants)</DefineConstants>
 
     <XunitRunnerJson>xunit.runner.json</XunitRunnerJson>
+    <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
     <TestArchiveTestsDir>$(TestArchiveTestsDirForEndToEndTests)</TestArchiveTestsDir>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="..\testproject\Common\TestResourceNames.cs" />
-    <Compile Include="..\Shared\WorkloadTesting\*.cs" Link="WorkloadTestingCommon" />
 
     <None Include="..\testproject\**\*" Link="testassets\testproject\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\.editorconfig" Link="testassets\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Condition="'$(InstallWorkloadForTesting)' == 'true'" Include="$(PatchedNuGetConfigPath)" Link="testassets\testproject\nuget.config" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)Directory.Packages.props" Link="testassets\testproject\Directory.Packages.repo.props" CopyToOutputDirectory="PreserveNewest" />
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
   </ItemGroup>
+
+  <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" />
 </Project>
