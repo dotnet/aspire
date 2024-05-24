@@ -226,6 +226,12 @@ internal static class ContainerState
     // Pending is the initial Container state. No attempt has been made to run the container yet.
     public const string Pending = "Pending";
 
+    // Building indicates an image is being built from a Dockerfile, but a container hasn't been created yet.
+    public const string Building = "Building";
+
+    // Starting indicates a container is in the process of starting (pulling images, waiting to join to initial networks, etc.)
+    public const string Starting = "Starting";
+
     // A start attempt was made, but it failed
     public const string FailedToStart = "FailedToStart";
 
