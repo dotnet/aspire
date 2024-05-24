@@ -55,6 +55,7 @@
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.RabbitMQ\RabbitMQContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Qdrant\QdrantContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.SqlServer\SqlServerContainerImageTags.cs" />
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Azure.EventHubs\EventHubsEmulatorContainerImageTags.cs" />
 
     <Content Include="$(RepoRoot)src\Schema\aspire-8.0.json" Link="Schema\aspire-8.0.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
