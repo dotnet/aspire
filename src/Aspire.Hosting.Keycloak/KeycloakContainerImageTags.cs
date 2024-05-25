@@ -7,5 +7,5 @@ internal static class KeycloakContainerImageTags
 {
     public const string Registry = "quay.io";
     public const string Image = "keycloak/keycloak";
-    public const string Tag = "24.0.4";
+    public const string Tag = "24.0";
 }
