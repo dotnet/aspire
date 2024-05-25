@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.ComponentModel;
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
@@ -294,6 +295,21 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
     /// <param name="source">The resource from which to extract service discovery information.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithServiceDiscovery> source)
+        where TDestination : IResourceWithEnvironment
+    {
+        return builder.WithReference(source, null);
+    }
+
+    /// <summary>
+    /// Injects service discovery information as environment variables from the project resource into the destination resource, using the source resource's name as the service name.
+    /// Each endpoint defined on the project resource will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}."
+    /// </summary>
+    /// <typeparam name="TDestination">The destination resource.</typeparam>
+    /// <param name="builder">The resource where the service discovery information will be injected.</param>
+    /// <param name="source">The resource from which to extract service discovery information.</param>
     /// <param name="serviceName">An override of the source resource's name for the service name. The resulting service reference will be "Services__serviceName__endpointName__i" if this is not null.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
 #pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
@@ -328,6 +344,21 @@ public static class ResourceBuilderExtensions
         }
 
         return builder.WithEnvironment($"services__{name}__default__0", uri.ToString());
+    }
+
+    /// <summary>
+    /// Injects service discovery information from the specified endpoint into the project resource using the source resource's name as the service name.
+    /// Each endpoint will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}."
+    /// </summary>
+    /// <typeparam name="TDestination">The destination resource.</typeparam>
+    /// <param name="builder">The resource where the service discovery information will be injected.</param>
+    /// <param name="endpointReference">The endpoint from which to extract the url.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, EndpointReference endpointReference)
+        where TDestination : IResourceWithEnvironment
+    {
+        return builder.WithReference(endpointReference, null);
     }
 
     /// <summary>

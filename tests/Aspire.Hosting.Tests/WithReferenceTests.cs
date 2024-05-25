@@ -10,11 +10,32 @@ namespace Aspire.Hosting.Tests;
 public class WithReferenceTests
 {
     [Theory]
+    [InlineData("mybinding")]
+    [InlineData("MYbinding")]
+    public async Task ResourceWithSingleEndpointProducesSimplifiedEnvironmentVariables(string endpointName)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create a binding and its matching annotation (simulating DCP behavior)
+        var projectA = builder.AddProject<ProjectA>("projecta")
+                .WithHttpsEndpoint(1000, 2000, "mybinding")
+                .WithEndpoint("mybinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
+
+        // Get the service provider.
+        var projectB = builder.AddProject<ProjectB>("b").WithReference(projectA.GetEndpoint(endpointName));
+
+        // Call environment variable callbacks.
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource);
+
+        Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
+    }
+
+    [Theory]
     [InlineData("mybinding", null)]
     [InlineData("MYbinding", null)]
     [InlineData("mybinding", "myservice")]
     [InlineData("MYbinding", "MYservice")]
-    public async Task ResourceWithSingleEndpointProducesSimplifiedEnvironmentVariables(string endpointName, string? serviceName)
+    public async Task ResourceWithSingleEndpointWithServiceNameProducesSimplifiedEnvironmentVariables(string endpointName, string? serviceName)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
