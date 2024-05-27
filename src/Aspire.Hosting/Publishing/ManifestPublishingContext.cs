@@ -235,6 +235,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         }
 
         Writer.WriteString("image", image);
+        WriteBuildContext(container);
 
         if (container.Entrypoint is not null)
         {
@@ -249,6 +250,44 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         await WriteEnvironmentVariablesAsync(container).ConfigureAwait(false);
         WriteBindings(container);
+    }
+
+    private void WriteBuildContext(ContainerResource container)
+    {
+        if (container.TryGetAnnotationsOfType<DockerfileBuildAnnotation>(out var annotations) && annotations.Single() is { } annotation)
+        {
+            Writer.WriteStartObject("build");
+            Writer.WriteString("context", GetManifestRelativePath(annotation.ContextPath));
+            Writer.WriteString("dockerfile", GetManifestRelativePath(annotation.DockerfilePath));
+
+            if (annotation.Stage is { } stage)
+            {
+                Writer.WriteString("stage", stage);
+            }
+
+            if (annotation.BuildArguments.Count > 0)
+            {
+                Writer.WriteStartObject("args");
+
+                foreach (var (key, value) in annotation.BuildArguments)
+                {
+                    var valueString = value switch
+                    {
+                        string stringValue => stringValue,
+                        IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
+                        bool boolValue => boolValue ? "true" : "false",
+                        null => null, // null means let docker build pull from env var.
+                        _ => value.ToString()
+                    };
+
+                    Writer.WriteString(key, valueString);
+                }
+
+                Writer.WriteEndObject();
+            }
+
+            Writer.WriteEndObject();
+        }
     }
 
     /// <summary>

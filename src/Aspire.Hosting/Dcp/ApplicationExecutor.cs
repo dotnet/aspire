@@ -1418,6 +1418,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         var dcpContainerResource = (Container)cr.DcpResource;
         var modelContainerResource = cr.ModelResource;
 
+        await ApplyBuildArgumentsAsync(dcpContainerResource, modelContainerResource, cancellationToken).ConfigureAwait(false);
+
         var config = new Dictionary<string, object>();
 
         dcpContainerResource.Spec.Env = [];
@@ -1570,6 +1572,41 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
 
         await kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task ApplyBuildArgumentsAsync(Container dcpContainerResource, IResource modelContainerResource, CancellationToken cancellationToken)
+    {
+        if (modelContainerResource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault() is { } dockerfileBuildAnnotation)
+        {
+            var dcpBuildArgs = new List<EnvVar>();
+
+            foreach (var buildArgument in dockerfileBuildAnnotation.BuildArguments)
+            {
+                var valueString = buildArgument.Value switch
+                {
+                    string stringValue => stringValue,
+                    IValueProvider valueProvider => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
+                    bool boolValue => boolValue ? "true" : "false",
+                    _ => buildArgument.Value.ToString()
+                };
+
+                var dcpBuildArg = new EnvVar()
+                {
+                    Name = buildArgument.Key,
+                    Value = valueString
+                };
+
+                dcpBuildArgs.Add(dcpBuildArg);
+            }
+
+            dcpContainerResource.Spec.Build = new()
+            {
+                Context = dockerfileBuildAnnotation.ContextPath,
+                Dockerfile = dockerfileBuildAnnotation.DockerfilePath,
+                Stage = dockerfileBuildAnnotation.Stage,
+                Args = dcpBuildArgs
+            };
+        }
     }
 
     private void AddServicesProducedInfo(IResource modelResource, IAnnotationHolder dcpResource, AppResource appResource)

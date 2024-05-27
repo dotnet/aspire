@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
+  "resources": {
+    "goversion": {
+      "type": "parameter.v0",
+      "value": "{goversion.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "mycontainer": {
+      "type": "container.v0",
+      "image": "myimage:latest",
+      "build": {
+        "context": "qots",
+        "dockerfile": "qots/Dockerfile",
+        "args": {
+          "GO_VERSION": "{goversion.value}"
+        }
+      }
+    }
+  }
+}
