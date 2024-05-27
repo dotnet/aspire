@@ -1,5 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Text.RegularExpressions;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -20,7 +22,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         ArgumentNullException.ThrowIfNull(valueProviders);
         ArgumentNullException.ThrowIfNull(manifestExpressions);
 
-        Format = format;
+        Format = ParseFormat(format);
         ValueProviders = valueProviders;
         _manifestExpressions = manifestExpressions;
     }
@@ -67,6 +69,15 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         }
 
         return string.Format(CultureInfo.InvariantCulture, Format, args);
+    }
+
+    internal static string ParseFormat(string format)
+    {
+        // Escape curly braces which aren't used for a parameter.
+        var parsedFormat = Regex.Replace(format, @"{(?!\d)", "{{");
+        parsedFormat = Regex.Replace(parsedFormat, @"(?<!\d)}", "}}");
+
+        return parsedFormat;
     }
 
     internal static ReferenceExpression Create(string format, IValueProvider[] valueProviders, string[] manifestExpressions)
