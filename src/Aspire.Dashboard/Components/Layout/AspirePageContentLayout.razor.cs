@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -52,7 +53,7 @@ public partial class AspirePageContentLayout : ComponentBase
             new DialogParameters
             {
                 Alignment = HorizontalAlignment.Center,
-                Title = "Filters",
+                Title = ControlsStringsLoc[nameof(ControlsStrings.ChartContainerFiltersHeader)],
                 Width = "100%",
                 Height = "90%",
                 Modal = false,

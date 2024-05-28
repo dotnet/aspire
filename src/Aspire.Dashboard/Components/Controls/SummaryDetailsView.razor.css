@@ -38,6 +38,9 @@
     align-items: center;
 }
 
+/* At lower widths we want to use the same background color as the rest of the page, as the header
+   is our page header too
+*/
 @media (min-width: 768px) {
     ::deep .details-container > header {
         background-color: var(--neutral-layer-4);
