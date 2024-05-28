@@ -5,6 +5,7 @@ namespace Aspire.Dashboard.Model;
 
 public record ViewportInformation(int Height, int Width)
 {
+    // set our mobile cutoff at 768 pixels, which is ~medium tablet size
     public bool IsDesktop => Width > 768;
 
     /// <summary>
