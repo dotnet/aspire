@@ -17,7 +17,7 @@ public sealed class MySqlContainerFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        if (RequiresDockerTheoryAttribute.IsSupported)
+        if (RequiresDockerAttribute.IsSupported)
         {
             Container = new MySqlBuilder()
                 .WithImage($"{MySqlContainerImageTags.Image}:{MySqlContainerImageTags.Tag}")

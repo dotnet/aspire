@@ -31,7 +31,8 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
         _containerFixture = containerFixture;
     }
 
-    [RequiresDockerFact]
+    [Fact]
+    [RequiresDocker]
     public void AllowsConfigureConfigurationOptions()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -50,7 +51,8 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
         Assert.Contains("aspire-test-user", connection.Configuration);
     }
 
-    [RequiresDockerTheory]
+    [Theory]
+    [RequiresDocker]
     [InlineData(true)]
     [InlineData(false)]
     public void ReadsFromConnectionStringsCorrectly(bool useKeyed)
@@ -77,7 +79,8 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
         Assert.Contains(ConnectionString, connection.Configuration);
     }
 
-    [RequiresDockerTheory]
+    [Theory]
+    [RequiresDocker]
     [InlineData(true)]
     [InlineData(false)]
     public void ConnectionStringCanBeSetInCode(bool useKeyed)
@@ -107,7 +110,8 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
         Assert.DoesNotContain("unused", connection.Configuration);
     }
 
-    [RequiresDockerTheory]
+    [Theory]
+    [RequiresDocker]
     [InlineData(true)]
     [InlineData(false)]
     public void ConnectionNameWinsOverConfigSection(bool useKeyed)
@@ -255,7 +259,8 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
         Assert.NotNull(profiler);
     }
 
-    [RequiresDockerFact]
+    [Fact]
+    [RequiresDocker]
     public void KeyedServiceRedisInstrumentationEndToEnd()
     {
         RemoteExecutor.Invoke(async (connectionString) =>
@@ -291,7 +296,8 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
         }, ConnectionString).Dispose();
     }
 
-    [RequiresDockerFact]
+    [Fact]
+    [RequiresDocker]
     public async Task CanAddMultipleKeyedServices()
     {
         await using var container2 = await RedisContainerFixture.CreateContainerAsync();
@@ -326,7 +332,8 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
     /// <summary>
     /// Tests that you can use a keyed service for a distributed cache, another for an output cache, while also adding a plain Redis service.
     /// </summary>
-    [RequiresDockerFact]
+    [Fact]
+    [RequiresDocker]
     public async Task CanAddMultipleKeyedCachingServices()
     {
         await using var container1 = await RedisContainerFixture.CreateContainerAsync();
