@@ -445,7 +445,7 @@ fluent-data-grid-cell.no-ellipsis {
 
 .mobile-toolbar {
     width: 100%;
-    height: 5vh;
+    height: max(5vh, 30px);
 }
 
 .mobile-absolute-toolbar {

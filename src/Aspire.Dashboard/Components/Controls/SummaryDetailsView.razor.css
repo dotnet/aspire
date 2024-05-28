@@ -1,5 +1,10 @@
+@media (min-width: 768px) {
+    .summary-details-container {
+        overflow: auto;
+    }
+}
+
 .summary-details-container {
-    overflow: auto;
     height: 100%;
 }
 
@@ -11,12 +16,10 @@
 ::deep .summary-container {
     height: 100%;
     min-width: 100%;
-    overflow: auto;
 }
 
 ::deep .details-container {
     height: 100%;
-    overflow: auto;
     display: grid;
     grid-template-rows: auto 1fr;
     grid-template-areas:

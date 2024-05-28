@@ -34,7 +34,7 @@
     }
     else if (IsSummaryDetailsViewOpen)
     {
-        <div style="grid-area: main; overflow: auto;">@MainSection</div>
+        <div style="@GetMobileMainStyle()">@MainSection</div>
     }
     else
     {
@@ -43,7 +43,7 @@
             @MobilePageTitleToolbarSection
         </FluentToolbar>
 
-        <div style="grid-area: main; overflow: auto;">@MainSection</div>
+        <div style="@GetMobileMainStyle()">@MainSection</div>
 
         if ((FooterSection is not null && ShouldShowFooter) || ToolbarSection is not null)
         {

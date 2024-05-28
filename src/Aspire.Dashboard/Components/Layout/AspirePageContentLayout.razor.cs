@@ -32,6 +32,17 @@ public partial class AspirePageContentLayout : ComponentBase
 
     private IDialogReference? _toolbarPanel;
 
+    private string GetMobileMainStyle()
+    {
+        var style = "grid-area: main;";
+        if (!ViewportInformation.IsUltraLowHeight)
+        {
+            style += "overflow: auto;";
+        }
+
+        return style;
+    }
+
     private async Task OpenMobileToolbarAsync()
     {
         _toolbarPanel = await DialogService.ShowPanelAsync<ToolbarPanel>(

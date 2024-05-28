@@ -47,8 +47,7 @@ public class BrowserDimensionWatcher : ComponentBase
     private static ViewportInformation GetViewportInformation(ViewportSize viewportSize)
     {
         // set our mobile cutoff at 768 pixels, which is ~medium tablet size
-        var isDesktop = viewportSize.Width > 768;
-        return new ViewportInformation(isDesktop, viewportSize.Height, viewportSize.Width);
+        return new ViewportInformation(viewportSize.Height, viewportSize.Width);
     }
 
     public record ViewportSize(int Width, int Height);
