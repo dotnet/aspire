@@ -78,9 +78,10 @@ public static class RabbitMQBuilderExtensions
     /// Calling this method on a resource configured with an unrecognized image registry, name, or tag will result in a <see cref="DistributedApplicationException"/> being thrown.
     /// </remarks>
     /// <param name="builder">The resource builder.</param>
+    /// <param name="port">The host port that can be used to access the management UI page when running locally.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Thrown when the current container image and tag do not match the defaults for <see cref="RabbitMQServerResource"/>.</exception>
-    public static IResourceBuilder<RabbitMQServerResource> WithManagementPlugin(this IResourceBuilder<RabbitMQServerResource> builder)
+    public static IResourceBuilder<RabbitMQServerResource> WithManagementPlugin(this IResourceBuilder<RabbitMQServerResource> builder, int? port = null)
     {
         var handled = false;
         var containerAnnotations = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().ToList();
@@ -128,7 +129,7 @@ public static class RabbitMQBuilderExtensions
 
         if (handled)
         {
-            builder.WithHttpEndpoint(targetPort: 15672, name: RabbitMQServerResource.ManagementEndpointName);
+            builder.WithHttpEndpoint(port: port, targetPort: 15672, name: RabbitMQServerResource.ManagementEndpointName);
             return builder;
         }
 
@@ -166,7 +167,7 @@ public static class RabbitMQBuilderExtensions
         for (var i = 1; i < tag.Length; i++)
         {
             var c = tag[i];
-            
+
             if (!(char.IsAsciiDigit(c) || c == '.') // Interim chars must be digits or a period
                 || !lastCharIsDigit && c == '.') // '.' can only follow a digit
             {

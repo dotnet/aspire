@@ -130,7 +130,7 @@ public class AddRabbitMQTests
         var rabbitmq = appBuilder.AddRabbitMQ("rabbit");
         rabbitmq.WithImageTag(imageTag);
 
-        Assert.Throws<DistributedApplicationException>(rabbitmq.WithManagementPlugin);
+        Assert.Throws<DistributedApplicationException>(() => rabbitmq.WithManagementPlugin());
     }
 
     [Theory]
@@ -144,7 +144,7 @@ public class AddRabbitMQTests
         var rabbitmq = appBuilder.AddRabbitMQ("rabbit");
         rabbitmq.WithImage(imageName);
 
-        Assert.Throws<DistributedApplicationException>(rabbitmq.WithManagementPlugin);
+        Assert.Throws<DistributedApplicationException>(() => rabbitmq.WithManagementPlugin());
     }
 
     [Theory]
@@ -158,7 +158,7 @@ public class AddRabbitMQTests
         var rabbitmq = appBuilder.AddRabbitMQ("rabbit");
         rabbitmq.WithImageRegistry(registry);
 
-        Assert.Throws<DistributedApplicationException>(rabbitmq.WithManagementPlugin);
+        Assert.Throws<DistributedApplicationException>(() => rabbitmq.WithManagementPlugin());
     }
 
     [Theory]
