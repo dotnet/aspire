@@ -54,6 +54,11 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
 {
     builder.AddMongoDBClient("mymongodb");
 }
+if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
+{
+    builder.AddAzureEventHubProducerClient("eventhubsns", settings => settings.EventHubName = "hub");
+    builder.AddAzureEventHubConsumerClient("eventhubsns", settings => settings.EventHubName = "hub");
+}
 if (!resourcesToSkip.HasFlag(TestResourceNames.oracledatabase))
 {
     builder.AddOracleDatabaseDbContext<MyDbContext>("freepdb1");
@@ -71,6 +76,19 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
 if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
 {
     builder.AddAzureCosmosClient("cosmos");
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
+{
+    builder.AddAzureEventHubProducerClient("eventhubns", settings =>
+    {
+        settings.EventHubName = "hub";
+    });
+
+    builder.AddAzureEventHubConsumerClient("eventhubns", settings =>
+    {
+        settings.EventHubName = "hub";
+    });
 }
 
 // Ensure healthChecks are added. Some components like Cosmos
@@ -142,6 +160,11 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
 if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
 {
     app.MapCosmosApi();
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
+{
+    app.MapEventHubsApi();
 }
 
 app.Run();

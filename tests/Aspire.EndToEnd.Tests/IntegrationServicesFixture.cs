@@ -116,6 +116,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             TestResourceNames.redis => "redis",
             TestResourceNames.garnet => "garnet",
             TestResourceNames.sqlserver => "sqlserver",
+            TestResourceNames.eventhubs => "eventhubs",
             _ => throw new ArgumentException($"Unknown resource: {resource}")
         };
 
@@ -147,6 +148,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         {
             "oracle" => TestResourceNames.oracledatabase,
             "cosmos" => TestResourceNames.cosmos,
+            "eventhubs" => TestResourceNames.eventhubs,
             "basicservices" => TestResourceNames.kafka
                               | TestResourceNames.mongodb
                               | TestResourceNames.rabbitmq

@@ -5,6 +5,7 @@
   <Import Project="$(_DirectoryPackagesRepoProps)" Condition="Exists($(_DirectoryPackagesRepoProps))" />
 
   <ItemGroup>
+    <PackageVersion Include="Aspire.Azure.Messaging.EventHubs" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Confluent.Kafka" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure" Version="$(PackageVersion)" />
@@ -12,6 +13,7 @@
     <PackageVersion Include="Aspire.Hosting.Azure.ApplicationInsights" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.CosmosDB" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Azure.EventHubs" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.OperationalInsights" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.PostgreSQL" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.Redis" Version="$(PackageVersion)" />

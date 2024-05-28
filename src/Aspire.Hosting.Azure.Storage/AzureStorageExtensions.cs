@@ -107,7 +107,7 @@ public static class AzureStorageExtensions
                {
                    Registry = "mcr.microsoft.com",
                    Image = "azure-storage/azurite",
-                   Tag = "3.29.0"
+                   Tag = "3.30.0"
                });
 
         if (configureContainer != null)
