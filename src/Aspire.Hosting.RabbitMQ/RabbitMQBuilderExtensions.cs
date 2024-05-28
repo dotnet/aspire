@@ -78,10 +78,23 @@ public static class RabbitMQBuilderExtensions
     /// Calling this method on a resource configured with an unrecognized image registry, name, or tag will result in a <see cref="DistributedApplicationException"/> being thrown.
     /// </remarks>
     /// <param name="builder">The resource builder.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="DistributedApplicationException">Thrown when the current container image and tag do not match the defaults for <see cref="RabbitMQServerResource"/>.</exception>
+    public static IResourceBuilder<RabbitMQServerResource> WithManagementPlugin(this IResourceBuilder<RabbitMQServerResource> builder)
+        => builder.WithManagementPlugin(port: null);
+
+    /// <summary>
+    /// Configures the RabbitMQ container resource to enable the RabbitMQ management plugin.
+    /// </summary>
+    /// <remarks>
+    /// This method only supports the default RabbitMQ container image and tags, e.g. <c>3</c>, <c>3.12-alpine</c>, <c>3.12.13-management-alpine</c>, etc.<br />
+    /// Calling this method on a resource configured with an unrecognized image registry, name, or tag will result in a <see cref="DistributedApplicationException"/> being thrown.
+    /// </remarks>
+    /// <param name="builder">The resource builder.</param>
     /// <param name="port">The host port that can be used to access the management UI page when running locally.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Thrown when the current container image and tag do not match the defaults for <see cref="RabbitMQServerResource"/>.</exception>
-    public static IResourceBuilder<RabbitMQServerResource> WithManagementPlugin(this IResourceBuilder<RabbitMQServerResource> builder, int? port = null)
+    public static IResourceBuilder<RabbitMQServerResource> WithManagementPlugin(this IResourceBuilder<RabbitMQServerResource> builder, int? port)
     {
         var handled = false;
         var containerAnnotations = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().ToList();
