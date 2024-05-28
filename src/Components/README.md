@@ -24,7 +24,7 @@ Each component is in its own NuGet package, and can version independently, inclu
 
 Applications usually have a direct reference to an Aspire component package (e.g `Aspire.StackExchange.Redis`) but have indirect references to the associated client libraries (e.g. `StackExchange.Redis`). This means that the version of the client libraries used by the application is derived from what the component package is built against.
 
-Aspire component packages will be serviced monthly, capturing the latest available versions of the client libraries and Microsoft extensions they depend on, making it possible for applications built on Aspire to always benefit from the latest features and fixes.
+Aspire component packages will be serviced regularly, capturing the latest available versions of the client libraries and Microsoft extensions they depend on, making it possible for applications built on Aspire to always benefit from the latest features and fixes.
 
 #### Breaking Changes
 
