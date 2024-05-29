@@ -605,9 +605,9 @@ public class ManifestGenerationTests
                       "protocol": "tcp",
                       "transport": "tcp",
                       "targetPort": 6379
-                }
-              }
-            },
+                    }
+                  }
+                },
                 "postgres": {
                   "type": "container.v0",
                   "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}",

@@ -40,7 +40,7 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
 }
 if (!resourcesToSkip.HasFlag(TestResourceNames.valkey))
 {
-    builder.AddKeyedRedisClient("valKey");
+    builder.AddKeyedRedisClient("valkey");
 }
 if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
