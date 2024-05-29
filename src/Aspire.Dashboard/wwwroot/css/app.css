@@ -131,7 +131,7 @@ h1 {
 
     /* we want less padding on mobile screens to preserve screen height for other elements */
     .page-header {
-        padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 0.5px);
+        padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 0.5px) 0;
     }
 }
 
