@@ -105,6 +105,11 @@ public class TestProgram : IDisposable
                 var garnet = AppBuilder.AddGarnet("garnet");
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(garnet);
             }
+            if (!resourcesToSkip.HasFlag(TestResourceNames.valkey))
+            {
+                var valKey = AppBuilder.AddValKey("valKey");
+                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(valKey);
+            }
             if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
             {
                 var postgresDbName = "postgresdb";

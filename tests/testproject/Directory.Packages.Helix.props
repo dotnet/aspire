@@ -32,6 +32,7 @@
     <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Redis" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Garnet" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.ValKey" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Seq" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.SqlServer" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Microsoft.Azure.Cosmos" Version="$(PackageVersion)" />

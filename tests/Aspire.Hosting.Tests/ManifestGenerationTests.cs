@@ -11,6 +11,7 @@ using Aspire.Hosting.RabbitMQ;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.ValKey;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -504,6 +505,7 @@ public class ManifestGenerationTests
                     "ConnectionStrings__mysqldb": "{mysqldb.connectionString}",
                     "ConnectionStrings__redis": "{redis.connectionString}",
                     "ConnectionStrings__garnet": "{garnet.connectionString}",
+                    "ConnectionStrings__valkey": "{valkey.connectionString}",
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
                     "ConnectionStrings__rabbitmq": "{rabbitmq.connectionString}",
                     "ConnectionStrings__mymongodb": "{mymongodb.connectionString}",
@@ -593,6 +595,19 @@ public class ManifestGenerationTests
                     }
                   }
                 },
+                "valkey": {
+                  "type": "container.v0",
+                  "connectionString": "{valKey.bindings.tcp.host}:{valKey.bindings.tcp.port}",
+                  "image": "{{ValKeyContainerImageTags.Registry}}/{{ValKeyContainerImageTags.Image}}:{{ValKeyContainerImageTags.Tag}}",
+                  "bindings": {
+                    "tcp": {
+                      "scheme": "tcp",
+                      "protocol": "tcp",
+                      "transport": "tcp",
+                      "targetPort": 6379
+                }
+              }
+            },
                 "postgres": {
                   "type": "container.v0",
                   "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}",

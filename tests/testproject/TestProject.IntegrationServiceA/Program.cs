@@ -38,6 +38,10 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
 {
     builder.AddKeyedRedisClient("garnet");
 }
+if (!resourcesToSkip.HasFlag(TestResourceNames.valkey))
+{
+    builder.AddKeyedRedisClient("valKey");
+}
 if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
     builder.AddNpgsqlDataSource("postgresdb");
@@ -111,6 +115,11 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
 {
     app.MapGarnetApi();
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.valkey))
+{
+    app.MapValKeyApi();
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
