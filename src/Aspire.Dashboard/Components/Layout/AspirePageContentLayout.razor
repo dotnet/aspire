@@ -38,28 +38,39 @@
     else
     {
         <FluentToolbar Orientation="Orientation.Horizontal" Style="grid-area: page-header">
-            @PageTitleSection
-            @MobilePageTitleToolbarSection
+            @if (MobilePageTitleToolbarSection is null)
+            {
+                @PageTitleSection
+
+                <FluentButton Class="single-line-toolbar-button"
+                              Appearance="@Appearance.Lightweight"
+                              OnClick="@OpenMobileToolbarAsync"
+                              aria-label="@(MobileToolbarButtonText ?? LayoutLoc[nameof(Layout.PageLayoutViewFilters)])">
+                    <FluentIcon Icon="Icons.Regular.Size16.Filter" Color="Color.Accent" Class="align-text-bottom" />
+                    @MobileToolbarButtonText
+                </FluentButton>
+            }
+            else
+            {
+                <div style="width: 100%">@PageTitleSection</div>
+
+                @MobilePageTitleToolbarSection
+                <FluentButton Class="mobile-toolbar-button"
+                              Appearance="@Appearance.Lightweight"
+                              OnClick="@OpenMobileToolbarAsync"
+                              aria-label="@(MobileToolbarButtonText ?? LayoutLoc[nameof(Layout.PageLayoutViewFilters)])">
+                    <FluentIcon Icon="Icons.Regular.Size16.Filter" Color="Color.Accent" Class="align-text-bottom" />
+                    @MobileToolbarButtonText
+                </FluentButton>
+            }
         </FluentToolbar>
 
         <div style="@GetMobileMainStyle()">@MainSection</div>
 
-        if ((FooterSection is not null && ShouldShowFooter) || ToolbarSection is not null)
+        if (FooterSection is not null && ShouldShowFooter)
         {
             <div style="grid-area: footer">
-                @if (FooterSection is not null && ShouldShowFooter)
-                {
-                    @FooterSection
-                }
-
-                @if (ToolbarSection is not null)
-                {
-                    <FluentButton Class="mobile-toolbar"
-                                  Appearance="@Appearance.Accent"
-                                  OnClick="@OpenMobileToolbarAsync">
-                        @(MobileToolbarButtonText ?? LayoutLoc[nameof(Layout.PageLayoutViewFilters)])
-                    </FluentButton>
-                }
+                @FooterSection
             </div>
         }
     }
