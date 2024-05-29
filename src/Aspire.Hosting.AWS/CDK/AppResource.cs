@@ -12,8 +12,5 @@ internal class AppResource(string name, IAppProps? props = default) : Resource(n
 {
     public App App { get; } = new(props);
 
-    /// <inheritdoc/>
-    public TaskCompletionSource? ProvisioningTaskCompletionSource { get; set; }
-
     IConstruct IResourceWithConstruct.Construct => App;
 }

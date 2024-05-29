@@ -1,13 +1,14 @@
 ﻿using Amazon;
 using Amazon.CDK;
 using Amazon.CDK.AWS.DynamoDB;
+using Amazon.CDK.AWS.S3;
 using Attribute = Amazon.CDK.AWS.DynamoDB.Attribute;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Setup a configuration for the AWS .NET SDK.
 var awsConfig = builder.AddAWSSDKConfig()
-    .WithProfile("vinles+labs-Admin")
+    .WithProfile("default")
     .WithRegion(RegionEndpoint.EUWest1);
 
 var cdk = builder.AddAWSCDK("app");
@@ -31,8 +32,11 @@ var table = stack.AddDynamoDBTable("table", new TableProps
     ProjectionType = ProjectionType.ALL
 });
 
+var bucket = stack.AddS3Bucket("bucket", new BucketProps { RemovalPolicy = RemovalPolicy.DESTROY });
+
 builder.AddProject<Projects.WebApp>("webapp")
-    .WithReference(table);
+    .WithReference(table)
+    .WithReference(bucket);
     //.WithEnvironment("AWS__Resources__TableName", table.GetOutput("TableName", t => t.TableName));
     //.WithEnvironment("AWS__Resources__TableName", table, t => t.TableName);
     //.WithReference(table);

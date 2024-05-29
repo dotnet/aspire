@@ -5,8 +5,6 @@ Aspire.Hosting.AWS.CDK.ConstructBuilderDelegate<T>
 Aspire.Hosting.AWS.CDK.ConstructOutputDelegate<T>
 Aspire.Hosting.AWS.CDK.IAppResource
 Aspire.Hosting.AWS.CDK.IAppResource.App.get -> Amazon.CDK.App!
-Aspire.Hosting.AWS.CDK.IAppResource.ProvisioningTaskCompletionSource.get -> System.Threading.Tasks.TaskCompletionSource?
-Aspire.Hosting.AWS.CDK.IAppResource.ProvisioningTaskCompletionSource.set -> void
 Aspire.Hosting.AWS.CDK.IConstructResource
 Aspire.Hosting.AWS.CDK.IConstructResource.Stack.get -> Aspire.Hosting.AWS.CDK.IStackResource!
 Aspire.Hosting.AWS.CDK.IConstructResource<T>

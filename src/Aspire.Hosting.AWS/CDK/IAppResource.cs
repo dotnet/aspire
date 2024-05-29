@@ -14,9 +14,4 @@ public interface IAppResource : IResourceWithConstruct
     /// The AWS CDK app.
     /// </summary>
     App App { get; }
-
-    /// <summary>
-    /// The task completion source for the provisioning operation.
-    /// </summary>
-    TaskCompletionSource? ProvisioningTaskCompletionSource { get; set; }
 }
