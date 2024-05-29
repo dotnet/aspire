@@ -16,10 +16,10 @@ public static class CognitoResourceExtensions
     /// <summary>
     /// Adds an Amazon Cognito user pool.
     /// </summary>
-    /// <param name="builder">The builder for the distributed application.</param>
+    /// <param name="builder">The builder for the AWS CDK stack.</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="props">The properties of the userpool.</param>
-    public static IResourceBuilder<IConstructResource<UserPool>> AddCognitoUserPool(this IResourceBuilder<IResourceWithConstruct> builder, string name, IUserPoolProps? props = null)
+    public static IResourceBuilder<IConstructResource<UserPool>> AddCognitoUserPool(this IResourceBuilder<IStackResource> builder, string name, IUserPoolProps? props = null)
     {
         return builder.AddConstruct(name, scope => new UserPool(scope, name, props));
     }

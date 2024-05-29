@@ -16,10 +16,10 @@ public static class DynamoDBResourceExtensions
     /// <summary>
     /// Adds an Amazon DynamoDB table.
     /// </summary>
-    /// <param name="builder">The builder for the distributed application.</param>
+    /// <param name="builder">The builder for the AWS CDK stack.</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="props">The properties of the table.</param>
-    public static IResourceBuilder<IConstructResource<Table>> AddDynamoDBTable(this IResourceBuilder<IResourceWithConstruct> builder, string name, ITableProps props)
+    public static IResourceBuilder<IConstructResource<Table>> AddDynamoDBTable(this IResourceBuilder<IStackResource> builder, string name, ITableProps props)
     {
         return builder.AddConstruct(name, scope => new Table(scope, name, props));
     }

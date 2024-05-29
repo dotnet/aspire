@@ -16,10 +16,10 @@ public static class SQSResourceExtensions
     /// <summary>
     /// Adds an Amazon SQS queue.
     /// </summary>
-    /// <param name="builder">The builder for the distributed application.</param>
+    /// <param name="builder">The builder for the AWS CDK stack.</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="props">The properties of the queue.</param>
-    public static IResourceBuilder<IConstructResource<Queue>> AddSQSQueue(this IResourceBuilder<IResourceWithConstruct> builder, string name, IQueueProps? props = null)
+    public static IResourceBuilder<IConstructResource<Queue>> AddSQSQueue(this IResourceBuilder<IStackResource> builder, string name, IQueueProps? props = null)
     {
         return builder.AddConstruct(name, scope => new Queue(scope, name, props));
     }

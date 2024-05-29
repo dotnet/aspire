@@ -7,14 +7,18 @@ using Stack = Amazon.CDK.Stack;
 
 namespace Aspire.Hosting.AWS.CDK;
 
-internal class StackResource(string name, Stack stack) : CloudFormationResource(name), IStackResource
+internal class StackResource(string name, Stack stack, IResourceWithConstruct parentConstruct) : CloudFormationResource(name), IStackResource
 {
     public Stack Stack { get; } = stack;
 
+    public string StackName => Stack.StackName;
+
     public IConstruct Construct => Stack;
+
+    public IResourceWithConstruct Parent { get; } = parentConstruct;
 }
 
-internal sealed class StackResource<T>(string name, T stack) : StackResource(name, stack), IStackResource<T>
+internal sealed class StackResource<T>(string name, T stack, IResourceWithConstruct parentConstruct) : StackResource(name, stack, parentConstruct), IStackResource<T>
     where T : Stack
 {
     public new T Stack { get; } = stack;

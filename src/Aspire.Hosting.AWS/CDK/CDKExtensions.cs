@@ -1,12 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Amazon.CDK;
 using Amazon.CloudFormation.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS;
 using Aspire.Hosting.AWS.CDK;
 using Aspire.Hosting.AWS.CloudFormation;
 using Constructs;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Stack = Amazon.CDK.Stack;
 using StackResource = Aspire.Hosting.AWS.CDK.StackResource;
@@ -19,40 +21,48 @@ namespace Aspire.Hosting;
 public static class CDKExtensions
 {
     /// <summary>
-    /// Enable AWS CDK for the current <see cref="IDistributedApplicationBuilder"/>.
+    ///
     /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="builder"></param>
+    /// <param name="name"></param>
+    /// <param name="props"></param>
     /// <returns></returns>
-    public static ICDKApplicationBuilder WithAWSCDK(this IDistributedApplicationBuilder builder)
+    public static IResourceBuilder<IAppResource> AddAWSCDK(this IDistributedApplicationBuilder builder, string name, IAppProps? props = null)
     {
-        return new CDKApplicationBuilder(builder);
+        builder.Services.TryAddSingleton<ICloudFormationProvisionerFactory, CDKProvisionerFactory>();
+        builder.AddCloudFormationProvisioning();
+        return builder.AddResource(new AppResource(name, props));
     }
 
     /// <summary>
     /// Adds a AWS CDK stack as resource.
     /// </summary>
-    /// <param name="builder">The <see cref="ICDKApplicationBuilder"/>.</param>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the stack resource.</param>
-    /// <param name="stackName">Optional Cloud Formation stack same if different from the resource name.</param>
     /// <returns></returns>
-    public static IResourceBuilder<IStackResource> AddStack(this ICDKApplicationBuilder builder, string name, string? stackName = null)
-    {
-        var stack = new Stack(builder.App, stackName ?? name);
-        return builder.AddResource(new StackResource(name, stack));
-    }
+    public static IResourceBuilder<IStackResource> AddStack(this IResourceBuilder<IAppResource> builder, string name)
+        => AddStack(builder, name, name);
+
+    /// <summary>
+    /// Adds a AWS CDK stack as resource.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the stack resource.</param>
+    /// <param name="stackName">Cloud Formation stack same if different from the resource name.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<IStackResource> AddStack(this IResourceBuilder<IAppResource> builder, string name, string stackName)
+        => builder.AddResource(app => new StackResource(name, new Stack(app.App, stackName), builder.Resource));
 
     /// <summary>
     /// Adds and build a AWS CDK stack as resource.
     /// </summary>
-    /// <param name="builder">The <see cref="ICDKApplicationBuilder"/>.</param>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource.</param>
     /// <param name="stackBuilder">The stack builder delegate.</param>
     /// <returns></returns>
-    public static IResourceBuilder<IStackResource<T>> AddStack<T>(this ICDKApplicationBuilder builder, StackBuilderDelegate<T> stackBuilder)
+    public static IResourceBuilder<IStackResource<T>> AddStack<T>(this IResourceBuilder<IAppResource> builder, string name, ConstructBuilderDelegate<T> stackBuilder)
         where T : Stack
-    {
-        var stack = stackBuilder(builder.App);
-        return builder.AddResource(new StackResource<T>(stack.StackName, stack));
-    }
+        => builder.AddResource(app => new StackResource<T>(name, stackBuilder(app.App), builder.Resource));
 
     /// <summary>
     /// Adds and build a AWS CDK construct as resource.
@@ -63,10 +73,7 @@ public static class CDKExtensions
     /// <returns></returns>
     public static IResourceBuilder<IConstructResource<T>> AddConstruct<T>(this IResourceBuilder<IResourceWithConstruct> builder, string name, ConstructBuilderDelegate<T> constructBuilder)
         where T : Construct
-    {
-        var construct = constructBuilder((Construct)builder.Resource.Construct);
-        return builder.AddResource(parent => new ConstructResource<T>(name, construct, builder.Resource));
-    }
+        => builder.AddResource(parent => new ConstructResource<T>(name, constructBuilder((Construct)parent.Construct), builder.Resource));
 
     /// <summary>
     /// Adds a stack reference to an output from the CloudFormation stack.
@@ -146,7 +153,7 @@ public static class CDKExtensions
                 return;
             }
 
-            // When the stack has a AWS credentials profile attached, apply that to the resource
+            // When the stack has an AWS credentials profile attached, apply that to the resource
             if (stack.Resource.AWSSDKConfig != null)
             {
                 SdkUtilities.ApplySDKConfig(ctx, stack.Resource.AWSSDKConfig, false);
@@ -218,7 +225,7 @@ public static class CDKExtensions
         where TDestination : IResourceWithEnvironment
     {
         outputName ??= name.Replace("_", string.Empty);
-        if (!source.Resource.Annotations.OfType<IConstructOutputAnnotation>().Where(annotation => annotation.OutputName == outputName).Any())
+        if (source.Resource.Annotations.OfType<IConstructOutputAnnotation>().All(annotation => annotation.OutputName != outputName))
         {
             source.WithAnnotation(new ConstructOutputAnnotation<TConstruct>(outputName, outputDelegate));
         }

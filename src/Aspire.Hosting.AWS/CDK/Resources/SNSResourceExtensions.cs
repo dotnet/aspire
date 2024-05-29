@@ -18,10 +18,10 @@ public static class SNSResourceExtensions
     /// <summary>
     /// Adds an Amazon SNS topic.
     /// </summary>
-    /// <param name="builder">The builder for the distributed application.</param>
+    /// <param name="builder">The builder for the AWS CDK stack.</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="props">The properties of the topic.</param>
-    public static IResourceBuilder<IConstructResource<Topic>> AddSNSTopic(this IResourceBuilder<IResourceWithConstruct> builder, string name, ITopicProps? props = null)
+    public static IResourceBuilder<IConstructResource<Topic>> AddSNSTopic(this IResourceBuilder<IStackResource> builder, string name, ITopicProps? props = null)
     {
         return builder.AddConstruct(name, scope => new Topic(scope, name, props));
     }

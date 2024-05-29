@@ -9,8 +9,6 @@ namespace Aspire.Hosting.AWS.CDK;
 public interface IResourceWithConstruct<out T> : IResourceWithConstruct
     where T : IConstruct
 {
-    /// <summary>
-    ///
-    /// </summary>
+    /// <inheritdoc cref="IResourceWithConstruct.Construct"/>
     new T Construct { get; }
 }

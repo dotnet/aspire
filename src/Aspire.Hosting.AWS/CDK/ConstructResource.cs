@@ -12,6 +12,7 @@ internal class ConstructResource(string name, IConstruct construct, IResourceWit
 
     public IResourceWithConstruct Parent { get; } = parent;
 
+    public IStackResource Stack => Parent as IStackResource ?? this.FindParentOfType<IStackResource>();
 }
 
 internal sealed class ConstructResource<T>(string name, T construct, IResourceWithConstruct parent) : ConstructResource(name, construct, parent), IConstructResource<T>

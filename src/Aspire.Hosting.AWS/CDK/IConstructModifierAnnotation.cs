@@ -9,7 +9,7 @@ namespace Aspire.Hosting.AWS.CDK;
 /// <summary>
 /// Resource annotation to change an AWS CDK construct.
 /// </summary>
-public interface IConstructModifierAnnotation : IResourceAnnotation
+internal interface IConstructModifierAnnotation : IResourceAnnotation
 {
     /// <summary>
     /// Changes the AWS CDK construct.

@@ -19,10 +19,10 @@ public static class S3ResourceExtensions
     /// <summary>
     /// Adds an Amazon S3 bucket.
     /// </summary>
-    /// <param name="builder">The builder for the distributed application.</param>
+    /// <param name="builder">The builder for the AWS CDK stack.</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="props">The properties of the bucket.</param>
-    public static IResourceBuilder<IConstructResource<Bucket>> AddS3Bucket(this IResourceBuilder<IResourceWithConstruct> builder, string name, IBucketProps? props = null)
+    public static IResourceBuilder<IConstructResource<Bucket>> AddS3Bucket(this IResourceBuilder<IStackResource> builder, string name, IBucketProps? props = null)
     {
         return builder.AddConstruct(name, scope => new Bucket(scope, name, props));
     }

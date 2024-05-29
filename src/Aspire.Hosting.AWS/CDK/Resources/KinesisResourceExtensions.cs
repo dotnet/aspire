@@ -17,10 +17,10 @@ public static class KinesisResourceExtensions
     /// <summary>
     /// Adds an Amazon Kinesis stream.
     /// </summary>
-    /// <param name="builder">The builder for the distributed application.</param>
+    /// <param name="builder">The builder for the AWS CDK stack.</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="props">The properties of the stream.</param>
-    public static IResourceBuilder<IConstructResource<Stream>> AddKinesisStream(this IResourceBuilder<IResourceWithConstruct> builder, string name, IStreamProps? props = null)
+    public static IResourceBuilder<IConstructResource<Stream>> AddKinesisStream(this IResourceBuilder<IStackResource> builder, string name, IStreamProps? props = null)
     {
         return builder.AddConstruct(name, scope => new Stream(scope, name, props));
     }
