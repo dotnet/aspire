@@ -597,7 +597,7 @@ public class ManifestGenerationTests
                 },
                 "valkey": {
                   "type": "container.v0",
-                  "connectionString": "{valKey.bindings.tcp.host}:{valKey.bindings.tcp.port}",
+                  "connectionString": "{valkey.bindings.tcp.host}:{valkey.bindings.tcp.port}",
                   "image": "{{ValKeyContainerImageTags.Registry}}/{{ValKeyContainerImageTags.Image}}:{{ValKeyContainerImageTags.Tag}}",
                   "bindings": {
                     "tcp": {
