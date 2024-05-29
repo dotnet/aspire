@@ -10,7 +10,7 @@ public static class ValKeyExtensions
         app.MapGet("/valkey/verify", VerifyValKeyAsync);
     }
 
-    private static async Task<IResult> VerifyValKeyAsync([FromKeyedServices("valKey")] IConnectionMultiplexer cm)
+    private static async Task<IResult> VerifyValKeyAsync([FromKeyedServices("valkey")] IConnectionMultiplexer cm)
     {
         try
         {
