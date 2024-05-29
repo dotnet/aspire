@@ -12,7 +12,10 @@ namespace Aspire.Hosting.Testing;
 /// Factory for creating a distributed application for testing.
 /// </summary>
 /// <param name="entryPoint">A type in the entry point assembly of the target Aspire AppHost. Typically, the Program class can be used.</param>
-public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyncDisposable
+/// <param name="args">
+/// The command-line arguments to pass to the entry point.
+/// </param>
+public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDisposable, IAsyncDisposable
 {
     private readonly Type _entryPoint = entryPoint ?? throw new ArgumentNullException(nameof(entryPoint));
     private readonly TaskCompletionSource _startedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -22,6 +25,14 @@ public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyn
     private readonly object _lockObj = new();
     private bool _entryPointStarted;
     private IHostApplicationLifetime? _hostApplicationLifetime;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DistributedApplicationFactory"/> class.
+    /// </summary>
+    /// <param name="entryPoint">A type in the entry point assembly of the target Aspire AppHost. Typically, the Program class can be used.</param>
+    public DistributedApplicationFactory(Type entryPoint) : this(entryPoint, [])
+    {
+    }
 
     /// <summary>
     /// Gets the distributed application associated with this instance.
@@ -42,7 +53,7 @@ public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyn
     }
 
     /// <summary>
-    /// Initializes the application.
+    /// Starts the application.
     /// </summary>
     /// <param name="cancellationToken">A token used to signal cancellation.</param>
     /// <returns>A <see cref="Task"/> representing the completion of the operation.</returns>
@@ -126,6 +137,18 @@ public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyn
 
     private void OnBuilderCreatingCore(DistributedApplicationOptions applicationOptions, HostApplicationBuilderSettings hostBuilderOptions)
     {
+        hostBuilderOptions.Args = hostBuilderOptions.Args switch
+        {
+            { } existing => [.. existing, .. args],
+            null => args
+        };
+
+        applicationOptions.Args = applicationOptions.Args switch
+        {
+            { } existing => [.. existing, .. args],
+            null => args
+        };
+
         hostBuilderOptions.EnvironmentName = Environments.Development;
         hostBuilderOptions.ApplicationName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
         applicationOptions.AssemblyName = _entryPoint.Assembly.GetName().Name ?? string.Empty;
@@ -195,14 +218,15 @@ public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyn
         try
         {
             using var cts = new CancellationTokenSource(GetConfiguredTimeout());
-            var app = await factory([], cts.Token).ConfigureAwait(false);
+            var app = await factory(args ?? [], cts.Token).ConfigureAwait(false);
             _hostApplicationLifetime = app.Services.GetService<IHostApplicationLifetime>()
                 ?? throw new InvalidOperationException($"Application did not register an implementation of {typeof(IHostApplicationLifetime)}.");
             OnBuiltCore(app);
         }
         catch (Exception exception)
         {
-            _appTcs.TrySetException(exception);
+            _exitTcs.TrySetException(exception);
+            OnException(exception);
         }
 
         static TimeSpan GetConfiguredTimeout()
@@ -227,6 +251,7 @@ public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyn
         if (exception is not null)
         {
             _exitTcs.TrySetException(exception);
+            OnException(exception);
         }
         else
         {
@@ -263,11 +288,23 @@ public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyn
         return _appTcs.Task.GetAwaiter().GetResult();
     }
 
-    /// <inheritdoc/>
-    public virtual void Dispose()
+    private void OnException(Exception exception)
+    {
+        _appTcs.TrySetException(exception);
+        _builderTcs.TrySetException(exception);
+        _startedTcs.TrySetException(exception);
+    }
+
+    private void OnDisposed()
     {
         _builderTcs.TrySetCanceled();
         _startedTcs.TrySetCanceled();
+    }
+
+    /// <inheritdoc/>
+    public virtual void Dispose()
+    {
+        OnDisposed();
         if (_hostApplicationLifetime is null || _appTcs.Task is not { IsCompletedSuccessfully: true } appTask)
         {
             return;
@@ -280,28 +317,23 @@ public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyn
     /// <inheritdoc/>
     public virtual async ValueTask DisposeAsync()
     {
-        _builderTcs.TrySetCanceled();
-        _startedTcs.TrySetCanceled();
+        OnDisposed();
         if (_appTcs.Task is not { IsCompletedSuccessfully: true } appTask)
         {
+            _appTcs.TrySetCanceled();
             return;
         }
 
-        if (_hostApplicationLifetime is { } hostLifetime)
+        if (_hostApplicationLifetime is { } hostLifetime && hostLifetime.ApplicationStarted.IsCancellationRequested)
         {
             hostLifetime.StopApplication();
-
-            // Wait for shutdown to complete.
-            var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            using var _ = hostLifetime.ApplicationStopped.Register(s => ((TaskCompletionSource)s!).SetResult(), tcs);
-            await tcs.Task.ConfigureAwait(false);
         }
 
         await _exitTcs.Task.ConfigureAwait(false);
 
-        if (appTask.GetAwaiter().GetResult() is IAsyncDisposable asyncDisposable)
+        if (appTask.GetAwaiter().GetResult() is { } appDisposable)
         {
-            await asyncDisposable.DisposeAsync().ConfigureAwait(false);
+            await appDisposable.DisposeAsync().ConfigureAwait(false);
         }
     }
 
@@ -371,7 +403,8 @@ public class DistributedApplicationFactory(Type entryPoint) : IDisposable, IAsyn
             }
             catch (Exception exception)
             {
-                appFactory._startedTcs.TrySetException(exception);
+                appFactory.OnException(exception);
+                throw;
             }
         }
 
