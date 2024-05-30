@@ -11,7 +11,7 @@
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Resources.ResourcesPageTitle)" Loc="@Loc" /></PageTitle>
 
 <div class="content-layout-with-toolbar">
-    <FluentToolbar Orientation="Orientation.Horizontal">
+   <FluentToolbar Orientation="Orientation.Horizontal">
         <h1 slot="label">@Loc[nameof(Dashboard.Resources.Resources.ResourcesHeader)]</h1>
         <FluentButton id="typeFilterButton" slot="end"
                       Appearance="@(AreAllTypesVisible is true ? Appearance.Stealth : Appearance.Accent)"
@@ -30,7 +30,7 @@
         <Header>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)]</Header>
         <Body>
             <FluentStack Orientation="Orientation.Vertical">
-                <FluentCheckbox Label="@ControlsStringsLoc[nameof(ControlsStrings.All)]"
+                <FluentCheckbox Label="@ControlsStringsLoc[nameof(ControlsStrings.AllSelected)]"
                                 ThreeState="true"
                                 ShowIndeterminate="false"
                                 onkeydown="e => console.log(e)"
