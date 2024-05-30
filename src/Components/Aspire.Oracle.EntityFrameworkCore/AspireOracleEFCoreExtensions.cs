@@ -168,13 +168,7 @@ public static class AspireOracleEFCoreExtensions
         {
             builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
             {
-                tracerProviderBuilder.AddOracleDataProviderInstrumentation(o =>
-                {
-                    o.EnableConnectionLevelAttributes = true;
-                    o.RecordException = true;
-                    o.InstrumentOracleDataReaderRead = true;
-                    o.SetDbStatementForText = true;
-                });
+                tracerProviderBuilder.AddOracleDataProviderInstrumentation(settings.InstrumentationOptions);
             });
         }
 
