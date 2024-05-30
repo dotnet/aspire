@@ -17,7 +17,7 @@ public sealed class OracleContainerFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        if (RequiresDockerTheoryAttribute.IsSupported)
+        if (RequiresDockerAttribute.IsSupported)
         {
             Container = new OracleBuilder()
                 .WithWaitStrategy(Wait
