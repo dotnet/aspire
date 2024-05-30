@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Publishing;
 
@@ -68,6 +69,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     internal async Task WriteModel(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
         Writer.WriteStartObject();
+        Writer.WriteString("$schema", SchemaUtils.SchemaVersion);
         Writer.WriteStartObject("resources");
 
         foreach (var resource in model.Resources)

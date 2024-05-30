@@ -8,7 +8,7 @@ using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace Aspire.Hosting.Tests;
+namespace Aspire.Hosting.Tests.MongoDB;
 
 public class AddMongoDBTests
 {

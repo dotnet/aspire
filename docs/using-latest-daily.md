@@ -23,15 +23,18 @@ First, we need to make sure you have the latest version of the workload manifest
 
 ```shell
 dotnet workload update --skip-sign-check --source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json
-# If you are already on the latest version, then the command is a no-op.
 ```
+If you are already on the latest version, then the command is a no-op.
 
 Then, we are now able to install the workload with the version of the manifest that we just updated.
 
 ```shell
 dotnet workload install aspire --skip-sign-check --source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json
-# To update it later if you wish
-# dotnet workload update --source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json
+```
+
+To update it later if you wish
+```shell
+dotnet workload update --source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json
 ```
 
 Now you are ready to create and run an Aspire app using these latest Aspire components.
@@ -41,8 +44,11 @@ Now you are ready to create and run an Aspire app using these latest Aspire comp
 Create an empty .NET Aspire project on the command line:
 ```shell
 dotnet new aspire
-# Alternatively, to create a .NET Aspire project using the Starter template:
-# dotnet new aspire-starter
+```
+
+Alternatively, to create a .NET Aspire project using the Starter template:
+```shell
+dotnet new aspire-starter
 ```
 
 These will create a `.sln` file and at least two projects.

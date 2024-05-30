@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Threading.Channels;
+using Microsoft.AspNetCore.Mvc;
 using Stress.ApiService;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,6 +26,23 @@ app.MapGet("/big-trace", async () =>
     await bigTraceCreator.CreateBigTraceAsync();
 
     return "Big trace created";
+});
+
+app.MapGet("/log-message", ([FromServices] ILogger<Program> logger) =>
+{
+    const string message = "Hello World";
+    IReadOnlyList<KeyValuePair<string, object?>> eventData = new List<KeyValuePair<string, object?>>()
+    {
+        new KeyValuePair<string, object?>("Message", message),
+        new KeyValuePair<string, object?>("ActivityId", 123),
+        new KeyValuePair<string, object?>("Level", (int) 10),
+        new KeyValuePair<string, object?>("Tid", Environment.CurrentManagedThreadId),
+        new KeyValuePair<string, object?>("Pid", Environment.ProcessId),
+    };
+
+    logger.Log(LogLevel.Information, 0, eventData, null, formatter: (_, _) => null!);
+
+    return message;
 });
 
 app.MapGet("/many-logs", (ILoggerFactory loggerFactory, CancellationToken cancellationToken) =>

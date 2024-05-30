@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Redis;
@@ -152,5 +153,11 @@ public static class RedisBuilderExtensions
     /// <param name="keysChangedThreshold">The number of key change operations required to trigger a snapshot at the interval. Defaults to 1.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RedisResource> WithPersistence(this IResourceBuilder<RedisResource> builder, TimeSpan? interval = null, long keysChangedThreshold = 1)
-        => builder.WithAnnotation(new RedisPersistenceCommandLineArgsCallbackAnnotation(interval ?? TimeSpan.FromSeconds(60), keysChangedThreshold), ResourceAnnotationMutationBehavior.Replace);
+        => builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
+        {
+            context.Args.Add("--save");
+            context.Args.Add((interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
+            context.Args.Add(keysChangedThreshold.ToString(CultureInfo.InvariantCulture));
+            return Task.CompletedTask;
+        }), ResourceAnnotationMutationBehavior.Replace);
 }

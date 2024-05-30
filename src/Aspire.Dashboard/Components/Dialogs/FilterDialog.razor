@@ -11,7 +11,14 @@
 
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
         <div class="filter-input-container">
-            <FluentCombobox Label="@Loc[nameof(Dialogs.FilterDialogParameterInputLabel)]" Placeholder="@Loc[nameof(Dialogs.FilterDialogFieldPlaceholder)]" Items="@Parameters" @bind-Value="@_formModel.Parameter" Width="100%" Height="500px"/>
+            <FluentCombobox TOption="SelectViewModel<string>"
+                Placeholder="@Loc[nameof(Dialogs.FilterDialogParameterInputLabel)]"
+                Items="@_parameters"
+                @bind-SelectedOption="@_formModel.Parameter"
+                Width="100%"
+                Height="500px"
+                OptionText="@(c => c.Name)"
+                OptionDisabled="@(c => c.Id is null)" />
         </div>
 
         <div class="filter-input-container">

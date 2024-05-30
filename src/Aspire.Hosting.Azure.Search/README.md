@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.Search library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure Search Service.
+Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure AI Search Service.
 
 ## Getting started
 
@@ -10,7 +10,7 @@ Provides extension methods and resource definitions for a .NET Aspire AppHost to
 
 ### Install the package
 
-Install the .NET Aspire Azure Search Hosting library with [NuGet](https://www.nuget.org):
+Install the .NET Aspire Azure AI Search Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.Azure.Search
@@ -38,7 +38,7 @@ automatically.
 
 ## Usage example
 
-Then, in the _Program.cs_ file of `AppHost`, add an Azure Search service and consume the connection using the following methods:
+Then, in the _Program.cs_ file of `AppHost`, add an Azure AI Search service and consume the connection using the following methods:
 
 ```csharp
 var search = builder.AddAzureSearch("search");

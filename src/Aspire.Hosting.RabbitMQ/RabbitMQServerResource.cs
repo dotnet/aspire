@@ -28,7 +28,7 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
     }
 
     /// <summary>
-    /// Gets the primary endpoint for the Redis server.
+    /// Gets the primary endpoint for the RabbitMQ server.
     /// </summary>
     public EndpointReference PrimaryEndpoint { get; }
 
@@ -43,7 +43,7 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
             ReferenceExpression.Create($"{DefaultUserName}");
 
     /// <summary>
-    /// Gets the parameter that contains the PostgreSQL server password.
+    /// Gets the parameter that contains the RabbitMQ server password.
     /// </summary>
     public ParameterResource PasswordParameter { get; }
 

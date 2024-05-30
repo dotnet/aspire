@@ -14,7 +14,7 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     /// Initializes a new instance of the <see cref="SqlServerServerResource"/> class.
     /// </summary>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="password">A parameter that contains the SQL Sever password.</param>
+    /// <param name="password">A parameter that contains the SQL Server password.</param>
     public SqlServerServerResource(string name, ParameterResource password) : base(name)
     {
         ArgumentNullException.ThrowIfNull(password);
@@ -24,12 +24,12 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     }
 
     /// <summary>
-    /// Gets the primary endpoint for the Redis server.
+    /// Gets the primary endpoint for the SQL Server.
     /// </summary>
     public EndpointReference PrimaryEndpoint { get; }
 
     /// <summary>
-    /// Gets the parameter that contains the PostgreSQL server password.
+    /// Gets the parameter that contains the SQL Server password.
     /// </summary>
     public ParameterResource PasswordParameter { get; }
 

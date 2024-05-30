@@ -100,6 +100,11 @@ public class TestProgram : IDisposable
                 var redis = AppBuilder.AddRedis("redis");
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(redis);
             }
+            if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
+            {
+                var garnet = AppBuilder.AddGarnet("garnet");
+                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(garnet);
+            }
             if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
             {
                 var postgresDbName = "postgresdb";

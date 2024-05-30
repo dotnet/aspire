@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerGraphAccessibleLabel">
         <source>Graph. For an accessible view please navigate to the Table tab</source>
-        <target state="translated">圖表如需可存取的檢視，請瀏覽至 [資料表] 索引標籤</target>
+        <target state="translated">圖表。如需可存取的檢視，請前往 [資料表] 索引標籤</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphTab">

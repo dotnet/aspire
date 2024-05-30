@@ -7,16 +7,17 @@ namespace Aspire.Workload.Tests;
 
 public class DotNetCommand : ToolCommand
 {
-    private readonly BuildEnvironment _buildEnvironment;
+    protected readonly BuildEnvironment _buildEnvironment;
     private readonly bool _useDefaultArgs;
 
-    public DotNetCommand(BuildEnvironment buildEnv, ITestOutputHelper _testOutput, bool useDefaultArgs = true, string label = "") : base(buildEnv.DotNet, _testOutput, label)
+    public DotNetCommand(ITestOutputHelper _testOutput, bool useDefaultArgs = true, BuildEnvironment? buildEnv = null, string label = "")
+            : base((buildEnv ?? BuildEnvironment.ForDefaultFramework).DotNet, _testOutput, label)
     {
-        _buildEnvironment = buildEnv;
+        _buildEnvironment = buildEnv ?? BuildEnvironment.ForDefaultFramework;
         _useDefaultArgs = useDefaultArgs;
         if (useDefaultArgs)
         {
-            WithEnvironmentVariables(buildEnv.EnvVars);
+            WithEnvironmentVariables(_buildEnvironment.EnvVars);
         }
     }
 

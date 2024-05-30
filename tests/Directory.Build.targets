@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="$(RepositoryEngineeringDir)testing\.runsettings" CopyToOutputDirectory="PreserveNewest" Condition="'$(DeployRunSettingsFile)' == 'true'" />
+    <None Include="$(RunSettingsFilePath)" CopyToOutputDirectory="PreserveNewest" Condition="'$(DeployRunSettingsFile)' == 'true'" />
     <None Include="$(XunitRunnerJson)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

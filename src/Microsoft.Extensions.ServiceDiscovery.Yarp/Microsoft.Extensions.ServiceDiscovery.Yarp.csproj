@@ -19,4 +19,8 @@
     <ProjectReference Include="..\Microsoft.Extensions.ServiceDiscovery\Microsoft.Extensions.ServiceDiscovery.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Microsoft.Extensions.ServiceDiscovery.Yarp.Tests" />
+  </ItemGroup>
+
 </Project>

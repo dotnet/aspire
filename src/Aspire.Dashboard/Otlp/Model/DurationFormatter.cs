@@ -28,6 +28,12 @@ public static class DurationFormatter
         var ofPrevious = primaryUnit.Ticks / secondaryUnit.Ticks;
         var ticks = (double)duration.Ticks;
 
+        // Special case time 0 to not display any unit, as "0μs" looks quirky
+        if (ticks == 0)
+        {
+            return "0";
+        }
+
         if (primaryUnit.IsDecimal)
         {
             // If the unit is decimal based, display as a decimal

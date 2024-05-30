@@ -8,7 +8,7 @@ namespace Aspire.Dashboard.Model.Otlp;
 public class LogDialogFormModel
 {
     [Required]
-    public string? Parameter { get; set; }
+    public SelectViewModel<string>? Parameter { get; set; }
     [Required]
     public SelectViewModel<FilterCondition>? Condition { get; set; }
     [Required]

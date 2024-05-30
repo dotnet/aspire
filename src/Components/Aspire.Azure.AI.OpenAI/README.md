@@ -11,7 +11,7 @@ Registers [OpenAIClient](https://learn.microsoft.com/dotnet/api/azure.ai.openai.
 
 ### Install the package
 
-Install the .NET Aspire Azure AI OpenAI library with [NuGet](https://www.nuget.org):
+Install the .NET Aspire Azure OpenAI library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Azure.AI.OpenAI
@@ -40,7 +40,7 @@ See the [Azure OpenAI Service quickstarts](https://learn.microsoft.com/azure/ai-
 
 ## Configuration
 
-The .NET Aspire Azure Azure OpenAI library provides multiple options to configure the Azure OpenAI Service based on the requirements and conventions of your project. Note that either an `Endpoint` or a `ConnectionString` is required to be supplied.
+The .NET Aspire Azure OpenAI library provides multiple options to configure the Azure OpenAI Service based on the requirements and conventions of your project. Note that either an `Endpoint` or a `ConnectionString` is required to be supplied.
 
 ### Use a connection string
 
@@ -80,7 +80,7 @@ In order to connect to the non-Azure OpenAI service, drop the Endpoint property 
 
 ### Use configuration providers
 
-The .NET Aspire Azure AI OpenAI library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureOpenAISettings` and `OpenAIClientOptions` from configuration by using the `Aspire:Azure:AI:OpenAI` key. Example `appsettings.json` that configures some of the options:
+The .NET Aspire Azure OpenAI library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureOpenAISettings` and `OpenAIClientOptions` from configuration by using the `Aspire:Azure:AI:OpenAI` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
@@ -118,7 +118,7 @@ In your AppHost project, install the Aspire Azure Cognitive Services Hosting lib
 dotnet add package Aspire.Hosting.Azure.CognitiveServices
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, add an Azure AI OpenAI service and consume the connection using the following methods:
+Then, in the _Program.cs_ file of `AppHost`, add an Azure OpenAI service and consume the connection using the following methods:
 
 ```csharp
 var openai = builder.ExecutionContext.IsPublishMode

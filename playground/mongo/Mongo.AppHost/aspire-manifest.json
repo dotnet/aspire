@@ -1,9 +1,10 @@
 {
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
     "mongo": {
       "type": "container.v0",
       "connectionString": "mongodb://{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}",
-      "image": "mongo:7.0.8",
+      "image": "docker.io/library/mongo:7.0.5",
       "bindings": {
         "tcp": {
           "scheme": "tcp",

@@ -7,7 +7,7 @@ using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Resource.V1;
 
-namespace Stress.ApiService;
+namespace Stress.TelemetryService;
 
 /// <summary>
 /// Send OTLP directly to the dashboard instead of going via opentelemetry-dotnet SDK to send raw and unlimited data.

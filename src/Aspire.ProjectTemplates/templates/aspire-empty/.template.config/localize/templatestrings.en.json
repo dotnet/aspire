@@ -1,6 +1,6 @@
 {
   "author": "Microsoft",
-  "name": ".NET Aspire Application",
+  "name": ".NET Aspire Empty App",
   "description": "A project template for creating an empty .NET Aspire app.",
   "symbols/Framework/description": "The target framework for the project.",
   "symbols/Framework/choices/net8.0/description": "Target net8.0",

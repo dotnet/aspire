@@ -1,0 +1,13 @@
+<Project DefaultTargets="InstallWorkloadUsingArtifacts">
+  <!-- Wrapper project to install workloads for testing -->
+
+  <Target Name="InstallWorkloadUsingArtifacts">
+    <PropertyGroup>
+      <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+    </PropertyGroup>
+
+    <MSBuild Projects="Aspire.EndToEnd.Tests\Aspire.EndToEnd.Tests.csproj"
+             Targets="InstallWorkloadUsingArtifacts"
+             Properties="Configuration=$(Configuration)" />
+  </Target>
+</Project>

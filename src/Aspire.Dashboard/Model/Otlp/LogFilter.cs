@@ -12,19 +12,33 @@ namespace Aspire.Dashboard.Model.Otlp;
 [DebuggerDisplay("{FilterText,nq}")]
 public class LogFilter
 {
+    public const string KnownMessageField = "log.message";
+    public const string KnownCategoryField = "log.category";
+    public const string KnownApplicationField = "log.application";
+    public const string KnownTraceIdField = "log.traceid";
+    public const string KnownSpanIdField = "log.spanid";
+    public const string KnownOriginalFormatField = "log.originalformat";
+
     public string Field { get; set; } = default!;
     public FilterCondition Condition { get; set; }
     public string Value { get; set; } = default!;
 
     public string DebuggerDisplayText => $"{Field} {ConditionToString(Condition, null)} {Value}";
 
-    public string GetDisplayText(IStringLocalizer<Logs> loc) => $"{Field} {ConditionToString(Condition, loc)} {Value}";
+    public string GetDisplayText(IStringLocalizer<Logs> loc) => $"{ResolveFieldName(Field)} {ConditionToString(Condition, loc)} {Value}";
 
-    public static List<string> GetAllPropertyNames(List<string> propertyKeys)
+    public static string ResolveFieldName(string name)
     {
-        var result = new List<string> { "Message", "Category", "Application", "TraceId", "SpanId", "OriginalFormat" };
-        result.AddRange(propertyKeys);
-        return result;
+        return name switch
+        {
+            KnownMessageField => "Message",
+            KnownApplicationField => "Application",
+            KnownTraceIdField => "TraceId",
+            KnownSpanIdField => "SpanId",
+            KnownOriginalFormatField => "OriginalFormat",
+            KnownCategoryField => "Category",
+            _ => name
+        };
     }
 
     public static string ConditionToString(FilterCondition c, IStringLocalizer<Logs>? loc) =>
@@ -87,12 +101,12 @@ public class LogFilter
     {
         return Field switch
         {
-            "Message" => x.Message,
-            "Application" => x.Application.ApplicationName,
-            "TraceId" => x.TraceId,
-            "SpanId" => x.SpanId,
-            "OriginalFormat" => x.OriginalFormat,
-            "Category" => x.Scope.ScopeName,
+            KnownMessageField => x.Message,
+            KnownApplicationField => x.Application.ApplicationName,
+            KnownTraceIdField => x.TraceId,
+            KnownSpanIdField => x.SpanId,
+            KnownOriginalFormatField => x.OriginalFormat,
+            KnownCategoryField => x.Scope.ScopeName,
             _ => x.Attributes.GetValue(Field)
         };
     }

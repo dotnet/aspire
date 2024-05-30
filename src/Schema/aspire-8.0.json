@@ -113,7 +113,7 @@
               },
               "workingDirectory": {
                 "type": "string",
-                "description": "The path to the working directory. Should be intepretted as being relative to the AppHost directory."
+                "description": "The path to the working directory. Should be intepreted as being relative to the AppHost directory."
               },
               "command": {
                 "type": "string",

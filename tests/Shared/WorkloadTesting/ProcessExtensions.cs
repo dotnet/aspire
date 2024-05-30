@@ -17,7 +17,6 @@ internal static class ProcessExtensions
 
             subject.Exited += (s, a) =>
             {
-                //Console.WriteLine ($"StartAndWaitForExitAsync: got Exited event");
                 taskCompletionSource.SetResult(new object());
             };
 
