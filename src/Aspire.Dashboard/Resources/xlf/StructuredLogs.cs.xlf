@@ -7,16 +7,6 @@
         <target state="translated">Přidat filtr</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsAllApplications">
-        <source>(All)</source>
-        <target state="translated">(Vše)</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsAllTypes">
-        <source>All</source>
-        <target state="translated">Vše</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsEditFilter">
         <source>Edit filter</source>
         <target state="translated">Upravit filtr</target>
@@ -28,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsFilters">
-        <source>Filters: </source>
-        <target state="translated">Filtry: </target>
+        <source>Filters</source>
+        <target state="needs-review-translation">Filtry: </target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
@@ -43,8 +33,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsLevels">
-        <source>Level:</source>
-        <target state="translated">Úroveň:</target>
+        <source>Level</source>
+        <target state="needs-review-translation">Úroveň:</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsMessageColumnHeader">

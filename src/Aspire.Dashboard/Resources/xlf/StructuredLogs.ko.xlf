@@ -7,16 +7,6 @@
         <target state="translated">필터 추가</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsAllApplications">
-        <source>(All)</source>
-        <target state="translated">(모두)</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsAllTypes">
-        <source>All</source>
-        <target state="translated">모두</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsEditFilter">
         <source>Edit filter</source>
         <target state="translated">편집 필터</target>
@@ -28,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsFilters">
-        <source>Filters: </source>
-        <target state="translated">필터: </target>
+        <source>Filters</source>
+        <target state="needs-review-translation">필터: </target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
@@ -43,8 +33,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsLevels">
-        <source>Level:</source>
-        <target state="translated">수준:</target>
+        <source>Level</source>
+        <target state="needs-review-translation">수준:</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsMessageColumnHeader">

@@ -78,11 +78,11 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Select a filter condition.
+        ///   Looks up a localized string similar to Condition.
         /// </summary>
-        public static string FilterDialogConditionSelectLabel {
+        public static string FilterDialogConditionInputLabel {
             get {
-                return ResourceManager.GetString("FilterDialogConditionSelectLabel", resourceCulture);
+                return ResourceManager.GetString("FilterDialogConditionInputLabel", resourceCulture);
             }
         }
         
@@ -92,6 +92,24 @@ namespace Aspire.Dashboard.Resources {
         public static string FilterDialogFieldPlaceholder {
             get {
                 return ResourceManager.GetString("FilterDialogFieldPlaceholder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Parameter.
+        /// </summary>
+        public static string FilterDialogMessageInputLabel {
+            get {
+                return ResourceManager.GetString("FilterDialogMessageInputLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Parameter.
+        /// </summary>
+        public static string FilterDialogParameterInputLabel {
+            get {
+                return ResourceManager.GetString("FilterDialogParameterInputLabel", resourceCulture);
             }
         }
         

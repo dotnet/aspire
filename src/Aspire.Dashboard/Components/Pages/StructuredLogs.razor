@@ -31,10 +31,9 @@
                       slot="end" />
         <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <div title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMinimumLogFilter)]" slot="end" style="display: flex;align-items: center;">
-            <span>@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevels)]</span>
-            <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <FluentSelect TOption="SelectViewModel<LogLevel?>"
                           Items="@_logLevels"
+                          Label="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevels)]"
                           Position="SelectPosition.Below"
                           OptionText="@(c => c.Name)"
                           @bind-SelectedOption="PageViewModel.SelectedLogLevel"

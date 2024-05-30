@@ -100,6 +100,7 @@
 	</resheader>
   <data name="EndpointsColumnDisplayNone" xml:space="preserve">
     <value>None</value>
+    <comment>Shown when there are no values available</comment>
   </data>
   <data name="EndpointsColumnDisplayPlaceholder" xml:space="preserve">
     <value>Starting...</value>

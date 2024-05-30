@@ -7,6 +7,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
@@ -102,12 +103,12 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         _allApplication = new()
         {
             Id = null,
-            Name = Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAllApplications)]
+            Name = ControlsStringsLoc[nameof(ControlsStrings.AllSelected)]
         };
 
         _logLevels = new List<SelectViewModel<LogLevel?>>
         {
-            new SelectViewModel<LogLevel?> { Id = null, Name = $"({Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAllTypes)]})" },
+            new SelectViewModel<LogLevel?> { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.AllSelected)] },
             new SelectViewModel<LogLevel?> { Id = LogLevel.Trace, Name = "Trace" },
             new SelectViewModel<LogLevel?> { Id = LogLevel.Debug, Name = "Debug" },
             new SelectViewModel<LogLevel?> { Id = LogLevel.Information, Name = "Information" },

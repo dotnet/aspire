@@ -7,16 +7,6 @@
         <target state="translated">Добавить фильтр</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsAllApplications">
-        <source>(All)</source>
-        <target state="translated">(Все)</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsAllTypes">
-        <source>All</source>
-        <target state="translated">Все</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsEditFilter">
         <source>Edit filter</source>
         <target state="translated">Изменить фильтр</target>
@@ -28,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsFilters">
-        <source>Filters: </source>
-        <target state="translated">Фильтры: </target>
+        <source>Filters</source>
+        <target state="needs-review-translation">Фильтры: </target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
@@ -43,8 +33,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsLevels">
-        <source>Level:</source>
-        <target state="translated">Уровень:</target>
+        <source>Level</source>
+        <target state="needs-review-translation">Уровень:</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsMessageColumnHeader">

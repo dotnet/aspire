@@ -2,9 +2,9 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="tr" original="../ControlsStrings.resx">
     <body>
-      <trans-unit id="All">
-        <source>All</source>
-        <target state="translated">Tümü</target>
+      <trans-unit id="AllSelected">
+        <source>(All)</source>
+        <target state="new">(All)</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerAllTags">
@@ -30,11 +30,6 @@
       <trans-unit id="ChartContainerGraphTab">
         <source>Graph</source>
         <target state="translated">Graf</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ChartContainerNoneSelected">
-        <source>(None)</source>
-        <target state="translated">(Yok)</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">
@@ -167,6 +162,11 @@
         <target state="translated">Ad</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoneSelected">
+        <source>(None)</source>
+        <target state="new">(None)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlotlyChartCount">
         <source>Count</source>
         <target state="translated">Sayı</target>
@@ -214,7 +214,7 @@
       </trans-unit>
       <trans-unit id="SelectAResource">
         <source>Select a resource</source>
-        <target state="translated">Kaynak seçin</target>
+        <target state="needs-review-translation">Kaynak seçin</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">

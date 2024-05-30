@@ -430,6 +430,14 @@ fluent-data-grid-cell.no-ellipsis {
     padding: calc(((var(--design-unit) * 0.5) - var(--stroke-width)) * 1px) calc((var(--design-unit) - var(--stroke-width)) * 1px);
 }
 
+.filter-input-container {
+    width: 75%;
+}
+
+ .layout fluent-toolbar > .fluent-input-label {
+    margin-bottom: 0;
+}
+
 .column-header {
     /*
         fluent-data-grid-cells have a height of 100%, which should correspond to
