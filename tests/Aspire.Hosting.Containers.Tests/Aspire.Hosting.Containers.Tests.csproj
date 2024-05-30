@@ -5,8 +5,17 @@
   </PropertyGroup>
 
   <PropertyGroup>
+
+    <!-- no docker support on helix/windows yet -->
     <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
+
+    <!-- no docker support on helix/windows yet -->
+    <TestUsingWorkloads Condition="! ('$(ContinuousIntegrationBuild)' == 'true' and '$(OS)' == 'Windows_NT')">true</TestUsingWorkloads>
+    <InstallWorkloadForTesting>$(TestUsingWorkloads)</InstallWorkloadForTesting>
+
+    <TestsRunningOutsideOfRepo Condition="'$(TestsRunningOutsideOfRepo)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</TestsRunningOutsideOfRepo>
+    <DefineConstants Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">TESTS_RUNNING_OUTSIDE_OF_REPO;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
   
   <ItemGroup>
