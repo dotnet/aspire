@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsFilters">
-        <source>Filters: </source>
-        <target state="translated">篩選: </target>
+        <source>Filters</source>
+        <target state="needs-review-translation">篩選: </target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
