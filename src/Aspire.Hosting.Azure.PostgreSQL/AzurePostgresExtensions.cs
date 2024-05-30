@@ -171,4 +171,42 @@ public static class AzurePostgresExtensions
             configureResource,
             useProvisioner: true);
     }
+
+    /// <summary>
+    /// Configures resource to use Azure for local development and when doing a deployment via the Azure Developer CLI.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
+    /// <remarks>This will add the VECTOR extension to the deployed PostgreSQL Flexible Server resource.</remarks>
+    [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    public static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServerWithVectorSupport(
+        this IResourceBuilder<PostgresServerResource> builder)
+    {
+        var template = builder.ApplicationBuilder.AddBicepTemplateString("vector-extension", """
+    param postgresServerName string
+
+    param location string = resourceGroup().location
+
+    resource postgresServer 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' existing = {
+        name: postgresServerName
+    }
+
+    resource postgresConfig 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2022-12-01' = {
+      parent: postgresServer
+      name: 'azure.extensions'
+      properties: {
+        value: 'VECTOR'
+        source: 'user-override'
+      }
+    }
+    """);
+
+        builder.AsAzurePostgresFlexibleServer((resource, construct, server) =>
+        {
+            construct.AddOutput(server.AddOutput("name", data => data.Name));
+            template.WithParameter("postgresServerName", resource.GetOutput("name"));
+        });
+
+        return builder;
+    }
 }
