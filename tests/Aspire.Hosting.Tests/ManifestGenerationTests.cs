@@ -509,7 +509,8 @@ public class ManifestGenerationTests
                     "ConnectionStrings__mymongodb": "{mymongodb.connectionString}",
                     "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
                     "ConnectionStrings__kafka": "{kafka.connectionString}",
-                    "ConnectionStrings__cosmos": "{cosmos.connectionString}"
+                    "ConnectionStrings__cosmos": "{cosmos.connectionString}",
+                    "ConnectionStrings__eventhubns": "{eventhubns.connectionString}"
                   },
                   "bindings": {
                     "http": {
@@ -700,6 +701,15 @@ public class ManifestGenerationTests
                   "path": "cosmos.module.bicep",
                   "params": {
                     "keyVaultName": ""
+                  }
+                },
+                "eventhubns": {
+                  "type": "azure.bicep.v0",
+                  "connectionString": "{eventhubns.outputs.eventHubsEndpoint}",
+                  "path": "eventhubns.module.bicep",
+                  "params": {
+                    "principalId": "",
+                    "principalType": ""
                   }
                 },
                 "sqlserver-password": {

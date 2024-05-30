@@ -88,7 +88,8 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
         }
     }
 
-    [RequiresDockerFact]
+    [Fact]
+    [RequiresDocker]
     public async Task AddMongoDBDataSource_HealthCheckShouldBeRegisteredWhenEnabled()
     {
         var builder = CreateBuilder(DefaultConnectionString);
@@ -110,7 +111,8 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
         Assert.Contains(healthCheckReport.Entries, x => x.Key == healthCheckName);
     }
 
-    [RequiresDockerFact]
+    [Fact]
+    [RequiresDocker]
     public void AddKeyedMongoDBDataSource_HealthCheckShouldNotBeRegisteredWhenDisabled()
     {
         var builder = CreateBuilder(DefaultConnectionString);
@@ -128,7 +130,8 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
 
     }
 
-    [RequiresDockerFact]
+    [Fact]
+    [RequiresDocker]
     public async Task AddKeyedMongoDBDataSource_HealthCheckShouldBeRegisteredWhenEnabled()
     {
         var key = DefaultConnectionName;
@@ -152,7 +155,8 @@ public class AspireMongoDBDriverExtensionsTests : IClassFixture<MongoDbContainer
         Assert.Contains(healthCheckReport.Entries, x => x.Key == healthCheckName);
     }
 
-    [RequiresDockerFact]
+    [Fact]
+    [RequiresDocker]
     public void AddMongoDBDataSource_HealthCheckShouldNotBeRegisteredWhenDisabled()
     {
         var builder = CreateBuilder(DefaultConnectionString);

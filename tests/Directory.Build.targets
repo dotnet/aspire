@@ -23,11 +23,4 @@
   </Target>
 
   <Import Project="Shared\Aspire.Workload.Testing.targets" Condition="'$(IsWorkloadTestProject)' == 'true'" />
-
-  <!-- target used to explicitly install the workload on CI, after Build -->
-  <Target Name="_TriggerWorkloadInstallForTesting"
-          AfterTargets="Build"
-          DependsOnTargets="InstallWorkloadUsingArtifacts"
-          Condition="'$(IsWorkloadTestProject)' == 'true' and '$(TriggerInstallWorkloadForTesting)' == 'true'" />
-
 </Project>

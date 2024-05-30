@@ -3,7 +3,10 @@
 
 using System.Diagnostics;
 using System.Text;
+using System.Text.RegularExpressions;
+using Aspire.Components.Common.Tests;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Playwright;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
@@ -11,7 +14,14 @@ namespace Aspire.Workload.Tests;
 
 public class AspireProject : IAsyncDisposable
 {
+    public const int DashboardAvailabilityTimeoutSecs = 60;
+    private const int AppStartupWaitTimeoutSecs = 5 * 60;
     public const string DefaultTargetFramework = "net8.0";
+    private static readonly Regex s_dashboardUrlRegex = new(@"Login to the dashboard at (?<url>.*)", RegexOptions.Compiled);
+
+    public static string GetNuGetConfigPathFor(string targetFramework) =>
+        Path.Combine(BuildEnvironment.TestDataPath, "nuget8.config");
+
     public static Lazy<HttpClient> Client => new(CreateHttpClient);
     public Process? AppHostProcess { get; private set; }
     public string Id { get; init; }
@@ -20,9 +30,10 @@ public class AspireProject : IAsyncDisposable
     public string AppHostProjectDirectory => Path.Combine(RootDir, $"{Id}.AppHost");
     public string ServiceDefaultsProjectPath => Path.Combine(RootDir, $"{Id}.ServiceDefaults");
     public string TestsProjectDirectory => Path.Combine(RootDir, $"{Id}.Tests");
+    public string? DashboardUrl { get; private set; }
     public Dictionary<string, ProjectInfo> InfoTable { get; private set; } = new(capacity: 0);
     public TaskCompletionSource? AppExited { get; private set; }
-    public bool IsRunning => AppHostProcess is not null && !AppHostProcess.HasExited;
+    public bool IsRunning => AppHostProcess is not null && !AppHostProcess.TryGetHasExited();
 
     private readonly ITestOutputHelper _testOutput;
     private readonly BuildEnvironment _buildEnv;
@@ -34,6 +45,61 @@ public class AspireProject : IAsyncDisposable
         _testOutput = testOutput;
         _buildEnv = buildEnv;
         LogPath = Path.Combine(_buildEnv.LogRootPath, Id);
+    }
+
+    protected void InitPaths()
+    {
+        Directory.CreateDirectory(LogPath);
+    }
+
+    protected static void InitProjectDir(string dir, string targetFramework = DefaultTargetFramework)
+    {
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "Directory.Build.props"), "<Project />");
+        File.WriteAllText(Path.Combine(dir, "Directory.Build.targets"), "<Project />");
+
+        string srcNuGetConfigPath = GetNuGetConfigPathFor(targetFramework);
+        string targetNuGetConfigPath = Path.Combine(dir, "nuget.config");
+        File.Copy(srcNuGetConfigPath, targetNuGetConfigPath);
+    }
+
+    public static async Task<AspireProject> CreateNewTemplateProjectAsync(string id, string template, ITestOutputHelper testOutput, BuildEnvironment buildEnvironment, string extraArgs = "", bool addEndpointsHook = true)
+    {
+        string rootDir = Path.Combine(BuildEnvironment.TestRootPath, id);
+        string logPath = Path.Combine(BuildEnvironment.ForDefaultFramework.LogRootPath, id);
+        if (!Directory.Exists(logPath))
+        {
+            Directory.CreateDirectory(logPath);
+        }
+
+        InitProjectDir(rootDir);
+
+        File.WriteAllText(Path.Combine(rootDir, "Directory.Build.props"), "<Project />");
+        File.WriteAllText(Path.Combine(rootDir, "Directory.Build.targets"), "<Project />");
+
+        using var cmd = new DotNetCommand(testOutput, useDefaultArgs: true, label: "dotnet-new")
+                            .WithWorkingDirectory(Path.GetDirectoryName(rootDir)!)
+                            .WithTimeout(TimeSpan.FromMinutes(5));
+
+        var res = await cmd.ExecuteAsync($"new {template} {extraArgs} -o \"{id}\"").ConfigureAwait(false);
+        res.EnsureSuccessful();
+        if (res.Output.Contains("Restore failed", StringComparison.OrdinalIgnoreCase) ||
+            res.Output.Contains("Post action failed", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new XunitException($"`dotnet {$"new {template} {extraArgs} -o \"{id}\""}` . Output: {res.Output}");
+        }
+
+        var project = new AspireProject(id, rootDir, testOutput, buildEnvironment);
+        if (addEndpointsHook)
+        {
+            File.Copy(Path.Combine(BuildEnvironment.TestDataPath, "EndPointWriterHook_cs"), Path.Combine(project.AppHostProjectDirectory, "EndPointWriterHook.cs"));
+            string programCsPath = Path.Combine(project.AppHostProjectDirectory, "Program.cs");
+            string programCs = File.ReadAllText(programCsPath);
+            programCs = "using Aspire.Hosting.Lifecycle; " + programCs;
+            programCs = programCs.Replace("builder.Build().Run();", EndpointWritersCodeSnippet);
+            File.WriteAllText(programCsPath, programCs);
+        }
+        return project;
     }
 
     public async Task StartAppHostAsync(string[]? extraArgs = default, Action<ProcessStartInfo>? configureProcess = null, bool noBuild = true, CancellationToken token = default)
@@ -87,6 +153,12 @@ public class AspireProject : IAsyncDisposable
             }
             _testOutput.WriteLine(logLine);
 
+            var m = s_dashboardUrlRegex.Match(line);
+            if (m.Success)
+            {
+                DashboardUrl = m.Groups["url"].Value;
+            }
+
             if (line?.StartsWith("$ENDPOINTS: ") == true)
             {
                 InfoTable = ProjectInfo.Parse(line.Substring("$ENDPOINTS: ".Length));
@@ -114,11 +186,13 @@ public class AspireProject : IAsyncDisposable
             _testOutput.WriteLine(line);
         };
 
+        Stopwatch runTimeStopwatch = new();
         EventHandler appExitedCallback = (sender, e) =>
         {
             _testOutput.WriteLine("");
             _testOutput.WriteLine($"----------- [{Path.GetFileName(AppHostProjectDirectory)}] app has exited -------------");
             _testOutput.WriteLine("");
+            runTimeStopwatch.Stop();
             AppExited.SetResult();
         };
         AppHostProcess.EnableRaisingEvents = true;
@@ -128,49 +202,55 @@ public class AspireProject : IAsyncDisposable
 
         configureProcess?.Invoke(AppHostProcess.StartInfo);
 
+        runTimeStopwatch.Start();
         AppHostProcess.Start();
         AppHostProcess.BeginOutputReadLine();
         AppHostProcess.BeginErrorReadLine();
 
-        var successfulTask = Task.WhenAll(appRunning.Task, projectsParsed.Task);
-        var failedAppTask = AppExited.Task;
-        var timeoutTask = Task.Delay(TimeSpan.FromMinutes(5), token);
+        var successfulStartupTask = Task.WhenAll(appRunning.Task, projectsParsed.Task);
+        var startupTimeoutTask = Task.Delay(TimeSpan.FromSeconds(AppStartupWaitTimeoutSecs), token);
 
         string outputMessage;
-        // FIXME: cancellation token for the successfulTask?
-        var resultTask = await Task.WhenAny(successfulTask, failedAppTask, timeoutTask);
-        if (resultTask == failedAppTask)
+        var resultTask = await Task.WhenAny(successfulStartupTask, AppExited.Task, startupTimeoutTask).ConfigureAwait(false);
+        if (resultTask != successfulStartupTask)
         {
-            // wait for all the output to be read
-            var allOutputComplete = Task.WhenAll(stdoutComplete.Task, stderrComplete.Task);
-            var appExitTimeout = Task.Delay(TimeSpan.FromSeconds(5), token);
-            var t = await Task.WhenAny(allOutputComplete, appExitTimeout);
-            if (t == appExitTimeout)
+            string reason;
+            // timed out, or the app has exited
+            if (startupTimeoutTask.IsCompleted)
             {
-                _testOutput.WriteLine($"\tand timed out waiting for the full output");
+                runTimeStopwatch.Stop();
+                reason = $"Timed out after {AppStartupWaitTimeoutSecs} secs waiting for the app to start.";
+                _testOutput.WriteLine($"{reason}. Killing ..");
+                AppHostProcess.CloseAndKillProcessIfRunning();
+                AppHostProcess = null;
+            }
+            else
+            {
+                reason = $"App exited before startup could complete with exit code {AppHostProcess.ExitCode}. It ran for {runTimeStopwatch.Elapsed} secs.";
+                _testOutput.WriteLine(reason);
+
+                // wait for all the output to be read
+                var allOutputCompleteTask = Task.WhenAll(stdoutComplete.Task, stderrComplete.Task);
+                var allOutputCompleteTimeoutTask = Task.Delay(TimeSpan.FromSeconds(5), token);
+                var completedTask = await Task.WhenAny(allOutputCompleteTask, allOutputCompleteTimeoutTask).ConfigureAwait(false);
+                if (completedTask == allOutputCompleteTimeoutTask)
+                {
+                    _testOutput.WriteLine($"\tand timed out waiting for the full output");
+                }
             }
 
-            lock(outputLock)
+            lock (outputLock)
             {
                 outputMessage = output.ToString();
             }
-            var exceptionMessage = $"App run failed: {Environment.NewLine}{outputMessage}";
+            var exceptionMessage = $"{reason}: {Environment.NewLine}{outputMessage}";
             if (outputMessage.Contains("docker was found but appears to be unhealthy", StringComparison.OrdinalIgnoreCase))
             {
                 exceptionMessage = "Docker was found but appears to be unhealthy. " + exceptionMessage;
             }
 
             // should really fail and quit after this
-            throw new ArgumentException(exceptionMessage);
-        }
-
-        lock (outputLock)
-        {
-            outputMessage = output.ToString();
-        }
-        if (resultTask != successfulTask)
-        {
-            throw new XunitException($"App run failed: {Environment.NewLine}{outputMessage}");
+            throw new InvalidOperationException(exceptionMessage);
         }
 
         foreach (var project in InfoTable.Values)
@@ -199,6 +279,51 @@ public class AspireProject : IAsyncDisposable
         res.EnsureSuccessful();
     }
 
+    public async Task<IPage> OpenDashboardPageAsync(IBrowserContext context, int timeoutSecs = DashboardAvailabilityTimeoutSecs)
+    {
+        string dashboardUrlToUse;
+        if (Environment.GetEnvironmentVariable("DASHBOARD_URL_FOR_TEST") is string dashboardUrlForTest)
+        {
+            dashboardUrlToUse = dashboardUrlForTest;
+        }
+        else
+        {
+            dashboardUrlToUse = DashboardUrl!;
+        }
+        if (string.IsNullOrEmpty(dashboardUrlToUse))
+        {
+            throw new InvalidOperationException("Dashboard URL is not available");
+        }
+
+        CancellationTokenSource cts = new();
+        cts.CancelAfter(TimeSpan.FromSeconds(DashboardAvailabilityTimeoutSecs));
+        await WaitForDashboardToBeAvailableAsync(dashboardUrlToUse, _testOutput, cts.Token).ConfigureAwait(false);
+
+        var dashboardPage = await context.NewPageWithLoggingAsync(_testOutput);
+        await dashboardPage.GotoAsync(dashboardUrlToUse);
+
+        return dashboardPage;
+    }
+
+    public Task WaitForDashboardToBeAvailableAsync(CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrEmpty(DashboardUrl))
+        {
+            throw new InvalidOperationException("Dashboard URL is not available");
+        }
+
+        return WaitForDashboardToBeAvailableAsync(DashboardUrl, _testOutput, cancellationToken);
+    }
+
+    public static async Task WaitForDashboardToBeAvailableAsync(string dashboardUrl, ITestOutputHelper testOutput, CancellationToken token = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(dashboardUrl, nameof(dashboardUrl));
+
+        testOutput.WriteLine($"Waiting for the dashboard to be available at {dashboardUrl}...");
+        var res = await Client.Value.GetAsync(dashboardUrl, token);
+        res.EnsureSuccessStatusCode();
+    }
+
     public async Task StopAppHostAsync(CancellationToken token = default)
     {
         if (AppHostProcess is null)
@@ -210,7 +335,9 @@ public class AspireProject : IAsyncDisposable
         {
             AppHostProcess.StandardInput.WriteLine("Stop");
         }
-        await AppHostProcess.WaitForExitAsync(token);
+        await AppHostProcess.WaitForExitAsync(token).ConfigureAwait(false);
+        AppHostProcess.WaitForExit(500);
+        AppHostProcess.Dispose();
         AppHostProcess = null;
     }
 
@@ -222,17 +349,22 @@ public class AspireProject : IAsyncDisposable
             return;
         }
 
-        await DumpDockerInfoAsync(new TestOutputWrapper(null));
-        await StopAppHostAsync();
+        await DumpDockerInfoAsync(new TestOutputWrapper(null)).ConfigureAwait(false);
+        await StopAppHostAsync().ConfigureAwait(false);
     }
 
     public async Task DumpDockerInfoAsync(ITestOutputHelper? testOutputArg = null)
     {
+        if (!RequiresDockerAttribute.IsSupported)
+        {
+            return;
+        }
+
         var testOutput = testOutputArg ?? _testOutput!;
         testOutput.WriteLine("--------------------------- Docker info ---------------------------");
 
         using var cmd = new ToolCommand("docker", testOutput!, "container-list");
-        (await cmd.ExecuteAsync(CancellationToken.None, $"container list --all"))
+        (await cmd.ExecuteAsync($"container list --all").ConfigureAwait(false))
             .EnsureSuccessful();
 
         testOutput.WriteLine("--------------------------- Docker info (end) ---------------------------");
@@ -240,13 +372,18 @@ public class AspireProject : IAsyncDisposable
 
     public async Task DumpComponentLogsAsync(string component, ITestOutputHelper? testOutputArg = null)
     {
+        if (!RequiresDockerAttribute.IsSupported)
+        {
+            return;
+        }
+
         var testOutput = testOutputArg ?? _testOutput!;
-        var cts = new CancellationTokenSource();
 
         string containerName;
         {
-            using var cmd = new ToolCommand("docker", testOutput, label: "container-list");
-            var res = (await cmd.ExecuteAsync(cts.Token, $"container list --all --filter name={component} --format {{{{.Names}}}}"))
+            using var cmd = new ToolCommand("docker", testOutput, label: "container-list")
+                                .WithTimeout(TimeSpan.FromSeconds(30));
+            var res = (await cmd.ExecuteAsync($"container list --all --filter name={component} --format {{{{.Names}}}}"))
                 .EnsureSuccessful();
             containerName = res.Output;
         }
@@ -257,15 +394,16 @@ public class AspireProject : IAsyncDisposable
         }
         else
         {
-            using var cmd = new ToolCommand("docker", testOutput, label: component);
-            (await cmd.ExecuteAsync(cts.Token, $"container logs {containerName} -n 50"))
+            using var cmd = new ToolCommand("docker", testOutput, label: component)
+                                .WithTimeout(TimeSpan.FromSeconds(30));
+            (await cmd.ExecuteAsync($"container logs {containerName} -n 50"))
                 .EnsureSuccessful();
         }
     }
 
     public void EnsureAppHostRunning()
     {
-        if (AppHostProcess is null || AppHostProcess.HasExited || AppExited?.Task.IsCompleted == true)
+        if (AppHostProcess is null || AppHostProcess.TryGetHasExited() || AppExited?.Task.IsCompleted == true)
         {
             throw new InvalidOperationException("The app host process is not running.");
         }
@@ -313,4 +451,22 @@ public class AspireProject : IAsyncDisposable
 
         return services.BuildServiceProvider().GetRequiredService<IHttpClientFactory>().CreateClient();
     }
+
+    public const string EndpointWritersCodeSnippet = """
+        builder.Services.AddLifecycleHook<EndPointWriterHook>();
+
+        var app = builder.Build();
+
+        // Run a task to read from the console and stop the app if an external process sends "Stop".
+        // This allows for easier control than sending CTRL+C to the console in a cross-platform way.
+        _ = Task.Run(async () =>
+        {
+            var s = Console.ReadLine();
+            if (s == "Stop")
+            {
+                await app.StopAsync();
+            }
+        });
+        app.Run();
+        """;
 }

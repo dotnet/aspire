@@ -36,8 +36,10 @@ nats
 noreferrer
 noopener
 npgsql
+oauth
 oninput
 openai
+openid
 orleans
 otel
 otlp

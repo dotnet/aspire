@@ -19,7 +19,7 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
-    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
+    protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
 
     protected override bool SupportsKeyedRegistrations => true;
 
@@ -64,7 +64,7 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
     {
-        string connectionString = RequiresDockerTheoryAttribute.IsSupported
+        string connectionString = RequiresDockerAttribute.IsSupported
                                     ? _containerFixture.GetConnectionString()
                                     : "localhost";
         configuration.AddInMemoryCollection([

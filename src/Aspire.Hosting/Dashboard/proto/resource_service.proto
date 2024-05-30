@@ -5,6 +5,8 @@ syntax = "proto3";
 
 package aspire.v1;
 
+option csharp_namespace = "Aspire.ResourceService.Proto.V1";
+
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 

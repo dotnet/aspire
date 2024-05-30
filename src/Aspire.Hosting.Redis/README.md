@@ -24,9 +24,10 @@ var myService = builder.AddProject<Projects.MyService>()
 ```
 
 ## Additional documentation
-https://learn.microsoft.com/dotnet/aspire/caching/stackexchange-redis-component
-https://learn.microsoft.com/dotnet/aspire/caching/stackexchange-redis-output-caching-component
-https://learn.microsoft.com/dotnet/aspire/caching/stackexchange-redis-distributed-caching-component
+
+* https://learn.microsoft.com/dotnet/aspire/caching/stackexchange-redis-component
+* https://learn.microsoft.com/dotnet/aspire/caching/stackexchange-redis-output-caching-component
+* https://learn.microsoft.com/dotnet/aspire/caching/stackexchange-redis-distributed-caching-component
 
 ## Feedback & contributing
 

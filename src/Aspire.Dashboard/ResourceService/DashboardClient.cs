@@ -10,7 +10,7 @@ using System.Threading.Channels;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting;
-using Aspire.V1;
+using Aspire.ResourceService.Proto.V1;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Configuration;
@@ -272,6 +272,12 @@ internal sealed class DashboardClient : IDashboardClient
                     try
                     {
                         await WatchResourcesAsync().ConfigureAwait(false);
+                    }
+                    catch (ObjectDisposedException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        // There's a race condition between reconnect attempts and client disposal.
+                        // This has been observed in unit tests where the client is created and disposed
+                        // very quickly. This check should probably be in the gRPC library instead.
                     }
                     catch (RpcException ex)
                     {

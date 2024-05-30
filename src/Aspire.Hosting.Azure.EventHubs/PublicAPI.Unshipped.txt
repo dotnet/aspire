@@ -1,10 +1,18 @@
 #nullable enable
+Aspire.Hosting.Azure.AzureEventHubsEmulatorResource
+Aspire.Hosting.Azure.AzureEventHubsEmulatorResource.AzureEventHubsEmulatorResource(Aspire.Hosting.Azure.AzureEventHubsResource! innerResource) -> void
 Aspire.Hosting.Azure.AzureEventHubsResource
 Aspire.Hosting.Azure.AzureEventHubsResource.AzureEventHubsResource(string! name, System.Action<Aspire.Hosting.ResourceModuleConstruct!>! configureConstruct) -> void
 Aspire.Hosting.Azure.AzureEventHubsResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
 Aspire.Hosting.Azure.AzureEventHubsResource.EventHubsEndpoint.get -> Aspire.Hosting.Azure.BicepOutputReference!
+Aspire.Hosting.Azure.AzureEventHubsResource.IsEmulator.get -> bool
 Aspire.Hosting.AzureEventHubsExtensions
+override Aspire.Hosting.Azure.AzureEventHubsEmulatorResource.Annotations.get -> Aspire.Hosting.ApplicationModel.ResourceAnnotationCollection!
+override Aspire.Hosting.Azure.AzureEventHubsEmulatorResource.Name.get -> string!
 static Aspire.Hosting.AzureEventHubsExtensions.AddAzureEventHubs(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureEventHubsResource!>!
 static Aspire.Hosting.AzureEventHubsExtensions.AddAzureEventHubs(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureEventHubsResource!>!, Aspire.Hosting.ResourceModuleConstruct!, Azure.Provisioning.EventHubs.EventHubsNamespace!>? configureResource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureEventHubsResource!>!
 static Aspire.Hosting.AzureEventHubsExtensions.AddEventHub(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureEventHubsResource!>! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureEventHubsResource!>!
 static Aspire.Hosting.AzureEventHubsExtensions.AddEventHub(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureEventHubsResource!>! builder, string! name, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureEventHubsResource!>!, Aspire.Hosting.ResourceModuleConstruct!, Azure.Provisioning.EventHubs.EventHub!>? configureHub) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureEventHubsResource!>!
+static Aspire.Hosting.AzureEventHubsExtensions.RunAsEmulator(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureEventHubsResource!>! builder, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureEventHubsEmulatorResource!>!>? configureContainer = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureEventHubsResource!>!
+static Aspire.Hosting.AzureEventHubsExtensions.WithDataBindMount(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureEventHubsEmulatorResource!>! builder, string? path = null, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureEventHubsEmulatorResource!>!
+static Aspire.Hosting.AzureEventHubsExtensions.WithGatewayPort(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureEventHubsEmulatorResource!>! builder, int? port) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureEventHubsEmulatorResource!>!

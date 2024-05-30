@@ -23,7 +23,8 @@ public class AspireRabbitMQLoggingTests
     /// The easiest way to ensure a log is written is to start the RabbitMQ container, establish the connection,
     /// and then stop the container. This will cause the RabbitMQ client to log an error message.
     /// </summary>
-    [RequiresDockerFact]
+    [Fact]
+    [RequiresDocker]
     public async Task EndToEndLoggingTest()
     {
         await using var rabbitMqContainer = new RabbitMqBuilder().Build();

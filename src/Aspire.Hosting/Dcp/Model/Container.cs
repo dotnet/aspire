@@ -17,6 +17,10 @@ internal sealed class ContainerSpec
     [JsonPropertyName("image")]
     public string? Image { get; set; }
 
+    // Optional configuration to build an image from a Dockerfile instead of using a pre-built image
+    [JsonPropertyName("build")]
+    public BuildContext? Build { get; set; }
+
     // Volumes that should be mounted into the container
     [JsonPropertyName("volumeMounts")]
     public List<VolumeMount>? VolumeMounts { get; set; }
@@ -48,6 +52,25 @@ internal sealed class ContainerSpec
     // Additional arguments to pass to the container run command
     [JsonPropertyName("runArgs")]
     public List<string>? RunArgs { get; set; }
+}
+
+internal sealed class BuildContext
+{
+    // The path to the directory that will serve as the root of the image build context
+    [JsonPropertyName("context")]
+    public string? Context { get; set; }
+
+    // Optional path to a specific Dockerfile to use in the build (defaults to looking for a Dockerfile in the root Context folder)
+    [JsonPropertyName("dockerfile")]
+    public string? Dockerfile { get; set;}
+
+    // Optional build --build-args to pass to the build command
+    [JsonPropertyName("args")]
+    public List<EnvVar>? Args { get; set; }
+
+    // Optional specific stage to use when building a multiple stage Dockerfile
+    [JsonPropertyName("stage")]
+    public string? Stage { get; set; }
 }
 
 internal static class VolumeMountType
@@ -203,6 +226,12 @@ internal static class ContainerState
     // Pending is the initial Container state. No attempt has been made to run the container yet.
     public const string Pending = "Pending";
 
+    // Building indicates an image is being built from a Dockerfile, but a container hasn't been created yet.
+    public const string Building = "Building";
+
+    // Starting indicates a container is in the process of starting (pulling images, waiting to join to initial networks, etc.)
+    public const string Starting = "Starting";
+
     // A start attempt was made, but it failed
     public const string FailedToStart = "FailedToStart";
 
@@ -215,8 +244,8 @@ internal static class ContainerState
     // Container finished execution
     public const string Exited = "Exited";
 
-    // Container was running at some point, but has been removed.
-    public const string Removed = "Removed";
+    // Container is in the process of stopping (waiting for container processes to exit, etc.).
+    public const string Stopping = "Stopping";
 
     // Unknown means for some reason container state is unavailable.
     public const string Unknown = "Unknown";
@@ -242,6 +271,7 @@ internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
     public bool LogsAvailable =>
         this.Status?.State == ContainerState.Running
         || this.Status?.State == ContainerState.Paused
+        || this.Status?.State == ContainerState.Stopping
         || this.Status?.State == ContainerState.Exited
         || (this.Status?.State == ContainerState.FailedToStart && this.Status?.ContainerId is not null);
 }
