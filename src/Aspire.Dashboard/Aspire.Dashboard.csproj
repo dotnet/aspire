@@ -13,6 +13,10 @@
     <NoWarn>$(NoWarn);CS1591;CS8002</NoWarn>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
+  </PropertyGroup>
+
   <ItemGroup>
     <!-- Build service and client types. Integration tests use the client types to call OTLP services. -->
     <Protobuf Include="**/*.proto">

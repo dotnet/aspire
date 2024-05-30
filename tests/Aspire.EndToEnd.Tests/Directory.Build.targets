@@ -1,5 +1,5 @@
 <Project>
-    <Import Project="..\Directory.Build.targets" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
 
     <!-- Overriding this target which is originally defined in the Microsoft.Net.Runtime.WorkloadTesting.Internal package, given
     it makes assumptions of which package version should be set when packages are being stabalized which is specific to the dotnet/runtime repo. -->

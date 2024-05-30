@@ -1,6 +1,6 @@
 <Project>
-
   <Import Project="Sdk.props" Sdk="Microsoft.DotNet.Arcade.Sdk" />
+  <Import Project="$(RepositoryEngineeringDir)/apicompat/PublicApiAnalyzer.props" />
 
   <PropertyGroup>
     <Copyright>$(CopyrightNetFoundation)</Copyright>
@@ -24,6 +24,7 @@
     <StrongNameKeyId>Open</StrongNameKeyId>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UsePublicApiAnalyzers>true</UsePublicApiAnalyzers>
     <!-- Set RunSettingsFilePath property which is read by VSTest. -->
     <RunSettingsFilePath Condition="'$(RunSettingsFilePath)' == ''">$(RepositoryEngineeringDir).runsettings</RunSettingsFilePath>
     <!-- Redirect test logs into a subfolder -->

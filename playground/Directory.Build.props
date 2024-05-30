@@ -1,6 +1,5 @@
 <Project>
-
-  <Import Project="..\Directory.Build.props" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
   <PropertyGroup>
     <!--
@@ -10,6 +9,10 @@
       CS1712: Type parameter 'type_parameter' has no matching typeparam tag in the XML comment on 'type_or_member' (but other type parameters do)
     -->
     <NoWarn>$(NoWarn),1573,1591,1712</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
   </PropertyGroup>
 
   <!-- Enable Azure ActivitySources so Azure Components participate in tracing. -->
