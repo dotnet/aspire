@@ -82,7 +82,17 @@ public static class CDKExtensions
     /// <param name="name">The name of the output.</param>
     /// <param name="output">The construct output delegate.</param>
     /// <typeparam name="TStack"></typeparam>
-    /// <returns></returns>
+    /// <example>
+    /// The following example shows creating a custom stack and reference the exposed ServiceUrl property
+    /// in a project.
+    /// <code>
+    /// var service = app
+    ///     .AddStack("service", scope => new ServiceStack(scope, "ServiceStack")
+    ///     .WithOutput("ServiceUrl", stack => stack.Service.ServiceUrl);
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///     .AddReference(service);
+    /// </code>
+    /// </example>
     public static IResourceBuilder<IStackResource<TStack>> WithOutput<TStack>(
         this IResourceBuilder<IStackResource<TStack>> builder,
         string name, ConstructOutputDelegate<TStack> output)
@@ -98,7 +108,17 @@ public static class CDKExtensions
     /// <param name="name">The name of the output.</param>
     /// <param name="output">The construct output delegate.</param>
     /// <typeparam name="T"></typeparam>
-    /// <returns></returns>
+    /// <example>
+    /// The following example shows creating a custom construct and reference the exposed ApiUrl property
+    /// in a project.
+    /// <code lang="C#">
+    /// var service = stack
+    ///     .AddConstruct("service", scope => new Service(scope, "service")
+    ///     .WithOutput("ServiceUrl", construct => construct.ServiceUrl);
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///     .AddReference(service);
+    /// </code>
+    /// </example>
     public static IResourceBuilder<IConstructResource<T>> WithOutput<T>(
         this IResourceBuilder<IConstructResource<T>> builder,
         string name, ConstructOutputDelegate<T> output)
@@ -139,7 +159,6 @@ public static class CDKExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="stack">The stack resource.</param>
     /// <param name="configSection">The config section in IConfiguration to add the output parameters.</param>
-    /// <returns></returns>
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IStackResource> stack, string configSection = Constants.DefaultConfigSection)
         where TDestination : IResourceWithEnvironment
     {
@@ -219,7 +238,6 @@ public static class CDKExtensions
     /// <param name="source">The construct resource.</param>
     /// <param name="outputDelegate">The construct output delegate.</param>
     /// <param name="outputName">The name of the construct output</param>
-    /// <returns></returns>
     public static IResourceBuilder<TDestination> WithEnvironment<TDestination, TConstruct>(this IResourceBuilder<TDestination> builder, string name, IResourceBuilder<IConstructResource<TConstruct>> source, ConstructOutputDelegate<TConstruct> outputDelegate, string? outputName = default)
         where TConstruct : IConstruct
         where TDestination : IResourceWithEnvironment

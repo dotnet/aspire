@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using Amazon.CDK;
+using Amazon.CDK.CXAPI;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS.CloudFormation;
 using Constructs;
@@ -45,24 +46,58 @@ internal sealed class CDKProvisioner(
     private async Task ProcessAppResourceAsync(AppResource appResource, CancellationToken cancellationToken = default)
     {
         var logger = LoggerService.GetLogger(appResource);
-        var cloudAssembly = appResource.App.Synth();
         var stackResources = appResource.ListChildren(AppModel.Resources.OfType<StackResource>()).ToDictionary(x => x.Stack.StackName);
-        var templates = cloudAssembly.Stacks.Select(stack => new CDKStackTemplate(stack, stackResources[stack.StackName])).ToArray();
-
-        // Deploy Stack Templates
-        foreach (var template in templates)
+        try
         {
-            if (await DeployCDKStackTemplatesAsync(template, cancellationToken).ConfigureAwait(false))
-            {
-                continue;
-            }
+            var cloudAssembly = appResource.App.Synth();
+            var templates = cloudAssembly.Stacks.Select(stack => new CDKStackTemplate(stack, stackResources[stack.StackName])).ToArray();
 
-            await PublishUpdateStateAsync(appResource, Constants.ResourceStateFailedToStart).ConfigureAwait(false);
-            logger.LogError("Error provisioning {ResourceName} CDK resource", template.Resource.Name);
-            return;
+            // Deploy Stack assets
+            foreach (var template in templates)
+            {
+                await DeployCDKStackAssetsAsync(template).ConfigureAwait(false);
+            }
+            // Deploy Stack templates
+            foreach (var template in templates)
+            {
+                if (await DeployCDKStackTemplatesAsync(template, cancellationToken).ConfigureAwait(false))
+                {
+                    continue;
+                }
+
+                await PublishUpdateStateAsync(appResource, Constants.ResourceStateFailedToStart).ConfigureAwait(false);
+                logger.LogError("Error provisioning {ResourceName} template", template.Resource.Name);
+                return;
+            }
+            await PublishUpdateStateAsync(appResource, Constants.ResourceStateRunning).ConfigureAwait(false);
+            logger.LogInformation("CDK app provisioning complete");
         }
-        await PublishUpdateStateAsync(appResource, Constants.ResourceStateRunning).ConfigureAwait(false);
-        logger.LogInformation("CDK app provisioning complete");
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error synthesizing {ResourceName} CDK resource", appResource.Name);
+            await PublishUpdateStateAsync(appResource, Constants.ResourceStateFailedToStart).ConfigureAwait(false);
+            foreach (var stackResource in stackResources.Values)
+            {
+                await PublishUpdateStateAsync(stackResource, Constants.ResourceStateFailedToStart).ConfigureAwait(false);
+                stackResource.ProvisioningTaskCompletionSource?.TrySetException(ex);
+            }
+        }
+    }
+
+    private Task DeployCDKStackAssetsAsync(CDKStackTemplate template)
+    {
+        var logger = LoggerService.GetLogger(template.Resource);
+        if (template.Artifact.Dependencies
+            .OfType<AssetManifestArtifact>()
+            .Any(dependency =>
+                dependency.Contents.Files?.Count > 1
+                || dependency.Contents.DockerImages?.Count > 0))
+        {
+            logger.LogError("File or container image assets are currently not supported");
+            throw new AWSProvisioningException("Failed to provision stack assets. Provisioning file or container image assets are currently not supported.");
+        }
+
+        return Task.CompletedTask;
     }
 
     private async Task<bool> DeployCDKStackTemplatesAsync(CDKStackTemplate template, CancellationToken cancellationToken = default)
@@ -128,7 +163,7 @@ internal sealed class CDKProvisioner(
         }
     }
 
-    public async Task PublishUpdateStateAsync(IAppResource resource, string status, ImmutableArray<ResourcePropertySnapshot>? properties = null)
+    private async Task PublishUpdateStateAsync(IAppResource resource, string status, ImmutableArray<ResourcePropertySnapshot>? properties = null)
     {
         if (properties == null)
         {

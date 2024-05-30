@@ -7,7 +7,7 @@
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <PackageTags>aspire hosting aws</PackageTags>
     <Description>Add support for provisioning AWS application resources and configuring the AWS SDK for .NET.</Description>
-    <SignAssembly>False</SignAssembly>
+    <NoWarn>$(NoWarn);CS8002</NoWarn> <!-- AWS CDK packages are not signed -->
   </PropertyGroup>
 
   <ItemGroup>
