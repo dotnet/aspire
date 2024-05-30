@@ -203,7 +203,7 @@ public static class AzurePostgresExtensions
 
         builder.AsAzurePostgresFlexibleServer((resource, construct, server) =>
         {
-            construct.AddOutput(server.AddOutput("name", data => data.Name));
+            server.AddOutput("name", data => data.Name);
             template.WithParameter("postgresServerName", resource.GetOutput("name"));
         });
 
