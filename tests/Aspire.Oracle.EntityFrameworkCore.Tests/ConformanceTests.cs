@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Oracle.EntityFrameworkCore.Tests;
 
@@ -16,6 +17,8 @@ namespace Aspire.Oracle.EntityFrameworkCore.Tests;
 public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFrameworkCoreSettings>
 {
     private readonly OracleContainerFixture? _containerFixture;
+    private readonly ITestOutputHelper? _testOutputHelper;
+
     protected string ConnectionString { get; private set; }
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
@@ -90,9 +93,10 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
         }
     }
 
-    public ConformanceTests(OracleContainerFixture? containerFixture)
+    public ConformanceTests(OracleContainerFixture? containerFixture, ITestOutputHelper? testOutputHelper)
     {
         _containerFixture = containerFixture;
+        _testOutputHelper = testOutputHelper;
         ConnectionString = (_containerFixture is not null && RequiresDockerAttribute.IsSupported)
                                         ? _containerFixture.GetConnectionString()
                                         : "Server=localhost;User ID=oracle;Password=oracle;Database=FREEPDB1";
@@ -122,10 +126,18 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
 
     [Fact]
     [RequiresDocker]
-    public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: null)),
+    public async void TracingEnablesTheRightActivitySource()
+    {
+        if (_containerFixture is not null && _containerFixture.Container is not null && _testOutputHelper is not null)
+        {
+            var (stdout, stderr) = await _containerFixture.Container.GetLogsAsync();
+            _testOutputHelper.WriteLine(stdout);
+            _testOutputHelper.WriteLine(stderr);
+        }
+        RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: null)),
                              ConnectionString).Dispose();
+    }
 
     private static void RunWithConnectionString(string connectionString, Action<ConformanceTests> test)
-    => test(new ConformanceTests(null) { ConnectionString = connectionString });
+    => test(new ConformanceTests(null, null) { ConnectionString = connectionString });
 }

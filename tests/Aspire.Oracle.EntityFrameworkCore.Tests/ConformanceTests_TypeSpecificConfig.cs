@@ -3,12 +3,13 @@
 
 using Aspire.Components.Common.Tests;
 using Microsoft.Extensions.Configuration;
+using Xunit.Abstractions;
 
 namespace Aspire.Oracle.EntityFrameworkCore.Tests;
 
 public class ConformanceTests_TypeSpecificConfig : ConformanceTests
 {
-    public ConformanceTests_TypeSpecificConfig(OracleContainerFixture containerFixture) : base(containerFixture)
+    public ConformanceTests_TypeSpecificConfig(OracleContainerFixture containerFixture, ITestOutputHelper testOutputHelper) : base(containerFixture, testOutputHelper)
     {
     }
 

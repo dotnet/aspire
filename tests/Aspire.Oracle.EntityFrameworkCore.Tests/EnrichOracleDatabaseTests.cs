@@ -12,12 +12,13 @@ using Microsoft.Extensions.Hosting;
 using Oracle.EntityFrameworkCore;
 using Oracle.EntityFrameworkCore.Infrastructure.Internal;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Oracle.EntityFrameworkCore.Tests;
 
 public class EnrichOracleDatabaseTests : ConformanceTests
 {
-    public EnrichOracleDatabaseTests(OracleContainerFixture? containerFixture) : base(containerFixture)
+    public EnrichOracleDatabaseTests(OracleContainerFixture? containerFixture, ITestOutputHelper testOutputHelper) : base(containerFixture, testOutputHelper)
     {
     }
 
