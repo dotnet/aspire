@@ -3,6 +3,9 @@
 
 using Aspire.Components.Common.Tests;
 using DotNet.Testcontainers.Builders;
+using DotNet.Testcontainers.Configurations;
+using DotNet.Testcontainers.Containers;
+using Oracle.ManagedDataAccess.Client;
 using Testcontainers.Oracle;
 using Xunit;
 
@@ -20,10 +23,12 @@ public sealed class OracleContainerFixture : IAsyncLifetime
         if (RequiresDockerAttribute.IsSupported)
         {
             Container = new OracleBuilder()
+                .WithPortBinding(1521, 1521)
                 .WithWaitStrategy(Wait
                     .ForUnixContainer()
                     .UntilMessageIsLogged("Started service freepdb1/freepdb1/freepdb1")
                     .UntilMessageIsLogged("Completed: ALTER DATABASE OPEN")
+                    .AddCustomWaitStrategy(new OracleWaitStrategy())
                 )
                 .Build();
 
@@ -36,6 +41,37 @@ public sealed class OracleContainerFixture : IAsyncLifetime
         if (Container is not null)
         {
             await Container.DisposeAsync();
+        }
+    }
+
+    public class OracleWaitStrategy : IWaitUntil
+    {
+        public async Task<bool> UntilAsync(IContainer container)
+        {
+            if (container is OracleContainer oracleContainer)
+            {
+                while(true)
+                {
+                    try
+                    {
+                        var executionResult = await oracleContainer.ExecScriptAsync("SELECT * FROM DUAL");
+
+                        if(executionResult.ExitCode == 0)
+                        {
+                            return true;
+                        }
+                    }
+                    catch (OracleException)
+                    {
+                        await Task.Delay(1000);
+                    }
+                }
+            }
+            else
+            {
+                Assert.Fail("The container is not an OracleContainer");
+                return true;
+            }
         }
     }
 }
