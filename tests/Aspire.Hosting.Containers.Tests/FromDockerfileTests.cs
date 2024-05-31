@@ -219,6 +219,23 @@ public class FromDockerfileTests
     }
 
     [Fact]
+    public void WithBuildArgsBeforeFromDockerfileThrows()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var container = builder.AddContainer("mycontainer", "myimage");
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+        {
+            container.WithBuildArg("MESSAGE", "hello");
+        });
+
+        Assert.Equal(
+            "The resource does not have a Dockerfile build annotation. Call FromDockerfile before calling WithBuildArg.",
+            ex.Message
+            );
+    }
+
+    [Fact]
     public async Task FromDockerfileWithValidContextPathValidDockerfileWithImplicitDefaultNameSucceeds()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
