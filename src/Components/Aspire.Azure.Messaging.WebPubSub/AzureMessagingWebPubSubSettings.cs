@@ -35,7 +35,12 @@ public sealed class AzureMessagingWebPubSubSettings : IConnectionStringSettings
     public TokenCredential? Credential { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the Queues Storage health check is disabled or not.
+    /// Gets or sets the name of the hub used.
+    /// </summary>
+    public string? HubName { get; set; }
+
+    /// <summary>
+    /// Gets or sets a boolean value that indicates whether the Web PubSub health check is disabled or not.
     /// </summary>
     /// <value>
     /// The default value is <see langword="false"/>.

@@ -21,34 +21,39 @@
     </div>
 </div>
 <script>
+    function addMessage(content) {
+        var li = document.createElement("li");
+        document.getElementById("messagesList").appendChild(li);
+        li.textContent = content;
+    }
+    async function connect(hubName) {
+        let res = await fetch('/negotiate/' + hubName)
+        let data = await res.json();
+        return new WebSocket(data.url, 'json.webpubsub.azure.v1');
+    }
     (async function () {
         //Disable the send button until connection is established.
         document.getElementById("sendButton").disabled = true;
-        let res = await fetch('/negotiate')
-        let data = await res.json();
-        let ws = new WebSocket(data.url, 'json.webpubsub.azure.v1');
-        ws.onopen = () => {
+        // chat connection for the clients to talk to each other
+        let chatConnection = await connect("chat");
+        chatConnection.onopen = () => {
             document.getElementById("sendButton").disabled = false;
-            console.log('connected');
-            ws.send(JSON.stringify({
+            chatConnection.send(JSON.stringify({
                 type: 'joinGroup',
                 group: 'group1'
             }));
+            addMessage("connected to chat hub");
         };
-
         let output = document.querySelector('#output');
-        ws.onmessage = event => {
+        chatConnection.onmessage = event => {
             let message = JSON.parse(event.data);
             if (message.type === 'message' && message.group === 'group1') {
-                var li = document.createElement("li");
-                document.getElementById("messagesList").appendChild(li);
-                li.textContent = message.data;
+                addMessage(message.data);
             }
         };
-
         document.getElementById("sendButton").addEventListener("click", function (event) {
             var message = document.getElementById("messageInput").value;
-            ws.send(JSON.stringify({
+            chatConnection.send(JSON.stringify({
                 type: 'sendToGroup',
                 group: 'group1',
                 data: message,
@@ -56,5 +61,16 @@
             }));
             event.preventDefault();
         });
+        // notification hub to receive data from the server
+        let notificationConnection = await connect("notification");
+        notificationConnection.onopen = () => {
+            addMessage("connected to notification hub");
+        };
+        notificationConnection.onmessage = event => {
+            let message = JSON.parse(event.data);
+            if (message.type === 'message') {
+                addMessage("Notification:" + message.data);
+            }
+        };
     })();
 </script>

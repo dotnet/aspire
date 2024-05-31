@@ -65,15 +65,16 @@ public abstract class ConformanceTests : ConformanceTests<WebPubSubServiceClient
     {
         if (key is null)
         {
-            builder.AddAzureWebPubSubHub("wps", "hub1", ConfigureCredentials);
+            builder.AddAzureWebPubSubServiceClient("wps", Configure);
         }
         else
         {
-            builder.AddKeyedAzureWebPubSubHub(key, "hub1", ConfigureCredentials);
+            builder.AddKeyedAzureWebPubSubServiceClient(key, "hub1", Configure);
         }
 
-        void ConfigureCredentials(AzureMessagingWebPubSubSettings settings)
+        void Configure(AzureMessagingWebPubSubSettings settings)
         {
+            settings.HubName = "hub1";
             if (CanConnectToServer)
             {
                 settings.Credential = new DefaultAzureCredential();
