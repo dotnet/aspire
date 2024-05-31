@@ -2,8 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
-    <RunTestsOnHelix>true</RunTestsOnHelix>
-    <InstallWorkloadForTesting>true</InstallWorkloadForTesting>
+    <RunTestsOnHelix>false</RunTestsOnHelix>
   </PropertyGroup>
 
   <ItemGroup>
