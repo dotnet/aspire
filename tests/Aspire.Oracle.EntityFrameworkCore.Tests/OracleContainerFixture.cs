@@ -23,7 +23,7 @@ public sealed class OracleContainerFixture : IAsyncLifetime
         if (RequiresDockerAttribute.IsSupported)
         {
             Container = new OracleBuilder()
-                .WithPortBinding(1521, 1521)
+                .WithPortBinding(5432, 1521)
                 .WithWaitStrategy(Wait
                     .ForUnixContainer()
                     .UntilMessageIsLogged("Started service freepdb1/freepdb1/freepdb1")
