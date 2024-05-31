@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting azure openai ai</PackageTags>
+    <PackageTags>aspire hosting azure openai ai cognitiveservices cognitive services</PackageTags>
     <Description>Azure OpenAI resource types for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)AzureOpenAI_256x.png</PackageIconFullPath>
   </PropertyGroup>
