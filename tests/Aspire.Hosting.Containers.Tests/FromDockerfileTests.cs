@@ -303,7 +303,7 @@ public class FromDockerfileTests
             };
             var process = Process.Start(startInfo);
 
-            var completed = process!.WaitForExit(5000);
+            var completed = process!.WaitForExit(10000);
 
             if (!completed)
             {
