@@ -64,8 +64,4 @@
     </Content>
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="ValKey\" />
-  </ItemGroup>
-
 </Project>
