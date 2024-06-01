@@ -5,7 +5,6 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting valkey</PackageTags>
     <Description>Valkey® support for .NET Aspire.</Description>
-    <PackageIconFullPath>$(SharedDir)valkey-icon.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>
