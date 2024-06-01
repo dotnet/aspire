@@ -37,5 +37,3 @@ builder.AddRedisClient("cache");
 ## Feedback & contributing
 
 https://github.com/dotnet/aspire
-
-_*ValKey MIT License. Copyright (c) Microsoft Corporation.._
