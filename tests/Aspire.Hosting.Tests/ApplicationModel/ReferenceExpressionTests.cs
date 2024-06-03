@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
+
 using Xunit;
 
 namespace Aspire.Hosting.Tests.ApplicationModel;
@@ -22,18 +24,19 @@ public class ReferenceExpressionTests
     }
 
     [Theory]
-    [InlineData("{0}", "abc123", "abc123")]
-    [InlineData("{0} test", "abc123", "abc123 test")]
-    [InlineData("test {0}", "abc123", "test abc123")]
-    public void ReferenceExpressionHandlesValueWithParameterBrackets(string input, string parameterValue, string expected)
+    [InlineData("{0}", new string[] { "abc123" }, "abc123")]
+    [InlineData("{0} test", new string[] { "abc123" }, "abc123 test")]
+    [InlineData("test {0}", new string[] { "abc123" }, "test abc123")]
+    [InlineData("https://{0}:{1}/{2}?key={3}", new string[] { "test.com", "443", "path", "1234" }, "https://test.com:443/path?key=1234")]
+    public void ReferenceExpressionHandlesValueWithParameterBrackets(string input, string[] parameters, string expected)
     {
-        var expr = ReferenceExpression.Create($"{input}", [new HostUrl("test")], [parameterValue]).ValueExpression;
+        var expr = ReferenceExpression.Create($"{input}", [new HostUrl("test")], parameters).ValueExpression;
         Assert.Equal(expected, expr);
     }
 
     public static readonly object[][] ValidFormattingInParameterBracketCases = [
-        ["{0:D}", new DateTime(2024,05,22), "5/22/2024 12:00:00 AM"],
-        ["{0:N}", "123456.78", "123456.78"]
+        ["{0:D}", new DateTime(2024,05,22), string.Format(CultureInfo.InvariantCulture, "{0:D}", new DateTime(2024, 05, 22).ToString())],
+        ["{0:N}", 123456.78, string.Format(CultureInfo.InvariantCulture, "{0:N}", "123456.78")]
     ];
 
     [Theory, MemberData(nameof(ValidFormattingInParameterBracketCases))]
