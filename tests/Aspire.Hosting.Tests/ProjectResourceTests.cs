@@ -1,10 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -509,7 +511,7 @@ public class ProjectResourceTests
             arg => Assert.Equal("http://localhost:1234", arg));
     }
 
-    private static IDistributedApplicationBuilder CreateBuilder(string[]? args = null, DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)
+    internal static IDistributedApplicationBuilder CreateBuilder(string[]? args = null, DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)
     {
         var resolvedArgs = new List<string>();
         if (args != null)
@@ -534,27 +536,36 @@ public class ProjectResourceTests
         public LaunchSettings? LaunchSettings { get; set; }
     }
 
-    private sealed class TestProjectWithLaunchSettings : IProjectMetadata
+    internal abstract class BaseProjectWithProfileAndConfig : IProjectMetadata
     {
-        public string ProjectPath => "another-path";
+        protected Dictionary<string, LaunchProfile>? Profiles { get; set; } = new();
+        protected string? JsonConfigString { get; set; }
 
-        public LaunchSettings? LaunchSettings { get; } =
-            new LaunchSettings
+        public string ProjectPath => "another-path";
+        public LaunchSettings? LaunchSettings => new LaunchSettings { Profiles = Profiles! };
+        public IConfiguration? Configuration => JsonConfigString == null ? null : new ConfigurationBuilder()
+            .AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(JsonConfigString)))
+            .Build();
+    }
+
+    private sealed class TestProjectWithLaunchSettings : BaseProjectWithProfileAndConfig
+    {
+        public TestProjectWithLaunchSettings()
+        {
+            Profiles = new()
             {
-                Profiles = new()
+                ["http"] = new ()
                 {
-                    ["http"] = new()
+                    CommandName = "Project",
+                    CommandLineArgs = "arg1 arg2",
+                    LaunchBrowser = true,
+                    ApplicationUrl = "http://localhost:5031",
+                    EnvironmentVariables = new()
                     {
-                        CommandName = "Project",
-                        CommandLineArgs = "arg1 arg2",
-                        LaunchBrowser = true,
-                        ApplicationUrl = "http://localhost:5031",
-                        EnvironmentVariables = new()
-                        {
-                            ["ASPNETCORE_ENVIRONMENT"] = "Development"
-                        }
+                        ["ASPNETCORE_ENVIRONMENT"] = "Development"
                     }
                 }
             };
+        }
     }
 }
