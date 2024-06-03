@@ -180,7 +180,7 @@ internal static partial class ReferenceExpressionParser
                     {
                         // Parameter is not closed
                         parsedFormat.Append('{');
-                        parsedFormat.Append(format.AsSpan(bracePos, pos));
+                        parsedFormat.Append(format.AsSpan(bracePos, pos - bracePos));
                         continue;
                     }
 
@@ -204,7 +204,7 @@ internal static partial class ReferenceExpressionParser
                         if (ch == '{')
                         {
                             parsedFormat.Append('{');
-                            parsedFormat.Append(format.AsSpan(bracePos, pos));
+                            parsedFormat.Append(format.AsSpan(bracePos, pos - bracePos));
                             parsedFormat.Append('{');
                             break;
                         }
@@ -220,8 +220,7 @@ internal static partial class ReferenceExpressionParser
             }
             else
             {
-
-                parsedFormat.Append(format.AsSpan(bracePos, pos));
+                parsedFormat.Append(format.AsSpan(bracePos, pos - bracePos));
             }
         }
     }
