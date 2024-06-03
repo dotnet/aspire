@@ -634,10 +634,23 @@ public class ManifestGenerationTests
                     }
                   }
                 },
+                "mongodb-password": {
+                  "type": "parameter.v0",
+                  "value": "{mongodb-password.inputs.value}",
+                  "inputs": {
+                    "value": {
+                      "type": "string"
+                    }
+                  }
+                },
                 "mongodb": {
                   "type": "container.v0",
-                  "connectionString": "mongodb://{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}",
+                  "connectionString": "mongodb://admin:aspire123@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}",
                   "image": "{{MongoDBContainerImageTags.Registry}}/{{MongoDBContainerImageTags.Image}}:{{MongoDBContainerImageTags.Tag}}",
+                  "env": {
+                    "MONGO_INITDB_ROOT_USERNAME": "admin",
+                    "MONGO_INITDB_ROOT_PASSWORD": "{mongodb-password.value}"
+                  },
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",
