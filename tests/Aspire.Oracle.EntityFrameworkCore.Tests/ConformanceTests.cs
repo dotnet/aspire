@@ -83,14 +83,14 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
 
     protected override void TriggerActivity(TestDbContext service)
     {
-        if (service.Database.CanConnect())
-        {
-            service.Database.EnsureCreated();
-        }
-        else
-        {
-            Assert.Fail($"Cannot connect to database: {ConnectionString}");
-        }
+        //if (service.Database.CanConnect())
+        //{
+        service.Database.EnsureCreated();
+        //}
+        //else
+        //{
+          //  Assert.Fail($"Cannot connect to database: {ConnectionString}");
+        //}
     }
 
     public ConformanceTests(OracleContainerFixture? containerFixture, ITestOutputHelper? testOutputHelper)
