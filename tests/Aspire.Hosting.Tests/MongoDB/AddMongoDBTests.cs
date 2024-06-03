@@ -2,10 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+
 using Aspire.Hosting.MongoDB;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+
 using Microsoft.Extensions.DependencyInjection;
+
 using Xunit;
 
 namespace Aspire.Hosting.Tests.MongoDB;
@@ -87,10 +90,11 @@ public class AddMongoDBTests
         var connectionStringResource = dbResource as IResourceWithConnectionString;
         Assert.NotNull(connectionStringResource);
         var connectionString = await connectionStringResource.GetConnectionStringAsync();
+        var encodedPassword = Uri.EscapeDataString(dbResource.Parent.PasswordParameter.Value);
 
-        Assert.Equal("mongodb://localhost:27017", await serverResource.GetConnectionStringAsync());
-        Assert.Equal("mongodb://{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}", serverResource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("mongodb://localhost:27017/mydatabase", connectionString);
+        Assert.Equal($"mongodb://admin:{encodedPassword}@localhost:27017", await serverResource.GetConnectionStringAsync());
+        Assert.Equal("mongodb://admin:" + encodedPassword + "@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}", serverResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal($"mongodb://admin:{encodedPassword}@localhost:27017/mydatabase", connectionString);
         Assert.Equal("{mongodb.connectionString}/mydatabase", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
@@ -145,19 +149,33 @@ public class AddMongoDBTests
             .WithMongoExpress();
 
         var mongoExpress = Assert.Single(builder.Resources.OfType<MongoExpressContainerResource>());
-
         var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(mongoExpress);
 
         Assert.Collection(env,
             e =>
             {
-                Assert.Equal("ME_CONFIG_MONGODB_URL", e.Key);
-                Assert.Equal($"mongodb://{containerHost}:3000/?directConnection=true", e.Value);
+                Assert.Equal("ME_CONFIG_MONGODB_SERVER", e.Key);
+                Assert.Equal(containerHost, e.Value);
+            },
+            e =>
+            {
+                Assert.Equal("ME_CONFIG_MONGODB_PORT", e.Key);
+                Assert.Equal("3000", e.Value);
             },
             e =>
             {
                 Assert.Equal("ME_CONFIG_BASICAUTH", e.Key);
                 Assert.Equal("false", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal("ME_CONFIG_MONGODB_ADMINUSERNAME", e.Key);
+                Assert.Equal("admin", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal("ME_CONFIG_MONGODB_ADMINPASSWORD", e.Key);
+                Assert.NotEmpty(e.Value);
             });
     }
 
@@ -184,8 +202,12 @@ public class AddMongoDBTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "mongodb://{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}",
+              "connectionString": "mongodb://admin:{{Uri.EscapeDataString(mongo.Resource.PasswordParameter.Value)}}@{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}",
               "image": "{{MongoDBContainerImageTags.Registry}}/{{MongoDBContainerImageTags.Image}}:{{MongoDBContainerImageTags.Tag}}",
+              "env": {
+                "MONGO_INITDB_ROOT_USERNAME": "admin",
+                "MONGO_INITDB_ROOT_PASSWORD": "{mongo-password.value}"
+              },
               "bindings": {
                 "tcp": {
                   "scheme": "tcp",

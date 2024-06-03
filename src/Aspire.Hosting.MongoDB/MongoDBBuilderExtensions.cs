@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.MongoDB;
 using Aspire.Hosting.Utils;
@@ -15,22 +17,39 @@ public static class MongoDBBuilderExtensions
     // Internal port is always 27017.
     private const int DefaultContainerPort = 27017;
 
+    private const string UserEnvVarName = "MONGO_INITDB_ROOT_USERNAME";
+    private const string PasswordEnvVarName = "MONGO_INITDB_ROOT_PASSWORD";
+    //MONGO_INITDB_DATABASE ???
+
     /// <summary>
     /// Adds a MongoDB resource to the application model. A container is used for local development. This version the package defaults to the 7.0.8 tag of the mongo container image.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port for MongoDB.</param>
+    /// <param name="userName">A parameter that contains the MongoDb server user name, or <see langword="null"/> to use a default value.</param>
+    /// <param name="password">A parameter that contains the MongoDb server password, or <see langword="null"/> to use a generated password.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<MongoDBServerResource> AddMongoDB(this IDistributedApplicationBuilder builder, string name, int? port = null)
+    public static IResourceBuilder<MongoDBServerResource> AddMongoDB(this IDistributedApplicationBuilder builder,
+        string name,
+        int? port = null,
+        IResourceBuilder<ParameterResource>? userName = null,
+        IResourceBuilder<ParameterResource>? password = null)
     {
-        var mongoDBContainer = new MongoDBServerResource(name);
+        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
+
+        var mongoDBContainer = new MongoDBServerResource(name, userName?.Resource, passwordParameter);
 
         return builder
             .AddResource(mongoDBContainer)
             .WithEndpoint(port: port, targetPort: DefaultContainerPort, name: MongoDBServerResource.PrimaryEndpointName)
             .WithImage(MongoDBContainerImageTags.Image, MongoDBContainerImageTags.Tag)
-            .WithImageRegistry(MongoDBContainerImageTags.Registry);
+            .WithImageRegistry(MongoDBContainerImageTags.Registry)
+            .WithEnvironment(context =>
+            {
+                context.EnvironmentVariables[UserEnvVarName] = mongoDBContainer.UserNameReference;
+                context.EnvironmentVariables[PasswordEnvVarName] = mongoDBContainer.PasswordParameter;
+            });
     }
 
     /// <summary>
@@ -122,7 +141,10 @@ public static class MongoDBBuilderExtensions
 
     private static void ConfigureMongoExpressContainer(EnvironmentCallbackContext context, MongoDBServerResource resource)
     {
-        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", $"mongodb://{resource.PrimaryEndpoint.ContainerHost}:{resource.PrimaryEndpoint.Port}/?directConnection=true");
+        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_SERVER", resource.PrimaryEndpoint.ContainerHost);
+        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_PORT", resource.PrimaryEndpoint.Port.ToString(CultureInfo.InvariantCulture));
         context.EnvironmentVariables.Add("ME_CONFIG_BASICAUTH", "false");
+        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_ADMINUSERNAME", resource.UserNameReference);
+        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_ADMINPASSWORD", resource.PasswordParameter);
     }
 }
