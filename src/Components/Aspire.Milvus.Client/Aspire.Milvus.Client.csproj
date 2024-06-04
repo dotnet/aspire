@@ -22,9 +22,4 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions">
-      <HintPath>..\..\..\..\..\AppCacheFiles\nuget\microsoft.extensions.diagnostics.healthchecks.abstractions\8.0.4\lib\net8.0\Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions.dll</HintPath>
-    </Reference>
-  </ItemGroup>
 </Project>
