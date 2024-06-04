@@ -13,10 +13,10 @@ using Xunit.Sdk;
 
 namespace Aspire.Hosting.Containers.Tests;
 
-public class FromDockerfileTests
+public class WithDockerfileTests
 {
     [Fact]
-    public async Task FromDockerfileLaunchesContainerSuccessfully()
+    public async Task WithDockerfileLaunchesContainerSuccessfully()
     {
         if (!IsDockerAvailable())
         {
@@ -49,7 +49,7 @@ public class FromDockerfileTests
     }
 
     [Fact]
-    public async Task FromDockerfileResultsInBuildAttributeBeingAddedToManifest()
+    public async Task WithDockerfileResultsInBuildAttributeBeingAddedToManifest()
     {
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
         var manifestOutputPath = Path.Combine(tempContextPath, "aspire-manifest.json");
@@ -97,7 +97,7 @@ public class FromDockerfileTests
     }
 
     [Fact]
-    public async Task FromDockerfileWithParameterLaunchesContainerSuccessfully()
+    public async Task WithDockerfileWithParameterLaunchesContainerSuccessfully()
     {
         if (!IsDockerAvailable())
         {
@@ -167,7 +167,7 @@ public class FromDockerfileTests
     }
 
     [Fact]
-    public void FromDockerfileWithEmptyContextPathThrows()
+    public void WithDockerfileWithEmptyContextPathThrows()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -181,7 +181,7 @@ public class FromDockerfileTests
     }
 
     [Fact]
-    public void FromDockerfileWithContextPathThatDoesNotExistThrowsDirectoryNotFoundException()
+    public void WithDockerfileWithContextPathThatDoesNotExistThrowsDirectoryNotFoundException()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -193,7 +193,7 @@ public class FromDockerfileTests
     }
 
     [Fact]
-    public async Task FromDockerfileWithValidContextPathAndEmptyDockerfilePathThrows()
+    public async Task WithDockerfileWithValidContextPathAndEmptyDockerfilePathThrows()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var (tempContextPath, _) = await CreateTemporaryDockerfileAsync(createDockerfile: false);
@@ -206,7 +206,7 @@ public class FromDockerfileTests
     }
 
     [Fact]
-    public async Task FromDockerfileWithValidContextPathAndInvalidDockerfilePathThrows()
+    public async Task WithDockerfileWithValidContextPathAndInvalidDockerfilePathThrows()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var (tempContextPath, _) = await CreateTemporaryDockerfileAsync();
@@ -230,13 +230,13 @@ public class FromDockerfileTests
         });
 
         Assert.Equal(
-            "The resource does not have a Dockerfile build annotation. Call FromDockerfile before calling WithBuildArg.",
+            "The resource does not have a Dockerfile build annotation. Call WithDockerfile before calling WithBuildArg.",
             ex.Message
             );
     }
 
     [Fact]
-    public async Task FromDockerfileWithValidContextPathValidDockerfileWithImplicitDefaultNameSucceeds()
+    public async Task WithDockerfileWithValidContextPathValidDockerfileWithImplicitDefaultNameSucceeds()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
@@ -250,7 +250,7 @@ public class FromDockerfileTests
     }
 
     [Fact]
-    public async Task FromDockerfileWithValidContextPathValidDockerfileWithExplicitDefaultNameSucceeds()
+    public async Task WithDockerfileWithValidContextPathValidDockerfileWithExplicitDefaultNameSucceeds()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
@@ -264,7 +264,7 @@ public class FromDockerfileTests
     }
 
     [Fact]
-    public async Task FromDockerfileWithValidContextPathValidDockerfileWithExplicitNonDefaultNameSucceeds()
+    public async Task WithDockerfileWithValidContextPathValidDockerfileWithExplicitNonDefaultNameSucceeds()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync("Otherdockerfile");
@@ -278,7 +278,7 @@ public class FromDockerfileTests
     }
 
     [Fact]
-    public async Task FromDockerfileWithValidContextPathValidDockerfileWithExplicitAbsoluteDefaultNameSucceeds()
+    public async Task WithDockerfileWithValidContextPathValidDockerfileWithExplicitAbsoluteDefaultNameSucceeds()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();

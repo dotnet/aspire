@@ -75,6 +75,47 @@
               },
               "volumes": {
                 "$ref": "#/definitions/volumes"
+              },
+              "build": false
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "A generic container resource.",
+            "required": [ "type", "image", "build" ],
+            "properties": {
+              "type": {
+                "const": "container.v1"
+              },
+              "image": {
+                "type": "string",
+                "description": "A string representing the container image to be used."
+              },
+              "entrypoint": {
+                "type": "string",
+                "description": "The entrypoint to use for the container image when executed."
+              },
+              "args": {
+                "$ref": "#/definitions/args"
+              },
+              "build": {
+                "$ref": "#/definitions/build"
+              },
+              "connectionString": {
+                "$ref": "#/definitions/connectionString"
+              },
+              "env": {
+                "$ref": "#/definitions/env"
+              },
+              "bindings": {
+                "$ref": "#/definitions/bindings"
+              },
+              "bindMounts": {
+                "$ref": "#/definitions/bindMounts"
+              },
+              "volumes": {
+                "$ref": "#/definitions/volumes"
               }
             },
             "additionalProperties": false
@@ -415,6 +456,29 @@
       "items": {
         "type": "string"
       }
+    },
+    "build": {
+      "type": "object",
+      "description": "An object that captures properties that control the building of a container image.",
+      "required": [ "context", "dockerfile" ],
+      "properties": {
+        "context": {
+          "type": "string",
+          "description": "The path to the context directory for the container build. Can be relative of absolute. If relative it is relative to the location of the manifest file."
+        },
+        "dockerfile": {
+          "type": "string",
+          "description": "The path to the Dockerfile. Can be relative or absolute. If relative it is relative to the manifest file."
+        },
+        "env": {
+          "type": "object",
+          "description": "A list of build arguments which are used during container build.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
     },
     "bindings": {
       "type": "object",
