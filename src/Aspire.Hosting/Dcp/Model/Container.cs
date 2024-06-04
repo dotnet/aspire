@@ -68,9 +68,26 @@ internal sealed class BuildContext
     [JsonPropertyName("args")]
     public List<EnvVar>? Args { get; set; }
 
+    // Optional build secret mounts to pass to the build command
+    [JsonPropertyName("secrets")]
+    public List<BuildContextSecret>? Secrets { get; set; }
+
     // Optional specific stage to use when building a multiple stage Dockerfile
     [JsonPropertyName("stage")]
     public string? Stage { get; set; }
+
+    // Optional additional tags to apply to the built image
+    [JsonPropertyName("tags")]
+    public List<string>? Tags { get; set; }
+}
+
+internal sealed class BuildContextSecret
+{
+    [JsonPropertyName("id")]
+    public string? Id { get; set; }
+
+    [JsonPropertyName("source")]
+    public string? Source { get; set; }
 }
 
 internal static class VolumeMountType
