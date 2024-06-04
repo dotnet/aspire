@@ -17,10 +17,16 @@ public class PlaywrightFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        var exitCode = Microsoft.Playwright.Program.Main(new[] {"install"});
-        if (exitCode != 0)
+        var installExitCode = Microsoft.Playwright.Program.Main(new[] {"install"});
+        if (installExitCode != 0)
         {
-            throw new PlaywrightException($"Playwright exited with code {exitCode}");
+            throw new PlaywrightException($"Playwright exited with code {installExitCode}");
+        }
+
+        var installDepsExitCode = Microsoft.Playwright.Program.Main(new[] {"install-deps"});
+        if (installDepsExitCode != 0)
+        {
+            throw new PlaywrightException($"Playwright exited with code {installDepsExitCode}");
         }
 
         var retryOptions = new RetryStrategyOptions
