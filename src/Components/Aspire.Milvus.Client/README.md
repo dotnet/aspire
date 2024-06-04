@@ -104,4 +104,4 @@ builder.AddMilvusClient("milvus");
 
 https://github.com/dotnet/aspire
 
-_Milvus, and the Milvus logo are used with permission from the Milvus project. All rights reserved by LF AI & Data foundation_
+_*Milvus and the Milvus logo are used with permission from the Milvus project. All rights reserved by LF AI & Data foundation_
