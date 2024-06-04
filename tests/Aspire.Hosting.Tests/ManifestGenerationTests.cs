@@ -512,7 +512,8 @@ public class ManifestGenerationTests
                     "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
                     "ConnectionStrings__kafka": "{kafka.connectionString}",
                     "ConnectionStrings__cosmos": "{cosmos.connectionString}",
-                    "ConnectionStrings__eventhubns": "{eventhubns.connectionString}"
+                    "ConnectionStrings__eventhubns": "{eventhubns.connectionString}",
+                    "ConnectionStrings__milvus": "{milvus.connectionString}"
                   },
                   "bindings": {
                     "http": {
@@ -725,6 +726,39 @@ public class ManifestGenerationTests
                   "params": {
                     "principalId": "",
                     "principalType": ""
+                  }
+                },
+                "milvusApiKey": {
+                  "type": "parameter.v0",
+                  "value": "{milvusApiKey.inputs.value}",
+                  "inputs": {
+                    "value": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "milvus": {
+                  "type": "container.v0",
+                  "connectionString": "Endpoint={milvus.bindings.grpc.url};Key={milvusApiKey.value}",
+                  "image": "docker.io/milvusdb/milvus:2.3-latest",
+                  "args": [
+                    "milvus",
+                    "run",
+                    "standalone"
+                  ],
+                  "env": {
+                    "COMMON_STORAGETYPE": "local",
+                    "ETCD_USE_EMBED": "true",
+                    "ETCD_DATA_DIR": "/var/lib/milvus/etcd",
+                    "COMMON_SECURITY_AUTHORIZATIONENABLED": "true"
+                  },
+                  "bindings": {
+                    "grpc": {
+                      "scheme": "http",
+                      "protocol": "tcp",
+                      "transport": "http2",
+                      "targetPort": 19530
+                    }
                   }
                 },
                 "sqlserver-password": {

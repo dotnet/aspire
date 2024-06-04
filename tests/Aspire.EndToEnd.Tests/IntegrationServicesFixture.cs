@@ -117,6 +117,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             TestResourceNames.garnet => "garnet",
             TestResourceNames.valkey => "valkey",
             TestResourceNames.sqlserver => "sqlserver",
+            TestResourceNames.milvus => "milvus",
             TestResourceNames.eventhubs => "eventhubs",
             _ => throw new ArgumentException($"Unknown resource: {resource}")
         };
@@ -160,7 +161,8 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                               | TestResourceNames.efnpgsql
                               | TestResourceNames.mysql
                               | TestResourceNames.efmysql
-                              | TestResourceNames.sqlserver,
+                              | TestResourceNames.sqlserver
+                              | TestResourceNames.milvus,
             "" or null => TestResourceNames.All,
             _ => throw new ArgumentException($"Unknown test scenario '{TestScenario}'")
         };

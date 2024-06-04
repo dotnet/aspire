@@ -33,6 +33,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [InlineData(TestResourceNames.garnet)]
     [InlineData(TestResourceNames.valkey)]
     [InlineData(TestResourceNames.sqlserver)]
+    [InlineData(TestResourceNames.milvus)]
     public Task VerifyComponentWorks(TestResourceNames resourceName)
         => RunTestAsync(async () =>
         {

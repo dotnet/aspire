@@ -18,6 +18,7 @@
     <ComponentReferenceForTests Include="Aspire.Confluent.Kafka" />
     <ComponentReferenceForTests Include="Aspire.Microsoft.Azure.Cosmos" />
     <ComponentReferenceForTests Include="Aspire.Microsoft.Data.SqlClient" />
+    <ComponentReferenceForTests Include="Aspire.Milvus.Client" />
     <ComponentReferenceForTests Include="Aspire.MongoDB.Driver" />
     <ComponentReferenceForTests Include="Aspire.MySqlConnector" />
     <ComponentReferenceForTests Include="Aspire.Npgsql" />

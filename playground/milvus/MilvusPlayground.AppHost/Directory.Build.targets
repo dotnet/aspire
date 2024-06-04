@@ -1,0 +1,9 @@
+<Project>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!-- NOTE: These lines are only required because we are using P2P references, not NuGet. They will not exist in real apps. -->
+  <Import Project="..\..\..\src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets" />
+  <Import Project="..\..\..\src\Aspire.Hosting.Sdk\SDK\Sdk.targets" />
+
+</Project>
