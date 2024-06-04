@@ -21,22 +21,22 @@ public static class PulsarBuilderExtensions
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the endpoint name when referenced in dependency.</param>
-    /// <param name="servicePort">The service port that the underlying container is bound to when running locally.</param>
-    /// <param name="brokerPort">The broker port that the underlying container is bound to when running locally.</param>
+    /// <param name="targetPort">The host port of the Pulsar service that the underlying container is bound to when running locally.</param>
+    /// <param name="port">The host port of the Pulsar broker that the underlying container is bound to when running locally.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<PulsarResource> AddPulsar(
         this IDistributedApplicationBuilder builder,
         string name,
-        int? servicePort = null,
-        int? brokerPort = null
+        int? targetPort = null,
+        int? port = null
     )
     {
         var pulsar = new PulsarResource(name);
         return builder.AddResource(pulsar)
             .WithImage(PulsarContainerImageTags.Image, PulsarContainerImageTags.Tag)
             .WithImageRegistry(PulsarContainerImageTags.Registry)
-            .WithEndpoint(port: servicePort, targetPort: 8080, name: PulsarResource.ServiceEndpointName, scheme: "http")
-            .WithEndpoint(port: brokerPort, targetPort: 6650, name: PulsarResource.BrokerEndpointName, scheme: "pulsar")
+            .WithEndpoint(port: targetPort, targetPort: 8080, name: PulsarResource.ServiceEndpointName, scheme: "http")
+            .WithEndpoint(port: port, targetPort: 6650, name: PulsarResource.BrokerEndpointName, scheme: "pulsar")
             .WithEntrypoint("/bin/bash")
             .AsStandalone();
     }

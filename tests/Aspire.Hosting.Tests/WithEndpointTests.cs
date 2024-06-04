@@ -31,6 +31,76 @@ public class WithEndpointTests
     }
 
     [Fact]
+    public void WithEndpointMakesTargetPortEqualToPortIfProxyless()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var projectA = builder.AddProject<ProjectA>("projecta")
+                              .WithEndpoint("mybinding", endpoint =>
+                              {
+                                  endpoint.Port = 2000;
+                                  endpoint.IsProxied = false;
+                              });
+
+        var endpoint = projectA.Resource.Annotations.OfType<EndpointAnnotation>()
+            .Where(e => string.Equals(e.Name, "mybinding", EndpointAnnotationName)).Single();
+
+        // It should fall back to the Port value since TargetPort was not set
+        Assert.Equal(2000, endpoint.TargetPort);
+
+        // In Proxy mode, the fallback should not happen
+        endpoint.IsProxied = true;
+        Assert.Null(endpoint.TargetPort);
+
+        // Back in proxy-less mode, it should fall back again
+        endpoint.IsProxied = false;
+        Assert.Equal(2000, endpoint.TargetPort);
+
+        // Setting it to null explicitly should disable the override mechanism
+        endpoint.TargetPort = null;
+        Assert.Null(endpoint.TargetPort);
+
+        // No fallback when setting TargetPort explicitly
+        endpoint.TargetPort = 2001;
+        Assert.Equal(2001, endpoint.TargetPort);
+    }
+
+    [Fact]
+    public void WithEndpointMakesPortEqualToTargetPortIfProxyless()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var projectA = builder.AddProject<ProjectA>("projecta")
+                              .WithEndpoint("mybinding", endpoint =>
+                              {
+                                  endpoint.TargetPort = 2000;
+                                  endpoint.IsProxied = false;
+                              });
+
+        var endpoint = projectA.Resource.Annotations.OfType<EndpointAnnotation>()
+            .Where(e => string.Equals(e.Name, "mybinding", EndpointAnnotationName)).Single();
+
+        // It should fall back to the TargetPort value since Port was not set
+        Assert.Equal(2000, endpoint.Port);
+
+        // In Proxy mode, the fallback should not happen
+        endpoint.IsProxied = true;
+        Assert.Null(endpoint.Port);
+
+        // Back in proxy-less mode, it should fall back again
+        endpoint.IsProxied = false;
+        Assert.Equal(2000, endpoint.Port);
+
+        // Setting it to null explicitly should disable the override mechanism
+        endpoint.Port = null;
+        Assert.Null(endpoint.Port);
+
+        // No fallback when setting Port explicitly
+        endpoint.Port = 2001;
+        Assert.Equal(2001, endpoint.Port);
+    }
+
+    [Fact]
     public void WithEndpointCallbackDoesNotRunIfEndpointDoesntExistAndCreateIfNotExistsIsFalse()
     {
         var executed = false;
@@ -94,7 +164,22 @@ public class WithEndpointTests
                     .WithHttpsEndpoint(3000, 2000, name: "mybinding");
         });
 
-        Assert.Equal("Endpoint with name 'mybinding' already exists", ex.Message);
+        Assert.Equal("Endpoint with name 'mybinding' already exists. Endpoint name may not have been explicitly specified and was derived automatically from scheme argument (e.g. 'http', 'https', or 'tcp'). Multiple calls to WithEndpoint (and related methods) may result in a conflict if name argument is not specified. Each endpoint must have a unique name. For more information on networking in .NET Aspire see: https://aka.ms/dotnet/aspire/networking", ex.Message);
+    }
+
+    [Fact]
+    public void AddingTwoEndpointsWithDefaultNames()
+    {
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            using var builder = TestDistributedApplicationBuilder.Create();
+
+            builder.AddProject<ProjectA>("projecta")
+                    .WithHttpsEndpoint(3000, 1000)
+                    .WithHttpsEndpoint(3000, 2000);
+        });
+
+        Assert.Equal("Endpoint with name 'https' already exists. Endpoint name may not have been explicitly specified and was derived automatically from scheme argument (e.g. 'http', 'https', or 'tcp'). Multiple calls to WithEndpoint (and related methods) may result in a conflict if name argument is not specified. Each endpoint must have a unique name. For more information on networking in .NET Aspire see: https://aka.ms/dotnet/aspire/networking", ex.Message);
     }
 
     [Fact]
@@ -108,7 +193,7 @@ public class WithEndpointTests
                    .WithHttpsEndpoint(2000, name: "mybinding");
         });
 
-        Assert.Equal("Endpoint with name 'mybinding' already exists", ex.Message);
+        Assert.Equal("Endpoint with name 'mybinding' already exists. Endpoint name may not have been explicitly specified and was derived automatically from scheme argument (e.g. 'http', 'https', or 'tcp'). Multiple calls to WithEndpoint (and related methods) may result in a conflict if name argument is not specified. Each endpoint must have a unique name. For more information on networking in .NET Aspire see: https://aka.ms/dotnet/aspire/networking", ex.Message);
     }
 
     [Fact]

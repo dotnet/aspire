@@ -21,7 +21,7 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
 
     protected override bool SupportsKeyedRegistrations => true;
 
-    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
+    protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
 
     protected override string ValidJsonConfig => """
         {
@@ -58,7 +58,7 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
     {
-        var connectionString = RequiresDockerTheoryAttribute.IsSupported ?
+        var connectionString = RequiresDockerAttribute.IsSupported ?
             $"{_containerFixture.GetConnectionString()}test_db" :
             "mongodb://root:password@localhost:27017/test_db";
 

@@ -6,8 +6,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 var pulsar = builder
     .AddPulsar(
         name: "pulsar",
-        servicePort: 8080,
-        brokerPort: 6650
+        targetPort: 8080,
+        port: 6650
     )
     .WithPulsarManager(
         name: "pulsar-manager",

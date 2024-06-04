@@ -292,6 +292,11 @@
         <target state="translated">Метка времени</target>
         <note />
       </trans-unit>
+      <trans-unit id="TraceDetailAttributesHeader">
+        <source>Attributes</source>
+        <target state="new">Attributes</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ViewAction">
         <source>View</source>
         <target state="translated">Просмотр</target>

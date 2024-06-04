@@ -23,12 +23,6 @@
   "guids": [
     "98048C9C-BF28-46BA-A98E-63767EE5E3A8"
   ],
-  "constraints": {
-    "aspire": {
-      "type": "workload",
-      "args": [ "aspire" ]
-    }
-  },
   "symbols": {
     "Framework": {
       "type": "parameter",

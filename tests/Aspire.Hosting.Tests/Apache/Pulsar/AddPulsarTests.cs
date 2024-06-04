@@ -193,7 +193,7 @@ public class AddPulsarTests
         var manifest = (await ManifestUtils.GetManifest(
             appBuilder.AddPulsar(
                 name: "pulsar",
-                servicePort: servicePort,
+                targetPort: servicePort,
                 brokerPort: brokerPort
             ).Resource
         )).ToString();
