@@ -7,7 +7,7 @@ using Aspire.Azure.Messaging.EventHubs;
 using Azure.Core;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
-
+using HealthChecks.Azure.Messaging.EventHubs;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Microsoft.Extensions.Hosting;
@@ -22,7 +22,24 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
     protected override string[] ActivitySourceNames => ["Azure.Messaging.EventHubs.*"];
 
     protected override IHealthCheck CreateHealthCheck(TClient client, TSettings settings)
-        => throw new NotImplementedException();
+    {
+        // if this is a producer client, reuse the instance.
+        if (client is EventHubProducerClient producer)
+        {
+            return new AzureEventHubHealthCheck(producer);
+        }
+
+        // else create one
+        var probeOptions = new EventHubProducerClientOptions
+        {
+            Identifier = $"AspireEventHubHealthCheck-{settings.EventHubName}",
+        };
+        var probe = !string.IsNullOrEmpty(settings.ConnectionString) ?
+            new EventHubProducerClient(settings.ConnectionString, probeOptions) :
+            new EventHubProducerClient(settings.FullyQualifiedNamespace, settings.EventHubName, settings.Credential, probeOptions);
+
+        return new AzureEventHubHealthCheck(probe);
+    }
 
     protected override bool GetHealthCheckEnabled(TSettings settings)
         => !settings.DisableHealthChecks;
@@ -114,43 +131,6 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
             throw new InvalidOperationException(
                 $"A {typeof(TClient).Name} could not be configured. Ensure a valid EventHubName was provided in " +
                 $"the '{configurationSectionName}' configuration section.");
-        }
-    }
-
-    protected sealed class AzureEventHubHealthCheck : IHealthCheck, IAsyncDisposable
-    {
-        private readonly EventHubProducerClient _probe;
-
-        public AzureEventHubHealthCheck(TSettings settings)
-        {
-            var probeOptions = new EventHubProducerClientOptions
-            {
-                Identifier = $"AspireEventHubHealthCheck-{settings.EventHubName}"
-            };
-
-            // At this point, the connection string or credential should already be validated by the AddClient call
-            _probe = !string.IsNullOrEmpty(settings.ConnectionString) ?
-                new EventHubProducerClient(settings.ConnectionString, probeOptions) :
-                new EventHubProducerClient(settings.FullyQualifiedNamespace, settings.EventHubName, settings.Credential, probeOptions);
-        }
-
-        /// <inheritdoc />
-        public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                await _probe.GetEventHubPropertiesAsync(cancellationToken).ConfigureAwait(false);
-                return HealthCheckResult.Healthy();
-            }
-            catch (Exception ex)
-            {
-                return new HealthCheckResult(context.Registration.FailureStatus, exception: ex);
-            }
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            await _probe.DisposeAsync().ConfigureAwait(false);
         }
     }
 }
