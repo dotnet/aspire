@@ -224,7 +224,14 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <exception cref="DistributedApplicationException">Thrown if the container resource does not contain a <see cref="ContainerImageAnnotation"/>.</exception>
     public async Task WriteContainerAsync(ContainerResource container)
     {
-        Writer.WriteString("type", "container.v0");
+        if (container.Annotations.OfType<DockerfileBuildAnnotation>().Any())
+        {
+            Writer.WriteString("type", "container.v1");
+        }
+        else
+        {
+            Writer.WriteString("type", "container.v0");
+        }
 
         // Attempt to write the connection string for the container (if this resource has one).
         WriteConnectionString(container);

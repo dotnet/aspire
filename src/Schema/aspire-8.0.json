@@ -418,6 +418,7 @@
                   "enum": [
                     "parameter.v0",
                     "container.v0",
+                    "container.v1",
                     "dockerfile.v0",
                     "project.v0",
                     "value.v0",
@@ -470,7 +471,7 @@
           "type": "string",
           "description": "The path to the Dockerfile. Can be relative or absolute. If relative it is relative to the manifest file."
         },
-        "env": {
+        "args": {
           "type": "object",
           "description": "A list of build arguments which are used during container build.",
           "additionalProperties": {
