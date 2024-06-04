@@ -29,8 +29,7 @@ public class DashboardServerFixture : IAsyncLifetime
             [DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "http://127.0.0.1:0",
             [DashboardConfigNames.DashboardOtlpUrlName.ConfigKey] = "http://127.0.0.1:0",
             [DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey] = nameof(OtlpAuthMode.Unsecured),
-            [DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = nameof(FrontendAuthMode.Unsecured),
-            ["Authentication:Schemes:OpenIdConnect:RequireHttpsMetadata"] = "false"
+            [DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = nameof(FrontendAuthMode.Unsecured)
         };
 
         var config = new ConfigurationManager().AddInMemoryCollection(initialData).Build();

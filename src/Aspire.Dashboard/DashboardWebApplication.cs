@@ -321,7 +321,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     /// Load <see cref="DashboardOptions"/> from configuration without using DI. This performs
     /// the same steps as getting the options from DI but without the need for a service provider.
     /// </summary>
-    public static bool TryGetDashboardOptions(WebApplicationBuilder builder, IConfigurationSection dashboardConfigSection, [NotNullWhen(true)] out DashboardOptions? dashboardOptions, [NotNullWhen(false)] out IEnumerable<string>? failureMessages)
+    private static bool TryGetDashboardOptions(WebApplicationBuilder builder, IConfigurationSection dashboardConfigSection, [NotNullWhen(true)] out DashboardOptions? dashboardOptions, [NotNullWhen(false)] out IEnumerable<string>? failureMessages)
     {
         dashboardOptions = new DashboardOptions();
         dashboardConfigSection.Bind(dashboardOptions);
