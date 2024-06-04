@@ -220,10 +220,22 @@ public static class ProjectResourceBuilderExtensions
         {
             builder.WithAnnotation(new LaunchProfileAnnotation(launchProfileName));
         }
+        else
+        {
+            var appHostDefaultLaunchProfileName = builder.ApplicationBuilder.Configuration["AppHost:DefaultLaunchProfileName"]
+                ?? Environment.GetEnvironmentVariable("DOTNET_LAUNCH_PROFILE");
+            if (!string.IsNullOrEmpty(appHostDefaultLaunchProfileName))
+            {
+                builder.WithAnnotation(new DefaultLaunchProfileAnnotation(appHostDefaultLaunchProfileName));
+            }
+        }
 
+        var effectiveLaunchProfile = excludeLaunchProfile ? null : projectResource.GetEffectiveLaunchProfile(throwIfNotFound: true);
+        var launchProfile = effectiveLaunchProfile?.LaunchProfile;
+
+        // Process the launch profile and turn it into environment variables and endpoints.
         var config = GetConfiguration(projectResource);
         var kestrelEndpoints = config.GetSection("Kestrel:Endpoints").GetChildren();
-        var launchProfile = excludeLaunchProfile ? null : projectResource.GetEffectiveLaunchProfile(throwIfNotFound: true);
 
         // Get all the Kestrel configuration endpoint bindings, grouped by scheme
         var kestrelEndpointsByScheme = kestrelEndpoints
@@ -296,7 +308,10 @@ public static class ProjectResourceBuilderExtensions
             builder.WithEnvironment(context =>
             {
                 // Populate DOTNET_LAUNCH_PROFILE environment variable for consistency with "dotnet run" and "dotnet watch".
-                context.EnvironmentVariables.TryAdd("DOTNET_LAUNCH_PROFILE", launchProfileName!);
+                if (effectiveLaunchProfile is not null)
+                {
+                    context.EnvironmentVariables.TryAdd("DOTNET_LAUNCH_PROFILE", effectiveLaunchProfile.Name);
+                }
 
                 foreach (var envVar in launchProfile.EnvironmentVariables)
                 {
