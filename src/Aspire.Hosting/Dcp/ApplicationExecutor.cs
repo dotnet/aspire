@@ -687,7 +687,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 if (ep.EndpointAnnotation.FromLaunchProfile &&
                     appModelResource is ProjectResource p &&
-                    p.GetEffectiveLaunchProfile() is LaunchProfile profile &&
+                    p.GetEffectiveLaunchProfile()?.LaunchProfile is LaunchProfile profile &&
                     profile.LaunchUrl is string launchUrl)
                 {
                     // Concat the launch url from the launch profile to the urls with IsFromLaunchProfile set to true
@@ -1078,7 +1078,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 // and the environment variables/application URLs inside CreateExecutableAsync().
                 exeSpec.Args.Add("--no-launch-profile");
 
-                var launchProfile = project.GetEffectiveLaunchProfile();
+                var launchProfile = project.GetEffectiveLaunchProfile()?.LaunchProfile;
                 if (launchProfile is not null && !string.IsNullOrWhiteSpace(launchProfile.CommandLineArgs))
                 {
                     var cmdArgs = CommandLineArgsParser.Parse(launchProfile.CommandLineArgs);
