@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="Grpc.Tools" />
+    <PackageReference Include="Microsoft.Playwright" />
     <ProjectReference Include="..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
 
     <Compile Include="$(TestsSharedDir)TestCertificateLoader.cs" Link="shared/TestCertificateLoader.cs" />

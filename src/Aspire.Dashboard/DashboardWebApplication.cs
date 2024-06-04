@@ -61,10 +61,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     /// <summary>
     /// Create a new instance of the <see cref="DashboardWebApplication"/> class.
     /// </summary>
-    /// <param name="configureBuilder">Configuration the internal app builder. This is for unit testing.</param>
-    public DashboardWebApplication(Action<WebApplicationBuilder>? configureBuilder = null)
+    /// <param name="configureBuilder">Configuration for the internal app builder. This is for unit testing.</param>
+    /// <param name="options">Environment configuration for the internal app builder. This is for unit testing</param>
+    public DashboardWebApplication(Action<WebApplicationBuilder>? configureBuilder = null, WebApplicationOptions? options = null)
     {
-        var builder = WebApplication.CreateBuilder();
+        var builder = options is not null ? WebApplication.CreateBuilder(options) : WebApplication.CreateBuilder();
 
         configureBuilder?.Invoke(builder);
 
@@ -130,7 +131,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         });
 
         // Data from the server.
-        builder.Services.AddScoped<IDashboardClient, DashboardClient>();
+        //builder.Services.AddScoped<IDashboardClient, DashboardClient>();
 
         // OTLP services.
         builder.Services.AddGrpc();
@@ -314,7 +315,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     /// Load <see cref="DashboardOptions"/> from configuration without using DI. This performs
     /// the same steps as getting the options from DI but without the need for a service provider.
     /// </summary>
-    private static bool TryGetDashboardOptions(WebApplicationBuilder builder, IConfigurationSection dashboardConfigSection, [NotNullWhen(true)] out DashboardOptions? dashboardOptions, [NotNullWhen(false)] out IEnumerable<string>? failureMessages)
+    public static bool TryGetDashboardOptions(WebApplicationBuilder builder, IConfigurationSection dashboardConfigSection, [NotNullWhen(true)] out DashboardOptions? dashboardOptions, [NotNullWhen(false)] out IEnumerable<string>? failureMessages)
     {
         dashboardOptions = new DashboardOptions();
         dashboardConfigSection.Bind(dashboardOptions);
