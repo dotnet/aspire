@@ -83,9 +83,11 @@ internal sealed class BuildContext
 
 internal sealed class BuildContextSecret
 {
+    // The ID of the secret (a secret can be used in a Dockerfile with `RUN --mount-type=secret,id=<id>,target=<targetpath>`)
     [JsonPropertyName("id")]
     public string? Id { get; set; }
 
+    // Path to secret file/folder that will be mounted as a build secret using --secret
     [JsonPropertyName("source")]
     public string? Source { get; set; }
 }
