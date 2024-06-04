@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Resources;
 using Microsoft.Playwright;
 using Xunit;
 
@@ -15,20 +16,23 @@ public class AppBarTests(DashboardServerFixture dashboardServerFixture, Playwrig
         var page = await playwrightFixture.Browser.NewPageAsync(new BrowserNewPageOptions { BaseURL = dashboardServerFixture.DashboardApp.FrontendEndPointAccessor().Address});
         await playwrightFixture.GoToHomeAndWaitForDataGridLoad(page);
 
-        var settingsButton = page.GetByRole(AriaRole.Button, new()
+        var settingsButton = page.GetByRole(AriaRole.Button, new PageGetByRoleOptions
         {
-            Name = "Launch settings"
+            Name = Layout.MainLayoutLaunchSettings
         });
+
         await settingsButton.ClickAsync();
 
         // Act and Assert
 
         // set to dark
-        var darkThemeCheckbox = page.GetByRole(AriaRole.Radio).And(page.GetByText("Dark")).First;
-        var lightThemeCheckbox = page.GetByRole(AriaRole.Radio).And(page.GetByText("Light")).First;
+        var darkThemeCheckbox = page.GetByRole(AriaRole.Radio).And(page.GetByText(Dialogs.SettingsDialogDarkTheme)).First;
+        var lightThemeCheckbox = page.GetByRole(AriaRole.Radio).And(page.GetByText(Dialogs.SettingsDialogLightTheme)).First;
 
         await SetAndVerifyTheme(darkThemeCheckbox, "dark");
         await SetAndVerifyTheme(lightThemeCheckbox, "light");
+
+        return;
 
         async Task SetAndVerifyTheme(ILocator locator, string expected)
         {

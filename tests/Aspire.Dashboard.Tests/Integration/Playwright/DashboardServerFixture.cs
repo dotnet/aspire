@@ -8,6 +8,7 @@ using Aspire.Hosting;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright;
@@ -35,17 +36,23 @@ public class DashboardServerFixture : IAsyncLifetime
         var config = new ConfigurationManager().AddInMemoryCollection(initialData).Build();
 
         // Add services to the container.
-        DashboardApp = new DashboardWebApplication(options: new WebApplicationOptions
-        {
-            EnvironmentName = "Development",
-            ContentRootPath = aspireAssemblyDirectory,
-            WebRootPath = Path.Combine(aspireAssemblyDirectory, "wwwroot"),
-            ApplicationName = aspireDashboardAssemblyName,
-        }, configureBuilder: builder =>
-        {
-            builder.Configuration.AddConfiguration(config);
-            builder.Services.AddSingleton<IDashboardClient, MockDashboardClient>();
-        });
+        DashboardApp = new DashboardWebApplication(
+            options: new WebApplicationOptions
+            {
+                EnvironmentName = "Development",
+                ContentRootPath = aspireAssemblyDirectory,
+                WebRootPath = Path.Combine(aspireAssemblyDirectory, "wwwroot"),
+                ApplicationName = aspireDashboardAssemblyName,
+            },
+            preConfigureBuilder: builder =>
+            {
+                builder.Configuration.AddConfiguration(config);
+            },
+            postConfigureBuilder: builder =>
+            {
+                builder.Services.RemoveAll<IDashboardClient>();
+                builder.Services.AddSingleton<IDashboardClient, MockDashboardClient>();
+            });
 
         await DashboardApp.StartAsync();
     }

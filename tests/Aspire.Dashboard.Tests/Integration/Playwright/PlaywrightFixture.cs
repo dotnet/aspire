@@ -33,7 +33,7 @@ public class PlaywrightFixture : IAsyncLifetime
         _resiliencePipeline = resiliencePipelineBuilder.Build();
 
         _playwrightInstance = await Microsoft.Playwright.Playwright.CreateAsync();
-        Browser = await _playwrightInstance.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
+        Browser = await _playwrightInstance.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = false });
     }
 
     public async Task DisposeAsync()
