@@ -117,6 +117,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             TestResourceNames.garnet => "garnet",
             TestResourceNames.sqlserver => "sqlserver",
             TestResourceNames.milvus => "milvus",
+            TestResourceNames.eventhubs => "eventhubs",
             _ => throw new ArgumentException($"Unknown resource: {resource}")
         };
 
@@ -125,13 +126,9 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        if (Project?.AppHostProcess is not null)
+        if (_project is not null)
         {
-            await Project.DumpDockerInfoAsync(new TestOutputWrapper(null));
-        }
-        if (Project is not null)
-        {
-            await Project.DisposeAsync();
+            await _project.DisposeAsync();
         }
     }
 
@@ -152,6 +149,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         {
             "oracle" => TestResourceNames.oracledatabase,
             "cosmos" => TestResourceNames.cosmos,
+            "eventhubs" => TestResourceNames.eventhubs,
             "basicservices" => TestResourceNames.kafka
                               | TestResourceNames.mongodb
                               | TestResourceNames.rabbitmq

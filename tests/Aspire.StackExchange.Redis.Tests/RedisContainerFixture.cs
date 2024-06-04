@@ -17,7 +17,7 @@ public sealed class RedisContainerFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        if (RequiresDockerTheoryAttribute.IsSupported)
+        if (RequiresDockerAttribute.IsSupported)
         {
             Container = await CreateContainerAsync();
         }

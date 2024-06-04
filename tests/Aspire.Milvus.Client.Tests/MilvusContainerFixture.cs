@@ -17,7 +17,7 @@ public sealed class MilvusContainerFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        if (RequiresDockerTheoryAttribute.IsSupported)
+        if (RequiresDockerAttribute.IsSupported)
         {
             Container = new MilvusBuilder()
                 .WithImage($"{MilvusContainerImageTags.Image}:{MilvusContainerImageTags.Tag}")
