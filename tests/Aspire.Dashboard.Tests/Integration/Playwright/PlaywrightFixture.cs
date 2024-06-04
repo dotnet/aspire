@@ -17,6 +17,12 @@ public class PlaywrightFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
+        var exitCode = Microsoft.Playwright.Program.Main(new[] {"install"});
+        if (exitCode != 0)
+        {
+            throw new PlaywrightException($"Playwright exited with code {exitCode}");
+        }
+
         var retryOptions = new RetryStrategyOptions
         {
             ShouldHandle = new PredicateBuilder().Handle<ArgumentException>(),
