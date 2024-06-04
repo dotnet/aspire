@@ -7,7 +7,7 @@ builder.Configuration["Parameters:goversion"] = "1.22"; // Just for validating p
 var goVersion = builder.AddParameter("goversion");
 
 builder.AddContainer("mycontainer", "myimage")
-       .FromDockerfile("qots")
+       .WithDockerfile("qots")
        .WithBuildArg("GO_VERSION", goVersion);
 
 // This project is only added in playground projects to support development/debugging

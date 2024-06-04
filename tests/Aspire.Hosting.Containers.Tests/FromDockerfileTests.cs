@@ -28,7 +28,7 @@ public class FromDockerfileTests
 
         builder.AddContainer("testcontainer", "testimage")
                .WithHttpEndpoint(targetPort: 80)
-               .FromDockerfile(tempContextPath, tempDockerfilePath);
+               .WithDockerfile(tempContextPath, tempDockerfilePath);
 
         using var app = builder.Build();
         await app.StartAsync();
@@ -63,7 +63,7 @@ public class FromDockerfileTests
 
         var container = builder.AddContainer("testcontainer", "testimage")
                                .WithHttpEndpoint(targetPort: 80)
-                               .FromDockerfile(tempContextPath, tempDockerfilePath, "runner")
+                               .WithDockerfile(tempContextPath, tempDockerfilePath, "runner")
                                .WithBuildArg("MESSAGE", parameter)
                                .WithBuildArg("stringParam", "a string")
                                .WithBuildArg("intParam", 42);
@@ -112,7 +112,7 @@ public class FromDockerfileTests
 
         builder.AddContainer("testcontainer", "testimage")
                .WithHttpEndpoint(targetPort: 80)
-               .FromDockerfile(tempContextPath, tempDockerfilePath)
+               .WithDockerfile(tempContextPath, tempDockerfilePath)
                .WithBuildArg("MESSAGE", parameter)
                .WithBuildArg("stringParam", "a string")
                .WithBuildArg("intParam", 42)
@@ -174,7 +174,7 @@ public class FromDockerfileTests
         var ex = Assert.Throws<ArgumentException>(() =>
         {
             builder.AddContainer("mycontainer", "myimage")
-                   .FromDockerfile(string.Empty);
+                   .WithDockerfile(string.Empty);
         });
 
         Assert.Equal("contextPath", ex.ParamName);
@@ -188,7 +188,7 @@ public class FromDockerfileTests
         var ex = Assert.Throws<DirectoryNotFoundException>(() =>
         {
             builder.AddContainer("mycontainer", "myimage")
-                   .FromDockerfile("a/path/to/nowhere");
+                   .WithDockerfile("a/path/to/nowhere");
         });
     }
 
@@ -201,7 +201,7 @@ public class FromDockerfileTests
         var ex = Assert.Throws<FileNotFoundException>(() =>
         {
             builder.AddContainer("mycontainer", "myimage")
-                   .FromDockerfile(tempContextPath, string.Empty);
+                   .WithDockerfile(tempContextPath, string.Empty);
         });
     }
 
@@ -214,7 +214,7 @@ public class FromDockerfileTests
         var ex = Assert.Throws<FileNotFoundException>(() =>
         {
             builder.AddContainer("mycontainer", "myimage")
-                   .FromDockerfile(tempContextPath, "Notarealdockerfile");
+                   .WithDockerfile(tempContextPath, "Notarealdockerfile");
         });
     }
 
@@ -242,7 +242,7 @@ public class FromDockerfileTests
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
 
         var container = builder.AddContainer("mycontainer", "myimage")
-                               .FromDockerfile(tempContextPath);
+                               .WithDockerfile(tempContextPath);
 
         var annotation = Assert.Single(container.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
         Assert.Equal(tempContextPath, annotation.ContextPath);
@@ -256,7 +256,7 @@ public class FromDockerfileTests
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
 
         var container = builder.AddContainer("mycontainer", "myimage")
-                               .FromDockerfile(tempContextPath, "Dockerfile");
+                               .WithDockerfile(tempContextPath, "Dockerfile");
 
         var annotation = Assert.Single(container.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
         Assert.Equal(tempContextPath, annotation.ContextPath);
@@ -270,7 +270,7 @@ public class FromDockerfileTests
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync("Otherdockerfile");
 
         var container = builder.AddContainer("mycontainer", "myimage")
-                               .FromDockerfile(tempContextPath, "Otherdockerfile");
+                               .WithDockerfile(tempContextPath, "Otherdockerfile");
 
         var annotation = Assert.Single(container.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
         Assert.Equal(tempContextPath, annotation.ContextPath);
@@ -284,7 +284,7 @@ public class FromDockerfileTests
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
 
         var container = builder.AddContainer("mycontainer", "myimage")
-                               .FromDockerfile(tempContextPath, tempDockerfilePath);
+                               .WithDockerfile(tempContextPath, tempDockerfilePath);
 
         var annotation = Assert.Single(container.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
         Assert.Equal(tempContextPath, annotation.ContextPath);

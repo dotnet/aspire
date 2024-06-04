@@ -491,7 +491,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Valkey", "sr
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dockerfile", "dockerfile", "{A6813855-E322-41EF-B2E6-7A44949EF962}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dockerfile.AppHost", "playground\dockerfile\Dockerfile.AppHost\Dockerfile.AppHost.csproj", "{E6BE41D3-872C-47D2-B5B1-78C37AFAEAF9}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "withdockerfile", "withdockerfile", "{A6813855-E322-41EF-B2E6-7A44949EF962}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WithDockerfile.AppHost", "playground\withdockerfile\WithDockerfile.AppHost\WithDockerfile.AppHost.csproj", "{E6BE41D3-872C-47D2-B5B1-78C37AFAEAF9}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Containers.Tests", "tests\Aspire.Hosting.Containers.Tests\Aspire.Hosting.Containers.Tests.csproj", "{588CD2D7-EE70-43C1-8233-330854BDF53C}"
 EndProject
