@@ -107,8 +107,8 @@ public class TestProgram : IDisposable
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.valkey))
             {
-                var valKey = AppBuilder.AddValKey("valkey");
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(valKey);
+                var valkey = AppBuilder.AddValkey("valkey");
+                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(valkey);
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
             {

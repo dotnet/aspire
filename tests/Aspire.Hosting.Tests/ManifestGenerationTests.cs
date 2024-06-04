@@ -11,7 +11,7 @@ using Aspire.Hosting.RabbitMQ;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
-using Aspire.Hosting.ValKey;
+using Aspire.Hosting.Valkey;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -598,7 +598,7 @@ public class ManifestGenerationTests
                 "valkey": {
                   "type": "container.v0",
                   "connectionString": "{valkey.bindings.tcp.host}:{valkey.bindings.tcp.port}",
-                  "image": "{{ValKeyContainerImageTags.Registry}}/{{ValKeyContainerImageTags.Image}}:{{ValKeyContainerImageTags.Tag}}",
+                  "image": "{{ValkeyContainerImageTags.Registry}}/{{ValkeyContainerImageTags.Image}}:{{ValkeyContainerImageTags.Tag}}",
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",

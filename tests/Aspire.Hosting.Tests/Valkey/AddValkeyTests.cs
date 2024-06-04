@@ -3,26 +3,26 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.Utils;
-using Aspire.Hosting.ValKey;
+using Aspire.Hosting.Valkey;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace Aspire.Hosting.Tests.ValKey;
+namespace Aspire.Hosting.Tests.Valkey;
 
-public class AddValKeyTests
+public class AddValkeyTests
 {
     [Fact]
-    public void AddValKeyContainerWithDefaultsAddsAnnotationMetadata()
+    public void AddValkeyContainerWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddValKey("myValKey").PublishAsContainer();
+        appBuilder.AddValkey("myValkey").PublishAsContainer();
 
         using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var containerResource = Assert.Single(appModel.Resources.OfType<ValKeyResource>());
-        Assert.Equal("myValKey", containerResource.Name);
+        var containerResource = Assert.Single(appModel.Resources.OfType<ValkeyResource>());
+        Assert.Equal("myValkey", containerResource.Name);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(6379, endpoint.TargetPort);
@@ -34,23 +34,23 @@ public class AddValKeyTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal(ValKeyContainerImageTags.Tag, containerAnnotation.Tag);
-        Assert.Equal(ValKeyContainerImageTags.Image, containerAnnotation.Image);
-        Assert.Equal(ValKeyContainerImageTags.Registry, containerAnnotation.Registry);
+        Assert.Equal(ValkeyContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(ValkeyContainerImageTags.Image, containerAnnotation.Image);
+        Assert.Equal(ValkeyContainerImageTags.Registry, containerAnnotation.Registry);
     }
 
     [Fact]
-    public void AddValKeyContainerAddsAnnotationMetadata()
+    public void AddValkeyContainerAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddValKey("myValKey", port: 8813);
+        appBuilder.AddValkey("myValkey", port: 8813);
 
         using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var containerResource = Assert.Single(appModel.Resources.OfType<ValKeyResource>());
-        Assert.Equal("myValKey", containerResource.Name);
+        var containerResource = Assert.Single(appModel.Resources.OfType<ValkeyResource>());
+        Assert.Equal("myValkey", containerResource.Name);
 
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(6379, endpoint.TargetPort);
@@ -62,16 +62,16 @@ public class AddValKeyTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal(ValKeyContainerImageTags.Tag, containerAnnotation.Tag);
-        Assert.Equal(ValKeyContainerImageTags.Image, containerAnnotation.Image);
-        Assert.Equal(ValKeyContainerImageTags.Registry, containerAnnotation.Registry);
+        Assert.Equal(ValkeyContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(ValkeyContainerImageTags.Image, containerAnnotation.Image);
+        Assert.Equal(ValkeyContainerImageTags.Registry, containerAnnotation.Registry);
     }
 
     [Fact]
-    public async Task ValKeyCreatesConnectionString()
+    public async Task ValkeyCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddValKey("myValKey")
+        appBuilder.AddValkey("myValkey")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
 
         await using var app = appBuilder.Build();
@@ -80,7 +80,7 @@ public class AddValKeyTests
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
-        Assert.Equal("{myValKey.bindings.tcp.host}:{myValKey.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{myValkey.bindings.tcp.host}:{myValkey.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
         Assert.StartsWith("localhost:2000", connectionString);
     }
 
@@ -88,15 +88,15 @@ public class AddValKeyTests
     public async Task VerifyManifest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var valKey = builder.AddValKey("myValKey");
+        var valkey = builder.AddValkey("myValkey");
 
-        var manifest = await ManifestUtils.GetManifest(valKey.Resource);
+        var manifest = await ManifestUtils.GetManifest(valkey.Resource);
 
         var expectedManifest = $$"""
                                  {
                                    "type": "container.v0",
-                                   "connectionString": "{myValKey.bindings.tcp.host}:{myValKey.bindings.tcp.port}",
-                                   "image": "{{ValKeyContainerImageTags.Registry}}/{{ValKeyContainerImageTags.Image}}:{{ValKeyContainerImageTags.Tag}}",
+                                   "connectionString": "{myValkey.bindings.tcp.host}:{myValkey.bindings.tcp.port}",
+                                   "image": "{{ValkeyContainerImageTags.Registry}}/{{ValkeyContainerImageTags.Image}}:{{ValkeyContainerImageTags.Tag}}",
                                    "bindings": {
                                      "tcp": {
                                        "scheme": "tcp",
@@ -117,19 +117,19 @@ public class AddValKeyTests
     public void WithDataVolumeAddsVolumeAnnotation(bool? isReadOnly)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var valKey = builder.AddValKey("myValKey");
+        var valkey = builder.AddValkey("myValkey");
         if (isReadOnly.HasValue)
         {
-            valKey.WithDataVolume(isReadOnly: isReadOnly.Value);
+            valkey.WithDataVolume(isReadOnly: isReadOnly.Value);
         }
         else
         {
-            valKey.WithDataVolume();
+            valkey.WithDataVolume();
         }
 
-        var volumeAnnotation = valKey.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        var volumeAnnotation = valkey.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
-        Assert.Equal("Aspire.Hosting.Tests-myValKey-data", volumeAnnotation.Source);
+        Assert.Equal("Aspire.Hosting.Tests-myValkey-data", volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
@@ -142,19 +142,19 @@ public class AddValKeyTests
     public void WithDataBindMountAddsMountAnnotation(bool? isReadOnly)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var valKey = builder.AddValKey("myValKeydata");
+        var valkey = builder.AddValkey("myValkeydata");
         if (isReadOnly.HasValue)
         {
-            valKey.WithDataBindMount("myValKeydata", isReadOnly: isReadOnly.Value);
+            valkey.WithDataBindMount("myValkeydata", isReadOnly: isReadOnly.Value);
         }
         else
         {
-            valKey.WithDataBindMount("myValKeydata");
+            valkey.WithDataBindMount("myValkeydata");
         }
 
-        var volumeAnnotation = valKey.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        var volumeAnnotation = valkey.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
-        Assert.Equal(Path.Combine(builder.AppHostDirectory, "myValKeydata"), volumeAnnotation.Source);
+        Assert.Equal(Path.Combine(builder.AppHostDirectory, "myValkeydata"), volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
@@ -164,10 +164,10 @@ public class AddValKeyTests
     public void WithDataVolumeAddsPersistenceAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var valKey = builder.AddValKey("myValKey")
+        var valkey = builder.AddValkey("myValkey")
                               .WithDataVolume();
 
-        Assert.True(valKey.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
+        Assert.True(valkey.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
 
         var args = new List<object>();
         foreach (var argsAnnotation in argsCallbacks)
@@ -183,10 +183,10 @@ public class AddValKeyTests
     public void WithDataVolumeDoesNotAddPersistenceAnnotationIfIsReadOnly()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var valKey = builder.AddValKey("myValKey")
+        var valkey = builder.AddValkey("myValkey")
                            .WithDataVolume(isReadOnly: true);
 
-        var persistenceAnnotation = valKey.Resource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().SingleOrDefault();
+        var persistenceAnnotation = valkey.Resource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().SingleOrDefault();
 
         Assert.Null(persistenceAnnotation);
     }
@@ -195,10 +195,10 @@ public class AddValKeyTests
     public void WithDataBindMountAddsPersistenceAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var valKey = builder.AddValKey("myValKey")
-                           .WithDataBindMount("myvalKeydata");
+        var valkey = builder.AddValkey("myValkey")
+                           .WithDataBindMount("myvalkeydata");
 
-        Assert.True(valKey.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
+        Assert.True(valkey.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
 
         var args = new List<object>();
         foreach (var argsAnnotation in argsCallbacks)
@@ -214,10 +214,10 @@ public class AddValKeyTests
     public void WithDataBindMountDoesNotAddPersistenceAnnotationIfIsReadOnly()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var valKey = builder.AddValKey("myValKey")
-                           .WithDataBindMount("myvalKeydata", isReadOnly: true);
+        var valkey = builder.AddValkey("myValkey")
+                           .WithDataBindMount("myvalkeydata", isReadOnly: true);
 
-        var persistenceAnnotation = valKey.Resource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().SingleOrDefault();
+        var persistenceAnnotation = valkey.Resource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().SingleOrDefault();
 
         Assert.Null(persistenceAnnotation);
     }
@@ -226,11 +226,11 @@ public class AddValKeyTests
     public void WithPersistenceReplacesPreviousAnnotationInstances()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var valKey = builder.AddValKey("myValKey")
+        var valkey = builder.AddValkey("myValkey")
                            .WithDataVolume()
                            .WithPersistence(TimeSpan.FromSeconds(10), 2);
 
-        Assert.True(valKey.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
+        Assert.True(valkey.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
 
         var args = new List<object>();
         foreach (var argsAnnotation in argsCallbacks)
@@ -246,10 +246,10 @@ public class AddValKeyTests
     public void WithPersistenceAddsCommandLineArgsAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var valKey = builder.AddValKey("myValKey")
+        var valkey = builder.AddValkey("myValkey")
                            .WithPersistence(TimeSpan.FromSeconds(60));
 
-        Assert.True(valKey.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsAnnotations));
+        Assert.True(valkey.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsAnnotations));
         Assert.NotNull(argsAnnotations.SingleOrDefault());
     }
 }

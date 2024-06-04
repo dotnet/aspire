@@ -1,24 +1,24 @@
-# Aspire.Hosting.ValKey library
+# Aspire.Hosting.Valkey library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Cache for ValKey.
+Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Cache for Valkey.
 
 ## Install the package
 
-In your AppHost project, install the `Aspire.Hosting.ValKey` library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the `Aspire.Hosting.Valkey` library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Hosting.ValKey
+dotnet add package Aspire.Hosting.Valkey
 ```
 
 ## Usage example
 
-Then, in the _Program.cs_ file of `AppHost`, register a ValKey server and consume the connection using the following methods:
+Then, in the _Program.cs_ file of `AppHost`, register a Valkey server and consume the connection using the following methods:
 
 ```csharp
-var valKey = builder.AddValKey("cache")
+var valkey = builder.AddValkey("cache")
 
 var myService = builder.AddProject<Projects.MyService>()
-                       .WithReference(valKey);
+                       .WithReference(valkey);
 ```
 
 The `WithReference` method configures a connection in the `MyService` project named `cache`. In the _Program.cs_ file of `MyService`, the redis connection can be consumed using the client library [Aspire.StackExchange.Redis](https://www.nuget.org/packages/Aspire.StackExchange.Redis):

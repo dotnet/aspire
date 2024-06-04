@@ -3,20 +3,20 @@
 
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.ValKey;
+using Aspire.Hosting.Valkey;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Provides extension methods for adding ValKey resources to the application model.
+/// Provides extension methods for adding Valkey resources to the application model.
 /// </summary>
-public static class ValKeyBuilderExtensions
+public static class ValkeyBuilderExtensions
 {
-    private const string ValKeyContainerDataDirectory = "/data";
+    private const string ValkeyContainerDataDirectory = "/data";
 
     /// <summary>
-    /// Adds a ValKey container to the application model.
+    /// Adds a Valkey container to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -26,9 +26,9 @@ public static class ValKeyBuilderExtensions
     /// <code>
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// var valKey = builder.AddValKey("valKey");
+    /// var valkey = builder.AddValkey("valkey");
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api)
-    ///                  .WithReference(valKey);
+    ///                  .WithReference(valkey);
     ///  
     /// builder.Build().Run(); 
     /// </code>
@@ -37,7 +37,7 @@ public static class ValKeyBuilderExtensions
     /// Use in Api with Aspire.StackExchange.Redis
     /// <code>
     /// var builder = WebApplication.CreateBuilder(args);
-    /// builder.AddRedisClient("valKey");
+    /// builder.AddRedisClient("valkey");
     ///
     /// var multiplexer = builder.Services.BuildServiceProvider()
     ///                                   .GetRequiredService&lt;IConnectionMultiplexer&gt;();
@@ -48,39 +48,39 @@ public static class ValKeyBuilderExtensions
     /// </code>
     /// </example>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ValKeyResource> AddValKey(this IDistributedApplicationBuilder builder,
+    public static IResourceBuilder<ValkeyResource> AddValkey(this IDistributedApplicationBuilder builder,
         string name,
         int? port = null)
     {
-        var valKey = new ValKeyResource(name);
-        return builder.AddResource(valKey)
-            .WithEndpoint(port: port, targetPort: 6379, name: ValKeyResource.PrimaryEndpointName)
-            .WithImage(ValKeyContainerImageTags.Image, ValKeyContainerImageTags.Tag)
-            .WithImageRegistry(ValKeyContainerImageTags.Registry);
+        var valkey = new ValkeyResource(name);
+        return builder.AddResource(valkey)
+            .WithEndpoint(port: port, targetPort: 6379, name: ValkeyResource.PrimaryEndpointName)
+            .WithImage(ValkeyContainerImageTags.Image, ValkeyContainerImageTags.Tag)
+            .WithImageRegistry(ValkeyContainerImageTags.Registry);
     }
 
     /// <summary>
-    /// Adds a named volume for the data folder to a ValKey container resource and enables ValKey persistence.
+    /// Adds a named volume for the data folder to a Valkey container resource and enables Valkey persistence.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <param name="isReadOnly">
-    /// A flag that indicates if this is a read-only volume. Setting this to <c>true</c> will disable ValKey persistence.<br/>
+    /// A flag that indicates if this is a read-only volume. Setting this to <c>true</c> will disable Valkey persistence.<br/>
     /// Defaults to <c>false</c>.
     /// </param>
     /// <example>
-    /// Use <see cref="WithPersistence(IResourceBuilder{ValKeyResource}, TimeSpan?, long)"/> to adjust ValKey persistence configuration, e.g.:
+    /// Use <see cref="WithPersistence(IResourceBuilder{ValkeyResource}, TimeSpan?, long)"/> to adjust Valkey persistence configuration, e.g.:
     /// <code>
-    /// var cache = builder.AddValKey("cache")
+    /// var cache = builder.AddValkey("cache")
     ///                    .WithDataVolume()
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
     /// </code>
     /// </example>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ValKeyResource> WithDataVolume(this IResourceBuilder<ValKeyResource> builder,
+    public static IResourceBuilder<ValkeyResource> WithDataVolume(this IResourceBuilder<ValkeyResource> builder,
         string? name = null, bool isReadOnly = false)
     {
-        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), ValKeyContainerDataDirectory,
+        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), ValkeyContainerDataDirectory,
             isReadOnly);
         if (!isReadOnly)
         {
@@ -91,27 +91,27 @@ public static class ValKeyBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a bind mount for the data folder to a ValKey container resource and enables ValKey persistence.
+    /// Adds a bind mount for the data folder to a Valkey container resource and enables Valkey persistence.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <param name="isReadOnly">
-    /// A flag that indicates if this is a read-only mount. Setting this to <c>true</c> will disable ValKey persistence.<br/>
+    /// A flag that indicates if this is a read-only mount. Setting this to <c>true</c> will disable Valkey persistence.<br/>
     /// Defaults to <c>false</c>.
     /// </param>
     /// <example>
-    /// Use <see cref="WithPersistence(IResourceBuilder{ValKeyResource}, TimeSpan?, long)"/> to adjust ValKey persistence configuration, e.g.:
+    /// Use <see cref="WithPersistence(IResourceBuilder{ValkeyResource}, TimeSpan?, long)"/> to adjust Valkey persistence configuration, e.g.:
     /// <code>
-    /// var valKey = builder.AddValKey("valKey")
+    /// var valkey = builder.AddValkey("valkey")
     ///                    .WithDataBindMount()
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
     /// </code>
     /// </example>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ValKeyResource> WithDataBindMount(this IResourceBuilder<ValKeyResource> builder,
+    public static IResourceBuilder<ValkeyResource> WithDataBindMount(this IResourceBuilder<ValkeyResource> builder,
         string source, bool isReadOnly = false)
     {
-        builder.WithBindMount(source, ValKeyContainerDataDirectory, isReadOnly);
+        builder.WithBindMount(source, ValkeyContainerDataDirectory, isReadOnly);
         if (!isReadOnly)
         {
             builder.WithPersistence();
@@ -121,22 +121,22 @@ public static class ValKeyBuilderExtensions
     }
 
     /// <summary>
-    /// Configures a ValKey container resource for persistence.
+    /// Configures a Valkey container resource for persistence.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="interval">The interval between snapshot exports. Defaults to 60 seconds.</param>
     /// <param name="keysChangedThreshold">The number of key change operations required to trigger a snapshot at the interval. Defaults to 1.</param>
     /// <example>
-    /// Use with <see cref="WithDataBindMount(IResourceBuilder{ValKeyResource}, string, bool)"/>
-    /// or <see cref="WithDataVolume(IResourceBuilder{ValKeyResource}, string?, bool)"/> to persist ValKey data across sessions with custom persistence configuration, e.g.:
+    /// Use with <see cref="WithDataBindMount(IResourceBuilder{ValkeyResource}, string, bool)"/>
+    /// or <see cref="WithDataVolume(IResourceBuilder{ValkeyResource}, string?, bool)"/> to persist Valkey data across sessions with custom persistence configuration, e.g.:
     /// <code>
-    /// var cache = builder.AddValKey("cache")
+    /// var cache = builder.AddValkey("cache")
     ///                    .WithDataVolume()
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
     /// </code>
     /// </example>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ValKeyResource> WithPersistence(this IResourceBuilder<ValKeyResource> builder,
+    public static IResourceBuilder<ValkeyResource> WithPersistence(this IResourceBuilder<ValkeyResource> builder,
         TimeSpan? interval = null, long keysChangedThreshold = 1)
         => builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
         {

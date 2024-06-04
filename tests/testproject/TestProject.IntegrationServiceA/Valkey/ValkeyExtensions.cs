@@ -3,14 +3,14 @@
 
 using StackExchange.Redis;
 
-public static class ValKeyExtensions
+public static class ValkeyExtensions
 {
-    public static void MapValKeyApi(this WebApplication app)
+    public static void MapValkeyApi(this WebApplication app)
     {
-        app.MapGet("/valkey/verify", VerifyValKeyAsync);
+        app.MapGet("/valkey/verify", VerifyValkeyAsync);
     }
 
-    private static async Task<IResult> VerifyValKeyAsync([FromKeyedServices("valkey")] IConnectionMultiplexer cm)
+    private static async Task<IResult> VerifyValkeyAsync([FromKeyedServices("valkey")] IConnectionMultiplexer cm)
     {
         try
         {

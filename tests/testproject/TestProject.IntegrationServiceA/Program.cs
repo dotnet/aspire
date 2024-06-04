@@ -119,7 +119,7 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.valkey))
 {
-    app.MapValKeyApi();
+    app.MapValkeyApi();
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))

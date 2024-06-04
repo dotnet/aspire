@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Hosting.ValKey;
+namespace Aspire.Hosting.Valkey;
 
-internal static class ValKeyContainerImageTags
+internal static class ValkeyContainerImageTags
 {
     public const string Registry = "valkey";
     public const string Image = "valkey";

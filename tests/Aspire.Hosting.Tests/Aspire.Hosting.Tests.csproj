@@ -35,7 +35,7 @@
     <ProjectReference Include="..\..\src\Aspire.Hosting.PostgreSQL\Aspire.Hosting.PostgreSQL.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Qdrant\Aspire.Hosting.Qdrant.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Testing\Aspire.Hosting.Testing.csproj" />
-    <ProjectReference Include="..\..\src\Aspire.Hosting.ValKey\Aspire.Hosting.ValKey.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\..\src\Aspire.Hosting.Valkey\Aspire.Hosting.Valkey.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\testproject\TestProject.AppHost\TestProject.AppHost.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\Aspire.Hosting.Tests.SharedShim\Aspire.Hosting.Tests.SharedShim.csproj" IsAspireProjectResource="false" Aliases="AspireHostingShared" />
     <ProjectReference Include="..\..\src\Components\Aspire.Microsoft.Data.SqlClient\Aspire.Microsoft.Data.SqlClient.csproj" IsAspireProjectResource="false" />
@@ -57,7 +57,7 @@
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Qdrant\QdrantContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.SqlServer\SqlServerContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Azure.EventHubs\EventHubsEmulatorContainerImageTags.cs" />
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting.ValKey\ValKeyContainerImageTags.cs" />
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Valkey\ValkeyContainerImageTags.cs" />
 
     <Content Include="$(RepoRoot)src\Schema\aspire-8.0.json" Link="Schema\aspire-8.0.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
