@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
 using Microsoft.DotNet.RemoteExecutor;
@@ -8,6 +9,7 @@ using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OpenTelemetry.Trace;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -83,14 +85,14 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
 
     protected override void TriggerActivity(TestDbContext service)
     {
-        //if (service.Database.CanConnect())
-        //{
-        service.Database.EnsureCreated();
-        //}
-        //else
-        //{
-          //  Assert.Fail($"Cannot connect to database: {ConnectionString}");
-        //}
+        if (service.Database.CanConnect())
+        {
+            service.Database.EnsureCreated();
+        }
+        else
+        {
+            Assert.Fail($"Cannot connect to database: {ConnectionString}");
+        }
     }
 
     public ConformanceTests(OracleContainerFixture? containerFixture, ITestOutputHelper? testOutputHelper)
@@ -126,16 +128,51 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
 
     [Fact]
     [RequiresDocker]
-    public async void TracingEnablesTheRightActivitySource()
+    public void TracingEnablesTheRightActivitySource()
     {
-        if (_containerFixture is not null && _containerFixture.Container is not null && _testOutputHelper is not null)
-        {
-            var (stdout, stderr) = await _containerFixture.Container.GetLogsAsync();
-            _testOutputHelper.WriteLine(stdout);
-            _testOutputHelper.WriteLine(stderr);
-        }
         RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: null)),
                              ConnectionString).Dispose();
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public void TracingHasSemanticConventions()
+    {
+        RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySemanticsTest()),
+                             ConnectionString).Dispose();
+    }
+
+    private void ActivitySemanticsTest()
+    {
+        HostApplicationBuilder builder = CreateHostBuilder();
+        RegisterComponent(builder, options => SetTracing(options, true));
+
+        List<Activity> exportedActivities = new();
+        builder.Services.AddOpenTelemetry().WithTracing(builder => builder.AddInMemoryExporter(exportedActivities));
+
+        using (IHost host = builder.Build())
+        {
+            // We start the host to make it build TracerProvider.
+            // If we don't, nothing gets reported!
+            host.Start();
+
+            var service = host.Services.GetRequiredService<TestDbContext>();
+
+            Assert.Empty(exportedActivities);
+
+            try
+            {
+                TriggerActivity(service);
+            }
+            catch (Exception) when (!CanConnectToServer)
+            {
+            }
+
+            Assert.NotEmpty(exportedActivities);
+            //Test runner doesn't have the server port set
+            Assert.Contains(exportedActivities, activity => activity.Tags.Any(x => x.Key == "server.address"));
+            Assert.Contains(exportedActivities, activity => activity.Tags.Any(x => x.Key == "db.system"));
+        }
     }
 
     private static void RunWithConnectionString(string connectionString, Action<ConformanceTests> test)
