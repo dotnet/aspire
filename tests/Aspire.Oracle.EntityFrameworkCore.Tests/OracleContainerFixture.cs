@@ -28,13 +28,13 @@ public sealed class OracleContainerFixture : IAsyncLifetime
         if (RequiresDockerAttribute.IsSupported)
         {
             Container = new OracleBuilder()
-                .WithPortBinding(5432, 1521)
+                .WithPortBinding(1521, true)
+                .WithHostname("localhost")
                 .WithWaitStrategy(Wait
                     .ForUnixContainer()
-                    .UntilMessageIsLogged("Started service freepdb1/freepdb1/freepdb1")
+                    .UntilMessageIsLogged("Pluggable database XEPDB1 opened read write")
                     .UntilMessageIsLogged("Completed: ALTER DATABASE OPEN")
-                )
-                .Build();
+                ).Build();
 
             await Container.StartAsync();
         }
