@@ -7,6 +7,8 @@
   <ItemGroup>
     <PackageReference Include="Grpc.Tools" />
     <PackageReference Include="Microsoft.Playwright" />
+    <PackageReference Include="Polly.Extensions" />
+
     <ProjectReference Include="..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
 
     <Compile Include="$(TestsSharedDir)TestCertificateLoader.cs" Link="shared/TestCertificateLoader.cs" />
@@ -15,4 +17,9 @@
 
     <Content Include="..\..\src\Aspire.Dashboard\wwwroot\**\*.*" LinkBase="wwwroot" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <Target Name="InstallBrowser" AfterTargets="Build">
+    <Message Text="## Installing playright browser ##" Importance="high" />
+    <Exec Command="pwsh playwright.ps1 install" WorkingDirectory="$(ProjectDir)..\..\artifacts\bin\Aspire.Dashboard.Tests\Debug\net8.0\"/>
+  </Target>
 </Project>
