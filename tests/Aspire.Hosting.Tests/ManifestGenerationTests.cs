@@ -635,15 +635,6 @@ public class ManifestGenerationTests
                     }
                   }
                 },
-                "mongodb-password": {
-                  "type": "parameter.v0",
-                  "value": "{mongodb-password.inputs.value}",
-                  "inputs": {
-                    "value": {
-                      "type": "string"
-                    }
-                  }
-                },
                 "mongodb": {
                   "type": "container.v0",
                   "connectionString": "mongodb://admin:{mongodb-password.value}@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}",
@@ -818,6 +809,21 @@ public class ManifestGenerationTests
                         "generate": {
                           "minLength": 22,
                           "special": false
+                        }
+                      }
+                    }
+                  }
+                },
+                "mongodb-password": {
+                  "type": "parameter.v0",
+                  "value": "{mongodb-password.inputs.value}",
+                  "inputs": {
+                    "value": {
+                      "type": "string",
+                      "secret": true,
+                      "default": {
+                        "generate": {
+                          "minLength": 22
                         }
                       }
                     }
