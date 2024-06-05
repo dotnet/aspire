@@ -36,10 +36,10 @@ public class ConsumerConfigurationTests
 
         using var host = builder.Build();
         var connectionFactory = useKeyed
-            ? host.Services.GetRequiredKeyedService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value!, "messaging")
-            : host.Services.GetRequiredService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value!);
+            ? host.Services.GetRequiredKeyedService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value, "messaging")
+            : host.Services.GetRequiredService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value);
 
-        ConsumerConfig config = GetConsumerConfig(connectionFactory)!;
+        var config = GetConsumerConfig(connectionFactory)!;
 
         Assert.Equal(CommonHelpers.TestingEndpoint, config.BootstrapServers);
     }
@@ -69,10 +69,10 @@ public class ConsumerConfigurationTests
 
         using var host = builder.Build();
         var connectionFactory = useKeyed
-            ? host.Services.GetRequiredKeyedService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value!, "messaging")
-            : host.Services.GetRequiredService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value!);
+            ? host.Services.GetRequiredKeyedService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value, "messaging")
+            : host.Services.GetRequiredService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value);
 
-        ConsumerConfig config = GetConsumerConfig(connectionFactory)!;
+        var config = GetConsumerConfig(connectionFactory)!;
 
         Assert.Equal(CommonHelpers.TestingEndpoint, config.BootstrapServers);
     }
@@ -102,12 +102,94 @@ public class ConsumerConfigurationTests
 
         using var host = builder.Build();
         var connectionFactory = useKeyed
-            ? host.Services.GetRequiredKeyedService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value!, "messaging")
-            : host.Services.GetRequiredService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value!);
+            ? host.Services.GetRequiredKeyedService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value, "messaging")
+            : host.Services.GetRequiredService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value);
 
-        ConsumerConfig config = GetConsumerConfig(connectionFactory)!;
+        var config = GetConsumerConfig(connectionFactory)!;
 
         Assert.Equal(CommonHelpers.TestingEndpoint, config.BootstrapServers);
+    }
+
+    [ConditionalTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ConfigureConsumerBuilder(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var key = useKeyed ? "messaging" : null;
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:messaging", CommonHelpers.TestingEndpoint),
+            new KeyValuePair<string, string?>(ProducerConformanceTests.CreateConfigKey("Aspire:Confluent:Kafka:Consumer", key, "Config:GroupId"), "unused")
+        ]);
+
+        var isCalled = false;
+
+        if (useKeyed)
+        {
+            builder.AddKeyedKafkaConsumer<string, string>("messaging", ConfigureBuilder);
+        }
+        else
+        {
+            builder.AddKafkaConsumer<string, string>("messaging", ConfigureBuilder);
+        }
+
+        using var host = builder.Build();
+        var connectionFactory = useKeyed
+            ? host.Services.GetRequiredKeyedService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value, "messaging")
+            : host.Services.GetRequiredService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value);
+
+        var config = GetConsumerConfig(connectionFactory)!;
+
+        Assert.True(isCalled);
+        Assert.Equal(CommonHelpers.TestingEndpoint, config.BootstrapServers);
+        return;
+
+        void ConfigureBuilder(ConsumerBuilder<string, string> _)
+        {
+            isCalled = true;
+        }
+    }
+
+    [ConditionalTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ConfigureConsumerBuilderWithServiceProvider(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var key = useKeyed ? "messaging" : null;
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:messaging", CommonHelpers.TestingEndpoint),
+            new KeyValuePair<string, string?>(ProducerConformanceTests.CreateConfigKey("Aspire:Confluent:Kafka:Consumer", key, "Config:GroupId"), "unused")
+        ]);
+
+        var isCalled = false;
+
+        if (useKeyed)
+        {
+            builder.AddKeyedKafkaConsumer<string, string>("messaging", ConfigureBuilder);
+        }
+        else
+        {
+            builder.AddKafkaConsumer<string, string>("messaging", ConfigureBuilder);
+        }
+
+        using var host = builder.Build();
+        var connectionFactory = useKeyed
+            ? host.Services.GetRequiredKeyedService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value, "messaging")
+            : host.Services.GetRequiredService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value);
+
+        var config = GetConsumerConfig(connectionFactory)!;
+
+        Assert.True(isCalled);
+        Assert.Equal(CommonHelpers.TestingEndpoint, config.BootstrapServers);
+        return;
+
+        void ConfigureBuilder(IServiceProvider _, ConsumerBuilder<string, string> __)
+        {
+            isCalled = true;
+        }
     }
 
     [Fact]
@@ -144,9 +226,9 @@ public class ConsumerConfigurationTests
         builder.AddKafkaConsumer<string, string>("messaging");
 
         using var host = builder.Build();
-        var connectionFactory = host.Services.GetRequiredService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value!);
+        var connectionFactory = host.Services.GetRequiredService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value);
 
-        ConsumerConfig config = GetConsumerConfig(connectionFactory)!;
+        var config = GetConsumerConfig(connectionFactory)!;
 
         Assert.Equal(AutoOffsetReset.Earliest, config.AutoOffsetReset);
         Assert.Equal("consumer-group", config.GroupId);
@@ -156,5 +238,5 @@ public class ConsumerConfigurationTests
         Assert.Equal(SecurityProtocol.Plaintext, config.SecurityProtocol);
     }
 
-    private static ConsumerConfig? GetConsumerConfig(object o) => ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value!.GetProperty("Config")!.GetValue(o) as ConsumerConfig;
+    private static ConsumerConfig? GetConsumerConfig(object o) => ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value.GetProperty("Config")!.GetValue(o) as ConsumerConfig;
 }

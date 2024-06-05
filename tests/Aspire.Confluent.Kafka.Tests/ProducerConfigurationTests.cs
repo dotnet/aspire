@@ -33,10 +33,10 @@ public class ProducerConfigurationTests
 
         using var host = builder.Build();
         var connectionFactory = useKeyed ?
-            host.Services.GetRequiredKeyedService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value!, "messaging") :
-            host.Services.GetRequiredService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value!);
+            host.Services.GetRequiredKeyedService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value, "messaging") :
+            host.Services.GetRequiredService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value);
 
-        ProducerConfig config = GetProducerConfig(connectionFactory)!;
+        var config = GetProducerConfig(connectionFactory)!;
 
         Assert.Equal(CommonHelpers.TestingEndpoint, config.BootstrapServers);
     }
@@ -63,10 +63,10 @@ public class ProducerConfigurationTests
 
         using var host = builder.Build();
         var connectionFactory = useKeyed ?
-            host.Services.GetRequiredKeyedService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value!, "messaging") :
-            host.Services.GetRequiredService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value!);
+            host.Services.GetRequiredKeyedService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value, "messaging") :
+            host.Services.GetRequiredService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value);
 
-        ProducerConfig config = GetProducerConfig(connectionFactory)!;
+        var config = GetProducerConfig(connectionFactory)!;
 
         Assert.Equal(CommonHelpers.TestingEndpoint, config.BootstrapServers);
     }
@@ -95,12 +95,88 @@ public class ProducerConfigurationTests
 
         using var host = builder.Build();
         var connectionFactory = useKeyed ?
-            host.Services.GetRequiredKeyedService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value!, "messaging") :
-            host.Services.GetRequiredService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value!);
+            host.Services.GetRequiredKeyedService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value, "messaging") :
+            host.Services.GetRequiredService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value);
 
-        ProducerConfig config = GetProducerConfig(connectionFactory)!;
+        var config = GetProducerConfig(connectionFactory)!;
 
         Assert.Equal(CommonHelpers.TestingEndpoint, config.BootstrapServers);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ConfigureProducerBuilder(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:messaging", CommonHelpers.TestingEndpoint)
+        ]);
+
+        var isCalled = false;
+
+        if (useKeyed)
+        {
+            builder.AddKeyedKafkaProducer<string, string>("messaging", ConfigureBuilder);
+        }
+        else
+        {
+            builder.AddKafkaProducer<string, string>("messaging", ConfigureBuilder);
+        }
+
+        using var host = builder.Build();
+        var connectionFactory = useKeyed ?
+            host.Services.GetRequiredKeyedService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value, "messaging") :
+            host.Services.GetRequiredService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value);
+
+        var config = GetProducerConfig(connectionFactory)!;
+
+        Assert.True(isCalled);
+        Assert.Equal(CommonHelpers.TestingEndpoint, config.BootstrapServers);
+        return;
+
+        void ConfigureBuilder(ProducerBuilder<string, string> _)
+        {
+            isCalled = true;
+        }
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ConfigureProducerBuilderWithServiceProvider(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:messaging", CommonHelpers.TestingEndpoint)
+        ]);
+
+        var isCalled = false;
+
+        if (useKeyed)
+        {
+            builder.AddKeyedKafkaProducer<string, string>("messaging", ConfigureBuilder);
+        }
+        else
+        {
+            builder.AddKafkaProducer<string, string>("messaging", ConfigureBuilder);
+        }
+
+        using var host = builder.Build();
+        var connectionFactory = useKeyed ?
+            host.Services.GetRequiredKeyedService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value, "messaging") :
+            host.Services.GetRequiredService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value);
+
+        var config = GetProducerConfig(connectionFactory)!;
+
+        Assert.True(isCalled);
+        Assert.Equal(CommonHelpers.TestingEndpoint, config.BootstrapServers);
+        return;
+
+        void ConfigureBuilder(IServiceProvider _, ProducerBuilder<string, string> __)
+        {
+            isCalled = true;
+        }
     }
 
     [Fact]
@@ -136,9 +212,9 @@ public class ProducerConfigurationTests
         builder.AddKafkaProducer<string, string>("messaging");
 
         using var host = builder.Build();
-        var connectionFactory = host.Services.GetRequiredService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value!);
+        var connectionFactory = host.Services.GetRequiredService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value);
 
-        ProducerConfig config = GetProducerConfig(connectionFactory)!;
+        var config = GetProducerConfig(connectionFactory)!;
 
         Assert.Equal(Acks.All, config.Acks);
         Assert.Equal("user", config.SaslUsername);
@@ -147,5 +223,5 @@ public class ProducerConfigurationTests
         Assert.Equal(SecurityProtocol.Plaintext, config.SecurityProtocol);
     }
 
-    private static ProducerConfig? GetProducerConfig(object o) => ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value!.GetProperty("Config")!.GetValue(o) as ProducerConfig;
+    private static ProducerConfig? GetProducerConfig(object o) => ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value.GetProperty("Config")!.GetValue(o) as ProducerConfig;
 }
