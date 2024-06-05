@@ -152,6 +152,14 @@ Aspire.Microsoft.EntityFrameworkCore.SqlServer:
 - Metric names:
   - none
 
+Aspire.Milvus.Client:
+- Log categories:
+  "Milvus.Client"
+- Activity source names:
+  - none (not currently supported by Milvus.Client library) 
+- Metric names:
+  - none (currently not supported by Milvus.Client library)
+
 Aspire.MySqlConnector:
 - Log categories:
   - "MySqlConnector.ConnectionPool"
