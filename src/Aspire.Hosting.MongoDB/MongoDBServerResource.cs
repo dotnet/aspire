@@ -6,53 +6,48 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A resource that represents a MongoDB container.
 /// </summary>
-public class MongoDBServerResource : ContainerResource, IResourceWithConnectionString
+/// <param name="name">The name of the resource.</param>
+/// /// <param name="userNameParameter">A parameter that contains the MongoDb server user name, or <see langword="null"/> to use a default value.</param>
+/// <param name="passwordParameter">A parameter that contains the MongoDb server password.</param>
+public class MongoDBServerResource(string name, ParameterResource? userNameParameter = null, ParameterResource? passwordParameter = null) : ContainerResource(name), IResourceWithConnectionString
 {
     internal const string PrimaryEndpointName = "tcp";
     private const string DefaultUserName = "admin";
 
     private EndpointReference? _primaryEndpoint;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="MongoDBServerResource"/> class.
-    /// </summary>
-    /// <param name="name">The name of the resource.</param>
-    /// <param name="userName">A parameter that contains the MongoDb server user name, or <see langword="null"/> to use a default value.</param>
-    /// <param name="password">A parameter that contains the MongoDb server password.</param>
-    public MongoDBServerResource(string name, ParameterResource? userName, ParameterResource password) : base(name)
-    {
-        ArgumentNullException.ThrowIfNull(password);
-
-        UserNameParameter = userName;
-        PasswordParameter = password;
-    }
-
+    
     /// <summary>
     /// Gets the primary endpoint for the MongoDB server.
     /// </summary>
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
     /// <summary>
-    /// Gets the parameter that contains the MongoDb server user name.
-    /// </summary>
-    public ParameterResource? UserNameParameter { get; }
-
-    /// <summary>
     /// Gets the parameter that contains the MongoDb server password.
     /// </summary>
-    public ParameterResource PasswordParameter { get; }
+    public ParameterResource? PasswordParameter => passwordParameter;
 
     internal ReferenceExpression UserNameReference =>
-        UserNameParameter is not null ?
-            ReferenceExpression.Create($"{UserNameParameter}") :
+        userNameParameter is not null ?
+            ReferenceExpression.Create($"{userNameParameter}") :
             ReferenceExpression.Create($"{DefaultUserName}");
 
     /// <summary>
     /// Gets the connection string for the MongoDB server.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create(
-            $"mongodb://{UserNameReference}:{Uri.EscapeDataString(PasswordParameter.Value)}@{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+    public ReferenceExpression ConnectionStringExpression
+    {
+        get
+        {
+            if (PasswordParameter is null)
+            {
+                return ReferenceExpression.Create($"mongodb://{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+            }
+            else
+            {
+                return ReferenceExpression.Create($"mongodb://{UserNameReference}:{PasswordParameter}@{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+            }
+        }
+    }
 
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
 

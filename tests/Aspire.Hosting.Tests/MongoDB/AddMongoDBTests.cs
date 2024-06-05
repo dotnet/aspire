@@ -90,11 +90,10 @@ public class AddMongoDBTests
         var connectionStringResource = dbResource as IResourceWithConnectionString;
         Assert.NotNull(connectionStringResource);
         var connectionString = await connectionStringResource.GetConnectionStringAsync();
-        var encodedPassword = Uri.EscapeDataString(dbResource.Parent.PasswordParameter.Value);
-
-        Assert.Equal($"mongodb://admin:{encodedPassword}@localhost:27017", await serverResource.GetConnectionStringAsync());
-        Assert.Equal("mongodb://admin:" + encodedPassword + "@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}", serverResource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal($"mongodb://admin:{encodedPassword}@localhost:27017/mydatabase", connectionString);
+        
+        Assert.Equal($"mongodb://admin:{dbResource.Parent.PasswordParameter?.Value}@localhost:27017", await serverResource.GetConnectionStringAsync());
+        Assert.Equal("mongodb://admin:{mongodb-password.value}@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}", serverResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal($"mongodb://admin:{dbResource.Parent.PasswordParameter?.Value}@localhost:27017/mydatabase", connectionString);
         Assert.Equal("{mongodb.connectionString}/mydatabase", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
@@ -202,7 +201,7 @@ public class AddMongoDBTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "mongodb://admin:{{Uri.EscapeDataString(mongo.Resource.PasswordParameter.Value)}}@{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}",
+              "connectionString": "mongodb://admin:{mongo-password.value}@{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}",
               "image": "{{MongoDBContainerImageTags.Registry}}/{{MongoDBContainerImageTags.Image}}:{{MongoDBContainerImageTags.Tag}}",
               "env": {
                 "MONGO_INITDB_ROOT_USERNAME": "admin",

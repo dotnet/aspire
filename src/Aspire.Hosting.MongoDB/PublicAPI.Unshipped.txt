@@ -7,10 +7,9 @@ Aspire.Hosting.ApplicationModel.MongoDBDatabaseResource.Parent.get -> Aspire.Hos
 Aspire.Hosting.ApplicationModel.MongoDBServerResource
 Aspire.Hosting.ApplicationModel.MongoDBServerResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
 Aspire.Hosting.ApplicationModel.MongoDBServerResource.Databases.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
-Aspire.Hosting.ApplicationModel.MongoDBServerResource.MongoDBServerResource(string! name, Aspire.Hosting.ApplicationModel.ParameterResource? userName, Aspire.Hosting.ApplicationModel.ParameterResource! password) -> void
-Aspire.Hosting.ApplicationModel.MongoDBServerResource.PasswordParameter.get -> Aspire.Hosting.ApplicationModel.ParameterResource!
+Aspire.Hosting.ApplicationModel.MongoDBServerResource.MongoDBServerResource(string! name, Aspire.Hosting.ApplicationModel.ParameterResource? userNameParameter = null, Aspire.Hosting.ApplicationModel.ParameterResource? passwordParameter = null) -> void
+Aspire.Hosting.ApplicationModel.MongoDBServerResource.PasswordParameter.get -> Aspire.Hosting.ApplicationModel.ParameterResource?
 Aspire.Hosting.ApplicationModel.MongoDBServerResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
-Aspire.Hosting.ApplicationModel.MongoDBServerResource.UserNameParameter.get -> Aspire.Hosting.ApplicationModel.ParameterResource?
 Aspire.Hosting.MongoDB.MongoExpressContainerResource
 Aspire.Hosting.MongoDB.MongoExpressContainerResource.MongoExpressContainerResource(string! name) -> void
 Aspire.Hosting.MongoDBBuilderExtensions

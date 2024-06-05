@@ -51,7 +51,6 @@ public class TestProgram : IDisposable
         builder.Configuration["DcpPublisher:DeleteResourcesOnShutdown"] = "true";
         builder.Configuration["DcpPublisher:ResourceNameSuffix"] = $"{Random.Shared.Next():x}";
         builder.Configuration["DcpPublisher:RandomizePorts"] = randomizePorts.ToString(CultureInfo.InvariantCulture);
-        builder.Configuration["Parameters:mongodb-password"] = "aspire123";
         
         AppBuilder = builder;
 
@@ -121,9 +120,8 @@ public class TestProgram : IDisposable
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
             {
-                var mongoPassword = builder.AddParameter("mongodb-password");
                 var mongoDbName = "mymongodb";
-                var mongodb = AppBuilder.AddMongoDB("mongodb", password: mongoPassword)
+                var mongodb = AppBuilder.AddMongoDB("mongodb")
                     .AddDatabase(mongoDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(mongodb);
             }

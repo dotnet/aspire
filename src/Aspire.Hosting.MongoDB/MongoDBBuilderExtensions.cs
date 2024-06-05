@@ -19,8 +19,7 @@ public static class MongoDBBuilderExtensions
 
     private const string UserEnvVarName = "MONGO_INITDB_ROOT_USERNAME";
     private const string PasswordEnvVarName = "MONGO_INITDB_ROOT_PASSWORD";
-    //MONGO_INITDB_DATABASE ???
-
+    
     /// <summary>
     /// Adds a MongoDB resource to the application model. A container is used for local development. This version the package defaults to the 7.0.8 tag of the mongo container image.
     /// </summary>
@@ -40,16 +39,21 @@ public static class MongoDBBuilderExtensions
 
         var mongoDBContainer = new MongoDBServerResource(name, userName?.Resource, passwordParameter);
 
-        return builder
+        var resBuilder = builder
             .AddResource(mongoDBContainer)
             .WithEndpoint(port: port, targetPort: DefaultContainerPort, name: MongoDBServerResource.PrimaryEndpointName)
             .WithImage(MongoDBContainerImageTags.Image, MongoDBContainerImageTags.Tag)
-            .WithImageRegistry(MongoDBContainerImageTags.Registry)
-            .WithEnvironment(context =>
+            .WithImageRegistry(MongoDBContainerImageTags.Registry);
+        if (mongoDBContainer.PasswordParameter is not null)
+        {
+            resBuilder.WithEnvironment(context =>
             {
                 context.EnvironmentVariables[UserEnvVarName] = mongoDBContainer.UserNameReference;
                 context.EnvironmentVariables[PasswordEnvVarName] = mongoDBContainer.PasswordParameter;
             });
+        }
+
+        return resBuilder;
     }
 
     /// <summary>
@@ -144,7 +148,11 @@ public static class MongoDBBuilderExtensions
         context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_SERVER", resource.PrimaryEndpoint.ContainerHost);
         context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_PORT", resource.PrimaryEndpoint.Port.ToString(CultureInfo.InvariantCulture));
         context.EnvironmentVariables.Add("ME_CONFIG_BASICAUTH", "false");
-        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_ADMINUSERNAME", resource.UserNameReference);
-        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_ADMINPASSWORD", resource.PasswordParameter);
+        if (resource.PasswordParameter is not null)
+        {
+            context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_ADMINUSERNAME", resource.UserNameReference);
+            context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_ADMINPASSWORD", resource.PasswordParameter);
+        }
+        
     }
 }

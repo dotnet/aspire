@@ -645,7 +645,7 @@ public class ManifestGenerationTests
                 },
                 "mongodb": {
                   "type": "container.v0",
-                  "connectionString": "mongodb://admin:aspire123@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}",
+                  "connectionString": "mongodb://admin:{mongodb-password.value}@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}",
                   "image": "{{MongoDBContainerImageTags.Registry}}/{{MongoDBContainerImageTags.Image}}:{{MongoDBContainerImageTags.Tag}}",
                   "env": {
                     "MONGO_INITDB_ROOT_USERNAME": "admin",
