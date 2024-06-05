@@ -68,9 +68,28 @@ internal sealed class BuildContext
     [JsonPropertyName("args")]
     public List<EnvVar>? Args { get; set; }
 
+    // Optional build secret mounts to pass to the build command
+    [JsonPropertyName("secrets")]
+    public List<BuildContextSecret>? Secrets { get; set; }
+
     // Optional specific stage to use when building a multiple stage Dockerfile
     [JsonPropertyName("stage")]
     public string? Stage { get; set; }
+
+    // Optional additional tags to apply to the built image
+    [JsonPropertyName("tags")]
+    public List<string>? Tags { get; set; }
+}
+
+internal sealed class BuildContextSecret
+{
+    // The ID of the secret (a secret can be used in a Dockerfile with `RUN --mount-type=secret,id=<id>,target=<targetpath>`)
+    [JsonPropertyName("id")]
+    public string? Id { get; set; }
+
+    // Path to secret file/folder that will be mounted as a build secret using --secret
+    [JsonPropertyName("source")]
+    public string? Source { get; set; }
 }
 
 internal static class VolumeMountType

@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
+  "resources": {
+    "milvusauth": {
+      "type": "parameter.v0",
+      "value": "{milvusauth.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
+    "milvus": {
+      "type": "container.v0",
+      "connectionString": "Endpoint={milvus.bindings.grpc.url};Key={milvusauth.value}",
+      "image": "docker.io/milvusdb/milvus:2.3-latest",
+      "args": [
+        "milvus",
+        "run",
+        "standalone"
+      ],
+      "volumes": [
+        {
+          "name": "milvus-data",
+          "target": "/var/lib/milvus",
+          "readOnly": false
+        }
+      ],
+      "env": {
+        "COMMON_STORAGETYPE": "local",
+        "ETCD_USE_EMBED": "true",
+        "ETCD_DATA_DIR": "/var/lib/milvus/etcd",
+        "COMMON_SECURITY_AUTHORIZATIONENABLED": "true"
+      },
+      "bindings": {
+        "grpc": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http2",
+          "targetPort": 19530
+        }
+      }
+    },
+    "apiservice": {
+      "type": "project.v0",
+      "path": "../MilvusPlayground.ApiService/MilvusPlayground.ApiService.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "ConnectionStrings__milvus": "{milvus.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    }
+  }
+}

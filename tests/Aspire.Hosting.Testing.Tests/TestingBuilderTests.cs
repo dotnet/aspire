@@ -3,7 +3,9 @@
 
 using System.Net.Http.Json;
 using Aspire.Hosting.Tests.Helpers;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Xunit;
 
 namespace Aspire.Hosting.Testing.Tests;
@@ -76,6 +78,41 @@ public class TestingBuilderTests
             : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
         await using var app = await appHost.BuildAsync();
         Assert.Throws<InvalidOperationException>(() => app.CreateHttpClient("mywebapp1"));
+    }
+
+    [LocalOnlyTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SetsCorrectContentRoot(bool genericEntryPoint)
+    {
+        var appHost = await (genericEntryPoint
+            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
+            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
+        await using var app = await appHost.BuildAsync();
+        await app.StartAsync();
+        var hostEnvironment = app.Services.GetRequiredService<IHostEnvironment>();
+        Assert.Contains("TestingAppHost1", hostEnvironment.ContentRootPath);
+    }
+
+    [LocalOnlyTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SelectsFirstLaunchProfile(bool genericEntryPoint)
+    {
+        var appHost = await (genericEntryPoint
+            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
+            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
+        await using var app = await appHost.BuildAsync();
+        await app.StartAsync();
+        var config = app.Services.GetRequiredService<IConfiguration>();
+        var profileName = config["AppHost:DefaultLaunchProfileName"];
+        Assert.Equal("https", profileName);
+
+        // Explicitly get the HTTPS endpoint - this is only available on the "https" launch profile.
+        var httpClient = app.CreateHttpClient("mywebapp1", "https");
+        var result = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
+        Assert.NotNull(result);
+        Assert.True(result.Length > 0);
     }
 
     // Tests that DistributedApplicationTestingBuilder throws exceptions at the right times when the app crashes.
