@@ -3,7 +3,9 @@
 
 using System.Net.Http.Json;
 using Aspire.Hosting.Tests.Helpers;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Xunit;
 
 namespace Aspire.Hosting.Testing.Tests;
@@ -41,6 +43,27 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
         var result1 = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
         Assert.NotNull(result1);
         Assert.True(result1.Length > 0);
+    }
+
+    [LocalOnlyFact]
+    public void SetsCorrectContentRoot()
+    {
+        var appModel = _app.Services.GetRequiredService<IHostEnvironment>();
+        Assert.Contains("TestingAppHost1", appModel.ContentRootPath);
+    }
+
+    [LocalOnlyFact]
+    public async Task SelectsFirstLaunchProfile()
+    {
+        var config = _app.Services.GetRequiredService<IConfiguration>();
+        var profileName = config["AppHost:DefaultLaunchProfileName"];
+        Assert.Equal("https", profileName);
+
+        // Explicitly get the HTTPS endpoint - this is only available on the "https" launch profile.
+        var httpClient = _app.CreateHttpClient("mywebapp1", "https");
+        var result = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
+        Assert.NotNull(result);
+        Assert.True(result.Length > 0);
     }
 
     private sealed record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
