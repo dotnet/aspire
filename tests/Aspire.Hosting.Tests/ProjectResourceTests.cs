@@ -273,10 +273,10 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var manifest = await ManifestUtils.GetManifest(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
 
-        Assert.Null(manifest["env"]!["ASPNETCORE_URLS"]);
-        Assert.Null(manifest["env"]!["ASPNETCORE_HTTPS_PORT"]);
+        Assert.False(config.ContainsKey("ASPNETCORE_URLS"));
+        Assert.False(config.ContainsKey("ASPNETCORE_HTTPS_PORT"));
     }
 
     [Fact]
