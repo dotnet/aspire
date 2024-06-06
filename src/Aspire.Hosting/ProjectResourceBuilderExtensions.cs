@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Utils;
@@ -445,6 +444,9 @@ public static class ProjectResourceBuilderExtensions
         return configBuilder.Build();
     }
 
+    static bool IsValidAspNetCoreUrl(EndpointAnnotation e) =>
+        e.UriScheme is "http" or "https" && e.TargetPortEnvironmentVariable is null;
+
     private static void SetAspNetCoreUrls(this IResourceBuilder<ProjectResource> builder)
     {
         builder.WithEnvironment(context =>
@@ -459,9 +461,6 @@ public static class ProjectResourceBuilderExtensions
 
             var processedHttpsPort = false;
             var first = true;
-
-            static bool IsValidAspNetCoreUrl(EndpointAnnotation e) =>
-                e.UriScheme is "http" or "https" && e.TargetPortEnvironmentVariable is null;
 
             // Turn http and https endpoints into a single ASPNETCORE_URLS environment variable.
             foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)))
@@ -509,30 +508,30 @@ public static class ProjectResourceBuilderExtensions
             return;
         }
 
-        var ports = new StringBuilder();
+        var ports = new ReferenceExpressionBuilder();
         var firstPort = true;
 
         // Turn endpoint ports into a single environment variable
-        foreach (var annotation in builder.Resource.Annotations.OfType<EndpointAnnotation>())
+        foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)))
         {
-            var port = annotation.TargetPort ?? annotation.Port;
-            if (annotation.UriScheme == scheme && port != null)
+            var port = e.EndpointAnnotation.TargetPort ?? e.EndpointAnnotation.Port;
+            if (e.EndpointAnnotation.UriScheme == scheme && port != null)
             {
-                Debug.Assert(!annotation.FromLaunchProfile, "Endpoints from launch profile should never make it here");
+                Debug.Assert(!e.EndpointAnnotation.FromLaunchProfile, "Endpoints from launch profile should never make it here");
 
                 if (!firstPort)
                 {
-                    ports.Append(';');
+                    ports.AppendLiteral(";");
                 }
-                ports.Append(port);
 
+                ports.Append($"{e.Property(EndpointProperty.TargetPort)}");
                 firstPort = false;
             }
         }
 
         if (!firstPort)
         {
-            context.EnvironmentVariables[portEnvVariable] = ports.ToString();
+            context.EnvironmentVariables[portEnvVariable] = ports.Build();
         }
     }
 }

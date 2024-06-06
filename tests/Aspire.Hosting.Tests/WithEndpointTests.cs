@@ -512,8 +512,8 @@ public class WithEndpointTests
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
                 "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
-                "HTTP_PORTS": "5001;5003",
-                "HTTPS_PORTS": "7001;7003"
+                "HTTP_PORTS": "{proj.bindings.hp1.targetPort};{proj.bindings.hp2.targetPort}",
+                "HTTPS_PORTS": "{proj.bindings.hps1.targetPort};{proj.bindings.hps2.targetPort}"
               },
               "bindings": {
                 "hp1": {
@@ -546,7 +546,6 @@ public class WithEndpointTests
             }
             """;
 
-        var s = manifest.ToString();
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
