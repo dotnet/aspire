@@ -60,17 +60,37 @@ internal static class LaunchProfileExtensions
             return launchSettings;
         }
 
-        if (!File.Exists(projectMetadata.ProjectPath))
+        string? launchSettingsDir;
+        if (!Directory.Exists(Path.GetDirectoryName(projectMetadata.ProjectPath)))
         {
-            var message = string.Format(CultureInfo.InvariantCulture, Resources.ProjectFileNotFoundExceptionMessage, projectMetadata.ProjectPath);
-            throw new DistributedApplicationException(message);
+            Console.WriteLine ($"-- #1");
+            string? projectRootDir = Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT");
+            if (string.IsNullOrEmpty(projectRootDir))
+            {
+                projectRootDir = Path.GetDirectoryName(projectMetadata.ProjectPath) ?? "";
+            }
+            string projectName = Path.GetFileNameWithoutExtension(projectMetadata.ProjectPath).Trim('.');
+            launchSettingsDir = Path.Combine(projectRootDir, projectName);
+            if (!Directory.Exists(launchSettingsDir))
+            {
+                throw new FileNotFoundException($"Could not find {launchSettingsDir} for launchsettings");
+            }
+
+            //var message = string.Format(CultureInfo.InvariantCulture, Resources.ProjectFileNotFoundExceptionMessage, projectMetadata.ProjectPath);
+            //throw new DistributedApplicationException(message);
+        }
+        else
+        {
+            Console.WriteLine ($"-- #2");
+            var projectFileInfo = new FileInfo(projectMetadata.ProjectPath);
+            launchSettingsDir = projectFileInfo.DirectoryName;
         }
 
-        var projectFileInfo = new FileInfo(projectMetadata.ProjectPath);
-        var launchSettingsFilePath = projectFileInfo.DirectoryName switch
+        //var projectFileInfo = new FileInfo(projectMetadata.ProjectPath);
+        var launchSettingsFilePath = launchSettingsDir switch
         {
             null => Path.Combine("Properties", "launchSettings.json"),
-            _ => Path.Combine(projectFileInfo.DirectoryName, "Properties", "launchSettings.json")
+            _ => Path.Combine(launchSettingsDir, "Properties", "launchSettings.json")
         };
 
         // It isn't mandatory that the launchSettings.json file exists!
