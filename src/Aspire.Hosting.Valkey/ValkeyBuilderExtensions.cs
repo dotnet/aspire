@@ -23,7 +23,7 @@ public static class ValkeyBuilderExtensions
     /// <param name="port">The host port to bind the underlying container to.</param>
     /// <example>
     /// Use in application host
-    /// <code>
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var valkey = builder.AddValkey("valkey");
@@ -34,8 +34,8 @@ public static class ValkeyBuilderExtensions
     /// </code>
     /// </example>
     /// <example>
-    /// Use in Api with Aspire.StackExchange.Redis
-    /// <code>
+    /// Use in service project with Aspire.StackExchange.Redis package.
+    /// <code lang="csharp">
     /// var builder = WebApplication.CreateBuilder(args);
     /// builder.AddRedisClient("valkey");
     ///
@@ -70,7 +70,7 @@ public static class ValkeyBuilderExtensions
     /// </param>
     /// <example>
     /// Use <see cref="WithPersistence(IResourceBuilder{ValkeyResource}, TimeSpan?, long)"/> to adjust Valkey persistence configuration, e.g.:
-    /// <code>
+    /// <code lang="csharp">
     /// var cache = builder.AddValkey("cache")
     ///                    .WithDataVolume()
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
@@ -101,7 +101,7 @@ public static class ValkeyBuilderExtensions
     /// </param>
     /// <example>
     /// Use <see cref="WithPersistence(IResourceBuilder{ValkeyResource}, TimeSpan?, long)"/> to adjust Valkey persistence configuration, e.g.:
-    /// <code>
+    /// <code lang="csharp">
     /// var valkey = builder.AddValkey("valkey")
     ///                    .WithDataBindMount()
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
@@ -129,7 +129,7 @@ public static class ValkeyBuilderExtensions
     /// <example>
     /// Use with <see cref="WithDataBindMount(IResourceBuilder{ValkeyResource}, string, bool)"/>
     /// or <see cref="WithDataVolume(IResourceBuilder{ValkeyResource}, string?, bool)"/> to persist Valkey data across sessions with custom persistence configuration, e.g.:
-    /// <code>
+    /// <code lang="csharp">
     /// var cache = builder.AddValkey("cache")
     ///                    .WithDataVolume()
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
