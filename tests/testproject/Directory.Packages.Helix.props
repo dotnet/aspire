@@ -35,6 +35,7 @@
     <PackageVersion Include="Aspire.Hosting.Redis" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Seq" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.SqlServer" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Valkey" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Microsoft.Azure.Cosmos" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Microsoft.Data.SqlClient" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Milvus.Client" Version="$(PackageVersion)" />
