@@ -495,10 +495,12 @@ public class WithEndpointTests
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         var project = builder.AddProject<TestProject>("proj")
-            .WithHttpEndpoint(name: "hp1", port: 5001)
+            .WithHttpEndpoint(name: "hp1", port: 5001)  // No TargetPort, should be ignored
             .WithHttpEndpoint(name: "hp2", port: 5002, targetPort: 5003)
-            .WithHttpsEndpoint(name: "hps1", port: 7001)
-            .WithHttpsEndpoint(name: "hps2", port: 7002, targetPort: 7003);
+            .WithHttpEndpoint(name: "hp3", targetPort: 5004)
+            .WithHttpsEndpoint(name: "hps1", port: 7001)  // No TargetPort, should be ignored
+            .WithHttpsEndpoint(name: "hps2", port: 7002, targetPort: 7003)
+            .WithHttpsEndpoint(name: "hps3", targetPort: 7004);
 
         var manifest = await ManifestUtils.GetManifest(project.Resource);
 
@@ -512,8 +514,8 @@ public class WithEndpointTests
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
                 "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
-                "HTTP_PORTS": "{proj.bindings.hp1.targetPort};{proj.bindings.hp2.targetPort}",
-                "HTTPS_PORTS": "{proj.bindings.hps1.targetPort};{proj.bindings.hps2.targetPort}"
+                "HTTP_PORTS": "{proj.bindings.hp2.targetPort};{proj.bindings.hp3.targetPort}",
+                "HTTPS_PORTS": "{proj.bindings.hps2.targetPort};{proj.bindings.hps3.targetPort}"
               },
               "bindings": {
                 "hp1": {
@@ -529,6 +531,12 @@ public class WithEndpointTests
                   "port": 5002,
                   "targetPort": 5003
                 },
+                "hp3": {
+                  "scheme": "http",
+                  "protocol": "tcp",
+                  "transport": "http",
+                  "targetPort": 5004
+                },
                 "hps1": {
                   "scheme": "https",
                   "protocol": "tcp",
@@ -541,6 +549,12 @@ public class WithEndpointTests
                   "transport": "http",
                   "port": 7002,
                   "targetPort": 7003
+                },
+                "hps3": {
+                  "scheme": "https",
+                  "protocol": "tcp",
+                  "transport": "http",
+                  "targetPort": 7004
                 }
               }
             }
