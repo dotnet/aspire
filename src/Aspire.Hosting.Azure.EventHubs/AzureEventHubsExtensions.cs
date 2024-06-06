@@ -111,7 +111,7 @@ public static class AzureEventHubsExtensions
     /// <example>
     /// The following example creates an Azure Event Hubs resource that runs locally is an emulator and referencing that
     /// resource in a .NET project.
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var eventHub = builder.AddAzureEventHubs("eventhubns")

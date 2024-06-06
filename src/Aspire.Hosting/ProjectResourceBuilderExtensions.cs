@@ -44,7 +44,7 @@ public static class ProjectResourceBuilderExtensions
     /// </remarks>
     /// <example>
     /// Example of adding a project to the application model.
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     /// 
     /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice");
@@ -76,7 +76,7 @@ public static class ProjectResourceBuilderExtensions
     /// </remarks>
     /// <example>
     /// Add a project to the app model via a project path.
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     /// 
     /// builder.AddProject("inventoryservice", @"..\InventoryService\InventoryService.csproj");
@@ -124,7 +124,7 @@ public static class ProjectResourceBuilderExtensions
     /// </remarks>
     /// <example>
     /// Example of adding a project to the application model.
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     /// 
     /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice", launchProfileName: "otherLaunchProfile");
@@ -157,7 +157,7 @@ public static class ProjectResourceBuilderExtensions
     /// </remarks>
     /// <example>
     /// Add a project to the app model via a project path.
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     /// 
     /// builder.AddProject("inventoryservice", @"..\InventoryService\InventoryService.csproj", launchProfileName: "otherLaunchProfile");
@@ -374,7 +374,7 @@ public static class ProjectResourceBuilderExtensions
     /// </remarks>
     /// <example>
     /// Start multiple instances of the same service.
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice")
@@ -406,7 +406,7 @@ public static class ProjectResourceBuilderExtensions
     /// </remarks>
     /// <example>
     /// Disable forwarded headers for a project.
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice")

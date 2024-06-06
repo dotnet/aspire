@@ -38,7 +38,7 @@ namespace Aspire.Hosting;
 /// later use.
 /// </para>
 /// 
-/// <code>
+/// <code lang="csharp">
 /// var builder = DistributedApplication.CreateBuilder(args);
 /// var cache = builder.AddRedis("cache");
 /// var inventoryDatabase = builder.AddPostgres("postgres").AddDatabase("inventory");
@@ -83,7 +83,7 @@ public interface IDistributedApplicationBuilder
     /// the <see cref="IResourceBuilder{T}.ApplicationBuilder"/>. In this case an extension method is used to generate a stable node name for RabbitMQ for local
     /// development runs.
     /// </para>
-    /// <code>
+    /// <code lang="csharp">
     /// private static IResourceBuilder&lt;RabbitMQServerResource&gt; RunWithStableNodeName(this IResourceBuilder&lt;RabbitMQServerResource&gt; builder)
     /// {
     ///     if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
@@ -131,7 +131,7 @@ public interface IDistributedApplicationBuilder
     /// constructs a resource derived from <see cref="IResource"/> and adds it to the application model using the <see cref="AddResource{T}(T)"/>
     /// method. Other extension methods (such as <see cref="ContainerResourceBuilderExtensions.WithImage{T}(IResourceBuilder{T}, string, string)"/>
     /// in this case) can be chained to configure the resource as desired.
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// public static IResourceBuilder&lt;ContainerResource&gt; AddContainer(this IDistributedApplicationBuilder builder, string name, string image, string tag)
     /// {
     ///     var container = new ContainerResource(name);
@@ -181,7 +181,7 @@ public interface IDistributedApplicationBuilder
     /// <see cref="CreateResourceBuilder{T}(T)"/> method assists by allowing the creation of a <see cref="IResourceBuilder{T}"/> without adding
     /// another resource to the application model.
     /// </para>
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// public static IResourceBuilder&lt;IResourceWithConnectionString&gt; AddConnectionString(this IDistributedApplicationBuilder builder, string name, string? environmentVariableName = null)
     /// {
     ///     var parameterBuilder = builder.AddParameter(name, _ =>
