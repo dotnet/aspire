@@ -273,7 +273,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Publish);
 
         Assert.False(config.ContainsKey("ASPNETCORE_URLS"));
         Assert.False(config.ContainsKey("ASPNETCORE_HTTPS_PORT"));
