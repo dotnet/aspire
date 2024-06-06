@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
@@ -16,6 +17,7 @@ namespace Aspire.Hosting.Containers.Tests;
 public class WithDockerfileTests
 {
     [Fact]
+    [RequiresDocker]
     public async Task WithDockerfileLaunchesContainerSuccessfully()
     {
         if (!IsDockerAvailable())

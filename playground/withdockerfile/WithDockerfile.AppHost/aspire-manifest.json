@@ -11,8 +11,7 @@
       }
     },
     "mycontainer": {
-      "type": "container.v0",
-      "image": "myimage:latest",
+      "type": "container.v1",
       "build": {
         "context": "qots",
         "dockerfile": "qots/Dockerfile",
