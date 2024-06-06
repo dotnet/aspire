@@ -11,18 +11,18 @@ internal static class LocalOnlyHelper
     {
         // BUILD_BUILDID is defined by Azure Dev Ops
 
-        if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null)
-        {
-            return $"{attributeName} tests are not run as part of CI.";
-        }
+        //if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null)
+        //{
+            //return $"{attributeName} tests are not run as part of CI.";
+        //}
 
-        foreach (var executable in executablesOnPath)
-        {
-            if (FileUtil.FindFullPathFromPath(executable) is null)
-            {
-                return $"Unable to locate {executable} on the PATH";
-            }
-        }
+        //foreach (var executable in executablesOnPath)
+        //{
+            //if (FileUtil.FindFullPathFromPath(executable) is null)
+            //{
+                //return $"Unable to locate {executable} on the PATH";
+            //}
+        //}
 
         return null!;
     }
