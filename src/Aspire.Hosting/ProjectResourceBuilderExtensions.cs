@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Utils;
@@ -324,30 +326,33 @@ public static class ProjectResourceBuilderExtensions
         }
         else
         {
+            // Set HTTP_PORTS/HTTPS_PORTS in publish mode, to override the default port set in the base image. Note that:
+            // - We don't set them if we have Kestrel endpoints configured, as Kestrel will get everything from its config.
+            // - We only do that for endpoint set explicitly (.WithHttpEndpoint), not for the ones coming from launch profile.
+            //   This is because launch profile endpoints are not meant to be used in production.
+            if (!kestrelEndpointsByScheme.Any())
+            {
+                builder.SetBothPortsEnvVariables();
+            }
+
             // If we aren't a web project (looking at both launch profile and Kestrel config) we don't automatically add bindings.
             if (launchProfile?.ApplicationUrl == null && !kestrelEndpointsByScheme.Any())
             {
                 return builder;
             }
 
-            if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "http" || string.Equals(sb.Name, "http", StringComparisons.EndpointAnnotationName)))
+            string[] schemes = ["http", "https"];
+            foreach (var scheme in schemes)
             {
-                builder.WithEndpoint("http", e =>
+                if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == scheme || string.Equals(sb.Name, scheme, StringComparisons.EndpointAnnotationName)))
                 {
-                    e.UriScheme = "http";
-                    e.Transport = adjustTransport(e);
-                },
-                createIfNotExists: true);
-            }
-
-            if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "https" || string.Equals(sb.Name, "https", StringComparisons.EndpointAnnotationName)))
-            {
-                builder.WithEndpoint("https", e =>
-                {
-                    e.UriScheme = "https";
-                    e.Transport = adjustTransport(e);
-                },
-                createIfNotExists: true);
+                    builder.WithEndpoint(scheme, e =>
+                    {
+                        e.UriScheme = scheme;
+                        e.Transport = adjustTransport(e);
+                    },
+                    createIfNotExists: true);
+                }
             }
         }
 
@@ -442,11 +447,6 @@ public static class ProjectResourceBuilderExtensions
 
     private static void SetAspNetCoreUrls(this IResourceBuilder<ProjectResource> builder)
     {
-        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
-        {
-            return;
-        }
-
         builder.WithEnvironment(context =>
         {
             if (context.EnvironmentVariables.ContainsKey("ASPNETCORE_URLS"))
@@ -490,5 +490,49 @@ public static class ProjectResourceBuilderExtensions
                 context.EnvironmentVariables["ASPNETCORE_URLS"] = aspnetCoreUrls.Build();
             }
         });
+    }
+
+    private static void SetBothPortsEnvVariables(this IResourceBuilder<ProjectResource> builder)
+    {
+        builder.WithEnvironment(context =>
+        {
+            builder.SetOnePortsEnvVariable(context, "HTTP_PORTS", "http");
+            builder.SetOnePortsEnvVariable(context, "HTTPS_PORTS", "https");
+        });
+    }
+
+    private static void SetOnePortsEnvVariable(this IResourceBuilder<ProjectResource> builder, EnvironmentCallbackContext context, string portEnvVariable, string scheme)
+    {
+        if (context.EnvironmentVariables.ContainsKey(portEnvVariable))
+        {
+            // If the user has already set that variable, we don't want to override it.
+            return;
+        }
+
+        var ports = new StringBuilder();
+        var firstPort = true;
+
+        // Turn endpoint ports into a single environment variable
+        foreach (var annotation in builder.Resource.Annotations.OfType<EndpointAnnotation>())
+        {
+            var port = annotation.TargetPort ?? annotation.Port;
+            if (annotation.UriScheme == scheme && port != null)
+            {
+                Debug.Assert(!annotation.FromLaunchProfile, "Endpoints from launch profile should never make it here");
+
+                if (!firstPort)
+                {
+                    ports.Append(';');
+                }
+                ports.Append(port);
+
+                firstPort = false;
+            }
+        }
+
+        if (!firstPort)
+        {
+            context.EnvironmentVariables[portEnvVariable] = ports.ToString();
+        }
     }
 }

@@ -491,6 +491,66 @@ public class WithEndpointTests
     }
 
     [Fact]
+    public async Task VerifyManifestProjectWithEndpointsSetsPortsEnvVariables()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var project = builder.AddProject<TestProject>("proj")
+            .WithHttpEndpoint(name: "hp1", port: 5001)
+            .WithHttpEndpoint(name: "hp2", port: 5002, targetPort: 5003)
+            .WithHttpsEndpoint(name: "hps1", port: 7001)
+            .WithHttpsEndpoint(name: "hps2", port: 7002, targetPort: 7003);
+
+        var manifest = await ManifestUtils.GetManifest(project.Resource);
+
+        var expectedManifest =
+            """
+            {
+              "type": "project.v0",
+              "path": "projectpath",
+              "env": {
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+                "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+                "HTTP_PORTS": "5001;5003",
+                "HTTPS_PORTS": "7001;7003"
+              },
+              "bindings": {
+                "hp1": {
+                  "scheme": "http",
+                  "protocol": "tcp",
+                  "transport": "http",
+                  "port": 5001
+                },
+                "hp2": {
+                  "scheme": "http",
+                  "protocol": "tcp",
+                  "transport": "http",
+                  "port": 5002,
+                  "targetPort": 5003
+                },
+                "hps1": {
+                  "scheme": "https",
+                  "protocol": "tcp",
+                  "transport": "http",
+                  "port": 7001
+                },
+                "hps2": {
+                  "scheme": "https",
+                  "protocol": "tcp",
+                  "transport": "http",
+                  "port": 7002,
+                  "targetPort": 7003
+                }
+              }
+            }
+            """;
+
+        var s = manifest.ToString();
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
     public async Task VerifyManifestPortAllocationIsGlobal()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
