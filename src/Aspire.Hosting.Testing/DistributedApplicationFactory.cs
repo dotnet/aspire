@@ -183,7 +183,26 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     private static string? ResolveProjectPath(Assembly? assembly)
     {
         var assemblyMetadata = assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
-        return GetMetadataValue(assemblyMetadata, "AppHostProjectPath");
+
+        return GetProjectPath(GetMetadataValue(assemblyMetadata, "AppHostProjectPath"));
+
+        static string? GetProjectPath(string? _originalProjectPath)
+        {
+            if (_originalProjectPath is null)
+            {
+                return null;
+            }
+
+            string? root = Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT");
+            if (string.IsNullOrEmpty(root))
+            {
+                return _originalProjectPath;
+            }
+
+            string projectPath = Path.Combine(root, Path.GetFileName(_originalProjectPath));
+            System.Console.WriteLine($"ResolveProjectPath: Using root: {root}, original: {_originalProjectPath} and returning {projectPath}");
+            return projectPath;
+        }
     }
 
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)

@@ -58,7 +58,9 @@ namespace Projects%3B
             {
                 return originalProjectPath%3B
             }
-            return Path.Combine(root, Path.GetFileName(Path.GetDirectoryName(originalProjectPath)!), Path.GetFileName(originalProjectPath))%3B
+            string projectPath = Path.Combine(root, Path.GetFileName(Path.GetDirectoryName(originalProjectPath)!), Path.GetFileName(originalProjectPath))%3B
+            System.Console.WriteLine($"Using root: {root}, and returning {projectPath}")%3B
+            return projectPath%3B
         }
     }
 }]]>
@@ -98,10 +100,27 @@ namespace Projects%3B
 [global::System.CodeDom.Compiler.GeneratedCode("Aspire.Hosting", null)]
 [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage(Justification = "Generated code.")]
 [global::System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
+
+#nullable enable
 ]]>$(AspireGeneratedClassesVisibility)<![CDATA[ class ]]>%(ClassName)<![CDATA[
 {
     private ]]>%(ClassName)<![CDATA[() { }
-    public static string ProjectPath => """]]>%(ProjectPath)<![CDATA["""%3B
+    public static string ProjectPath
+    {
+        get
+        {
+            string originalProjectPath = """]]>%(ProjectPath)<![CDATA["""%3B
+
+            string? root = Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT")%3B
+            if (string.IsNullOrEmpty(root))
+            {
+                return originalProjectPath%3B
+            }
+            string projectPath = Path.Combine(root, Path.GetFileName(Path.GetDirectoryName(originalProjectPath)!), Path.GetFileName(originalProjectPath))%3B
+            System.Console.WriteLine($"Using root: {root}, and returning {projectPath}")%3B
+            return projectPath%3B
+        }
+    }
 }]]>
         </Source>
       </AspireHostProjectMetadataSource>
@@ -229,6 +248,7 @@ namespace Projects%3B
         <!--<_Parameter2>$(DcpBinDir)</_Parameter2>-->
       <!--</AssemblyAttribute>-->
       <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+        <!-- FIXME: rename to apphostprojectdir -->
         <_Parameter1>apphostprojectpath</_Parameter1>
         <_Parameter2>$(MSBuildProjectDirectory)</_Parameter2>
       </AssemblyAttribute>

@@ -67,7 +67,24 @@ public sealed class DistributedApplicationOptions
     private string? ResolveProjectDirectory()
     {
         var assemblyMetadata = Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
-        return GetMetadataValue(assemblyMetadata, "AppHostProjectPath");
+        return GetProjectPath(GetMetadataValue(assemblyMetadata, "AppHostProjectPath"));
+
+        static string? GetProjectPath(string? _originalProjectPath)
+        {
+            if (_originalProjectPath is null)
+            {
+                return null;
+            }
+
+            string? root = Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT");
+            if (string.IsNullOrEmpty(root))
+            {
+                return _originalProjectPath;
+            }
+            string projectPath = Path.Combine(root, Path.GetFileName(Path.GetDirectoryName(_originalProjectPath)!), Path.GetFileName(_originalProjectPath));
+            System.Console.WriteLine($"ResolveProjectPath: Using root: {root}, and returning {projectPath}");
+            return projectPath;
+        }
     }
 
     private Assembly? ResolveAssembly()

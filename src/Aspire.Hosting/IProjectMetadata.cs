@@ -25,5 +25,19 @@ public interface IProjectMetadata : IResourceAnnotation
 [DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
 internal sealed class ProjectMetadata(string projectPath) : IProjectMetadata
 {
-    public string ProjectPath { get; } = projectPath;
+    private readonly string _originalProjectPath = projectPath;
+    public string ProjectPath
+    {
+        get
+        {
+            string? root = Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT");
+            if (string.IsNullOrEmpty(root))
+            {
+                return _originalProjectPath;
+            }
+            string projectPath = Path.Combine(root, Path.GetFileName(Path.GetDirectoryName(_originalProjectPath)!), Path.GetFileName(_originalProjectPath));
+            System.Console.WriteLine($"Using root: {root}, and returning {projectPath}");
+            return projectPath;
+        }
+    }
 }

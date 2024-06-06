@@ -8,6 +8,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting</PackageTags>
     <Description>Core abstractions for the .NET Aspire application model.</Description>
+    <RunTestsOnHelix>true</RunTestsOnHelix>
   </PropertyGroup>
 
   <ItemGroup>
