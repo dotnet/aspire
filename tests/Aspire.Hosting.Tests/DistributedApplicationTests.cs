@@ -713,8 +713,15 @@ public class DistributedApplicationTests
         {
             endpoint.IsProxied = false;
         });
+
+        // Since port is not specified, this instance will use the container target port (6379) as the host port.
+        var redisNoPort = builder.AddRedis("redisNoPort").WithEndpoint("tcp", endpoint =>
+        {
+            endpoint.IsProxied = false;
+        });
         var servicea = builder.AddProject<Projects.ServiceA>("servicea")
-            .WithReference(redis);
+            .WithReference(redis)
+            .WithReference(redisNoPort);
 
         using var app = builder.Build();
         await app.StartAsync();
@@ -736,6 +743,12 @@ public class DistributedApplicationTests
         var redisContainer = Assert.Single(list.Where(c => c.Name().Equals($"redis_{suffix}")));
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
+        var otherRedisEnv = Assert.Single(service.Spec.Env!.Where(e => e.Name == "ConnectionStrings__redisNoPort"));
+        Assert.Equal("localhost:6379", otherRedisEnv.Value);
+
+        var otherRedisContainer = Assert.Single(list.Where(c => c.Name().Equals($"redisNoPort_{suffix}")));
+        Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
+
         await app.StopAsync();
     }
 
@@ -744,7 +757,7 @@ public class DistributedApplicationTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var redis = builder.AddRedis("redis").WithEndpoint("tcp", endpoint =>
+        var redis = builder.AddContainer("dummyRedis", "redis").WithEndpoint("tcp", endpoint =>
         {
             endpoint.IsProxied = false;
         });
@@ -753,7 +766,7 @@ public class DistributedApplicationTests
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync());
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        Assert.Equal($"Service 'redis_{suffix}' needs to specify a port for endpoint 'tcp' since it isn't using a proxy.", ex.Message);
+        Assert.Equal($"The endpoint 'tcp' for container resource 'dummyRedis_{suffix}' must specify the TargetPort value", ex.Message);
     }
 
     [LocalOnlyFact("docker")]
