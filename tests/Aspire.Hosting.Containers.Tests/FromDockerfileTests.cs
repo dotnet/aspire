@@ -17,7 +17,6 @@ namespace Aspire.Hosting.Containers.Tests;
 public class WithDockerfileTests
 {
     [Fact]
-    [RequiresDocker]
     public async Task WithDockerfileLaunchesContainerSuccessfully()
     {
         if (!IsDockerAvailable())
