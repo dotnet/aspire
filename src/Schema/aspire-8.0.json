@@ -83,7 +83,14 @@
           {
             "type": "object",
             "description": "A generic container resource.",
-            "required": [ "type", "image", "build" ],
+            "oneOf": [
+              {
+                "required": [ "type", "build" ]
+              },
+              {
+                "required": [ "type", "image" ]
+              }
+            ],
             "properties": {
               "type": {
                 "const": "container.v1"

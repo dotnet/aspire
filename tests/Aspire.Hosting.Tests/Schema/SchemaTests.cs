@@ -320,7 +320,7 @@ public class SchemaTests
     }
 
     [SkipOnHelixFact]
-    public async Task ManifestWithContainerV1ResourceAndBuildFieldIsAccepted()
+    public async Task ManifestWithContainerV1ResourceWithImageAndBuildFieldIsRejected()
     {
         var manifestTest = """
             {
@@ -332,6 +332,47 @@ public class SchemaTests
                     "context": "relativepath",
                     "dockerfile": "relativepath/Dockerfile"
                   }
+                }
+              }
+            }
+            """;
+
+        var manifestJson = JToken.Parse(manifestTest);
+        var schema = await GetSchemaAsync();
+        Assert.False(manifestJson.IsValid(schema));
+    }
+
+    [SkipOnHelixFact]
+    public async Task ManifestWithContainerV1ResourceAndBuildFieldIsAccepted()
+    {
+        var manifestTest = """
+            {
+              "resources": {
+                "mycontainer": {
+                  "type": "container.v1",
+                  "build": {
+                    "context": "relativepath",
+                    "dockerfile": "relativepath/Dockerfile"
+                  }
+                }
+              }
+            }
+            """;
+
+        var manifestJson = JToken.Parse(manifestTest);
+        var schema = await GetSchemaAsync();
+        Assert.True(manifestJson.IsValid(schema));
+    }
+
+    [SkipOnHelixFact]
+    public async Task ManifestWithContainerV1ResourceAndImageFieldIsAccepted()
+    {
+        var manifestTest = """
+            {
+              "resources": {
+                "mycontainer": {
+                  "type": "container.v1",
+                  "image": "myimage:latest"
                 }
               }
             }
