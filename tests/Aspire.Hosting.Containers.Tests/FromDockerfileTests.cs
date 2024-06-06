@@ -71,8 +71,7 @@ public class WithDockerfileTests
         var manifest = await ManifestUtils.GetManifest(container.Resource, manifestDirectory: tempContextPath);
         var expectedManifest = $$$$"""
             {
-              "type": "container.v0",
-              "image": "testimage:latest",
+              "type": "container.v1",
               "build": {
                 "context": ".",
                 "dockerfile": "Dockerfile",

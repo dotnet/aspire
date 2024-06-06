@@ -227,6 +227,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         if (container.Annotations.OfType<DockerfileBuildAnnotation>().Any())
         {
             Writer.WriteString("type", "container.v1");
+            WriteConnectionString(container);
             WriteBuildContext(container);
         }
         else
@@ -236,12 +237,9 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             {
                 throw new DistributedApplicationException("Could not get container image name.");
             }
-
+            WriteConnectionString(container);
             Writer.WriteString("image", image);
         }
-
-        // Attempt to write the connection string for the container (if this resource has one).
-        WriteConnectionString(container);
 
         if (container.Entrypoint is not null)
         {
