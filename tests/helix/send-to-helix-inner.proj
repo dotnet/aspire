@@ -47,6 +47,9 @@
     <_ShellCommandSeparator Condition="'$(OS)' != 'Windows_NT'">&amp;&amp;</_ShellCommandSeparator>
 
     <_ShutdownDockerContainersCommand Condition="'$(OS)' != 'Windows_NT'">for f in `docker ps -aq`%3B do docker stop $f%3B docker rm $f%3B done</_ShutdownDockerContainersCommand>
+
+    <_SdkForWorkloadTestingPathEnvValue Condition="'$(OS)' == 'Windows_NT'">%HELIX_CORRELATION_PAYLOAD%\%SDK_DIR_NAME%</_SdkForWorkloadTestingPathEnvValue>
+    <_SdkForWorkloadTestingPathEnvValue Condition="'$(OS)' != 'Windows_NT'">$HELIX_CORRELATION_PAYLOAD/$SDK_DIR_NAME</_SdkForWorkloadTestingPathEnvValue>
   </PropertyGroup>
 
   <ItemGroup>
@@ -87,8 +90,7 @@
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set SDK_DIR_NAME=dotnet-latest" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export SDK_DIR_NAME=dotnet-latest" />
 
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set SDK_FOR_WORKLOAD_TESTING_PATH=%HELIX_CORRELATION_PAYLOAD%\%SDK_DIR_NAME%" />
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export SDK_FOR_WORKLOAD_TESTING_PATH=$HELIX_CORRELATION_PAYLOAD/$SDK_DIR_NAME" />
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) SDK_FOR_WORKLOAD_TESTING_PATH=$(_SdkForWorkloadTestingPathEnvValue)" />
 
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set BUILT_NUGETS_PATH=%HELIX_CORRELATION_PAYLOAD%\built-nugets" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export BUILT_NUGETS_PATH=$HELIX_CORRELATION_PAYLOAD/built-nugets" />
@@ -137,6 +139,24 @@
     <Error Condition="'$(_DotNetCoverageToolDir)' == '' or !Exists($(_DotNetCoverageToolDir))"
            Text="Could not find dotnet-coverage tool. %24(_DotNetCoverageToolDir)=$(_DotNetCoverageToolDir)" />
 
+    <ItemGroup><!-- Condition="'$(NeedsWorkload)' == 'true' and '$(NeedsHostingTestingSupport)' == 'true'" -->
+      <_DashboardPathInWorkloadPack Include="$(ArtifactsBinDir)dotnet-latest\packs\**\Aspire.Dashboard.dll" />
+      <_DcpInWorkloadPack Include="$(ArtifactsBinDir)dotnet-latest\packs\**\dcp" />
+    </ItemGroup>
+
+    <PropertyGroup>
+      <_DcpDirInWorkloadPackRelativeDir>@(_DcpDirInWorkloadPack->'%(RecursiveDir)')</_DcpDirInWorkloadPackRelativeDir>
+      <_DashboardPathInWorkloadPackRelativeDir>@(_DashboardPathInWorkloadPack->'%(RecursiveDir)')</_DashboardPathInWorkloadPackRelativeDir>
+    </PropertyGroup>
+
+    <ItemGroup> <!-- Condition="'$(NeedsWorkload)' == 'true' and '$(NeedsHostingTestingSupport)' == 'true'" -->
+      <!-- FIXME: change aspire_ to tests_ -->
+      <HelixPreCommand Include="$(_EnvVarSetKeyword) ASPIRE_DCP_DIR=$(_SdkForWorkloadTestingPathEnvValue)/packs/$(_DcpDirInWorkloadPackRelativeDir)" />
+      <HelixPreCommand Include="$(_EnvVarSetKeyword) ASPIRE_DASHBOARD_PATH=$(_SdkForWorkloadTestingPathEnvValue)/packs/$(_DashboardPathInWorkloadPackRelativeDir)" />
+
+      <HelixPreCommand Include="$(_EnvVarSetKeyword) ASPIRE_PROJECT_ROOT=$(_HelixCorrelationPayloadEnvVar)/TestingAppHost1" />
+    </ItemGroup>
+
     <PropertyGroup>
       <HelixPreCommands>$(HelixPreCommands);@(HelixPreCommand)</HelixPreCommands>
       <HelixPostCommands>$(HelixPostCommands);@(HelixPostCommand)</HelixPostCommands>
@@ -146,6 +166,8 @@
       <HelixCorrelationPayload Include="$(_DotNetCoverageToolDir)" Destination="dotnet-coverage" />
       <HelixCorrelationPayload Include="$(_SupportDataStagingDir)" Destination="support-data" />
       <HelixCorrelationPayload Condition="'$(NeedsCreateDotNetDevScripts)' == 'true'" Include="$(_CreateDotNetDevCertsDirectory)" Destination="create-dotnet-devcert" />
+
+      <HelixCorrelationPayload Include="$(RepoRoot)tests/TestingAppHost1" Destination="TestingAppHost1" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(NeedsWorkload)' == 'true'">
