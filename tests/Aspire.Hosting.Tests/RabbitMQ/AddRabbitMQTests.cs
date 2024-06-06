@@ -12,9 +12,10 @@ namespace Aspire.Hosting.Tests.RabbitMQ;
 public class AddRabbitMQTests
 {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void AddRabbitMQContainerWithDefaultsAddsAnnotationMetadata(bool withManagementPlugin)
+    [InlineData(false, null)]
+    [InlineData(true, null)]
+    [InlineData(true, 15672)]
+    public void AddRabbitMQContainerWithDefaultsAddsAnnotationMetadata(bool withManagementPlugin, int? withManagementPluginPort)
     {
         var appBuilder = TestDistributedApplicationBuilder.Create();
 
@@ -22,7 +23,7 @@ public class AddRabbitMQTests
 
         if (withManagementPlugin)
         {
-            rabbitmq.WithManagementPlugin();
+            rabbitmq.WithManagementPlugin(withManagementPluginPort);
         }
 
         using var app = appBuilder.Build();
@@ -47,10 +48,18 @@ public class AddRabbitMQTests
             Assert.Equal(15672, mangementEndpoint.TargetPort);
             Assert.False(primaryEndpoint.IsExternal);
             Assert.Equal("management", mangementEndpoint.Name);
-            Assert.Null(mangementEndpoint.Port);
             Assert.Equal(ProtocolType.Tcp, mangementEndpoint.Protocol);
             Assert.Equal("http", mangementEndpoint.Transport);
             Assert.Equal("http", mangementEndpoint.UriScheme);
+
+            if (!withManagementPluginPort.HasValue)
+            {
+                Assert.Null(mangementEndpoint.Port);
+            }
+            else
+            {
+                Assert.Equal(withManagementPluginPort.Value, mangementEndpoint.Port);
+            }
         }
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());

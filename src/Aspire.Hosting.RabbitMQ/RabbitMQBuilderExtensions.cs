@@ -16,7 +16,7 @@ public static class RabbitMQBuilderExtensions
     /// Adds a RabbitMQ container to the application model.
     /// </summary>
     /// <remarks>
-    /// The default image and tag are "rabbitmq" and "3".
+    /// The default image and tag are "rabbitmq" and "3.13".
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -83,17 +83,17 @@ public static class RabbitMQBuilderExtensions
     public static IResourceBuilder<RabbitMQServerResource> WithManagementPlugin(this IResourceBuilder<RabbitMQServerResource> builder)
         => builder.WithManagementPlugin(port: null);
 
-    /// <summary>
-    /// Configures the RabbitMQ container resource to enable the RabbitMQ management plugin.
-    /// </summary>
-    /// <remarks>
-    /// This method only supports the default RabbitMQ container image and tags, e.g. <c>3</c>, <c>3.12-alpine</c>, <c>3.12.13-management-alpine</c>, etc.<br />
-    /// Calling this method on a resource configured with an unrecognized image registry, name, or tag will result in a <see cref="DistributedApplicationException"/> being thrown.
-    /// </remarks>
+    /// <inheritdoc cref="WithManagementPlugin(IResourceBuilder{RabbitMQServerResource})" />
     /// <param name="builder">The resource builder.</param>
     /// <param name="port">The host port that can be used to access the management UI page when running locally.</param>
-    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <exception cref="DistributedApplicationException">Thrown when the current container image and tag do not match the defaults for <see cref="RabbitMQServerResource"/>.</exception>
+    /// <example>
+    /// Use <see cref="WithManagementPlugin(IResourceBuilder{RabbitMQServerResource}, int?)"/> to specify a port to access the RabbitMQ management UI page.
+    /// <code>
+    /// var rabbitmq = builder.AddRabbitMQ("rabbitmq")
+    ///                       .WithDataVolume()
+    ///                       .WithManagementPlugin(port: 15672);
+    /// </code>
+    /// </example>
     public static IResourceBuilder<RabbitMQServerResource> WithManagementPlugin(this IResourceBuilder<RabbitMQServerResource> builder, int? port)
     {
         var handled = false;
