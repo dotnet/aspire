@@ -62,6 +62,29 @@ public static class AspireRabbitMQExtensions
         AddRabbitMQClient(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureConnectionFactory, connectionName: name, serviceKey: name);
     }
 
+    /// <summary>
+    /// Registers <see cref="IConnection"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
+    /// Enables retries, corresponding health check, logging, and telemetry.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="RabbitMQClientSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureConnectionFactory">An optional method that can be used for customizing the <see cref="ConnectionFactory"/>. It's invoked after the options are read from the configuration.</param>
+    /// <remarks>Reads the configuration from "Aspire:RabbitMQ:Client:{name}" section.</remarks>
+    public static void AddKeyedRabbitMQClient(
+        this IHostApplicationBuilder builder,
+        string name,
+        string connectionName,
+        Action<RabbitMQClientSettings>? configureSettings = null,
+        Action<ConnectionFactory>? configureConnectionFactory = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        AddRabbitMQClient(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureConnectionFactory, connectionName: connectionName, serviceKey: name);
+    }
+
     private static void AddRabbitMQClient(
         IHostApplicationBuilder builder,
         string configurationSectionName,
