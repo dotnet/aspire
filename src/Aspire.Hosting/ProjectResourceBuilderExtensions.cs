@@ -514,8 +514,7 @@ public static class ProjectResourceBuilderExtensions
         // Turn endpoint ports into a single environment variable
         foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)))
         {
-            var port = e.EndpointAnnotation.TargetPort ?? e.EndpointAnnotation.Port;
-            if (e.EndpointAnnotation.UriScheme == scheme && port != null)
+            if (e.EndpointAnnotation.UriScheme == scheme && e.EndpointAnnotation.TargetPort != null)
             {
                 Debug.Assert(!e.EndpointAnnotation.FromLaunchProfile, "Endpoints from launch profile should never make it here");
 
