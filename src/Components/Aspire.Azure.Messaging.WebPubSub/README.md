@@ -22,7 +22,7 @@ dotnet add package Aspire.Azure.Messaging.WebPubSub
 In the _Program.cs_ file of your project, call the `AddAzureWebPubSubHub` extension method to register a `WebPubSubServiceClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
-builder.AddAzureWebPubSubHub("wps1", "your_hub_name");
+builder.AddAzureWebPubSubServiceClient("wps1");
 ```
 
 You can then retrieve the `WebPubSubServiceClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:
@@ -47,7 +47,7 @@ The .NET Aspire Azure Web PubSub library provides multiple options to configure 
 When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureWebPubSubHub()`:
 
 ```csharp
-builder.AddAzureWebPubSubHub("WebPubSubConnectionName", "your_hub_name");
+builder.AddAzureWebPubSubServiceClient("WebPubSubConnectionName", "your_hub_name");
 ```
 
 And then the connection information will be retrieved from the `ConnectionStrings` configuration section. Two connection formats are supported:
@@ -86,11 +86,8 @@ The .NET Aspire Azure Web PubSub library supports [Microsoft.Extensions.Configur
     "Azure": {
       "Messaging": {
         "WebPubSub": {
-          "HealthChecks": false,
-          "Tracing": true,
-          "ClientOptions": {
-            "Identifier": "CLIENT_ID"
-          }
+          "DisableHealthChecks": true,
+          "HubName": "your_hub_name"
         }
       }
     }
@@ -103,13 +100,13 @@ The .NET Aspire Azure Web PubSub library supports [Microsoft.Extensions.Configur
 You can also pass the `Action<AzureMessagingWebPubSubSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-    builder.AddAzureWebPubSubHub("wps", "your_hub_name", settings => settings.HealthChecks = false);
+    builder.AddAzureWebPubSubServiceClient("wps", settings => settings.DisableHealthChecks = true);
 ```
 
 You can also setup the [WebPubSubServiceClientOptions](https://learn.microsoft.com/dotnet/api/azure.messaging.WebPubSub.WebPubSubServiceClientoptions) using the optional `Action<IAzureClientBuilder<WebPubSubServiceClient, WebPubSubServiceClientOptions>> configureClientBuilder` parameter of the `AddAzureWebPubSubHub` method. For example, to set the client ID for this client:
 
 ```csharp
-    builder.AddAzureWebPubSubHub("wps", "your_hub_name", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Identifier = "CLIENT_ID"));
+    builder.AddAzureWebPubSubServiceClient("wps", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Retry.MaxRetries = 5));
 ```
 
 ## AppHost extensions
@@ -126,7 +123,7 @@ var myService = builder.AddProject<Projects.MyService>()
 The `AddAzureWebPubSubHub` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:wps` config key. The `WithReference` method passes that connection information into a connection string named `wps` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
-builder.AddAzureWebPubSubHub("wps", "your_hub_name");
+builder.AddAzureWebPubSubServiceClient("wps");
 ```
 
 ## Additional documentation

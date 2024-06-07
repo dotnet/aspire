@@ -1,13 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+
 using Aspire.Azure.Common;
 using Aspire.Azure.Messaging.WebPubSub;
-
 using Azure;
 using Azure.Core;
 using Azure.Core.Extensions;
 using Azure.Messaging.WebPubSub;
-
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -86,14 +85,13 @@ public static class AspireWebPubSubExtensions
                 }
 
                 // if HubName is missing, throw
-                if (string.IsNullOrEmpty(settings.HubName))
+                var hubName = settings.HubName;
+                if (string.IsNullOrEmpty(hubName))
                 {
                     throw new InvalidOperationException(
                         $"A WebPubSubServiceClient could not be configured. Ensure a valid HubName was configured or provided in " +
                         $"the '{configurationSectionName}' configuration section.");
                 }
-
-                var hubName = settings.HubName;
 
                 return !string.IsNullOrEmpty(connectionString) ?
                     new WebPubSubServiceClient(connectionString, hubName, options) :
@@ -120,7 +118,7 @@ public static class AspireWebPubSubExtensions
             => settings.Credential;
 
         protected override bool GetTracingEnabled(AzureMessagingWebPubSubSettings settings)
-            => !settings.DisableHealthChecks;
+            => !settings.DisableTracing;
 
         protected override bool GetHealthCheckEnabled(AzureMessagingWebPubSubSettings settings)
             => !settings.DisableHealthChecks;

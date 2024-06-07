@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Azure.Common;
-
 using Azure.Core;
 
 namespace Aspire.Azure.Messaging.WebPubSub;

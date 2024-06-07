@@ -4,13 +4,13 @@
 using Aspire.Components.ConformanceTests;
 using Azure.Identity;
 using Azure.Messaging.WebPubSub;
-
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Azure.Messaging.WebPubSub.Tests;
 
-public abstract class ConformanceTests : ConformanceTests<WebPubSubServiceClient, AzureMessagingWebPubSubSettings>
+public class ConformanceTests : ConformanceTests<WebPubSubServiceClient, AzureMessagingWebPubSubSettings>
 {
     public const string Endpoint = "https://aspirewebpubsubtests.webpubsub.azure.com/";
     public const string ReverseProxyEndpoint = "https://reverse.com";
@@ -21,7 +21,7 @@ public abstract class ConformanceTests : ConformanceTests<WebPubSubServiceClient
 
     protected override string ActivitySourceName => "Azure.Messaging.WebPubSub.*";
 
-    protected override string[] RequiredLogCategories => new string[] { "Azure.Messaging.WebPubSub" };
+    protected override string[] RequiredLogCategories => ["Azure.Core"];
 
     protected override bool SupportsKeyedRegistrations => true;
 
@@ -31,12 +31,12 @@ public abstract class ConformanceTests : ConformanceTests<WebPubSubServiceClient
             "Azure": {
               "Messaging": {
                 "WebPubSub": {
-                  "Endpoint": "YOUR_ENDPOINT",
-                  "HealthChecks": true,
+                  "Endpoint": "https://endpoint.com",
+                  "DisableHealthChecks": true,
                   "ClientOptions": {
                     "Retry": {
-                      "Mode": "Fixed",s
-                      "MaxDelay": "PT3S"  
+                      "Mode": "Fixed",
+                      "MaxDelay": "00:03"
                     },
                     "ReverseProxyEndpoint": "https://reverse.com"
                   }
@@ -49,17 +49,23 @@ public abstract class ConformanceTests : ConformanceTests<WebPubSubServiceClient
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Azure": { "Messaging":{ "WebPubSub": {"ClientOptions": {"ReverseProxyEndpoint": "EndPoint"}}}}}}""", "Value does not match format \"uri\""),
-            ("""{"Aspire": { "Azure": { "Messaging":{ "WebPubSub": {"HealthChecks": "hello"}}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Azure": { "Messaging":{ "WebPubSub": {"ClientOptions": {"RetryOptions": {"Mode": "Fast"}}}}}}}""", "Value should match one of the values specified by the enum"),
-            ("""{"Aspire": { "Azure": { "Messaging":{ "WebPubSub": {"ClientOptions": {"RetryOptions": {"MaxDelay": "3S"}}}}}}}""", "Value does not match format \"duration\""),
+            ("""{"Aspire": { "Azure": { "Messaging":{ "WebPubSub": { "ClientOptions": { "ReverseProxyEndpoint": "EndPoint"}}}}}}""", "Value does not match format \"uri\""),
+            ("""{"Aspire": { "Azure": { "Messaging":{ "WebPubSub": { "DisableHealthChecks": "hello"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Azure": { "Messaging":{ "WebPubSub": { "ClientOptions": { "Retry": { "Mode": "Fast"}}}}}}}""", "Value should match one of the values specified by the enum"),
+            ("""{"Aspire": { "Azure": { "Messaging":{ "WebPubSub": { "ClientOptions": { "Retry": { "MaxDelay": "3S"}}}}}}}""", "The string value is not a match for the indicated regular expression"),
         };
 
     // When credentials are not available, we switch to using raw connection string (otherwise we get CredentialUnavailableException)
-    protected KeyValuePair<string, string?> GetMainConfigEntry(string? key)
+    private KeyValuePair<string, string?> GetMainConfigEntry(string? key)
         => CanConnectToServer
-                ? new(CreateConfigKey("Aspire:Azure:Messaging:WebPubSub", key, nameof(AzureMessagingWebPubSubSettings.Endpoint)), Endpoint)
-                : new(CreateConfigKey("Aspire:Azure:Messaging:WebPubSub", key, nameof(AzureMessagingWebPubSubSettings.ConnectionString)), ConnectionString);
+                ? new(CreateConfigKey("Aspire:Azure:Messaging:WebPubSub", key is not null ? $"{key}:{key}" : null, nameof(AzureMessagingWebPubSubSettings.Endpoint)), Endpoint)
+                : new(CreateConfigKey("Aspire:Azure:Messaging:WebPubSub", key is not null ? $"{key}:{key}" : null, nameof(AzureMessagingWebPubSubSettings.ConnectionString)), ConnectionString);
+
+    protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
+        => configuration.AddInMemoryCollection(
+        [
+            GetMainConfigEntry(key)
+        ]);
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureMessagingWebPubSubSettings>? configure = null, string? key = null)
     {
@@ -69,7 +75,7 @@ public abstract class ConformanceTests : ConformanceTests<WebPubSubServiceClient
         }
         else
         {
-            builder.AddKeyedAzureWebPubSubServiceClient(key, "hub1", Configure);
+            builder.AddKeyedAzureWebPubSubServiceClient(key, key, Configure);
         }
 
         void Configure(AzureMessagingWebPubSubSettings settings)
@@ -83,9 +89,17 @@ public abstract class ConformanceTests : ConformanceTests<WebPubSubServiceClient
         }
     }
 
+    protected override void SetHealthCheck(AzureMessagingWebPubSubSettings options, bool enabled)
+        => options.DisableHealthChecks = !enabled;
+
     protected override void SetMetrics(AzureMessagingWebPubSubSettings options, bool enabled)
         => throw new NotImplementedException();
 
     protected override void SetTracing(AzureMessagingWebPubSubSettings options, bool enabled)
         => options.DisableTracing = !enabled;
+
+    protected override void TriggerActivity(WebPubSubServiceClient service)
+    {
+        service.SendToAll("test message");
+    }
 }
