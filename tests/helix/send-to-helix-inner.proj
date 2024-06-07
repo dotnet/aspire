@@ -145,7 +145,7 @@
     </ItemGroup>
 
     <PropertyGroup>
-      <_DcpDirInWorkloadPackRelativeDir>@(_DcpDirInWorkloadPack->'%(RecursiveDir)')</_DcpDirInWorkloadPackRelativeDir>
+      <_DcpDirInWorkloadPackRelativeDir>@(_DcpInWorkloadPack->'%(RecursiveDir)')</_DcpDirInWorkloadPackRelativeDir>
       <_DashboardPathInWorkloadPackRelativeDir>@(_DashboardPathInWorkloadPack->'%(RecursiveDir)')</_DashboardPathInWorkloadPackRelativeDir>
     </PropertyGroup>
 
