@@ -414,8 +414,7 @@ public class ProjectResourceTests
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory"{{fordwardedHeadersEnvVar}},
-                "HTTP_PORTS": "{projectName.bindings.http.targetPort}",
-                "HTTPS_PORTS": "{projectName.bindings.https.targetPort}"
+                "HTTP_PORTS": "{projectName.bindings.http.targetPort}"
               },
               "bindings": {
                 "http": {
@@ -465,7 +464,8 @@ public class ProjectResourceTests
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
-                "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
+                "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+                "HTTP_PORTS": "{projectName.bindings.http.targetPort}"
               },
               "bindings": {
                 "http": {
