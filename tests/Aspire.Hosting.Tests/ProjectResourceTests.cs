@@ -413,7 +413,9 @@ public class ProjectResourceTests
               "env": {
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-                "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory"{{fordwardedHeadersEnvVar}}
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory"{{fordwardedHeadersEnvVar}},
+                "HTTP_PORTS": "{projectName.bindings.http.targetPort}",
+                "HTTPS_PORTS": "{projectName.bindings.https.targetPort}"
               },
               "bindings": {
                 "http": {

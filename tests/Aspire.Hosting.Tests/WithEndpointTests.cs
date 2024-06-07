@@ -470,7 +470,9 @@ public class WithEndpointTests
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
-                "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
+                "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+                "HTTP_PORTS": "{proj.bindings.hp.targetPort}",
+                "HTTPS_PORTS": "{proj.bindings.hps.targetPort}"
               },
               "bindings": {
                 "hp": {
