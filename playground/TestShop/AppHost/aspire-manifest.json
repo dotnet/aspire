@@ -58,7 +58,6 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{catalogservice.bindings.http.targetPort}",
-        "HTTPS_PORTS": "{catalogservice.bindings.https.targetPort}",
         "ConnectionStrings__catalogdb": "{catalogdb.connectionString}"
       },
       "bindings": {
@@ -113,7 +112,6 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{basketservice.bindings.http.targetPort}",
-        "HTTPS_PORTS": "{basketservice.bindings.https.targetPort}",
         "ConnectionStrings__basketcache": "{basketcache.connectionString}",
         "ConnectionStrings__messaging": "{messaging.connectionString}"
       },
@@ -139,7 +137,6 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{frontend.bindings.http.targetPort}",
-        "HTTPS_PORTS": "{frontend.bindings.https.targetPort}",
         "services__basketservice__http__0": "{basketservice.bindings.http.url}",
         "services__basketservice__https__0": "{basketservice.bindings.https.url}",
         "services__catalogservice__http__0": "{catalogservice.bindings.http.url}",
@@ -179,7 +176,6 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{apigateway.bindings.http.targetPort}",
-        "HTTPS_PORTS": "{apigateway.bindings.https.targetPort}",
         "services__basketservice__http__0": "{basketservice.bindings.http.url}",
         "services__basketservice__https__0": "{basketservice.bindings.https.url}",
         "services__catalogservice__http__0": "{catalogservice.bindings.http.url}",
@@ -207,7 +203,6 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{catalogdbapp.bindings.http.targetPort}",
-        "HTTPS_PORTS": "{catalogdbapp.bindings.https.targetPort}",
         "ConnectionStrings__catalogdb": "{catalogdb.connectionString}"
       },
       "bindings": {

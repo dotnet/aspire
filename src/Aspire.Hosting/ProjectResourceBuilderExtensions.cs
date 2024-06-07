@@ -349,6 +349,13 @@ public static class ProjectResourceBuilderExtensions
                     {
                         e.UriScheme = scheme;
                         e.Transport = adjustTransport(e);
+
+                        // In the https case, we don't want this default endpoint to end up in the HTTPS_PORTS env var,
+                        // because the container likely won't be set up to listen on https (e.g. ACA case)
+                        if (scheme == "https")
+                        {
+                            e.ExcludeFromPortEnvironment = true;
+                        }
                     },
                     createIfNotExists: true);
                 }
@@ -514,7 +521,7 @@ public static class ProjectResourceBuilderExtensions
         // Turn endpoint ports into a single environment variable
         foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)))
         {
-            if (e.EndpointAnnotation.UriScheme == scheme)
+            if (e.EndpointAnnotation.UriScheme == scheme && !e.EndpointAnnotation.ExcludeFromPortEnvironment)
             {
                 Debug.Assert(!e.EndpointAnnotation.FromLaunchProfile, "Endpoints from launch profile should never make it here");
 
