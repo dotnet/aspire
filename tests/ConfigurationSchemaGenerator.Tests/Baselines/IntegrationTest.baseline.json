@@ -15,12 +15,11 @@
               "type": "integer"
             },
             "LinePosition": {
-              "type": "integer",
-              "description": ""
+              "type": "integer"
             },
             "Value": {
               "type": "string",
-              "description": "Gets or sets the value. Should never be null , and not longer than 100 characters."
+              "description": "Gets or sets the value.\n\nShould never be null, and not longer than 100 characters."
             }
           },
           "description": "A value of type 'ConfigurationSchemaGenerator.Tests.DefaultSettings'."

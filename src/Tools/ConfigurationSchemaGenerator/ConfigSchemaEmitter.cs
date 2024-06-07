@@ -2,12 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.DotnetRuntime.Extensions;
@@ -15,8 +13,10 @@ using Microsoft.Extensions.Configuration.Binder.SourceGeneration;
 
 namespace ConfigurationSchemaGenerator;
 
-internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation compilation)
+internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation compilation)
 {
+    private static readonly string[] s_lineBreaks = ["\r\n", "\r", "\n"];
+
     private static readonly JsonSerializerOptions s_serializerOptions = new()
     {
         WriteIndented = true,
@@ -30,9 +30,6 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
     private readonly Compilation _compilation = compilation;
     private readonly Stack<TypeSpec> _visitedTypes = new();
     private readonly string[] _exclusionPaths = CreateExclusionPaths(spec.ExclusionPaths);
-
-    [GeneratedRegex(@"( *)\r?\n( *)")]
-    private static partial Regex Indentation();
 
     public string GenerateSchema()
     {
@@ -115,7 +112,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         }
 
         GenerateProperties(currentNode, type);
-        GenerateTypeDocCommentsProperties(currentNode.Parent as JsonObject, type);
+        GenerateDescriptionForType(currentNode.Parent as JsonObject, type);
     }
 
     private void GenerateProperties(JsonObject currentNode, TypeSpec type)
@@ -164,7 +161,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
                         var docComment = propertySymbol?.GetDocumentationCommentXml();
                         if (!string.IsNullOrEmpty(docComment))
                         {
-                            GenerateDocCommentsProperties(propertyNode, docComment);
+                            GenerateDescriptionFromDocComment(propertyNode, docComment);
                         }
                     }
                 }
@@ -230,22 +227,19 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         return false;
     }
 
-    internal static void GenerateDocCommentsProperties(JsonObject propertyNode, string docComment)
+    private static void GenerateDescriptionFromDocComment(JsonObject propertyNode, string docComment)
     {
         var doc = XDocument.Parse(docComment);
         var memberRoot = doc.Element("member");
         var summary = memberRoot.Element("summary");
         if (summary is not null)
         {
-            var builder = new StringBuilder();
-            foreach (var node in StripXmlElements(summary))
-            {
-                var value = node.ToString().Trim();
-                AppendSpaceIfNecessary(builder, value);
-                AppendUnindentedValue(builder, value);
-            }
+            var description = FormatDescription(summary);
 
-            propertyNode["description"] = builder.ToString();
+            if (description.Length > 0)
+            {
+                propertyNode["description"] = description;
+            }
         }
 
         var propertyNodeType = propertyNode["type"];
@@ -268,7 +262,20 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         }
     }
 
-    private void GenerateTypeDocCommentsProperties(JsonObject? currentNode, TypeSpec type)
+    internal static string FormatDescription(XElement element)
+    {
+        var text = string.Join(string.Empty, element.Nodes().Select(GetNodeText));
+        var lines = text.Split(s_lineBreaks, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        return string.Join(' ', lines)
+            .Replace(" <br/> ", "\n")
+            .Replace(" <br/>", "\n")
+            .Replace("<br/> ", "\n")
+            .Replace("<br/>", "\n")
+            .Replace("\n\n\n\n", "\n\n")
+            .Trim('\n');
+    }
+
+    private void GenerateDescriptionForType(JsonObject? currentNode, TypeSpec type)
     {
         if (currentNode is not null && currentNode["description"] is null)
         {
@@ -278,39 +285,45 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
                 var docComment = typeSymbol.GetDocumentationCommentXml();
                 if (!string.IsNullOrEmpty(docComment))
                 {
-                    GenerateDocCommentsProperties(currentNode, docComment);
+                    GenerateDescriptionFromDocComment(currentNode, docComment);
                 }
             }
         }
     }
 
-    private static IEnumerable<XNode> StripXmlElements(XContainer container)
+    private static string GetNodeText(XNode node)
     {
-        return container.Nodes().SelectMany(n => n switch
+        return node switch
         {
-            XText => [n],
-            XElement e => StripXmlElements(e),
-            _ => Enumerable.Empty<XNode>()
-        });
+            XText text => text.Value,
+            XElement element => GetElementText(element),
+            _ => string.Empty
+        };
     }
 
-    internal static IEnumerable<XNode> StripXmlElements(XElement element)
+    private static string GetElementText(XElement element)
     {
-        if (element.Nodes().Any())
+        if (element.Name == "para" || element.Name == "p")
         {
-            return StripXmlElements((XContainer)element);
+            return $"<br/><br/>{element.Value}<br/><br/>";
         }
-        else if (element.HasAttributes)
+
+        if( element.Name == "br")
+        {
+            return "<br/>";
+        }
+
+        if (element.HasAttributes && !element.Nodes().Any())
         {
             // just get the first attribute value
             // ex. <see cref="System.Diagnostics.Debug.Assert(bool)"/>
             // ex. <see langword="true"/>
-            var attributeValue = element.FirstAttribute.Value;
+            var attributeValue = element.FirstAttribute!.Value;
 
             // format the attribute value if it is an "ID string" representing a type or member
             // by stripping the prefix.
             // See https://learn.microsoft.com/dotnet/csharp/language-reference/xmldoc/#id-strings
-            var formattedValue = attributeValue switch
+            return attributeValue switch
             {
                 var s when
                     s.StartsWith("T:", StringComparison.Ordinal) ||
@@ -319,56 +332,11 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
                     s.StartsWith("F:", StringComparison.Ordinal) ||
                     s.StartsWith("N:", StringComparison.Ordinal) ||
                     s.StartsWith("E:", StringComparison.Ordinal) => $"'{s.AsSpan(2)}'",
-                _ => attributeValue,
+                _ => attributeValue
             };
-
-            return [new XText(formattedValue)];
         }
 
-        return Enumerable.Empty<XNode>();
-    }
-
-    /// <summary>
-    /// Add a space between nodes except if the next node starts with a period to end the previous sentence
-    /// </summary>
-    private static void AppendSpaceIfNecessary(StringBuilder builder, string value)
-    {
-        if (builder.Length > 0)
-        {
-            var nextNodeFinishesPreviousSentence =
-                // previous node didn't end with a period
-                builder[^1] != '.' &&
-                // next node starts with a period
-                (value == "." || value.StartsWith(". "));
-
-            if (!nextNodeFinishesPreviousSentence)
-            {
-                builder.Append(' ');
-            }
-        }
-    }
-
-    internal static void AppendUnindentedValue(StringBuilder builder, string value)
-    {
-        var index = 0;
-
-        foreach (var match in Indentation().EnumerateMatches(value))
-        {
-            if (match.Index > index)
-            {
-                builder.Append(value, index, match.Index - index);
-            }
-
-            builder.Append('\n');
-            index = match.Index + match.Length;
-        }
-
-        var remaining = value.Length - index;
-
-        if (remaining > 0)
-        {
-            builder.Append(value, index, remaining);
-        }
+        return element.Value;
     }
 
     private void AppendTypeNodes(JsonObject propertyNode, TypeSpec propertyTypeSpec)

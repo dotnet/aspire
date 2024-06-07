@@ -47,7 +47,7 @@ public partial class GeneratorTests
     ];
 
     [Theory]
-    [InlineData("abc\n  def", "abc\ndef")]
+    [InlineData("abc\n  def", "abc def")]
     [InlineData("\n  def", "def")]
     [InlineData(" \n  def", "def")]
     [InlineData("  \n  def", "def")]
@@ -56,8 +56,8 @@ public partial class GeneratorTests
     [InlineData("abc\n  ", "abc")]
     [InlineData("abc\n\n  ", "abc")]
     [InlineData("\n\n  def", "def")]
-    [InlineData("abc\n def  \n ghi", "abc\ndef\nghi")]
-    [InlineData("abc\r\n  def", "abc\ndef")]
+    [InlineData("abc\n def  \n ghi", "abc def ghi")]
+    [InlineData("abc\r\n  def", "abc def")]
     [InlineData("\r\n  def", "def")]
     [InlineData(" \r\n  def", "def")]
     [InlineData("  \r\n  def", "def")]
@@ -66,36 +66,30 @@ public partial class GeneratorTests
     [InlineData("abc\r\n  ", "abc")]
     [InlineData("abc\r\n\r\n  ", "abc")]
     [InlineData("\r\n\r\n  def", "def")]
-    [InlineData("\r\nabc\r\ndef\r\nghi\r\n", "abc\ndef\nghi")]
-    [InlineData("abc\r\n def  \r\n ghi", "abc\ndef\nghi")]
+    [InlineData("\r\nabc\r\ndef\r\nghi\r\n", "abc def ghi")]
+    [InlineData("abc\r\n def  \r\n ghi", "abc def ghi")]
     [InlineData(" \r\n  \r\n ", "")]
     public void ShouldRemoveInsignificantWhitespace(string input, string expected)
     {
-        var memberElement = ConvertToMemberElement(input);
+        var summaryElement = ConvertToSummaryElement(input);
 
-        var propertyNode = new JsonObject();
-        ConfigSchemaEmitter.GenerateDocCommentsProperties(propertyNode, memberElement.ToString());
-
-        var description = propertyNode["description"]?.GetValue<string>();
+        var description = ConfigSchemaEmitter.FormatDescription(summaryElement);
         Assert.Equal(expected, description);
     }
 
     [Theory]
-    [InlineData("\n<para>abc</para><p>def</p>\n", "abc def")]
-    [InlineData("<para>\nabc\n</para><para>\ndef\n</para>", "abc def")]
-    [InlineData("abc<para>def</para>ghi", "abc def ghi")]
-    [InlineData("abc\n<para>\ndef\n</para>\nghi", "abc def ghi")]
-    [InlineData("abc<br/>def<br/>ghi", "abc def ghi")]
-    [InlineData("<br/>abc<br/>def<br/>ghi<br/>", "abc def ghi")]
-    [InlineData("abc\n<br />\ndef", "abc def")]
+    [InlineData("\n<para>abc</para><p>def</p>\n", "abc\n\ndef")]
+    [InlineData("<para>\nabc\n</para><para>\ndef\n</para>", "abc\n\ndef")]
+    [InlineData("abc<para>def</para>ghi", "abc\n\ndef\n\nghi")]
+    [InlineData("abc\n<para>\ndef\n</para>\nghi", "abc\n\ndef\n\nghi")]
+    [InlineData("abc<br/>def<br/>ghi", "abc\ndef\nghi")]
+    [InlineData("<br/>abc<br/>def<br/>ghi<br/>", "abc\ndef\nghi")]
+    [InlineData("abc\n<br />\ndef", "abc\ndef")]
     public void ShouldInsertLineBreaks(string input, string expected)
     {
-        var memberElement = ConvertToMemberElement(input);
+        var summaryElement = ConvertToSummaryElement(input);
 
-        var propertyNode = new JsonObject();
-        ConfigSchemaEmitter.GenerateDocCommentsProperties(propertyNode, memberElement.ToString());
-
-        var description = propertyNode["description"]?.GetValue<string>();
+        var description = ConfigSchemaEmitter.FormatDescription(summaryElement);
         Assert.Equal(expected, description);
     }
 
@@ -104,15 +98,12 @@ public partial class GeneratorTests
     [InlineData("A valid <see cref=\"T:System.Uri\"/>. See remarks.", "A valid 'System.Uri'. See remarks.")]
     [InlineData("The <see cref=\"T:System.Uri\"/> or <c>null</c>.", "The 'System.Uri' or null.")]
     [InlineData("Use <example><code>Console.WriteLine();</code></example> to print.", "Use Console.WriteLine(); to print.")]
-    [InlineData("Generic <example><code><![CDATA[List<string>]]></code></example>", "Generic <![CDATA[List<string>]]>")]
+    [InlineData("Generic <example><code><![CDATA[List<string>]]></code></example>", "Generic List<string>")]
     public void ShouldStripHtmlTags(string input, string expected)
     {
-        var memberElement = ConvertToMemberElement(input);
+        var summaryElement = ConvertToSummaryElement(input);
 
-        var propertyNode = new JsonObject();
-        ConfigSchemaEmitter.GenerateDocCommentsProperties(propertyNode, memberElement.ToString());
-
-        var description = propertyNode["description"]?.GetValue<string>();
+        var description = ConfigSchemaEmitter.FormatDescription(summaryElement);
         Assert.Equal(expected, description);
     }
 
@@ -127,12 +118,9 @@ public partial class GeneratorTests
     [InlineData("<exception cref=\"T:System.InvalidOperationException\" />", "'System.InvalidOperationException'")]
     public void ShouldQuoteCrefAttributes(string input, string expected)
     {
-        var memberElement = ConvertToMemberElement(input);
+        var summaryElement = ConvertToSummaryElement(input);
 
-        var propertyNode = new JsonObject();
-        ConfigSchemaEmitter.GenerateDocCommentsProperties(propertyNode, memberElement.ToString());
-
-        var description = propertyNode["description"]?.GetValue<string>();
+        var description = ConfigSchemaEmitter.FormatDescription(summaryElement);
         Assert.Equal(expected, description);
     }
 
@@ -141,12 +129,9 @@ public partial class GeneratorTests
     [InlineData("<see langword=\"true\"/>", "true")]
     public void ShouldNotQuoteNonCrefAttributes(string input, string expected)
     {
-        var memberElement = ConvertToMemberElement(input);
+        var summaryElement = ConvertToSummaryElement(input);
 
-        var propertyNode = new JsonObject();
-        ConfigSchemaEmitter.GenerateDocCommentsProperties(propertyNode, memberElement.ToString());
-
-        var description = propertyNode["description"]?.GetValue<string>();
+        var description = ConfigSchemaEmitter.FormatDescription(summaryElement);
         Assert.Equal(expected, description);
     }
 
@@ -155,18 +140,15 @@ public partial class GeneratorTests
     [InlineData("<paramref name=\"arg\"/>", "arg")]
     public void ShouldNotFormatMiscAttributes(string input, string expected)
     {
-        var memberElement = ConvertToMemberElement(input);
+        var summaryElement = ConvertToSummaryElement(input);
 
-        var propertyNode = new JsonObject();
-        ConfigSchemaEmitter.GenerateDocCommentsProperties(propertyNode, memberElement.ToString());
-
-        var description = propertyNode["description"]?.GetValue<string>();
+        var description = ConfigSchemaEmitter.FormatDescription(summaryElement);
         Assert.Equal(expected, description);
     }
 
-    private static XElement ConvertToMemberElement(string input)
+    private static XElement ConvertToSummaryElement(string input)
     {
-        var bytes = Encoding.UTF8.GetBytes($"<member><summary>{input}</summary></member>");
+        var bytes = Encoding.UTF8.GetBytes($"<summary>{input}</summary>");
         using var stream = new MemoryStream(bytes);
         using var reader = XmlReader.Create(stream);
         reader.MoveToContent();
@@ -1163,17 +1145,14 @@ public partial class GeneratorTests
                   "properties": {
                     "FalseByDefault": {
                       "type": "boolean",
-                      "description": "",
                       "default": false
                     },
                     "TrueByDefault": {
                       "type": "boolean",
-                      "description": "",
                       "default": true
                     },
                     "UnknownDefault": {
-                      "type": "boolean",
-                      "description": ""
+                      "type": "boolean"
                     }
                   }
                 }
