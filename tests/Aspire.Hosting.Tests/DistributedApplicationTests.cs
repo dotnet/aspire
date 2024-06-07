@@ -747,6 +747,10 @@ public class DistributedApplicationTests
         var redis = builder.AddRedis("redis").WithEndpoint("tcp", endpoint =>
         {
             endpoint.IsProxied = false;
+
+            // Set the port to null to prevent it from falling back to the target port,
+            // which gets set in AddRedis()
+            endpoint.Port = null;
         });
 
         using var app = builder.Build();
