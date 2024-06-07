@@ -68,7 +68,12 @@ public partial class ConfigSchemaGenerator
                 }
 
                 var path = (string)args[0].Value;
-                (configurationPaths ??= new()).Add((string)args[0].Value);
+                if (string.IsNullOrEmpty(path))
+                {
+                    path = $"{ConfigSchemaEmitter.RootPathPrefix}{Guid.NewGuid()}";
+                }
+
+                (configurationPaths ??= new()).Add(path);
                 (types ??= new()).Add((INamedTypeSymbol)args[1].Value);
 
                 var exclusionPathsArg = args[2];

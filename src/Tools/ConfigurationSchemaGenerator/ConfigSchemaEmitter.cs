@@ -15,6 +15,7 @@ namespace ConfigurationSchemaGenerator;
 
 internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation compilation)
 {
+    internal const string RootPathPrefix = "--empty--";
     private static readonly string[] s_lineBreaks = ["\r\n", "\r", "\n"];
 
     private static readonly JsonSerializerOptions s_serializerOptions = new()
@@ -92,7 +93,7 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
     {
         var pathSegments = path.Split(':');
         var currentNode = parent;
-        foreach (var segment in pathSegments)
+        foreach (var segment in pathSegments.Where(segment => !segment.StartsWith(RootPathPrefix)))
         {
             if (currentNode[segment] is JsonObject child)
             {

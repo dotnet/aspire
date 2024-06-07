@@ -719,16 +719,11 @@ public partial class GeneratorTests
             """
             {
               "properties": {
-                "": {
-                  "type": "object",
-                  "properties": {
-                    "PropertyOne": {
-                      "type": "string"
-                    },
-                    "PropertyTwo": {
-                      "type": "integer"
-                    }
-                  }
+                "PropertyOne": {
+                  "type": "string"
+                },
+                "PropertyTwo": {
+                  "type": "integer"
                 }
               },
               "type": "object"
