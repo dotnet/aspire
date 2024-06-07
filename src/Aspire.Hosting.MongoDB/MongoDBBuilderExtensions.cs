@@ -19,7 +19,7 @@ public static class MongoDBBuilderExtensions
 
     private const string UserEnvVarName = "MONGO_INITDB_ROOT_USERNAME";
     private const string PasswordEnvVarName = "MONGO_INITDB_ROOT_PASSWORD";
-    
+
     /// <summary>
     /// Adds a MongoDB resource to the application model. A container is used for local development. This version the package defaults to the 7.0.8 tag of the mongo container image.
     /// </summary>
@@ -47,7 +47,7 @@ public static class MongoDBBuilderExtensions
         IResourceBuilder<ParameterResource>? userName = null,
         IResourceBuilder<ParameterResource>? password = null)
     {
-        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
+        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special:false);
 
         var mongoDBContainer = new MongoDBServerResource(name, userName?.Resource, passwordParameter);
 
