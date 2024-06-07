@@ -85,7 +85,7 @@ public static class RedisBuilderExtensions
     /// </summary>
     /// <remarks>
     /// Use <see cref="WithPersistence(IResourceBuilder{RedisResource}, TimeSpan?, long)"/> to adjust Redis persistence configuration, e.g.:
-    /// <code>
+    /// <code lang="csharp">
     /// var cache = builder.AddRedis("cache")
     ///                    .WithDataVolume()
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
@@ -113,7 +113,7 @@ public static class RedisBuilderExtensions
     /// </summary>
     /// <remarks>
     /// Use <see cref="WithPersistence(IResourceBuilder{RedisResource}, TimeSpan?, long)"/> to adjust Redis persistence configuration, e.g.:
-    /// <code>
+    /// <code lang="csharp">
     /// var cache = builder.AddRedis("cache")
     ///                    .WithDataBindMount()
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
@@ -142,7 +142,7 @@ public static class RedisBuilderExtensions
     /// <remarks>
     /// Use with <see cref="WithDataBindMount(IResourceBuilder{RedisResource}, string, bool)"/>
     /// or <see cref="WithDataVolume(IResourceBuilder{RedisResource}, string?, bool)"/> to persist Redis data across sessions with custom persistence configuration, e.g.:
-    /// <code>
+    /// <code lang="csharp">
     /// var cache = builder.AddRedis("cache")
     ///                    .WithDataVolume()
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);

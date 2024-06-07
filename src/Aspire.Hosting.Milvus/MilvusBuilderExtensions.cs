@@ -19,7 +19,7 @@ public static class MilvusBuilderExtensions
     /// </summary>
     /// <example>
     /// Use in application host
-    /// <code>
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var milvus = builder.AddMilvus("milvus");
@@ -69,7 +69,7 @@ public static class MilvusBuilderExtensions
     /// </summary>
     /// <example>
     /// Use in application host
-    /// <code>
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var booksdb = builder.AddMilvus("milvus");
@@ -101,7 +101,7 @@ public static class MilvusBuilderExtensions
     /// </summary>
     /// <example>
     /// Use in application host with a Milvus resource
-    /// <code>
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var milvus = builder.AddMilvus("milvus")
