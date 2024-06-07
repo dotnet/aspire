@@ -105,6 +105,11 @@ public class TestProgram : IDisposable
                 var garnet = AppBuilder.AddGarnet("garnet");
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(garnet);
             }
+            if (!resourcesToSkip.HasFlag(TestResourceNames.valkey))
+            {
+                var valkey = AppBuilder.AddValkey("valkey");
+                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(valkey);
+            }
             if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
             {
                 var postgresDbName = "postgresdb";
@@ -146,6 +151,16 @@ public class TestProgram : IDisposable
             {
                 var eventHub = AppBuilder.AddAzureEventHubs("eventhubns").RunAsEmulator().AddEventHub("hub");
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(eventHub);
+            }
+
+            if (!resourcesToSkip.HasFlag(TestResourceNames.milvus))
+            {
+                builder.Configuration["Parameters:milvusApiKey"] = "root:Milvus";
+
+                var milvusApiKey = builder.AddParameter("milvusApiKey");
+
+                var milvus = AppBuilder.AddMilvus("milvus", milvusApiKey);
+                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(milvus);
             }
         }
 

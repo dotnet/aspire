@@ -30,6 +30,7 @@ As part of the .NET Aspire November preview, we want to include a set of .NET As
 | NATS.Net                                |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        ✅            |                      |              ✅                  |
 | Seq                                     |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        N/A           |        N/A           |              ✅                  |
 | Qdrant.Client                           |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |                    |                   |                                |
+| Milvus.Client                           |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |                    |                   |                    ✅          |
 
 Nomenclature used in the table above:
 
