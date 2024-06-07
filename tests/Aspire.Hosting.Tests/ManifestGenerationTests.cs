@@ -11,6 +11,7 @@ using Aspire.Hosting.RabbitMQ;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.Valkey;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -504,13 +505,15 @@ public class ManifestGenerationTests
                     "ConnectionStrings__mysqldb": "{mysqldb.connectionString}",
                     "ConnectionStrings__redis": "{redis.connectionString}",
                     "ConnectionStrings__garnet": "{garnet.connectionString}",
+                    "ConnectionStrings__valkey": "{valkey.connectionString}",
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
                     "ConnectionStrings__rabbitmq": "{rabbitmq.connectionString}",
                     "ConnectionStrings__mymongodb": "{mymongodb.connectionString}",
                     "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
                     "ConnectionStrings__kafka": "{kafka.connectionString}",
                     "ConnectionStrings__cosmos": "{cosmos.connectionString}",
-                    "ConnectionStrings__eventhubns": "{eventhubns.connectionString}"
+                    "ConnectionStrings__eventhubns": "{eventhubns.connectionString}",
+                    "ConnectionStrings__milvus": "{milvus.connectionString}"
                   },
                   "bindings": {
                     "http": {
@@ -584,6 +587,19 @@ public class ManifestGenerationTests
                   "type": "container.v0",
                   "connectionString": "{garnet.bindings.tcp.host}:{garnet.bindings.tcp.port}",
                   "image": "{{GarnetContainerImageTags.Registry}}/{{GarnetContainerImageTags.Image}}:{{GarnetContainerImageTags.Tag}}",
+                  "bindings": {
+                    "tcp": {
+                      "scheme": "tcp",
+                      "protocol": "tcp",
+                      "transport": "tcp",
+                      "targetPort": 6379
+                    }
+                  }
+                },
+                "valkey": {
+                  "type": "container.v0",
+                  "connectionString": "{valkey.bindings.tcp.host}:{valkey.bindings.tcp.port}",
+                  "image": "{{ValkeyContainerImageTags.Registry}}/{{ValkeyContainerImageTags.Image}}:{{ValkeyContainerImageTags.Tag}}",
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",
@@ -710,6 +726,39 @@ public class ManifestGenerationTests
                   "params": {
                     "principalId": "",
                     "principalType": ""
+                  }
+                },
+                "milvusApiKey": {
+                  "type": "parameter.v0",
+                  "value": "{milvusApiKey.inputs.value}",
+                  "inputs": {
+                    "value": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "milvus": {
+                  "type": "container.v0",
+                  "connectionString": "Endpoint={milvus.bindings.grpc.url};Key={milvusApiKey.value}",
+                  "image": "docker.io/milvusdb/milvus:2.3-latest",
+                  "args": [
+                    "milvus",
+                    "run",
+                    "standalone"
+                  ],
+                  "env": {
+                    "COMMON_STORAGETYPE": "local",
+                    "ETCD_USE_EMBED": "true",
+                    "ETCD_DATA_DIR": "/var/lib/milvus/etcd",
+                    "COMMON_SECURITY_AUTHORIZATIONENABLED": "true"
+                  },
+                  "bindings": {
+                    "grpc": {
+                      "scheme": "http",
+                      "protocol": "tcp",
+                      "transport": "http2",
+                      "targetPort": 19530
+                    }
                   }
                 },
                 "sqlserver-password": {

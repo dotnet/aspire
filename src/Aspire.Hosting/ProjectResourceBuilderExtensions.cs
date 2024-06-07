@@ -44,7 +44,7 @@ public static class ProjectResourceBuilderExtensions
     /// </remarks>
     /// <example>
     /// Example of adding a project to the application model.
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     /// 
     /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice");
@@ -76,7 +76,7 @@ public static class ProjectResourceBuilderExtensions
     /// </remarks>
     /// <example>
     /// Add a project to the app model via a project path.
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     /// 
     /// builder.AddProject("inventoryservice", @"..\InventoryService\InventoryService.csproj");
@@ -124,7 +124,7 @@ public static class ProjectResourceBuilderExtensions
     /// </remarks>
     /// <example>
     /// Example of adding a project to the application model.
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     /// 
     /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice", launchProfileName: "otherLaunchProfile");
@@ -157,7 +157,7 @@ public static class ProjectResourceBuilderExtensions
     /// </remarks>
     /// <example>
     /// Add a project to the app model via a project path.
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     /// 
     /// builder.AddProject("inventoryservice", @"..\InventoryService\InventoryService.csproj", launchProfileName: "otherLaunchProfile");
@@ -220,10 +220,22 @@ public static class ProjectResourceBuilderExtensions
         {
             builder.WithAnnotation(new LaunchProfileAnnotation(launchProfileName));
         }
+        else
+        {
+            var appHostDefaultLaunchProfileName = builder.ApplicationBuilder.Configuration["AppHost:DefaultLaunchProfileName"]
+                ?? Environment.GetEnvironmentVariable("DOTNET_LAUNCH_PROFILE");
+            if (!string.IsNullOrEmpty(appHostDefaultLaunchProfileName))
+            {
+                builder.WithAnnotation(new DefaultLaunchProfileAnnotation(appHostDefaultLaunchProfileName));
+            }
+        }
 
+        var effectiveLaunchProfile = excludeLaunchProfile ? null : projectResource.GetEffectiveLaunchProfile(throwIfNotFound: true);
+        var launchProfile = effectiveLaunchProfile?.LaunchProfile;
+
+        // Process the launch profile and turn it into environment variables and endpoints.
         var config = GetConfiguration(projectResource);
         var kestrelEndpoints = config.GetSection("Kestrel:Endpoints").GetChildren();
-        var launchProfile = excludeLaunchProfile ? null : projectResource.GetEffectiveLaunchProfile(throwIfNotFound: true);
 
         // Get all the Kestrel configuration endpoint bindings, grouped by scheme
         var kestrelEndpointsByScheme = kestrelEndpoints
@@ -296,7 +308,10 @@ public static class ProjectResourceBuilderExtensions
             builder.WithEnvironment(context =>
             {
                 // Populate DOTNET_LAUNCH_PROFILE environment variable for consistency with "dotnet run" and "dotnet watch".
-                context.EnvironmentVariables.TryAdd("DOTNET_LAUNCH_PROFILE", launchProfileName!);
+                if (effectiveLaunchProfile is not null)
+                {
+                    context.EnvironmentVariables.TryAdd("DOTNET_LAUNCH_PROFILE", effectiveLaunchProfile.Name);
+                }
 
                 foreach (var envVar in launchProfile.EnvironmentVariables)
                 {
@@ -359,7 +374,7 @@ public static class ProjectResourceBuilderExtensions
     /// </remarks>
     /// <example>
     /// Start multiple instances of the same service.
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice")
@@ -391,7 +406,7 @@ public static class ProjectResourceBuilderExtensions
     /// </remarks>
     /// <example>
     /// Disable forwarded headers for a project.
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice")
