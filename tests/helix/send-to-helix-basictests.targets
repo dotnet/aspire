@@ -4,6 +4,7 @@
     <WorkItemArchiveWildCard>$(TestArchiveTestsDir)**/*.zip</WorkItemArchiveWildCard>
     <BuildHelixWorkItemsDependsOn>$(BuildHelixWorkItemsDependsOn);BuildHelixWorkItemsForDefaultTests</BuildHelixWorkItemsDependsOn>
     <NeedsHostingTestingSupport>true</NeedsHostingTestingSupport>
+    <NeedsWorkload>true</NeedsWorkload>
   </PropertyGroup>
 
   <Target Name="BuildHelixWorkItemsForDefaultTests">
