@@ -136,7 +136,7 @@ public class DistributedApplicationTests
         Assert.Empty(lifecycleHookDescriptors.Where(sd => sd.ImplementationFactory == callback2));
     }
 
-    [LocalOnlyFact]
+    [Fact]
     public async Task AllocatedPortsAssignedAfterHookRuns()
     {
         using var testProgram = CreateTestProgram();
@@ -168,7 +168,7 @@ public class DistributedApplicationTests
         }
     }
 
-    [LocalOnlyFact]
+    [Fact]
     public async Task TestServicesWithMultipleReplicas()
     {
         var replicaCount = 3;

@@ -1,0 +1,6 @@
+<Project>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
+  <Import Project="..\Shared\TestsRunningOutsideOfRepo.targets" />
+
+</Project>

@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Testing;
-using Aspire.Hosting.Tests.Helpers;
+// using Aspire.Hosting.Tests.Helpers;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -17,7 +17,7 @@ public class SlimTestProgramTests
         _slimTestProgramFixture = slimTestProgramFixture;
     }
 
-    [LocalOnlyFact]
+    [Fact]
     public async Task TestProjectStartsAndStopsCleanly()
     {
         var testProgram = _slimTestProgramFixture.TestProgram;
@@ -41,7 +41,7 @@ public class SlimTestProgramTests
         await clientC.GetStringAsync("/", cancellationToken);
     }
 
-    [LocalOnlyFact]
+    [Fact]
     public async Task TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatch()
     {
         var testProgram = _slimTestProgramFixture.TestProgram;
@@ -59,7 +59,7 @@ public class SlimTestProgramTests
         }
     }
 
-    [LocalOnlyFact]
+    [Fact]
     public async Task TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatchForReplicatedServices()
     {
         var testProgram = _slimTestProgramFixture.TestProgram;

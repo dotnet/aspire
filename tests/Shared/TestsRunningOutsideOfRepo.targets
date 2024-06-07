@@ -1,0 +1,22 @@
+<Project>
+  <!-- FIXME: Expand description -->
+  <!-- This is for projects that want to use a TestsRunningOutsideOfRepo mode
+       which uses `PackageReference` for running outside, and `ProjectReference`
+       when running in the repo. -->
+  <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">
+    <!-- FIXME: naming for the items -->
+    <ProjectReference Include="@(ComponentReferenceForTests -> '$(RepoRoot)src\Components\%(Identity)\%(Identity).csproj')" IsAspireProjectResource="false"/>
+    <!--<ProjectReference Include="$(RepoRoot)src\%(ComponentReferenceForTests.Identity)\%(ComponentReferenceForTests.Identity).csproj"-->
+        <!--Condition="Exists('$(RepoRoot)src\%(ComponentReferenceForTests.Identity)\%(ComponentReferenceForTests.Identity).csproj')"-->
+        <!--IsAspireProjectResource="false"/>-->
+
+    <!--<ProjectReference Include="@(HostingComponentReferenceForTests -> '$(RepoRoot)src\%(Identity)\%(Identity).csproj')" />-->
+    <ProjectReference Include="@(NonComponentReferenceForTests -> '$(RepoRoot)src\%(Identity)\%(Identity).csproj')" IsAspireProjectResource="false" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
+    <PackageReference Include="@(ComponentReferenceForTests)" />
+    <!--<PackageReference Include="@(HostingComponentReferenceForTests)" />-->
+    <PackageReference Include="@(NonComponentReferenceForTests)" />
+  </ItemGroup>
+</Project>
