@@ -1,6 +1,6 @@
 <Project>
+  <Import Project="Directory.Build.Helix.targets" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" />
+  <Import Project="..\Directory.Build.targets" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
 
-  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
   <Import Project="..\Shared\TestsRunningOutsideOfRepo.targets" />
-
 </Project>

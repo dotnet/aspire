@@ -10,7 +10,7 @@
     <RunTestsOnHelix>true</RunTestsOnHelix>
     <TestUsingWorkloads>true</TestUsingWorkloads>
     <InstallWorkloadForTesting>true</InstallWorkloadForTesting>
-    <TestArchiveTestsDir>$(TestArchiveTestsDirForWorkloadTests)</TestArchiveTestsDir>
+    <TestArchiveTestsDir>$(TestArchiveTestsDirForHostingTestingTests)</TestArchiveTestsDir>
 
     <_TestsArchiveStagingDir>$(ArtifactsObjDir)$(MSBuildProjectName)-helix\</_TestsArchiveStagingDir>
     <TestsArchiveSourceDir>$(_TestsArchiveStagingDir)</TestsArchiveSourceDir>
@@ -39,14 +39,16 @@
 
   <Target Name="_PrepareForArchiveTests" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true'">
     <ItemGroup>
-      <_SourceFile Include="$(MSBuildProjectDirectory)\**\*" DestinationPath="$(MSBuildProjectName)" />
-      <_SourceFile Include="%(HostingTestingTestsSupportProject.FullPath)\**\*" DestinationPath="%(HostingTestingTestsSupportProject.FileName)" Condition="'%(HostingTestingTestsSupportProject.Identity)' != ''" />
+      <_SourceFile Include="$(MSBuildProjectDirectory)\**\*" DestinationRelativeDir="$(MSBuildProjectName)" />
+      <_SourceFile Include="%(HostingTestingTestsSupportProject.FullPath)\**\*" DestinationRelativeDir="%(HostingTestingTestsSupportProject.FileName)" Condition="'%(HostingTestingTestsSupportProject.Identity)' != ''" />
+
+      <_SourceFile Include="$(RepoRoot)tests\Shared\TestsRunningOutsideOfRepo.targets" DestinationRelativeDir="Shared" />
     </ItemGroup>
 
     <RemoveDir Directories="$(_TestsArchiveStagingDir)" />
     <MakeDir Directories="$(_TestsArchiveStagingDir)" />
 
-    <Copy SourceFiles="@(_SourceFile)" DestinationFiles="@(_SourceFile -> '$(_TestsArchiveStagingDir)%(DestinationPath)\%(RecursiveDir)%(FileName)%(Extension)')" />
+    <Copy SourceFiles="@(_SourceFile)" DestinationFiles="@(_SourceFile -> '$(_TestsArchiveStagingDir)%(DestinationRelativeDir)\%(RecursiveDir)%(FileName)%(Extension)')" />
   </Target>
 
 </Project>
