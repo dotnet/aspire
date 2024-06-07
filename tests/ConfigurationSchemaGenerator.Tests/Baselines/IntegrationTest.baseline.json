@@ -27,7 +27,8 @@
           "type": "object",
           "properties": {
             "LineNumber": {
-              "type": "integer"
+              "type": "integer",
+              "description": "Gets the current line number."
             },
             "LinePosition": {
               "type": "integer"

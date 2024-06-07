@@ -1022,9 +1022,11 @@ public partial class GeneratorTests
                   "type": "object",
                   "properties": {
                     "AppName": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "Gets or sets the name of this app."
                     }
-                  }
+                  },
+                  "description": "Contains configuration settings."
                 }
               },
               "type": "object"
@@ -1097,12 +1099,15 @@ public partial class GeneratorTests
                   "type": "object",
                   "properties": {
                     "LineNumber": {
-                      "type": "integer"
+                      "type": "integer",
+                      "description": "Gets the current line number."
                     },
                     "LinePosition": {
-                      "type": "integer"
+                      "type": "integer",
+                      "description": "Gets the current line position."
                     }
-                  }
+                  },
+                  "description": "Provides an interface to enable a class to return line and position information."
                 }
               },
               "type": "object"

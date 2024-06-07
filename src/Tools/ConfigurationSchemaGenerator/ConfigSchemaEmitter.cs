@@ -10,6 +10,7 @@ using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.DotnetRuntime.Extensions;
 using Microsoft.Extensions.Configuration.Binder.SourceGeneration;
+using InternalSymbolExtensions = Microsoft.CodeAnalysis.Shared.Extensions.ISymbolExtensions;
 
 namespace ConfigurationSchemaGenerator;
 
@@ -159,7 +160,7 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
                             continue;
                         }
 
-                        var docComment = propertySymbol?.GetDocumentationCommentXml();
+                        var docComment = GetDocComment(propertySymbol);
                         if (!string.IsNullOrEmpty(docComment))
                         {
                             GenerateDescriptionFromDocComment(propertyNode, docComment);
@@ -170,6 +171,22 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
         }
 
         _visitedTypes.Pop();
+    }
+
+    private string? GetDocComment(ISymbol? symbol)
+    {
+        if (symbol != null)
+        {
+            var comment = InternalSymbolExtensions.GetDocumentationComment(symbol, _compilation, expandIncludes: true, expandInheritdoc: true);
+            var xml = comment.FullXmlFragment;
+
+            if (!string.IsNullOrEmpty(xml) && xml != "<doc />")
+            {
+                return XElement.Parse(xml).ToString(SaveOptions.None);
+            }
+        }
+
+        return null;
     }
 
     private IPropertySymbol? GetPropertySymbol(TypeSpec type, PropertySpec property)
@@ -231,7 +248,7 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
     private static void GenerateDescriptionFromDocComment(JsonObject propertyNode, string docComment)
     {
         var doc = XDocument.Parse(docComment);
-        var memberRoot = doc.Element("member");
+        var memberRoot = doc.Element("member") ?? doc.Element("doc");
         var summary = memberRoot.Element("summary");
         if (summary is not null)
         {
@@ -283,7 +300,7 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
             var typeSymbol = _compilation.GetBestTypeByMetadataName(type.FullName);
             if (typeSymbol is not null)
             {
-                var docComment = typeSymbol.GetDocumentationCommentXml();
+                var docComment = GetDocComment(typeSymbol);
                 if (!string.IsNullOrEmpty(docComment))
                 {
                     GenerateDescriptionFromDocComment(currentNode, docComment);
