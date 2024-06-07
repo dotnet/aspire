@@ -25,7 +25,7 @@
           },
           "description": "A value of type 'ConfigurationSchemaGenerator.Tests.DefaultSettings'."
         },
-        "PropertyOfDouble": {
+        "PropertyOfDoubleWithAlternateName": {
           "type": [
             "number",
             "string"

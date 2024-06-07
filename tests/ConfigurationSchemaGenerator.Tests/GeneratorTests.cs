@@ -654,7 +654,7 @@ public partial class GeneratorTests
                 "TestComponent": {
                   "type": "object",
                   "properties": {
-                    "TestProperty": {
+                    "AlternateName": {
                       "type": "string"
                     }
                   }
@@ -693,11 +693,7 @@ public partial class GeneratorTests
               "properties": {
                 "TestComponent": {
                   "type": "object",
-                  "properties": {
-                    "TestProperty": {
-                      "type": "string"
-                    }
-                  }
+                  "properties": {}
                 }
               },
               "type": "object"
@@ -1221,7 +1217,7 @@ public partial class GeneratorTests
     public void IntegrationTest()
     {
         // the 'refs' folder is populated by PreserveCompilationContext in the .csproj
-        var referenceAssemblies = Directory.GetFiles(Path.Combine(Directory.GetCurrentDirectory(), "refs"), "*.dll", SearchOption.AllDirectories)
+        var referenceAssemblies = Directory.GetFiles(Directory.GetCurrentDirectory(), "*.dll", SearchOption.AllDirectories)
             .ToArray();
 
         var outputPath = Path.Combine(Directory.GetCurrentDirectory(), "IntegrationTest.json");

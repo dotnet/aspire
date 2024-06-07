@@ -139,7 +139,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
                         var propertySymbol = GetPropertySymbol(type, property);
 
                         var propertyNode = new JsonObject();
-                        currentNode[property.Name] = propertyNode;
+                        currentNode[property.ConfigurationKeyName] = propertyNode;
 
                         AppendTypeNodes(propertyNode, propertyTypeSpec);
 
@@ -157,7 +157,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
 
                         if (ShouldSkipProperty(propertyNode, property, propertyTypeSpec, propertySymbol))
                         {
-                            currentNode.Remove(property.Name);
+                            currentNode.Remove(property.ConfigurationKeyName);
                             continue;
                         }
 
@@ -486,9 +486,9 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         var currentPath = currentNode.GetPath();
         foreach (var excludedPath in _exclusionPaths)
         {
-            if (excludedPath.StartsWith(currentPath) && excludedPath.EndsWith(property.Name))
+            if (excludedPath.StartsWith(currentPath) && excludedPath.EndsWith(property.ConfigurationKeyName))
             {
-                var fullPath = $"{currentPath}.{property.Name}";
+                var fullPath = $"{currentPath}.{property.ConfigurationKeyName}";
                 if (excludedPath == fullPath)
                 {
                     return true;
