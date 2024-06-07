@@ -6,6 +6,14 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+
+    <RunTestsOnHelix>true</RunTestsOnHelix>
+    <TestUsingWorkloads>true</TestUsingWorkloads>
+    <InstallWorkloadForTesting>true</InstallWorkloadForTesting>
+    <TestArchiveTestsDir>$(TestArchiveTestsDirForWorkloadTests)</TestArchiveTestsDir>
+
+    <_TestsArchiveStagingDir>$(ArtifactsObjDir)$(MSBuildProjectName)-helix\</_TestsArchiveStagingDir>
+    <TestsArchiveSourceDir>$(_TestsArchiveStagingDir)</TestsArchiveSourceDir>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,11 +24,32 @@
     <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
+    <PackageReference Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
+    <PackageReference Include="Aspire.Hosting.Testing" IsAspireProjectResource="false" />
+    <PackageReference Include="Aspire.Hosting.Tests" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">
     <ProjectReference Include="..\..\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Testing\Aspire.Hosting.Testing.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\Aspire.Hosting.Tests\Aspire.Hosting.Tests.csproj" />
-    <ProjectReference Include="..\TestingAppHost1\TestingAppHost1.AppHost\TestingAppHost1.AppHost.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TestingAppHost1\TestingAppHost1.AppHost\TestingAppHost1.AppHost.csproj" />
+    <HostingTestingTestsSupportProject Condition="'$(ArchiveTests)' == 'true'" Include="..\TestingAppHost1" />
+  </ItemGroup>
+
+  <Target Name="_PrepareForArchiveTests" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true'">
+    <ItemGroup>
+      <_SourceFile Include="$(MSBuildProjectDirectory)\**\*" DestinationPath="$(MSBuildProjectName)" />
+      <_SourceFile Include="%(HostingTestingTestsSupportProject.FullPath)\**\*" DestinationPath="%(HostingTestingTestsSupportProject.FileName)" Condition="'%(HostingTestingTestsSupportProject.Identity)' != ''" />
+    </ItemGroup>
+
+    <RemoveDir Directories="$(_TestsArchiveStagingDir)" />
+    <MakeDir Directories="$(_TestsArchiveStagingDir)" />
+
+    <Copy SourceFiles="@(_SourceFile)" DestinationFiles="@(_SourceFile -> '$(_TestsArchiveStagingDir)%(DestinationPath)\%(RecursiveDir)%(FileName)%(Extension)')" />
+  </Target>
 
 </Project>
