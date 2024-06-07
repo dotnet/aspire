@@ -838,7 +838,8 @@ public class ManifestGenerationTests
                       "secret": true,
                       "default": {
                         "generate": {
-                          "minLength": 22
+                          "minLength": 22,
+                          "special": false
                         }
                       }
                     }
