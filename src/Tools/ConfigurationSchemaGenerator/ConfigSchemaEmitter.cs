@@ -418,6 +418,26 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
             propertyNode["type"] = "string";
             propertyNode["format"] = "uuid";
         }
+        else if (parsable.DisplayString == "byte[]")
+        {
+            // ConfigurationBinder supports base64-encoded string
+            propertyNode["oneOf"] = new JsonArray
+            {
+                new JsonObject
+                {
+                    ["type"] = "string",
+                    ["pattern"] = "^[-A-Za-z0-9+/]*={0,3}$"
+                },
+                new JsonObject
+                {
+                    ["type"] = "array",
+                    ["items"] = new JsonObject
+                    {
+                        ["type"] = "integer"
+                    }
+                }
+            };
+        }
         else
         {
             propertyNode["type"] = GetParsableTypeName(parsable);

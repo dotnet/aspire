@@ -214,7 +214,18 @@ public partial class GeneratorTests
         """)]
     [InlineData("byte[]?",
         """
-        THROW
+        "oneOf": [
+          {
+            "type": "string",
+            "pattern": "^[-A-Za-z0-9+/]*={0,3}$"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        ]
         """)]
     [InlineData("object?",
         """

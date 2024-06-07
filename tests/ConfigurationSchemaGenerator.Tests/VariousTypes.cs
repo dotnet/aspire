@@ -35,12 +35,10 @@ public record ExampleSettings
     /// </summary>
     public string PropertyOfString { get; set; } = string.Empty;
 
-    /*
     /// <summary>
     /// A value of type <see cref="T:byte[]"/>, or a base64-encoded <see cref="string"/>.
     /// </summary>
     public byte[] PropertyOfByteArray { get; set; } = [];
-    */
 
     /// <summary>
     /// A value of type <see cref="TimeSpan"/>.
