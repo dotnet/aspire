@@ -8,6 +8,7 @@
     -->
     <NoWarn>$(NoWarn);CS8002</NoWarn>
     <RunTestsOnHelix>true</RunTestsOnHelix>
+    <IsHostingTestingTest>true</IsHostingTestingTest>
   </PropertyGroup>
 
   <ItemGroup>
