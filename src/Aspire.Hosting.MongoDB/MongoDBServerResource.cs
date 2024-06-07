@@ -7,15 +7,25 @@ namespace Aspire.Hosting.ApplicationModel;
 /// A resource that represents a MongoDB container.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// /// <param name="userNameParameter">A parameter that contains the MongoDb server user name, or <see langword="null"/> to use a default value.</param>
-/// <param name="passwordParameter">A parameter that contains the MongoDb server password.</param>
-public class MongoDBServerResource(string name, ParameterResource? userNameParameter = null, ParameterResource? passwordParameter = null) : ContainerResource(name), IResourceWithConnectionString
+public class MongoDBServerResource(string name) : ContainerResource(name), IResourceWithConnectionString
 {
     internal const string PrimaryEndpointName = "tcp";
     private const string DefaultUserName = "admin";
 
     private EndpointReference? _primaryEndpoint;
-    
+
+    /// <summary>
+    /// Initialize a resource that represents a MongoDB container.
+    /// </summary>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="userNameParameter">A parameter that contains the MongoDb server user name, or <see langword="null"/> to use a default value.</param>
+    /// <param name="passwordParameter">A parameter that contains the MongoDb server password.</param>
+    public MongoDBServerResource(string name, ParameterResource? userNameParameter, ParameterResource? passwordParameter) : this(name)
+    {
+        UserNameParameter = userNameParameter;
+        PasswordParameter = passwordParameter;
+    }
+
     /// <summary>
     /// Gets the primary endpoint for the MongoDB server.
     /// </summary>
@@ -24,11 +34,16 @@ public class MongoDBServerResource(string name, ParameterResource? userNameParam
     /// <summary>
     /// Gets the parameter that contains the MongoDb server password.
     /// </summary>
-    public ParameterResource? PasswordParameter => passwordParameter;
+    public ParameterResource? PasswordParameter { get; }
+
+    /// <summary>
+    /// Gets the parameter that contains the MongoDb server username.
+    /// </summary>
+    public ParameterResource? UserNameParameter { get; }
 
     internal ReferenceExpression UserNameReference =>
-        userNameParameter is not null ?
-            ReferenceExpression.Create($"{userNameParameter}") :
+        UserNameParameter is not null ?
+            ReferenceExpression.Create($"{UserNameParameter}") :
             ReferenceExpression.Create($"{DefaultUserName}");
 
     /// <summary>
