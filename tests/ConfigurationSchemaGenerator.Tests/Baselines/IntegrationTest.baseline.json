@@ -1,118 +1,69 @@
 {
   "properties": {
-    "RecordWithPrimitives": {
+    "ExampleComponent": {
       "type": "object",
       "properties": {
-        "Prop0": {
+        "PropertyOfBool": {
           "type": "boolean",
-          "description": "Prop0 is a bool."
+          "description": "A value of type 'System.Boolean'.",
+          "default": true
         },
-        "Prop1": {
-          "type": "integer"
+        "PropertyOfDefaultSettings": {
+          "type": "object",
+          "properties": {
+            "LineNumber": {
+              "type": "integer"
+            },
+            "LinePosition": {
+              "type": "integer",
+              "description": ""
+            },
+            "Value": {
+              "type": "string",
+              "description": "Gets or sets the value. Should never be null , and not longer than 100 characters."
+            }
+          },
+          "description": "A value of type 'ConfigurationSchemaGenerator.Tests.DefaultSettings'."
         },
-        "Prop10": {
+        "PropertyOfDouble": {
           "type": [
             "number",
             "string"
           ],
-          "description": "Prop10 is a float."
+          "description": "A value of type 'System.Double'."
         },
-        "Prop11": {
-          "type": [
-            "number",
-            "string"
-          ]
-        },
-        "Prop12": {
-          "type": "integer"
-        },
-        "Prop13": {
-          "type": "integer"
-        },
-        "Prop14": {
-          "type": "integer"
-        },
-        "Prop15": {
-          "type": "integer"
-        },
-        "Prop16": {
-          "type": "string"
-        },
-        "Prop17": {
-          "type": "string"
-        },
-        "Prop18": {
-          "type": "string"
-        },
-        "Prop19": {
-          "type": "string"
-        },
-        "Prop2": {
-          "type": "integer"
-        },
-        "Prop20": {
-          "type": "string"
-        },
-        "Prop21": {
-          "type": [
-            "number",
-            "string"
-          ]
-        },
-        "Prop22": {
-          "type": "string"
-        },
-        "Prop23": {
-          "type": "string",
-          "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$"
-        },
-        "Prop24": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "Prop25": {
-          "type": "string",
-          "format": "uri"
-        },
-        "Prop26": {
-          "type": "string"
-        },
-        "Prop27": {
+        "PropertyOfEnum": {
           "enum": [
-            "Sunday",
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-            "Saturday"
-          ]
+            "Ascending",
+            "Descending"
+          ],
+          "description": "A value of type 'System.Enum'."
         },
-        "Prop3": {
-          "type": "integer"
+        "PropertyOfGuid": {
+          "type": "string",
+          "format": "uuid",
+          "description": "A value of type 'System.Guid'."
         },
-        "Prop4": {
-          "type": [
-            "number",
-            "string"
-          ]
+        "PropertyOfObject": {
+          "type": "string",
+          "description": "A value of type 'System.Object' (free-format)."
         },
-        "Prop5": {
-          "type": "string"
+        "PropertyOfString": {
+          "type": "string",
+          "description": "A value of type 'System.String'."
         },
-        "Prop6": {
-          "type": "integer"
+        "PropertyOfTimeSpan": {
+          "type": "string",
+          "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
+          "description": "A value of type 'System.TimeSpan'."
         },
-        "Prop7": {
-          "type": "integer"
-        },
-        "Prop8": {
-          "type": "integer"
-        },
-        "Prop9": {
-          "type": "integer"
+        "PropertyOfUri": {
+          "type": "string",
+          "format": "uri",
+          "description": "A value of type 'System.Uri'."
         }
-      }
+      },
+      "description": "Example settings."
     }
   },
   "type": "object"

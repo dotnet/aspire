@@ -42,7 +42,7 @@ public partial class ConfigSchemaGenerator
         }
     }
 
-    private static PortableExecutableReference CreateMetadataReference(string path)
+    internal static PortableExecutableReference CreateMetadataReference(string path)
     {
         var docPath = Path.ChangeExtension(path, "xml");
         var documentationProvider = XmlDocumentationProvider.CreateFromFile(docPath);
@@ -50,7 +50,7 @@ public partial class ConfigSchemaGenerator
         return MetadataReference.CreateFromFile(path, documentation: documentationProvider);
     }
 
-    private static ConfigSchemaAttributeInfo? GetConfigurationSchema(IAssemblySymbol assembly)
+    internal static ConfigSchemaAttributeInfo? GetConfigurationSchema(IAssemblySymbol assembly)
     {
         List<INamedTypeSymbol>? types = null;
         List<string>? configurationPaths = null;

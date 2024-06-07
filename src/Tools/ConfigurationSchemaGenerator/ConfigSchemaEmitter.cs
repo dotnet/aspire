@@ -230,7 +230,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         return false;
     }
 
-    private static void GenerateDocCommentsProperties(JsonObject propertyNode, string docComment)
+    internal static void GenerateDocCommentsProperties(JsonObject propertyNode, string docComment)
     {
         var doc = XDocument.Parse(docComment);
         var memberRoot = doc.Element("member");
