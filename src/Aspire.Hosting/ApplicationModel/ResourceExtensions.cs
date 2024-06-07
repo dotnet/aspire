@@ -88,6 +88,17 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Attempts to retrieve the probes for the given resource.
+    /// </summary>
+    /// <param name="resource">The resource to retrieve the probes for.</param>
+    /// <param name="probes">The probes for the given resource, if found.</param>
+    /// <returns></returns>
+    public static bool TryGetProbes(this IResource resource, [NotNullWhen(true)] out IEnumerable<ProbeAnnotation>? probes)
+    {
+        return TryGetAnnotationsOfType<ProbeAnnotation>(resource, out probes);
+    }
+
+    /// <summary>
     /// Gets the endpoints for the specified resource.
     /// </summary>
     /// <param name="resource">The <see cref="IResourceWithEndpoints"/> which contains <see cref="EndpointAnnotation"/> annotations.</param>
@@ -107,7 +118,7 @@ public static class ResourceExtensions
     /// </summary>
     /// <param name="resource">The <see cref="IResourceWithEndpoints"/> which contains <see cref="EndpointAnnotation"/> annotations.</param>
     /// <param name="endpointName">The name of the endpoint.</param>
-    /// <returns>An <see cref="EndpointReference"/> object representing the endpoint reference 
+    /// <returns>An <see cref="EndpointReference"/> object representing the endpoint reference
     /// for the specified endpoint.</returns>
     public static EndpointReference GetEndpoint(this IResourceWithEndpoints resource, string endpointName)
     {
