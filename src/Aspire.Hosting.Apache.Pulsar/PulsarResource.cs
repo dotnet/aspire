@@ -10,9 +10,11 @@ public class PulsarResource(string name)
     : ContainerResource(name),
     IResourceWithConnectionString
 {
+    internal const int ServiceInternalPort = 8080;
     internal const string ServiceEndpointName = "service";
     private EndpointReference? _serviceEndpoint;
 
+    internal const int BrokerInternalPort = 6650;
     internal const string BrokerEndpointName = "broker";
     private EndpointReference? _brokerEndpoint;
 

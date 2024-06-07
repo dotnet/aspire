@@ -463,13 +463,14 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Consumer", "playground\kafk
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Producer", "playground\kafka\Producer\Producer.csproj", "{FEE2F9B0-F32D-41B3-8917-0C13DE4F5953}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Apache.Pulsar", "src\Aspire.Hosting.Apache.Pulsar\Aspire.Hosting.Apache.Pulsar.csproj", "{2BE6B31D-25E0-4641-BE98-BF40C1A43204}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Apache.Pulsar", "src\Aspire.Hosting.Apache.Pulsar\Aspire.Hosting.Apache.Pulsar.csproj", "{2BE6B31D-25E0-4641-BE98-BF40C1A43204}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "apache-pulsar", "apache-pulsar", "{3CF517C3-3F47-40F6-9330-10E0174A8800}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ApachePulsar.AppHost", "playground\apache-pulsar\ApachePulsar.AppHost\ApachePulsar.AppHost.csproj", "{BC17A942-37AB-4E5A-8C7B-70846AE8934C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ApachePulsar.Api", "playground\apache-pulsar\ApachePulsar.Api\ApachePulsar.Api.csproj", "{484C6267-F5D1-45B4-B458-B12F0EC90884}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "milvus", "milvus", "{BD2CD8FB-18EC-4930-8228-C49D89622022}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MilvusPlayground.AppHost", "playground\milvus\MilvusPlayground.AppHost\MilvusPlayground.AppHost.csproj", "{CE3B7E15-2319-45CD-9CED-0017E306DE9A}"
@@ -482,7 +483,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Milvus.Client", "src
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Milvus.Client.Tests", "tests\Aspire.Milvus.Client.Tests\Aspire.Milvus.Client.Tests.csproj", "{9FAE1602-2C69-4D24-8655-A164489441E8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Valkey", "src\Aspire.Hosting.Valkey\Aspire.Hosting.Valkey.csproj", "{5CB63205-24F4-4388-A41B-BAF3BEA59866}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Valkey", "src\Aspire.Hosting.Valkey\Aspire.Hosting.Valkey.csproj", "{5CB63205-24F4-4388-A41B-BAF3BEA59866}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

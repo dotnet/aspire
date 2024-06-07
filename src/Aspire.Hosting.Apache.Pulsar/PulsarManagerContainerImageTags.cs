@@ -10,6 +10,10 @@ internal static class PulsarManagerContainerImageTags
     public const string Registry = "docker.io";
     public const string Image = "apachepulsar/pulsar-manager";
     public const string Tag = "v0.4.0";
+    // TODO: Wait new release for user seed via envvars
+    // Updates:
+    //  - bump tag
+    //  - update application.properties in playground
 
     private static readonly Version s_versionThresholdNotSupportingDefaultSuperUserViaEnvVars = new(0, 4, 0);
 
@@ -36,6 +40,7 @@ internal static class PulsarManagerContainerImageTags
             .TrimStart('v')
             .ToCharArray()
             .Where(c => c != '.')
+            .Select(c => (int)char.GetNumericValue(c))
             .ToArray();
 
         Version version = new(versionParts[0], versionParts[1], versionParts[2]);

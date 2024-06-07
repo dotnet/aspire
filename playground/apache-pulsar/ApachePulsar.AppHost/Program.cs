@@ -6,13 +6,11 @@ var builder = DistributedApplication.CreateBuilder(args);
 var pulsar = builder
     .AddPulsar(
         name: "pulsar",
-        targetPort: 8080,
         port: 6650
     )
     .WithPulsarManager(
         name: "pulsar-manager",
-        frontendPort: 9527,
-        backendPort: 7750,
+        port: 9527,
         configureContainer: c => c
             .WithApplicationProperties()
             .WithDefaultEnvironment("pulsar-playground")

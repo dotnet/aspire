@@ -20,15 +20,13 @@ public static class PulsarManagerBuilderExtensions
     /// </remarks>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the <see cref="PulsarResource"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the endpoint name when referenced in dependency.</param>
-    /// <param name="frontendPort">The manager frontend port that the underlying container is bound to when running locally.</param>
-    /// <param name="backendPort">The manager backend port that the underlying container is bound to when running locally.</param>
+    /// <param name="port">The manager frontend port that the underlying container is bound to when running locally.</param>
     /// <param name="configureContainer">Configuration callback for Pulsar Manager container resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for the <see cref="PulsarResource"/>.</returns>
     public static IResourceBuilder<PulsarResource> WithPulsarManager(
         this IResourceBuilder<PulsarResource> builder,
         string? name = null,
-        int? frontendPort = null,
-        int? backendPort = null,
+        int? port = null,
         Action<IResourceBuilder<PulsarManagerResource>>? configureContainer = null
     )
     {
@@ -46,8 +44,8 @@ public static class PulsarManagerBuilderExtensions
         var pulsarManagerBuilder = builder.ApplicationBuilder.AddResource(pulsarManager)
             .WithImage(PulsarManagerContainerImageTags.Image, PulsarManagerContainerImageTags.Tag)
             .WithImageRegistry(PulsarManagerContainerImageTags.Registry)
-            .WithEndpoint(port: frontendPort, targetPort: 9527, name: PulsarManagerResource.FrontendEndpointName, scheme: "http")
-            .WithEndpoint(port: backendPort, targetPort: 7750, name: PulsarManagerResource.BackendEndpointName, scheme: "http");
+            .WithEndpoint(port: port, targetPort: PulsarManagerResource.FrontendInternalPort, name: PulsarManagerResource.FrontendEndpointName, scheme: "http")
+            .WithEndpoint(targetPort: PulsarManagerResource.BackendInternalPort, name: PulsarManagerResource.BackendEndpointName, scheme: "http");
 
         pulsarManagerBuilder
             .WithEnvironment("SPRING_CONFIGURATION_FILE", "/pulsar-manager/pulsar-manager/application.properties");

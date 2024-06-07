@@ -8,6 +8,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public class PulsarManagerResource : ContainerResource
 {
+    internal const int FrontendInternalPort = 9527;
+    internal const int BackendInternalPort = 7750;
+
     internal const string FrontendEndpointName = "frontend";
     internal const string BackendEndpointName = "backend";
 
@@ -17,8 +20,8 @@ public class PulsarManagerResource : ContainerResource
     /// <param name="name">The name of the resource.</param>
     public PulsarManagerResource(string name) : base(name)
     {
-        BackendEndpoint = new(this, FrontendEndpointName);
         FrontendEndpoint = new(this, FrontendEndpointName);
+        BackendEndpoint = new(this, BackendEndpointName);
     }
 
     /// <summary>

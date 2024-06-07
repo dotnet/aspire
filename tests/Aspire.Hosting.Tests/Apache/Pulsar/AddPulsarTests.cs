@@ -182,19 +182,16 @@ public class AddPulsarTests
     }
 
     [Theory]
-    [InlineData(null, null)]
-    [InlineData(6000, null)]
-    [InlineData(null, 6000)]
-    [InlineData(6000, 7000)]
-    public async Task VerifyPulsarManifest(int? brokerPort, int? servicePort)
+    [InlineData(null)]
+    [InlineData(6000)]
+    public async Task VerifyPulsarManifest(int? port)
     {
         using var appBuilder = TestDistributedApplicationBuilder.Create();
 
         var manifest = (await ManifestUtils.GetManifest(
             appBuilder.AddPulsar(
                 name: "pulsar",
-                targetPort: servicePort,
-                brokerPort: brokerPort
+                port
             ).Resource
         )).ToString();
 
@@ -213,14 +210,13 @@ public class AddPulsarTests
                   "scheme": "http",
                   "protocol": "tcp",
                   "transport": "http",
-                  {{PortManifestPart(servicePort)}}
                   "targetPort": 8080
                 },
                 "broker": {
                   "scheme": "pulsar",
                   "protocol": "tcp",
                   "transport": "tcp",
-                  {{PortManifestPart(brokerPort)}}
+                  {{PortManifestPart(port)}}
                   "targetPort": 6650
                 }
               }

@@ -58,8 +58,6 @@ public sealed class AddPulsarManagerTests
         var envVars = await GetEnvironmentVariables(builder);
 
         Assert.Equal("/pulsar-manager/pulsar-manager/application.properties", envVars["SPRING_CONFIGURATION_FILE"]);
-        Assert.Equal("{pulsar.bindings.service.url}", envVars["services__pulsar__service__0"]);
-        Assert.Equal("{pulsar.bindings.broker.url}", envVars["services__pulsar__broker__0"]);
     }
 
     [Fact]
@@ -80,7 +78,7 @@ public sealed class AddPulsarManagerTests
     public void WithBookKeeperVisualManagerAddsMountAnnotation(bool? isReadOnly)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.AddPulsar("pulsar").WithPulsarManager(null, null, null, c =>
+        builder.AddPulsar("pulsar").WithPulsarManager(null, null, c =>
             {
                 if (isReadOnly.HasValue)
                 {
@@ -110,7 +108,7 @@ public sealed class AddPulsarManagerTests
     public void WithApplicationPropertiesAddsMountAnnotation(bool? isReadOnly)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.AddPulsar("pulsar").WithPulsarManager(null, null, null, c =>
+        builder.AddPulsar("pulsar").WithPulsarManager(null, null, c =>
             {
                 if (isReadOnly.HasValue)
                 {
@@ -184,7 +182,7 @@ public sealed class AddPulsarManagerTests
         var pulsar = builder.AddPulsar("pulsar");
 
         Assert.Throws<DistributedApplicationException>(() => pulsar
-            .WithPulsarManager(null, null, null,
+            .WithPulsarManager(null, null,
                 c => c
                     .WithImage(image!)
                     .WithImageTag(tag!)
@@ -198,7 +196,7 @@ public sealed class AddPulsarManagerTests
         Action<IResourceBuilder<PulsarManagerResource>>? containerConfiguration = null
     )
     {
-        builder.AddPulsar("pulsar").WithPulsarManager(null, null, null, containerConfiguration);
+        builder.AddPulsar("pulsar").WithPulsarManager(null, null, containerConfiguration);
 
         await using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -212,19 +210,16 @@ public sealed class AddPulsarManagerTests
     }
 
     [Theory]
-    [InlineData(null, null)]
-    [InlineData(6000, null)]
-    [InlineData(null, 6000)]
-    [InlineData(6000, 7000)]
-    public async Task VerifyPulsarManagerManifest(int? frontendPort, int? backendPort)
+    [InlineData(6000)]
+    [InlineData(null)]
+    public async Task VerifyPulsarManagerManifest(int? port)
     {
         using var appBuilder = TestDistributedApplicationBuilder.Create();
         appBuilder
             .AddPulsar("pulsar")
             .WithPulsarManager(
                 "pulsar-manager",
-                frontendPort: frontendPort,
-                backendPort: backendPort
+                port
             );
 
         var pulsarManager = appBuilder.Resources.OfType<PulsarManagerResource>().Single();
@@ -238,8 +233,6 @@ public sealed class AddPulsarManagerTests
             "type": "container.v0",
             "image": "{{{PulsarManagerContainerImageTags.Registry}}}/{{{PulsarManagerContainerImageTags.Image}}}:{{{PulsarManagerContainerImageTags.Tag}}}",
             "env": {
-              "services__pulsar__service__0": "{pulsar.bindings.service.url}",
-              "services__pulsar__broker__0": "{pulsar.bindings.broker.url}",
               "SPRING_CONFIGURATION_FILE": "/pulsar-manager/pulsar-manager/application.properties"
             },
             "bindings": {
@@ -247,14 +240,13 @@ public sealed class AddPulsarManagerTests
                 "scheme": "http",
                 "protocol": "tcp",
                 "transport": "http",
-                {{{PortManifestPart(frontendPort)}}}
+                {{{PortManifestPart(port)}}}
                 "targetPort": 9527
               },
               "backend": {
                 "scheme": "http",
                 "protocol": "tcp",
                 "transport": "http",
-                {{{PortManifestPart(backendPort)}}}
                 "targetPort": 7750
               }
             }
