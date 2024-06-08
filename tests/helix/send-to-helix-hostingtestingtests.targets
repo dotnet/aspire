@@ -13,6 +13,21 @@
   </ItemGroup>
 
   <Target Name="BuildHelixWorkItemsForHostingTestingTests">
+    <ItemGroup>
+      <_TestRunCommandArguments Remove="@(_TestRunCommandArguments)" />
+      <_TestRunCommandArguments Include="dotnet test" />
+      <_TestRunCommandArguments Include="-s .runsettings" />
+      <_TestRunCommandArguments Include="$(_TestNameEnvVar).csproj" />
+      <_TestRunCommandArguments Include="--ResultsDirectory:$(_HelixLogsPath)" />
+      <_TestRunCommandArguments Include="--blame-hang" />
+      <_TestRunCommandArguments Include="--blame-hang-dump-type" />
+      <_TestRunCommandArguments Include="full" />
+      <_TestRunCommandArguments Include="--blame-hang-timeout" />
+      <_TestRunCommandArguments Include="10m" />
+      <_TestRunCommandArguments Include="--blame-crash" />
+      <_TestRunCommandArguments Include="--blame-crash-dump-type" />
+      <_TestRunCommandArguments Include="full" />
+    </ItemGroup>
     <PropertyGroup>
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
