@@ -9,7 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Used to represent some special endpoints that require different handling
 /// </summary>
-internal enum EndpointType
+internal enum EndpointSource
 {
     /// <summary>
     /// Regular endpoint.
@@ -18,15 +18,15 @@ internal enum EndpointType
     /// <summary>
     /// The endpoint came from a launch profile
     /// </summary>
-    FromLaunchProfile,
+    LaunchProfile,
     /// <summary>
     /// The endpoint came from the Kestrel configuration
     /// </summary>
-    FromKestrelConfig,
+    KestrelConfig,
     /// <summary>
     /// For these, we skip adding the endpoint from HTTPS_PORTS env var
     /// </summary>
-    ExcludedFromPortEnvironment
+    DefaultHttps
 }
 
 /// <summary>
@@ -151,7 +151,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// <summary>
     /// Used to represent some special endpoints that require different handling
     /// </summary>
-    internal EndpointType Type { get; set; }
+    internal EndpointSource Source { get; set; }
 
     /// <summary>
     /// The environment variable that contains the target port. Setting prevents a variable from flowing into ASPNETCORE_URLS for project resources.
