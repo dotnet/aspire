@@ -276,7 +276,7 @@
     },
     "mongodb": {
       "type": "container.v0",
-      "connectionString": "mongodb://admin:{mongodb-password.value}{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}",
+      "connectionString": "mongodb://admin:{mongodb-password.value}{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}?authSource=admin\u0026authMechanism=SCRAM-SHA-256",
       "image": "docker.io/library/mongo:7.0.8",
       "bindings": {
         "tcp": {

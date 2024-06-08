@@ -40,16 +40,18 @@ public static class MongoDBBuilderExtensions
     /// <param name="port">The host port for MongoDB.</param>
     /// <param name="userName">A parameter that contains the MongoDb server user name, or <see langword="null"/> to use a default value.</param>
     /// <param name="password">A parameter that contains the MongoDb server password, or <see langword="null"/> to use a generated password.</param>
+    /// <param name="authenticationMechanism">A parameter that contains the MongoDb server authentication mechanism, or <see langword="null"/> to use a default value.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MongoDBServerResource> AddMongoDB(this IDistributedApplicationBuilder builder,
         string name,
         int? port = null,
         IResourceBuilder<ParameterResource>? userName = null,
-        IResourceBuilder<ParameterResource>? password = null)
+        IResourceBuilder<ParameterResource>? password = null,
+        IResourceBuilder<ParameterResource>? authenticationMechanism = null)
     {
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special:false);
 
-        var mongoDBContainer = new MongoDBServerResource(name, userName?.Resource, passwordParameter);
+        var mongoDBContainer = new MongoDBServerResource(name, userName?.Resource, passwordParameter, authenticationMechanism?.Resource);
 
         var resBuilder = builder
             .AddResource(mongoDBContainer)

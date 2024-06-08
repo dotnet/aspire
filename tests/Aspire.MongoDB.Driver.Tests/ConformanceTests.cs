@@ -60,7 +60,7 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
     {
         var connectionString = RequiresDockerAttribute.IsSupported ?
             $"{_containerFixture.GetConnectionString()}test_db" :
-            "mongodb://root:password@localhost:27017/test_db";
+            "mongodb://root:password@localhost:27017/test_db?authSource=admin&authMechanism=SCRAM-SHA-256";
 
         configuration.AddInMemoryCollection(
             [

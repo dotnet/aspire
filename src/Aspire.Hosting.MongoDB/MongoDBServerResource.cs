@@ -11,7 +11,9 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
 {
     internal const string PrimaryEndpointName = "tcp";
     private const string DefaultUserName = "admin";
-
+    private const string DefaultAuthenticationDatabase = "admin";
+    private const string DefaultAuthenticationMechanism = "SCRAM-SHA-256";
+    
     private EndpointReference? _primaryEndpoint;
 
     /// <summary>
@@ -20,10 +22,12 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     /// <param name="name">The name of the resource.</param>
     /// <param name="userNameParameter">A parameter that contains the MongoDb server user name, or <see langword="null"/> to use a default value.</param>
     /// <param name="passwordParameter">A parameter that contains the MongoDb server password.</param>
-    public MongoDBServerResource(string name, ParameterResource? userNameParameter, ParameterResource? passwordParameter) : this(name)
+    /// <param name="authenticationMechanism">A parameter that contains the MongoDb server authentication mechanism, or <see langword="null"/> to use a default value.</param>
+    public MongoDBServerResource(string name, ParameterResource? userNameParameter, ParameterResource? passwordParameter, ParameterResource? authenticationMechanism) : this(name)
     {
         UserNameParameter = userNameParameter;
         PasswordParameter = passwordParameter;
+        AuthenticationMechanismParameter = authenticationMechanism;
     }
 
     /// <summary>
@@ -37,6 +41,15 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     public ParameterResource? PasswordParameter { get; }
 
     /// <summary>
+    /// Gets the parameter that contains the MongoDb server authentication mechanism.
+    /// </summary>
+    public ParameterResource? AuthenticationMechanismParameter { get; }
+
+    internal ReferenceExpression AuthenticationMechanismReference =>
+        AuthenticationMechanismParameter is not null ?
+            ReferenceExpression.Create($"{AuthenticationMechanismParameter}") :
+            ReferenceExpression.Create($"{DefaultAuthenticationMechanism}");
+    /// <summary>
     /// Gets the parameter that contains the MongoDb server username.
     /// </summary>
     public ParameterResource? UserNameParameter { get; }
@@ -49,7 +62,12 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     /// <summary>
     /// Gets the connection string for the MongoDB server.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression
+    public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"{ConnectionStringWithoutOptionsExpression}{ConnectionStringOptionsExpression}");
+
+    /// <summary>
+    /// Gets the connection string for the MongoDB server without options parameters.
+    /// </summary>
+    public ReferenceExpression ConnectionStringWithoutOptionsExpression
     {
         get
         {
@@ -60,6 +78,24 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
             else
             {
                 return ReferenceExpression.Create($"mongodb://{UserNameReference}:{PasswordParameter}@{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the options parameters for connection string of the MongoDB server.
+    /// </summary>
+    public ReferenceExpression ConnectionStringOptionsExpression
+    {
+        get
+        {
+            if (PasswordParameter is null)
+            {
+                return ReferenceExpression.Create($"");
+            }
+            else
+            {
+                return ReferenceExpression.Create($"?authSource={DefaultAuthenticationDatabase}&authMechanism={AuthenticationMechanismReference}");
             }
         }
     }
