@@ -14,6 +14,7 @@
     <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessSpec.cs" Link="Provisioning\Utils\ProcessSpec.cs" />
     <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessUtil.cs" Link="Provisioning\Utils\ProcessUtil.cs" />
     <Compile Include="..\Shared\Cosmos\CosmosConstants.cs" Link="Shared\CosmosConstants.cs" />
+    <Compile Include="$(SharedDir)PortAllocator.cs" Link="Utils\PortAllocator.cs" />
   </ItemGroup>
 
   <ItemGroup>

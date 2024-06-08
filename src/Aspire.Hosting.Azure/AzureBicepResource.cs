@@ -79,7 +79,6 @@ public class AzureBicepResource(string name, string? templateFile = null, string
 
             if (TemplateResourceName is null)
             {
-                // REVIEW: Consider making users specify a name for the template
                 File.WriteAllText(path, TemplateString);
             }
             else

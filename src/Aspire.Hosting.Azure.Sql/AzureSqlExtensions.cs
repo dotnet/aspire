@@ -72,10 +72,11 @@ public static class AzureSqlExtensions
             azureSqlDatabase.WithParameter(AzureBicepResource.KnownParameters.PrincipalType);
         }
 
+        // Used to hold a reference to the azure surrogate for use with the provisioner.
+        builder.WithAnnotation(new AzureBicepResourceAnnotation(resource));
+
         if (useProvisioner)
         {
-            // Used to hold a reference to the azure surrogate for use with the provisioner.
-            builder.WithAnnotation(new AzureBicepResourceAnnotation(resource));
             builder.WithConnectionStringRedirection(resource);
 
             // Remove the container annotation so that DCP doesn't do anything with it.

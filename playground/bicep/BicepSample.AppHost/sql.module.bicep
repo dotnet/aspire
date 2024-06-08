@@ -9,6 +9,9 @@ param principalId string
 @description('')
 param principalName string
 
+@description('')
+param principalType string
+
 
 resource sqlServer_lF9QWGqAt 'Microsoft.Sql/servers@2020-11-01-preview' = {
   name: toLower(take('sql${uniqueString(resourceGroup().id)}', 24))
