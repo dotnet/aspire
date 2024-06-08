@@ -165,6 +165,15 @@
         "principalType": ""
       }
     },
+    "wps": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{wps.outputs.endpoint}",
+      "path": "wps.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": ""
+      }
+    },
     "api": {
       "type": "project.v0",
       "path": "../BicepSample.ApiService/BicepSample.ApiService.csproj",
@@ -185,6 +194,7 @@
         "ConnectionStrings__redis": "{redis.connectionString}",
         "ConnectionStrings__sb": "{sb.connectionString}",
         "ConnectionStrings__signalr": "{signalr.connectionString}",
+        "ConnectionStrings__wps": "{wps.connectionString}",
         "bicepValue_test": "{test.outputs.test}",
         "bicepValue0": "{test.outputs.val0}",
         "bicepValue1": "{test.outputs.val1}"
