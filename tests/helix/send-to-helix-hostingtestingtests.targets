@@ -26,7 +26,7 @@
       <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
         <PayloadArchive>%(Identity)</PayloadArchive>
         <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
-        <Command>$(_TestRunCommand)</Command>
+        <Command>cd %(FileName) %3B $(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
