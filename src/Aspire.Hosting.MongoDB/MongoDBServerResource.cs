@@ -67,7 +67,7 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     /// <summary>
     /// Gets the connection string for the MongoDB server without options parameters.
     /// </summary>
-    public ReferenceExpression ConnectionStringWithoutOptionsExpression
+    internal ReferenceExpression ConnectionStringWithoutOptionsExpression
     {
         get
         {
@@ -85,7 +85,7 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     /// <summary>
     /// Gets the options parameters for connection string of the MongoDB server.
     /// </summary>
-    public ReferenceExpression ConnectionStringOptionsExpression
+    internal ReferenceExpression ConnectionStringOptionsExpression
     {
         get
         {
