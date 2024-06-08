@@ -7,6 +7,29 @@ using System.Net.Sockets;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
+/// Used to represent some special endpoints that require different handling
+/// </summary>
+internal enum EndpointType
+{
+    /// <summary>
+    /// Regular endpoint.
+    /// </summary>
+    Normal,
+    /// <summary>
+    /// The endpoint came from a launch profile
+    /// </summary>
+    FromLaunchProfile,
+    /// <summary>
+    /// The endpoint came from the Kestrel configuration
+    /// </summary>
+    FromKestrelConfig,
+    /// <summary>
+    /// For these, we skip adding the endpoint from HTTPS_PORTS env var
+    /// </summary>
+    ExcludedFromPortEnvironment
+}
+
+/// <summary>
 /// Represents an endpoint annotation that describes how a service should be bound to a network.
 /// </summary>
 /// <remarks>
@@ -126,14 +149,9 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     public bool IsProxied { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets a value indicating whether the endpoint is from a launch profile.
+    /// Used to represent some special endpoints that require different handling
     /// </summary>
-    internal bool FromLaunchProfile { get; set; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether to skip adding the endpoint from HTTPS_PORTS env var
-    /// </summary>
-    internal bool ExcludeFromPortEnvironment { get; set; }
+    internal EndpointType Type { get; set; }
 
     /// <summary>
     /// The environment variable that contains the target port. Setting prevents a variable from flowing into ASPNETCORE_URLS for project resources.

@@ -685,7 +685,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 var ep = resourceWithEndpoints.GetEndpoint(endpointName);
 
-                if (ep.EndpointAnnotation.FromLaunchProfile &&
+                if (ep.EndpointAnnotation.Type == EndpointType.FromLaunchProfile &&
                     appModelResource is ProjectResource p &&
                     p.GetEffectiveLaunchProfile()?.LaunchProfile is LaunchProfile profile &&
                     profile.LaunchUrl is string launchUrl)

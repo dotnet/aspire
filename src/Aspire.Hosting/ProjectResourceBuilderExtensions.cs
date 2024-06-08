@@ -234,7 +234,7 @@ public static class ProjectResourceBuilderExtensions
         var effectiveLaunchProfile = excludeLaunchProfile ? null : projectResource.GetEffectiveLaunchProfile(throwIfNotFound: true);
         var launchProfile = effectiveLaunchProfile?.LaunchProfile;
 
-        // Process the launch profile and turn it into environment variables and endpoints.
+        // Get all the endpoints from the Kestrel configuration
         var config = GetConfiguration(projectResource);
         var kestrelEndpoints = config.GetSection("Kestrel:Endpoints").GetChildren();
 
@@ -252,27 +252,28 @@ public static class ProjectResourceBuilderExtensions
         var isHttp2ConfiguredInAppSettings = config["Kestrel:EndpointDefaults:Protocols"] == "Http2";
         var adjustTransport = (EndpointAnnotation e) => e.Transport = isHttp2ConfiguredInAppSettings ? "http2" : e.Transport;
 
+        foreach (var schemeGroup in kestrelEndpointsByScheme)
+        {
+            // If there is only one endpoint for a given scheme, we use the scheme as the endpoint name
+            // Otherwise, we use the actual endpoint names from the config
+            var schemeAsEndpointName = schemeGroup.Count() <= 1 ? schemeGroup.Key : null;
+
+            foreach (var endpoint in schemeGroup)
+            {
+                builder.WithEndpoint(schemeAsEndpointName ?? endpoint.EndpointName, e =>
+                {
+                    e.Port = endpoint.BindingAddress.Port;
+                    e.UriScheme = endpoint.BindingAddress.Scheme;
+                    e.IsProxied = false; // turn off the proxy, as we cannot easily override Kestrel bindings
+                    e.Transport = adjustTransport(e);
+                    e.Type = EndpointType.FromKestrelConfig;
+                },
+                createIfNotExists: true);
+            }
+        }
+
         if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
-            foreach (var schemeGroup in kestrelEndpointsByScheme)
-            {
-                // If there is only one endpoint for a given scheme, we use the scheme as the endpoint name
-                // Otherwise, we use the actual endpoint names from the config
-                var schemeAsEndpointName = schemeGroup.Count() <= 1 ? schemeGroup.Key : null;
-
-                foreach (var endpoint in schemeGroup)
-                {
-                    builder.WithEndpoint(schemeAsEndpointName ?? endpoint.EndpointName, e =>
-                    {
-                        e.Port = endpoint.BindingAddress.Port;
-                        e.UriScheme = endpoint.BindingAddress.Scheme;
-                        e.IsProxied = false; // turn off the proxy, as we cannot easily override Kestrel bindings
-                        e.Transport = adjustTransport(e);
-                    },
-                    createIfNotExists: true);
-                }
-            }
-
             // We don't need to set ASPNETCORE_URLS if we have Kestrel endpoints configured
             // as Kestrel will get everything it needs from the config.
             if (!kestrelEndpointsByScheme.Any())
@@ -299,7 +300,7 @@ public static class ProjectResourceBuilderExtensions
                     {
                         e.Port = uri.Port;
                         e.UriScheme = uri.Scheme;
-                        e.FromLaunchProfile = true;
+                        e.Type = EndpointType.FromLaunchProfile;
                         e.Transport = adjustTransport(e);
                     },
                     createIfNotExists: true);
@@ -334,6 +335,9 @@ public static class ProjectResourceBuilderExtensions
                 builder.SetBothPortsEnvVariables();
             }
 
+            // Use an environment variable to override all Kestrel endpoint URLs in the container
+            builder.SetKestrelUrlOverrideEnvVariables();
+
             // If we aren't a web project (looking at both launch profile and Kestrel config) we don't automatically add bindings.
             if (launchProfile?.ApplicationUrl == null && !kestrelEndpointsByScheme.Any())
             {
@@ -354,7 +358,7 @@ public static class ProjectResourceBuilderExtensions
                         // because the container likely won't be set up to listen on https (e.g. ACA case)
                         if (scheme == "https")
                         {
-                            e.ExcludeFromPortEnvironment = true;
+                            e.Type = EndpointType.ExcludedFromPortEnvironment;
                         }
                     },
                     createIfNotExists: true);
@@ -521,9 +525,9 @@ public static class ProjectResourceBuilderExtensions
         // Turn endpoint ports into a single environment variable
         foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)))
         {
-            if (e.EndpointAnnotation.UriScheme == scheme && !e.EndpointAnnotation.ExcludeFromPortEnvironment)
+            if (e.EndpointAnnotation.UriScheme == scheme && e.EndpointAnnotation.Type != EndpointType.ExcludedFromPortEnvironment)
             {
-                Debug.Assert(!e.EndpointAnnotation.FromLaunchProfile, "Endpoints from launch profile should never make it here");
+                Debug.Assert(e.EndpointAnnotation.Type != EndpointType.FromLaunchProfile, "Endpoints from launch profile should never make it here");
 
                 if (!firstPort)
                 {
@@ -539,5 +543,26 @@ public static class ProjectResourceBuilderExtensions
         {
             context.EnvironmentVariables[portEnvVariable] = ports.Build();
         }
+    }
+
+    private static void SetKestrelUrlOverrideEnvVariables(this IResourceBuilder<ProjectResource> builder)
+    {
+        builder.WithEnvironment(context =>
+        {
+            // Kestrel endpoints take precedence over most other mechanisms, but we can override them
+            // with special config system environment variables.
+            foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)
+                && e.EndpointAnnotation.Type == EndpointType.FromKestrelConfig))
+            {
+                var url = new ReferenceExpressionBuilder();
+
+                // Note that we ignore the original host, and instead use * to bind to all interfaces.
+                // This allows localhost kestrel enpoints to actually work within a container.
+                url.AppendLiteral($"{e.EndpointAnnotation.UriScheme}://*:");
+                url.Append($"{e.Property(EndpointProperty.TargetPort)}");
+
+                context.EnvironmentVariables[$"Kestrel__Endpoints__{e.EndpointAnnotation.Name}__Url"] = url.Build();
+            }
+        });
     }
 }

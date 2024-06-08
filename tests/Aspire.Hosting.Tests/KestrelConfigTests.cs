@@ -41,7 +41,7 @@ public class KestrelConfigTests
             resource.Annotations.OfType<EndpointAnnotation>(),
             a =>
             {
-                // Endpoint is named "https"", because there is only one Kestrel https endpoint
+                // Endpoint is named "https", because there is only one Kestrel https endpoint
                 Assert.Equal("https", a.Name);
                 Assert.Equal("https", a.UriScheme);
                 Assert.Equal(7002, a.Port);
@@ -87,18 +87,64 @@ public class KestrelConfigTests
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
-                "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
+                "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+                "Kestrel__Endpoints__http__Url": "http://*:{projectName.bindings.http.targetPort}"
               },
               "bindings": {
                 "http": {
                   "scheme": "http",
                   "protocol": "tcp",
-                  "transport": "http"
+                  "transport": "http",
+                  "targetPort": 5002
                 },
                 "https": {
                   "scheme": "https",
                   "protocol": "tcp",
                   "transport": "http"
+                }
+              }
+            }
+            """;
+
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task VerifyMultipleKestrelEndpointsManifestGeneration()
+    {
+        var resource = CreateTestProjectResource<ProjectWithMultipleHttpKestrelEndpoints>(operation: DistributedApplicationOperation.Publish);
+
+        var manifest = await ManifestUtils.GetManifest(resource);
+
+        var expectedManifest = $$"""
+            {
+              "type": "project.v0",
+              "path": "another-path",
+              "env": {
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+                "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+                "Kestrel__Endpoints__FirstHttpEndpoint__Url": "http://*:{projectName.bindings.FirstHttpEndpoint.targetPort}",
+                "Kestrel__Endpoints__SecondHttpEndpoint__Url": "http://*:{projectName.bindings.SecondHttpEndpoint.targetPort}"
+              },
+              "bindings": {
+                "FirstHttpEndpoint": {
+                  "scheme": "http",
+                  "protocol": "tcp",
+                  "transport": "http2",
+                  "targetPort": 5002
+                },
+                "SecondHttpEndpoint": {
+                  "scheme": "http",
+                  "protocol": "tcp",
+                  "transport": "http2",
+                  "targetPort": 5003
+                },
+                "https": {
+                  "scheme": "https",
+                  "protocol": "tcp",
+                  "transport": "http2"
                 }
               }
             }
@@ -184,7 +230,7 @@ public class KestrelConfigTests
                 },
                 "Endpoints": {
                   "FirstHttpEndpoint": { "Url": "http://*:5002" },
-                  "SecondHttpEndpoint": { "Url": "http://*:5003" }
+                  "SecondHttpEndpoint": { "Url": "http://localhost:5003" }
                 }
               }
             }
