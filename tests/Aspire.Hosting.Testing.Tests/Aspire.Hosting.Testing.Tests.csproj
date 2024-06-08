@@ -15,6 +15,7 @@
     <_TestsArchiveStagingDir>$(ArtifactsObjDir)$(MSBuildProjectName)-helix\</_TestsArchiveStagingDir>
     <TestsArchiveSourceDir>$(_TestsArchiveStagingDir)</TestsArchiveSourceDir>
     <SupportsRunningTestsOutsideOfRepo>true</SupportsRunningTestsOutsideOfRepo>
+    <DeployRunSettingsFile>true</DeployRunSettingsFile>
   </PropertyGroup>
 
   <ItemGroup>
