@@ -6,6 +6,12 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <TestcontainersPackageVersion>3.8.0</TestcontainersPackageVersion>
+
+    <!-- needed when arcade isn't being used -->
+    <XunitPackageVersion>2.4.2</XunitPackageVersion>
+    <XunitRunnerVisualStudioPackageVersion>2.4.3</XunitRunnerVisualStudioPackageVersion>
+    <MSTestTestAdapterPackageVersion>3.2.2</MSTestTestAdapterPackageVersion>
+    <MicrosoftNETTestSdkPackageVersion>17.5.0</MicrosoftNETTestSdkPackageVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- AWS SDK for .NET dependencies -->

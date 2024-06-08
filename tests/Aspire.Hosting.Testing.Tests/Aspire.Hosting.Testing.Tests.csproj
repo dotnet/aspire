@@ -22,7 +22,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
+    <!-- KnownConfigNames.cs is copied locally for outside-of-repo builds -->
+    <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
   </ItemGroup>
 
   <ItemGroup>
@@ -40,15 +41,19 @@
   <Target Name="_PrepareForArchiveTests" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true'">
     <ItemGroup>
       <_SourceFile Include="$(MSBuildProjectDirectory)\**\*" DestinationRelativeDir="$(MSBuildProjectName)" />
+      <_SourceFile Include="$(SharedDir)KnownConfigNames.cs" DestinationRelativeDir="$(MSBuildProjectName)" />
       <_SourceFile Include="%(HostingTestingTestsSupportProject.FullPath)\**\*" DestinationRelativeDir="%(HostingTestingTestsSupportProject.FileName)" Condition="'%(HostingTestingTestsSupportProject.Identity)' != ''" />
 
+      <_SourceFile Include="$(RepoRoot)eng\Versions.props" DestinationRelativeDir="eng" />
       <_SourceFile Include="$(RepoRoot)tests\Shared\TestsRunningOutsideOfRepo.targets" DestinationRelativeDir="Shared" />
+      <!--<_SourceFile Include="$(RepoRoot)Directory.Packages.props" DestinationRelativeDir="Directory.Packages.repo.props" />-->
     </ItemGroup>
 
     <RemoveDir Directories="$(_TestsArchiveStagingDir)" />
     <MakeDir Directories="$(_TestsArchiveStagingDir)" />
 
     <Copy SourceFiles="@(_SourceFile)" DestinationFiles="@(_SourceFile -> '$(_TestsArchiveStagingDir)%(DestinationRelativeDir)\%(RecursiveDir)%(FileName)%(Extension)')" />
+    <Copy SourceFiles="$(RepoRoot)Directory.Packages.props" DestinationFiles="$(_TestsArchiveStagingDir)Directory.Packages.repo.props" />
   </Target>
 
 </Project>

@@ -6,6 +6,12 @@
     <NeedsWorkload>true</NeedsWorkload>
   </PropertyGroup>
 
+  <ItemGroup>
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) PackageVersion=8.1.0-ci" />
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) NetCurrent=net8.0" />
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) TestsRunningOutsideOfRepo=true" />
+  </ItemGroup>
+
   <Target Name="BuildHelixWorkItemsForHostingTestingTests">
     <PropertyGroup>
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>

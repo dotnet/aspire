@@ -19,4 +19,12 @@
     <!--<PackageReference Include="@(HostingComponentReferenceForTests)" />-->
     <PackageReference Include="@(NonComponentReferenceForTests)" />
   </ItemGroup>
+
+  <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.assert" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+  </ItemGroup>
+
 </Project>

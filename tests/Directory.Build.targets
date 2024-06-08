@@ -26,5 +26,5 @@
   </Target>
 
   <Import Project="Shared\Aspire.Workload.Testing.targets" Condition="'$(IsWorkloadTestProject)' == 'true'" />
-  <Import Project="Shared\TestsRunningOutsideOfRepo.targets" Condition="'$(SupportsRunningTestsOutsideOfRepo)' == 'true'" />
+  <!--<Import Project="Shared\TestsRunningOutsideOfRepo.targets" Condition="'$(SupportsRunningTestsOutsideOfRepo)' == 'true'" />-->
 </Project>

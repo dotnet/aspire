@@ -23,7 +23,7 @@
   This defaulting needs to happen in the SDK targets so this metadata affects NuGet Restore.
   -->
   <ItemGroup Condition="'$(IsAspireHost)' == 'true'">
-    
+
     <ProjectReference Update="@(ProjectReference)">
       <IsAspireProjectResource Condition="'%(IsAspireProjectResource)' != 'false'">true</IsAspireProjectResource>
 
@@ -32,7 +32,7 @@
       <ExcludeAssets Condition="'%(ExcludeAssets)' == '' and '%(IsAspireProjectResource)' == 'true'">all</ExcludeAssets>
       <Private Condition="'%(Private)' == '' and '%(IsAspireProjectResource)' == 'true'">false</Private>
     </ProjectReference>
-    
+
   </ItemGroup>
 
   <Target Name="__WarnOnAspireCapabilityMissing" BeforeTargets="PrepareForBuild" Condition="!@(ProjectCapability->AnyHaveMetadataValue('Identity', 'Aspire'))">
