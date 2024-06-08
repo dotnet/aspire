@@ -54,6 +54,7 @@
 
     <Copy SourceFiles="@(_SourceFile)" DestinationFiles="@(_SourceFile -> '$(_TestsArchiveStagingDir)%(DestinationRelativeDir)\%(RecursiveDir)%(FileName)%(Extension)')" />
     <Copy SourceFiles="$(RepoRoot)Directory.Packages.props" DestinationFiles="$(_TestsArchiveStagingDir)Directory.Packages.repo.props" />
+    <Copy SourceFiles="..\Shared\nuget-for-hosting-testing.config" DestinationFiles="$(_TestsArchiveStagingDir)Directory.Packages.repo.props" />
   </Target>
 
 </Project>
