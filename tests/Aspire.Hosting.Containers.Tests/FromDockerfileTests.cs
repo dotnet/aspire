@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
@@ -16,12 +15,12 @@ namespace Aspire.Hosting.Containers.Tests;
 
 public class WithDockerfileTests
 {
-    [Fact]
+    [ConditionalFact]
     public async Task WithDockerfileLaunchesContainerSuccessfully()
     {
         if (!IsDockerAvailable())
         {
-            return;
+            throw new SkipException("Docker unavailable.");
         }
 
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -96,12 +95,12 @@ public class WithDockerfileTests
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
-    [Fact]
+    [ConditionalFact]
     public async Task WithDockerfileWithParameterLaunchesContainerSuccessfully()
     {
         if (!IsDockerAvailable())
         {
-            return;
+            throw new SkipException("Docker unavailable.");
         }
 
         using var builder = TestDistributedApplicationBuilder.Create();
