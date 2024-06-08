@@ -15,7 +15,6 @@
     <_TestsArchiveStagingDir>$(ArtifactsObjDir)$(MSBuildProjectName)-helix\</_TestsArchiveStagingDir>
     <TestsArchiveSourceDir>$(_TestsArchiveStagingDir)</TestsArchiveSourceDir>
     <SupportsRunningTestsOutsideOfRepo>true</SupportsRunningTestsOutsideOfRepo>
-    <DeployRunSettingsFile>true</DeployRunSettingsFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -42,6 +41,7 @@
   <Target Name="_PrepareForArchiveTests" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true'">
     <ItemGroup>
       <_SourceFile Include="$(MSBuildProjectDirectory)\**\*" DestinationRelativeDir="$(MSBuildProjectName)" />
+      <_SourceFile Include="$(RunSettingsFilePath)" DestinationRelativeDir="$(MSBuildProjectName)" />
       <_SourceFile Include="$(SharedDir)KnownConfigNames.cs" DestinationRelativeDir="$(MSBuildProjectName)" />
       <_SourceFile Include="%(HostingTestingTestsSupportProject.FullPath)\**\*" DestinationRelativeDir="%(HostingTestingTestsSupportProject.FileName)" Condition="'%(HostingTestingTestsSupportProject.Identity)' != ''" />
 
