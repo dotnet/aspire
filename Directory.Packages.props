@@ -103,7 +103,7 @@
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="5.2.1" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.7.2" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.7.2" />
-    <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1"/>
+    <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1" />
     <PackageVersion Include="MongoDB.Driver" Version="2.25.0" />
     <PackageVersion Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" Version="1.4.0" />
     <PackageVersion Include="MySqlConnector.DependencyInjection" Version="2.3.6" />
@@ -120,6 +120,7 @@
     <PackageVersion Include="StackExchange.Redis" Version="2.7.33" />
     <PackageVersion Include="System.IO.Hashing" Version="8.0.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.1.0" />
+    <PackageVersion Include="Elasticsearch.Net" Version="7.17.5" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.3" />
     <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.8.1" />
@@ -154,7 +155,6 @@
     <PackageVersion Include="Testcontainers.Redis" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.Nats" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.Milvus" Version="$(TestcontainersPackageVersion)" />
-
     <!-- playground apps dependencies -->
     <PackageVersion Include="Dapr.AspNetCore" Version="1.13.1" />
     <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="8.1.0" />
