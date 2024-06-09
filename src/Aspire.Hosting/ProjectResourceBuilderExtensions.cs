@@ -266,7 +266,7 @@ public static class ProjectResourceBuilderExtensions
                     e.UriScheme = endpoint.BindingAddress.Scheme;
                     e.IsProxied = false; // turn off the proxy, as we cannot easily override Kestrel bindings
                     e.Transport = adjustTransport(e);
-                    e.Source = EndpointSource.KestrelConfig;
+                    builder.Resource.KestrelEndpointAnnotations.Add(e);
                 },
                 createIfNotExists: true);
             }
@@ -300,7 +300,7 @@ public static class ProjectResourceBuilderExtensions
                     {
                         e.Port = uri.Port;
                         e.UriScheme = uri.Scheme;
-                        e.Source = EndpointSource.LaunchProfile;
+                        e.FromLaunchProfile = true;
                         e.Transport = adjustTransport(e);
                     },
                     createIfNotExists: true);
@@ -358,7 +358,7 @@ public static class ProjectResourceBuilderExtensions
                         // because the container likely won't be set up to listen on https (e.g. ACA case)
                         if (scheme == "https")
                         {
-                            e.Source = EndpointSource.DefaultHttps;
+                            builder.Resource.DefaultHttpsEndpointAnnotation = e;
                         }
                     },
                     createIfNotExists: true);
@@ -525,9 +525,9 @@ public static class ProjectResourceBuilderExtensions
         // Turn endpoint ports into a single environment variable
         foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)))
         {
-            if (e.EndpointAnnotation.UriScheme == scheme && e.EndpointAnnotation.Source != EndpointSource.DefaultHttps)
+            if (e.EndpointAnnotation.UriScheme == scheme && e.EndpointAnnotation != builder.Resource.DefaultHttpsEndpointAnnotation)
             {
-                Debug.Assert(e.EndpointAnnotation.Source != EndpointSource.LaunchProfile, "Endpoints from launch profile should never make it here");
+                Debug.Assert(!e.EndpointAnnotation.FromLaunchProfile, "Endpoints from launch profile should never make it here");
 
                 if (!firstPort)
                 {
@@ -552,7 +552,7 @@ public static class ProjectResourceBuilderExtensions
             // Kestrel endpoints take precedence over most other mechanisms, but we can override them
             // with special config system environment variables.
             foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)
-                && e.EndpointAnnotation.Source == EndpointSource.KestrelConfig))
+                && builder.Resource.KestrelEndpointAnnotations.Contains(e.EndpointAnnotation)))
             {
                 var url = new ReferenceExpressionBuilder();
 

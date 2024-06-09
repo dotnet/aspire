@@ -9,26 +9,6 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Used to represent some special endpoints that require different handling
 /// </summary>
-internal enum EndpointSource
-{
-    /// <summary>
-    /// Regular endpoint.
-    /// </summary>
-    Normal,
-    /// <summary>
-    /// The endpoint came from a launch profile
-    /// </summary>
-    LaunchProfile,
-    /// <summary>
-    /// The endpoint came from the Kestrel configuration
-    /// </summary>
-    KestrelConfig,
-    /// <summary>
-    /// For these, we skip adding the endpoint from HTTPS_PORTS env var
-    /// </summary>
-    DefaultHttps
-}
-
 /// <summary>
 /// Represents an endpoint annotation that describes how a service should be bound to a network.
 /// </summary>
@@ -149,9 +129,9 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     public bool IsProxied { get; set; } = true;
 
     /// <summary>
-    /// Used to represent some special endpoints that require different handling
+    /// Gets or sets a value indicating whether the endpoint is from a launch profile.
     /// </summary>
-    internal EndpointSource Source { get; set; }
+    internal bool FromLaunchProfile { get; set; }
 
     /// <summary>
     /// The environment variable that contains the target port. Setting prevents a variable from flowing into ASPNETCORE_URLS for project resources.

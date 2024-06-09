@@ -9,4 +9,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 public class ProjectResource(string name) : Resource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithServiceDiscovery
 {
+    // Track endpoints came from Kestrel configuration
+    internal HashSet<EndpointAnnotation> KestrelEndpointAnnotations { get; } = new();
+
+    // Track the https endpoint that was added as a default, if any
+    internal EndpointAnnotation? DefaultHttpsEndpointAnnotation { get; set; }
 }
