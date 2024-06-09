@@ -13,5 +13,5 @@ public class ProjectResource(string name) : Resource(name), IResourceWithEnviron
     internal HashSet<EndpointAnnotation> KestrelEndpointAnnotations { get; } = new();
 
     // Track the https endpoint that was added as a default, if any
-    internal EndpointAnnotation? DefaultHttpsEndpointAnnotation { get; set; }
+    internal EndpointAnnotation? EndpointExcludedFromPortEnvironment { get; set; }
 }

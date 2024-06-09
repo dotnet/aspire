@@ -358,7 +358,7 @@ public static class ProjectResourceBuilderExtensions
                         // because the container likely won't be set up to listen on https (e.g. ACA case)
                         if (scheme == "https")
                         {
-                            builder.Resource.DefaultHttpsEndpointAnnotation = e;
+                            builder.Resource.EndpointExcludedFromPortEnvironment = e;
                         }
                     },
                     createIfNotExists: true);
@@ -525,7 +525,7 @@ public static class ProjectResourceBuilderExtensions
         // Turn endpoint ports into a single environment variable
         foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)))
         {
-            if (e.EndpointAnnotation.UriScheme == scheme && e.EndpointAnnotation != builder.Resource.DefaultHttpsEndpointAnnotation)
+            if (e.EndpointAnnotation.UriScheme == scheme && e.EndpointAnnotation != builder.Resource.EndpointExcludedFromPortEnvironment)
             {
                 Debug.Assert(!e.EndpointAnnotation.FromLaunchProfile, "Endpoints from launch profile should never make it here");
 
