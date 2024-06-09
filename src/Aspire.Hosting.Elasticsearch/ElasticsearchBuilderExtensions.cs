@@ -24,13 +24,18 @@ public static class ElasticsearchBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port to bind the underlying container to.</param>
+    /// <param name="password">The parameter used to provide the superuser password for the elasticsearch. If <see langword="null"/> a random password will be generated.</param>
     /// <returns></returns>
     public static IResourceBuilder<ElasticsearchResource> AddElasticsearch(
         this IDistributedApplicationBuilder builder,
         string name,
+        IResourceBuilder<ParameterResource>? password = null,
         int? port = null)
     {
-        var elasticsearch = new ElasticsearchResource(name);
+
+        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
+
+        var elasticsearch = new ElasticsearchResource(name, passwordParameter);
 
         return builder.AddResource(elasticsearch)
              .WithImage(ElasticsearchContainerImageTags.Image, ElasticsearchContainerImageTags.Tag)
@@ -38,7 +43,11 @@ public static class ElasticsearchBuilderExtensions
              .WithHttpEndpoint(targetPort: ElasticsearchPort, port: port, name: ElasticsearchResource.PrimaryEndpointName)
              .WithEndpoint(targetPort: ElasticsearchInternalPort, port: port, name: ElasticsearchResource.InternalEndpointName)
              .WithEnvironment("discovery.type", "single-node")
-             .WithEnvironment("xpack.security.enabled", "false");
+             .WithEnvironment("xpack.security.enabled", "true")
+             .WithEnvironment(context =>
+             {
+                 context.EnvironmentVariables["ELASTIC_PASSWORD"] = elasticsearch.PasswordParameter;
+             });
 
     }
 
