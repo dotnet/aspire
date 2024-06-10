@@ -494,9 +494,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Elasticsearc
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Elasticsearch", "Elasticsearch", "{5C28905E-0EE2-41C2-A161-7400671E66F7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Elasticseach.AppHost", "playground\Elasticseach\Elasticseach.AppHost\Elasticseach.AppHost.csproj", "{4926BEFF-6A63-422F-8758-BB8EBEDD6BE8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Elasticsearch.AppHost", "playground\Elasticsearch\Elasticsearch.AppHost\Elasticsearch.AppHost.csproj", "{4926BEFF-6A63-422F-8758-BB8EBEDD6BE8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Elasticseach.ApiService", "playground\Elasticseach\Elasticseach.ApiService\Elasticseach.ApiService.csproj", "{A923A2F5-1DA9-4D37-A2C1-7005051CE774}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Elasticsearch.ApiService", "playground\Elasticsearch\Elasticsearch.ApiService\Elasticsearch.ApiService.csproj", "{A923A2F5-1DA9-4D37-A2C1-7005051CE774}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

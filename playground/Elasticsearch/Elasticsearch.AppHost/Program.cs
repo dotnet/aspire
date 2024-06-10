@@ -8,7 +8,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 var elasticsearch = builder.AddElasticsearch("elasticsearch")
     .WithDataVolume("data");
 
-builder.AddProject<Elasticseach_ApiService>("elasticsearch-apiservice")
+builder.AddProject<Elasticsearch_ApiService>("elasticsearch-apiservice")
     .WithReference(elasticsearch);
 
 // This project is only added in playground projects to support development/debugging

@@ -157,9 +157,9 @@ public class AddElasticsearchTests
     {
         using var appBuilder = TestDistributedApplicationBuilder.Create();
 
-        var kafka = appBuilder.AddElasticsearch("elasticsearch");
+        var elasticsearch = appBuilder.AddElasticsearch("elasticsearch");
 
-        var manifest = await ManifestUtils.GetManifest(kafka.Resource);
+        var manifest = await ManifestUtils.GetManifest(elasticsearch.Resource);
 
         var expectedManifest = $$"""
             {
@@ -195,10 +195,10 @@ public class AddElasticsearchTests
     {
         using var appBuilder = TestDistributedApplicationBuilder.Create();
 
-        var kafka = appBuilder.AddElasticsearch("elasticsearch")
+        var elasticsearch = appBuilder.AddElasticsearch("elasticsearch")
             .WithDataVolume("data");
 
-        var manifest = await ManifestUtils.GetManifest(kafka.Resource);
+        var manifest = await ManifestUtils.GetManifest(elasticsearch.Resource);
 
         var expectedManifest = $$"""
             {

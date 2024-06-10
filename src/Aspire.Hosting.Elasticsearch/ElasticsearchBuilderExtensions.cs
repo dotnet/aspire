@@ -25,7 +25,19 @@ public static class ElasticsearchBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port to bind the underlying container to.</param>
     /// <param name="password">The parameter used to provide the superuser password for the elasticsearch. If <see langword="null"/> a random password will be generated.</param>
-    /// <returns></returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <example>
+    /// Use in application host
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var elasticsearch = builder.AddElasticsearch("elasticsearch");
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithReference(elasticsearch);
+    ///  
+    /// builder.Build().Run(); 
+    /// </code>
+    /// </example>
     public static IResourceBuilder<ElasticsearchResource> AddElasticsearch(
         this IDistributedApplicationBuilder builder,
         string name,
@@ -58,6 +70,19 @@ public static class ElasticsearchBuilderExtensions
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <example>
+    /// Use in application host
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var elasticsearch = builder.AddElasticsearch("elasticsearch")
+    /// .WithDataVolume();
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithReference(elasticsearch);
+    ///  
+    /// builder.Build().Run(); 
+    /// </code>
+    /// </example>
     public static IResourceBuilder<ElasticsearchResource> WithDataVolume(this IResourceBuilder<ElasticsearchResource> builder, string? name = null, bool isReadOnly = false)
         => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/usr/share/elasticsearch/data", isReadOnly);
 
@@ -68,6 +93,19 @@ public static class ElasticsearchBuilderExtensions
     /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <example>
+    /// Use in application host
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var elasticsearch = builder.AddElasticsearch("elasticsearch")
+    /// .WithDataBindMount("./data/elasticsearch/data");
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithReference(elasticsearch);
+    ///  
+    /// builder.Build().Run(); 
+    /// </code>
+    /// </example>
     public static IResourceBuilder<ElasticsearchResource> WithDataBindMount(this IResourceBuilder<ElasticsearchResource> builder, string source, bool isReadOnly = false)
         => builder.WithBindMount(source, "/usr/share/elasticsearch/data", isReadOnly);
 
