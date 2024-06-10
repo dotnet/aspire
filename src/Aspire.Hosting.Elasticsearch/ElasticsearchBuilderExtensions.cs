@@ -16,7 +16,7 @@ public static class ElasticsearchBuilderExtensions
     private const int ElasticsearchInternalPort = 9300;
 
     /// <summary>
-    /// Adds a Elasticsearch container to the application model.
+    /// Adds an Elasticsearch container resource to the application model.
     /// </summary>
     /// <remarks>
     /// The default image is "elasticsearch" and the tag is "8.8.0".
