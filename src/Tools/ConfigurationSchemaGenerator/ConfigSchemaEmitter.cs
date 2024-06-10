@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
+using System.Collections.Immutable;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -37,8 +37,7 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
     {
         var root = new JsonObject();
         GenerateLogCategories(root);
-        root["properties"] = GenerateGraph();
-        root["type"] = "object";
+        GenerateGraph(root);
 
         return JsonSerializer.Serialize(root, s_serializerOptions);
     }
@@ -61,19 +60,18 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
 
         parent["definitions"] = new JsonObject
         {
-            ["logLevel"] = new JsonObject()
+            ["logLevel"] = new JsonObject
             {
                 ["properties"] = propertiesNode
             }
         };
     }
 
-    private JsonObject GenerateGraph()
+    private void GenerateGraph(JsonObject rootNode)
     {
-        var root = new JsonObject();
         if (spec.ConfigurationTypes.Count > 0)
         {
-            if (spec.ConfigurationTypes.Count != spec.ConfigurationPaths.Count)
+            if (spec.ConfigurationTypes.Count != spec.ConfigurationPaths?.Count)
             {
                 throw new InvalidOperationException("Ensure Types and ConfigurationPaths are the same length.");
             }
@@ -83,94 +81,225 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
                 var type = spec.ConfigurationTypes[i];
                 var path = spec.ConfigurationPaths[i];
 
-                GenerateProperties(root, type, path);
+                var pathSegments = ImmutableQueue<string>.Empty;
+                foreach (var segment in path.Split(':').Where(segment => !segment.StartsWith(RootPathPrefix)))
+                {
+                    pathSegments = pathSegments.Enqueue(segment);
+                }
+
+                GenerateComponent(rootNode, type, pathSegments);
             }
         }
-
-        return root;
     }
 
-    private void GenerateProperties(JsonObject parent, TypeSpec type, string path)
+    private bool GenerateComponent(JsonObject currentNode, TypeSpec type, ImmutableQueue<string> pathSegments)
     {
-        var pathSegments = path.Split(':');
-        var currentNode = parent;
-        foreach (var segment in pathSegments.Where(segment => !segment.StartsWith(RootPathPrefix)))
+        if (pathSegments.IsEmpty)
         {
-            if (currentNode[segment] is JsonObject child)
+            return GenerateType(currentNode, type);
+        }
+
+        var pathSegment = pathSegments.Peek();
+
+        var backupTypeNode = currentNode["type"];
+        currentNode["type"] = "object";
+
+        var ownsProperties = false;
+        if (currentNode["properties"] is not JsonObject propertiesNode)
+        {
+            propertiesNode = new JsonObject();
+            currentNode["properties"] = propertiesNode;
+            ownsProperties = true;
+        }
+
+        var ownsComponent = false;
+        if (propertiesNode[pathSegment] is not JsonObject componentNode)
+        {
+            componentNode = new JsonObject();
+            propertiesNode[pathSegment] = componentNode;
+            ownsComponent = true;
+        }
+
+        var hasGenerated = GenerateComponent(componentNode, type, pathSegments.Dequeue());
+        if (!hasGenerated)
+        {
+            RestoreBackup(backupTypeNode, "type", currentNode);
+
+            if (ownsProperties)
             {
-                currentNode = child["properties"] as JsonObject;
-                Debug.Assert(currentNode is not null, "Didn't find a 'properties' child.");
+                currentNode.Remove("properties");
             }
-            else
+            else if (ownsComponent)
             {
-                var propertiesNode = new JsonObject();
-                currentNode[segment] = new JsonObject()
-                {
-                    ["type"] = "object",
-                    ["properties"] = propertiesNode
-                };
-                currentNode = propertiesNode;
+                propertiesNode.Remove(pathSegment);
             }
         }
 
-        GenerateProperties(currentNode, type);
-        GenerateDescriptionForType(currentNode.Parent as JsonObject, type);
+        return hasGenerated;
     }
 
-    private void GenerateProperties(JsonObject currentNode, TypeSpec type)
+    private bool GenerateType(JsonObject currentNode, TypeSpec type)
     {
-        if (_visitedTypes.Contains(type))
+        bool hasGenerated;
+
+        if (type is ParsableFromStringSpec parsable)
         {
-            return;
+            GenerateParsableFromString(currentNode, parsable);
+            hasGenerated = true;
         }
-        _visitedTypes.Push(type);
-
-        if (type is ObjectSpec objectSpec)
+        else if (type is NullableSpec nullable)
         {
-            var properties = objectSpec.Properties;
-            if (properties is not null)
+            var effectiveType = _typeIndex.GetTypeSpec(nullable.EffectiveTypeRef);
+            hasGenerated = GenerateType(currentNode, effectiveType);
+        }
+        else if (type is ObjectSpec objectSpec)
+        {
+            hasGenerated = GenerateObject(currentNode, objectSpec);
+        }
+        else if (type is DictionarySpec dictionary)
+        {
+            hasGenerated = GenerateCollection(currentNode, dictionary, "object", "additionalProperties");
+        }
+        else if (type is CollectionSpec collection)
+        {
+            hasGenerated = GenerateCollection(currentNode, collection, "array", "items");
+        }
+        else if (type is UnsupportedTypeSpec)
+        {
+            // skip unsupported types
+            hasGenerated = false;
+        }
+        else
+        {
+            throw new InvalidOperationException($"Unknown type {type}");
+        }
+
+        if (hasGenerated)
+        {
+            GenerateDescriptionForType(currentNode, type);
+        }
+
+        return hasGenerated;
+    }
+
+    private bool GenerateObject(JsonObject currentNode, ObjectSpec objectSpec)
+    {
+        if (_visitedTypes.Contains(objectSpec))
+        {
+            // Infinite recursion: keep all parent nodes, but suppress IntelliSense from here by not setting any type.
+            return true;
+        }
+        _visitedTypes.Push(objectSpec);
+
+        var hasGenerated = false;
+
+        var properties = objectSpec.Properties;
+        if (properties?.Count > 0)
+        {
+            var backupTypeNode = currentNode["type"];
+            currentNode["type"] = "object";
+
+            var ownsProperties = false;
+            if (currentNode["properties"] is not JsonObject propertiesNode)
             {
-                foreach (var property in properties)
+                propertiesNode = new JsonObject();
+                currentNode["properties"] = propertiesNode;
+                ownsProperties = true;
+            }
+
+            foreach (var property in properties)
+            {
+                if (_typeIndex.ShouldBindTo(property) && !IsExcluded(propertiesNode, property))
                 {
-                    if (_typeIndex.ShouldBindTo(property) && !IsExcluded(currentNode, property))
-                    {
-                        var propertyTypeSpec = _typeIndex.GetTypeSpec(property.TypeRef);
-                        var propertySymbol = GetPropertySymbol(type, property);
+                    var propertySymbol = GetPropertySymbol(objectSpec, property);
+                    hasGenerated |= GenerateProperty(propertiesNode, property, propertySymbol);
+                }
+            }
 
-                        var propertyNode = new JsonObject();
-                        currentNode[property.ConfigurationKeyName] = propertyNode;
+            if (!hasGenerated)
+            {
+                RestoreBackup(backupTypeNode, "type", currentNode);
 
-                        AppendTypeNodes(propertyNode, propertyTypeSpec);
-
-                        if (propertyTypeSpec is ComplexTypeSpec complexPropertyTypeSpec)
-                        {
-                            var innerPropertiesNode = new JsonObject();
-                            propertyNode["properties"] = innerPropertiesNode;
-
-                            GenerateProperties(innerPropertiesNode, complexPropertyTypeSpec);
-                            if (innerPropertiesNode.Count == 0)
-                            {
-                                propertyNode.Remove("properties");
-                            }
-                        }
-
-                        if (ShouldSkipProperty(propertyNode, property, propertyTypeSpec, propertySymbol))
-                        {
-                            currentNode.Remove(property.ConfigurationKeyName);
-                            continue;
-                        }
-
-                        var docComment = GetDocComment(propertySymbol);
-                        if (!string.IsNullOrEmpty(docComment))
-                        {
-                            GenerateDescriptionFromDocComment(propertyNode, docComment);
-                        }
-                    }
+                if (ownsProperties)
+                {
+                    currentNode.Remove("properties");
                 }
             }
         }
 
         _visitedTypes.Pop();
+        return hasGenerated;
+    }
+
+    private bool GenerateProperty(JsonObject currentNode, PropertySpec property, IPropertySymbol? propertySymbol)
+    {
+        var propertyType = _typeIndex.GetTypeSpec(property.TypeRef);
+
+        if (ShouldSkipProperty(property, propertyType, propertySymbol))
+        {
+            return false;
+        }
+
+        var backupPropertyNode = currentNode[property.ConfigurationKeyName];
+
+        var propertyNode = new JsonObject();
+        currentNode[property.ConfigurationKeyName] = propertyNode;
+
+        var hasGenerated = GenerateType(propertyNode, propertyType);
+        if (hasGenerated)
+        {
+            var docComment = GetDocComment(propertySymbol);
+            if (!string.IsNullOrEmpty(docComment))
+            {
+                GenerateDescriptionFromDocComment(propertyNode, docComment);
+            }
+        }
+        else
+        {
+            RestoreBackup(backupPropertyNode, property.ConfigurationKeyName, currentNode);
+        }
+
+        return hasGenerated;
+    }
+
+    private bool GenerateCollection(JsonObject currentNode, CollectionSpec collection, string typeName, string containerName)
+    {
+        if (collection.TypeRef.Equals(collection.ElementTypeRef) || _visitedTypes.Contains(collection))
+        {
+            // Infinite recursion: keep all parent nodes, but suppress IntelliSense from here by not setting any type.
+            return true;
+        }
+        _visitedTypes.Push(collection);
+
+        var backupTypeNode = currentNode["type"];
+        var backupContainerNode = currentNode[containerName];
+
+        currentNode["type"] = typeName;
+        var containerNode = new JsonObject();
+        currentNode[containerName] = containerNode;
+
+        var elementType = _typeIndex.GetTypeSpec(collection.ElementTypeRef);
+        var hasGenerated = GenerateType(containerNode, elementType);
+        if (!hasGenerated)
+        {
+            RestoreBackup(backupTypeNode, "type", currentNode);
+            RestoreBackup(backupContainerNode, containerName, currentNode);
+        }
+
+        _visitedTypes.Pop();
+        return hasGenerated;
+    }
+
+    private static void RestoreBackup(JsonNode? backupNode, string name, JsonObject parentNode)
+    {
+        if (backupNode == null)
+        {
+            parentNode.Remove(name);
+        }
+        else
+        {
+            parentNode[name] = backupNode;
+        }
     }
 
     private string? GetDocComment(ISymbol? symbol)
@@ -202,22 +331,22 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
         return propertySymbol;
     }
 
-    private static bool ShouldSkipProperty(JsonObject propertyNode, PropertySpec property, TypeSpec propertyTypeSpec, IPropertySymbol? propertySymbol)
+    private static bool ShouldSkipProperty(PropertySpec property, TypeSpec propertyType, IPropertySymbol? propertySymbol)
     {
-        // skip simple properties that can't be set
-        // TODO: this should allow for init properties set through the constructor. Need to figure out the correct rule here.
-        if (propertyTypeSpec is not ComplexTypeSpec &&
-            !property.CanSet)
+        if (propertyType is UnsupportedTypeSpec)
         {
             return true;
         }
 
-        // skip empty objects
-        if (propertyNode.Count == 0 ||
-            (propertyNode["type"] is JsonValue typeValue &&
-                typeValue.TryGetValue<string>(out var typeValueString) &&
-                typeValueString == "object" &&
-                propertyNode["properties"] is null))
+        if (property.IsStatic && !property.CanSet)
+        {
+            return true;
+        }
+
+        // skip simple properties that can't be set
+        // TODO: this should allow for init properties set through the constructor. Need to figure out the correct rule here.
+        if (propertyType is not ComplexTypeSpec &&
+            !property.CanSet)
         {
             return true;
         }
@@ -249,7 +378,7 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
     {
         var doc = XDocument.Parse(docComment);
         var memberRoot = doc.Element("member") ?? doc.Element("doc");
-        var summary = memberRoot.Element("summary");
+        var summary = memberRoot?.Element("summary");
         if (summary is not null)
         {
             var description = FormatDescription(summary);
@@ -263,7 +392,7 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
         var propertyNodeType = propertyNode["type"];
         if (propertyNodeType?.GetValueKind() == JsonValueKind.String && propertyNodeType.GetValue<string>() == "boolean")
         {
-            var value = memberRoot.Element("value")?.ToString();
+            var value = memberRoot?.Element("value")?.ToString();
             if (value?.Contains("default value is", StringComparison.OrdinalIgnoreCase) == true)
             {
                 var containsTrue = value.Contains("true", StringComparison.OrdinalIgnoreCase);
@@ -357,36 +486,6 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
         return element.Value;
     }
 
-    private void AppendTypeNodes(JsonObject propertyNode, TypeSpec propertyTypeSpec)
-    {
-        if (propertyTypeSpec is ParsableFromStringSpec parsable)
-        {
-            AppendParsableFromString(propertyNode, parsable);
-        }
-        else if (propertyTypeSpec is ObjectSpec)
-        {
-            propertyNode["type"] = "object";
-        }
-        else if (propertyTypeSpec is EnumerableSpec)
-        {
-            // TODO: support enumerables correctly
-            propertyNode["type"] = "object";
-        }
-        else if (propertyTypeSpec is NullableSpec nullable)
-        {
-            AppendTypeNodes(propertyNode, _typeIndex.GetTypeSpec(nullable.EffectiveTypeRef));
-        }
-        else if (propertyTypeSpec is UnsupportedTypeSpec unsupported &&
-            unsupported.NotSupportedReason == NotSupportedReason.CollectionNotSupported)
-        {
-            // skip unsupported collections
-        }
-        else
-        {
-            throw new InvalidOperationException($"Unknown type {propertyTypeSpec}");
-        }
-    }
-
     const string NegativeOption = @"-?";
     const string DaysAlone = @"\d{1,7}";
     const string DaysPrefixOption = @$"({DaysAlone}[\.:])?";
@@ -396,7 +495,7 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
     const string SecondsFractionOption = @"(\.\d{1,7})?";
     internal const string TimeSpanRegex = $"^{NegativeOption}({DaysAlone}|({DaysPrefixOption}({HourMinute}|{HourMinuteSecond}){SecondsFractionOption}))$";
 
-    private void AppendParsableFromString(JsonObject propertyNode, ParsableFromStringSpec parsable)
+    private void GenerateParsableFromString(JsonObject propertyNode, ParsableFromStringSpec parsable)
     {
         if (parsable.DisplayString == "TimeSpan")
         {
@@ -482,22 +581,29 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
         "DateTimeOffset" => "string",
         "DateOnly" => "string",
         "TimeOnly" => "string",
-        "object" => "string",
+        "object" => "object",
         "CultureInfo" => "string",
         _ => throw new InvalidOperationException($"Unknown parsable type {parsable.DisplayString}")
     };
 
     private bool IsExcluded(JsonObject currentNode, PropertySpec property)
     {
-        var currentPath = currentNode.GetPath();
-        foreach (var excludedPath in _exclusionPaths)
+        if (_exclusionPaths.Length > 0)
         {
-            if (excludedPath.StartsWith(currentPath) && excludedPath.EndsWith(property.ConfigurationKeyName))
+            var currentPath = currentNode.GetPath()
+                .Replace(".properties", "")
+                .Replace(".items", "")
+                .Replace(".additionalProperties", "");
+
+            foreach (var excludedPath in _exclusionPaths)
             {
-                var fullPath = $"{currentPath}.{property.ConfigurationKeyName}";
-                if (excludedPath == fullPath)
+                if (excludedPath.StartsWith(currentPath) && excludedPath.EndsWith(property.ConfigurationKeyName))
                 {
-                    return true;
+                    var fullPath = $"{currentPath}.{property.ConfigurationKeyName}";
+                    if (excludedPath == fullPath)
+                    {
+                        return true;
+                    }
                 }
             }
         }
@@ -515,7 +621,7 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
         var result = new string[exclusionPaths.Count];
         for (var i = 0; i < exclusionPaths.Count; i++)
         {
-            result[i] = $"$.{exclusionPaths[i].Replace(":", ".properties.", StringComparison.Ordinal)}";
+            result[i] = $"$.{exclusionPaths[i].Replace(':', '.')}";
         }
         return result;
     }

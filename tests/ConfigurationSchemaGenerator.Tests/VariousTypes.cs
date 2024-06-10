@@ -75,19 +75,16 @@ public record ExampleSettings
     /// </summary>
     public ICollection<int> PropertyOfIntCollection { get; } = [];
 
-    /*
     /// <summary>
     /// A <see cref="IDictionary{TKey,TValue}"/> of <see cref="string"/> to <see cref="TimeSpan"/>.
     /// </summary>
     public IDictionary<string, TimeSpan> PropertyOfStringToTimeSpan { get; } = new Dictionary<string, TimeSpan>();
-    */
 
     /// <summary>
     /// A value of type <see cref="DefaultSettings"/>.
     /// </summary>
     public DefaultSettings? PropertyOfDefaultSettings { get; } = new();
 
-    /*
     /// <summary>
     /// A <see cref="IDictionary{TKey,TValue}"/> of <see cref="string"/> to <see cref="DefaultSettings"/>.
     /// </summary>
@@ -97,7 +94,6 @@ public record ExampleSettings
     /// A recursive data structure (preserved, but without schema)
     /// </summary>
     public TreeElement? Tree { get; set; }
-    */
 }
 
 /// <summary>

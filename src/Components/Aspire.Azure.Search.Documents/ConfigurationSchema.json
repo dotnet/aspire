@@ -17,6 +17,7 @@
       }
     }
   },
+  "type": "object",
   "properties": {
     "Aspire": {
       "type": "object",
@@ -63,6 +64,20 @@
                             "LoggedContentSizeLimit": {
                               "type": "integer",
                               "description": "Gets or sets value indicating maximum size of content to log in bytes. Defaults to 4096."
+                            },
+                            "LoggedHeaderNames": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "description": "Gets a list of header names that are not redacted during logging."
+                            },
+                            "LoggedQueryParameters": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "description": "Gets a list of query parameter names that are not redacted during logging."
                             }
                           },
                           "description": "Gets the client diagnostic options."
@@ -130,6 +145,5 @@
         }
       }
     }
-  },
-  "type": "object"
+  }
 }

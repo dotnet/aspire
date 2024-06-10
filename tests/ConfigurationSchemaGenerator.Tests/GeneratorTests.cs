@@ -229,7 +229,7 @@ public partial class GeneratorTests
         """)]
     [InlineData("object?",
         """
-        "type": "string"
+        "type": "object"
         """)]
     [InlineData("string?",
         """
@@ -280,39 +280,66 @@ public partial class GeneratorTests
         """)]
     [InlineData("int[]?",
         """
-        THROW
+        "type": "array",
+        "items": {
+         "type": "integer"
+        }
         """)]
     [InlineData("ICollection<int>?",
         """
-        MISSING
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
         """)]
     [InlineData("IDictionary<string, int>?",
         """
-        THROW
+        "type": "object",
+        "additionalProperties": {
+          "type": "integer"
+        }
         """)]
     [InlineData("string[]?",
         """
-        THROW
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
         """)]
     [InlineData("IEnumerable<string>?",
         """
-        MISSING
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
         """)]
     [InlineData("IDictionary<string, string>?",
         """
-        THROW
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
         """)]
     [InlineData("object[]?",
         """
-        THROW
+        "type": "array",
+        "items": {
+         "type": "object"
+        }
         """)]
     [InlineData("IList<object>?",
         """
-        MISSING
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
         """)]
     [InlineData("IDictionary<string, object>?",
         """
-        THROW
+        "type": "object",
+        "additionalProperties": {
+          "type": "object"
+        }
         """)]
     [InlineData("ChildType?",
         """
@@ -320,20 +347,48 @@ public partial class GeneratorTests
         "properties": {
           "ChildValue": {
             "type": "string"
-          }
+          },
+          "Parent": {}
         }
         """)]
     [InlineData("ChildType[]?",
         """
-        THROW
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "ChildValue": {
+              "type": "string"
+            },
+            "Parent": {}
+          }
+        }
         """)]
     [InlineData("IList<ChildType>?",
         """
-        MISSING
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "ChildValue": {
+              "type": "string"
+            },
+            "Parent": {}
+          }
+        }
         """)]
     [InlineData("IDictionary<string, ChildType>?",
         """
-        THROW
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "ChildValue": {
+              "type": "string"
+            },
+            "Parent": {}
+          }
+        }
         """)]
 #if NETCOREAPP
     [InlineData("Int128",
@@ -393,44 +448,24 @@ public partial class GeneratorTests
             MetadataReference.CreateFromFile(typeof(Uri).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(X509Certificate2).Assembly.Location)
         ];
+        var schema = GenerateSchemaFromCode(source, references);
 
-        if (expected == "THROW")
-        {
-            Assert.Throws<InvalidOperationException>(() => GenerateSchemaFromCode(source, references));
-        }
-        else
-        {
-            var schema = GenerateSchemaFromCode(source, references);
-
-            AssertIsJson(schema,
-                expected == "MISSING"
-                    ? """
-                      {
-                        "properties": {
-                          "TestComponent": {
-                            "type": "object",
-                            "properties": {}
-                          }
-                        },
-                        "type": "object"
-                      }
-                      """
-                    : $$"""
-                        {
-                          "properties": {
-                            "TestComponent": {
-                              "type": "object",
-                              "properties": {
-                                "TestProperty": {
-                                  {{expected}}
-                                }
-                              }
-                            }
-                          },
-                          "type": "object"
-                        }
-                        """);
-        }
+        AssertIsJson(schema,
+          $$"""
+          {
+            "type": "object",
+            "properties": {
+              "TestComponent": {
+                "type": "object",
+                "properties": {
+                  "TestProperty": {
+                    {{expected}}
+                  }
+                }
+              }
+            }
+          }
+          """);
     }
 
     [Fact]
@@ -470,10 +505,13 @@ public partial class GeneratorTests
             }
             """;
 
-        Assert.Throws<InvalidOperationException>(() => GenerateSchemaFromCode(source, []));
+        var schema = GenerateSchemaFromCode(source, []);
+
+        Assert.Contains("CollectionOfInt", schema);
+        Assert.Contains("DictionaryOfStringToInt", schema);
     }
 
-    [Fact(Skip = "Fails with stack overflow")]
+    [Fact]
     public void ShouldAllowFreeFormatViaRecursiveSubtree()
     {
         // Example appsettings.json:
@@ -580,7 +618,7 @@ public partial class GeneratorTests
 
                 public int ReadOnlyProperty { get; } = 42;
 
-                //public dynamic? DynamicProperty { get; set; }
+                public dynamic? DynamicProperty { get; set; }
 
                 public Delegate? DelegateProperty { get; set; }
 
@@ -606,15 +644,7 @@ public partial class GeneratorTests
 
         AssertIsJson(schema,
             """
-            {
-              "properties": {
-                "TestComponent": {
-                  "type": "object",
-                  "properties": {}
-                }
-              },
-              "type": "object"
-            }
+            {}
             """);
     }
 
@@ -643,6 +673,7 @@ public partial class GeneratorTests
         AssertIsJson(schema,
             """
             {
+              "type": "object",
               "properties": {
                 "TestComponent": {
                   "type": "object",
@@ -652,8 +683,7 @@ public partial class GeneratorTests
                     }
                   }
                 }
-              },
-              "type": "object"
+              }
             }
             """);
     }
@@ -682,15 +712,7 @@ public partial class GeneratorTests
 
         AssertIsJson(schema,
             """
-            {
-              "properties": {
-                "TestComponent": {
-                  "type": "object",
-                  "properties": {}
-                }
-              },
-              "type": "object"
-            }
+            {}
             """);
     }
 
@@ -718,6 +740,7 @@ public partial class GeneratorTests
         AssertIsJson(schema,
             """
             {
+              "type": "object",
               "properties": {
                 "PropertyOne": {
                   "type": "string"
@@ -725,8 +748,7 @@ public partial class GeneratorTests
                 "PropertyTwo": {
                   "type": "integer"
                 }
-              },
-              "type": "object"
+              }
             }
             """);
     }
@@ -755,6 +777,7 @@ public partial class GeneratorTests
         AssertIsJson(schema,
             """
             {
+              "type": "object",
               "properties": {
                 "One": {
                   "type": "object",
@@ -777,8 +800,7 @@ public partial class GeneratorTests
                     }
                   }
                 }
-              },
-              "type": "object"
+              }
             }
             """);
     }
@@ -796,6 +818,7 @@ public partial class GeneratorTests
         AssertIsJson(schema,
             """
             {
+              "type": "object",
               "properties": {
                 "One": {
                   "type": "object",
@@ -804,15 +827,13 @@ public partial class GeneratorTests
                       "type": "object",
                       "properties": {
                         "Three": {
-                          "type": "object",
-                          "properties": {}
+                          "type": "integer"
                         }
                       }
                     }
                   }
                 }
-              },
-              "type": "object"
+              }
             }
             """);
     }
@@ -843,6 +864,7 @@ public partial class GeneratorTests
         AssertIsJson(schema,
             """
             {
+              "type": "object",
               "properties": {
                 "TestComponent": {
                   "type": "object",
@@ -857,8 +879,7 @@ public partial class GeneratorTests
                     }
                   }
                 }
-              },
-              "type": "object"
+              }
             }
             """);
     }
@@ -880,22 +901,15 @@ public partial class GeneratorTests
         AssertIsJson(schema,
             """
             {
+              "type": "object",
               "properties": {
-                "OtherComponent": {
-                  "type": "object",
-                  "properties": {}
-                },
                 "TestComponent": {
-                  "type": "object",
-                  "properties": {
-                    "One": {
-                      "type": "object",
-                      "properties": {}
-                    }
+                  "type": "array",
+                  "items": {
+                    "type": "string"
                   }
                 }
-              },
-              "type": "object"
+              }
             }
             """);
     }
@@ -927,18 +941,17 @@ public partial class GeneratorTests
         AssertIsJson(schema,
             """
             {
+              "type": "object",
               "properties": {
                 "TestComponent": {
                   "type": "object",
                   "properties": {
                     "TestProperty": {
-                      "type": "object",
-                      "properties": {}
+                      "type": "string"
                     }
                   }
                 }
-              },
-              "type": "object"
+              }
             }
             """);
     }
@@ -965,6 +978,7 @@ public partial class GeneratorTests
         AssertIsJson(schema,
             """
             {
+              "type": "object",
               "properties": {
                 "One": {
                   "type": "object",
@@ -977,11 +991,9 @@ public partial class GeneratorTests
                         }
                       }
                     }
-                  },
-                  "description": "Empty"
+                  }
                 }
-              },
-              "type": "object"
+              }
             }
             """);
     }
@@ -1017,6 +1029,7 @@ public partial class GeneratorTests
         AssertIsJson(schema,
             """
             {
+              "type": "object",
               "properties": {
                 "TestComponent": {
                   "type": "object",
@@ -1028,8 +1041,7 @@ public partial class GeneratorTests
                   },
                   "description": "Contains configuration settings."
                 }
-              },
-              "type": "object"
+              }
             }
             """);
 
@@ -1094,6 +1106,7 @@ public partial class GeneratorTests
         AssertIsJson(schema,
             """
             {
+              "type": "object",
               "properties": {
                 "TestComponent": {
                   "type": "object",
@@ -1109,8 +1122,7 @@ public partial class GeneratorTests
                   },
                   "description": "Provides an interface to enable a class to return line and position information."
                 }
-              },
-              "type": "object"
+              }
             }
             """);
     }
@@ -1150,6 +1162,7 @@ public partial class GeneratorTests
         AssertIsJson(schema,
             """
             {
+              "type": "object",
               "properties": {
                 "TestComponent": {
                   "type": "object",
@@ -1167,8 +1180,7 @@ public partial class GeneratorTests
                     }
                   }
                 }
-              },
-              "type": "object"
+              }
             }
             """);
     }
