@@ -111,6 +111,9 @@ public static class AzureConstructResourceExtensions
     public static IResourceBuilder<T> ConfigureConstruct<T>(this IResourceBuilder<T> builder, Action<ResourceModuleConstruct> configure) 
         where T : AzureConstructResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
         builder.Resource.ConfigureConstruct += configure;
         return builder;
     }

@@ -2509,6 +2509,20 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void ConfigureConstructMustNotBeNull()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var constructResource = builder.AddAzureConstruct("construct", r =>
+        {
+            r.AddKeyVault();
+        });
+
+        var ex = Assert.Throws<ArgumentNullException>(() => constructResource.ConfigureConstruct(null!));
+        Assert.Equal("configure", ex.ParamName);
+    }
+
+    [Fact]
     public async Task ConstructCanBeMutatedAfterCreation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -2573,7 +2587,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         output vaultUri string = keyVault_wv66C4HPm.properties.vaultUri
 
         """;
-        
+
         Assert.Equal(expectedManifest, manifest.ToString());
         Assert.Equal(expectedBicep, bicep);
     }
