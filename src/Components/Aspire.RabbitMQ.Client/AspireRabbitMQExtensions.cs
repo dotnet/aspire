@@ -27,7 +27,7 @@ public static class AspireRabbitMQExtensions
     private const string DefaultConfigSectionName = "Aspire:RabbitMQ:Client";
 
     /// <summary>
-    /// Registers <see cref="IConnection"/> as a singleton in the services provided by the <paramref name="builder"/>.
+    /// Registers <see cref="IConnection"/> and <see cref="IConnectionFactory"/> as a singleton in the services provided by the <paramref name="builder"/>.
     /// Enables retries, corresponding health check, logging, and telemetry.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
@@ -43,7 +43,7 @@ public static class AspireRabbitMQExtensions
         => AddRabbitMQClient(builder, DefaultConfigSectionName, configureSettings, configureConnectionFactory, connectionName, serviceKey: null);
 
     /// <summary>
-    /// Registers <see cref="IConnection"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
+    /// Registers <see cref="IConnection"/> and <see cref="IConnectionFactory"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
     /// Enables retries, corresponding health check, logging, and telemetry.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
@@ -63,7 +63,7 @@ public static class AspireRabbitMQExtensions
     }
 
     /// <summary>
-    /// Registers <see cref="IConnection"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
+    /// Registers <see cref="IConnection"/> and <see cref="IConnectionFactory"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
     /// Enables retries, corresponding health check, logging, and telemetry.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
