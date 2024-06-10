@@ -11,6 +11,7 @@ using Aspire.Hosting.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.CognitiveServices;
 using Azure.Provisioning.CosmosDB;
+using Azure.Provisioning.KeyVaults;
 using Azure.Provisioning.Storage;
 using Azure.ResourceManager.Storage.Models;
 using Microsoft.Extensions.DependencyInjection;
@@ -2505,6 +2506,90 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         output.WriteLine(manifest.BicepText);
         Assert.Equal(expectedBicep, manifest.BicepText);
+    }
+
+    [Fact]
+    public void ConfigureConstructMustNotBeNull()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var constructResource = builder.AddAzureConstruct("construct", r =>
+        {
+            r.AddKeyVault();
+        });
+
+        var ex = Assert.Throws<ArgumentNullException>(() => constructResource.ConfigureConstruct(null!));
+        Assert.Equal("configure", ex.ParamName);
+    }
+
+    [Fact]
+    public async Task ConstructCanBeMutatedAfterCreation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var constructResource = builder.AddAzureConstruct("construct", r =>
+        {
+            r.AddKeyVault();
+        })
+        .ConfigureConstruct(r =>
+        {
+            var vault = r.GetSingleResource<KeyVault>();
+            Assert.NotNull(vault);
+
+            vault.AddOutput("vaultUri", kv => kv.Properties.VaultUri);
+        })
+        .ConfigureConstruct(r =>
+        {
+            var vault = r.GetSingleResource<KeyVault>();
+            Assert.NotNull(vault);
+
+            _ = new KeyVaultSecret(r, parent: vault);
+        });
+
+        var (manifest, bicep) = await ManifestUtils.GetManifestWithBicep(constructResource.Resource);
+
+        var expectedManifest = """
+        {
+          "type": "azure.bicep.v0",
+          "path": "construct.module.bicep"
+        }
+        """;
+
+        var expectedBicep = """
+        targetScope = 'resourceGroup'
+
+        @description('')
+        param location string = resourceGroup().location
+
+
+        resource keyVault_wv66C4HPm 'Microsoft.KeyVault/vaults@2022-07-01' = {
+          name: toLower(take('kv${uniqueString(resourceGroup().id)}', 24))
+          location: location
+          properties: {
+            tenantId: tenant().tenantId
+            sku: {
+              family: 'A'
+              name: 'standard'
+            }
+            enableRbacAuthorization: true
+          }
+        }
+
+        resource keyVaultSecret_pnBtRAt8R 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
+          parent: keyVault_wv66C4HPm
+          name: 'kvs'
+          location: location
+          properties: {
+            value: '00000000-0000-0000-0000-000000000000'
+          }
+        }
+
+        output vaultUri string = keyVault_wv66C4HPm.properties.vaultUri
+
+        """;
+
+        Assert.Equal(expectedManifest, manifest.ToString());
+        Assert.Equal(expectedBicep, bicep);
     }
 
     private sealed class ProjectA : IProjectMetadata
