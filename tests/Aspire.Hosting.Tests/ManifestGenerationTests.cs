@@ -470,13 +470,16 @@ public class ManifestGenerationTests
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
-                    "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
+                    "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+                    "Kestrel__Endpoints__http__Url": "http://*:{servicec.bindings.http.targetPort}",
+                    "Kestrel__Endpoints__https__Url": "https://*:{servicec.bindings.https.targetPort}"
                   },
                   "bindings": {
                     "http": {
                       "scheme": "http",
                       "protocol": "tcp",
-                      "transport": "http"
+                      "transport": "http",
+                      "port": 5271
                     },
                     "https": {
                       "scheme": "https",
