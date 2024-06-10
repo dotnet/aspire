@@ -5,10 +5,13 @@ var builder = DistributedApplication.CreateBuilder(args);
 builder.Configuration["Parameters:goversion"] = "1.22"; // Just for validating parameter handling in Dockerfile builds.
 
 var goVersion = builder.AddParameter("goversion");
+var secret = builder.AddParameter("secret", secret: true);
 
 builder.AddContainer("mycontainer", "myimage")
        .WithDockerfile("qots")
-       .WithBuildArg("GO_VERSION", goVersion);
+       .WithBuildArg("GO_VERSION", goVersion)
+       .WithBuildSecret("SECRET_FILE", new FileInfo("Program.cs"))
+       .WithBuildSecret("SECRET_ENV", secret);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code
