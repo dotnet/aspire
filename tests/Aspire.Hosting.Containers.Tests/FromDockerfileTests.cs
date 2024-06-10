@@ -7,6 +7,7 @@ using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
+using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Xunit.Sdk;
@@ -20,7 +21,7 @@ public class WithDockerfileTests
     {
         if (!IsDockerAvailable())
         {
-            throw new SkipException("Docker unavailable.");
+            throw new SkipTestException("Docker unavailable.");
         }
 
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -100,7 +101,7 @@ public class WithDockerfileTests
     {
         if (!IsDockerAvailable())
         {
-            throw new SkipException("Docker unavailable.");
+            throw new SkipTestException("Docker unavailable.");
         }
 
         using var builder = TestDistributedApplicationBuilder.Create();
