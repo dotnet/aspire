@@ -10,6 +10,7 @@ On Windows, Visual Studio contains special tooling support for .NET Aspire that 
 
 When you install, ensure that:
 * `ASP.NET and web development` Workload is checked.
+* `.NET Aspire SDK` component in `Individual components` is checked.
 
 ## Install the latest .NET 8 SDK
 [.NET 8 SDK](https://github.com/dotnet/installer#installers-and-binaries)
