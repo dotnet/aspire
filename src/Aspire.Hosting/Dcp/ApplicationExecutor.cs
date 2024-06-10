@@ -1606,6 +1606,50 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 Stage = dockerfileBuildAnnotation.Stage,
                 Args = dcpBuildArgs
             };
+
+            var dcpBuildSecrets = new List<BuildContextSecret>();
+
+            foreach (var buildSecret in dockerfileBuildAnnotation.BuildSecrets)
+            {
+                var valueString = buildSecret.Value switch
+                {
+                    FileInfo filePath => filePath.FullName,
+                    string stringValue => stringValue,
+                    IValueProvider valueProvider => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
+                    bool boolValue => boolValue ? "true" : "false",
+                    _ => buildSecret.Value.ToString()
+                };
+
+                if (buildSecret.Value is FileInfo)
+                {
+                    var dcpBuildSecret = new BuildContextSecret
+                    {
+                        Id = buildSecret.Key,
+                        Type = "file",
+                        Source = valueString
+                    };
+                    dcpBuildSecrets.Add(dcpBuildSecret);
+                }
+                else
+                {
+                    var dcpBuildSecret = new BuildContextSecret
+                    {
+                        Id = buildSecret.Key,
+                        Type = "env",
+                        Value = valueString
+                    };
+                    dcpBuildSecrets.Add(dcpBuildSecret);
+                }
+            }
+
+            dcpContainerResource.Spec.Build = new()
+            {
+                Context = dockerfileBuildAnnotation.ContextPath,
+                Dockerfile = dockerfileBuildAnnotation.DockerfilePath,
+                Stage = dockerfileBuildAnnotation.Stage,
+                Args = dcpBuildArgs,
+                Secrets = dcpBuildSecrets
+            };
         }
     }
 

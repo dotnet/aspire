@@ -340,7 +340,7 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a build argument when the container is build from a Dockerfile.
+    /// Adds a build argument when the container is built from a Dockerfile.
     /// </summary>
     /// <typeparam name="T">The type of container resoruce.</typeparam>
     /// <param name="builder">The resource builder for the container resource.</param>
@@ -370,7 +370,103 @@ public static class ContainerResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<T> WithBuildArg<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> value) where T : ContainerResource
     {
+        if (value.Resource.Secret)
+        {
+            throw new InvalidOperationException("Cannot add secret parameter as a build argument. Use WithSecretBuildArg instead.");
+        }
+
         return builder.WithBuildArg(name, value.Resource);
+    }
+
+    /// <summary>
+    /// Adds a secret build argument when the container is built from a Dockerfile.
+    /// </summary>
+    /// <typeparam name="T">The type of container resoruce.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="name">The name of the secret build argument.</param>
+    /// <param name="value">The resource builder for a parameter resource.</param>
+    /// <returns>The resource builder for the container resource.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when <see cref="ContainerResourceBuilderExtensions.WithBuildSecret{T}(IResourceBuilder{T}, string, IResourceBuilder{ParameterResource})"/> is
+    /// called before <see cref="ContainerResourceBuilderExtensions.WithDockerfile{T}(IResourceBuilder{T}, string, string?, string?)"/>.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="ContainerResourceBuilderExtensions.WithBuildSecret{T}(IResourceBuilder{T}, string, IResourceBuilder{ParameterResource})"/> extension method
+    /// results in a <c>--secret</c> argument being appended to the <c>docker build</c> or <c>podman build</c> command. This overload results in an environment
+    /// variable-based secret being passed to the build process. The value of the environment variable is the value of the secret referenced by the <see cref="ParameterResource"/>.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Adding a build secret based on a parameter.
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var accessToken = builder.AddParameter("accessToken", secret: true);
+    /// builder.AddContainer("mycontainer", "myimage")
+    ///        .WithDockerfile("../mycontainer")
+    ///        .WithBuildSecret("ACCESS_TOKEN", accessToken);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithBuildSecret<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> value) where T : ContainerResource
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentNullException.ThrowIfNull(value);
+
+        var annotation = builder.Resource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault();
+
+        if (annotation is null)
+        {
+            throw new InvalidOperationException("The resource does not have a Dockerfile build annotation. Call WithDockerfile before calling WithSecretBuildArg.");
+        }
+
+        annotation.BuildSecrets[name] = value.Resource;
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a secret build argument when the container is built from a Dockerfile.
+    /// </summary>
+    /// <typeparam name="T">The type of container resoruce.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="name">The name of the secret build argument.</param>
+    /// <param name="filePath">The resource builder for a parameter resource.</param>
+    /// <returns>The resource builder for the container resource.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when <see cref="ContainerResourceBuilderExtensions.WithBuildSecret{T}(IResourceBuilder{T}, string, FileInfo)"/> is
+    /// called before <see cref="ContainerResourceBuilderExtensions.WithDockerfile{T}(IResourceBuilder{T}, string, string?, string?)"/>.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="ContainerResourceBuilderExtensions.WithBuildSecret{T}(IResourceBuilder{T}, string, FileInfo)"/> extension method results in a
+    /// <c>--secret</c> argument being appended to the <c>docker build</c> or <c>podman build</c> command. This overload allows for specifying a secret
+    /// file to be mapped into the environment. The file must be present on the host machine and will be exposed to the container during the build process.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Adding a build secret based on a file.
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// builder.AddContainer("mycontainer", "myimage")
+    ///        .WithDockerfile("../mycontainer")
+    ///        .WithBuildSecret("NPMRC", new FileInfo(".npmrc"));
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithBuildSecret<T>(this IResourceBuilder<T> builder, string name, FileInfo filePath) where T : ContainerResource
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentNullException.ThrowIfNull(filePath);
+
+        var annotation = builder.Resource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault();
+
+        if (annotation is null)
+        {
+            throw new InvalidOperationException("The resource does not have a Dockerfile build annotation. Call WithDockerfile before calling WithSecretBuildArg.");
+        }
+
+        annotation.BuildSecrets[name] = filePath;
+
+        return builder;
     }
 }
 

@@ -74,6 +74,21 @@ public class SchemaTests
                     }
                 },
 
+                { "ContainerWithBuildAndSecretBuildArgs", (IDistributedApplicationBuilder builder) =>
+                    {
+                        var tempPath = Path.GetTempPath();
+                        var tempContextPath = Path.Combine(tempPath, Path.GetRandomFileName());
+                        Directory.CreateDirectory(tempContextPath);
+                        var tempDockerfilePath = Path.Combine(tempContextPath, "Dockerfile");
+                        File.WriteAllText(tempDockerfilePath, "does not need to be valid dockerfile content here");
+
+                        var p = builder.AddParameter("p", secret: true);
+                        builder.AddContainer("mycontainer", "myimage")
+                               .WithDockerfile(tempContextPath)
+                               .WithBuildSecret("secretArg", p);
+                    }
+                },
+
                 { "ContainerWithVolume", (IDistributedApplicationBuilder builder) =>
                     {
                         builder.AddRedis("redis").WithDataVolume();

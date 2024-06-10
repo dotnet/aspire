@@ -290,6 +290,41 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 Writer.WriteEndObject();
             }
 
+            if (annotation.BuildSecrets.Count > 0)
+            {
+                Writer.WriteStartObject("secrets");
+
+                foreach (var (key, value) in annotation.BuildSecrets)
+                {
+                    var valueString = value switch
+                    {
+                        FileInfo fileValue => GetManifestRelativePath(fileValue.FullName),
+                        string stringValue => stringValue,
+                        IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
+                        bool boolValue => boolValue ? "true" : "false",
+                        null => null, // null means let docker build pull from env var.
+                        _ => value.ToString()
+                    };
+
+                    Writer.WriteStartObject(key);
+
+                    if (value is FileInfo)
+                    {
+                        Writer.WriteString("type", "file");
+                        Writer.WriteString("source", valueString);
+                    }
+                    else
+                    {
+                        Writer.WriteString("type", "env");
+                        Writer.WriteString("value", valueString);
+                    }
+
+                    Writer.WriteEndObject();
+                }
+
+                Writer.WriteEndObject();
+            }
+
             Writer.WriteEndObject();
         }
     }

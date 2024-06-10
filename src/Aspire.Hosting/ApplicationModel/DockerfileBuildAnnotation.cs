@@ -9,4 +9,5 @@ internal class DockerfileBuildAnnotation(string contextPath, string dockerfilePa
     public string DockerfilePath = dockerfilePath;
     public string? Stage => stage;
     public Dictionary<string, object> BuildArguments { get; } = new();
+    public Dictionary<string, object> BuildSecrets { get; } = new();
 }

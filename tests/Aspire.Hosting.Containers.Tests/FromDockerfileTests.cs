@@ -96,6 +96,97 @@ public class WithDockerfileTests
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
+    [Fact]
+    public async Task WithDockerfileWithBuildSecretResultsInManifestReferencingSecretParameter()
+    {
+        var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
+        var manifestOutputPath = Path.Combine(tempContextPath, "aspire-manifest.json");
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            Args = ["--publisher", "manifest", "--output-path", manifestOutputPath],
+        });
+
+        var parameter = builder.AddParameter("secret", secret: true);
+        builder.Configuration["Parameters:secret"] = "open sesame";
+
+        var container = builder.AddContainer("testcontainer", "testimage")
+                               .WithHttpEndpoint(targetPort: 80)
+                               .WithDockerfile(tempContextPath, tempDockerfilePath)
+                               .WithBuildSecret("SECRET", parameter);
+
+        var manifest = await ManifestUtils.GetManifest(container.Resource, manifestDirectory: tempContextPath);
+        var expectedManifest = $$$$"""
+            {
+              "type": "container.v1",
+              "build": {
+                "context": ".",
+                "dockerfile": "Dockerfile",
+                "secrets": {
+                  "SECRET": {
+                    "type": "env",
+                    "value": "{secret.value}"
+                  }
+                }
+              },
+              "bindings": {
+                "http": {
+                  "scheme": "http",
+                  "protocol": "tcp",
+                  "transport": "http",
+                  "targetPort": 80
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task WithDockerfileWithBuildSecretFilePathResultsInManifestReferencingSecretParameter()
+    {
+        var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
+        var manifestOutputPath = Path.Combine(tempContextPath, "aspire-manifest.json");
+        var secretPath = Path.Combine(tempContextPath, "secret.txt");
+
+        File.WriteAllText(secretPath, "open sesame");
+
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            Args = ["--publisher", "manifest", "--output-path", manifestOutputPath],
+        });
+
+        var container = builder.AddContainer("testcontainer", "testimage")
+                               .WithHttpEndpoint(targetPort: 80)
+                               .WithDockerfile(tempContextPath, tempDockerfilePath)
+                               .WithBuildSecret("SECRET", new FileInfo(secretPath));
+
+        var manifest = await ManifestUtils.GetManifest(container.Resource, manifestDirectory: tempContextPath);
+        var expectedManifest = $$$$"""
+            {
+              "type": "container.v1",
+              "build": {
+                "context": ".",
+                "dockerfile": "Dockerfile",
+                "secrets": {
+                  "SECRET": {
+                    "type": "file",
+                    "source": "secret.txt"
+                  }
+                }
+              },
+              "bindings": {
+                "http": {
+                  "scheme": "http",
+                  "protocol": "tcp",
+                  "transport": "http",
+                  "targetPort": 80
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
     [ConditionalFact]
     public async Task WithDockerfileWithParameterLaunchesContainerSuccessfully()
     {
@@ -219,7 +310,7 @@ public class WithDockerfileTests
     }
 
     [Fact]
-    public void WithBuildArgsBeforeFromDockerfileThrows()
+    public void WithBuildArgsBeforeWithDockerfileThrows()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var container = builder.AddContainer("mycontainer", "myimage");
