@@ -4,6 +4,7 @@
 using System.Collections.Immutable;
 using Amazon.CDK;
 using Amazon.CDK.CXAPI;
+using Amazon.CloudFormation;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS.CloudFormation;
 using Constructs;
@@ -137,7 +138,14 @@ internal sealed class CDKProvisioner(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error provisioning {ResourceName} CDK resource", template.Resource.Name);
+            if (ex.InnerException is AmazonCloudFormationException inner && inner.Message.StartsWith(@"Unable to fetch parameters [/cdk-bootstrap/"))
+            {
+                logger.LogError("The environment doesn't have the CDK toolkit stack installed. Use 'cdk boostrap' to setup your environment for use AWS CDK with Aspire");
+            }
+            else
+            {
+                logger.LogError(ex, "Error provisioning {ResourceName} CDK resource", template.Resource.Name);
+            }
             await PublishUpdateStateAsync(template.Resource, Constants.ResourceStateFailedToStart).ConfigureAwait(false);
             template.Resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
         }
