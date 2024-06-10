@@ -142,8 +142,7 @@ public class KestrelConfigTests
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
                 "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
-                "Kestrel__Endpoints__http__Url": "http://*:{projectName.bindings.http.targetPort}",
-                "Kestrel__Endpoints__https__Url": "https://*:{projectName.bindings.https.targetPort}"
+                "Kestrel__Endpoints__http__Url": "http://*:{projectName.bindings.http.targetPort}"
               },
               "bindings": {
                 "http": {
@@ -189,7 +188,6 @@ public class KestrelConfigTests
                 "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
                 "Kestrel__Endpoints__FirstHttpEndpoint__Url": "http://*:{projectName.bindings.FirstHttpEndpoint.targetPort}",
                 "Kestrel__Endpoints__SecondHttpEndpoint__Url": "http://*:{projectName.bindings.SecondHttpEndpoint.targetPort}",
-                "Kestrel__Endpoints__https__Url": "https://*:{projectName.bindings.https.targetPort}",
                 "Kestrel__Endpoints__ExplicitProxiedHttp__Url": "http://*:{projectName.bindings.ExplicitProxiedHttp.targetPort}",
                 "Kestrel__Endpoints__ExplicitNoProxyHttp__Url": "http://*:{projectName.bindings.ExplicitNoProxyHttp.targetPort}"
               },

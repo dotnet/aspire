@@ -354,11 +354,10 @@ public static class ProjectResourceBuilderExtensions
                         e.UriScheme = scheme;
                         e.Transport = adjustTransport(e);
 
-                        // In the https case, we don't want this default endpoint to end up in the HTTPS_PORTS env var,
-                        // because the container likely won't be set up to listen on https (e.g. ACA case)
+                        // Keep track of the default https endpoint so we can exclude it from HTTPS_PORTS & Kestrel env vars
                         if (scheme == "https")
                         {
-                            builder.Resource.EndpointExcludedFromPortEnvironment = e;
+                            builder.Resource.DefaultHttpsEndpoint = e;
                         }
                     },
                     createIfNotExists: true);
@@ -525,7 +524,8 @@ public static class ProjectResourceBuilderExtensions
         // Turn endpoint ports into a single environment variable
         foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)))
         {
-            if (e.EndpointAnnotation.UriScheme == scheme && e.EndpointAnnotation != builder.Resource.EndpointExcludedFromPortEnvironment)
+            // Skip the default https endpoint because the container likely won't be set up to listen on https (e.g. ACA case)
+            if (e.EndpointAnnotation.UriScheme == scheme && e.EndpointAnnotation != builder.Resource.DefaultHttpsEndpoint)
             {
                 Debug.Assert(!e.EndpointAnnotation.FromLaunchProfile, "Endpoints from launch profile should never make it here");
 
@@ -555,6 +555,12 @@ public static class ProjectResourceBuilderExtensions
             {
                 foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)))
                 {
+                    // Skip the default https endpoint because the container likely won't be set up to listen on https (e.g. ACA case)
+                    if (e.EndpointAnnotation == builder.Resource.DefaultHttpsEndpoint)
+                    {
+                        continue;
+                    }
+
                     var url = new ReferenceExpressionBuilder();
 
                     // In Run mode, we keep the original Kestrel config host.
