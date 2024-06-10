@@ -264,13 +264,16 @@ public static class ProjectResourceBuilderExtensions
                 {
                     e.Port = endpoint.BindingAddress.Port;
                     e.UriScheme = endpoint.BindingAddress.Scheme;
-                    e.IsProxied = false; // turn off the proxy, as we cannot easily override Kestrel bindings
                     e.Transport = adjustTransport(e);
-                    builder.Resource.KestrelEndpointAnnotations.Add(e);
+                    // Keep track of the host separately since EndpointAnnotation doesn't have a host property
+                    builder.Resource.KestrelEndpointAnnotationHosts[e] = endpoint.BindingAddress.Host;
                 },
                 createIfNotExists: true);
             }
         }
+
+        // Use environment variables to override endpoints if there is a Kestrel config
+        builder.SetKestrelUrlOverrideEnvVariables();
 
         if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
@@ -334,9 +337,6 @@ public static class ProjectResourceBuilderExtensions
             {
                 builder.SetBothPortsEnvVariables();
             }
-
-            // Use an environment variable to override all Kestrel endpoint URLs in the container
-            builder.SetKestrelUrlOverrideEnvVariables();
 
             // If we aren't a web project (looking at both launch profile and Kestrel config) we don't automatically add bindings.
             if (launchProfile?.ApplicationUrl == null && !kestrelEndpointsByScheme.Any())
@@ -549,19 +549,25 @@ public static class ProjectResourceBuilderExtensions
     {
         builder.WithEnvironment(context =>
         {
-            // Kestrel endpoints take precedence over most other mechanisms, but we can override them
-            // with special config system environment variables.
-            foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)
-                && builder.Resource.KestrelEndpointAnnotations.Contains(e.EndpointAnnotation)))
+            // If there are any Kestrel endpoints, we need to override all endpoints, even if they
+            // don't come from Kestrel. This is because having Kestrel endpoints overrides eveything
+            if (builder.Resource.HasKestrelEndpoints)
             {
-                var url = new ReferenceExpressionBuilder();
+                foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)))
+                {
+                    var url = new ReferenceExpressionBuilder();
 
-                // Note that we ignore the original host, and instead use * to bind to all interfaces.
-                // This allows localhost kestrel enpoints to actually work within a container.
-                url.AppendLiteral($"{e.EndpointAnnotation.UriScheme}://*:");
-                url.Append($"{e.Property(EndpointProperty.TargetPort)}");
+                    // In Run mode, we keep the original Kestrel config host.
+                    // In Publish mode, we always use *, so it can work in a container (where localhost wouldn't work).
+                    var host = builder.ApplicationBuilder.ExecutionContext.IsRunMode &&
+                        builder.Resource.KestrelEndpointAnnotationHosts.TryGetValue(e.EndpointAnnotation, out var kestrelHost) ? kestrelHost : "*";
 
-                context.EnvironmentVariables[$"Kestrel__Endpoints__{e.EndpointAnnotation.Name}__Url"] = url.Build();
+                    url.AppendLiteral($"{e.EndpointAnnotation.UriScheme}://{host}:");
+                    url.Append($"{e.Property(EndpointProperty.TargetPort)}");
+
+                    // We use special config system environment variables to perform the override.
+                    context.EnvironmentVariables[$"Kestrel__Endpoints__{e.EndpointAnnotation.Name}__Url"] = url.Build();
+                }
             }
         });
     }
