@@ -9,6 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- AWS SDK for .NET dependencies -->
+    <PackageVersion Include="AspNetCore.HealthChecks.Azure.Messaging.EventHubs" Version="8.0.1" />
     <PackageVersion Include="AWSSDK.CloudFormation" Version="3.7.307.17" />
     <PackageVersion Include="AWSSDK.SQS" Version="3.7.301.4" />
     <PackageVersion Include="AWSSDK.SimpleNotificationService" Version="3.7.301.39" />
