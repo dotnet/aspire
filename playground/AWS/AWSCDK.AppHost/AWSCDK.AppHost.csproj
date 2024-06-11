@@ -5,6 +5,7 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <IsAspireHost>true</IsAspireHost>
+        <NoWarn>$(NoWarn);CS8002</NoWarn> <!-- AWS CDK packages are not signed -->
     </PropertyGroup>
 
     <ItemGroup>
@@ -15,8 +16,7 @@
       <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
       <ProjectReference Include="..\..\..\src\Aspire.Hosting.AWS\Aspire.Hosting.AWS.csproj" IsAspireProjectResource="false" />    
       <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireProjectResource="false" />
-      
-      <ProjectReference Include="..\WebApp\WebApp.csproj" />
+      <ProjectReference Include="..\Frontend\Frontend.csproj" />
     </ItemGroup>
 
 </Project>

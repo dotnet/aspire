@@ -1,9 +1,0 @@
-<Project>
-
-  <Import Project="..\Directory.Build.props" />
-
-  <PropertyGroup>
-    <SignAssembly>False</SignAssembly>
-  </PropertyGroup>
-
-</Project>
