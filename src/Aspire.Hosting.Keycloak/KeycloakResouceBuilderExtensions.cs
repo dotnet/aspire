@@ -41,7 +41,7 @@ public static class KeycloakResouceBuilderExtensions
             .WithImage(KeycloakContainerImageTags.Image)
             .WithImageRegistry(KeycloakContainerImageTags.Registry)
             .WithImageTag(KeycloakContainerImageTags.Tag)
-            .WithHttpEndpoint(port: port, targetPort: DefaultContainerPort)
+            .WithHttpEndpoint(port: port, targetPort: DefaultContainerPort, name: KeycloakResource.PrimaryEndpointName)
             .WithEnvironment(context =>
             {
                 context.EnvironmentVariables[AdminEnvVarName] = resource.AdminReference;

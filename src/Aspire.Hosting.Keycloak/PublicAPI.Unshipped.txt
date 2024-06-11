@@ -2,7 +2,9 @@
 Aspire.Hosting.ApplicationModel.KeycloakResource
 Aspire.Hosting.ApplicationModel.KeycloakResource.AdminParameter.get -> Aspire.Hosting.ApplicationModel.ParameterResource?
 Aspire.Hosting.ApplicationModel.KeycloakResource.AdminPasswordParameter.get -> Aspire.Hosting.ApplicationModel.ParameterResource!
+Aspire.Hosting.ApplicationModel.KeycloakResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
 Aspire.Hosting.ApplicationModel.KeycloakResource.KeycloakResource(string! name, Aspire.Hosting.ApplicationModel.ParameterResource? admin, Aspire.Hosting.ApplicationModel.ParameterResource! adminPassword) -> void
+Aspire.Hosting.ApplicationModel.KeycloakResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
 Aspire.Hosting.KeycloakResouceBuilderExtensions
 static Aspire.Hosting.KeycloakResouceBuilderExtensions.AddKeycloak(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, int? port = null, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>? admin = null, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>? adminPassword = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.KeycloakResource!>!
 static Aspire.Hosting.KeycloakResouceBuilderExtensions.WithDataVolume(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.KeycloakResource!>! builder, string? name = null, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.KeycloakResource!>!

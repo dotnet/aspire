@@ -1,0 +1,42 @@
+{
+  "definitions": {
+    "logLevel": {
+      "properties": {
+        "Keycloak": {
+          "$ref": "#/definitions/logLevelThreshold"
+        }
+      }
+    }
+  },
+  "properties": {
+    "Aspire": {
+      "type": "object",
+      "properties": {
+        "Keycloak": {
+          "type": "object",
+          "properties": {
+            "Audience": {
+              "type": "string",
+              "description": "Gets or sets the expected audience for any received OpenIdConnect token.\nThis value is used to validate the 'aud' claim in the token to ensure it's intended for the client application."
+            },
+            "ClientId": {
+              "type": "string",
+              "description": "Gets or sets the client ID used for authentication with the Keycloak server.\nThis ID uniquely identifies the client application within the Keycloak system."
+            },
+            "Endpoint": {
+              "type": "string",
+              "format": "uri",
+              "description": "The endpoint URI string of the Keycloak server to connect to."
+            },
+            "Realm": {
+              "type": "string",
+              "description": "Gets or sets the realm of the Keycloak server to connect to.\nThe realm is a logical grouping of users, roles, and clients in Keycloak."
+            }
+          },
+          "description": "Provides configuration settings for connecting to a Keycloak server."
+        }
+      }
+    }
+  },
+  "type": "object"
+}

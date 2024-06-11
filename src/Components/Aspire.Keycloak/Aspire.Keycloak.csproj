@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <PackageTags>$(ComponentCommonPackageTags) Keycloak</PackageTags>
+    <PackageIconFullPath>$(SharedDir)Keycloak_256x.png</PackageIconFullPath>
+    <Description>A Keycloak client that integrates with Aspire.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect"  />  
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+  </ItemGroup>
+  
+</Project>
