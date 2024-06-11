@@ -11,7 +11,8 @@
         "DOTNET_ENVIRONMENT": "Development",
         "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:16175",
         "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL": "https://localhost:17037",
-        "DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES": "true"
+        "DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES": "true",
+        "DCP_DIAGNOSTICS_LOG_LEVEL": "debug"
       }
     },
     "http": {

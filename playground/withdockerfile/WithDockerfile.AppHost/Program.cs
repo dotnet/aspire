@@ -10,8 +10,8 @@ var secret = builder.AddParameter("secret", secret: true);
 builder.AddContainer("mycontainer", "myimage")
        .WithDockerfile("qots")
        .WithBuildArg("GO_VERSION", goVersion)
-       .WithBuildSecret("SECRET_FILE", new FileInfo("Program.cs"))
-       .WithBuildSecret("SECRET_ENV", secret);
+       .WithBuildSecret("SECRET_ASFILE", new FileInfo("Program.cs"))
+       .WithBuildSecret("SECRET_ASENV", secret);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

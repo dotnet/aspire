@@ -1634,10 +1634,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     var dcpBuildSecret = new BuildContextSecret
                     {
-                        Id = buildSecret.Key,
-                        Type = "env",
-                        Source = buildSecret.Key,    
-                        Value = valueString
+                      Id = buildSecret.Key,
+                      Type = "env",
+                      Value = valueString
                     };
                     dcpBuildSecrets.Add(dcpBuildSecret);
                 }
