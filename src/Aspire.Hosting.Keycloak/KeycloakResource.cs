@@ -6,9 +6,10 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A resource that represents a Keycloak resource.
 /// </summary>
-public sealed class KeycloakResource : ContainerResource, IResourceWithServiceDiscovery
+public sealed class KeycloakResource : ContainerResource, IResourceWithConnectionString
 {
     private const string DefaultAdmin = "admin";
+    internal const string PrimaryEndpointName = "tcp";
 
     /// <param name="name">The name of the resource.</param>
     /// <param name="admin">A parameter that contains the Keycloak admin, or <see langword="null"/> to use a default value.</param>
@@ -20,6 +21,8 @@ public sealed class KeycloakResource : ContainerResource, IResourceWithServiceDi
         AdminParameter = admin;
         AdminPasswordParameter = adminPassword;
     }
+
+    private EndpointReference? _primaryEndpoint;
 
     /// <summary>
     /// Gets the parameter that contains the Keycloak admin.
@@ -35,4 +38,16 @@ public sealed class KeycloakResource : ContainerResource, IResourceWithServiceDi
     /// Gets the parameter that contains the Keycloak admin password.
     /// </summary>
     public ParameterResource AdminPasswordParameter { get; }
+
+    /// <summary>
+    /// Gets the primary endpoint for the Keycloak server.
+    /// </summary>
+    public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+
+    /// <summary>
+    /// Gets the connection string expression for the Keycloak endpoint.
+    /// </summary>
+    public ReferenceExpression ConnectionStringExpression =>
+        ReferenceExpression.Create(
+            $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Url)}");
 }
