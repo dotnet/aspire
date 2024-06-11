@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Immutable;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -81,10 +80,10 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
                 var type = spec.ConfigurationTypes[i];
                 var path = spec.ConfigurationPaths[i];
 
-                var pathSegments = ImmutableQueue<string>.Empty;
+                var pathSegments = new Queue<string>();
                 foreach (var segment in path.Split(':').Where(segment => !segment.StartsWith(RootPathPrefix)))
                 {
-                    pathSegments = pathSegments.Enqueue(segment);
+                    pathSegments.Enqueue(segment);
                 }
 
                 GenerateComponent(rootNode, type, pathSegments);
@@ -92,14 +91,14 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
         }
     }
 
-    private bool GenerateComponent(JsonObject currentNode, TypeSpec type, ImmutableQueue<string> pathSegments)
+    private bool GenerateComponent(JsonObject currentNode, TypeSpec type, Queue<string> pathSegments)
     {
-        if (pathSegments.IsEmpty)
+        if (pathSegments.Count == 0)
         {
             return GenerateType(currentNode, type);
         }
 
-        var pathSegment = pathSegments.Peek();
+        var pathSegment = pathSegments.Dequeue();
 
         var backupTypeNode = currentNode["type"];
         currentNode["type"] = "object";
@@ -120,7 +119,7 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
             ownsComponent = true;
         }
 
-        var hasGenerated = GenerateComponent(componentNode, type, pathSegments.Dequeue());
+        var hasGenerated = GenerateComponent(componentNode, type, pathSegments);
         if (!hasGenerated)
         {
             RestoreBackup(backupTypeNode, "type", currentNode);
