@@ -550,7 +550,7 @@ public static class ProjectResourceBuilderExtensions
         builder.WithEnvironment(context =>
         {
             // If there are any Kestrel endpoints, we need to override all endpoints, even if they
-            // don't come from Kestrel. This is because having Kestrel endpoints overrides eveything
+            // don't come from Kestrel. This is because having Kestrel endpoints overrides everything
             if (builder.Resource.HasKestrelEndpoints)
             {
                 foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)))
