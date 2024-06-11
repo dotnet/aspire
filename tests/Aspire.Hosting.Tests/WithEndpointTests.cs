@@ -470,7 +470,9 @@ public class WithEndpointTests
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
-                "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
+                "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+                "HTTP_PORTS": "{proj.bindings.hp.targetPort}",
+                "HTTPS_PORTS": "{proj.bindings.hps.targetPort}"
               },
               "bindings": {
                 "hp": {
@@ -488,6 +490,39 @@ public class WithEndpointTests
             """;
 
         Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task VerifyManifestProjectWithEndpointsSetsPortsEnvVariables()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var project = builder.AddProject<TestProject>("proj")
+            .WithHttpEndpoint()
+            .WithHttpEndpoint(name: "hp1", port: 5001)
+            .WithHttpEndpoint(name: "hp2", port: 5002, targetPort: 5003)
+            .WithHttpEndpoint(name: "hp3", targetPort: 5004)
+            .WithHttpEndpoint(name: "hp4")
+            .WithHttpsEndpoint()
+            .WithHttpsEndpoint(name: "hps1", port: 7001)
+            .WithHttpsEndpoint(name: "hps2", port: 7002, targetPort: 7003)
+            .WithHttpsEndpoint(name: "hps3", targetPort: 7004)
+            .WithHttpsEndpoint(name: "hps4", targetPort: 7005);
+
+        var manifest = await ManifestUtils.GetManifest(project.Resource);
+
+        var expectedEnv =
+            """
+            {
+              "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+              "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+              "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+              "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+              "HTTP_PORTS": "{proj.bindings.http.targetPort};{proj.bindings.hp1.targetPort};{proj.bindings.hp2.targetPort};{proj.bindings.hp3.targetPort};{proj.bindings.hp4.targetPort}",
+              "HTTPS_PORTS": "{proj.bindings.https.targetPort};{proj.bindings.hps1.targetPort};{proj.bindings.hps2.targetPort};{proj.bindings.hps3.targetPort};{proj.bindings.hps4.targetPort}"
+            }
+            """;
+
+        Assert.Equal(expectedEnv, manifest["env"]!.ToString());
     }
 
     [Fact]

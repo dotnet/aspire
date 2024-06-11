@@ -131,6 +131,11 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     internal bool FromLaunchProfile { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether to skip adding the endpoint from HTTPS_PORTS env var
+    /// </summary>
+    internal bool ExcludeFromPortEnvironment { get; set; }
+
+    /// <summary>
     /// The environment variable that contains the target port. Setting prevents a variable from flowing into ASPNETCORE_URLS for project resources.
     /// </summary>
     internal string? TargetPortEnvironmentVariable { get; set; }
