@@ -7,9 +7,6 @@ using System.Net.Sockets;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Used to represent some special endpoints that require different handling
-/// </summary>
-/// <summary>
 /// Represents an endpoint annotation that describes how a service should be bound to a network.
 /// </summary>
 /// <remarks>
