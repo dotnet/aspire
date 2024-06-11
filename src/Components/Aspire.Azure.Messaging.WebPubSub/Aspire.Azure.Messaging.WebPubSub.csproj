@@ -7,6 +7,8 @@
     <Description>A service client for Azure Web PubSub that integrates with Aspire, including health checks, logging and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzureWebPubSub_256x.png</PackageIconFullPath>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
+    <!-- Disable package validation as this package hasn't shipped yet. -->
+    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>
