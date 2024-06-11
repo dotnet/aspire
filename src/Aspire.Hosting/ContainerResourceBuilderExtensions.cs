@@ -295,6 +295,41 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds a Dockerfile to the application model that can be treated like a container resource.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="contextPath">Path to be used as the context for the container image build.</param>
+    /// <param name="dockerfilePath">Override path for the Dockerfile if it is not in the <paramref name="contextPath"/>.</param>
+    /// <param name="stage">The stage representing the image to be published in a multi-stage Dockerfile.</param>
+    /// <returns>A <see cref="IResourceBuilder{ContainerResource}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// Both the <paramref name="contextPath"/> and <paramref name="dockerfilePath"/> are relative to the AppHost directory unless
+    /// they are fully qualified. If the <paramref name="dockerfilePath"/> is not provided, the path is assumed to be Dockerfile relative
+    /// to the <paramref name="contextPath"/>.
+    /// </para>
+    /// <para>
+    /// When generating the manifest for deployment tools, the <see cref="AddDockerfile(IDistributedApplicationBuilder, string, string, string?, string?)"/>
+    /// method results in an additional attribute being added to the `container.v1` resource type which contains the configuration
+    /// necessary to allow the deployment tool to build the container image prior to deployment.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Creates a container called <c>mycontainer</c> based on a Dockerfile in the context path <c>path/to/context</c>.
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// builder.AddDockerfile("mycontainer", "path/to/context");
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, string name, string contextPath, string? dockerfilePath = null, string? stage = null)
+    {
+        return builder.AddContainer(name, $"{name}-image")
+                      .WithDockerfile(contextPath, dockerfilePath, stage);
+    }
+
+    /// <summary>
     /// Adds a build argument when the container is build from a Dockerfile.
     /// </summary>
     /// <typeparam name="T">The type of container resoruce.</typeparam>

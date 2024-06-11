@@ -7,8 +7,7 @@ builder.Configuration["Parameters:goversion"] = "1.22"; // Just for validating p
 var goVersion = builder.AddParameter("goversion");
 var secret = builder.AddParameter("secret", secret: true);
 
-builder.AddContainer("mycontainer", "myimage")
-       .WithDockerfile("qots")
+builder.AddDockerfile("mycontainer", "qots")
        .WithBuildArg("GO_VERSION", goVersion)
        .WithBuildSecret("SECRET_ASFILE", new FileInfo("Program.cs"))
        .WithBuildSecret("SECRET_ASENV", secret);

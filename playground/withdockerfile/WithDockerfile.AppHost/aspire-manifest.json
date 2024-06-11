@@ -10,6 +10,16 @@
         }
       }
     },
+    "secret": {
+      "type": "parameter.v0",
+      "value": "{secret.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
     "mycontainer": {
       "type": "container.v1",
       "build": {
@@ -17,6 +27,16 @@
         "dockerfile": "qots/Dockerfile",
         "args": {
           "GO_VERSION": "{goversion.value}"
+        },
+        "secrets": {
+          "SECRET_ASFILE": {
+            "type": "file",
+            "source": "Program.cs"
+          },
+          "SECRET_ASENV": {
+            "type": "env",
+            "value": "{secret.value}"
+          }
         }
       }
     }
