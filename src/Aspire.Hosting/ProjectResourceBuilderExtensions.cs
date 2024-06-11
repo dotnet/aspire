@@ -262,7 +262,19 @@ public static class ProjectResourceBuilderExtensions
             {
                 builder.WithEndpoint(schemeAsEndpointName ?? endpoint.EndpointName, e =>
                 {
-                    e.Port = endpoint.BindingAddress.Port;
+
+                    if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+                    {
+                        // In Publish mode, we could not set the Port because it needs to be the standard
+                        // port in scenarios like ACA. So we set the target instead, since we can control that
+                        e.TargetPort = endpoint.BindingAddress.Port;
+                    }
+                    else
+                    {
+                        // Locally, there is no issue with setting the Port. And in fact, we could not set the
+                        // target port because that would break replica sets
+                        e.Port = endpoint.BindingAddress.Port;
+                    }
                     e.UriScheme = endpoint.BindingAddress.Scheme;
                     e.Transport = adjustTransport(e);
                     // Keep track of the host separately since EndpointAnnotation doesn't have a host property
@@ -344,10 +356,15 @@ public static class ProjectResourceBuilderExtensions
                 return builder;
             }
 
-            string[] schemes = ["http", "https"];
-            foreach (var scheme in schemes)
+            EndpointAnnotation GetOrCreateEndpointForScheme(string scheme)
             {
-                if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == scheme || string.Equals(sb.Name, scheme, StringComparisons.EndpointAnnotationName)))
+                EndpointAnnotation? GetEndpoint(string scheme) =>
+                    projectResource.Annotations.OfType<EndpointAnnotation>().FirstOrDefault(sb => sb.UriScheme == scheme || string.Equals(sb.Name, scheme, StringComparisons.EndpointAnnotationName));
+
+                var endpoint = GetEndpoint(scheme);
+
+                // If there is no endpoint named after the scheme, create one
+                if (endpoint is null)
                 {
                     builder.WithEndpoint(scheme, e =>
                     {
@@ -361,8 +378,19 @@ public static class ProjectResourceBuilderExtensions
                         }
                     },
                     createIfNotExists: true);
+
+                    endpoint = GetEndpoint(scheme)!;
                 }
+
+                return endpoint;
             }
+
+            var httpEndpoint = GetOrCreateEndpointForScheme("http");
+            var httpsEndpoint = GetOrCreateEndpointForScheme("https");
+
+            // We make sure that the http and https endpoints have the same target port
+            var defaultEndpointTargetPort = httpEndpoint.TargetPort ?? httpsEndpoint.TargetPort;
+            httpEndpoint.TargetPort = httpsEndpoint.TargetPort = defaultEndpointTargetPort;
         }
 
         return builder;

@@ -150,12 +150,13 @@ public class KestrelConfigTests
                   "scheme": "http",
                   "protocol": "tcp",
                   "transport": "http",
-                  "port": 5002
+                  "targetPort": 5002
                 },
                 "https": {
                   "scheme": "https",
                   "protocol": "tcp",
-                  "transport": "http"
+                  "transport": "http",
+                  "targetPort": 5002
                 }
               }
             }
@@ -197,18 +198,19 @@ public class KestrelConfigTests
                   "scheme": "http",
                   "protocol": "tcp",
                   "transport": "http2",
-                  "port": 5002
+                  "targetPort": 5002
                 },
                 "SecondHttpEndpoint": {
                   "scheme": "http",
                   "protocol": "tcp",
                   "transport": "http2",
-                  "port": 5003
+                  "targetPort": 5003
                 },
                 "https": {
                   "scheme": "https",
                   "protocol": "tcp",
-                  "transport": "http2"
+                  "transport": "http2",
+                  "targetPort": 5002
                 },
                 "ExplicitProxiedHttp": {
                   "scheme": "http",

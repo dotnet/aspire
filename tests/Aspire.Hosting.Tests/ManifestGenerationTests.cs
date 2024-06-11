@@ -478,12 +478,13 @@ public class ManifestGenerationTests
                       "scheme": "http",
                       "protocol": "tcp",
                       "transport": "http",
-                      "port": 5271
+                      "targetPort": 5271
                     },
                     "https": {
                       "scheme": "https",
                       "protocol": "tcp",
-                      "transport": "http"
+                      "transport": "http",
+                      "targetPort": 5271
                     }
                   }
                 },
