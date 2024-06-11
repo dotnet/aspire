@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -116,6 +117,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             {
                 _visibleResourceTypes.Clear();
             }
+
+            StateHasChanged();
         }
     }
 
@@ -227,6 +230,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private async Task ClearSelectedResourceAsync(bool causedByUserAction = false)
     {
         SelectedResource = null;
+
+        await InvokeAsync(StateHasChanged);
 
         if (_elementIdBeforeDetailsViewOpened is not null && causedByUserAction)
         {

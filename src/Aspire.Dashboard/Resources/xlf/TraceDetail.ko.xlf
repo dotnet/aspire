@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailMobileToolbarButtonText">
-        <source>View trace details</source>
-        <target state="new">View trace details</target>
+        <source>Trace details</source>
+        <target state="new">Trace details</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailPageTitle">

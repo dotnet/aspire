@@ -78,7 +78,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to View trace details.
+        ///   Looks up a localized string similar to Trace details.
         /// </summary>
         public static string TraceDetailMobileToolbarButtonText {
             get {

@@ -444,11 +444,19 @@ window.getWindowDimensions = function() {
 }
 
 window.listenToWindowResize = function(dotnetHelper) {
-    window.addEventListener('load', () => {
-        dotnetHelper.invokeMethodAsync('OnResizeAsync', { width: window.innerWidth, height: window.innerHeight });
-    });
+    function debounce(func, timeout = 150){
+        let timer;
+        return (...args) => {
+            clearTimeout(timer);
+            timer = setTimeout(() => { func.apply(this, args); }, timeout);
+        };
+    }
 
-    window.addEventListener('resize', () => {
+    const debouncedResizeListener = debounce(() => {
         dotnetHelper.invokeMethodAsync('OnResizeAsync', { width: window.innerWidth, height: window.innerHeight });
-    });
+    })
+
+    window.addEventListener('load', debouncedResizeListener);
+
+    window.addEventListener('resize', debouncedResizeListener);
 }

@@ -7,7 +7,7 @@
     @if (ViewportInformation.IsDesktop)
     {
         <div style="grid-area: page-header">
-            @if (AddNewlineOnDesktopToolbar)
+            @if (AddNewlineOnToolbar)
             {
                 @PageTitleSection
 
@@ -38,7 +38,7 @@
     else
     {
         <FluentToolbar Orientation="Orientation.Horizontal" Style="grid-area: page-header">
-            @if (MobilePageTitleToolbarSection is null)
+            @if (MobilePageTitleToolbarSection is null && (MobileToolbarButtonText is null || !AddNewlineOnToolbar))
             {
                 @PageTitleSection
 

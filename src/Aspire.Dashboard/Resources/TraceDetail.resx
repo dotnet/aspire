@@ -141,6 +141,6 @@
     <comment>{0} is an identifier</comment>
   </data>
   <data name="TraceDetailMobileToolbarButtonText" xml:space="preserve">
-    <value>View trace details</value>
+    <value>Trace details</value>
   </data>
 </root>

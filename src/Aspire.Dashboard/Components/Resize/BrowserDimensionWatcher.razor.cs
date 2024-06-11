@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -9,14 +8,11 @@ namespace Aspire.Dashboard.Components.Resize;
 
 public class BrowserDimensionWatcher : ComponentBase
 {
-    [Parameter]
-    public ViewportInformation? ViewportInformation { get; set; }
+    [Parameter] public ViewportInformation? ViewportInformation { get; set; }
 
-    [Parameter]
-    public EventCallback<ViewportInformation?> ViewportInformationChanged { get; set; }
+    [Parameter] public EventCallback<ViewportInformation?> ViewportInformationChanged { get; set; }
 
-    [Inject]
-    public required IJSRuntime JS { get; init; }
+    [Inject] public required IJSRuntime JS { get; init; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -35,20 +31,24 @@ public class BrowserDimensionWatcher : ComponentBase
     [JSInvokable]
     public async Task OnResizeAsync(ViewportSize viewportSize)
     {
-        if (ViewportInformation?.Width == viewportSize.Width && ViewportInformation?.Height == viewportSize.Height)
-        {
-            return;
-        }
+        var newViewportInformation = GetViewportInformation(viewportSize);
 
-        ViewportInformation = GetViewportInformation(viewportSize);
-        await ViewportInformationChanged.InvokeAsync(ViewportInformation);
+        if (newViewportInformation.IsDesktop != ViewportInformation!.IsDesktop || newViewportInformation.IsUltraLowHeight != ViewportInformation.IsUltraLowHeight)
+        {
+            ViewportInformation = newViewportInformation;
+            await ViewportInformationChanged.InvokeAsync(newViewportInformation);
+        }
     }
 
     private static ViewportInformation GetViewportInformation(ViewportSize viewportSize)
     {
-        return new ViewportInformation(viewportSize.Height, viewportSize.Width);
+        return new ViewportInformation(IsDesktop: viewportSize.Width > 768, IsUltraLowHeight: viewportSize.Height < 400);
+    }
+
+    public static ViewportInformation Create(int height, int width)
+    {
+        return new ViewportInformation(IsDesktop: width > 768, IsUltraLowHeight: height < 400);
     }
 
     public record ViewportSize(int Width, int Height);
 }
-

@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -18,7 +18,7 @@ public partial class AspirePageContentLayout : ComponentBase
     [Parameter] public RenderFragment? MobilePageTitleToolbarSection { get; set; }
 
     [Parameter] public RenderFragment? ToolbarSection { get; set; }
-    [Parameter] public bool AddNewlineOnDesktopToolbar { get; set; }
+    [Parameter] public bool AddNewlineOnToolbar { get; set; }
 
     [Parameter] public RenderFragment? MainSection { get; set; }
 
@@ -53,7 +53,7 @@ public partial class AspirePageContentLayout : ComponentBase
             new DialogParameters
             {
                 Alignment = HorizontalAlignment.Center,
-                Title = ControlsStringsLoc[nameof(ControlsStrings.ChartContainerFiltersHeader)],
+                Title = MobileToolbarButtonText ?? ControlsStringsLoc[nameof(ControlsStrings.ChartContainerFiltersHeader)],
                 Width = "100%",
                 Height = "90%",
                 Modal = false,
