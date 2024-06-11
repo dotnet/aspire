@@ -13,7 +13,7 @@ public class ElasticsearchResource : ContainerResource, IResourceWithConnectionS
     //All client libraries will use this port to talk to Elasticsearch
     internal const string PrimaryEndpointName = "http";
 
-    //this endpoit is a custom binary protocol used for communications between nodes in a cluster.
+    //this endpoint is a custom binary protocol used for communications between nodes in a cluster.
     //For things like cluster updates, master elections, nodes joining/leaving, shard allocation
     internal const string InternalEndpointName = "internal";
 
