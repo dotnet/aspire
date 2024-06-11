@@ -561,18 +561,15 @@ public static class ProjectResourceBuilderExtensions
                         continue;
                     }
 
-                    var url = new ReferenceExpressionBuilder();
-
                     // In Run mode, we keep the original Kestrel config host.
                     // In Publish mode, we always use *, so it can work in a container (where localhost wouldn't work).
                     var host = builder.ApplicationBuilder.ExecutionContext.IsRunMode &&
                         builder.Resource.KestrelEndpointAnnotationHosts.TryGetValue(e.EndpointAnnotation, out var kestrelHost) ? kestrelHost : "*";
 
-                    url.AppendLiteral($"{e.EndpointAnnotation.UriScheme}://{host}:");
-                    url.Append($"{e.Property(EndpointProperty.TargetPort)}");
+                    var url = ReferenceExpression.Create($"{e.EndpointAnnotation.UriScheme}://{host}:{e.Property(EndpointProperty.TargetPort)}");
 
                     // We use special config system environment variables to perform the override.
-                    context.EnvironmentVariables[$"Kestrel__Endpoints__{e.EndpointAnnotation.Name}__Url"] = url.Build();
+                    context.EnvironmentVariables[$"Kestrel__Endpoints__{e.EndpointAnnotation.Name}__Url"] = url;
                 }
             }
         });
