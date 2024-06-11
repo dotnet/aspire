@@ -224,6 +224,7 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     private void OnBuildingCore(DistributedApplicationBuilder applicationBuilder)
     {
         var services = applicationBuilder.Services;
+        services.AddHostedService<ResourceLogAggregatorBackgroundService>();
         services.AddHttpClient();
 
         InterceptHostCreation(applicationBuilder);
