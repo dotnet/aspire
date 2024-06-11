@@ -13,6 +13,7 @@ namespace Aspire.Hosting.Testing;
 internal sealed class ResourceLogAggregatorBackgroundService(
     ResourceNotificationService resourceNotificationService,
     ResourceLoggerService resourceLoggerService,
+    IHostEnvironment hostEnvironment,
     ILoggerFactory loggerFactory)
     : BackgroundService
 {
@@ -44,13 +45,26 @@ internal sealed class ResourceLogAggregatorBackgroundService(
 
     private async Task WatchResourceLogs(IResource resource, string resourceId, CancellationToken cancellationToken)
     {
-        var logger = loggerFactory.CreateLogger($"ResourceLogs:{resource.Name}");
+        var applicationName = hostEnvironment.ApplicationName;
+        var logger = loggerFactory.CreateLogger($"{applicationName}.Resources.{resource.Name}");
         await foreach (var logEvent in resourceLoggerService.WatchAsync(resourceId).WithCancellation(cancellationToken))
         {
             foreach (var line in logEvent)
             {
                 var logLevel = line.IsErrorMessage ? LogLevel.Error : LogLevel.Information;
-                logger.Log(logLevel, "Resource '{ResourceName}' logged line: {LineNumber} {LineContent}", resource.Name, line.LineNumber, line.Content);
+
+                if (logger.IsEnabled(logLevel))
+                {
+                    // Log message format here approximates the format shown in the dashboard
+                    if (line.IsErrorMessage)
+                    {
+                        logger.Log(logLevel, "{LineNumber} : [stderr] {LineContent}", line.LineNumber, line.Content);
+                    }
+                    else
+                    {
+                        logger.Log(logLevel, "{LineNumber}: {LineContent}", line.LineNumber, line.Content);
+                    }
+                }
             }
         }
     }
