@@ -35,11 +35,7 @@ public class KestrelConfigTests
             }
             );
 
-        // Allocate all the endpoints
-        foreach (var e in resource.Annotations.OfType<EndpointAnnotation>())
-        {
-            e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", e.Port ?? 0, targetPortExpression: $"port_{e.Name}");
-        }
+        AllocateTestEndpoints(resource);
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
 
@@ -101,11 +97,7 @@ public class KestrelConfigTests
                 builder.WithHttpEndpoint(5018, name: "ExplicitNoProxyHttp", isProxied: false);
             });
 
-        // Allocate all the endpoints
-        foreach (var e in resource.Annotations.OfType<EndpointAnnotation>())
-        {
-            e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", e.Port ?? 0, targetPortExpression: $"port_{e.Name}");
-        }
+        AllocateTestEndpoints(resource);
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
 
@@ -325,6 +317,13 @@ public class KestrelConfigTests
               }
             }
             """;
+        }
+    }
+    private static void AllocateTestEndpoints(ProjectResource resource)
+    {
+        foreach (var endpoint in resource.Annotations.OfType<EndpointAnnotation>())
+        {
+            endpoint.AllocatedEndpoint = new AllocatedEndpoint(endpoint, "localhost", endpoint.Port ?? 0, targetPortExpression: $"port_{endpoint.Name}");
         }
     }
 }
