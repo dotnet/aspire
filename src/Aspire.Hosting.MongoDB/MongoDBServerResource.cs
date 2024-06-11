@@ -6,8 +6,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A resource that represents a MongoDB container.
 /// </summary>
-/// <param name="name">The name of the resource.</param>
-public class MongoDBServerResource(string name) : ContainerResource(name), IResourceWithConnectionString
+public class MongoDBServerResource: ContainerResource, IResourceWithConnectionString
 {
     internal const string PrimaryEndpointName = "tcp";
     private const string DefaultUserName = "admin";
@@ -22,12 +21,19 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     /// <param name="name">The name of the resource.</param>
     /// <param name="userNameParameter">A parameter that contains the MongoDb server user name, or <see langword="null"/> to use a default value.</param>
     /// <param name="passwordParameter">A parameter that contains the MongoDb server password.</param>
-    /// <param name="authenticationMechanism">A parameter that contains the MongoDb server authentication mechanism, or <see langword="null"/> to use a default value.</param>
-    public MongoDBServerResource(string name, ParameterResource? userNameParameter, ParameterResource? passwordParameter, ParameterResource? authenticationMechanism) : this(name)
+    public MongoDBServerResource(string name, ParameterResource? userNameParameter, ParameterResource? passwordParameter) : base(name)
     {
         UserNameParameter = userNameParameter;
         PasswordParameter = passwordParameter;
-        AuthenticationMechanismParameter = authenticationMechanism;
+    }
+
+    /// <summary>
+    /// Initialize a resource that represents a MongoDB container.
+    /// </summary>
+    /// <param name="name">The name of the resource.</param>
+    [Obsolete]
+    public MongoDBServerResource(string name) : base(name)
+    {
     }
 
     /// <summary>
@@ -39,16 +45,7 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     /// Gets the parameter that contains the MongoDb server password.
     /// </summary>
     public ParameterResource? PasswordParameter { get; }
-
-    /// <summary>
-    /// Gets the parameter that contains the MongoDb server authentication mechanism.
-    /// </summary>
-    public ParameterResource? AuthenticationMechanismParameter { get; }
-
-    internal ReferenceExpression AuthenticationMechanismReference =>
-        AuthenticationMechanismParameter is not null ?
-            ReferenceExpression.Create($"{AuthenticationMechanismParameter}") :
-            ReferenceExpression.Create($"{DefaultAuthenticationMechanism}");
+        
     /// <summary>
     /// Gets the parameter that contains the MongoDb server username.
     /// </summary>
@@ -95,7 +92,7 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
             }
             else
             {
-                return ReferenceExpression.Create($"?authSource={DefaultAuthenticationDatabase}&authMechanism={AuthenticationMechanismReference}");
+                return ReferenceExpression.Create($"?authSource={DefaultAuthenticationDatabase}&authMechanism={DefaultAuthenticationMechanism}");
             }
         }
     }
