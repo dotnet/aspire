@@ -4,8 +4,7 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentCommonPackageTags) Keycloak</PackageTags>
-    <PackageIconFullPath>$(SharedDir)Keycloak_256x.png</PackageIconFullPath>
-    <Description>A Keycloak client that integrates with Aspire.</Description>
+    <Description>Configures Keycloak as the authentication provider for ASP.NET Core applications.</Description>
   </PropertyGroup>
 
   <ItemGroup>
