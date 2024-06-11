@@ -2,13 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using Aspire.Hosting.Redis;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace Aspire.Hosting.Tests.Redis;
+namespace Aspire.Hosting.Redis.Tests;
 
 public class AddRedisTests
 {
@@ -125,7 +124,8 @@ public class AddRedisTests
     public void WithRedisCommanderSupportsChangingContainerImageValues()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.AddRedis("myredis").WithRedisCommander(c => {
+        builder.AddRedis("myredis").WithRedisCommander(c =>
+        {
             c.WithImageRegistry("example.mycompany.com");
             c.WithImage("customrediscommander");
             c.WithImageTag("someothertag");
@@ -142,7 +142,8 @@ public class AddRedisTests
     public void WithRedisCommanderSupportsChangingHostPort()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.AddRedis("myredis").WithRedisCommander(c => {
+        builder.AddRedis("myredis").WithRedisCommander(c =>
+        {
             c.WithHostPort(1000);
         });
 

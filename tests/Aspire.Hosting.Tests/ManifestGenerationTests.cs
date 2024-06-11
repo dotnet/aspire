@@ -104,16 +104,7 @@ public class ManifestGenerationTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
-              "image": "myprivateregistry.company.com/redis:latest",
-              "bindings": {
-                "tcp": {
-                  "scheme": "tcp",
-                  "protocol": "tcp",
-                  "transport": "tcp",
-                  "targetPort": 6379
-                }
-              }
+              "image": "myprivateregistry.company.com/redis:latest"
             }
             """;
         Assert.Equal(expectedManifest, redisManifest.ToString());

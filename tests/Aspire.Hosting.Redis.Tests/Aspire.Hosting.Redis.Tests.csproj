@@ -23,6 +23,7 @@
     <Compile Include="..\Aspire.Hosting.Tests\Utils\FileUtil.cs" Link="Utils\FileUtil.cs" />
     <Compile Include="..\Aspire.Hosting.Tests\Utils\ManifestUtils.cs" Link="Utils\ManifestUtils.cs" />
     <Compile Include="..\Aspire.Hosting.Tests\Utils\TestDistributedApplicationBuilder.cs" Link="Utils\TestDistributedApplicationBuilder.cs" />
+    <Compile Include="..\Aspire.Hosting.Tests\XunitAttributes.cs" Link="XunitAttributes.cs" />
     
     <Content Include="$(RepoRoot)src\Schema\aspire-8.0.json" Link="Schema\aspire-8.0.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
