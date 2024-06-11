@@ -35,14 +35,19 @@ public class KestrelConfigTests
             }
             );
 
-        // Even though we're in Run mode, we need to get the env in Publish mode since ports don't get allocated
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Publish);
+        // Allocate all the endpoints
+        foreach (var e in resource.Annotations.OfType<EndpointAnnotation>())
+        {
+            e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", e.Port ?? 0, targetPortExpression: $"port_{e.Name}");
+        }
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
 
         // When using Kestrel, we should not be setting ASPNETCORE_URLS at all
         Assert.False(config.ContainsKey("ASPNETCORE_URLS"));
 
         // Instead, we should be setting the Kestrel override
-        Assert.Equal("http://*:{projectName.bindings.http.targetPort}", config["Kestrel__Endpoints__http__Url"]);
+        Assert.Equal("http://*:port_http", config["Kestrel__Endpoints__http__Url"]);
     }
 
     [Fact]
@@ -96,32 +101,36 @@ public class KestrelConfigTests
                 builder.WithHttpEndpoint(5018, name: "ExplicitNoProxyHttp", isProxied: false);
             });
 
-        // Even though we're in Run mode, we need to get the env in Publish mode since ports don't get allocated
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Publish);
+        // Allocate all the endpoints
+        foreach (var e in resource.Annotations.OfType<EndpointAnnotation>())
+        {
+            e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", e.Port ?? 0, targetPortExpression: $"port_{e.Name}");
+        }
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
 
         Assert.Collection(
             config.Where(envVar => envVar.Key.StartsWith("Kestrel__")),
             envVar =>
             {
                 Assert.Equal("Kestrel__Endpoints__FirstHttpEndpoint__Url", envVar.Key);
-                Assert.Equal("http://*:{projectName.bindings.FirstHttpEndpoint.targetPort}", envVar.Value);
+                Assert.Equal("http://*:port_FirstHttpEndpoint", envVar.Value);
             },
             envVar =>
             {
                 Assert.Equal("Kestrel__Endpoints__SecondHttpEndpoint__Url", envVar.Key);
                 // Note that localhost (from Kestrel config) is preserved at runtime
-                Assert.Equal("http://localhost:{projectName.bindings.SecondHttpEndpoint.targetPort}", envVar.Value);
+                Assert.Equal("http://localhost:port_SecondHttpEndpoint", envVar.Value);
             },
             envVar =>
             {
                 Assert.Equal("Kestrel__Endpoints__ExplicitProxiedHttp__Url", envVar.Key);
-                Assert.Equal("http://*:{projectName.bindings.ExplicitProxiedHttp.targetPort}", envVar.Value);
+                Assert.Equal("http://*:port_ExplicitProxiedHttp", envVar.Value);
             },
             envVar =>
             {
-                // Proxy vs no proxy doesn't make a difference here, since we're always dealing with the target port
                 Assert.Equal("Kestrel__Endpoints__ExplicitNoProxyHttp__Url", envVar.Key);
-                Assert.Equal("http://*:{projectName.bindings.ExplicitNoProxyHttp.targetPort}", envVar.Value);
+                Assert.Equal("http://*:5018", envVar.Value);
             }
             );
     }
@@ -266,7 +275,7 @@ public class KestrelConfigTests
         {
             Profiles = new()
             {
-                ["OnlyHttp"] = new ()
+                ["OnlyHttp"] = new()
                 {
                     ApplicationUrl = "http://localhost:5031",
                 }
