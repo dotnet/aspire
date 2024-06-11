@@ -15,8 +15,6 @@ namespace Aspire.Hosting.ApplicationModel;
 public class ResourceNotificationService(ILogger<ResourceNotificationService> logger)
 {
     private static readonly TimeSpan s_defaultWaitForResourceStateTimeout = TimeSpan.FromSeconds(60);
-    // For each resource we have a TCS for each state we see it move to or a caller is waiting for it to move to
-    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, TaskCompletionSource>> _resourcesStateChanges = new(StringComparers.ResourceName);
     // Resource state is keyed by the resource and the unique name of the resource. This could be the name of the resource, or a replica ID.
     private readonly ConcurrentDictionary<(IResource, string), ResourceNotificationState> _resourceNotificationStates = new();
     private readonly ILogger<ResourceNotificationService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -48,11 +46,18 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
     /// <param name="targetState">The state to wait for the resource to transition to. See <see cref="KnownResourceStates"/> for common states. Defaults to <see cref="KnownResourceStates.Running"/>.</param>
     /// <param name="cancellationToken">The cancellation token to monitor to cancel the wait operation. If <c>null</c> defaults to waiting for 60 seconds.</param>
     /// <returns></returns>
-    public Task WaitForResourceAsync(string resourceName, string? targetState = null, CancellationToken? cancellationToken = null)
+    public async Task WaitForResourceAsync(string resourceName, string? targetState = null, CancellationToken? cancellationToken = null)
     {
         var stateToWaitFor = targetState ?? KnownResourceStates.Running;
         var token = cancellationToken ?? new CancellationTokenSource(s_defaultWaitForResourceStateTimeout).Token;
-        return GetResourceStateChangeTcs(resourceName, stateToWaitFor).Task.WaitAsync(CancellationTokenSource.CreateLinkedTokenSource(token, _applicationStopping).Token);
+        await foreach (var resourceEvent in WatchAsync(token).WithCancellation(token))
+        {
+            if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName)
+                && string.Equals(stateToWaitFor, resourceEvent.Snapshot.State?.Text, StringComparisons.ResourceState))
+            {
+                return;
+            }
+        }
     }
 
     /// <summary>
@@ -112,12 +117,6 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
 
             notificationState.LastSnapshot = newState;
 
-            if (newState.State?.Text is { Length: > 0 } newStateText)
-            {
-                // Notify callers of WaitForResourceAsync of the new state
-                GetResourceStateChangeTcs(resource.Name, newStateText).TrySetResult();
-            }
-
             OnResourceUpdated?.Invoke(new ResourceEvent(resource, resourceId, newState));
 
             if (_logger.IsEnabled(LogLevel.Debug))
@@ -146,11 +145,6 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
     {
         return PublishUpdateAsync(resource, resource.Name, stateFactory);
     }
-
-    private TaskCompletionSource GetResourceStateChangeTcs(string resourceName, string targetState)
-        => _resourcesStateChanges
-            .GetOrAdd(resourceName, _ => new(StringComparers.ResourceState))
-            .GetOrAdd(targetState, _ => new());
 
     private static CustomResourceSnapshot GetCurrentSnapshot(IResource resource, ResourceNotificationState notificationState)
     {
