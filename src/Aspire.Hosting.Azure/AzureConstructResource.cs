@@ -20,7 +20,7 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
     /// <summary>
     /// Callback for configuring construct.
     /// </summary>
-    public Action<ResourceModuleConstruct> ConfigureConstruct { get; } = configureConstruct;
+    public Action<ResourceModuleConstruct> ConfigureConstruct { get; internal set; } = configureConstruct;
 
     /// <inheritdoc/>
     public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
@@ -99,6 +99,23 @@ public static class AzureConstructResourceExtensions
         var resource = new AzureConstructResource(name, configureConstruct);
         return builder.AddResource(resource)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
+    }
+
+    /// <summary>
+    /// Configures the Azure construct resource.
+    /// </summary>
+    /// <typeparam name="T">Type of the CDK resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="configure">The configuration callback.</param>
+    /// <returns>The resource builder.</returns>
+    public static IResourceBuilder<T> ConfigureConstruct<T>(this IResourceBuilder<T> builder, Action<ResourceModuleConstruct> configure) 
+        where T : AzureConstructResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        builder.Resource.ConfigureConstruct += configure;
+        return builder;
     }
 
     /// <summary>
