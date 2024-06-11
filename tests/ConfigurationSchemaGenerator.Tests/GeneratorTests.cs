@@ -69,6 +69,7 @@ public partial class GeneratorTests
     [InlineData("\r\nabc\r\ndef\r\nghi\r\n", "abc def ghi")]
     [InlineData("abc\r\n def  \r\n ghi", "abc def ghi")]
     [InlineData(" \r\n  \r\n ", "")]
+    [InlineData(" abc \n \n def ", "abc\n\ndef")]
     public void ShouldRemoveInsignificantWhitespace(string input, string expected)
     {
         var summaryElement = ConvertToSummaryElement(input);
@@ -85,6 +86,7 @@ public partial class GeneratorTests
     [InlineData("abc<br/>def<br/>ghi", "abc\ndef\nghi")]
     [InlineData("<br/>abc<br/>def<br/>ghi<br/>", "abc\ndef\nghi")]
     [InlineData("abc\n<br />\ndef", "abc\ndef")]
+    [InlineData("abc\n\ndef", "abc\n\ndef")]
     public void ShouldInsertLineBreaks(string input, string expected)
     {
         var summaryElement = ConvertToSummaryElement(input);

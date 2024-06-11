@@ -6,7 +6,7 @@
       "properties": {
         "PropertyOfBool": {
           "type": "boolean",
-          "description": "A value of type 'System.Boolean'.",
+          "description": "A value of type 'System.Boolean'.\n\nBlank lines are preserved.",
           "default": true
         },
         "PropertyOfByteArray": {

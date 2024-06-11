@@ -1,10 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.DotnetRuntime.Extensions;
@@ -13,7 +15,7 @@ using InternalSymbolExtensions = Microsoft.CodeAnalysis.Shared.Extensions.ISymbo
 
 namespace ConfigurationSchemaGenerator;
 
-internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation compilation)
+internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation compilation)
 {
     internal const string RootPathPrefix = "--empty--";
     private static readonly string[] s_lineBreaks = ["\r\n", "\r", "\n"];
@@ -31,6 +33,9 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
     private readonly Compilation _compilation = compilation;
     private readonly Stack<TypeSpec> _visitedTypes = new();
     private readonly string[] _exclusionPaths = CreateExclusionPaths(spec.ExclusionPaths);
+
+    [GeneratedRegex(@"( *)(?:\r?\n\s*\r?\n)( *)")]
+    private static partial Regex BlankLinesInDocComment();
 
     public string GenerateSchema()
     {
@@ -441,10 +446,36 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
     {
         return node switch
         {
-            XText text => text.Value,
+            XText text => ConvertBlankLines(text.Value),
             XElement element => GetElementText(element),
             _ => string.Empty
         };
+    }
+
+    private static string ConvertBlankLines(string value)
+    {
+        var builder = new StringBuilder();
+        var index = 0;
+
+        foreach (var match in BlankLinesInDocComment().EnumerateMatches(value))
+        {
+            if (match.Index > index)
+            {
+                builder.Append(value, index, match.Index - index);
+            }
+
+            builder.Append("<br/><br/>");
+            index = match.Index + match.Length;
+        }
+
+        var remaining = value.Length - index;
+
+        if (remaining > 0)
+        {
+            builder.Append(value, index, remaining);
+        }
+
+        return builder.ToString();
     }
 
     private static string GetElementText(XElement element)

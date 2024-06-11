@@ -18,6 +18,8 @@ public record ExampleSettings
 {
     /// <summary>
     /// A value of type <see cref="bool"/>.
+    ///
+    /// Blank lines are preserved.
     /// </summary>
     /// <value>
     /// The default value is <see langword="true"/>.
