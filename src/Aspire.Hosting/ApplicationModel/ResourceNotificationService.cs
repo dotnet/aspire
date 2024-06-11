@@ -49,14 +49,31 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
     public async Task WaitForResourceAsync(string resourceName, string? targetState = null, CancellationToken? cancellationToken = null)
     {
         var stateToWaitFor = targetState ?? KnownResourceStates.Running;
-        var token = cancellationToken ?? new CancellationTokenSource(s_defaultWaitForResourceStateTimeout).Token;
-        await foreach (var resourceEvent in WatchAsync(token).WithCancellation(token))
+        CancellationTokenSource? timeoutCts = null;
+        CancellationToken token;
+        if (cancellationToken is { } ct)
         {
-            if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName)
-                && string.Equals(stateToWaitFor, resourceEvent.Snapshot.State?.Text, StringComparisons.ResourceState))
+            token = ct;
+        }
+        else
+        {
+            timeoutCts = new(s_defaultWaitForResourceStateTimeout);
+            token = timeoutCts.Token;
+        }
+        try
+        {
+            await foreach (var resourceEvent in WatchAsync(token).WithCancellation(token))
             {
-                return;
+                if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName)
+                    && string.Equals(stateToWaitFor, resourceEvent.Snapshot.State?.Text, StringComparisons.ResourceState))
+                {
+                    return;
+                }
             }
+        }
+        finally
+        {
+            timeoutCts?.Dispose();
         }
     }
 
