@@ -97,7 +97,7 @@ public class ManifestGenerationTests
             ContainerRegistryOverride = "myprivateregistry.company.com"
         });
 
-        var redis = builder.AddRedis("redis");
+        var redis = builder.AddContainer("redis", "redis");
         builder.Build().Run();
 
         var redisManifest = await ManifestUtils.GetManifest(redis.Resource);
@@ -105,7 +105,7 @@ public class ManifestGenerationTests
             {
               "type": "container.v0",
               "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
-              "image": "myprivateregistry.company.com/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+              "image": "myprivateregistry.company.com/redis:latest",
               "bindings": {
                 "tcp": {
                   "scheme": "tcp",
