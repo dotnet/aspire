@@ -14,7 +14,8 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <AddPublicApiAnalyzers>false</AddPublicApiAnalyzers>
+    <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
+    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>

@@ -7,6 +7,8 @@
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <PackageTags>aspire hosting aws</PackageTags>
     <Description>Add support for provisioning AWS application resources and configuring the AWS SDK for .NET.</Description>
+    <!-- This package hasn't shipped stable, so package validation runs against previously shipped version of it. -->
+    <PackageValidationBaselineVersion>8.0.1-preview.8.24267.1</PackageValidationBaselineVersion>
   </PropertyGroup>
 
   <ItemGroup>
