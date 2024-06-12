@@ -164,6 +164,6 @@
     <PackageVersion Include="Microsoft.Orleans.Sdk" Version="8.1.0" />
     <!-- Pinned version for Component Governance - Remove when root dependencies are updated -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageVersion Include="Newtonsoft.Json.Schema" Version="3.0.16" />
+    <PackageVersion Include="Newtonsoft.Json.Schema" Version="4.0.1" />
   </ItemGroup>
 </Project>
