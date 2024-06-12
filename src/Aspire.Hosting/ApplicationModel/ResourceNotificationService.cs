@@ -39,43 +39,96 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
     /// Waits for a resource to reach the specified state. See <see cref="KnownResourceStates"/> for common states.
     /// </summary>
     /// <remarks>
-    /// This method returns a task that will complete when the resource reaches the specified state. If the resource is already in the target state, the method will return immediately.<br/>
-    /// If the resource never reaches the target state, the method will wait for the passed <see cref="CancellationToken"/> to be cancelled, or 60 seconds if <c>null</c>, and then throw <see cref="TaskCanceledException"/>.
+    /// This method returns a task that will complete when the resource reaches the specified target state. If the resource
+    /// is already in the target state, the method will return immediately.<br/>
+    /// If the resource doesn't reach one of the target states before <paramref name="cancellationToken"/> is signalled, or
+    /// within 60 seconds if <paramref name="cancellationToken"/> is <c>null</c>, it will throw <see cref="TaskCanceledException"/>.
     /// </remarks>
     /// <param name="resourceName">The name of the resouce.</param>
-    /// <param name="targetState">The state to wait for the resource to transition to. See <see cref="KnownResourceStates"/> for common states. Defaults to <see cref="KnownResourceStates.Running"/>.</param>
-    /// <param name="cancellationToken">The cancellation token to monitor to cancel the wait operation. If <c>null</c> defaults to waiting for 60 seconds.</param>
+    /// <param name="targetState"></param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/> </param>
     /// <returns>A <see cref="Task"/> representing the wait operation.</returns>
-    public async Task WaitForResourceAsync(string resourceName, string? targetState = null, CancellationToken? cancellationToken = null)
+#pragma warning disable RS0027 // API with optional parameter(s) should have the most parameters amongst its public overloads
+    public Task WaitForResourceAsync(string resourceName, string? targetState = null, CancellationToken? cancellationToken = null)
+#pragma warning restore RS0027
     {
-        var stateToWaitFor = targetState ?? KnownResourceStates.Running;
         CancellationTokenSource? timeoutCts = null;
-        CancellationToken waitToken;
+        CancellationToken token;
         if (cancellationToken is { } ct)
         {
-            waitToken = ct;
+            token = ct;
         }
         else
         {
-            timeoutCts = new(s_defaultWaitForResourceStateTimeout);
-            waitToken = timeoutCts.Token;
+            timeoutCts = new CancellationTokenSource(s_defaultWaitForResourceStateTimeout);
+            token = timeoutCts.Token;
         }
-        var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_applicationStopping, waitToken);
-        var watchToken = watchCts.Token;
         try
         {
-            await foreach (var resourceEvent in WatchAsync(watchToken).WithCancellation(watchToken))
-            {
-                if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName)
-                    && string.Equals(stateToWaitFor, resourceEvent.Snapshot.State?.Text, StringComparisons.ResourceState))
-                {
-                    return;
-                }
-            }
+            var targetStates = !string.IsNullOrEmpty(targetState) ? new[] { targetState } : [KnownResourceStates.Running];
+            return WaitForResourceAsync(resourceName, targetStates, token);
         }
         finally
         {
             timeoutCts?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Waits for a resource to reach one of the specified states. See <see cref="KnownResourceStates"/> for common states.
+    /// </summary>
+    /// <remarks>
+    /// This method returns a task that will complete when the resource reaches one of the specified target states. If the resource
+    /// is already in the target state, the method will return immediately.<br/>
+    /// If the resource doesn't reach one of the target states within 60 seconds, it will throw <see cref="TaskCanceledException"/>.
+    /// </remarks>
+    /// <param name="resourceName">The name of the resource.</param>
+    /// <param name="targetStates">The set of states to wait for the resource to transition to one of. See <see cref="KnownResourceStates"/> for common states.</param>
+    /// <returns>A <see cref="Task"/> representing the wait operation.</returns>
+    public Task<string> WaitForResourceAsync(string resourceName, IEnumerable<string> targetStates)
+    {
+        var timeoutCts = new CancellationTokenSource(s_defaultWaitForResourceStateTimeout);
+        try
+        {
+            return WaitForResourceAsync(resourceName, targetStates, timeoutCts.Token);
+        }
+        finally
+        {
+            timeoutCts.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Waits for a resource to reach one of the specified states. See <see cref="KnownResourceStates"/> for common states.
+    /// </summary>
+    /// <remarks>
+    /// This method returns a task that will complete when the resource reaches one of the specified target states. If the resource
+    /// is already in the target state, the method will return immediately.
+    /// </remarks>
+    /// <param name="resourceName">The name of the resource.</param>
+    /// <param name="targetStates">The set of states to wait for the resource to transition to one of. See <see cref="KnownResourceStates"/> for common states.</param>
+    /// <param name="cancellationToken">A cancellation token that cancels the wait operation when signalled.</param>
+    /// <returns>A <see cref="Task"/> representing the wait operation.</returns>
+    public async Task<string> WaitForResourceAsync(string resourceName, IEnumerable<string> targetStates, CancellationToken cancellationToken)
+    {
+        var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_applicationStopping, cancellationToken);
+        var watchToken = watchCts.Token;
+        try
+        {
+            await foreach (var resourceEvent in WatchAsync(watchToken).WithCancellation(watchToken).ConfigureAwait(false))
+            {
+                if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName)
+                    && resourceEvent.Snapshot.State?.Text is { Length: > 0 } statusText
+                    && targetStates.Contains(statusText, StringComparers.ResourceState))
+                {
+                    return statusText;
+                }
+            }
+
+            throw new TaskCanceledException("The operation was cancelled before the resource reached one of the target states.");
+        }
+        finally
+        {
             watchCts.Dispose();
         }
     }

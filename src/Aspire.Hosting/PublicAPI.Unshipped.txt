@@ -301,6 +301,8 @@ Aspire.Hosting.ApplicationModel.ResourceNotificationService.PublishUpdateAsync(A
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger) -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, string? targetState = null, System.Threading.CancellationToken? cancellationToken = null) -> System.Threading.Tasks.Task!
+Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, System.Collections.Generic.IEnumerable<string!>! targetStates) -> System.Threading.Tasks.Task<string!>!
+Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, System.Collections.Generic.IEnumerable<string!>! targetStates, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<string!>!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WatchAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Aspire.Hosting.ApplicationModel.ResourceEvent!>!
 Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot
 Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot.Name.get -> string!
