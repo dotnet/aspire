@@ -9,7 +9,8 @@ namespace Aspire.Keycloak;
 public sealed class KeycloakSettings
 {
     /// <summary>
-    /// The endpoint URI string of the Keycloak server to connect to.
+    /// Gets or sets the realm of the Keycloak server to connect to.
+    /// The realm is a logical grouping of users, roles, and clients in Keycloak.
     /// </summary>
-    public Uri? Endpoint { get; set; }
+    public string? Realm { get; set; }
 }

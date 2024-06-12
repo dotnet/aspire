@@ -15,10 +15,9 @@
         "Keycloak": {
           "type": "object",
           "properties": {
-            "Endpoint": {
+            "Realm": {
               "type": "string",
-              "format": "uri",
-              "description": "The endpoint URI string of the Keycloak server to connect to."
+              "description": "Gets or sets the realm of the Keycloak server to connect to.\nThe realm is a logical grouping of users, roles, and clients in Keycloak."
             }
           },
           "description": "Provides configuration settings for connecting to a Keycloak server."

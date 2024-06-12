@@ -6,7 +6,7 @@ builder.AddServiceDefaults();
 // Add services to the container.
 builder.Services.AddProblemDetails();
 
-builder.AddKeycloakJwtBearer(configureJwtBearerOptions: options =>
+builder.AddKeycloakJwtBearer("keycloak", configureJwtBearerOptions: options =>
 {
     options.RequireHttpsMetadata = false;
     options.Audience = "weather.api";
