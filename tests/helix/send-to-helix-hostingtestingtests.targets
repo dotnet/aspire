@@ -16,9 +16,9 @@
     <ItemGroup>
       <_TestRunCommandArguments Remove="@(_TestRunCommandArguments)" />
       <_TestRunCommandArguments Include="dotnet test" />
-      <_TestRunCommandArguments Include="-s .runsettings" />
       <_TestRunCommandArguments Include="$(_TestNameEnvVar).csproj" />
-      <_TestRunCommandArguments Include="--ResultsDirectory:$(_HelixLogsPath)" />
+      <_TestRunCommandArguments Include="--results-directory $(_HelixLogsPath)" />
+      <_TestRunCommandArguments Include="-s .runsettings" />
       <_TestRunCommandArguments Include="--blame-hang" />
       <_TestRunCommandArguments Include="--blame-hang-dump-type" />
       <_TestRunCommandArguments Include="full" />
