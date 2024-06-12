@@ -1,7 +1,3 @@
-using System.Net;
-using Microsoft.Extensions.DependencyInjection;
-using Aspire.Hosting.ApplicationModel;
-
 namespace Aspire_StarterApplication._1.Tests;
 
 #if (TestFramework == "MSTest")

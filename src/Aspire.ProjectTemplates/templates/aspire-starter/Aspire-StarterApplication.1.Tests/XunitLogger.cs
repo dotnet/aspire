@@ -1,15 +1,20 @@
-namespace Aspire_StarterApplication._1.Tests;
+using System.Text;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Xunit.Abstractions;
+
+namespace Xunit;
 
 public static class XunitLoggerExtensions
 {
-    public static IServiceCollection AddXunitLogger(this IServiceCollection services, ITestOutputHelper output)
+    public static IServiceCollection AddXunitLogger(this IServiceCollection services, ITestOutputHelper testOutputHelper)
     {
-        services.AddSingleton<ILoggerProvider, XunitLoggerProvider>();
+        services.AddSingleton<ILoggerProvider>(new XunitLoggerProvider(testOutputHelper));
         return services;
     }
 }
 
-public class XunitLoggerProvider(ITestOutputHelper output) : ILoggerProvider
+public class XunitLoggerProvider(ITestOutputHelper testOutputHelper) : ILoggerProvider
 {
     private readonly LoggerExternalScopeProvider _scopeProvider = new();
 
@@ -20,7 +25,7 @@ public class XunitLoggerProvider(ITestOutputHelper output) : ILoggerProvider
 
     public void Dispose()
     {
-
+        GC.SuppressFinalize(this);
     }
 }
 

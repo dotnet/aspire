@@ -17,6 +17,8 @@ internal sealed class ResourceLogAggregatorBackgroundService(
     ILoggerFactory loggerFactory)
     : BackgroundService
 {
+    public Action<string>? OnLogStreamComplete { get; set; }
+
     /// <inheritdoc/>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -56,16 +58,10 @@ internal sealed class ResourceLogAggregatorBackgroundService(
                 if (logger.IsEnabled(logLevel))
                 {
                     // Log message format here approximates the format shown in the dashboard
-                    if (line.IsErrorMessage)
-                    {
-                        logger.Log(logLevel, "{LineNumber} : [stderr] {LineContent}", line.LineNumber, line.Content);
-                    }
-                    else
-                    {
-                        logger.Log(logLevel, "{LineNumber}: {LineContent}", line.LineNumber, line.Content);
-                    }
+                    logger.Log(logLevel, "{LineNumber}: {LineContent}", line.LineNumber, line.Content);
                 }
             }
         }
+        OnLogStreamComplete?.Invoke(resourceId);
     }
 }

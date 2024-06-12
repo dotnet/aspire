@@ -30,10 +30,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="System.Net" />
+    <Using Include="Microsoft.Extensions.DependencyInjection" />
+    <Using Include="Aspire.Hosting.ApplicationModel" />
     <Using Include="Aspire.Hosting.Testing" />
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" Condition=" $(TestFramework) == 'MSTest' " />
     <Using Include="NUnit.Framework" Condition=" $(TestFramework) == 'NUnit' " />
     <Using Include="Xunit" Condition=" $(TestFramework) == 'xUnit.net' " />
+    <Using Include="Xunit.Abstractions" Condition=" $(TestFramework) == 'xUnit.net' " />
   </ItemGroup>
 
 </Project>
