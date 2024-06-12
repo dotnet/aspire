@@ -21,10 +21,10 @@ dotnet add package Aspire.Keycloak
 
 ## Jwt bearer authentication usage example
 
-In the _Program.cs_ file of your ASP.NET Core API project, call the `AddKeycloakJwtBearer` extension method to add JwtBearer authentication:
+In the _Program.cs_ file of your ASP.NET Core API project, call the `AddKeycloakJwtBearer` extension method to add JwtBearer authentication. The method takes a connection name parameter.
 
 ```csharp
-builder.AddKeycloakJwtBearer(configureJwtBearerOptions: options =>
+builder.AddKeycloakJwtBearer("keycloak", configureJwtBearerOptions: options =>
 {
     options.Audience = "weather.api";
 });
@@ -41,7 +41,7 @@ The .NET Aspire Keycloak component supports [Microsoft.Extensions.Configuration]
 {
   "Aspire": {
     "Keycloak": {
-      "Endpoint": "http://localhost:62962/realms/WeatherShop",
+      "Realm": "WeatherShop"
     }
   }
 }
@@ -52,9 +52,9 @@ The .NET Aspire Keycloak component supports [Microsoft.Extensions.Configuration]
 Also you can pass the `Action<KeycloakSettings> configureSettings` delegate to set up some or all the options inline, for example to set the Realm and Audience from code:
 
 ```csharp
-builder.AddKeycloakJwtBearer(configureSettings: settings =>
+builder.AddKeycloakJwtBearer("keycloak", configureSettings: settings =>
 {
-    settings.Endpoint = new Uri("http://localhost:62962/realms/WeatherShop");
+    settings.Realm = "WeatherShop";
 },
 configureJwtBearerOptions: options =>
 {
@@ -64,10 +64,10 @@ configureJwtBearerOptions: options =>
 
 ## OpenId Connect authentication usage example
 
-In the _Program.cs_ file of your Blazor project, call the `AddKeycloakOpenIdConnect` extension method to add OpenId Connect authentication:
+In the _Program.cs_ file of your Blazor project, call the `AddKeycloakOpenIdConnect` extension method to add OpenId Connect authentication. The method takes a connection name parameter.
 
 ```csharp
-builder.AddKeycloakOpenIdConnect(configureOpenIdConnectOptions: options =>
+builder.AddKeycloakOpenIdConnect("keycloak", configureOpenIdConnectOptions: options =>
 {
     options.ClientId = "WeatherWeb";
     options.ResponseType = OpenIdConnectResponseType.Code;
@@ -86,7 +86,7 @@ The .NET Aspire Keycloak component supports [Microsoft.Extensions.Configuration]
 {
   "Aspire": {
     "Keycloak": {
-      "Endpoint": "http://localhost:62962/realms/WeatherShop",
+      "Realm": "WeatherShop"
     }
   }
 }
@@ -97,9 +97,9 @@ The .NET Aspire Keycloak component supports [Microsoft.Extensions.Configuration]
 Also you can pass the `Action<KeycloakSettings> configureSettings` delegate to set up some or all the options inline, for example to set the Realm and ClientId from code:
 
 ```csharp
-builder.AddKeycloakOpenIdConnect(configureSettings: settings =>
+builder.AddKeycloakOpenIdConnect("keycloak", configureSettings: settings =>
 {
-    settings.Endpoint = new Uri("http://localhost:62962/realms/WeatherShop");
+    settings.Realm = "WeatherShop";
 },
 configureOpenIdConnectOptions: options =>
 {
@@ -137,13 +137,13 @@ The `WithReference` method configures a connection in the `Keycloak.ApiService` 
 In the _Program.cs_ file of `Keycloak.ApiService`, the Keycloak connection can be consumed using:
 
 ```csharp
-builder.AddKeycloakJwtBearer();
+builder.AddKeycloakJwtBearer("keycloak");
 ```
 
 And in the _Program.cs_ file of `Keycloak.Web`, the Keycloak connection can be consumed using:
 
 ```csharp
-builder.AddKeycloakOpenIdConnect();
+builder.AddKeycloakOpenIdConnect("keycloak");
 ```
 
 ## Additional documentation

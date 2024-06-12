@@ -41,7 +41,7 @@ public static class KeycloakResouceBuilderExtensions
             .WithImage(KeycloakContainerImageTags.Image)
             .WithImageRegistry(KeycloakContainerImageTags.Registry)
             .WithImageTag(KeycloakContainerImageTags.Tag)
-            .WithHttpEndpoint(port: port, targetPort: DefaultContainerPort, name: KeycloakResource.PrimaryEndpointName)
+            .WithHttpEndpoint(port: port, targetPort: DefaultContainerPort)
             .WithEnvironment(context =>
             {
                 context.EnvironmentVariables[AdminEnvVarName] = resource.AdminReference;
@@ -88,9 +88,8 @@ public static class KeycloakResouceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(keycloakBuilder);
 
-        builder.WithEnvironment(
-            "Aspire__Keycloak__Endpoint",
-            $"{keycloakBuilder.Resource.PrimaryEndpoint}/realms/{realm}");
+        builder.WithReference(keycloakBuilder)
+               .WithEnvironment("Aspire__Keycloak__Realm", realm);
 
         return builder;
     }
