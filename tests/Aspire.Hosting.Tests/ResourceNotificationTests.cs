@@ -165,6 +165,22 @@ public class ResourceNotificationTests
     }
 
     [Fact]
+    public async Task WaitingOnResourceReturnsWhenResourceReachesTargetStateWithDifferentCasing()
+    {
+        var resource1 = new CustomResource("myResource1");
+
+        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>());
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var waitTask = notificationService.WaitForResourceAsync("MYreSouRCe1", "sOmeSTAtE", cts.Token);
+
+        await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = "SomeState" });
+        await waitTask;
+
+        Assert.True(waitTask.IsCompletedSuccessfully);
+    }
+
+    [Fact]
     public async Task WaitingOnResourceReturnsWhenResourceReachesRunningStateIfNoTargetStateSupplied()
     {
         var resource1 = new CustomResource("myResource1");
