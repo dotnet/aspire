@@ -8,6 +8,12 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public class ElasticsearchResource : ContainerResource, IResourceWithConnectionString
 {
+
+    /// <summary>
+    /// Gets the Elasticsearch container superuser name.
+    /// </summary>
+    public const string UserName = "elastic";
+
     //this endpoint is used for all API calls over HTTP.
     //This includes search and aggregations, monitoring and anything else that uses a HTTP request.
     //All client libraries will use this port to talk to Elasticsearch
@@ -17,15 +23,12 @@ public class ElasticsearchResource : ContainerResource, IResourceWithConnectionS
     //For things like cluster updates, master elections, nodes joining/leaving, shard allocation
     internal const string InternalEndpointName = "internal";
 
-    private const string DefaultUserName = "elastic";
-
     /// <param name="name">The name of the resource.</param>
     /// <param name="password">A parameter that contains the Elasticsearch superuser password.</param>
     public ElasticsearchResource(string name, ParameterResource password) : base(name)
     {
         ArgumentNullException.ThrowIfNull(password);
         PasswordParameter = password;
-        UserNameParameter = new ParameterResource($"{name}-username", (pd) => DefaultUserName);
     }
 
     private EndpointReference? _primaryEndpoint;
@@ -42,11 +45,6 @@ public class ElasticsearchResource : ContainerResource, IResourceWithConnectionS
     public EndpointReference InternalEndpoint => _internalEndpoint ??= new(this, InternalEndpointName);
 
     /// <summary>
-    /// Gets the parameter that contains the Elasticsearch superuser name.
-    /// </summary>
-    public ParameterResource UserNameParameter { get; }
-
-    /// <summary>
     /// Gets the parameter that contains the Elasticsearch superuser password.
     /// </summary>
     public ParameterResource PasswordParameter { get; }
@@ -55,6 +53,6 @@ public class ElasticsearchResource : ContainerResource, IResourceWithConnectionS
     /// Gets the connection string expression for the Elasticsearch
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"http://{UserNameParameter}:{PasswordParameter}@{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+        ReferenceExpression.Create($"http://{UserName}:{PasswordParameter}@{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
 }
 

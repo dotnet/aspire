@@ -19,7 +19,7 @@ public static class ElasticsearchBuilderExtensions
     /// Adds an Elasticsearch container resource to the application model.
     /// </summary>
     /// <remarks>
-    /// The default image is "elasticsearch" and the tag is "8.8.0".
+    /// The default image is "elasticsearch" and the tag is "8.14.0".
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
