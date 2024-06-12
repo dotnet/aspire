@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Utils;
@@ -233,7 +234,7 @@ public static class ProjectResourceBuilderExtensions
         var effectiveLaunchProfile = excludeLaunchProfile ? null : projectResource.GetEffectiveLaunchProfile(throwIfNotFound: true);
         var launchProfile = effectiveLaunchProfile?.LaunchProfile;
 
-        // Process the launch profile and turn it into environment variables and endpoints.
+        // Get all the endpoints from the Kestrel configuration
         var config = GetConfiguration(projectResource);
         var kestrelEndpoints = config.GetSection("Kestrel:Endpoints").GetChildren();
 
@@ -251,27 +252,43 @@ public static class ProjectResourceBuilderExtensions
         var isHttp2ConfiguredInAppSettings = config["Kestrel:EndpointDefaults:Protocols"] == "Http2";
         var adjustTransport = (EndpointAnnotation e) => e.Transport = isHttp2ConfiguredInAppSettings ? "http2" : e.Transport;
 
+        foreach (var schemeGroup in kestrelEndpointsByScheme)
+        {
+            // If there is only one endpoint for a given scheme, we use the scheme as the endpoint name
+            // Otherwise, we use the actual endpoint names from the config
+            var schemeAsEndpointName = schemeGroup.Count() <= 1 ? schemeGroup.Key : null;
+
+            foreach (var endpoint in schemeGroup)
+            {
+                builder.WithEndpoint(schemeAsEndpointName ?? endpoint.EndpointName, e =>
+                {
+
+                    if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+                    {
+                        // In Publish mode, we could not set the Port because it needs to be the standard
+                        // port in scenarios like ACA. So we set the target instead, since we can control that
+                        e.TargetPort = endpoint.BindingAddress.Port;
+                    }
+                    else
+                    {
+                        // Locally, there is no issue with setting the Port. And in fact, we could not set the
+                        // target port because that would break replica sets
+                        e.Port = endpoint.BindingAddress.Port;
+                    }
+                    e.UriScheme = endpoint.BindingAddress.Scheme;
+                    e.Transport = adjustTransport(e);
+                    // Keep track of the host separately since EndpointAnnotation doesn't have a host property
+                    builder.Resource.KestrelEndpointAnnotationHosts[e] = endpoint.BindingAddress.Host;
+                },
+                createIfNotExists: true);
+            }
+        }
+
+        // Use environment variables to override endpoints if there is a Kestrel config
+        builder.SetKestrelUrlOverrideEnvVariables();
+
         if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
-            foreach (var schemeGroup in kestrelEndpointsByScheme)
-            {
-                // If there is only one endpoint for a given scheme, we use the scheme as the endpoint name
-                // Otherwise, we use the actual endpoint names from the config
-                var schemeAsEndpointName = schemeGroup.Count() <= 1 ? schemeGroup.Key : null;
-
-                foreach (var endpoint in schemeGroup)
-                {
-                    builder.WithEndpoint(schemeAsEndpointName ?? endpoint.EndpointName, e =>
-                    {
-                        e.Port = endpoint.BindingAddress.Port;
-                        e.UriScheme = endpoint.BindingAddress.Scheme;
-                        e.IsProxied = false; // turn off the proxy, as we cannot easily override Kestrel bindings
-                        e.Transport = adjustTransport(e);
-                    },
-                    createIfNotExists: true);
-                }
-            }
-
             // We don't need to set ASPNETCORE_URLS if we have Kestrel endpoints configured
             // as Kestrel will get everything it needs from the config.
             if (!kestrelEndpointsByScheme.Any())
@@ -324,31 +341,56 @@ public static class ProjectResourceBuilderExtensions
         }
         else
         {
+            // Set HTTP_PORTS/HTTPS_PORTS in publish mode, to override the default port set in the base image. Note that:
+            // - We don't set them if we have Kestrel endpoints configured, as Kestrel will get everything from its config.
+            // - We only do that for endpoint set explicitly (.WithHttpEndpoint), not for the ones coming from launch profile.
+            //   This is because launch profile endpoints are not meant to be used in production.
+            if (!kestrelEndpointsByScheme.Any())
+            {
+                builder.SetBothPortsEnvVariables();
+            }
+
             // If we aren't a web project (looking at both launch profile and Kestrel config) we don't automatically add bindings.
             if (launchProfile?.ApplicationUrl == null && !kestrelEndpointsByScheme.Any())
             {
                 return builder;
             }
 
-            if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "http" || string.Equals(sb.Name, "http", StringComparisons.EndpointAnnotationName)))
+            EndpointAnnotation GetOrCreateEndpointForScheme(string scheme)
             {
-                builder.WithEndpoint("http", e =>
+                EndpointAnnotation? GetEndpoint(string scheme) =>
+                    projectResource.Annotations.OfType<EndpointAnnotation>().FirstOrDefault(sb => sb.UriScheme == scheme || string.Equals(sb.Name, scheme, StringComparisons.EndpointAnnotationName));
+
+                var endpoint = GetEndpoint(scheme);
+
+                // If there is no endpoint named after the scheme, create one
+                if (endpoint is null)
                 {
-                    e.UriScheme = "http";
-                    e.Transport = adjustTransport(e);
-                },
-                createIfNotExists: true);
+                    builder.WithEndpoint(scheme, e =>
+                    {
+                        e.UriScheme = scheme;
+                        e.Transport = adjustTransport(e);
+
+                        // Keep track of the default https endpoint so we can exclude it from HTTPS_PORTS & Kestrel env vars
+                        if (scheme == "https")
+                        {
+                            builder.Resource.DefaultHttpsEndpoint = e;
+                        }
+                    },
+                    createIfNotExists: true);
+
+                    endpoint = GetEndpoint(scheme)!;
+                }
+
+                return endpoint;
             }
 
-            if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "https" || string.Equals(sb.Name, "https", StringComparisons.EndpointAnnotationName)))
-            {
-                builder.WithEndpoint("https", e =>
-                {
-                    e.UriScheme = "https";
-                    e.Transport = adjustTransport(e);
-                },
-                createIfNotExists: true);
-            }
+            var httpEndpoint = GetOrCreateEndpointForScheme("http");
+            var httpsEndpoint = GetOrCreateEndpointForScheme("https");
+
+            // We make sure that the http and https endpoints have the same target port
+            var defaultEndpointTargetPort = httpEndpoint.TargetPort ?? httpsEndpoint.TargetPort;
+            httpEndpoint.TargetPort = httpsEndpoint.TargetPort = defaultEndpointTargetPort;
         }
 
         return builder;
@@ -440,13 +482,11 @@ public static class ProjectResourceBuilderExtensions
         return configBuilder.Build();
     }
 
+    static bool IsValidAspNetCoreUrl(EndpointAnnotation e) =>
+        e.UriScheme is "http" or "https" && e.TargetPortEnvironmentVariable is null;
+
     private static void SetAspNetCoreUrls(this IResourceBuilder<ProjectResource> builder)
     {
-        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
-        {
-            return;
-        }
-
         builder.WithEnvironment(context =>
         {
             if (context.EnvironmentVariables.ContainsKey("ASPNETCORE_URLS"))
@@ -459,9 +499,6 @@ public static class ProjectResourceBuilderExtensions
 
             var processedHttpsPort = false;
             var first = true;
-
-            static bool IsValidAspNetCoreUrl(EndpointAnnotation e) =>
-                e.UriScheme is "http" or "https" && e.TargetPortEnvironmentVariable is null;
 
             // Turn http and https endpoints into a single ASPNETCORE_URLS environment variable.
             foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)))
@@ -488,6 +525,80 @@ public static class ProjectResourceBuilderExtensions
             {
                 // Combine into a single expression
                 context.EnvironmentVariables["ASPNETCORE_URLS"] = aspnetCoreUrls.Build();
+            }
+        });
+    }
+
+    private static void SetBothPortsEnvVariables(this IResourceBuilder<ProjectResource> builder)
+    {
+        builder.WithEnvironment(context =>
+        {
+            builder.SetOnePortsEnvVariable(context, "HTTP_PORTS", "http");
+            builder.SetOnePortsEnvVariable(context, "HTTPS_PORTS", "https");
+        });
+    }
+
+    private static void SetOnePortsEnvVariable(this IResourceBuilder<ProjectResource> builder, EnvironmentCallbackContext context, string portEnvVariable, string scheme)
+    {
+        if (context.EnvironmentVariables.ContainsKey(portEnvVariable))
+        {
+            // If the user has already set that variable, we don't want to override it.
+            return;
+        }
+
+        var ports = new ReferenceExpressionBuilder();
+        var firstPort = true;
+
+        // Turn endpoint ports into a single environment variable
+        foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)))
+        {
+            // Skip the default https endpoint because the container likely won't be set up to listen on https (e.g. ACA case)
+            if (e.EndpointAnnotation.UriScheme == scheme && e.EndpointAnnotation != builder.Resource.DefaultHttpsEndpoint)
+            {
+                Debug.Assert(!e.EndpointAnnotation.FromLaunchProfile, "Endpoints from launch profile should never make it here");
+
+                if (!firstPort)
+                {
+                    ports.AppendLiteral(";");
+                }
+
+                ports.Append($"{e.Property(EndpointProperty.TargetPort)}");
+                firstPort = false;
+            }
+        }
+
+        if (!firstPort)
+        {
+            context.EnvironmentVariables[portEnvVariable] = ports.Build();
+        }
+    }
+
+    private static void SetKestrelUrlOverrideEnvVariables(this IResourceBuilder<ProjectResource> builder)
+    {
+        builder.WithEnvironment(context =>
+        {
+            // If there are any Kestrel endpoints, we need to override all endpoints, even if they
+            // don't come from Kestrel. This is because having Kestrel endpoints overrides everything
+            if (builder.Resource.HasKestrelEndpoints)
+            {
+                foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)))
+                {
+                    // Skip the default https endpoint because the container likely won't be set up to listen on https (e.g. ACA case)
+                    if (e.EndpointAnnotation == builder.Resource.DefaultHttpsEndpoint)
+                    {
+                        continue;
+                    }
+
+                    // In Run mode, we keep the original Kestrel config host.
+                    // In Publish mode, we always use *, so it can work in a container (where localhost wouldn't work).
+                    var host = builder.ApplicationBuilder.ExecutionContext.IsRunMode &&
+                        builder.Resource.KestrelEndpointAnnotationHosts.TryGetValue(e.EndpointAnnotation, out var kestrelHost) ? kestrelHost : "*";
+
+                    var url = ReferenceExpression.Create($"{e.EndpointAnnotation.UriScheme}://{host}:{e.Property(EndpointProperty.TargetPort)}");
+
+                    // We use special config system environment variables to perform the override.
+                    context.EnvironmentVariables[$"Kestrel__Endpoints__{e.EndpointAnnotation.Name}__Url"] = url;
+                }
             }
         });
     }

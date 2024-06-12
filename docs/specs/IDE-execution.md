@@ -115,7 +115,7 @@ Project launch configuration contains details for launching programs that have p
 | `type` | Launch configuration type indicator; must be `project`. | Required |
 | `project_path` | Path to the project file for the program that is being launched. | Required |
 | `mode` | Specifies the launch mode. Currently supported modes are `Debug` (run the project under the debugger) and `NoDebug` (run the project without debugging). | Optional, defaults to `Debug`. |
-| `launch_profile` | Invocation arguments for the program (modeled as array of strings). | Optional |
+| `launch_profile` | The name of the launch profile to be used for project execution. | Optional |
 | `disable_launch_profile` | If set to true, the project will be launched without a launch profile and the value of "launch_profile" parameter is disregarded. | Optional |
 
 > In Aspire version 1 release only a single launch configuration instance, of type `project`, can be used as part of a run session request issued to Visual Studio. Other types of launch configurations may be added in future releases.
