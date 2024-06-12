@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -290,10 +291,11 @@ public static class ContainerResourceBuilderExtensions
             throw new FileNotFoundException($"Dockerfile not found at '{fullyQualifiedDockerfilePath}'.");
         }
 
+        var imageName = builder.GenerateImageName();
         var annotation = new DockerfileBuildAnnotation(fullyQualifiedContextPath, fullyQualifiedDockerfilePath, stage);
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
                       .WithImageRegistry(null!)
-                      .WithImage($"{builder.Resource.Name}-image")
+                      .WithImage(imageName)
                       .WithImageTag("latest");
     }
 
@@ -328,7 +330,7 @@ public static class ContainerResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, string name, string contextPath, string? dockerfilePath = null, string? stage = null)
     {
-        return builder.AddContainer(name, $"{name}-image")
+        return builder.AddContainer(name, "placeholder") // Image name will be replaced by WithDockerfile.
                       .WithDockerfile(contextPath, dockerfilePath, stage);
     }
 
