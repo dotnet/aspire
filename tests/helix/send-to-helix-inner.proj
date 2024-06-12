@@ -70,6 +70,10 @@
 
   <Import Project="$(MSBuildThisFileDirectory)send-to-helix-$(TestCategory).targets" />
 
+  <PropertyGroup>
+    <NeedsDotNetSdk Condition="'$(NeedsWorkload)' != 'true'">true</NeedsDotNetSdk>
+  </PropertyGroup>
+
   <ItemGroup Condition="'$(NeedsPlaywright)' == 'true'">
     <HelixCorrelationPayload Include="$(PlaywrightDependenciesDirectory)" Destination="playwright-deps" />
 
