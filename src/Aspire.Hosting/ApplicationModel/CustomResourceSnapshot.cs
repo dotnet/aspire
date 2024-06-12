@@ -85,7 +85,7 @@ public sealed record UrlSnapshot(string Name, string Url, bool IsInternal);
 public sealed record ResourcePropertySnapshot(string Name, object? Value);
 
 /// <summary>
-/// The set of well known resource states
+/// The set of well known resource states.
 /// </summary>
 public static class KnownResourceStateStyles
 {
@@ -111,7 +111,7 @@ public static class KnownResourceStateStyles
 }
 
 /// <summary>
-/// The set of well known resource states
+/// The set of well known resource states.
 /// </summary>
 public static class KnownResourceStates
 {
@@ -136,7 +136,7 @@ public static class KnownResourceStates
     public static readonly string FailedToStart = "FailedToStart";
 
     /// <summary>
-    /// The stropping state. Useful for showing the resource is stopping.
+    /// The stopping state. Useful for showing the resource is stopping.
     /// </summary>
     public static readonly string Stopping = "Stopping";
 
