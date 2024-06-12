@@ -65,7 +65,7 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
         }
         try
         {
-            var targetStates = !string.IsNullOrEmpty(targetState) ? new[] { targetState } : [KnownResourceStates.Running];
+            string[] targetStates = !string.IsNullOrEmpty(targetState) ? [targetState] : [KnownResourceStates.Running];
             return WaitForResourceAsync(resourceName, targetStates, token);
         }
         finally

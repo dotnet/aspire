@@ -25,7 +25,7 @@ public class WebTests
             clientBuilder.AddStandardResilienceHandler();
         });
 #if (TestFramework == "xUnit.net")
-        appHost.Services.AddXunitLogger(output);
+        appHost.Services.AddLogging(logging => logging.AddXunit(output));
 #endif
         await using var app = await appHost.BuildAsync();
         var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();

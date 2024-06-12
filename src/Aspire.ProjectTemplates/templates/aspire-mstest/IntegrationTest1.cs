@@ -25,9 +25,11 @@ public class IntegrationTest1
     //         clientBuilder.AddStandardResilienceHandler();
     //     });
     //     await using var app = await appHost.BuildAsync();
+    //     var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
     //     await app.StartAsync();
 
     //     // Act
+    //     await resourceNotificationService.WaitForResource("webfrontend", KnownResourceStates.Running);
     //     var httpClient = app.CreateHttpClient("webfrontend");
     //     var response = await httpClient.GetAsync("/");
 

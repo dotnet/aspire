@@ -31,7 +31,7 @@ internal sealed class ResourceLogAggregatorBackgroundService(
         var loggingResourceIds = new HashSet<string>();
         var logWatchTasks = new List<Task>();
 
-        await foreach (var resourceEvent in resourceNotificationService.WatchAsync(cancellationToken).WithCancellation(cancellationToken))
+        await foreach (var resourceEvent in resourceNotificationService.WatchAsync(cancellationToken))
         {
             var resourceId = resourceEvent.ResourceId;
 
