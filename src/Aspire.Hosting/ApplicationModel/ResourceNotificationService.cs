@@ -45,7 +45,7 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
     /// <param name="resourceName">The name of the resouce.</param>
     /// <param name="targetState">The state to wait for the resource to transition to. See <see cref="KnownResourceStates"/> for common states. Defaults to <see cref="KnownResourceStates.Running"/>.</param>
     /// <param name="cancellationToken">The cancellation token to monitor to cancel the wait operation. If <c>null</c> defaults to waiting for 60 seconds.</param>
-    /// <returns></returns>
+    /// <returns>A <see cref="Task"/> representing the wait operation.</returns>
     public async Task WaitForResourceAsync(string resourceName, string? targetState = null, CancellationToken? cancellationToken = null)
     {
         var stateToWaitFor = targetState ?? KnownResourceStates.Running;
@@ -60,9 +60,10 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
             timeoutCts = new(s_defaultWaitForResourceStateTimeout);
             token = timeoutCts.Token;
         }
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(_applicationStopping, token);
         try
         {
-            await foreach (var resourceEvent in WatchAsync(token).WithCancellation(token))
+            await foreach (var resourceEvent in WatchAsync(cts.Token).WithCancellation(cts.Token))
             {
                 if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName)
                     && string.Equals(stateToWaitFor, resourceEvent.Snapshot.State?.Text, StringComparisons.ResourceState))
@@ -74,6 +75,7 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
         finally
         {
             timeoutCts?.Dispose();
+            cts.Dispose();
         }
     }
 
