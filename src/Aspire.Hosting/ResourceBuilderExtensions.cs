@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.ComponentModel;
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
@@ -231,12 +232,12 @@ public static class ResourceBuilderExtensions
         return builder.WithAnnotation(new ConnectionStringRedirectAnnotation(resource), ResourceAnnotationMutationBehavior.Replace);
     }
 
-    private static Action<EnvironmentCallbackContext> CreateEndpointReferenceEnvironmentPopulationCallback(EndpointReferenceAnnotation endpointReferencesAnnotation)
+    private static Action<EnvironmentCallbackContext> CreateEndpointReferenceEnvironmentPopulationCallback(EndpointReferenceAnnotation endpointReferencesAnnotation, string? serviceName)
     {
         return (context) =>
         {
             var annotation = endpointReferencesAnnotation;
-            var serviceName = annotation.Resource.Name;
+            serviceName ??= annotation.Resource.Name;
             foreach (var endpoint in annotation.Resource.GetEndpoints())
             {
                 var endpointName = endpoint.EndpointName;
@@ -271,7 +272,9 @@ public static class ResourceBuilderExtensions
     /// <param name="optional"><see langword="true"/> to allow a missing connection string; <see langword="false"/> to throw an exception if the connection string is not found.</param>
     /// <exception cref="DistributedApplicationException">Throws an exception if the connection string resolves to null. It can be null if the resource has no connection string, and if the configuration has no connection string for the source resource.</exception>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+#pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithConnectionString> source, string? connectionName = null, bool optional = false)
+#pragma warning restore RS0026 // Do not add multiple public overloads with optional parameters
         where TDestination : IResourceWithEnvironment
     {
         var resource = source.Resource;
@@ -293,10 +296,28 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
     /// <param name="source">The resource from which to extract service discovery information.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithServiceDiscovery> source)
         where TDestination : IResourceWithEnvironment
     {
-        ApplyEndpoints(builder, source.Resource);
+        return builder.WithReference(source, null);
+    }
+
+    /// <summary>
+    /// Injects service discovery information as environment variables from the project resource into the destination resource, using the source resource's name as the service name.
+    /// Each endpoint defined on the project resource will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}."
+    /// </summary>
+    /// <typeparam name="TDestination">The destination resource.</typeparam>
+    /// <param name="builder">The resource where the service discovery information will be injected.</param>
+    /// <param name="source">The resource from which to extract service discovery information.</param>
+    /// <param name="serviceName">An override of the source resource's name for the service name. The resulting service reference will be "Services__serviceName__endpointName__i" if this is not null.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+#pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithServiceDiscovery> source, string? serviceName = null)
+#pragma warning restore RS0026 // Do not add multiple public overloads with optional parameters
+        where TDestination : IResourceWithEnvironment
+    {
+        ApplyEndpoints(builder, source.Resource, serviceName);
         return builder;
     }
 
@@ -333,14 +354,32 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
     /// <param name="endpointReference">The endpoint from which to extract the url.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, EndpointReference endpointReference)
         where TDestination : IResourceWithEnvironment
     {
-        ApplyEndpoints(builder, endpointReference.Resource, endpointReference.EndpointName);
+        return builder.WithReference(endpointReference, null);
+    }
+
+    /// <summary>
+    /// Injects service discovery information from the specified endpoint into the project resource using the source resource's name as the service name.
+    /// Each endpoint will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}."
+    /// </summary>
+    /// <typeparam name="TDestination">The destination resource.</typeparam>
+    /// <param name="builder">The resource where the service discovery information will be injected.</param>
+    /// <param name="endpointReference">The endpoint from which to extract the url.</param>
+    /// <param name="serviceName">An override of the source resource's name for the service name. The resulting service reference will be "Services__serviceName__endpointName__i" if this is not null.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+#pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, EndpointReference endpointReference, string? serviceName = null)
+#pragma warning restore RS0026 // Do not add multiple public overloads with optional parameters
+        where TDestination : IResourceWithEnvironment
+    {
+        ApplyEndpoints(builder, endpointReference.Resource, serviceName, endpointReference.EndpointName);
         return builder;
     }
 
-    private static void ApplyEndpoints<T>(this IResourceBuilder<T> builder, IResourceWithEndpoints resourceWithEndpoints, string? endpointName = null)
+    private static void ApplyEndpoints<T>(this IResourceBuilder<T> builder, IResourceWithEndpoints resourceWithEndpoints, string? serviceName, string? endpointName = null)
         where T : IResourceWithEnvironment
     {
         // When adding an endpoint we get to see whether there is an EndpointReferenceAnnotation
@@ -357,7 +396,7 @@ public static class ResourceBuilderExtensions
             endpointReferenceAnnotation = new EndpointReferenceAnnotation(resourceWithEndpoints);
             builder.WithAnnotation(endpointReferenceAnnotation);
 
-            var callback = CreateEndpointReferenceEnvironmentPopulationCallback(endpointReferenceAnnotation);
+            var callback = CreateEndpointReferenceEnvironmentPopulationCallback(endpointReferenceAnnotation, serviceName);
             builder.WithEnvironment(callback);
         }
 
