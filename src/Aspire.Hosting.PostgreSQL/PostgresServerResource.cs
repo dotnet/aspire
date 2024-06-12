@@ -17,8 +17,9 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     /// <param name="name">The name of the resource.</param>
     /// <param name="userName">A parameter that contains the PostgreSQL server user name, or <see langword="null"/> to use a default value.</param>
     /// <param name="password">A parameter that contains the PostgreSQL server password.</param>
-    public PostgresServerResource(string name, ParameterResource? userName, ParameterResource password) : base(name)
+    public PostgresServerResource(string name, ParameterResource userName, ParameterResource password) : base(name)
     {
+        ArgumentNullException.ThrowIfNull(userName);
         ArgumentNullException.ThrowIfNull(password);
 
         PrimaryEndpoint = new(this, PrimaryEndpointName);
@@ -34,7 +35,7 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     /// <summary>
     /// Gets the parameter that contains the PostgreSQL server user name.
     /// </summary>
-    public ParameterResource? UserNameParameter { get; }
+    public ParameterResource UserNameParameter { get; }
 
     internal ReferenceExpression UserNameReference =>
         UserNameParameter is not null ?
