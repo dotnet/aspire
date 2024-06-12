@@ -18,14 +18,20 @@ builder.Services.AddSingleton<ElasticLowLevelClient>((sp) =>
 
 var app = builder.Build();
 
-app.MapGet("/", async (ElasticLowLevelClient elasticClient) =>
+app.MapGet("/get", async (ElasticLowLevelClient elasticClient) =>
 {
     var response = await elasticClient.GetAsync<StringResponse>("people", "1");
     return response.Body;
 });
 
-app.MapPost("/", async (ElasticLowLevelClient elasticClient) =>
+app.MapGet("/create", async (ElasticLowLevelClient elasticClient) =>
 {
+    var exist = await elasticClient.Indices.ExistsAsync<StringResponse>(index: "people");
+    if (exist.Success)
+    {
+        elasticClient.Indices.Delete<StringResponse>("people");
+    }
+
     var person = new
     {
         FirstName = "Alireza",
