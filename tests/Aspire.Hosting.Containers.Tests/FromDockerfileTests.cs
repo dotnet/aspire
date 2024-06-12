@@ -16,13 +16,15 @@ namespace Aspire.Hosting.Containers.Tests;
 
 public class WithDockerfileTests
 {
-    [ConditionalFact]
+    //[ConditionalFact]
+    [Fact]
+    [RequiresDocker]
     public async Task WithDockerfileLaunchesContainerSuccessfully()
     {
-        if (!IsDockerAvailable())
-        {
-            throw new SkipTestException("Docker unavailable.");
-        }
+        //if (!IsDockerAvailable())
+        //{
+            //throw new SkipTestException("Docker unavailable.");
+        //}
 
         using var builder = TestDistributedApplicationBuilder.Create();
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
@@ -187,13 +189,15 @@ public class WithDockerfileTests
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
-    [ConditionalFact]
+    //[ConditionalFact]
+    [Fact]
+    [RequiresDocker]
     public async Task WithDockerfileWithParameterLaunchesContainerSuccessfully()
     {
-        if (!IsDockerAvailable())
-        {
-            throw new SkipTestException("Docker unavailable.");
-        }
+        //if (!IsDockerAvailable())
+        //{
+            //throw new SkipTestException("Docker unavailable.");
+        //}
 
         using var builder = TestDistributedApplicationBuilder.Create();
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
@@ -397,42 +401,42 @@ public class WithDockerfileTests
         return (tempContextPath, tempDockerfilePath);
     }
 
-    private static bool IsDockerAvailable()
-    {
-        try
-        {
-            var startInfo = new ProcessStartInfo("docker", "info")
-            {
-                RedirectStandardError = true,
-                RedirectStandardInput   = true,
-                RedirectStandardOutput  = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-            var process = Process.Start(startInfo);
+    //private static bool IsDockerAvailable()
+    //{
+        //try
+        //{
+            //var startInfo = new ProcessStartInfo("docker", "info")
+            //{
+                //RedirectStandardError = true,
+                //RedirectStandardInput   = true,
+                //RedirectStandardOutput  = true,
+                //UseShellExecute = false,
+                //CreateNoWindow = true
+            //};
+            //var process = Process.Start(startInfo);
 
-            var completed = process!.WaitForExit(10000);
+            //var completed = process!.WaitForExit(10000);
 
-            if (!completed)
-            {
-                process.Kill();
-            }
+            //if (!completed)
+            //{
+                //process.Kill();
+            //}
 
-            if (!completed || process.ExitCode != 0)
-            {
-                throw new XunitException("Docker is available but not responding.");
-            }
-            else
-            {
-                return true;
-            }
+            //if (!completed || process.ExitCode != 0)
+            //{
+                //throw new XunitException("Docker is available but not responding.");
+            //}
+            //else
+            //{
+                //return true;
+            //}
 
-        }
-        catch (System.ComponentModel.Win32Exception)
-        {
-            return false;
-        }
-    }
+        //}
+        //catch (System.ComponentModel.Win32Exception)
+        //{
+            //return false;
+        //}
+    //}
 
     private const string DefaultMessage = "aspire!";
 
