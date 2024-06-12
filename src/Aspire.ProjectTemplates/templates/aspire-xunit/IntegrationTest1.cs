@@ -29,7 +29,8 @@ public class IntegrationTest1
     //     await app.StartAsync();
 
     //     // Act
-    //     await resourceNotificationService.WaitForResource("webfrontend", KnownResourceStates.Running);
+    //     using var waitForResourceCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+    //     await resourceNotificationService.WaitForResourceAsync("webfrontend", KnownResourceStates.Running, waitForResourceCts.Token);
     //     var httpClient = app.CreateHttpClient("webfrontend");
     //     var response = await httpClient.GetAsync("/");
 

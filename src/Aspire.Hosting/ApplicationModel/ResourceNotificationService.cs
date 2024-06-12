@@ -14,7 +14,6 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public class ResourceNotificationService(ILogger<ResourceNotificationService> logger)
 {
-    private static readonly TimeSpan s_defaultWaitForResourceStateTimeout = TimeSpan.FromSeconds(60);
     // Resource state is keyed by the resource and the unique name of the resource. This could be the name of the resource, or a replica ID.
     private readonly ConcurrentDictionary<(IResource, string), ResourceNotificationState> _resourceNotificationStates = new();
     private readonly ILogger<ResourceNotificationService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -41,8 +40,8 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
     /// <remarks>
     /// This method returns a task that will complete when the resource reaches the specified target state. If the resource
     /// is already in the target state, the method will return immediately.<br/>
-    /// If the resource doesn't reach one of the target states before <paramref name="cancellationToken"/> is signalled, or
-    /// within 60 seconds if <paramref name="cancellationToken"/> is <c>null</c>, it will throw <see cref="TaskCanceledException"/>.
+    /// If the resource doesn't reach one of the target states before <paramref name="cancellationToken"/> is signalled, this method
+    /// will throw <see cref="OperationCanceledException"/>.
     /// </remarks>
     /// <param name="resourceName">The name of the resouce.</param>
     /// <param name="targetState"></param>
@@ -52,26 +51,8 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
     public Task WaitForResourceAsync(string resourceName, string? targetState = null, CancellationToken? cancellationToken = null)
 #pragma warning restore RS0027
     {
-        CancellationTokenSource? timeoutCts = null;
-        CancellationToken token;
-        if (cancellationToken is { } ct)
-        {
-            token = ct;
-        }
-        else
-        {
-            timeoutCts = new CancellationTokenSource(s_defaultWaitForResourceStateTimeout);
-            token = timeoutCts.Token;
-        }
-        try
-        {
-            string[] targetStates = !string.IsNullOrEmpty(targetState) ? [targetState] : [KnownResourceStates.Running];
-            return WaitForResourceAsync(resourceName, targetStates, token);
-        }
-        finally
-        {
-            timeoutCts?.Dispose();
-        }
+        string[] targetStates = !string.IsNullOrEmpty(targetState) ? [targetState] : [KnownResourceStates.Running];
+        return WaitForResourceAsync(resourceName, targetStates, cancellationToken ?? default);
     }
 
     /// <summary>
@@ -80,22 +61,15 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
     /// <remarks>
     /// This method returns a task that will complete when the resource reaches one of the specified target states. If the resource
     /// is already in the target state, the method will return immediately.<br/>
-    /// If the resource doesn't reach one of the target states within 60 seconds, it will throw <see cref="TaskCanceledException"/>.
+    /// Note the returned task will not complete if the resource doesn't reach one of the target states.
+    /// Use <see cref="WaitForResourceAsync(string, IEnumerable{string}, CancellationToken)"/> to pass a <see cref="CancellationToken"/>.
     /// </remarks>
     /// <param name="resourceName">The name of the resource.</param>
     /// <param name="targetStates">The set of states to wait for the resource to transition to one of. See <see cref="KnownResourceStates"/> for common states.</param>
     /// <returns>A <see cref="Task"/> representing the wait operation.</returns>
     public Task<string> WaitForResourceAsync(string resourceName, IEnumerable<string> targetStates)
     {
-        var timeoutCts = new CancellationTokenSource(s_defaultWaitForResourceStateTimeout);
-        try
-        {
-            return WaitForResourceAsync(resourceName, targetStates, timeoutCts.Token);
-        }
-        finally
-        {
-            timeoutCts.Dispose();
-        }
+        return WaitForResourceAsync(resourceName, targetStates, default);
     }
 
     /// <summary>
@@ -111,26 +85,19 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
     /// <returns>A <see cref="Task"/> representing the wait operation.</returns>
     public async Task<string> WaitForResourceAsync(string resourceName, IEnumerable<string> targetStates, CancellationToken cancellationToken)
     {
-        var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_applicationStopping, cancellationToken);
+        using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_applicationStopping, cancellationToken);
         var watchToken = watchCts.Token;
-        try
+        await foreach (var resourceEvent in WatchAsync(watchToken).ConfigureAwait(false))
         {
-            await foreach (var resourceEvent in WatchAsync(watchToken).WithCancellation(watchToken).ConfigureAwait(false))
+            if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName)
+                && resourceEvent.Snapshot.State?.Text is { Length: > 0 } statusText
+                && targetStates.Contains(statusText, StringComparers.ResourceState))
             {
-                if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName)
-                    && resourceEvent.Snapshot.State?.Text is { Length: > 0 } statusText
-                    && targetStates.Contains(statusText, StringComparers.ResourceState))
-                {
-                    return statusText;
-                }
+                return statusText;
             }
+        }
 
-            throw new OperationCanceledException("The operation was cancelled before the resource reached one of the target states.");
-        }
-        finally
-        {
-            watchCts.Dispose();
-        }
+        throw new OperationCanceledException("The operation was cancelled before the resource reached one of the target states.");
     }
 
     /// <summary>
