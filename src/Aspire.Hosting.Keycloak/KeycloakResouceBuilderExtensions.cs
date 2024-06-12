@@ -69,4 +69,29 @@ public static class KeycloakResouceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<KeycloakResource> WithDataVolume(this IResourceBuilder<KeycloakResource> builder, string? name = null, bool isReadOnly = false)
         => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/opt/keycloak/data", isReadOnly);
+
+    /// <summary>
+    /// Adds a reference to a Keycloak resource to the specified resource builder.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource builder.</typeparam>
+    /// <param name="builder">The resource builder to add the reference to.</param>
+    /// <param name="keycloakBuilder">The Keycloak resource builder to reference.</param>
+    /// <param name="realm">The realm to reference in the Keycloak server.</param>
+    /// <returns>The resource builder with the added reference.</returns>
+    public static IResourceBuilder<TResource> WithReference<TResource>(
+        this IResourceBuilder<TResource> builder,
+        IResourceBuilder<KeycloakResource> keycloakBuilder,
+        string realm
+    )
+        where TResource : IResourceWithEnvironment
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(keycloakBuilder);
+
+        builder.WithEnvironment(
+            "Aspire__Keycloak__Endpoint",
+            $"{keycloakBuilder.Resource.PrimaryEndpoint}/realms/{realm}");
+
+        return builder;
+    }
 }
