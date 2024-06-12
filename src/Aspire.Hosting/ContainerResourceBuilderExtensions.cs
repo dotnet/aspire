@@ -291,7 +291,10 @@ public static class ContainerResourceBuilderExtensions
         }
 
         var annotation = new DockerfileBuildAnnotation(fullyQualifiedContextPath, fullyQualifiedDockerfilePath, stage);
-        return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+        return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
+                      .WithImageRegistry(null!)
+                      .WithImage($"{builder.Resource.Name}-image")
+                      .WithImageTag("latest");
     }
 
     /// <summary>
