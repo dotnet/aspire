@@ -4,12 +4,11 @@
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Layout;
 
-public partial class AspirePageContentLayout : ComponentBase, IDisposable
+public partial class AspirePageContentLayout : ComponentBase
 {
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
@@ -37,15 +36,9 @@ public partial class AspirePageContentLayout : ComponentBase, IDisposable
 
     private IDialogReference? _toolbarPanel;
 
-    public Func<Task>? DialogCloseListener { get; set; }
+    public bool IsToolbarPanelOpen => _toolbarPanel is not null;
 
-    private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
-    {
-        if (_toolbarPanel is not null)
-        {
-            InvokeAsync(OpenMobileToolbarAsync);
-        }
-    }
+    public List<Func<Task>> DialogCloseListeners { get; } = new();
 
     private string GetMobileMainStyle()
     {
@@ -75,7 +68,10 @@ public partial class AspirePageContentLayout : ComponentBase, IDisposable
                 SecondaryAction = null,
                 OnDialogClosing = EventCallback.Factory.Create<DialogInstance>(this, () =>
                 {
-                    DialogCloseListener?.Invoke();
+                    foreach (var dialogCloseListener in DialogCloseListeners)
+                    {
+                        dialogCloseListener.Invoke();
+                    }
                 })
             });
     }
@@ -90,10 +86,5 @@ public partial class AspirePageContentLayout : ComponentBase, IDisposable
     }
 
     public record MobileToolbar(RenderFragment ToolbarSection, string MobileToolbarButtonText);
-
-    public void Dispose()
-    {
-        NavigationManager.LocationChanged -= OnLocationChanged;
-    }
 }
 

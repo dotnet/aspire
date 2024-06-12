@@ -5,7 +5,6 @@
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using System.Globalization
-@inject NavigationManager NavigationManager
 @inject IJSRuntime JS
 @inject IStringLocalizer<Dashboard.Resources.Traces> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
@@ -13,7 +12,7 @@
 
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Traces.TracesPageTitle)" Loc="@Loc" /></PageTitle>
 
-<AspirePageContentLayout AddNewlineOnToolbar="true">
+<AspirePageContentLayout AddNewlineOnToolbar="true" @ref="_contentLayout">
     <PageTitleSection>
         <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Traces.TracesHeader)]</h1>
     </PageTitleSection>
@@ -21,10 +20,10 @@
         <ResourceSelect Resources="_applicationViewModels"
                         AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
                         @bind-SelectedResource="_selectedApplication"
-                        @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync" />
+                        @bind-SelectedResource:after="HandleSelectedApplicationChanged" />
         <FluentSearch @bind-Value="Filter"
                       @oninput="HandleFilter"
-                      @bind-Value:after="HandleClear"
+                      @bind-Value:after="HandleAfterFilterBindAsync"
                       Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
                       title="@Loc[nameof(Dashboard.Resources.Traces.TracesNameFilter)]"
                       slot="end" />

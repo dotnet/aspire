@@ -13,9 +13,20 @@ internal static class DashboardUrls
     public const string StructuredLogsBasePath = "structuredlogs";
     public const string TracesBasePath = "traces";
 
-    public static string ResourcesUrl()
+    public static string ResourcesUrl(string? filter = null, List<string>? visibleTypes = null)
     {
-        return "/";
+        var url = "/";
+        if (!string.IsNullOrEmpty(filter))
+        {
+            url = QueryHelpers.AddQueryString(url, "filter", filter);
+        }
+
+        if (visibleTypes is not null && visibleTypes.Count > 0)
+        {
+            url = QueryHelpers.AddQueryString(url, "visibleTypes", string.Join(",", visibleTypes.Select(Uri.EscapeDataString)));
+        }
+
+        return url;
     }
 
     public static string ConsoleLogsUrl(string? resource = null)
@@ -57,7 +68,7 @@ internal static class DashboardUrls
         return url;
     }
 
-    public static string StructuredLogsUrl(string? resource = null, string? logLevel = null, string? filters = null, string? traceId = null, string? spanId = null)
+    public static string StructuredLogsUrl(string? resource = null, string? logLevel = null, string? filters = null, string? traceId = null, string? spanId = null, string? filter = null)
     {
         var url = $"/{StructuredLogsBasePath}";
         if (resource != null)
@@ -81,16 +92,25 @@ internal static class DashboardUrls
         {
             url = QueryHelpers.AddQueryString(url, "spanId", spanId);
         }
+        if (!string.IsNullOrEmpty(filter))
+        {
+            url = QueryHelpers.AddQueryString(url, "filter", filter);
+        }
 
         return url;
     }
 
-    public static string TracesUrl(string? resource = null)
+    public static string TracesUrl(string? resource = null, string? filter = null)
     {
         var url = $"/{TracesBasePath}";
         if (resource != null)
         {
             url += $"/resource/{Uri.EscapeDataString(resource)}";
+        }
+
+        if (!string.IsNullOrEmpty(filter))
+        {
+            url = QueryHelpers.AddQueryString(url, "filter", filter);
         }
 
         return url;

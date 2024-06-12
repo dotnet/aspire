@@ -29,9 +29,9 @@
                         AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
                         @bind-SelectedResource="PageViewModel.SelectedApplication"
                         @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync" />
-        <FluentSearch @bind-Value="PageViewModel.Filter"
+        <FluentSearch @bind-Value="Filter"
                       @oninput="HandleFilter"
-                      @bind-Value:after="HandleClearAsync"
+                      @bind-Value:after="HandleAfterFilterBindAsync"
                       Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
                       title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageFilter)]"
                       slot="end" />

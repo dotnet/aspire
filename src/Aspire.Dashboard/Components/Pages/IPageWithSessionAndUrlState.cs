@@ -61,12 +61,7 @@ public static class PageExtensions
     {
         if (layout is not null && !layout.ViewportInformation.IsDesktop && isChangeInToolbar)
         {
-            layout.DialogCloseListener ??= async () =>
-            {
-                layout.DialogCloseListener = null;
-                await SetStateAndNavigateAsync();
-            };
-
+            layout.DialogCloseListeners.Add(SetStateAndNavigateAsync);
             return;
         }
 

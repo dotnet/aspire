@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -9,12 +10,13 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class Traces
+public partial class Traces : IPageWithSessionAndUrlState<PageViewModelWithFilter, PageStateWithFilter>
 {
     private SelectViewModel<ResourceTypeDetails> _allApplication = null!;
 
@@ -25,6 +27,8 @@ public partial class Traces
     private Subscription? _applicationsSubscription;
     private Subscription? _tracesSubscription;
     private bool _applicationChanged;
+    private AspirePageContentLayout? _contentLayout;
+
     private CancellationTokenSource? _filterCts;
 
     [Parameter]
@@ -45,6 +49,17 @@ public partial class Traces
 
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; set; }
+
+    [Inject]
+    public required ProtectedSessionStorage SessionStorage { get; init; }
+
+    [Inject]
+    public required NavigationManager NavigationManager { get; init; }
+
+    public string BasePath => "/traces";
+    public string SessionStorageKey => "Traces_PageState";
+
+    public PageViewModelWithFilter PageViewModel { get; set; } = null!;
 
     private string GetNameTooltip(OtlpTrace trace)
     {
@@ -88,6 +103,11 @@ public partial class Traces
         _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = $"({ControlsStringsLoc[nameof(ControlsStrings.All)]})" };
         _selectedApplication = _allApplication;
 
+        PageViewModel = new PageViewModelWithFilter
+        {
+            Filter = Filter ?? string.Empty
+        };
+
         UpdateApplications();
         _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
         {
@@ -98,10 +118,12 @@ public partial class Traces
         return Task.CompletedTask;
     }
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         _selectedApplication = _applicationViewModels.GetApplication(ApplicationName, _allApplication);
         TracesViewModel.ApplicationServiceId = _selectedApplication.Id?.InstanceId;
+
+        await this.InitializeViewModelAsync();
         UpdateSubscription();
     }
 
@@ -113,9 +135,9 @@ public partial class Traces
         UpdateSubscription();
     }
 
-    private Task HandleSelectedApplicationChangedAsync()
+    private Task HandleSelectedApplicationChanged()
     {
-        NavigationManager.NavigateTo(DashboardUrls.TracesUrl(resource: _selectedApplication.Name));
+        NavigationManager.NavigateTo(DashboardUrls.TracesUrl(resource: _selectedApplication.Name, filter: Filter));
         _applicationChanged = true;
 
         return Task.CompletedTask;
@@ -139,8 +161,7 @@ public partial class Traces
     {
         if (args.Value is string newFilter)
         {
-            Filter = newFilter;
-            NavigationManager.NavigateTo("/traces?filter=" + Uri.EscapeDataString(newFilter));
+            PageViewModel.Filter = newFilter;
             _filterCts?.Cancel();
 
             // Debouncing logic. Apply the filter after a delay.
@@ -150,15 +171,27 @@ public partial class Traces
                 await Task.Delay(400, cts.Token);
                 TracesViewModel.FilterText = newFilter;
                 await InvokeAsync(StateHasChanged);
+                await this.AfterViewModelChangedAsync(_contentLayout, true);
             });
         }
     }
 
-    private void HandleClear()
+    private async Task HandleAfterFilterBindAsync()
     {
-        _filterCts?.Cancel();
+        if (!string.IsNullOrEmpty(Filter))
+        {
+            return;
+        }
+
+        if (_filterCts is not null)
+        {
+            await _filterCts.CancelAsync();
+        }
+
+        PageViewModel.Filter = string.Empty;
         TracesViewModel.FilterText = string.Empty;
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
+        await this.AfterViewModelChangedAsync(_contentLayout, true);
     }
 
     private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
@@ -180,5 +213,23 @@ public partial class Traces
     {
         _applicationsSubscription?.Dispose();
         _tracesSubscription?.Dispose();
+    }
+
+    public void UpdateViewModelFromQuery(PageViewModelWithFilter viewModel)
+    {
+        viewModel.Filter = Filter ?? string.Empty;
+    }
+
+    public string GetUrlFromSerializableViewModel(PageStateWithFilter serializable)
+    {
+        return DashboardUrls.TracesUrl(filter: serializable.Filter);
+    }
+
+    public PageStateWithFilter ConvertViewModelToSerializable()
+    {
+        return new PageStateWithFilter
+        {
+            Filter = PageViewModel.Filter
+        };
     }
 }
