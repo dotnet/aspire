@@ -76,7 +76,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     public string? SerializedLogFilters { get; set; }
 
     public StructureLogsDetailsViewModel? SelectedLogEntry { get; set; }
-    private AspirePageContentLayout? _pageContentLayout;
+    private AspirePageContentLayout? _contentLayout;
 
     private ValueTask<GridItemsProviderResult<OtlpLogEntry>> GetData(GridItemsProviderRequest<OtlpLogEntry> request)
     {
@@ -151,7 +151,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         _applicationChanged = true;
 
-        return this.AfterViewModelChangedAsync();
+        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
     private async Task HandleSelectedLogLevelChangedAsync()
@@ -159,7 +159,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         _applicationChanged = true;
 
         await ClearSelectedLogEntryAsync();
-        await this.AfterViewModelChangedAsync();
+        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
     private void UpdateSubscription()
@@ -209,9 +209,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     private async Task OpenFilterAsync(LogFilter? entry)
     {
-        if (_pageContentLayout is not null)
+        if (_contentLayout is not null)
         {
-            await _pageContentLayout.CloseMobileToolbarAsync();
+            await _contentLayout.CloseMobileToolbarAsync();
         }
 
         var logPropertyKeys = TelemetryRepository.GetLogPropertyKeys(PageViewModel.SelectedApplication.Id?.InstanceId);
@@ -249,7 +249,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             await ClearSelectedLogEntryAsync();
         }
 
-        await this.AfterViewModelChangedAsync();
+        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
     private void HandleFilter(ChangeEventArgs args)

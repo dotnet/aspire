@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Aspire.Dashboard.Components.Controls;
+using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -47,6 +48,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     private ResourceSelect? _resourceSelectComponent;
     private SelectViewModel<ResourceTypeDetails> _noSelection = null!;
     private LogViewer _logViewer = null!;
+    private AspirePageContentLayout? _contentLayout;
 
     // State
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
@@ -280,7 +282,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         await ClearLogsAsync();
 
         PageViewModel.SelectedResource = PageViewModel.SelectedOption?.Id?.InstanceId is null ? null : _resourceByName[PageViewModel.SelectedOption.Id.InstanceId];
-        await this.AfterViewModelChangedAsync();
+        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: false);
     }
 
     private async Task OnResourceChanged(ResourceViewModelChangeType changeType, ResourceViewModel resource)

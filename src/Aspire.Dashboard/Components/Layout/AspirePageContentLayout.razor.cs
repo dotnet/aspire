@@ -4,11 +4,12 @@
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Layout;
 
-public partial class AspirePageContentLayout : ComponentBase
+public partial class AspirePageContentLayout : ComponentBase, IDisposable
 {
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
@@ -31,7 +32,20 @@ public partial class AspirePageContentLayout : ComponentBase
     [Inject]
     public required IDialogService DialogService { get; init; }
 
+    [Inject]
+    public required NavigationManager NavigationManager { get; init; }
+
     private IDialogReference? _toolbarPanel;
+
+    public Func<Task>? DialogCloseListener { get; set; }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        if (_toolbarPanel is not null)
+        {
+            InvokeAsync(OpenMobileToolbarAsync);
+        }
+    }
 
     private string GetMobileMainStyle()
     {
@@ -58,7 +72,11 @@ public partial class AspirePageContentLayout : ComponentBase
                 Height = "90%",
                 Modal = false,
                 PrimaryAction = null,
-                SecondaryAction = null
+                SecondaryAction = null,
+                OnDialogClosing = EventCallback.Factory.Create<DialogInstance>(this, () =>
+                {
+                    DialogCloseListener?.Invoke();
+                })
             });
     }
 
@@ -67,9 +85,15 @@ public partial class AspirePageContentLayout : ComponentBase
         if (_toolbarPanel is not null)
         {
             await _toolbarPanel.CloseAsync();
+            _toolbarPanel = null;
         }
     }
 
     public record MobileToolbar(RenderFragment ToolbarSection, string MobileToolbarButtonText);
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
 }
 

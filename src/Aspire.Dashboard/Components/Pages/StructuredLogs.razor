@@ -17,7 +17,7 @@
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.StructuredLogs.StructuredLogsPageTitle)" Loc="@Loc" /></PageTitle>
 
 <AspirePageContentLayout
-    @ref="@_pageContentLayout"
+    @ref="@_contentLayout"
     AddNewlineOnToolbar="true"
     ShouldShowFooter="@(SelectedLogEntry is null)"
     IsSummaryDetailsViewOpen="@(SelectedLogEntry is not null)">

@@ -26,10 +26,13 @@ public partial class Traces
     private Subscription? _tracesSubscription;
     private bool _applicationChanged;
     private CancellationTokenSource? _filterCts;
-    private string _filter = string.Empty;
 
     [Parameter]
     public string? ApplicationName { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? Filter { get; set; }
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; set; }
@@ -136,7 +139,8 @@ public partial class Traces
     {
         if (args.Value is string newFilter)
         {
-            _filter = newFilter;
+            Filter = newFilter;
+            NavigationManager.NavigateTo("/traces?filter=" + Uri.EscapeDataString(newFilter));
             _filterCts?.Cancel();
 
             // Debouncing logic. Apply the filter after a delay.

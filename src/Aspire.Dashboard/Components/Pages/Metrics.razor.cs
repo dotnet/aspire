@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -18,6 +19,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     private SelectViewModel<ResourceTypeDetails> _selectApplication = null!;
     private List<SelectViewModel<TimeSpan>> _durations = null!;
     private static readonly TimeSpan s_defaultDuration = TimeSpan.FromMinutes(5);
+    private AspirePageContentLayout? _contentLayout;
 
     private List<SelectViewModel<ResourceTypeDetails>> _applications = default!;
     private Subscription? _applicationsSubscription;
@@ -150,12 +152,12 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     {
         PageViewModel.SelectedMeter = null;
         PageViewModel.SelectedInstrument = null;
-        return this.AfterViewModelChangedAsync();
+        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
     private Task HandleSelectedDurationChangedAsync()
     {
-        return this.AfterViewModelChangedAsync();
+        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
     public sealed class MetricsViewModel
@@ -202,7 +204,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             PageViewModel.SelectedInstrument = null;
         }
 
-        return this.AfterViewModelChangedAsync();
+        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: false);
     }
 
     public string GetUrlFromSerializableViewModel(MetricsPageState serializable)
@@ -224,7 +226,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     private async Task OnViewChangedAsync(MetricViewKind newView)
     {
         PageViewModel.SelectedViewKind = newView;
-        await this.AfterViewModelChangedAsync();
+        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: false);
     }
 
     private void UpdateSubscription()
