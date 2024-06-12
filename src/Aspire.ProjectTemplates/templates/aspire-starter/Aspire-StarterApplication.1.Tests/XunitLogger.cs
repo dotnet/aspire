@@ -1,0 +1,71 @@
+namespace Aspire_StarterApplication._1.Tests;
+
+public static class XunitLoggerExtensions
+{
+    public static IServiceCollection AddXunitLogger(this IServiceCollection services, ITestOutputHelper output)
+    {
+        services.AddSingleton<ILoggerProvider, XunitLoggerProvider>();
+        return services;
+    }
+}
+
+public class XunitLoggerProvider(ITestOutputHelper output) : ILoggerProvider
+{
+    private readonly LoggerExternalScopeProvider _scopeProvider = new();
+
+    public ILogger CreateLogger(string categoryName)
+    {
+        return new XunitLogger(testOutputHelper, _scopeProvider, categoryName);
+    }
+
+    public void Dispose()
+    {
+
+    }
+}
+
+internal class XunitLogger(ITestOutputHelper testOutputHelper, LoggerExternalScopeProvider scopeProvider, string categoryName) : ILogger
+{
+    public bool IsEnabled(LogLevel logLevel) => logLevel != LogLevel.None;
+
+    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => scopeProvider.Push(state);
+
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+    {
+        var sb = new StringBuilder();
+
+        sb.Append(DateTime.Now.ToString("O")).Append(' ')
+            .Append(GetLogLevelString(logLevel))
+            .Append(" [").Append(categoryName).Append("] ")
+            .Append(formatter(state, exception));
+
+        if (exception is not null)
+        {
+            sb.AppendLine().Append(exception);
+        }
+
+        // Append scopes
+        scopeProvider.ForEachScope((scope, state) =>
+        {
+            state.AppendLine();
+            state.Append(" => ");
+            state.Append(scope);
+        }, sb);
+
+        testOutputHelper.WriteLine(sb.ToString());
+    }
+
+    private static string GetLogLevelString(LogLevel logLevel)
+    {
+        return logLevel switch
+        {
+            LogLevel.Trace => "trce",
+            LogLevel.Debug => "dbug",
+            LogLevel.Information => "info",
+            LogLevel.Warning => "warn",
+            LogLevel.Error => "fail",
+            LogLevel.Critical => "crit",
+            _ => throw new ArgumentOutOfRangeException(nameof(logLevel))
+        };
+    }
+}

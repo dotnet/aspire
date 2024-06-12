@@ -1,12 +1,17 @@
 using System.Net;
 using Microsoft.Extensions.DependencyInjection;
+using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire_StarterApplication._1.Tests;
 
 #if (TestFramework == "MSTest")
 [TestClass]
 #endif
+#if (TestFramework == "xUnit.net")
+public class WebTests(ITestOutputHelper output)
+#else
 public class WebTests
+#endif
 {
 #if (TestFramework == "MSTest")
     [TestMethod]
@@ -23,10 +28,15 @@ public class WebTests
         {
             clientBuilder.AddStandardResilienceHandler();
         });
+#if (TestFramework == "xUnit.net")
+        appHost.Services.AddXunitLogger(output);
+#endif
         await using var app = await appHost.BuildAsync();
+        var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
         await app.StartAsync();
 
         // Act
+        await resourceNotificationService.WaitForResource("webfrontend", KnownResourceStates.Running);
         var httpClient = app.CreateHttpClient("webfrontend");
         var response = await httpClient.GetAsync("/");
 
