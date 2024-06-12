@@ -62,7 +62,7 @@ public static class AspireOracleEFCoreExtensions
 
         void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
         {
-		    ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
+            ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
 
             dbContextOptionsBuilder.UseOracle(settings.ConnectionString, builder =>
             {

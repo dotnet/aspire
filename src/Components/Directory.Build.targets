@@ -1,6 +1,5 @@
 <Project>
-
-  <Import Project="..\..\Directory.Build.targets" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
 
   <!--
   Logic for including the ConfigurationSchema.json file and corresponding
