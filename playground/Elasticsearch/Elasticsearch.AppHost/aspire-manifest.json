@@ -3,8 +3,8 @@
   "resources": {
     "elasticsearch": {
       "type": "container.v0",
-      "connectionString": "http://{elasticsearch-username.value}:{elasticsearch-password.value}@{elasticsearch.bindings.http.host}:{elasticsearch.bindings.http.port}",
-      "image": "docker.io/elasticsearch:8.8.0",
+      "connectionString": "http://elastic:{elasticsearch-password.value}@{elasticsearch.bindings.http.host}:{elasticsearch.bindings.http.port}",
+      "image": "docker.io/library/elasticsearch:8.14.0",
       "volumes": [
         {
           "name": "data",
