@@ -27,10 +27,10 @@ public class RedisFunctionalTests
 
         hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["ConnectionStrings:redis"] = await redis.Resource.GetConnectionStringAsync()
+            [$"ConnectionStrings:{redis.Resource.Name}"] = await redis.Resource.GetConnectionStringAsync()
         });
 
-        hb.AddRedisClient("redis");
+        hb.AddRedisClient(redis.Resource.Name);
 
         using var host = hb.Build();
 
