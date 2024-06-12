@@ -1,16 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
-using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Aspire.Hosting.Containers.Tests;
 
