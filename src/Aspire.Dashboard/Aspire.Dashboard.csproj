@@ -19,8 +19,13 @@
 
   <ItemGroup>
     <!-- Build service and client types. Integration tests use the client types to call OTLP services. -->
-    <Protobuf Include="**/*.proto">
+    <Protobuf Include="Otlp\**\*.proto">
       <ProtoRoot>Otlp</ProtoRoot>
+    </Protobuf>
+    
+    <Protobuf Include="..\Aspire.Hosting\Dashboard\proto\resource_service.proto">
+      <Access>Internal</Access>
+      <Link>ResourceService\resource_service.proto</Link>
     </Protobuf>
   </ItemGroup>
 
@@ -201,9 +206,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\Aspire.Hosting\Dashboard\proto\resource_service.proto" GrpcServices="Client" Access="Internal">
-      <Link>Protos\resource_service.proto</Link>
-    </Protobuf>
     <Compile Include="$(SharedDir)ChannelExtensions.cs" Link="Extensions\ChannelExtensions.cs" />
     <Compile Include="$(SharedDir)CompareHelpers.cs" Link="Utils\CompareHelpers.cs" />
     <Compile Include="$(SharedDir)IConfigurationExtensions.cs" Link="Utils\IConfigurationExtensions.cs" />

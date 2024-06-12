@@ -19,8 +19,8 @@
     {
         <!-- process completed, which may not have been unexpected -->
         <FluentIcon Title="@string.Format(Loc[Columns.StateColumnResourceExited], Resource.ResourceType)"
-                    Icon="Icons.Filled.Size16.Warning"
-                    Color="Color.Warning"
+                    Icon="Icons.Regular.Size16.CheckmarkUnderlineCircle"
+                    Color="Color.Success"
                     Class="severity-icon" />
     }
 }
@@ -76,7 +76,7 @@ else
 
 @if (string.IsNullOrEmpty(Resource.State))
 {
-    <span>Unknown</span>
+    <span>@Loc[Columns.UnknownStateLabel]</span>
 }
 else
 {

@@ -1,0 +1,10 @@
+# For more info on HTTP files go to https://aka.ms/vs/httpfile
+@hostname = https://localhost:7587
+
+# create the collection
+GET {{hostname}}/create
+
+###
+
+# search
+GET {{hostname}}/search

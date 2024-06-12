@@ -13,6 +13,7 @@
 
     <InstallChromeForPlaywright Condition="'$(InstallChromeForPlaywright)' == '' and '$(CODESPACES)' == 'true'">true</InstallChromeForPlaywright>
     <InstallChromeForPlaywright Condition="'$(InstallChromeForPlaywright)' == '' and '$(ArchiveTests)' == 'true' and '$(ContinuousIntegrationBuild)' == 'true'">true</InstallChromeForPlaywright>
+    <InstallChromeForPlaywright Condition="'$(InstallChromeForPlaywright)' == '' and '$(OS)' == 'Windows_NT' and '$(ContinuousIntegrationBuild)' != 'true'">true</InstallChromeForPlaywright>
 
     <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(ArchiveTests)' == 'true'">true</ExtractTestClassNamesForHelix>
   </PropertyGroup>

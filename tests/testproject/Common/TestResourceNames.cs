@@ -20,7 +20,10 @@ public enum TestResourceNames
     sqlserver = 1 << 10,
     efnpgsql = 1 << 11,
     garnet = 1 << 12,
-    All = cosmos | dashboard | kafka | mongodb | mysql | oracledatabase | efmysql | postgres | rabbitmq | redis | sqlserver | efnpgsql | garnet
+    eventhubs = 1 << 13,
+    milvus = 1 << 14,
+    valkey = 1 << 15,
+    All = cosmos | dashboard | kafka | mongodb | mysql | oracledatabase | efmysql | postgres | rabbitmq | redis | sqlserver | efnpgsql | garnet | eventhubs | milvus| valkey
 }
 
 public static class TestResourceNamesExtensions

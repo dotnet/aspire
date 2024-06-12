@@ -38,6 +38,10 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
 {
     builder.AddKeyedRedisClient("garnet");
 }
+if (!resourcesToSkip.HasFlag(TestResourceNames.valkey))
+{
+    builder.AddKeyedRedisClient("valkey");
+}
 if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
     builder.AddNpgsqlDataSource("postgresdb");
@@ -53,6 +57,11 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.rabbitmq))
 if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
 {
     builder.AddMongoDBClient("mymongodb");
+}
+if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
+{
+    builder.AddAzureEventHubProducerClient("eventhubsns", settings => settings.EventHubName = "hub");
+    builder.AddAzureEventHubConsumerClient("eventhubsns", settings => settings.EventHubName = "hub");
 }
 if (!resourcesToSkip.HasFlag(TestResourceNames.oracledatabase))
 {
@@ -71,6 +80,24 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
 if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
 {
     builder.AddAzureCosmosClient("cosmos");
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
+{
+    builder.AddAzureEventHubProducerClient("eventhubns", settings =>
+    {
+        settings.EventHubName = "hub";
+    });
+
+    builder.AddAzureEventHubConsumerClient("eventhubns", settings =>
+    {
+        settings.EventHubName = "hub";
+    });
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.milvus))
+{
+    builder.AddMilvusClient("milvus");
 }
 
 // Ensure healthChecks are added. Some components like Cosmos
@@ -93,6 +120,11 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
 {
     app.MapGarnetApi();
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.valkey))
+{
+    app.MapValkeyApi();
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
@@ -142,6 +174,16 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
 if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
 {
     app.MapCosmosApi();
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
+{
+    app.MapEventHubsApi();
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.milvus))
+{
+    app.MapMilvusApi();
 }
 
 app.Run();

@@ -39,6 +39,7 @@ steps:
 
     - script: ${{ parameters.buildScript }}
               /p:Configuration=${{ parameters.buildConfig }}
+              $(_OfficialBuildIdArgs)
               /bl:${{ parameters.repoLogPath }}/WorkloadInstallForTesting.binlog
               -projects $(Build.SourcesDirectory)/tests/workloads.proj
       displayName: Install sdk+workload for testing
