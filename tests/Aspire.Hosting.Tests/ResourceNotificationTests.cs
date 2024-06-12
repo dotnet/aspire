@@ -181,6 +181,22 @@ public class ResourceNotificationTests
     }
 
     [Fact]
+    public async Task WaitingOnResourceReturnsImmediatelyWhenResourceIsInTargetStateAlready()
+    {
+        var resource1 = new CustomResource("myResource1");
+
+        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>());
+
+        // Publish the state update first
+        await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = "SomeState" });
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState", cts.Token);
+
+        Assert.True(waitTask.IsCompletedSuccessfully);
+    }
+
+    [Fact]
     public async Task WaitingOnResourceReturnsWhenResourceReachesRunningStateIfNoTargetStateSupplied()
     {
         var resource1 = new CustomResource("myResource1");
