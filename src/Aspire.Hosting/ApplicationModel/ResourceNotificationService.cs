@@ -125,7 +125,7 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
                 }
             }
 
-            throw new TaskCanceledException("The operation was cancelled before the resource reached one of the target states.");
+            throw new OperationCanceledException("The operation was cancelled before the resource reached one of the target states.");
         }
         finally
         {

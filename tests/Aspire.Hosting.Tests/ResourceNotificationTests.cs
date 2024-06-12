@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -147,6 +148,117 @@ public class ResourceNotificationTests
             });
     }
 
+    [Fact]
+    public async Task WaitingOnResourceReturnsWhenResourceReachesTargetState()
+    {
+        var resource1 = new CustomResource("myResource1");
+
+        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>());
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState", cts.Token);
+
+        await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = "SomeState" });
+        await waitTask;
+
+        Assert.True(waitTask.IsCompletedSuccessfully);
+    }
+
+    [Fact]
+    public async Task WaitingOnResourceReturnsWhenResourceReachesRunningStateIfNoTargetStateSupplied()
+    {
+        var resource1 = new CustomResource("myResource1");
+
+        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>());
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var waitTask = notificationService.WaitForResourceAsync("myResource1", targetState: null, cancellationToken: cts.Token);
+
+        await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = KnownResourceStates.Running });
+        await waitTask;
+
+        Assert.True(waitTask.IsCompletedSuccessfully);
+    }
+
+    [Fact]
+    public async Task WaitingOnResourceReturnsCorrectStateWhenResourceReachesOneOfTargetStatesBeforeCancellation()
+    {
+        var resource1 = new CustomResource("myResource1");
+
+        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>());
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var waitTask = notificationService.WaitForResourceAsync("myResource1", ["SomeState", "SomeOtherState"], cts.Token);
+
+        await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = "SomeOtherState" });
+        var reachedState = await waitTask;
+
+        Assert.Equal("SomeOtherState", reachedState);
+    }
+
+    [Fact]
+    public async Task WaitingOnResourceReturnsCorrectStateWhenResourceReachesOneOfTargetStates()
+    {
+        var resource1 = new CustomResource("myResource1");
+
+        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>());
+
+        var waitTask = notificationService.WaitForResourceAsync("myResource1", ["SomeState", "SomeOtherState"]);
+
+        await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = "SomeOtherState" });
+        var reachedState = await waitTask;
+
+        Assert.Equal("SomeOtherState", reachedState);
+    }
+
+    [Fact]
+    public async Task WaitingOnResourceThrowsOperationCanceledExceptionIfResourceDoesntReachStateBeforeCancellationTokenSignalled()
+    {
+        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>());
+
+        using var cts = new CancellationTokenSource();
+        var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState", cts.Token);
+
+        cts.Cancel();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+        {
+            await waitTask;
+        });
+    }
+
+    [Fact]
+    public async Task WaitingOnResourceThrowsOperationCanceledExceptionIfResourceDoesntReachStateBeforeApplicationStoppingCancellationTokenSignalled()
+    {
+        using var hostApplicationLifetime = new TestHostApplicationLifetime();
+        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), hostApplicationLifetime);
+
+        var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState");
+        hostApplicationLifetime.StopApplication();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+        {
+            await waitTask;
+        });
+    }
+
+    [Fact]
+    public async Task WaitingOnResourceThrowsOperationCanceledExceptionIfResourceDoesntReachStateBeforeCancellationTokenSignalledWhenApplicationStoppingTokenExists()
+    {
+        using var hostApplicationLifetime = new TestHostApplicationLifetime();
+        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), hostApplicationLifetime);
+
+        using var cts = new CancellationTokenSource();
+        var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState", cts.Token);
+
+        cts.Cancel();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+        {
+            await waitTask;
+        });
+    }
+
     private sealed class CustomResource(string name) : Resource(name),
         IResourceWithEnvironment,
         IResourceWithConnectionString,
@@ -154,5 +266,29 @@ public class ResourceNotificationTests
     {
         public ReferenceExpression ConnectionStringExpression =>
             ReferenceExpression.Create($"CustomConnectionString");
+    }
+
+    private sealed class TestHostApplicationLifetime : IHostApplicationLifetime, IDisposable
+    {
+        private readonly CancellationTokenSource _stoppingCts = new();
+
+        public TestHostApplicationLifetime()
+        {
+            ApplicationStopping = _stoppingCts.Token;
+        }
+
+        public CancellationToken ApplicationStarted { get; }
+        public CancellationToken ApplicationStopped { get; }
+        public CancellationToken ApplicationStopping { get; }
+
+        public void StopApplication()
+        {
+            _stoppingCts.Cancel();
+        }
+
+        public void Dispose()
+        {
+            _stoppingCts.Dispose();
+        }
     }
 }
