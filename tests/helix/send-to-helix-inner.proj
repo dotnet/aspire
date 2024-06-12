@@ -6,8 +6,6 @@
 
     <_workItemTimeout>00:20:00</_workItemTimeout>
 
-    <IncludeDotNetCli>true</IncludeDotNetCli>
-    <DotNetCliPackageType>sdk</DotNetCliPackageType>
     <NeedsCreateDotNetDevScripts Condition="'$(OS)' != 'Windows_NT'">true</NeedsCreateDotNetDevScripts>
     <HasDocker Condition="'$(OS)' != 'Windows_NT'">true</HasDocker>
 
@@ -72,6 +70,11 @@
 
   <PropertyGroup>
     <NeedsDotNetSdk Condition="'$(NeedsWorkload)' != 'true'">true</NeedsDotNetSdk>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(NeedsDotNetSdk)' == 'true'">
+    <IncludeDotNetCli>true</IncludeDotNetCli>
+    <DotNetCliPackageType>sdk</DotNetCliPackageType>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(NeedsPlaywright)' == 'true'">
