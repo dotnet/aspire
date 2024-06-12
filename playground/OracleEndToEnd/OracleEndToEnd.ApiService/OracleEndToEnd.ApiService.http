@@ -1,0 +1,6 @@
+@OracleEndToEnd.ApiService_HostAddress = http://localhost:5180
+
+GET {{OracleEndToEnd.ApiService_HostAddress}}/
+Accept: application/json
+
+###
