@@ -57,6 +57,9 @@ public class DaprTests
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(container);
         var sidecarArgs = await ArgumentEvaluator.GetArgumentListAsync(sideCarCli);
 
+        Assert.Equal("3500", config["DAPR_HTTP_PORT"]);
+        Assert.Equal("50001", config["DAPR_GRPC_PORT"]);
+
         Assert.Equal("http://localhost:3500", config["DAPR_HTTP_ENDPOINT"]);
         Assert.Equal("http://localhost:50001", config["DAPR_GRPC_ENDPOINT"]);
 
