@@ -1,11 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Hosting.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
+using Projects;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -13,6 +15,16 @@ namespace Aspire.Hosting.Testing.Tests;
 
 public class ResourceLogAggregatorTests(ITestOutputHelper output)
 {
+    [Fact]
+    public async Task BackgroundServiceIsRegisteredInServiceProvider()
+    {
+        var appHost = await DistributedApplicationTestingBuilder.CreateAsync<TestingAppHost1_AppHost>();
+        Assert.Contains(appHost.Services, sd =>
+            sd.ServiceType == typeof(IHostedService)
+            && sd.ImplementationType == typeof(ResourceLogAggregatorBackgroundService)
+            && sd.Lifetime == ServiceLifetime.Singleton);
+    }
+
     [Fact]
     public async Task ExecuteThowsOperationCanceledWhenAppStoppingTokenSignalled()
     {
