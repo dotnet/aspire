@@ -14,9 +14,9 @@ public abstract class TestProgramFixture : IAsyncLifetime
     private DistributedApplication? _app;
     private TestProgram? _testProgram;
 
-    public TestProgram TestProgram => _testProgram!;
+    public TestProgram TestProgram => _testProgram ?? throw new InvalidOperationException("TestProgram is not initialized.");
 
-    public DistributedApplication App => _app!;
+    public DistributedApplication App => _app ?? throw new InvalidOperationException("DistributedApplication is not initialized.");
 
     public abstract TestProgram CreateTestProgram();
 
