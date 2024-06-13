@@ -1,29 +1,23 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
-using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Aspire.Hosting.Containers.Tests;
 
 public class WithDockerfileTests
 {
-    [ConditionalFact]
+    [Fact]
+    [RequiresDocker]
     public async Task WithDockerfileLaunchesContainerSuccessfully()
     {
-        if (!IsDockerAvailable())
-        {
-            throw new SkipTestException("Docker unavailable.");
-        }
-
         using var builder = TestDistributedApplicationBuilder.Create();
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
 
@@ -187,14 +181,10 @@ public class WithDockerfileTests
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
-    [ConditionalFact]
+    [Fact]
+    [RequiresDocker]
     public async Task WithDockerfileWithParameterLaunchesContainerSuccessfully()
     {
-        if (!IsDockerAvailable())
-        {
-            throw new SkipTestException("Docker unavailable.");
-        }
-
         using var builder = TestDistributedApplicationBuilder.Create();
         var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
 
@@ -395,43 +385,6 @@ public class WithDockerfileTests
         }
 
         return (tempContextPath, tempDockerfilePath);
-    }
-
-    private static bool IsDockerAvailable()
-    {
-        try
-        {
-            var startInfo = new ProcessStartInfo("docker", "info")
-            {
-                RedirectStandardError = true,
-                RedirectStandardInput   = true,
-                RedirectStandardOutput  = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-            var process = Process.Start(startInfo);
-
-            var completed = process!.WaitForExit(10000);
-
-            if (!completed)
-            {
-                process.Kill();
-            }
-
-            if (!completed || process.ExitCode != 0)
-            {
-                throw new XunitException("Docker is available but not responding.");
-            }
-            else
-            {
-                return true;
-            }
-
-        }
-        catch (System.ComponentModel.Win32Exception)
-        {
-            return false;
-        }
     }
 
     private const string DefaultMessage = "aspire!";
