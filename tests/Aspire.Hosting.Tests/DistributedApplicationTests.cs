@@ -682,8 +682,11 @@ public class DistributedApplicationTests
 
         var token = new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token;
 
+        await Task.Delay(5000);
+
         var urls = string.Empty;
         var httpEndPoint = app.GetEndpoint(testProgram.ServiceABuilder.Resource.Name, endpointName: "http");
+        Console.WriteLine ($"http endpoint: '{httpEndPoint}'");
         while (true)
         {
             try
@@ -698,11 +701,13 @@ public class DistributedApplicationTests
             }
         }
 
+        Console.WriteLine ($"http urls: '{urls}'");
         Assert.Contains(httpEndPoint.ToString().Trim('/'), urls);
 
         // https endpoint is proxied so app won't have this specific endpoint
         var httpsEndpoint = app.GetEndpoint(testProgram.ServiceABuilder.Resource.Name, endpointName: "https");
         Assert.DoesNotContain(httpsEndpoint.ToString().Trim('/'), urls);
+        Console.WriteLine ($"https endpoint: '{httpsEndpoint}'");
 
         while (true)
         {
@@ -710,6 +715,7 @@ public class DistributedApplicationTests
             {
                 using var client = new HttpClient();
                 var value = await client.GetStringAsync($"{httpsEndpoint}urls", token);
+                Console.WriteLine ($"value from https-urls: '{value}'");
                 Assert.Equal(urls, value);
                 break;
             }
