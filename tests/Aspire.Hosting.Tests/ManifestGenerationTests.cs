@@ -424,7 +424,8 @@ public class ManifestGenerationTests
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
-                    "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
+                    "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+                    "HTTP_PORTS": "{servicea.bindings.http.targetPort}"
                   },
                   "bindings": {
                     "http": {
@@ -446,7 +447,8 @@ public class ManifestGenerationTests
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
-                    "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
+                    "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+                    "HTTP_PORTS": "{serviceb.bindings.http.targetPort}"
                   },
                   "bindings": {
                     "http": {
@@ -468,18 +470,21 @@ public class ManifestGenerationTests
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
-                    "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
+                    "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+                    "Kestrel__Endpoints__http__Url": "http://*:{servicec.bindings.http.targetPort}"
                   },
                   "bindings": {
                     "http": {
                       "scheme": "http",
                       "protocol": "tcp",
-                      "transport": "http"
+                      "transport": "http",
+                      "targetPort": 5271
                     },
                     "https": {
                       "scheme": "https",
                       "protocol": "tcp",
-                      "transport": "http"
+                      "transport": "http",
+                      "targetPort": 5271
                     }
                   }
                 },
@@ -500,6 +505,7 @@ public class ManifestGenerationTests
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
                     "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+                    "HTTP_PORTS": "{integrationservicea.bindings.http.targetPort}",
                     "SKIP_RESOURCES": "None",
                     "ConnectionStrings__tempdb": "{tempdb.connectionString}",
                     "ConnectionStrings__mysqldb": "{mysqldb.connectionString}",
