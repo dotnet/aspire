@@ -43,7 +43,7 @@ public class ResourceNotificationTests
     {
         var resource = new CustomResource("myResource");
 
-        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>());
+        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime());
 
         async Task<List<ResourceEvent>> GetValuesAsync(CancellationToken cancellationToken)
         {
@@ -94,7 +94,7 @@ public class ResourceNotificationTests
         var resource1 = new CustomResource("myResource1");
         var resource2 = new CustomResource("myResource2");
 
-        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>());
+        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime());
 
         async Task<List<ResourceEvent>> GetValuesAsync(CancellationToken cancellation)
         {
@@ -153,7 +153,7 @@ public class ResourceNotificationTests
     {
         var resource1 = new CustomResource("myResource1");
 
-        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>());
+        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime());
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState", cts.Token);
@@ -169,7 +169,7 @@ public class ResourceNotificationTests
     {
         var resource1 = new CustomResource("myResource1");
 
-        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>());
+        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime());
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var waitTask = notificationService.WaitForResourceAsync("MYreSouRCe1", "sOmeSTAtE", cts.Token);
@@ -185,7 +185,7 @@ public class ResourceNotificationTests
     {
         var resource1 = new CustomResource("myResource1");
 
-        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>());
+        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime());
 
         // Publish the state update first
         await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = "SomeState" });
@@ -201,7 +201,7 @@ public class ResourceNotificationTests
     {
         var resource1 = new CustomResource("myResource1");
 
-        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>());
+        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime());
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var waitTask = notificationService.WaitForResourceAsync("myResource1", targetState: null, cancellationToken: cts.Token);
@@ -217,7 +217,7 @@ public class ResourceNotificationTests
     {
         var resource1 = new CustomResource("myResource1");
 
-        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>());
+        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime());
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var waitTask = notificationService.WaitForResourceAsync("myResource1", ["SomeState", "SomeOtherState"], cts.Token);
@@ -233,7 +233,7 @@ public class ResourceNotificationTests
     {
         var resource1 = new CustomResource("myResource1");
 
-        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>());
+        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime());
 
         var waitTask = notificationService.WaitForResourceAsync("myResource1", ["SomeState", "SomeOtherState"], default);
 
@@ -246,7 +246,7 @@ public class ResourceNotificationTests
     [Fact]
     public async Task WaitingOnResourceThrowsOperationCanceledExceptionIfResourceDoesntReachStateBeforeCancellationTokenSignalled()
     {
-        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>());
+        var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime());
 
         using var cts = new CancellationTokenSource();
         var waitTask = notificationService.WaitForResourceAsync("myResource1", "SomeState", cts.Token);
