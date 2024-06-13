@@ -7,6 +7,10 @@
     <Description>Core library and MSBuild logic for .NET Aspire AppHost projects.</Description>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Include="**/*.props;**/*.targets" Pack="true" PackagePath="%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>

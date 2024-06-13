@@ -14,6 +14,10 @@
     <UsingToolTemplateLocalizer>true</UsingToolTemplateLocalizer>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Include="templates\**\*" />
   </ItemGroup>
