@@ -235,7 +235,7 @@ public class ResourceNotificationTests
 
         var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>());
 
-        var waitTask = notificationService.WaitForResourceAsync("myResource1", ["SomeState", "SomeOtherState"]);
+        var waitTask = notificationService.WaitForResourceAsync("myResource1", ["SomeState", "SomeOtherState"], default);
 
         await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = "SomeOtherState" });
         var reachedState = await waitTask;

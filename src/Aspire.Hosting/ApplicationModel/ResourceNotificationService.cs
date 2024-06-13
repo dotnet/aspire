@@ -60,23 +60,6 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
     /// </summary>
     /// <remarks>
     /// This method returns a task that will complete when the resource reaches one of the specified target states. If the resource
-    /// is already in the target state, the method will return immediately.<br/>
-    /// Note the returned task will not complete if the resource doesn't reach one of the target states.
-    /// Use <see cref="WaitForResourceAsync(string, IEnumerable{string}, CancellationToken)"/> to pass a <see cref="CancellationToken"/>.
-    /// </remarks>
-    /// <param name="resourceName">The name of the resource.</param>
-    /// <param name="targetStates">The set of states to wait for the resource to transition to one of. See <see cref="KnownResourceStates"/> for common states.</param>
-    /// <returns>A <see cref="Task"/> representing the wait operation.</returns>
-    public Task<string> WaitForResourceAsync(string resourceName, IEnumerable<string> targetStates)
-    {
-        return WaitForResourceAsync(resourceName, targetStates, default);
-    }
-
-    /// <summary>
-    /// Waits for a resource to reach one of the specified states. See <see cref="KnownResourceStates"/> for common states.
-    /// </summary>
-    /// <remarks>
-    /// This method returns a task that will complete when the resource reaches one of the specified target states. If the resource
     /// is already in the target state, the method will return immediately.
     /// </remarks>
     /// <param name="resourceName">The name of the resource.</param>
