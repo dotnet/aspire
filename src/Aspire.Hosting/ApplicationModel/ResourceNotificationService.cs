@@ -63,12 +63,12 @@ public class ResourceNotificationService
     /// <param name="targetState"></param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> </param>
     /// <returns>A <see cref="Task"/> representing the wait operation.</returns>
-#pragma warning disable RS0027 // API with optional parameter(s) should have the most parameters amongst its public overloads
-    public Task WaitForResourceAsync(string resourceName, string? targetState = null, CancellationToken? cancellationToken = null)
-#pragma warning restore RS0027
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
+                                                     Justification = "targetState(s) parameters are mutually exclusive.")]
+    public Task WaitForResourceAsync(string resourceName, string? targetState = null, CancellationToken cancellationToken = default)
     {
         string[] targetStates = !string.IsNullOrEmpty(targetState) ? [targetState] : [KnownResourceStates.Running];
-        return WaitForResourceAsync(resourceName, targetStates, cancellationToken ?? default);
+        return WaitForResourceAsync(resourceName, targetStates, cancellationToken);
     }
 
     /// <summary>
@@ -84,7 +84,9 @@ public class ResourceNotificationService
     /// <param name="targetStates">The set of states to wait for the resource to transition to one of. See <see cref="KnownResourceStates"/> for common states.</param>
     /// <param name="cancellationToken">A cancellation token that cancels the wait operation when signalled.</param>
     /// <returns>A <see cref="Task"/> representing the wait operation.</returns>
-    public async Task<string> WaitForResourceAsync(string resourceName, IEnumerable<string> targetStates, CancellationToken cancellationToken)
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
+                                                     Justification = "targetState(s) parameters are mutually exclusive.")]
+    public async Task<string> WaitForResourceAsync(string resourceName, IEnumerable<string> targetStates, CancellationToken cancellationToken = default)
     {
         using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_applicationStopping, cancellationToken);
         var watchToken = watchCts.Token;
