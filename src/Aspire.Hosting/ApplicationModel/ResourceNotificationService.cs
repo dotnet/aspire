@@ -60,7 +60,9 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
     /// </summary>
     /// <remarks>
     /// This method returns a task that will complete when the resource reaches one of the specified target states. If the resource
-    /// is already in the target state, the method will return immediately.
+    /// is already in the target state, the method will return immediately.<br/>
+    /// If the resource doesn't reach one of the target states before <paramref name="cancellationToken"/> is signalled, this method
+    /// will throw <see cref="OperationCanceledException"/>.
     /// </remarks>
     /// <param name="resourceName">The name of the resource.</param>
     /// <param name="targetStates">The set of states to wait for the resource to transition to one of. See <see cref="KnownResourceStates"/> for common states.</param>
