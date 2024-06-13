@@ -38,22 +38,14 @@ public static class AspireKeycloakExtensions
         builder.Services.AddAuthentication(authenticationScheme)
                 .AddJwtBearer(authenticationScheme);
 
-        builder.Services.AddHttpClient(KeycloakBackchannel, client =>
-            client.BaseAddress = new($"https+http://{connectionName}"));
+        builder.Services.AddHttpClient(KeycloakBackchannel);
 
         builder.Services
                .AddOptions<JwtBearerOptions>(authenticationScheme)
                .Configure<IConfiguration, IHttpClientFactory, IHostEnvironment>((options, configuration, httpClientFactory, hostEnvironment) =>
                {
-                   var settings = new KeycloakSettings();
-                   builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
-
-                   configureSettings?.Invoke(settings);
-
-                   var backchannelHttpClient = httpClientFactory.CreateClient(KeycloakBackchannel);
-
-                   options.Backchannel = backchannelHttpClient;
-                   options.Authority = $"{backchannelHttpClient.BaseAddress}/realms/{settings.Realm}";
+                   options.Backchannel = httpClientFactory.CreateClient(KeycloakBackchannel);
+                   options.Authority = GetAuthorityUri(connectionName, configuration, configureSettings);
 
                    configureJwtBearerOptions?.Invoke(options);
                });
@@ -82,26 +74,31 @@ public static class AspireKeycloakExtensions
                         .AddCookie(cookieScheme)
                         .AddOpenIdConnect(openIdConnectScheme, options => { });
 
-        builder.Services.AddHttpClient(KeycloakBackchannel, client =>
-            client.BaseAddress = new($"https+http://{connectionName}"));
+        builder.Services.AddHttpClient(KeycloakBackchannel);
 
         builder.Services
                .AddOptions<OpenIdConnectOptions>(openIdConnectScheme)
                .Configure<IConfiguration, IHttpClientFactory, IHostEnvironment>((options, configuration, httpClientFactory, hostEnvironment) =>
                {
-                   var settings = new KeycloakSettings();
-                   builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
-
-                   configureSettings?.Invoke(settings);
-
-                   var backchannelHttpClient = httpClientFactory.CreateClient(KeycloakBackchannel);
-
-                   options.Backchannel = backchannelHttpClient;
-                   options.Authority = $"{backchannelHttpClient.BaseAddress}/realms/{settings.Realm}";
+                   options.Backchannel = httpClientFactory.CreateClient(KeycloakBackchannel);
+                   options.Authority = GetAuthorityUri(connectionName, configuration, configureSettings);
                    options.SignInScheme = cookieScheme;
                    options.SignOutScheme = openIdConnectScheme;
 
                    configureOpenIdConnectOptions?.Invoke(options);
                });
+    }
+
+    private static string GetAuthorityUri(
+        string connectionName,
+        IConfiguration configuration,
+        Action<KeycloakSettings>? configureSettings = null)
+    {
+        var settings = new KeycloakSettings();
+        configuration.GetSection(DefaultConfigSectionName).Bind(settings);
+
+        configureSettings?.Invoke(settings);
+
+        return $"https+http://{connectionName}/realms/{settings.Realm}";
     }
 }
