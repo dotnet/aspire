@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Data;
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text.Json;
@@ -1614,10 +1615,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 var valueString = buildSecret.Value switch
                 {
                     FileInfo filePath => filePath.FullName,
-                    string stringValue => stringValue,
                     IValueProvider valueProvider => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
-                    bool boolValue => boolValue ? "true" : "false",
-                    _ => buildSecret.Value.ToString()
+                    _ => throw new InvalidOperationException("Build secret can only be a parameter or a file.")
                 };
 
                 if (buildSecret.Value is FileInfo)
