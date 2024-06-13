@@ -9,7 +9,21 @@ namespace Aspire.Components.Common.Tests;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
 public class RequiresDockerAttribute : Attribute, ITraitAttribute
 {
-    public static bool IsSupported => !OperatingSystem.IsWindows() || Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is null;
+    // This property is `true` when docker is *expected* to be available.
+    //
+    // A hard-coded *expected* value is used here to ensure that docker
+    // dependent tests *fail* if docker is not available/usable in an environment
+    // where it is expected to be available. A run-time check would allow tests
+    // to fail silently, which is not desirable.
+    //
+    // scenarios:
+    // - Windows: assume installed only for *local* runs as docker isn't supported on CI yet
+    //                - https://github.com/dotnet/aspire/issues/4291
+    // - Linux - Local, or CI: always assume that docker is installed
+    public static bool IsSupported =>
+        !OperatingSystem.IsWindows() ||
+        (Environment.GetEnvironmentVariable("BUILD_BUILDID") is null && // NOT CI - build machine or helix
+            Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is null);
 
     public string? Reason { get; init; }
     public RequiresDockerAttribute(string? reason = null)
