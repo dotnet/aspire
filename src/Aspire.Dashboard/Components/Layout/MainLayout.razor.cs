@@ -277,7 +277,10 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         yield return new(
             Loc[nameof(Resources.Layout.MainLayoutAspireRepoLink)],
-            () => NavigateToAsync("https://aka.ms/dotnet/aspire/repo"),
+            async () =>
+            {
+                await JS.InvokeVoidAsync("open", ["https://aka.ms/dotnet/aspire/repo", "_blank"]);
+            },
             new AspireIcons.Size24.GitHub()
         );
 
