@@ -116,18 +116,8 @@ public static class CloudFormationExtensions
     /// </summary>
     /// <param name="builder"></param>
     /// <param name="awsSdkConfig">The name of the AWS credential profile.</param>
-    public static IResourceBuilder<ICloudFormationStackResource> WithReference(this IResourceBuilder<ICloudFormationStackResource> builder, IAWSSDKConfig awsSdkConfig)
-    {
-        builder.Resource.AWSSDKConfig = awsSdkConfig;
-        return builder;
-    }
-
-    /// <summary>
-    /// The AWS SDK service client configuration used to create the CloudFormation service client.
-    /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="awsSdkConfig">The name of the AWS credential profile.</param>
-    public static IResourceBuilder<ICloudFormationTemplateResource> WithReference(this IResourceBuilder<ICloudFormationTemplateResource> builder, IAWSSDKConfig awsSdkConfig)
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IAWSSDKConfig awsSdkConfig)
+        where TDestination : ICloudFormationResource
     {
         builder.Resource.AWSSDKConfig = awsSdkConfig;
         return builder;
@@ -139,19 +129,8 @@ public static class CloudFormationExtensions
     /// </summary>
     /// <param name="builder"></param>
     /// <param name="cloudFormationClient">The AWS CloudFormation service client.</param>
-    public static IResourceBuilder<ICloudFormationStackResource> WithReference(this IResourceBuilder<ICloudFormationStackResource> builder, IAmazonCloudFormation cloudFormationClient)
-    {
-        builder.Resource.CloudFormationClient = cloudFormationClient;
-        return builder;
-    }
-
-    /// <summary>
-    /// Override the CloudFormation service client the ICloudFormationTemplateResource would create to interact with the CloudFormation service. This can be used for pointing the
-    /// CloudFormation service client to a non-standard CloudFormation endpoint like an emulator.
-    /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="cloudFormationClient">The AWS CloudFormation service client.</param>
-    public static IResourceBuilder<ICloudFormationTemplateResource> WithReference(this IResourceBuilder<ICloudFormationTemplateResource> builder, IAmazonCloudFormation cloudFormationClient)
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IAmazonCloudFormation cloudFormationClient)
+        where TDestination : ICloudFormationResource
     {
         builder.Resource.CloudFormationClient = cloudFormationClient;
         return builder;

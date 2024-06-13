@@ -42,10 +42,11 @@ public static class SNSResourceExtensions
     /// <param name="builder">The builder for the resource.</param>
     /// <param name="topic">The Amazon SNS topic resource.</param>
     /// <param name="configSection">The optional config section in IConfiguration to add the output parameters.</param>
-    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IConstructResource<Topic>> topic, string configSection = Constants.DefaultConfigSection)
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IConstructResource<Topic>> topic, string? configSection = null)
         where TDestination : IResourceWithEnvironment
     {
+        configSection ??= $"{Constants.DefaultConfigSection}:{topic.Resource.Name}";
         var prefix = configSection.ToEnvironmentVariables();
-        return builder.WithEnvironment($"{prefix}__TopicArn", topic, t => t.TopicArn, TopicArnOutputName);
+        return builder.WithEnvironment($"{prefix}__{TopicArnOutputName}", topic, t => t.TopicArn, TopicArnOutputName);
     }
 }

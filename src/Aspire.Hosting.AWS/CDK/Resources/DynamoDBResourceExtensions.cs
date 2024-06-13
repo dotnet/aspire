@@ -52,10 +52,11 @@ public static class DynamoDBResourceExtensions
     /// <param name="builder">The builder for the resource.</param>
     /// <param name="table">The Amazon DynamoDB table resource.</param>
     /// <param name="configSection">The optional config section in IConfiguration to add the output parameters.</param>
-    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IConstructResource<Table>> table, string configSection = Constants.DefaultConfigSection)
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IConstructResource<Table>> table, string? configSection = null)
         where TDestination : IResourceWithEnvironment
     {
+        configSection ??= $"{Constants.DefaultConfigSection}:{table.Resource.Name}";
         var prefix = configSection.ToEnvironmentVariables();
-        return builder.WithEnvironment($"{prefix}__TableName", table, t => t.TableName, TableNameOutputName);
+        return builder.WithEnvironment($"{prefix}__{TableNameOutputName}", table, t => t.TableName, TableNameOutputName);
     }
 }

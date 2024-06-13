@@ -7,9 +7,9 @@ using Aspire.Hosting.AWS.CloudFormation;
 
 namespace Aspire.Hosting.AWS.CDK;
 
-internal sealed class CDKStackTemplate(CloudFormationStackArtifact artifact, StackResource resource) : ICloudFormationTemplateProvider
+internal sealed class CDKStackTemplate(CloudFormationStackArtifact artifact, IStackResource resource) : ICloudFormationTemplateProvider
 {
-    public StackResource Resource { get; } = resource;
+    public IStackResource Resource { get; } = resource;
     public CloudFormationStackArtifact Artifact { get; } = artifact;
     public string StackName { get; } = artifact.StackName;
     public IDictionary<string, string> CloudFormationParameters { get; } = new Dictionary<string, string>();

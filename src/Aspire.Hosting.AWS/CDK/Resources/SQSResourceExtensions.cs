@@ -30,10 +30,11 @@ public static class SQSResourceExtensions
     /// <param name="builder">The builder for the resource.</param>
     /// <param name="queue">The Amazon SQS queue resource.</param>
     /// <param name="configSection">The optional config section in IConfiguration to add the output parameters.</param>
-    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IConstructResource<Queue>> queue, string configSection = Constants.DefaultConfigSection)
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IConstructResource<Queue>> queue, string? configSection = null)
         where TDestination : IResourceWithEnvironment
     {
+        configSection ??= $"{Constants.DefaultConfigSection}:{queue.Resource.Name}";
         var prefix = configSection.ToEnvironmentVariables();
-        return builder.WithEnvironment($"{prefix}__QueueUrl", queue, q => q.QueueUrl, QueueUrlOutputName);
+        return builder.WithEnvironment($"{prefix}__{QueueUrlOutputName}", queue, q => q.QueueUrl, QueueUrlOutputName);
     }
 }

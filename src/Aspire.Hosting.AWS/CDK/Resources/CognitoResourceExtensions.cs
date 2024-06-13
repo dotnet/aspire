@@ -41,10 +41,11 @@ public static class CognitoResourceExtensions
     /// <param name="builder">The builder for the resource.</param>
     /// <param name="userPool">The Amazon Cognito user pool resource.</param>
     /// <param name="configSection">The optional config section in IConfiguration to add the output parameters.</param>
-    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IConstructResource<UserPool>> userPool, string configSection = Constants.DefaultConfigSection)
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IConstructResource<UserPool>> userPool, string? configSection = null)
         where TDestination : IResourceWithEnvironment
     {
+        configSection ??= $"{Constants.DefaultConfigSection}:{userPool.Resource.Name}";
         var prefix = configSection.ToEnvironmentVariables();
-        return builder.WithEnvironment($"{prefix}__UserPoolId", userPool, p => p.UserPoolId, UserPoolIdOutputName);
+        return builder.WithEnvironment($"{prefix}__{UserPoolIdOutputName}", userPool, p => p.UserPoolId, UserPoolIdOutputName);
     }
 }

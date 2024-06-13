@@ -31,10 +31,11 @@ public static class KinesisResourceExtensions
     /// <param name="builder">The builder for the resource.</param>
     /// <param name="stream">The Amazon Kinesis stream resource.</param>
     /// <param name="configSection">The optional config section in IConfiguration to add the output parameters.</param>
-    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IConstructResource<Stream>> stream, string configSection = Constants.DefaultConfigSection)
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IConstructResource<Stream>> stream, string? configSection = null)
         where TDestination : IResourceWithEnvironment
     {
+        configSection ??= $"{Constants.DefaultConfigSection}:{stream.Resource.Name}";
         var prefix = configSection.ToEnvironmentVariables();
-        return builder.WithEnvironment($"{prefix}__StreamArn", stream, s => s.StreamArn, StreamArnOutputName);
+        return builder.WithEnvironment($"{prefix}__{StreamArnOutputName}", stream, s => s.StreamArn, StreamArnOutputName);
     }
 }

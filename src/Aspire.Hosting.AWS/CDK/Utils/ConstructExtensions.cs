@@ -8,6 +8,10 @@ namespace Aspire.Hosting.AWS.CDK;
 
 internal static class ConstructExtensions
 {
+    /// <summary>
+    /// Returns the computed unique ID of a construct in the stack.
+    /// </summary>
+    /// <param name="construct">The construct in the stack</param>
     public static string StackUniqueId(this IConstruct construct)
     {
         var stack = construct.Node.Scopes.OfType<Stack>().FirstOrDefault();

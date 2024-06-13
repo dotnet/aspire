@@ -6,12 +6,12 @@ using Amazon.CDK;
 namespace Aspire.Hosting.AWS.CDK;
 
 /// <summary>
-/// Resource representing an AWS CDK app.
+///
 /// </summary>
-public interface IAppResource : IResourceWithConstruct
+public interface ICDKResource : IStackResource
 {
     /// <summary>
-    /// The AWS CDK app.
+    ///
     /// </summary>
     App App { get; }
 }

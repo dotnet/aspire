@@ -8,7 +8,7 @@ using Aspire.Hosting.AWS;
 using Aspire.Hosting.AWS.CDK;
 using Aspire.Hosting.AWS.CloudFormation;
 using Constructs;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Stack = Amazon.CDK.Stack;
 using StackResource = Aspire.Hosting.AWS.CDK.StackResource;
@@ -20,54 +20,62 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class CDKExtensions
 {
+    internal static IDistributedApplicationBuilder AddCDKProvisioning(this IDistributedApplicationBuilder builder)
+    {
+
+        builder.AddCloudFormationProvisioning();
+        builder.Services.AddSingleton<ICloudFormationProvisionerFactory, CDKProvisionerFactory>();
+        return builder;
+    }
+
     /// <summary>
-    ///
+    /// Add a AWS CDK app with stack for provisioning application resources.
     /// </summary>
-    /// <param name="builder"></param>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name"></param>
+    /// <param name="stackName"></param>
     /// <param name="props"></param>
     /// <returns></returns>
-    public static IResourceBuilder<IAppResource> AddAWSCDK(this IDistributedApplicationBuilder builder, string name, IAppProps? props = null)
+    public static IResourceBuilder<ICDKResource> AddAWSCDK(this IDistributedApplicationBuilder builder, string name, string? stackName = null, IAppProps? props = null)
     {
-        builder.Services.TryAddSingleton<ICloudFormationProvisionerFactory, CDKProvisionerFactory>();
-        builder.AddCloudFormationProvisioning();
-        return builder.AddResource(new AppResource(name, props));
+        builder.AddCDKProvisioning();
+        return builder.AddResource(new CDKResource(name, stackName, props));
     }
 
     /// <summary>
     /// Adds a AWS CDK stack as resource.
     /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="builder">The AWS CDK Resource builder.</param>
     /// <param name="name">The name of the stack resource.</param>
     /// <returns></returns>
-    public static IResourceBuilder<IStackResource> AddStack(this IResourceBuilder<IAppResource> builder, string name)
-        => AddStack(builder, name, name);
+    public static IResourceBuilder<IStackResource> AddStack(this IResourceBuilder<ICDKResource> builder, string name)
+        => AddStack(builder, name, $"{builder.Resource.StackName}-{name}");
 
     /// <summary>
     /// Adds a AWS CDK stack as resource.
     /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="builder">The AWS CDK Resource builder.</param>
     /// <param name="name">The name of the stack resource.</param>
     /// <param name="stackName">Cloud Formation stack same if different from the resource name.</param>
     /// <returns></returns>
-    public static IResourceBuilder<IStackResource> AddStack(this IResourceBuilder<IAppResource> builder, string name, string stackName)
+    public static IResourceBuilder<IStackResource> AddStack(this IResourceBuilder<ICDKResource> builder, string name, string stackName)
         => builder.AddResource(app => new StackResource(name, new Stack(app.App, stackName), builder.Resource));
 
     /// <summary>
     /// Adds and build a AWS CDK stack as resource.
     /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="builder">The AWS CDK Resource builder.</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="stackBuilder">The stack builder delegate.</param>
     /// <returns></returns>
-    public static IResourceBuilder<IStackResource<T>> AddStack<T>(this IResourceBuilder<IAppResource> builder, string name, ConstructBuilderDelegate<T> stackBuilder)
+    public static IResourceBuilder<IStackResource<T>> AddStack<T>(this IResourceBuilder<ICDKResource> builder, string name, ConstructBuilderDelegate<T> stackBuilder)
         where T : Stack
         => builder.AddResource(app => new StackResource<T>(name, stackBuilder(app.App), builder.Resource));
 
     /// <summary>
     /// Adds and build a AWS CDK construct as resource.
     /// </summary>
-    /// <param name="builder">The resource builder.</param>
+    /// <param name="builder">The construct resource builder.</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="constructBuilder">The construct builder delegate.</param>
     /// <returns></returns>
@@ -78,7 +86,7 @@ public static class CDKExtensions
     /// <summary>
     /// Adds a stack reference to an output from the CloudFormation stack.
     /// </summary>
-    /// <param name="builder">The resource builder.</param>
+    /// <param name="builder">The stack resource builder.</param>
     /// <param name="name">The name of the output.</param>
     /// <param name="output">The construct output delegate.</param>
     /// <typeparam name="TStack"></typeparam>
@@ -88,12 +96,12 @@ public static class CDKExtensions
     /// <code>
     /// var service = app
     ///     .AddStack("service", scope => new ServiceStack(scope, "ServiceStack")
-    ///     .WithOutput("ServiceUrl", stack => stack.Service.ServiceUrl);
+    ///     .AddOutput("ServiceUrl", stack => stack.Service.ServiceUrl);
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///     .AddReference(service);
     /// </code>
     /// </example>
-    public static IResourceBuilder<IStackResource<TStack>> WithOutput<TStack>(
+    public static IResourceBuilder<IStackResource<TStack>> AddOutput<TStack>(
         this IResourceBuilder<IStackResource<TStack>> builder,
         string name, ConstructOutputDelegate<TStack> output)
         where TStack : Stack
@@ -104,22 +112,22 @@ public static class CDKExtensions
     /// <summary>
     /// Adds a construct reference to an output from the CloudFormation stack.
     /// </summary>
-    /// <param name="builder">The resource builder.</param>
+    /// <param name="builder">The construct resource builder.</param>
     /// <param name="name">The name of the output.</param>
     /// <param name="output">The construct output delegate.</param>
     /// <typeparam name="T"></typeparam>
     /// <example>
-    /// The following example shows creating a custom construct and reference the exposed ApiUrl property
+    /// The following example shows creating a custom construct and reference the exposed ServiceUrl property
     /// in a project.
     /// <code lang="C#">
     /// var service = stack
     ///     .AddConstruct("service", scope => new Service(scope, "service")
-    ///     .WithOutput("ServiceUrl", construct => construct.ServiceUrl);
+    ///     .AddOutput("ServiceUrl", construct => construct.ServiceUrl);
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///     .AddReference(service);
     /// </code>
     /// </example>
-    public static IResourceBuilder<IConstructResource<T>> WithOutput<T>(
+    public static IResourceBuilder<IConstructResource<T>> AddOutput<T>(
         this IResourceBuilder<IConstructResource<T>> builder,
         string name, ConstructOutputDelegate<T> output)
         where T : Construct
@@ -130,7 +138,7 @@ public static class CDKExtensions
     /// <summary>
     /// Gets a reference to an output from the CloudFormation stack.
     /// </summary>
-    /// <param name="builder">The resource builder.</param>
+    /// <param name="builder">The construct resource builder.</param>
     /// <param name="name">The name of the output.</param>
     /// <param name="output">The construct output delegate.</param>
     public static StackOutputReference GetOutput<T>(this IResourceBuilder<IConstructResource<T>> builder, string name, ConstructOutputDelegate<T> output)
@@ -138,18 +146,6 @@ public static class CDKExtensions
     {
         builder.WithAnnotation(new ConstructOutputAnnotation<T>(name, output));
         return new StackOutputReference(builder.Resource.Construct.StackUniqueId() + name, builder.Resource.FindParentOfType<StackResource>());
-    }
-
-    /// <summary>
-    /// The AWS SDK service client configuration used to create the CloudFormation service client.
-    /// </summary>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="awsSdkConfig">The name of the AWS credential profile.</param>
-    public static IResourceBuilder<T> WithReference<T>(this IResourceBuilder<T> builder, IAWSSDKConfig awsSdkConfig)
-        where T : IStackResource
-    {
-        builder.Resource.AWSSDKConfig = awsSdkConfig;
-        return builder;
     }
 
     /// <summary>
@@ -231,13 +227,22 @@ public static class CDKExtensions
     }
 
     /// <summary>
-    /// Add a environment variable with a reference of a AWS CDK construct to a project. The output parameters of the CloudFormation stack are added to the project IConfiguration.
+    /// Add an environment variable with a reference of a AWS CDK construct to a project. The output parameters of the CloudFormation stack are added to the project IConfiguration.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the environment variable.</param>
     /// <param name="source">The construct resource.</param>
     /// <param name="outputDelegate">The construct output delegate.</param>
     /// <param name="outputName">The name of the construct output</param>
+    /// /// <example>
+    /// The following example shows creating a custom construct and reference the exposed ServiceUrl property
+    /// in a project as environment variable.
+    /// <code lang="C#">
+    /// var service = stack.AddConstruct("service", scope => new Service(scope, "service");
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///     .WithEnvironment("Service_ServiceUrl", service, s => s.ServiceUrl);
+    /// </code>
+    /// </example>
     public static IResourceBuilder<TDestination> WithEnvironment<TDestination, TConstruct>(this IResourceBuilder<TDestination> builder, string name, IResourceBuilder<IConstructResource<TConstruct>> source, ConstructOutputDelegate<TConstruct> outputDelegate, string? outputName = default)
         where TConstruct : IConstruct
         where TDestination : IResourceWithEnvironment
@@ -247,6 +252,6 @@ public static class CDKExtensions
         {
             source.WithAnnotation(new ConstructOutputAnnotation<TConstruct>(outputName, outputDelegate));
         }
-        return builder.WithEnvironment(name, new StackOutputReference(source.Resource.Construct.StackUniqueId() + outputName, source.Resource.FindParentOfType<StackResource>()));
+        return builder.WithEnvironment(name, new StackOutputReference(source.Resource.Construct.StackUniqueId() + outputName, source.Resource.FindParentOfType<IStackResource>()));
     }
 }

@@ -8,10 +8,4 @@ namespace Aspire.Hosting.AWS.CDK;
 /// <summary>
 /// Resource representing an AWS CDK construct.
 /// </summary>
-public interface IConstructResource : IResourceWithParent<IResourceWithConstruct>, IResourceWithConstruct
-{
-    /// <summary>
-    ///
-    /// </summary>
-    IStackResource Stack { get; }
-}
+public interface IConstructResource : IResourceWithParent<IResourceWithConstruct>, IResourceWithConstruct;

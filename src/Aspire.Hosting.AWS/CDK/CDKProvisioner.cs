@@ -24,30 +24,39 @@ internal sealed class CDKProvisioner(
 
     protected override async Task ProcessCloudFormationResourcesAsync(IEnumerable<CloudFormationResource> resources, CancellationToken cancellationToken = default)
     {
+        // Provision CloudFormation resources
         var cloudFormationResources = resources as CloudFormationResource[] ?? resources.ToArray();
         await base.ProcessCloudFormationResourcesAsync(cloudFormationResources, cancellationToken).ConfigureAwait(false);
 
+        // Prepare construct resources ahead of provisioning
         PrepareConstructResources(AppModel.Resources.OfType<IResourceWithConstruct>().ToArray());
-        await ProcessAppResourcesAsync(AppModel.Resources.OfType<AppResource>().ToArray(), cancellationToken).ConfigureAwait(false);
+
+        // Provision CDK resources
+        await ProcessCDKResourcesAsync(AppModel.Resources.OfType<ICDKResource>().ToArray(), cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task ProcessAppResourcesAsync(AppResource[] appResources, CancellationToken cancellationToken = default)
+    private async Task ProcessCDKResourcesAsync(ICDKResource[] cdkResources, CancellationToken cancellationToken = default)
     {
-        foreach (var appResource in appResources)
+        // Update state to starting
+        foreach (var cdkResource in cdkResources)
         {
-            await PublishUpdateStateAsync(appResource, Constants.ResourceStateStarting).ConfigureAwait(false);
+            await PublishUpdateStateAsync(cdkResource, Constants.ResourceStateStarting).ConfigureAwait(false);
         }
-        // Process App Resources
-        foreach (var appResource in appResources)
+        // Process CDK Resources
+        foreach (var cdkResource in cdkResources)
         {
-            await ProcessAppResourceAsync(appResource, cancellationToken).ConfigureAwait(false);
+            await ProcessCDKResourceAsync(cdkResource, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private async Task ProcessAppResourceAsync(AppResource appResource, CancellationToken cancellationToken = default)
+    private async Task ProcessCDKResourceAsync(ICDKResource appResource, CancellationToken cancellationToken = default)
     {
         var logger = LoggerService.GetLogger(appResource);
-        var stackResources = appResource.ListChildren(AppModel.Resources.OfType<StackResource>()).ToDictionary(x => x.Stack.StackName);
+        var stackResources = appResource
+            .ListChildren(AppModel.Resources.OfType<StackResource>())
+            .Cast<IStackResource>()
+            .ToDictionary(x => x.Stack.StackName);
+        stackResources.Add(appResource.StackName, appResource);
         try
         {
             var cloudAssembly = appResource.App.Synth();
@@ -126,7 +135,10 @@ internal sealed class CDKProvisioner(
 
                 logger.LogInformation("CDK provisioning complete");
 
-                template.Resource.Outputs = stack.Outputs;
+                if (template.Resource is CloudFormationResource cloudFormationResource)
+                {
+                    cloudFormationResource.Outputs = stack.Outputs;
+                }
                 await PublishUpdateStateAsync(template.Resource, Constants.ResourceStateRunning, ConvertOutputToProperties(stack, template.Artifact.TemplateFullPath)).ConfigureAwait(false);
                 template.Resource.ProvisioningTaskCompletionSource?.TrySetResult();
                 return true;
@@ -171,7 +183,7 @@ internal sealed class CDKProvisioner(
         }
     }
 
-    private async Task PublishUpdateStateAsync(IAppResource resource, string status, ImmutableArray<ResourcePropertySnapshot>? properties = null)
+    private async Task PublishUpdateStateAsync(ICDKResource resource, string status, ImmutableArray<ResourcePropertySnapshot>? properties = null)
     {
         if (properties == null)
         {

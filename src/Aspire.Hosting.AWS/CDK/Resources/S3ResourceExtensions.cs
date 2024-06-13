@@ -84,10 +84,11 @@ public static class S3ResourceExtensions
     /// <param name="builder">The builder for the resource.</param>
     /// <param name="bucket">The Amazon S3 bucket resource.</param>
     /// <param name="configSection">The optional config section in IConfiguration to add the output parameters.</param>
-    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IConstructResource<Bucket>> bucket, string configSection = Constants.DefaultConfigSection)
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IConstructResource<Bucket>> bucket, string? configSection = null)
         where TDestination : IResourceWithEnvironment
     {
+        configSection ??= $"{Constants.DefaultConfigSection}:{bucket.Resource.Name}";
         var prefix = configSection.ToEnvironmentVariables();
-        return builder.WithEnvironment($"{prefix}__BucketName", bucket, b => b.BucketName, BucketNameOutputName);
+        return builder.WithEnvironment($"{prefix}__{BucketNameOutputName}", bucket, b => b.BucketName, BucketNameOutputName);
     }
 }
