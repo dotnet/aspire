@@ -3,11 +3,7 @@ namespace Aspire_StarterApplication._1.Tests;
 #if (TestFramework == "MSTest")
 [TestClass]
 #endif
-#if (TestFramework == "xUnit.net")
-public class WebTests(ITestOutputHelper output)
-#else
 public class WebTests
-#endif
 {
 #if (TestFramework == "MSTest")
     [TestMethod]
