@@ -22,7 +22,7 @@ public class IntegrationTest1
     //     {
     //         clientBuilder.AddStandardResilienceHandler();
     //     });
-    //     appHost.Services.AddLogging(logging => logging.AddXunit(output));
+    //     // To output logs to the xUnit.net ITestOutputHelper, consider adding a package from https://www.nuget.org/packages?q=xunit+logging
     //
     //     await using var app = await appHost.BuildAsync();
     //     var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();

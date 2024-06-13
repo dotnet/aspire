@@ -25,8 +25,9 @@ public class WebTests
             clientBuilder.AddStandardResilienceHandler();
         });
 #if (TestFramework == "xUnit.net")
-        appHost.Services.AddLogging(logging => logging.AddXunit(output));
+        // To output logs to the xUnit.net ITestOutputHelper, consider adding a package from https://www.nuget.org/packages?q=xunit+logging
 #endif
+
         await using var app = await appHost.BuildAsync();
         var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
         await app.StartAsync();
