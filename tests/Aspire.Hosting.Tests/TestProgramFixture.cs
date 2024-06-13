@@ -24,11 +24,6 @@ public abstract class TestProgramFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null)
-        {
-            return;
-        }
-
         _testProgram = CreateTestProgram();
 
         _app = _testProgram.Build();

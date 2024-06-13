@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Testing;
 using Xunit;
+using Aspire.Components.Common.Tests;
 
 namespace Aspire.Hosting.Tests.Node;
 
@@ -17,7 +17,8 @@ public class NodeFunctionalTests
         _nodeJsFixture = nodeJsFixture;
     }
 
-    [LocalOnlyFact("node")]
+    [Fact]
+    [RequiresDocker]
     public async Task VerifyNodeAppWorks()
     {
         var testProgram = _nodeJsFixture.TestProgram;
