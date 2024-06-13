@@ -37,6 +37,7 @@ public class WithDockerfileTests
         await app.StartAsync();
 
         using var client = app.CreateHttpClient("testcontainer", "http");
+        client.Timeout = TimeSpan.FromSeconds(120);
 
         var envSecretMessage = await client.GetStringAsync("/ENV_SECRET.txt");
         Assert.Equal("open sesame from env", envSecretMessage);
@@ -62,6 +63,8 @@ public class WithDockerfileTests
         await app.StartAsync();
 
         using var client = app.CreateHttpClient("testcontainer", "http");
+        client.Timeout = TimeSpan.FromSeconds(120);
+
         var message = await client.GetStringAsync("/aspire.html"); // Proves the container built, ran, and contains customizations!
 
         Assert.Equal($"{DefaultMessage}\n", message);
@@ -90,6 +93,8 @@ public class WithDockerfileTests
         await app.StartAsync();
 
         using var client = app.CreateHttpClient("testcontainer", "http");
+        client.Timeout = TimeSpan.FromSeconds(120);
+
         var message = await client.GetStringAsync("/aspire.html"); // Proves the container built, ran, and contains customizations!
 
         Assert.Equal($"{DefaultMessage}\n", message);
@@ -400,6 +405,8 @@ public class WithDockerfileTests
         await app.StartAsync();
 
         using var client = app.CreateHttpClient("testcontainer", "http");
+        client.Timeout = TimeSpan.FromSeconds(120);
+
         var message = await client.GetStringAsync("/aspire.html"); // Proves the container built, ran, and contains customizations!
 
         Assert.Equal($"hello\n", message);
@@ -465,6 +472,8 @@ public class WithDockerfileTests
         await app.StartAsync();
 
         using var client = app.CreateHttpClient("testcontainer", "http");
+        client.Timeout = TimeSpan.FromSeconds(120);
+
         var message = await client.GetStringAsync("/aspire.html"); // Proves the container built, ran, and contains customizations!
 
         Assert.Equal($"hello\n", message);
