@@ -9,11 +9,17 @@ var awsConfig = builder.AddAWSSDKConfig()
 
 var cdk = builder.AddAWSCDK("cdk", "AspireStack").WithReference(awsConfig);
 
+// Adds a custom stack and reference constructs as output
+//var stack = cdk.AddStack("stack", scope => new CustomStack(scope, "stack"));
+//stack.AddOutput("BucketName", s => s.Bucket.BucketName);
+
 var topic = cdk.AddSNSTopic("topic");
 var queue = cdk.AddSQSQueue("queue");
 topic.AddSubscription(queue);
 
 builder.AddProject<Projects.Frontend>("frontend")
+    //.WithReference(stack) // Reference all outputs of a construct
+    //.WithEnvironment("Bla", stack.GetOutput("BucketName")) // Reference a construct/stack output
     .WithEnvironment("AWS__Resources__ChatTopicArn", topic, t => t.TopicArn);
 
 builder.Build().Run();
