@@ -12,11 +12,11 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A service that allows publishing and subscribing to changes in the state of a resource.
 /// </summary>
-public class ResourceNotificationService(ILogger<ResourceNotificationService> logger)
+public class ResourceNotificationService
 {
     // Resource state is keyed by the resource and the unique name of the resource. This could be the name of the resource, or a replica ID.
     private readonly ConcurrentDictionary<(IResource, string), ResourceNotificationState> _resourceNotificationStates = new();
-    private readonly ILogger<ResourceNotificationService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly ILogger<ResourceNotificationService> _logger;
     private readonly CancellationToken _applicationStopping;
 
     private Action<ResourceEvent>? OnResourceUpdated { get; set; }
@@ -24,14 +24,30 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
     /// <summary>
     /// Creates a new instance of <see cref="ResourceNotificationService"/>.
     /// </summary>
+    /// <remarks>
+    /// Obsolete. Use the constructor that accepts an <see cref="ILogger{ResourceNotificationService}"/> and <see cref="IHostApplicationLifetime"/>.<br/>
+    /// This constructor will be removed in the next major version of Aspire.
+    /// </remarks>
+    /// <param name="logger">The logger.</param>
+    [Obsolete($"""
+        {nameof(ResourceNotificationService)} now requires an {nameof(IHostApplicationLifetime)}.
+        Use the constructor that accepts an {nameof(ILogger)}<{nameof(ResourceNotificationService)}> and {nameof(IHostApplicationLifetime)}.
+        This constructor will be removed in the next major version of Aspire.
+        """)]
+    public ResourceNotificationService(ILogger<ResourceNotificationService> logger)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    /// <summary>
+    /// Creates a new instance of <see cref="ResourceNotificationService"/>.
+    /// </summary>
     /// <param name="logger">The logger.</param>
     /// <param name="hostApplicationLifetime">The host application lifetime.</param>
     public ResourceNotificationService(ILogger<ResourceNotificationService> logger, IHostApplicationLifetime hostApplicationLifetime)
-        : this(logger)
     {
-        ArgumentNullException.ThrowIfNull(hostApplicationLifetime);
-
-        _applicationStopping = hostApplicationLifetime.ApplicationStopping;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _applicationStopping = hostApplicationLifetime?.ApplicationStopping ?? throw new ArgumentNullException(nameof(hostApplicationLifetime));
     }
 
     /// <summary>
