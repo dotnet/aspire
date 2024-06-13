@@ -2,14 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Amazon.CDK;
-using Amazon.CloudFormation.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS;
 using Aspire.Hosting.AWS.CDK;
 using Aspire.Hosting.AWS.CloudFormation;
 using Constructs;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Stack = Amazon.CDK.Stack;
 using StackResource = Aspire.Hosting.AWS.CDK.StackResource;
 
@@ -29,7 +27,7 @@ public static class CDKExtensions
     }
 
     /// <summary>
-    /// Add a AWS CDK app with stack for provisioning application resources.
+    /// Add an AWS CDK app with stack for provisioning application resources.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name"></param>
@@ -43,7 +41,7 @@ public static class CDKExtensions
     }
 
     /// <summary>
-    /// Adds a AWS CDK stack as resource.
+    /// Adds an AWS CDK stack as resource.
     /// </summary>
     /// <param name="builder">The AWS CDK Resource builder.</param>
     /// <param name="name">The name of the stack resource.</param>
@@ -52,7 +50,7 @@ public static class CDKExtensions
         => AddStack(builder, name, $"{builder.Resource.StackName}-{name}");
 
     /// <summary>
-    /// Adds a AWS CDK stack as resource.
+    /// Adds an AWS CDK stack as resource.
     /// </summary>
     /// <param name="builder">The AWS CDK Resource builder.</param>
     /// <param name="name">The name of the stack resource.</param>
@@ -62,7 +60,7 @@ public static class CDKExtensions
         => builder.AddResource(app => new StackResource(name, new Stack(app.App, stackName), builder.Resource));
 
     /// <summary>
-    /// Adds and build a AWS CDK stack as resource.
+    /// Adds and build an AWS CDK stack as resource.
     /// </summary>
     /// <param name="builder">The AWS CDK Resource builder.</param>
     /// <param name="name">The name of the resource.</param>
@@ -73,7 +71,7 @@ public static class CDKExtensions
         => builder.AddResource(app => new StackResource<T>(name, stackBuilder(app.App), builder.Resource));
 
     /// <summary>
-    /// Adds and build a AWS CDK construct as resource.
+    /// Adds and build an AWS CDK construct as resource.
     /// </summary>
     /// <param name="builder">The construct resource builder.</param>
     /// <param name="name">The name of the resource.</param>
@@ -149,81 +147,20 @@ public static class CDKExtensions
     }
 
     /// <summary>
-    /// Add a reference of a AWS CDK stack to a project. The output parameters of the CloudFormation stack are added to the project IConfiguration.
+    /// Adds a reference of an AWS CDK construct to a project.The output parameters of the construct are added to the project IConfiguration.
     /// </summary>
-    /// <typeparam name="TDestination"></typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="stack">The stack resource.</param>
-    /// <param name="configSection">The config section in IConfiguration to add the output parameters.</param>
-    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IStackResource> stack, string configSection = Constants.DefaultConfigSection)
+    /// <param name="builder">The builder for the resource.</param>
+    /// <param name="construct">The construct resource.</param>
+    /// <param name="outputDelegate">The construct output delegate.</param>
+    /// <param name="outputName">The name of the construct output</param>
+    /// <param name="configSection">The optional config section in IConfiguration to add the output parameters.</param>
+    public static IResourceBuilder<TDestination> WithReference<TDestination, TConstruct>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IConstructResource<TConstruct>> construct, ConstructOutputDelegate<TConstruct> outputDelegate, string outputName, string? configSection = null)
+        where TConstruct : IConstruct
         where TDestination : IResourceWithEnvironment
     {
-        stack.WithAnnotation(new CloudFormationReferenceAnnotation(builder.Resource.Name));
-
-        builder.WithEnvironment(async ctx =>
-        {
-            // Skip when in publish mode
-            if (ctx.ExecutionContext.IsPublishMode)
-            {
-                return;
-            }
-
-            // When the stack has an AWS credentials profile attached, apply that to the resource
-            if (stack.Resource.AWSSDKConfig != null)
-            {
-                SdkUtilities.ApplySDKConfig(ctx, stack.Resource.AWSSDKConfig, false);
-            }
-
-            // Wait for the stack to be ready
-            if (stack.Resource.ProvisioningTaskCompletionSource is not null)
-            {
-                ctx.Logger?.LogInformation("Waiting on Stack resource {Name} ...", stack.Resource.Name);
-                await stack.Resource.ProvisioningTaskCompletionSource.Task.WaitAsync(ctx.CancellationToken).ConfigureAwait(false);
-            }
-
-            // Get the stack outputs and skip when there are none
-            var stackOutputs = stack.Resource.Outputs;
-            if (stackOutputs == null)
-            {
-                return;
-            }
-
-            configSection = configSection.ToEnvironmentVariables();
-
-            // Add the stack outputs for each child construct to the project configuration
-            var processedOutputs = new List<Output>();
-            foreach (var construct in stack.Resource.ListChildren(builder.ApplicationBuilder.Resources.OfType<IConstructResource>()))
-            {
-                var constructId = construct.Construct.StackUniqueId();
-
-                // Filter the outputs attached to the construct
-                var outputs = stackOutputs.Where(o => o.OutputKey.StartsWith(constructId)).ToList();
-
-                // Compose the output name with the name of the constructs
-                var prefix = configSection.ToEnvironmentVariables();
-                var parents = construct.ListParents(builder.ApplicationBuilder.Resources.OfType<IConstructResource>()).ToArray();
-                if (parents.Length != 0)
-                {
-                    prefix += "__" + string.Join("__", parents.Select(r => r.Name));
-                }
-                prefix += "__" + construct.Name;
-                foreach (var output in outputs)
-                {
-                    var envName = $"{prefix}__{output.OutputKey.TrimStart(constructId)}";
-                    ctx.EnvironmentVariables[envName] = output.OutputValue;
-
-                }
-                processedOutputs.AddRange(outputs);
-            }
-            // Add the stack outputs for the stack itself
-            foreach (var output in stackOutputs.Except(processedOutputs))
-            {
-                var envName = $"{configSection}__{output.OutputKey}";
-                ctx.EnvironmentVariables[envName] = output.OutputValue;
-            }
-        });
-
-        return builder;
+        configSection ??= $"{Constants.DefaultConfigSection}:{construct.Resource.Name}";
+        var prefix = configSection.ToEnvironmentVariables();
+        return builder.WithEnvironment($"{prefix}__{outputName}", construct, outputDelegate, outputName);
     }
 
     /// <summary>
@@ -231,7 +168,7 @@ public static class CDKExtensions
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the environment variable.</param>
-    /// <param name="source">The construct resource.</param>
+    /// <param name="construct">The construct resource.</param>
     /// <param name="outputDelegate">The construct output delegate.</param>
     /// <param name="outputName">The name of the construct output</param>
     /// /// <example>
@@ -243,15 +180,15 @@ public static class CDKExtensions
     ///     .WithEnvironment("Service_ServiceUrl", service, s => s.ServiceUrl);
     /// </code>
     /// </example>
-    public static IResourceBuilder<TDestination> WithEnvironment<TDestination, TConstruct>(this IResourceBuilder<TDestination> builder, string name, IResourceBuilder<IConstructResource<TConstruct>> source, ConstructOutputDelegate<TConstruct> outputDelegate, string? outputName = default)
+    public static IResourceBuilder<TDestination> WithEnvironment<TDestination, TConstruct>(this IResourceBuilder<TDestination> builder, string name, IResourceBuilder<IConstructResource<TConstruct>> construct, ConstructOutputDelegate<TConstruct> outputDelegate, string? outputName = default)
         where TConstruct : IConstruct
         where TDestination : IResourceWithEnvironment
     {
         outputName ??= name.Replace("_", string.Empty);
-        if (source.Resource.Annotations.OfType<IConstructOutputAnnotation>().All(annotation => annotation.OutputName != outputName))
+        if (construct.Resource.Annotations.OfType<IConstructOutputAnnotation>().All(annotation => annotation.OutputName != outputName))
         {
-            source.WithAnnotation(new ConstructOutputAnnotation<TConstruct>(outputName, outputDelegate));
+            construct.WithAnnotation(new ConstructOutputAnnotation<TConstruct>(outputName, outputDelegate));
         }
-        return builder.WithEnvironment(name, new StackOutputReference(source.Resource.Construct.StackUniqueId() + outputName, source.Resource.FindParentOfType<IStackResource>()));
+        return builder.WithEnvironment(name, new StackOutputReference(construct.Resource.Construct.StackUniqueId() + outputName, construct.Resource.FindParentOfType<IStackResource>()));
     }
 }
