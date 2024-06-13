@@ -31,6 +31,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private CancellationTokenSource? _filterCts;
     private string? _elementIdBeforeDetailsViewOpened;
     private AspirePageContentLayout? _contentLayout;
+    private string _filter = string.Empty;
 
     public string BasePath => DashboardUrls.StructuredLogsBasePath;
     public string SessionStorageKey => "StructuredLogs_PageState";
@@ -75,10 +76,6 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     [Parameter]
     [SupplyParameterFromQuery(Name = "filters")]
     public string? SerializedLogFilters { get; set; }
-
-    [Parameter]
-    [SupplyParameterFromQuery]
-    public string? Filter { get; set; }
 
     public StructureLogsDetailsViewModel? SelectedLogEntry { get; set; }
 
@@ -289,7 +286,6 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         if (args.Value is string newFilter)
         {
-            PageViewModel.Filter = newFilter;
             _filterCts?.Cancel();
 
             // Debouncing logic. Apply the filter after a delay.
@@ -307,7 +303,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     private async Task HandleAfterFilterBindAsync()
     {
-        if (!string.IsNullOrEmpty(Filter))
+        if (!string.IsNullOrEmpty(_filter))
         {
             return;
         }
@@ -317,7 +313,6 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             await _filterCts.CancelAsync();
         }
 
-        PageViewModel.Filter = string.Empty;
         ViewModel.FilterText = string.Empty;
 
         await ClearSelectedLogEntryAsync();
@@ -366,8 +361,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         var url = DashboardUrls.StructuredLogsUrl(
             resource: serializable.SelectedApplication,
             logLevel: serializable.LogLevelText,
-            filters: filters,
-            filter: serializable.Filter);
+            filters: filters);
 
         return url;
     }
@@ -376,7 +370,6 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         return new StructuredLogsPageState
         {
-            Filter = PageViewModel.Filter,
             LogLevelText = PageViewModel.SelectedLogLevel.Id?.ToString().ToLowerInvariant(),
             SelectedApplication = PageViewModel.SelectedApplication.Id is not null ? PageViewModel.SelectedApplication.Name : null,
             Filters = ViewModel.Filters
@@ -386,7 +379,6 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     public void UpdateViewModelFromQuery(StructuredLogsPageViewModel viewModel)
     {
         viewModel.SelectedApplication = _applicationViewModels.GetApplication(ApplicationName, _allApplication);
-        viewModel.Filter = Filter ?? string.Empty;
         ViewModel.ApplicationServiceId = PageViewModel.SelectedApplication.Id?.InstanceId;
 
         if (LogLevelText is not null && Enum.TryParse<LogLevel>(LogLevelText, ignoreCase: true, out var logLevel))
@@ -417,13 +409,13 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         });
     }
 
-    public class StructuredLogsPageViewModel : PageViewModelWithFilter
+    public class StructuredLogsPageViewModel
     {
         public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }
         public SelectViewModel<LogLevel?> SelectedLogLevel { get; set; } = default!;
     }
 
-    public class StructuredLogsPageState : PageStateWithFilter
+    public class StructuredLogsPageState
     {
         public string? SelectedApplication { get; set; }
         public string? LogLevelText { get; set; }

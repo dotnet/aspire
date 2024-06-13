@@ -31,6 +31,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     [Inject]
     public required ILogger<ConsoleLogs> Logger { get; init; }
 
+    [Inject]
+    public required LogViewerViewModel LogViewerViewModel { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 
@@ -147,6 +150,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     protected override async Task OnParametersSetAsync()
     {
+        if (PageViewModel.InitialisedSuccessfully is true && StringComparers.ResourceName.Equals(ResourceName, LogViewerViewModel.ResourceName))
+        {
+            return;
+        }
+
         Logger.LogDebug("Initializing console logs view model.");
         await this.InitializeViewModelAsync();
 
@@ -253,6 +261,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             if (subscription is not null)
             {
                 var task = _logViewer.SetLogSourceAsync(
+                    PageViewModel.SelectedResource.Name,
                     subscription,
                     convertTimestampsFromUtc: PageViewModel.SelectedResource.IsContainer());
 

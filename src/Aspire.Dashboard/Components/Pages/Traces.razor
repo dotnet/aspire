@@ -12,7 +12,7 @@
 
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Traces.TracesPageTitle)" Loc="@Loc" /></PageTitle>
 
-<AspirePageContentLayout AddNewlineOnToolbar="true" @ref="_contentLayout">
+<AspirePageContentLayout AddNewlineOnToolbar="true">
     <PageTitleSection>
         <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Traces.TracesHeader)]</h1>
     </PageTitleSection>
@@ -21,7 +21,7 @@
                         AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
                         @bind-SelectedResource="_selectedApplication"
                         @bind-SelectedResource:after="HandleSelectedApplicationChanged" />
-        <FluentSearch @bind-Value="Filter"
+        <FluentSearch @bind-Value="_filter"
                       @oninput="HandleFilter"
                       @bind-Value:after="HandleAfterFilterBindAsync"
                       Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"

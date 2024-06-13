@@ -14,7 +14,7 @@
     var showDetailsView = SelectedResource is not null;
 }
 
-<AspirePageContentLayout IsSummaryDetailsViewOpen="@showDetailsView" @ref="_contentLayout">
+<AspirePageContentLayout IsSummaryDetailsViewOpen="@showDetailsView">
     <PageTitleSection>
         <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Resources.ResourcesHeader)]</h1>
     </PageTitleSection>
@@ -36,7 +36,7 @@
 
                 <SelectResourceTypes
                     AllResourceTypes="_allResourceTypes"
-                    VisibleResourceTypes="PageViewModel.VisibleResourceTypes"
+                    VisibleResourceTypes="_visibleResourceTypes"
                     OnAllResourceTypesCheckedChanged="@(b => AreAllTypesVisible = b)"
                     AreAllTypesVisible="@(() => AreAllTypesVisible)"
                     OnResourceTypeVisibilityChangedAsync="@OnResourceTypeVisibilityChangedAsync" />
@@ -45,7 +45,7 @@
 
         <FluentSearch Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
                       Immediate="true"
-                      @bind-Value="Filter"
+                      @bind-Value="_filter"
                       slot="end"
                       Label="@(ViewportInformation.IsDesktop ? null : ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)].Value)"
                       @bind-Value:after="HandleSearchFilterChangedAsync"/>
@@ -57,7 +57,7 @@
             <Body>
                 <SelectResourceTypes
                     AllResourceTypes="_allResourceTypes"
-                    VisibleResourceTypes="PageViewModel.VisibleResourceTypes"
+                    VisibleResourceTypes="_visibleResourceTypes"
                     OnAllResourceTypesCheckedChanged="@(b => AreAllTypesVisible = b)"
                     AreAllTypesVisible="@(() => AreAllTypesVisible)"
                     OnResourceTypeVisibilityChangedAsync="@OnResourceTypeVisibilityChangedAsync" />
@@ -77,7 +77,7 @@
                     <ChildContent>
                         <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeColumnHeader)]" Property="@(c => c.ResourceType)" Sortable="true" Tooltip="true" TooltipText="@(c => c.ResourceType)"/>
                         <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort" Tooltip="true" TooltipText="@(c => GetResourceName(c))" >
-                            <ResourceNameDisplay Resource="context" FilterText="@Filter" FormatName="GetResourceName" />
+                            <ResourceNameDisplay Resource="context" FilterText="@_filter" FormatName="GetResourceName" />
                         </TemplateColumn>
                         <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStateColumnHeader)]" Sortable="true" SortBy="@_stateSort" Tooltip="true" TooltipText="@(c => c.State.Humanize())">
                             <StateColumnDisplay Resource="@context" UnviewedErrorCounts ="@_applicationUnviewedErrorCounts" />
@@ -88,7 +88,7 @@
                         <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesSourceColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetSourceColumnValueAndTooltip(ctx)?.Tooltip)">
                             @if (GetSourceColumnValueAndTooltip(context) is { } columnDisplay)
                             {
-                            <SourceColumnDisplay Resource="context" FilterText="@Filter" Value="@columnDisplay.Value" ContentAfterValue="@columnDisplay.ContentAfterValue" ValueToCopy="@columnDisplay.ValueToCopy" Tooltip="@columnDisplay.Tooltip" />
+                            <SourceColumnDisplay Resource="context" FilterText="@_filter" Value="@columnDisplay.Value" ContentAfterValue="@columnDisplay.ContentAfterValue" ValueToCopy="@columnDisplay.ValueToCopy" Tooltip="@columnDisplay.Tooltip" />
                             }
                         </TemplateColumn>
                         <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEndpointsColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetEndpointsTooltip(ctx))">

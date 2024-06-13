@@ -24,6 +24,9 @@ public sealed partial class LogViewer
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
 
+    [Inject]
+    public required LogViewerViewModel ViewModel { get; init; }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_applicationChanged)
@@ -37,11 +40,9 @@ public sealed partial class LogViewer
         }
     }
 
-    private readonly List<LogEntry> _logEntries = new();
-    private int? _baseLineNumber;
-
-    internal async Task SetLogSourceAsync(IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> batches, bool convertTimestampsFromUtc)
+    internal async Task SetLogSourceAsync(string resourceName, IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> batches, bool convertTimestampsFromUtc)
     {
+        ViewModel.ResourceName = resourceName;
         _convertTimestampsFromUtc = convertTimestampsFromUtc;
 
         var cancellationToken = await _cancellationSeries.NextAsync();
@@ -59,12 +60,12 @@ public sealed partial class LogViewer
             {
                 // Keep track of the base line number to ensure that we can calculate the line number of each log entry.
                 // This becomes important when the total number of log entries exceeds the limit and is truncated.
-                if (_baseLineNumber is null)
+                if (ViewModel.BaseLineNumber is null)
                 {
-                    _baseLineNumber = lineNumber;
+                    ViewModel.BaseLineNumber = lineNumber;
                 }
 
-                InsertSorted(_logEntries, logParser.CreateLogEntry(content, isErrorOutput));
+                InsertSorted(ViewModel.LogEntries, logParser.CreateLogEntry(content, isErrorOutput));
             }
 
             StateHasChanged();
@@ -115,8 +116,8 @@ public sealed partial class LogViewer
             // Set the line number of the log entry.
             if (index == 0)
             {
-                Debug.Assert(_baseLineNumber != null, "Should be set before this method is run.");
-                logEntry.LineNumber = _baseLineNumber.Value;
+                Debug.Assert(ViewModel.BaseLineNumber != null, "Should be set before this method is run.");
+                logEntry.LineNumber = ViewModel.BaseLineNumber.Value;
             }
             else
             {
@@ -148,7 +149,7 @@ public sealed partial class LogViewer
         await _cancellationSeries.ClearAsync();
 
         _applicationChanged = true;
-        _logEntries.Clear();
+        ViewModel.LogEntries.Clear();
         StateHasChanged();
     }
 

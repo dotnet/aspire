@@ -29,7 +29,7 @@
                         AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
                         @bind-SelectedResource="PageViewModel.SelectedApplication"
                         @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync" />
-        <FluentSearch @bind-Value="Filter"
+        <FluentSearch @bind-Value="_filter"
                       @oninput="HandleFilter"
                       @bind-Value:after="HandleAfterFilterBindAsync"
                       Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"

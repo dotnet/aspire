@@ -124,7 +124,7 @@
     <value>Help</value>
   </data>
   <data name="MainLayoutLaunchSettings" xml:space="preserve">
-    <value>Launch settings</value>
+    <value>Settings</value>
   </data>
   <data name="MainLayoutUnhandledErrorMessage" xml:space="preserve">
     <value>An unhandled error has occurred.</value>

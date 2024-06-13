@@ -1,16 +1,92 @@
-﻿@inherits LayoutComponentBase
+﻿@using Aspire.Dashboard.Components.CustomIcons
+@using Aspire.Dashboard.Resources
+@inherits LayoutComponentBase
 
-@if (ViewportInformation.IsDesktop)
-{
-    <DesktopLayout LaunchHelpAsync="@LaunchHelpAsync"
-                   LaunchSettingsAsync="@LaunchSettingsAsync"
-                   MessageBarSection="@MessageBarSection"
-                   LayoutBody="@Body"/>
-}
-else
-{
-    <MobileLayout LaunchHelpAsync="@LaunchHelpAsync"
-                  LaunchSettingsAsync="@LaunchSettingsAsync"
-                  MessageBarSection="@MessageBarSection"
-                  LayoutBody="@Body"/>
-}
+<div class="layout" style="@(_isNavMenuOpen ? "overflow: hidden;" : string.Empty)">
+    <div class="aspire-icon">
+        <FluentAnchor Appearance="Appearance.Stealth" Href="/" Class="logo"
+                      title="@Loc[nameof(Layout.MainLayoutAspire)]"
+                      aria-label="@Loc[nameof(Layout.MainLayoutAspire)]">
+            <FluentIcon Value="@(new AspireIcons.Size24.Logo())"/>
+        </FluentAnchor>
+    </div>
+
+    @if (ViewportInformation.IsDesktop)
+    {
+        <FluentHeader>
+            <FluentAnchor Appearance="Appearance.Stealth" Href="/" Class="logo">
+                <ApplicationName/>
+            </FluentAnchor>
+            <div class="flex-filler"></div>
+            <FluentAnchor Appearance="Appearance.Stealth"
+                          Href="https://aka.ms/dotnet/aspire/repo" Target="_blank" Rel="noreferrer noopener"
+                          Title="@Loc[nameof(Layout.MainLayoutAspireRepoLink)]" aria-label="@Loc[nameof(Layout.MainLayoutAspireRepoLink)]">
+                <FluentIcon Value="@(new AspireIcons.Size24.GitHub())" Color="Color.Neutral"/>
+            </FluentAnchor>
+            <FluentButton Appearance="Appearance.Stealth" OnClick="@LaunchHelpAsync" Target="_blank" Rel="noreferrer noopener"
+                          Title="@Loc[nameof(Layout.MainLayoutAspireDashboardHelpLink)]" aria-label="@Loc[nameof(Layout.MainLayoutAspireDashboardHelpLink)]">
+                <FluentIcon Value="@(new Icons.Regular.Size24.QuestionCircle())" Color="Color.Neutral"/>
+            </FluentButton>
+            <FluentButton Appearance="Appearance.Stealth" OnClick="@LaunchSettingsAsync"
+                          Title="@Loc[nameof(Layout.MainLayoutLaunchSettings)]" aria-label="@Loc[nameof(Layout.MainLayoutLaunchSettings)]">
+                <FluentIcon Value="@(new Icons.Regular.Size24.Settings())" Color="Color.Neutral"/>
+            </FluentButton>
+            <UserProfile/>
+        </FluentHeader>
+
+        <NavMenu/>
+    }
+    else
+    {
+        <FluentHeader>
+            <FluentAnchor Appearance="Appearance.Stealth" Href="/" Class="logo">
+                <ApplicationName/>
+            </FluentAnchor>
+            <div class="flex-filler"></div>
+
+            <UserProfile/>
+            <FluentButton
+                IconEnd="@(_isNavMenuOpen ? new Icons.Regular.Size24.Dismiss() : new Icons.Regular.Size24.Navigation())"
+                Title="@(DialogsLoc[nameof(Dialogs.HelpDialogCategoryNavigation)])"
+                Appearance="Appearance.Stealth"
+                BackgroundColor="transparent"
+                OnClick="@(() => _isNavMenuOpen = !_isNavMenuOpen)"
+                Class="navigation-button"/>
+
+        </FluentHeader>
+
+        <FluentMenu Open="@_isNavMenuOpen" Anchored="false" Style="grid-area: nav-menu; height: 100vh; margin-top: 2px;">
+            @foreach (var item in GetNavMenu())
+            {
+                <FluentMenuItem OnClick="@(async () => { _isNavMenuOpen = false; await item.OnClick(); })" Style="height: 40px; width: 100vw; margin-bottom: 6px;">
+                    @item.Text
+
+                    @if (item.Icon is { } icon)
+                    {
+                        <span slot="start">
+                            <FluentIcon Value="@icon" Slot="start" Color="Color.Neutral"/>
+                        </span>
+                    }
+                </FluentMenuItem>
+
+                <FluentDivider/>
+            }
+        </FluentMenu>
+    }
+
+    <div class="messagebar-container">
+        <FluentMessageBarProvider Section="@MessageBarSection" Class="top-messagebar"/>
+    </div>
+    <FluentBodyContent Class="custom-body-content body-content">
+        <FluentToastProvider/>
+        @Body
+    </FluentBodyContent>
+
+    <FluentDialogProvider/>
+    <FluentTooltipProvider/>
+    <div id="blazor-error-ui">
+        @Loc[nameof(Layout.MainLayoutUnhandledErrorMessage)]
+        <a href="" class="reload">@Loc[nameof(Layout.MainLayoutUnhandledErrorReload)]</a>
+        <a class="dismiss">🗙</a>
+    </div>
+</div>

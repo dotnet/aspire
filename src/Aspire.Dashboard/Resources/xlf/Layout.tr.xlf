@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
-        <source>Launch settings</source>
-        <target state="translated">Başlatma ayarları</target>
+        <source>Settings</source>
+        <target state="needs-review-translation">Başlatma ayarları</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutSettingsDialogClose">

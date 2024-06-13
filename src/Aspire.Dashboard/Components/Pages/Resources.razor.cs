@@ -5,7 +5,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
-using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
@@ -19,7 +18,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessionAndUrlState<Resources.ResourcePageViewModel, Resources.ResourcePageState>
+public partial class Resources : ComponentBase, IAsyncDisposable
 {
     private Subscription? _logsSubscription;
     private Dictionary<OtlpApplication, int>? _applicationUnviewedErrorCounts;
@@ -46,50 +45,39 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
     [Parameter]
     [SupplyParameterFromQuery]
-    public string? Filter { get; set; }
-
-    [Parameter]
-    [SupplyParameterFromQuery]
     public string? VisibleTypes { get; set; }
 
     private ResourceViewModel? SelectedResource { get; set; }
 
-    public string BasePath => "/traces";
-    public string SessionStorageKey => "Traces_PageState";
-
-    public ResourcePageViewModel PageViewModel { get; set; } = null!;
-
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly ConcurrentDictionary<string, bool> _allResourceTypes = [];
+    private readonly ConcurrentDictionary<string, bool> _visibleResourceTypes = new(StringComparers.ResourceName);
+    private string _filter = "";
     private bool _isTypeFilterVisible;
     private Task? _resourceSubscriptionTask;
     private bool _isLoading = true;
     private string? _elementIdBeforeDetailsViewOpened;
-    private AspirePageContentLayout? _contentLayout;
 
-    private bool ShouldBeVisible(ResourceViewModel resource) => PageViewModel.VisibleResourceTypes.ContainsKey(resource.ResourceType) && (Filter is null || Filter.Length == 0 || resource.MatchesFilter(Filter)) && resource.State != ResourceStates.HiddenState;
+    private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter)) && resource.State != ResourceStates.HiddenState;
 
-    private async Task OnResourceTypeVisibilityChangedAsync(string resourceType, bool isVisible)
+    private Task OnResourceTypeVisibilityChangedAsync(string resourceType, bool isVisible)
     {
         if (isVisible)
         {
-            PageViewModel.VisibleResourceTypes[resourceType] = true;
+            _visibleResourceTypes[resourceType] = true;
         }
         else
         {
-            PageViewModel.VisibleResourceTypes.TryRemove(resourceType, out _);
+            _visibleResourceTypes.TryRemove(resourceType, out _);
         }
 
-        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
-        await ClearSelectedResourceAsync();
+        return ClearSelectedResourceAsync();
     }
 
-    private async Task HandleSearchFilterChangedAsync()
+    private Task HandleSearchFilterChangedAsync()
     {
-        PageViewModel.Filter = Filter ?? string.Empty;
-        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
-        await ClearSelectedResourceAsync();
+        return ClearSelectedResourceAsync();
     }
 
     private bool? AreAllTypesVisible
@@ -105,9 +93,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
                 return keysLeft.Count == keysRight.Count && keysLeft.SequenceEqual(keysRight, StringComparers.ResourceType);
             }
 
-            return SetEqualsKeys(PageViewModel.VisibleResourceTypes, _allResourceTypes)
+            return SetEqualsKeys(_visibleResourceTypes, _allResourceTypes)
                 ? true
-                : PageViewModel.VisibleResourceTypes.IsEmpty
+                : _visibleResourceTypes.IsEmpty
                     ? false
                     : null;
         }
@@ -126,11 +114,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
             if (value is true)
             {
-                UnionWithKeys(PageViewModel.VisibleResourceTypes, _allResourceTypes);
+                UnionWithKeys(_visibleResourceTypes, _allResourceTypes);
             }
             else if (value is false)
             {
-                PageViewModel.VisibleResourceTypes.Clear();
+                _visibleResourceTypes.Clear();
             }
 
             StateHasChanged();
@@ -139,7 +127,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
     private bool HasResourcesWithCommands => _resourceByName.Any(r => r.Value.Commands.Any());
 
-    private IQueryable<ResourceViewModel>? FilteredResources => _resourceByName.Values.Where(ShouldBeVisible).OrderBy(e => e.ResourceType).ThenBy(e => e.Name).AsQueryable();
+    private IQueryable<ResourceViewModel>? FilteredResources => _resourceByName.Values.Where(Filter).OrderBy(e => e.ResourceType).ThenBy(e => e.Name).AsQueryable();
 
     private readonly GridSort<ResourceViewModel> _nameSort = GridSort<ResourceViewModel>.ByAscending(p => p.Name);
     private readonly GridSort<ResourceViewModel> _stateSort = GridSort<ResourceViewModel>.ByAscending(p => p.State);
@@ -148,11 +136,6 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
     protected override async Task OnInitializedAsync()
     {
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
-
-        PageViewModel = new ResourcePageViewModel
-        {
-            Filter = Filter ?? string.Empty
-        };
 
         if (DashboardClient.IsEnabled)
         {
@@ -188,7 +171,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
 
                 if (preselectedVisibleResourceTypes is null || preselectedVisibleResourceTypes.Contains(resource.ResourceType))
                 {
-                    PageViewModel.VisibleResourceTypes.TryAdd(resource.ResourceType, true);
+                    _visibleResourceTypes.TryAdd(resource.ResourceType, true);
                 }
 
                 Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
@@ -206,7 +189,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
                             _resourceByName[resource.Name] = resource;
 
                             _allResourceTypes[resource.ResourceType] = true;
-                            PageViewModel.VisibleResourceTypes[resource.ResourceType] = true;
+                            _visibleResourceTypes[resource.ResourceType] = true;
                         }
                         else if (changeType == ResourceViewModelChangeType.Delete)
                         {
@@ -219,11 +202,6 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
                 }
             });
         }
-    }
-
-    protected override Task OnParametersSetAsync()
-    {
-        return this.InitializeViewModelAsync();
     }
 
     private bool ApplicationErrorCountsChanged(Dictionary<OtlpApplication, int> newApplicationUnviewedErrorCounts)
@@ -414,35 +392,6 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
         return ResourceEndpointHelpers.GetEndpoints(resource, includeInteralUrls: false);
     }
 
-    public void UpdateViewModelFromQuery(ResourcePageViewModel viewModel)
-    {
-        viewModel.Filter = Filter ?? string.Empty;
-        if (VisibleTypes is not null)
-        {
-            foreach (var type in VisibleTypes.Split(','))
-            {
-                viewModel.VisibleResourceTypes.TryAdd(type, true);
-            }
-        }
-    }
-
-    public string GetUrlFromSerializableViewModel(ResourcePageState serializable)
-    {
-        return DashboardUrls.ResourcesUrl(filter: serializable.Filter, visibleTypes: serializable.VisibleTypes);
-    }
-
-    public ResourcePageState ConvertViewModelToSerializable()
-    {
-        return new ResourcePageState
-        {
-            Filter = PageViewModel.Filter,
-            VisibleTypes = AreAllTypesVisible is true ? null : PageViewModel.VisibleResourceTypes?
-                .Where(pair => pair.Value)
-                .Select(pair => pair.Key)
-                .ToList()
-        };
-    }
-
     public async ValueTask DisposeAsync()
     {
         _watchTaskCancellationTokenSource.Cancel();
@@ -450,15 +399,5 @@ public partial class Resources : ComponentBase, IAsyncDisposable, IPageWithSessi
         _logsSubscription?.Dispose();
 
         await TaskHelpers.WaitIgnoreCancelAsync(_resourceSubscriptionTask);
-    }
-
-    public class ResourcePageViewModel : PageViewModelWithFilter
-    {
-        public ConcurrentDictionary<string, bool> VisibleResourceTypes { get; } = new(StringComparers.ResourceType);
-    }
-
-    public class ResourcePageState : PageStateWithFilter
-    {
-        public required List<string>? VisibleTypes { get; set; }
     }
 }

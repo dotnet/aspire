@@ -3,7 +3,10 @@
 
 namespace Aspire.Dashboard.Model;
 
-public class PageViewModelWithFilter
+public class LogViewerViewModel
 {
-    public string Filter { get; set; } = string.Empty;
+    public List<LogEntry> LogEntries { get; } = [];
+    public int? BaseLineNumber { get; set; }
+    public string? ResourceName { get; set; }
+
 }
