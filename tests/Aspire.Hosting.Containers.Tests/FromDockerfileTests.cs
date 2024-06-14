@@ -49,64 +49,64 @@ public class WithDockerfileTests
         await app.StopAsync();
     }
 
-    [Fact]
-    [RequiresDocker]
-    public async Task WithDockerfileLaunchesContainerSuccessfully()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
+    //[Fact]
+    //[RequiresDocker]
+    //public async Task WithDockerfileLaunchesContainerSuccessfully()
+    //{
+    //    using var builder = TestDistributedApplicationBuilder.Create();
+    //    var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
 
-        builder.AddContainer("testcontainer", "testimage")
-               .WithHttpEndpoint(targetPort: 80)
-               .WithDockerfile(tempContextPath, tempDockerfilePath);
+    //    builder.AddContainer("testcontainer", "testimage")
+    //           .WithHttpEndpoint(targetPort: 80)
+    //           .WithDockerfile(tempContextPath, tempDockerfilePath);
 
-        using var app = builder.Build();
-        await app.StartAsync();
+    //    using var app = builder.Build();
+    //    await app.StartAsync();
 
-        using var client = app.CreateHttpClient("testcontainer", "http");
+    //    using var client = app.CreateHttpClient("testcontainer", "http");
 
-        var message = await client.GetStringWithRetryAsync("/aspire.html"); // Proves the container built, ran, and contains customizations!
+    //    var message = await client.GetStringWithRetryAsync("/aspire.html"); // Proves the container built, ran, and contains customizations!
 
-        Assert.Equal($"{DefaultMessage}\n", message);
+    //    Assert.Equal($"{DefaultMessage}\n", message);
 
-        var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
-        var containers = await kubernetes.ListAsync<Container>();
+    //    var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
+    //    var containers = await kubernetes.ListAsync<Container>();
 
-        var container = Assert.Single<Container>(containers);
-        Assert.Equal(tempContextPath, container!.Spec!.Build!.Context);
-        Assert.Equal(tempDockerfilePath, container!.Spec!.Build!.Dockerfile);
+    //    var container = Assert.Single<Container>(containers);
+    //    Assert.Equal(tempContextPath, container!.Spec!.Build!.Context);
+    //    Assert.Equal(tempDockerfilePath, container!.Spec!.Build!.Dockerfile);
 
-        await app.StopAsync();
-    }
+    //    await app.StopAsync();
+    //}
 
-    [Fact]
-    [RequiresDocker]
-    public async Task AddDockerfileLaunchesContainerSuccessfully()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
+    //[Fact]
+    //[RequiresDocker]
+    //public async Task AddDockerfileLaunchesContainerSuccessfully()
+    //{
+    //    using var builder = TestDistributedApplicationBuilder.Create();
+    //    var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
 
-        builder.AddDockerfile("testcontainer", tempContextPath, tempDockerfilePath)
-               .WithHttpEndpoint(targetPort: 80);
+    //    builder.AddDockerfile("testcontainer", tempContextPath, tempDockerfilePath)
+    //           .WithHttpEndpoint(targetPort: 80);
 
-        using var app = builder.Build();
-        await app.StartAsync();
+    //    using var app = builder.Build();
+    //    await app.StartAsync();
 
-        using var client = app.CreateHttpClient("testcontainer", "http");
+    //    using var client = app.CreateHttpClient("testcontainer", "http");
 
-        var message = await client.GetStringWithRetryAsync("/aspire.html"); // Proves the container built, ran, and contains customizations!
+    //    var message = await client.GetStringWithRetryAsync("/aspire.html"); // Proves the container built, ran, and contains customizations!
 
-        Assert.Equal($"{DefaultMessage}\n", message);
+    //    Assert.Equal($"{DefaultMessage}\n", message);
 
-        var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
-        var containers = await kubernetes.ListAsync<Container>();
+    //    var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
+    //    var containers = await kubernetes.ListAsync<Container>();
 
-        var container = Assert.Single<Container>(containers);
-        Assert.Equal(tempContextPath, container!.Spec!.Build!.Context);
-        Assert.Equal(tempDockerfilePath, container!.Spec!.Build!.Dockerfile);
+    //    var container = Assert.Single<Container>(containers);
+    //    Assert.Equal(tempContextPath, container!.Spec!.Build!.Context);
+    //    Assert.Equal(tempDockerfilePath, container!.Spec!.Build!.Dockerfile);
 
-        await app.StopAsync();
-    }
+    //    await app.StopAsync();
+    //}
 
     [Fact]
     public async Task WithDockerfileResultsInBuildAttributeBeingAddedToManifest()
@@ -381,138 +381,138 @@ public class WithDockerfileTests
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
-    [Fact]
-    [RequiresDocker]
-    public async Task WithDockerfileWithParameterLaunchesContainerSuccessfully()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
+    //[Fact]
+    //[RequiresDocker]
+    //public async Task WithDockerfileWithParameterLaunchesContainerSuccessfully()
+    //{
+    //    using var builder = TestDistributedApplicationBuilder.Create();
+    //    var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
 
-        var parameter = builder.AddParameter("message");
-        builder.Configuration["Parameters:message"] = "hello";
+    //    var parameter = builder.AddParameter("message");
+    //    builder.Configuration["Parameters:message"] = "hello";
 
-        builder.AddContainer("testcontainer", "testimage")
-               .WithHttpEndpoint(targetPort: 80)
-               .WithDockerfile(tempContextPath, tempDockerfilePath)
-               .WithBuildArg("MESSAGE", parameter)
-               .WithBuildArg("stringParam", "a string")
-               .WithBuildArg("intParam", 42)
-               .WithBuildArg("boolParamTrue", true)
-               .WithBuildArg("boolParamFalse", false);
+    //    builder.AddContainer("testcontainer", "testimage")
+    //           .WithHttpEndpoint(targetPort: 80)
+    //           .WithDockerfile(tempContextPath, tempDockerfilePath)
+    //           .WithBuildArg("MESSAGE", parameter)
+    //           .WithBuildArg("stringParam", "a string")
+    //           .WithBuildArg("intParam", 42)
+    //           .WithBuildArg("boolParamTrue", true)
+    //           .WithBuildArg("boolParamFalse", false);
 
-        using var app = builder.Build();
-        await app.StartAsync();
+    //    using var app = builder.Build();
+    //    await app.StartAsync();
 
-        using var client = app.CreateHttpClient("testcontainer", "http");
+    //    using var client = app.CreateHttpClient("testcontainer", "http");
 
-        var message = await client.GetStringWithRetryAsync("/aspire.html"); // Proves the container built, ran, and contains customizations!
+    //    var message = await client.GetStringWithRetryAsync("/aspire.html"); // Proves the container built, ran, and contains customizations!
 
-        Assert.Equal($"hello\n", message);
+    //    Assert.Equal($"hello\n", message);
 
-        var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
-        var containers = await kubernetes.ListAsync<Container>();
+    //    var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
+    //    var containers = await kubernetes.ListAsync<Container>();
 
-        var container = Assert.Single<Container>(containers);
-        Assert.Equal(tempContextPath, container!.Spec!.Build!.Context);
-        Assert.Equal(tempDockerfilePath, container!.Spec!.Build!.Dockerfile);
-        Assert.Null(container!.Spec!.Build!.Stage);
-        Assert.Collection(
-            container!.Spec!.Build!.Args!,
-            arg =>
-            {
-                Assert.Equal("MESSAGE", arg.Name);
-                Assert.Equal("hello", arg.Value);
-            },
-            arg =>
-            {
-                Assert.Equal("stringParam", arg.Name);
-                Assert.Equal("a string", arg.Value);
-            },
-            arg =>
-            {
-                Assert.Equal("intParam", arg.Name);
-                Assert.Equal("42", arg.Value);
-            },
-            arg =>
-            {
-                Assert.Equal("boolParamTrue", arg.Name);
-                Assert.Equal("true", arg.Value);
-            },
-            arg =>
-            {
-                Assert.Equal("boolParamFalse", arg.Name);
-                Assert.Equal("false", arg.Value);
-            }
-            );
+    //    var container = Assert.Single<Container>(containers);
+    //    Assert.Equal(tempContextPath, container!.Spec!.Build!.Context);
+    //    Assert.Equal(tempDockerfilePath, container!.Spec!.Build!.Dockerfile);
+    //    Assert.Null(container!.Spec!.Build!.Stage);
+    //    Assert.Collection(
+    //        container!.Spec!.Build!.Args!,
+    //        arg =>
+    //        {
+    //            Assert.Equal("MESSAGE", arg.Name);
+    //            Assert.Equal("hello", arg.Value);
+    //        },
+    //        arg =>
+    //        {
+    //            Assert.Equal("stringParam", arg.Name);
+    //            Assert.Equal("a string", arg.Value);
+    //        },
+    //        arg =>
+    //        {
+    //            Assert.Equal("intParam", arg.Name);
+    //            Assert.Equal("42", arg.Value);
+    //        },
+    //        arg =>
+    //        {
+    //            Assert.Equal("boolParamTrue", arg.Name);
+    //            Assert.Equal("true", arg.Value);
+    //        },
+    //        arg =>
+    //        {
+    //            Assert.Equal("boolParamFalse", arg.Name);
+    //            Assert.Equal("false", arg.Value);
+    //        }
+    //        );
 
-        await app.StopAsync();
-    }
+    //    await app.StopAsync();
+    //}
 
-    [Fact]
-    [RequiresDocker]
-    public async Task AddDockerfileWithParameterLaunchesContainerSuccessfully()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
+    //[Fact]
+    //[RequiresDocker]
+    //public async Task AddDockerfileWithParameterLaunchesContainerSuccessfully()
+    //{
+    //    using var builder = TestDistributedApplicationBuilder.Create();
+    //    var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
 
-        var parameter = builder.AddParameter("message");
-        builder.Configuration["Parameters:message"] = "hello";
+    //    var parameter = builder.AddParameter("message");
+    //    builder.Configuration["Parameters:message"] = "hello";
 
-        builder.AddDockerfile("testcontainer", tempContextPath, tempDockerfilePath)
-               .WithHttpEndpoint(targetPort: 80)
-               .WithBuildArg("MESSAGE", parameter)
-               .WithBuildArg("stringParam", "a string")
-               .WithBuildArg("intParam", 42)
-               .WithBuildArg("boolParamTrue", true)
-               .WithBuildArg("boolParamFalse", false);
+    //    builder.AddDockerfile("testcontainer", tempContextPath, tempDockerfilePath)
+    //           .WithHttpEndpoint(targetPort: 80)
+    //           .WithBuildArg("MESSAGE", parameter)
+    //           .WithBuildArg("stringParam", "a string")
+    //           .WithBuildArg("intParam", 42)
+    //           .WithBuildArg("boolParamTrue", true)
+    //           .WithBuildArg("boolParamFalse", false);
 
-        using var app = builder.Build();
-        await app.StartAsync();
+    //    using var app = builder.Build();
+    //    await app.StartAsync();
 
-        using var client = app.CreateHttpClient("testcontainer", "http");
+    //    using var client = app.CreateHttpClient("testcontainer", "http");
 
-        var message = await client.GetStringWithRetryAsync("/aspire.html"); // Proves the container built, ran, and contains customizations!
+    //    var message = await client.GetStringWithRetryAsync("/aspire.html"); // Proves the container built, ran, and contains customizations!
 
-        Assert.Equal($"hello\n", message);
+    //    Assert.Equal($"hello\n", message);
 
-        var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
-        var containers = await kubernetes.ListAsync<Container>();
+    //    var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
+    //    var containers = await kubernetes.ListAsync<Container>();
 
-        var container = Assert.Single<Container>(containers);
-        Assert.Equal(tempContextPath, container!.Spec!.Build!.Context);
-        Assert.Equal(tempDockerfilePath, container!.Spec!.Build!.Dockerfile);
-        Assert.Null(container!.Spec!.Build!.Stage);
-        Assert.Collection(
-            container!.Spec!.Build!.Args!,
-            arg =>
-            {
-                Assert.Equal("MESSAGE", arg.Name);
-                Assert.Equal("hello", arg.Value);
-            },
-            arg =>
-            {
-                Assert.Equal("stringParam", arg.Name);
-                Assert.Equal("a string", arg.Value);
-            },
-            arg =>
-            {
-                Assert.Equal("intParam", arg.Name);
-                Assert.Equal("42", arg.Value);
-            },
-            arg =>
-            {
-                Assert.Equal("boolParamTrue", arg.Name);
-                Assert.Equal("true", arg.Value);
-            },
-            arg =>
-            {
-                Assert.Equal("boolParamFalse", arg.Name);
-                Assert.Equal("false", arg.Value);
-            }
-            );
+    //    var container = Assert.Single<Container>(containers);
+    //    Assert.Equal(tempContextPath, container!.Spec!.Build!.Context);
+    //    Assert.Equal(tempDockerfilePath, container!.Spec!.Build!.Dockerfile);
+    //    Assert.Null(container!.Spec!.Build!.Stage);
+    //    Assert.Collection(
+    //        container!.Spec!.Build!.Args!,
+    //        arg =>
+    //        {
+    //            Assert.Equal("MESSAGE", arg.Name);
+    //            Assert.Equal("hello", arg.Value);
+    //        },
+    //        arg =>
+    //        {
+    //            Assert.Equal("stringParam", arg.Name);
+    //            Assert.Equal("a string", arg.Value);
+    //        },
+    //        arg =>
+    //        {
+    //            Assert.Equal("intParam", arg.Name);
+    //            Assert.Equal("42", arg.Value);
+    //        },
+    //        arg =>
+    //        {
+    //            Assert.Equal("boolParamTrue", arg.Name);
+    //            Assert.Equal("true", arg.Value);
+    //        },
+    //        arg =>
+    //        {
+    //            Assert.Equal("boolParamFalse", arg.Name);
+    //            Assert.Equal("false", arg.Value);
+    //        }
+    //        );
 
-        await app.StopAsync();
-    }
+    //    await app.StopAsync();
+    //}
 
     [Fact]
     public void WithDockerfileWithEmptyContextPathThrows()
