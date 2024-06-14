@@ -23,12 +23,7 @@ internal class SecretsStore
 
         _secretsFilePath = PathHelper.GetSecretsPathFromSecretsId(userSecretsId);
 
-        // workaround bug in configuration
-        var directoryName = Path.GetDirectoryName(_secretsFilePath);
-        if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))
-        {
-            Directory.CreateDirectory(directoryName);
-        }
+        EnsureUserSecretsDirectory();
 
         _secrets = Load(_secretsFilePath);
     }
@@ -52,11 +47,7 @@ internal class SecretsStore
 
     public void Save()
     {
-        var directoryName = Path.GetDirectoryName(_secretsFilePath);
-        if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))
-        {
-            Directory.CreateDirectory(directoryName);
-        }
+        EnsureUserSecretsDirectory();
 
         var contents = new JsonObject();
         if (_secrets is not null)
@@ -75,6 +66,15 @@ internal class SecretsStore
         }
 
         File.WriteAllText(_secretsFilePath, contents.ToJsonString(), Encoding.UTF8);
+    }
+
+    private void EnsureUserSecretsDirectory()
+    {
+        var directoryName = Path.GetDirectoryName(_secretsFilePath);
+        if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))
+        {
+            Directory.CreateDirectory(directoryName);
+        }
     }
 
     private static Dictionary<string, string?> Load(string secretsFilePath)

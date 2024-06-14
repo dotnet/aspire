@@ -11,6 +11,16 @@ namespace Aspire.Hosting.Tests.RabbitMQ;
 
 public class AddRabbitMQTests
 {
+    [Fact]
+    public void AddRabbitMQAddsGeneratedPasswordParameterWithUserSecretsParameterDefault()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+
+        var rmq = appBuilder.AddRabbitMQ("rmq");
+
+        Assert.IsType<UserSecretsParameterDefault>(rmq.Resource.PasswordParameter.Default);
+    }
+
     [Theory]
     [InlineData(false, null)]
     [InlineData(true, null)]

@@ -16,6 +16,16 @@ public class AddQdrantTests
     private const int QdrantPortHttp = 6333;
 
     [Fact]
+    public void AddQdrantAddsGeneratedApiKeyParameterWithUserSecretsParameterDefault()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+
+        var qd = appBuilder.AddQdrant("qd");
+
+        Assert.IsType<UserSecretsParameterDefault>(qd.Resource.ApiKeyParameter.Default);
+    }
+
+    [Fact]
     public async Task AddQdrantWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
