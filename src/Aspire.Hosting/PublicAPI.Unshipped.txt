@@ -1,2 +1,3 @@
 #nullable enable
-
+static Aspire.Hosting.ExecutableResourceBuilderExtensions.AddExecutable(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! command, string! workingDirectory, params object![]? args) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ExecutableResource!>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithArgs<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, params object![]! args) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
