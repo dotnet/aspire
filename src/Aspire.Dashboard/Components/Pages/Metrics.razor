@@ -13,7 +13,10 @@
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Metrics.MetricsPageTitle)" Loc="@Loc" /></PageTitle>
 
 <div class="page-content-container">
-    <AspirePageContentLayout AddNewlineOnToolbar="true" @ref="_contentLayout">
+    <AspirePageContentLayout
+        AddNewlineOnToolbar="true"
+        @ref="_contentLayout"
+        HeaderStyle="margin-bottom: calc(var(--design-unit) * 2px);">
         <PageTitleSection>
             <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Metrics.MetricsHeader)]</h1>
         </PageTitleSection>
@@ -21,8 +24,8 @@
             <ResourceSelect Resources="_applications"
                             AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
                             @bind-SelectedResource="PageViewModel.SelectedApplication"
-                            @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync" />
-            <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" Style="margin-right:5px;" />
+                            @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync"/>
+            <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" Style="margin-right:5px;"/>
             <FluentSelect slot="end" TOption="SelectViewModel<TimeSpan>"
                           Items="@_durations"
                           OptionText="@(c => c.Name)"
@@ -30,9 +33,8 @@
                           @bind-SelectedOption:after="HandleSelectedDurationChangedAsync"
                           AriaLabel="@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectADuration)]"/>
         </ToolbarSection>
-
         <MainSection>
-            <div style="margin-top: calc(var(--design-unit) * 2px)">
+            <div style="width: 100%; height: 100%; overflow: auto;">
                 @if (PageViewModel.Instruments?.Count > 0)
                 {
                     <FluentSplitter Style="height:100%" Panel1Size="2fr" Panel2Size="8fr" BarSize="5">

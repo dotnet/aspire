@@ -26,6 +26,9 @@ public partial class AspirePageContentLayout : ComponentBase
     [Parameter] public bool ShouldShowFooter { get; set; } = true;
     [Parameter] public string? MobileToolbarButtonText { get; set; }
 
+    [Parameter] public string? HeaderStyle { get; set; }
+    [Parameter] public string? MainContentStyle { get; set; }
+
     [Parameter] public bool IsSummaryDetailsViewOpen { get; set; }
 
     [Inject]
@@ -42,7 +45,7 @@ public partial class AspirePageContentLayout : ComponentBase
 
     private string GetMobileMainStyle()
     {
-        var style = "grid-area: main;";
+        var style = "grid-area: main;" + MainContentStyle;
         if (!ViewportInformation.IsUltraLowHeight)
         {
             style += "overflow: auto;";
