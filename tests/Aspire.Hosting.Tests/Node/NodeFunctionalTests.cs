@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.Testing;
 using Xunit;
-using Aspire.Components.Common.Tests;
 
 namespace Aspire.Hosting.Tests.Node;
 
@@ -18,20 +17,26 @@ public class NodeFunctionalTests
     }
 
     [Fact]
-    [RequiresDocker]
     public async Task VerifyNodeAppWorks()
     {
         var testProgram = _nodeJsFixture.TestProgram;
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
         using var nodeClient = testProgram.App!.CreateHttpClient(testProgram.NodeAppBuilder!.Resource.Name, "http");
         var response0 = await nodeClient.GetStringAsync("/", cts.Token);
 
-        using var npmClient = testProgram.App!.CreateHttpClient(testProgram.NodeAppBuilder!.Resource.Name, "http");
-        var response1 = await npmClient.GetStringAsync("/", cts.Token);
-
         Assert.Equal("Hello from node!", response0);
-        Assert.Equal("Hello from node!", response1);
+    }
+
+    [Fact]
+    public async Task VerifyNpmAppWorks()
+    {
+        var testProgram = _nodeJsFixture.TestProgram;
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+        using var npmClient = testProgram.App!.CreateHttpClient(testProgram.NpmAppBuilder!.Resource.Name, "http");
+        var response0 = await npmClient.GetStringAsync("/", cts.Token);
+
+        Assert.Equal("Hello from npm!", response0);
     }
 }
