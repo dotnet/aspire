@@ -4,6 +4,7 @@
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Garnet;
+using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
@@ -56,6 +57,53 @@ public static class GarnetBuilderExtensions
             .WithEndpoint(port: port, targetPort: 6379, name: GarnetResource.PrimaryEndpointName)
             .WithImage(GarnetContainerImageTags.Image, GarnetContainerImageTags.Tag)
             .WithImageRegistry(GarnetContainerImageTags.Registry);
+    }
+
+    /// <summary>
+    /// Configures a container resource for Redis Commander which is pre-configured to connect to the <see cref="GarnetResource"/> that this method is used on.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the <see cref="GarnetResource"/>.</param>
+    /// <param name="configureContainer">Configuration callback for Redis Commander container resource.</param>
+    /// <param name="containerName">Override the container name used for Redis Commander.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<GarnetResource> WithRedisCommander(this IResourceBuilder<GarnetResource> builder,
+        Action<IResourceBuilder<RedisCommanderResource>>? configureContainer = null,
+        string? containerName = null)
+    {
+        if (builder.ApplicationBuilder.Resources.OfType<RedisCommanderResource>().SingleOrDefault() is { } existingRedisCommanderResource)
+        {
+            var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingRedisCommanderResource);
+            configureContainer?.Invoke(builderForExistingResource);
+            return builder;
+        }
+
+        builder.ApplicationBuilder.Services.TryAddLifecycleHook<RedisCommanderConfigWriterHook>();
+        containerName ??= $"{builder.Resource.Name}-commander";
+
+        var resource = new RedisCommanderResource(containerName);
+        var resourceBuilder = builder.ApplicationBuilder.AddResource(resource)
+            .WithImage(GarnetContainerImageTags.RedisCommanderImage, GarnetContainerImageTags.RedisCommanderTag)
+            .WithImageRegistry(GarnetContainerImageTags.RedisCommanderRegistry)
+            .WithHttpEndpoint(targetPort: 8081, name: "http")
+            .ExcludeFromManifest();
+
+        configureContainer?.Invoke(resourceBuilder);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the host port that the Redis Commander resource is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">The resource builder for Redis Commander.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    /// <returns>The resource builder for PGAdmin.</returns>
+    public static IResourceBuilder<RedisCommanderResource> WithHostPort(this IResourceBuilder<RedisCommanderResource> builder, int? port)
+    {
+        return builder.WithEndpoint("http", endpoint =>
+        {
+            endpoint.Port = port;
+        });
     }
 
     /// <summary>

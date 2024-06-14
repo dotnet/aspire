@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.Garnet;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -108,6 +109,94 @@ public class AddGarnetTests
                                  }
                                  """;
         Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public void WithRedisCommanderAddsRedisCommanderResource()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddGarnet("mygarnet1").WithRedisCommander();
+        builder.AddGarnet("mygarnet2").WithRedisCommander();
+
+        Assert.Single(builder.Resources.OfType<RedisCommanderResource>());
+    }
+
+    [Fact]
+    public void WithRedisCommanderSupportsChangingContainerImageValues()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddGarnet("mygarnet").WithRedisCommander(c => {
+            c.WithImageRegistry("example.mycompany.com");
+            c.WithImage("customrediscommander");
+            c.WithImageTag("someothertag");
+        });
+
+        var resource = Assert.Single(builder.Resources.OfType<RedisCommanderResource>());
+        var containerAnnotation = Assert.Single(resource.Annotations.OfType<ContainerImageAnnotation>());
+        Assert.Equal("example.mycompany.com", containerAnnotation.Registry);
+        Assert.Equal("customrediscommander", containerAnnotation.Image);
+        Assert.Equal("someothertag", containerAnnotation.Tag);
+    }
+
+    [Fact]
+    public void WithRedisCommanderSupportsChangingHostPort()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddGarnet("mygarnet").WithRedisCommander(c => {
+            c.WithHostPort(1000);
+        });
+
+        var resource = Assert.Single(builder.Resources.OfType<RedisCommanderResource>());
+        var endpoint = Assert.Single(resource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(1000, endpoint.Port);
+    }
+
+    [Theory]
+    [InlineData("host.docker.internal")]
+    [InlineData("host.containers.internal")]
+    public async Task SingleGarnetInstanceProducesCorrectGarnetHostsVariable(string containerHost)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var garnet = builder.AddGarnet("mygarnet1").WithRedisCommander();
+        await using var app = builder.Build();
+
+        // Add fake allocated endpoints.
+        garnet.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var hook = new RedisCommanderConfigWriterHook();
+        await hook.AfterEndpointsAllocatedAsync(model, CancellationToken.None);
+
+        var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander);
+
+        Assert.Equal($"mygarnet1:{containerHost}:5001:0", config["GARNET_HOSTS"]);
+    }
+
+    [Theory]
+    [InlineData("host.docker.internal")]
+    [InlineData("host.containers.internal")]
+    public async Task MultipleGarnetInstanceProducesCorrectGarnetHostsVariable(string containerHost)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var garnet1 = builder.AddGarnet("mygarnet1").WithRedisCommander();
+        var garnet2 = builder.AddGarnet("mygarnet2").WithRedisCommander();
+        await using var app = builder.Build();
+
+        // Add fake allocated endpoints.
+        garnet1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
+        garnet2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002, "host2"));
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var hook = new RedisCommanderConfigWriterHook();
+        await hook.AfterEndpointsAllocatedAsync(model, CancellationToken.None);
+
+        var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander);
+
+        Assert.Equal($"mygarnet1:{containerHost}:5001:0,mygarnet2:host2:5002:0", config["GARNET_HOSTS"]);
     }
 
     [Theory]
