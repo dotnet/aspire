@@ -22,7 +22,7 @@ dotnet add package Aspire.Elastic.Clients.Elasticsearch
 In the _Program.cs_ file of your project, call the `AddElasticClientsElasticsearch` extension method to register a `ElasticsearchClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
-builder.AddQdrantClient("elasticsearch");
+builder.AddElasticClientsElasticsearch("elasticsearch");
 ```
 
 ## Configuration
@@ -100,7 +100,7 @@ builder.AddElasticClientsElasticsearch("elasticsearch");
 
 When using [Elastic Cloud](https://www.elastic.co/cloud) ,
 you can provide the ```CloudId``` and ```ApiKey``` in ```Aspire:Elastic:Clients:Elasticsearch:Cloud``` section
-and set ```Aspire:Elastic:Clients:Elasticsearch:UseCloud``` to ```true```
+and set ```Aspire:Elastic:Clients:Elasticsearch:UseCloud``` key to ```true```
 when calling `builder.AddElasticClientsElasticsearch()`.
 Example appsettings.json that configures the options:
 
@@ -123,6 +123,18 @@ builder.AddElasticClientsElasticsearch("elasticsearch");
     }
   }
 }
+```
+
+### Use a ```CloudId``` and an ```ApiKey``` with inline delegates
+
+```csharp
+builder.AddElasticClientsElasticsearch("elasticsearch",
+settings => {
+    settings.UseCloud = true;
+    settings.Cloud.CloudId = "Valid CloudId";
+    settings.Cloud.ApiKey = "Valid ApiKey";
+
+});
 ```
 
 ## Additional documentation
