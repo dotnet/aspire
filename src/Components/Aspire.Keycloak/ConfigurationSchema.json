@@ -8,22 +8,6 @@
       }
     }
   },
-  "properties": {
-    "Aspire": {
-      "type": "object",
-      "properties": {
-        "Keycloak": {
-          "type": "object",
-          "properties": {
-            "Realm": {
-              "type": "string",
-              "description": "Gets or sets the realm of the Keycloak server to connect to.\nThe realm is a logical grouping of users, roles, and clients in Keycloak."
-            }
-          },
-          "description": "Provides configuration settings for connecting to a Keycloak server."
-        }
-      }
-    }
-  },
+  "properties": {},
   "type": "object"
 }

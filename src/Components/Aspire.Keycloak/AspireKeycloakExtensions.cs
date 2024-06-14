@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Keycloak;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -15,7 +14,6 @@ namespace Microsoft.Extensions.Hosting;
 /// </summary>
 public static class AspireKeycloakExtensions
 {
-    private const string DefaultConfigSectionName = "Aspire:Keycloak";
     private const string KeycloakBackchannel = nameof(KeycloakBackchannel);
 
     /// <summary>
@@ -23,15 +21,15 @@ public static class AspireKeycloakExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">The connection name to use to find a connection string.</param>
+    /// <param name="realm">The realm of the Keycloak server to connect to.</param>
     /// <param name="authenticationScheme">The authentication scheme name. Default is "Bearer".</param>
     /// <param name="configureJwtBearerOptions">An optional action to configure the <see cref="JwtBearerOptions"/>.</param>
-    /// <param name="configureSettings">An optional action to configure the <see cref="KeycloakSettings"/>.</param>
     public static void AddKeycloakJwtBearer(
         this IHostApplicationBuilder builder,
         string connectionName,
+        string realm,
         string authenticationScheme = JwtBearerDefaults.AuthenticationScheme,
-        Action<JwtBearerOptions>? configureJwtBearerOptions = null,
-        Action<KeycloakSettings>? configureSettings = null)
+        Action<JwtBearerOptions>? configureJwtBearerOptions = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -45,7 +43,7 @@ public static class AspireKeycloakExtensions
                .Configure<IConfiguration, IHttpClientFactory, IHostEnvironment>((options, configuration, httpClientFactory, hostEnvironment) =>
                {
                    options.Backchannel = httpClientFactory.CreateClient(KeycloakBackchannel);
-                   options.Authority = GetAuthorityUri(connectionName, configuration, configureSettings);
+                   options.Authority = GetAuthorityUri(connectionName, realm);
 
                    configureJwtBearerOptions?.Invoke(options);
                });
@@ -56,17 +54,17 @@ public static class AspireKeycloakExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">The connection name to use to find a connection string.</param>
+    /// <param name="realm">The realm of the Keycloak server to connect to.</param>
     /// <param name="openIdConnectScheme">The OpenID Connect authentication scheme name. Default is "OpenIdConnect".</param>
     /// <param name="cookieScheme">The cookie authentication scheme name. Default is "Cookie".</param>
     /// <param name="configureOpenIdConnectOptions">An optional action to configure the <see cref="OpenIdConnectOptions"/>.</param>
-    /// <param name="configureSettings">An optional action to configure the <see cref="KeycloakSettings"/>.</param>
     public static void AddKeycloakOpenIdConnect(
         this IHostApplicationBuilder builder,
         string connectionName,
+        string realm,
         string openIdConnectScheme = OpenIdConnectDefaults.AuthenticationScheme,
         string cookieScheme = CookieAuthenticationDefaults.AuthenticationScheme,
-        Action<OpenIdConnectOptions>? configureOpenIdConnectOptions = null,
-        Action<KeycloakSettings>? configureSettings = null)
+        Action<OpenIdConnectOptions>? configureOpenIdConnectOptions = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -81,7 +79,7 @@ public static class AspireKeycloakExtensions
                .Configure<IConfiguration, IHttpClientFactory, IHostEnvironment>((options, configuration, httpClientFactory, hostEnvironment) =>
                {
                    options.Backchannel = httpClientFactory.CreateClient(KeycloakBackchannel);
-                   options.Authority = GetAuthorityUri(connectionName, configuration, configureSettings);
+                   options.Authority = GetAuthorityUri(connectionName, realm);
                    options.SignInScheme = cookieScheme;
                    options.SignOutScheme = openIdConnectScheme;
 
@@ -91,14 +89,8 @@ public static class AspireKeycloakExtensions
 
     private static string GetAuthorityUri(
         string connectionName,
-        IConfiguration configuration,
-        Action<KeycloakSettings>? configureSettings = null)
+        string realm)
     {
-        var settings = new KeycloakSettings();
-        configuration.GetSection(DefaultConfigSectionName).Bind(settings);
-
-        configureSettings?.Invoke(settings);
-
-        return $"https+http://{connectionName}/realms/{settings.Realm}";
+        return $"https+http://{connectionName}/realms/{realm}";
     }
 }
