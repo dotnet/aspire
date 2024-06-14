@@ -32,7 +32,7 @@ public class NodeFunctionalTests
     }
 
     [Fact]
-    [RequiresTools(["npmxp"])]
+    [RequiresTools(["npm"])]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4508", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyNpmAppWorks()
     {
