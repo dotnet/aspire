@@ -18,6 +18,7 @@ public class NodeFunctionalTests
     }
 
     [Fact]
+    [RequiresTools(["node"])]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4508", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyNodeAppWorks()
     {
@@ -31,6 +32,7 @@ public class NodeFunctionalTests
     }
 
     [Fact]
+    [RequiresTools(["npmxp"])]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4508", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyNpmAppWorks()
     {
