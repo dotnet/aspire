@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Testing;
 using Xunit;
 
@@ -17,6 +18,7 @@ public class NodeFunctionalTests
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4508", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyNodeAppWorks()
     {
         var testProgram = _nodeJsFixture.TestProgram;
@@ -29,6 +31,7 @@ public class NodeFunctionalTests
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4508", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyNpmAppWorks()
     {
         var testProgram = _nodeJsFixture.TestProgram;
