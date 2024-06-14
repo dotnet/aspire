@@ -758,7 +758,7 @@ public class WithDockerfileTests
         return (tempContextPath, tempDockerfilePath);
     }
 
-    private const string DefaultMessage = "aspire!";
+//    private const string DefaultMessage = "aspire!";
 
     private const string HelloWorldDockerfile = $$"""
         FROM mcr.microsoft.com/k8se/quickstart:latest AS builder
