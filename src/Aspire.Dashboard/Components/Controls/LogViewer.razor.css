@@ -28,7 +28,6 @@
     width: 100%;
     overflow: auto;
     background-color: var(--console-background-color);
-    margin-top: 10px;
 }
 
 ::deep .log-container {
