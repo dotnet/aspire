@@ -446,3 +446,8 @@ fluent-data-grid-cell.no-ellipsis {
 .single-line-toolbar-button {
     margin-top: 5px;
 }
+
+.page-content-container {
+    height: 100%;
+    overflow: auto;
+}

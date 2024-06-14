@@ -14,7 +14,7 @@
     var showDetailsView = SelectedResource is not null;
 }
 
-<div>
+<div class="page-content-container">
     <AspirePageContentLayout IsSummaryDetailsViewOpen="@showDetailsView">
         <PageTitleSection>
             <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Resources.ResourcesHeader)]</h1>
