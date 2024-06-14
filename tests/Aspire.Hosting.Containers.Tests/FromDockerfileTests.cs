@@ -801,7 +801,8 @@ internal static class RetryExtensions
             s_pipeline = new ResiliencePipelineBuilder()
                 .AddRetry(new Polly.Retry.RetryStrategyOptions()
                 {
-                    ShouldHandle = new PredicateBuilder().Handle<TimeoutRejectedException>()
+                    ShouldHandle = new PredicateBuilder()
+                    .Handle<TimeoutRejectedException>()
                 })
                 .AddTimeout(TimeSpan.FromSeconds(120))
                 .Build();
