@@ -1,6 +1,6 @@
 # Aspire.Hosting.AWS library
 
-Provides extension methods and resources definition for a .NET Aspire AppHost to configure the AWS SDK for .NET and AWS application resources.
+Provides extension methods and resources definition for a .NET Aspire App Host to configure the AWS SDK for .NET and AWS application resources.
 
 ## Prerequisites
 

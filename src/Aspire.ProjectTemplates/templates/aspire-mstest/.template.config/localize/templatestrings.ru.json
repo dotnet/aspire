@@ -1,7 +1,7 @@
 ﻿{
   "author": "Майкрософт",
   "name": "Тестовый проект .NET Aspire (MSTest)",
-  "description": "Проект, содержащий тесты интеграции MSTest проекта .NET Aspire AppHost.",
+  "description": "Проект, содержащий тесты интеграции MSTest проекта .NET Aspire App Host.",
   "symbols/Framework/description": "Целевая платформа для проекта.",
   "symbols/Framework/choices/net8.0/description": "Целевая среда net8.0",
   "symbols/skipRestore/description": "Если установлено, автоматическое восстановление проекта при создании пропускается.",

@@ -1,6 +1,6 @@
 # Aspire.Hosting.AppHost library
 
-Provides the core APIs and MSBuild logic for .NET Aspire AppHost projects.
+Provides the core APIs and MSBuild logic for .NET Aspire App Host projects.
 
 ## Getting started
 

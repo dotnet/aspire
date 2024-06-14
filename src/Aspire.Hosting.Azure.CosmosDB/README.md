@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.Cosmos library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure CosmosDB.
+Provides extension methods and resource definitions for a .NET Aspire App Host to configure Azure CosmosDB.
 
 ## Getting started
 

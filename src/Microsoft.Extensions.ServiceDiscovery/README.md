@@ -152,7 +152,7 @@ In the case of Azure Container Apps, the service name should match the app name.
 
 ## Service discovery in .NET Aspire
 
-.NET Aspire includes functionality for configuring the service discovery at development and testing time. This functionality works by providing configuration in the format expected by the _configuration-based endpoint provider_ described above from the .NET Aspire AppHost project to the individual service projects added to the application model.
+.NET Aspire includes functionality for configuring the service discovery at development and testing time. This functionality works by providing configuration in the format expected by the _configuration-based endpoint provider_ described above from the .NET Aspire App Host project to the individual service projects added to the application model.
 
 Configuration for service discovery is only added for services which are referenced by a given project. For example, consider the following AppHost program:
 

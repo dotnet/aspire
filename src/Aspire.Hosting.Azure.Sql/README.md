@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.SqlServer library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure SQL Server.
+Provides extension methods and resource definitions for a .NET Aspire App Host to configure Azure SQL Server.
 
 ## Getting started
 

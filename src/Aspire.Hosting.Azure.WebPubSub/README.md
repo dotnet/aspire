@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.WebPubSub library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure Web PubSub.
+Provides extension methods and resource definitions for a .NET Aspire App Host to configure Azure Web PubSub.
 
 ## Getting started
 

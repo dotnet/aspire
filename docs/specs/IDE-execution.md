@@ -1,4 +1,4 @@
-# Running .NET Aspire applications inside an integrated developer environment (IDE)
+# Running .NET Aspire projects inside an integrated developer environment (IDE)
 
 ## Application host, DCP, and IDE
 When .NET Aspire application host program is run, it does not launch application service programs or supporting emulators/containers directly. Instead, the application host relies on another program ("app orchestrator") called `DCP`.

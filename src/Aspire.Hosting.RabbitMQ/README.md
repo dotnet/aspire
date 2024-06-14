@@ -1,6 +1,6 @@
 # Aspire.Hosting.RabbitMQ library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure a RabbitMQ resource.
+Provides extension methods and resource definitions for a .NET Aspire App Host to configure a RabbitMQ resource.
 
 ## Getting started
 

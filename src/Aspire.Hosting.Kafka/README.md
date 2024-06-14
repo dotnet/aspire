@@ -1,6 +1,6 @@
 # Aspire.Hosting.Kafka library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure a Kafka resource.
+Provides extension methods and resource definitions for a .NET Aspire App Host to configure a Kafka resource.
 
 ## Getting started
 

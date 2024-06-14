@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.EventHubs library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure Event Hubs.
+Provides extension methods and resource definitions for a .NET Aspire App Host to configure Azure Event Hubs.
 
 ## Getting started
 

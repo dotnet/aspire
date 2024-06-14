@@ -1,6 +1,6 @@
 # Aspire.Hosting.MySql library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure a MySQL resource.
+Provides extension methods and resource definitions for a .NET Aspire App Host to configure a MySQL resource.
 
 ## Getting started
 

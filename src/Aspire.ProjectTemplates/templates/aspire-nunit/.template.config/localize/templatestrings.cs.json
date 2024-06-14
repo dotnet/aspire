@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
   "name": "Testovací projekt .NET Aspire (xUnit)",
-  "description": "Projekt, který obsahuje xUnit.net integrační testy projektu .NET Aspire AppHost.",
+  "description": "Projekt, který obsahuje xUnit.net integrační testy projektu .NET Aspire App Host.",
   "symbols/Framework/description": "Cílová architektura pro projekt",
   "symbols/Framework/choices/net8.0/description": "Cílový net8.0",
   "symbols/skipRestore/description": "Pokud se tato možnost zadá, přeskočí automatické obnovení projektu při vytvoření.",
