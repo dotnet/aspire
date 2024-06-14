@@ -25,7 +25,7 @@ builder.Services.AddHttpClient<WeatherApiClient>(client =>
     })
     .AddHttpMessageHandler<AuthorizationHandler>();
 
-builder.AddKeycloakOpenIdConnect("keycloak", configureOpenIdConnectOptions: options =>
+builder.AddKeycloakOpenIdConnect("keycloak", realm: "WeatherShop", configureOpenIdConnectOptions: options =>
 {
     options.ClientId = "WeatherWeb";
     options.ResponseType = OpenIdConnectResponseType.Code;

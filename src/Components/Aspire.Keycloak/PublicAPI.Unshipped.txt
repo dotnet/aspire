@@ -1,8 +1,4 @@
 #nullable enable
-Aspire.Keycloak.KeycloakSettings
-Aspire.Keycloak.KeycloakSettings.KeycloakSettings() -> void
-Aspire.Keycloak.KeycloakSettings.Realm.get -> string?
-Aspire.Keycloak.KeycloakSettings.Realm.set -> void
 Microsoft.Extensions.Hosting.AspireKeycloakExtensions
-static Microsoft.Extensions.Hosting.AspireKeycloakExtensions.AddKeycloakJwtBearer(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, string! authenticationScheme = "Bearer", System.Action<Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerOptions!>? configureJwtBearerOptions = null, System.Action<Aspire.Keycloak.KeycloakSettings!>? configureSettings = null) -> void
-static Microsoft.Extensions.Hosting.AspireKeycloakExtensions.AddKeycloakOpenIdConnect(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, string! openIdConnectScheme = "OpenIdConnect", string! cookieScheme = "Cookies", System.Action<Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectOptions!>? configureOpenIdConnectOptions = null, System.Action<Aspire.Keycloak.KeycloakSettings!>? configureSettings = null) -> void
+static Microsoft.Extensions.Hosting.AspireKeycloakExtensions.AddKeycloakJwtBearer(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, string! realm, string! authenticationScheme = "Bearer", System.Action<Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerOptions!>? configureJwtBearerOptions = null) -> void
+static Microsoft.Extensions.Hosting.AspireKeycloakExtensions.AddKeycloakOpenIdConnect(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, string! realm, string! openIdConnectScheme = "OpenIdConnect", string! cookieScheme = "Cookies", System.Action<Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectOptions!>? configureOpenIdConnectOptions = null) -> void
