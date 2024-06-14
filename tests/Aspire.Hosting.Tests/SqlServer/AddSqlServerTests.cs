@@ -22,6 +22,17 @@ public class AddSqlServerTests
     }
 
     [Fact]
+    public void AddSqlServerDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultWhenNotInDevelopment()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        appBuilder.Environment.EnvironmentName = "Test";
+
+        var sql = appBuilder.AddSqlServer("sql");
+
+        Assert.IsNotType<UserSecretsParameterDefault>(sql.Resource.PasswordParameter.Default);
+    }
+
+    [Fact]
     public async Task AddSqlServerContainerWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();

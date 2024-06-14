@@ -22,6 +22,17 @@ public class AddOracleTests
     }
 
     [Fact]
+    public void AddOracleDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultWhenNotInDevelopment()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        appBuilder.Environment.EnvironmentName = "Test";
+
+        var orcl = appBuilder.AddOracle("orcl");
+
+        Assert.IsNotType<UserSecretsParameterDefault>(orcl.Resource.PasswordParameter.Default);
+    }
+
+    [Fact]
     public async Task AddOracleWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();

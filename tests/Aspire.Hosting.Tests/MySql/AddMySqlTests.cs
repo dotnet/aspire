@@ -24,6 +24,17 @@ public class AddMySqlTests
     }
 
     [Fact]
+    public void AddMySqlDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultWhenNotInDevelopment()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        appBuilder.Environment.EnvironmentName = "Test";
+
+        var mysql = appBuilder.AddMySql("mysql");
+
+        Assert.IsNotType<UserSecretsParameterDefault>(mysql.Resource.PasswordParameter.Default);
+    }
+
+    [Fact]
     public async Task AddMySqlContainerWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();

@@ -21,6 +21,17 @@ public class AddRabbitMQTests
         Assert.IsType<UserSecretsParameterDefault>(rmq.Resource.PasswordParameter.Default);
     }
 
+    [Fact]
+    public void AddRabbitMQDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultWhenNotInDevelopment()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        appBuilder.Environment.EnvironmentName = "Test";
+
+        var rmq = appBuilder.AddRabbitMQ("rmq");
+
+        Assert.IsNotType<UserSecretsParameterDefault>(rmq.Resource.PasswordParameter.Default);
+    }
+
     [Theory]
     [InlineData(false, null)]
     [InlineData(true, null)]

@@ -26,6 +26,17 @@ public class AddQdrantTests
     }
 
     [Fact]
+    public void AddQdrantDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultWhenNotInDevelopment()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        appBuilder.Environment.EnvironmentName = "Test";
+
+        var qd = appBuilder.AddQdrant("qd");
+
+        Assert.IsNotType<UserSecretsParameterDefault>(qd.Resource.ApiKeyParameter.Default);
+    }
+
+    [Fact]
     public async Task AddQdrantWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
