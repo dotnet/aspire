@@ -138,7 +138,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
     public async Task AllocatedPortsAssignedAfterHookRuns()
     {
         using var testProgram = CreateTestProgram();
@@ -171,7 +170,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
     public async Task TestServicesWithMultipleReplicas()
     {
         var replicaCount = 3;
@@ -308,7 +306,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
     public async Task StartAsync_DashboardAuthConfig_PassedToDashboardProcess()
     {
         var browserToken = "ThisIsATestToken";
@@ -351,7 +348,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
     public async Task StartAsync_UnsecuredAllowAnonymous_PassedToDashboardProcess()
     {
         var args = new string[] {
@@ -587,7 +583,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
     public async Task ReplicasAndProxylessEndpointThrows()
     {
         using var testProgram = CreateTestProgram();
@@ -605,7 +600,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
     public async Task ProxylessEndpointWithoutPortThrows()
     {
         using var testProgram = CreateTestProgram();
@@ -624,7 +618,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
     public async Task ProxylessEndpointWorks()
     {
         using var testProgram = CreateTestProgram();
@@ -656,7 +649,6 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    [RequiresDocker]
     public async Task ProxylessAndProxiedEndpointBothWorkOnSameResource()
     {
         using var testProgram = CreateTestProgram();
