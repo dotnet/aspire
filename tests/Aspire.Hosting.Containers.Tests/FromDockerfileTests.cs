@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Testing;
+using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -18,7 +19,8 @@ namespace Aspire.Hosting.Containers.Tests;
 
 public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 {
-    [Fact]
+    // Currently we can only run this locally because the CI agents don't have buildkit support enabled.
+    [LocalOnlyFact]
     [RequiresDocker]
     public async Task WithBuildSecretPopulatesSecretFilesCorrectly()
     {
