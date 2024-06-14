@@ -1,45 +1,39 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Elasticsearch.Net;
+using Elastic.Clients.Elasticsearch;
+using Elasticsearch.ApiService.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.Services.AddSingleton<ElasticLowLevelClient>((sp) =>
-{
-    var settings = new ConnectionConfiguration(new Uri(builder.Configuration.GetConnectionString("elasticsearch")!))
-    .RequestTimeout(TimeSpan.FromMinutes(2));
-
-    var lowlevelClient = new ElasticLowLevelClient(settings);
-    return lowlevelClient;
-});
+builder.AddElasticClientsElasticsearch("elasticsearch");
 
 var app = builder.Build();
 
-app.MapGet("/get", async (ElasticLowLevelClient elasticClient) =>
+app.MapGet("/get", async (ElasticsearchClient elasticClient) =>
 {
-    var response = await elasticClient.GetAsync<StringResponse>("people", "1");
-    return response.Body;
+    var response = await elasticClient.GetAsync<Person>("people", "1");
+    return response;
 });
 
-app.MapGet("/create", async (ElasticLowLevelClient elasticClient) =>
+app.MapGet("/create", async (ElasticsearchClient elasticClient) =>
 {
-    var exist = await elasticClient.Indices.ExistsAsync<StringResponse>(index: "people");
-    if (exist.Success)
+    var exist = await elasticClient.Indices.ExistsAsync("people");
+    if (exist.Exists)
     {
-        elasticClient.Indices.Delete<StringResponse>("people");
+        await elasticClient.Indices.DeleteAsync("people");
     }
 
-    var person = new
+    var person = new Person
     {
         FirstName = "Alireza",
         LastName = "Baloochi"
     };
 
-    var response = await elasticClient.IndexAsync<StringResponse>("people", "1", PostData.Serializable(person));
-    return response.Body;
+    var response = await elasticClient.IndexAsync<Person>(person, "people", "1");
+    return response;
 });
 
 app.Run();

@@ -9,7 +9,7 @@ var elasticsearch = builder.AddElasticsearch("elasticsearch")
     .WithDataVolume("data");
 
 builder.AddProject<Elasticsearch_ApiService>("elasticsearch-apiservice")
-    .WithReference(elasticsearch);
+.WithReference(elasticsearch);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

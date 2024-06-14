@@ -4,12 +4,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="Elasticsearch.Net" />
-  </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Elasticsearch\Aspire.Hosting.Elasticsearch.csproj" />
+    <ProjectReference Include="..\..\..\src\Components\Aspire.Elastic.Clients.Elasticsearch\Aspire.Elastic.Clients.Elasticsearch.csproj" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
 </Project>
