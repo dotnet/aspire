@@ -154,4 +154,3 @@ builder.AddKeycloakOpenIdConnect("keycloak");
 ## Feedback & contributing
 
 https://github.com/dotnet/aspire
-
