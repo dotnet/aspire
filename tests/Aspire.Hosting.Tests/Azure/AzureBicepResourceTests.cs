@@ -762,7 +762,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     public async Task AssignParameterPopulatesParametersEverywhere()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Configuration["Parameters:skuName"] = "Standard_ZRS";
+        builder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:skuName"] = "Standard_ZRS";
 
         var skuName = builder.AddParameter("skuName");
 
@@ -800,7 +800,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     public async Task AssignParameterWithSpecifiedNamePopulatesParametersEverywhere()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Configuration["Parameters:skuName"] = "Standard_ZRS";
+        builder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:skuName"] = "Standard_ZRS";
 
         var skuName = builder.AddParameter("skuName");
 
@@ -1309,8 +1309,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        builder.Configuration["Parameters:usr"] = "user";
-        builder.Configuration["Parameters:pwd"] = "password";
+        builder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:usr"] = "user";
+        builder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:pwd"] = "password";
 
         var usr = builder.AddParameter("usr");
         var pwd = builder.AddParameter("pwd", secret: true);
@@ -1437,8 +1437,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.Configuration["Parameters:usr"] = "user";
-        builder.Configuration["Parameters:pwd"] = "password";
+        builder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:usr"] = "user";
+        builder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:pwd"] = "password";
 
         var usr = builder.AddParameter("usr");
         var pwd = builder.AddParameter("pwd", secret: true);
@@ -1556,8 +1556,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        builder.Configuration["Parameters:usr"] = "user";
-        builder.Configuration["Parameters:pwd"] = "password";
+        builder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:usr"] = "user";
+        builder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:pwd"] = "password";
 
         var usr = builder.AddParameter("usr");
         var pwd = builder.AddParameter("pwd", secret: true);

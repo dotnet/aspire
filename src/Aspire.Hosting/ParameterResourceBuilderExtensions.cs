@@ -15,6 +15,11 @@ namespace Aspire.Hosting;
 public static class ParameterResourceBuilderExtensions
 {
     /// <summary>
+    /// The configuration section that parameter values are read from.
+    /// </summary>
+    public const string ConfigurationSectionKey = "Parameters";
+
+    /// <summary>
     /// Adds a parameter resource to the application.
     /// </summary>
     /// <param name="builder">Distributed application builder</param>
@@ -29,7 +34,7 @@ public static class ParameterResourceBuilderExtensions
 
     private static string GetParameterValue(IConfiguration configuration, string name, ParameterDefault? parameterDefault)
     {
-        var configurationKey = $"Parameters:{name}";
+        var configurationKey = $"{ConfigurationSectionKey}:{name}";
         return configuration[configurationKey]
             ?? parameterDefault?.GetDefaultValue()
             ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing and the Parameter has no default value."); ;
@@ -51,7 +56,7 @@ public static class ParameterResourceBuilderExtensions
             State = KnownResourceStates.Hidden,
             Properties = [
                 new("parameter.secret", secret.ToString()),
-                new(CustomResourceKnownProperties.Source, connectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}")
+                new(CustomResourceKnownProperties.Source, connectionString ? $"ConnectionStrings:{name}" : $"{ParameterResourceBuilderExtensions.ConfigurationSectionKey}:{name}")
             ]
         };
 

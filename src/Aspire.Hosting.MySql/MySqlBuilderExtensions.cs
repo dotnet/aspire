@@ -25,7 +25,13 @@ public static class MySqlBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlServerResource> AddMySql(this IDistributedApplicationBuilder builder, string name, IResourceBuilder<ParameterResource>? password = null, int? port = null)
     {
-        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
+        var passwordParameterName = $"{name}-password";
+        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, passwordParameterName);
+
+        if (passwordParameter.Default is not null)
+        {
+            passwordParameter.Default = new UserSecretsParameterDefault(builder.Environment.ApplicationName, passwordParameterName, passwordParameter.Default);
+        }
 
         var resource = new MySqlServerResource(name, passwordParameter);
         return builder.AddResource(resource)

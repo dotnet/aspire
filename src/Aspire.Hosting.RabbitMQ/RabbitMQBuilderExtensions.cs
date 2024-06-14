@@ -30,8 +30,14 @@ public static class RabbitMQBuilderExtensions
         IResourceBuilder<ParameterResource>? password = null,
         int? port = null)
     {
+        var passwordParameterName = $"{name}-password";
         // don't use special characters in the password, since it goes into a URI
-        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special: false);
+        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, passwordParameterName, special: false);
+
+        if (passwordParameter.Default is not null)
+        {
+            passwordParameter.Default = new UserSecretsParameterDefault(builder.Environment.ApplicationName, passwordParameterName, passwordParameter.Default);
+        }
 
         var rabbitMq = new RabbitMQServerResource(name, userName?.Resource, passwordParameter);
         var rabbitmq = builder.AddResource(rabbitMq)

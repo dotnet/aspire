@@ -13,7 +13,7 @@ public class AddParameterTests
     public void ParametersAreHiddenByDefault()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:pass"] = "pass1";
+        appBuilder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:pass"] = "pass1";
 
         appBuilder.AddParameter("pass", secret: true);
 
@@ -38,7 +38,7 @@ public class AddParameterTests
             prop =>
             {
                 Assert.Equal(CustomResourceKnownProperties.Source, prop.Name);
-                Assert.Equal("Parameters:pass", prop.Value);
+                Assert.Equal($"{ParameterDefault.ConfigurationSectionKey}:pass", prop.Value);
             },
             prop =>
             {
@@ -77,7 +77,7 @@ public class AddParameterTests
             prop =>
             {
                 Assert.Equal(CustomResourceKnownProperties.Source, prop.Name);
-                Assert.Equal("Parameters:pass", prop.Value);
+                Assert.Equal($"{ParameterDefault.ConfigurationSectionKey}:pass", prop.Value);
             },
             prop =>
             {

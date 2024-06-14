@@ -17,7 +17,7 @@ public class AddMilvusTests
     public void AddMilvusWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:apikey"] = "pass";
+        appBuilder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:apikey"] = "pass";
 
         var pass = appBuilder.AddParameter("apikey");
         appBuilder.AddMilvus("my-milvus", apiKey: pass);
@@ -48,7 +48,7 @@ public class AddMilvusTests
     public void AddMilvusAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration["Parameters:apikey"] = "pass";
+        appBuilder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:apikey"] = "pass";
 
         var pass = appBuilder.AddParameter("apikey");
         appBuilder.AddMilvus("my-milvus", apiKey: pass);
@@ -80,7 +80,7 @@ public class AddMilvusTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        appBuilder.Configuration["Parameters:apikey"] = "pass";
+        appBuilder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:apikey"] = "pass";
         var pass = appBuilder.AddParameter("apikey");
 
         var milvus = appBuilder.AddMilvus("my-milvus", pass)
@@ -98,7 +98,7 @@ public class AddMilvusTests
         using var testProgram = CreateTestProgram();
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        appBuilder.Configuration["Parameters:apikey"] = "pass";
+        appBuilder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:apikey"] = "pass";
         var pass = appBuilder.AddParameter("apikey");
 
         var milvus = appBuilder.AddMilvus("my-milvus", pass)
@@ -131,7 +131,7 @@ public class AddMilvusTests
     public async Task VerifyManifest()
     {
         var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions() { Args = new string[] { "--publisher", "manifest" } });
-        appBuilder.Configuration["Parameters:apikey"] = "pass";
+        appBuilder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:apikey"] = "pass";
         var pass = appBuilder.AddParameter("apikey");
         var milvus = appBuilder.AddMilvus("milvus", pass);
         var db1 = milvus.AddDatabase("db1");
@@ -181,7 +181,7 @@ public class AddMilvusTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        builder.Configuration["Parameters:apikey"] = "pass";
+        builder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:apikey"] = "pass";
         var pass = builder.AddParameter("apikey");
 
         var milvus = builder.AddMilvus("my-milvus", grpcPort: 5503, apiKey: pass);
