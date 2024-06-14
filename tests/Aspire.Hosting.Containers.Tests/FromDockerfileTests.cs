@@ -787,7 +787,6 @@ public class WithDockerfileTests
         COPY --from=builder /app/static/aspire.html /app/static
         RUN --mount=type=secret,id=FILE_SECRET cp /run/secrets/FILE_SECRET /app/static/FILE_SECRET.txt
         RUN --mount=type=secret,id=ENV_SECRET cp /run/secrets/ENV_SECRET /app/static/ENV_SECRET.txt
-        RUN sleep 40
         """;
 }
 
