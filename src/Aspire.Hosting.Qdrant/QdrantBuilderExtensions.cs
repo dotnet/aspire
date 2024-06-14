@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Qdrant;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
 
@@ -40,7 +41,7 @@ public static class QdrantBuilderExtensions
         var apiKeyParameter = apiKey?.Resource ??
             ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, apiKeyParameterName, special: false);
 
-        if (apiKeyParameter.Default is not null)
+        if (builder.Environment.IsDevelopment() && builder.ExecutionContext.IsRunMode && apiKeyParameter.Default is not null)
         {
             apiKeyParameter.Default = new UserSecretsParameterDefault(builder.Environment.ApplicationName, apiKeyParameterName, apiKeyParameter.Default);
         }

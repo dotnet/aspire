@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Reflection;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration.UserSecrets;
@@ -24,7 +25,7 @@ public sealed class UserSecretsParameterDefault(string applicationName, string p
         var configurationKey = $"{ParameterResourceBuilderExtensions.ConfigurationSectionKey}:{parameterName}";
         if (!TrySetUserSecret(applicationName, configurationKey, value))
         {
-            throw new DistributedApplicationException($"Failed to set value for parameter '{parameterName}' in application '{applicationName}' to user secrets.");
+            Debug.WriteLine($"Failed to set value for parameter '{parameterName}' in application '{applicationName}' to user secrets.");
         }
         return value;
     }

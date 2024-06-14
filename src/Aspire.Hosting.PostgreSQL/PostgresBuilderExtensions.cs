@@ -5,6 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
 
@@ -34,7 +35,7 @@ public static class PostgresBuilderExtensions
         var passwordParameterName = $"{name}-password";
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, passwordParameterName);
 
-        if (passwordParameter.Default is not null)
+        if (builder.Environment.IsDevelopment() && builder.ExecutionContext.IsRunMode && passwordParameter.Default is not null)
         {
             passwordParameter.Default = new UserSecretsParameterDefault(builder.Environment.ApplicationName, passwordParameterName, passwordParameter.Default);
         }
