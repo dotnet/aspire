@@ -6,4 +6,3 @@ Aspire.Hosting.IDistributedApplicationBuilder.AppHostAssembly.get -> System.Refl
 override Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault.GetDefaultValue() -> string!
 override Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault.WriteToManifest(Aspire.Hosting.Publishing.ManifestPublishingContext! context) -> void
 static Aspire.Hosting.ParameterResourceBuilderExtensions.CreateGeneratedParameter(Microsoft.Extensions.Configuration.IConfiguration! configuration, string! name, bool secret, Aspire.Hosting.ApplicationModel.GenerateParameterDefault! parameterDefault) -> Aspire.Hosting.ApplicationModel.ParameterResource!
-static Aspire.Hosting.ParameterResourceExtensions.GetParameterResources(this Aspire.Hosting.ApplicationModel.DistributedApplicationModel! model) -> System.Collections.Generic.IEnumerable<Aspire.Hosting.ApplicationModel.ParameterResource!>!
