@@ -22,7 +22,7 @@ public sealed class UserSecretsParameterDefault(string applicationName, string p
     public override string GetDefaultValue()
     {
         var value = parameterDefault.GetDefaultValue();
-        var configurationKey = $"{ParameterResourceBuilderExtensions.ConfigurationSectionKey}:{parameterName}";
+        var configurationKey = $"Parameters:{parameterName}";
         if (!TrySetUserSecret(applicationName, configurationKey, value))
         {
             Debug.WriteLine($"Failed to set value for parameter '{parameterName}' in application '{applicationName}' to user secrets.");

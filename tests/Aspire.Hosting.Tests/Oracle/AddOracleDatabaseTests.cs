@@ -52,7 +52,7 @@ public class AddOracleTests
     public async Task AddOracleAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration[$"{ParameterResourceBuilderExtensions.ConfigurationSectionKey}:pass"] = "pass";
+        appBuilder.Configuration[$"Parameters:pass"] = "pass";
 
         var pass = appBuilder.AddParameter("pass");
         appBuilder.AddOracle("orcl", pass, 1234);
@@ -134,7 +134,7 @@ public class AddOracleTests
     public async Task AddDatabaseToOracleDatabaseAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration[$"{ParameterResourceBuilderExtensions.ConfigurationSectionKey}:pass"] = "pass";
+        appBuilder.Configuration[$"Parameters:pass"] = "pass";
 
         var pass = appBuilder.AddParameter("pass");
         appBuilder.AddOracle("oracle", pass, 1234).AddDatabase("db");
