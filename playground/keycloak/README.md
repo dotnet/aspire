@@ -10,6 +10,5 @@ This playground requires a specific realm in the Keycloak server.
 6. Browse to the **weathershop-realm.json** file at the root of this playground dir, and import it.
 7. Your realm is ready to go!
 
-
 ## To register your user
 User registration is enabled in the login page, so just browse to the webfrontend endpoint (from the Aspire dashboard), click **Login** and register your user from there.
