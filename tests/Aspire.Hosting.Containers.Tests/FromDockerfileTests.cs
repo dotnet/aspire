@@ -3,11 +3,8 @@
 
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Dcp;
-using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.DependencyInjection;
 using Polly;
 using Polly.Timeout;
 using Xunit;
