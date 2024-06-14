@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <PackageTags>$(ComponentCommonPackageTags) Elasticsearch</PackageTags>
+    <Description>A Elasticsearch client that integrates with Aspire, including health checks, logging, and telemetry.</Description>
+    <NoWarn>$(NoWarn)</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--<Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />-->
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Elastic.Clients.Elasticsearch" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+
+  </ItemGroup>
+
+</Project>

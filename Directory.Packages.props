@@ -73,6 +73,7 @@
     <PackageVersion Include="AspNetCore.HealthChecks.Rabbitmq" Version="8.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="8.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="8.0.2" />
+    <!--<PackageVersion Include="AspNetCore.HealthChecks.Elasticsearch" Version="8.0.1" />-->
     <!-- efcore dependencies -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Cosmos" Version="$(MicrosoftEntityFrameworkCoreCosmosPackageVersion)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(MicrosoftEntityFrameworkCoreSqlServerPackageVersion)" />
@@ -120,7 +121,7 @@
     <PackageVersion Include="StackExchange.Redis" Version="2.7.33" />
     <PackageVersion Include="System.IO.Hashing" Version="8.0.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.1.0" />
-    <PackageVersion Include="Elasticsearch.Net" Version="7.17.5" />
+    <PackageVersion Include="Elastic.Clients.Elasticsearch" Version="8.14.0" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.3" />
     <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.8.1" />
@@ -155,6 +156,7 @@
     <PackageVersion Include="Testcontainers.Redis" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.Nats" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.Milvus" Version="$(TestcontainersPackageVersion)" />
+    <!--<PackageVersion Include="Testcontainers.Elasticsearch" Version="$(TestcontainersPackageVersion)" />-->
     <!-- playground apps dependencies -->
     <PackageVersion Include="Dapr.AspNetCore" Version="1.13.1" />
     <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="8.1.0" />

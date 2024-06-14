@@ -1,0 +1,22 @@
+#nullable enable
+Aspire.Elastic.Clients.Elasticsearch.ElasticClientsElasticsearchCloudSettings
+Aspire.Elastic.Clients.Elasticsearch.ElasticClientsElasticsearchCloudSettings.ApiKey.get -> string?
+Aspire.Elastic.Clients.Elasticsearch.ElasticClientsElasticsearchCloudSettings.ApiKey.set -> void
+Aspire.Elastic.Clients.Elasticsearch.ElasticClientsElasticsearchCloudSettings.CloudId.get -> string?
+Aspire.Elastic.Clients.Elasticsearch.ElasticClientsElasticsearchCloudSettings.CloudId.set -> void
+Aspire.Elastic.Clients.Elasticsearch.ElasticClientsElasticsearchCloudSettings.ElasticClientsElasticsearchCloudSettings() -> void
+Aspire.Elastic.Clients.Elasticsearch.ElasticClientsElasticsearchSettings
+Aspire.Elastic.Clients.Elasticsearch.ElasticClientsElasticsearchSettings.Cloud.get -> Aspire.Elastic.Clients.Elasticsearch.ElasticClientsElasticsearchCloudSettings?
+Aspire.Elastic.Clients.Elasticsearch.ElasticClientsElasticsearchSettings.Cloud.set -> void
+Aspire.Elastic.Clients.Elasticsearch.ElasticClientsElasticsearchSettings.ConnectionString.get -> string?
+Aspire.Elastic.Clients.Elasticsearch.ElasticClientsElasticsearchSettings.ConnectionString.set -> void
+Aspire.Elastic.Clients.Elasticsearch.ElasticClientsElasticsearchSettings.DisableHealthChecks.get -> bool
+Aspire.Elastic.Clients.Elasticsearch.ElasticClientsElasticsearchSettings.DisableHealthChecks.set -> void
+Aspire.Elastic.Clients.Elasticsearch.ElasticClientsElasticsearchSettings.DisableTracing.get -> bool
+Aspire.Elastic.Clients.Elasticsearch.ElasticClientsElasticsearchSettings.DisableTracing.set -> void
+Aspire.Elastic.Clients.Elasticsearch.ElasticClientsElasticsearchSettings.ElasticClientsElasticsearchSettings() -> void
+Aspire.Elastic.Clients.Elasticsearch.ElasticClientsElasticsearchSettings.UseCloud.get -> bool
+Aspire.Elastic.Clients.Elasticsearch.ElasticClientsElasticsearchSettings.UseCloud.set -> void
+Microsoft.Extensions.Hosting.AspireElasticClientsElasticsearchExtensions
+static Microsoft.Extensions.Hosting.AspireElasticClientsElasticsearchExtensions.AddElasticClientsElasticsearch(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Elastic.Clients.Elasticsearch.ElasticClientsElasticsearchSettings!>? configureSettings = null, System.Action<Elastic.Clients.Elasticsearch.ElasticsearchClientSettings!>? configureClientSettings = null) -> void
+static Microsoft.Extensions.Hosting.AspireElasticClientsElasticsearchExtensions.AddKeyedElasticClientsElasticsearch(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Aspire.Elastic.Clients.Elasticsearch.ElasticClientsElasticsearchSettings!>? configureSettings = null, System.Action<Elastic.Clients.Elasticsearch.ElasticsearchClientSettings!>? configureClientSettings = null) -> void
