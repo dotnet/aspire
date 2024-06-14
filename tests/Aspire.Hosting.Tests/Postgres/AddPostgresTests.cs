@@ -69,7 +69,7 @@ public class AddPostgresTests
     public async Task AddPostgresAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:pass"] = "pass";
+        appBuilder.Configuration[$"{ParameterResourceBuilderExtensions.ConfigurationSectionKey}:pass"] = "pass";
 
         var pass = appBuilder.AddParameter("pass");
         appBuilder.AddPostgres("myPostgres", password: pass, port: 1234);
@@ -160,7 +160,7 @@ public class AddPostgresTests
     public async Task AddDatabaseToPostgresAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:pass"] = "pass";
+        appBuilder.Configuration[$"{ParameterResourceBuilderExtensions.ConfigurationSectionKey}:pass"] = "pass";
 
         var pass = appBuilder.AddParameter("pass");
         appBuilder.AddPostgres("postgres", password: pass, port: 1234).AddDatabase("db");

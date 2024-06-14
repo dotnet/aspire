@@ -89,7 +89,7 @@ public class AddQdrantTests
     public async Task AddQdrantAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:pass"] = "pass";
+        appBuilder.Configuration[$"{ParameterResourceBuilderExtensions.ConfigurationSectionKey}:pass"] = "pass";
 
         var pass = appBuilder.AddParameter("pass");
         appBuilder.AddQdrant("my-qdrant", apiKey: pass);
@@ -132,7 +132,7 @@ public class AddQdrantTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        appBuilder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:pass"] = "pass";
+        appBuilder.Configuration[$"{ParameterResourceBuilderExtensions.ConfigurationSectionKey}:pass"] = "pass";
         var pass = appBuilder.AddParameter("pass");
 
         var qdrant = appBuilder.AddQdrant("my-qdrant", pass)
@@ -150,7 +150,7 @@ public class AddQdrantTests
         using var testProgram = CreateTestProgram();
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        appBuilder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:pass"] = "pass";
+        appBuilder.Configuration[$"{ParameterResourceBuilderExtensions.ConfigurationSectionKey}:pass"] = "pass";
         var pass = appBuilder.AddParameter("pass");
 
         var qdrant = appBuilder.AddQdrant("my-qdrant", pass)

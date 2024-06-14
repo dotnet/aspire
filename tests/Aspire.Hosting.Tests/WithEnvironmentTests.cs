@@ -79,7 +79,7 @@ public class WithEnvironmentTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        builder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:parameter"] = "MY_PARAMETER_VALUE";
+        builder.Configuration[$"{ParameterResourceBuilderExtensions.ConfigurationSectionKey}:parameter"] = "MY_PARAMETER_VALUE";
 
         var parameter = builder.AddParameter("parameter");
 

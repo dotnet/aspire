@@ -72,7 +72,7 @@ public class AddRabbitMQTests
     public async Task RabbitMQCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration[$"{ParameterDefault.ConfigurationSectionKey}:pass"] = "p@ssw0rd1";
+        appBuilder.Configuration[$"{ParameterResourceBuilderExtensions.ConfigurationSectionKey}:pass"] = "p@ssw0rd1";
 
         var pass = appBuilder.AddParameter("pass");
         appBuilder
