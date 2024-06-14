@@ -28,7 +28,7 @@ public static class SqlServerBuilderExtensions
 
         if (builder.Environment.IsDevelopment() && builder.ExecutionContext.IsRunMode && passwordParameter.Default is not null)
         {
-            passwordParameter.Default = new UserSecretsParameterDefault(builder.Environment.ApplicationName, passwordParameterName, passwordParameter.Default);
+            passwordParameter.Default = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, passwordParameterName, passwordParameter.Default);
         }
 
         var sqlServer = new SqlServerServerResource(name, passwordParameter);

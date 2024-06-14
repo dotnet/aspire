@@ -43,7 +43,7 @@ public static class QdrantBuilderExtensions
 
         if (builder.Environment.IsDevelopment() && builder.ExecutionContext.IsRunMode && apiKeyParameter.Default is not null)
         {
-            apiKeyParameter.Default = new UserSecretsParameterDefault(builder.Environment.ApplicationName, apiKeyParameterName, apiKeyParameter.Default);
+            apiKeyParameter.Default = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, apiKeyParameterName, apiKeyParameter.Default);
         }
 
         var qdrant = new QdrantServerResource(name, apiKeyParameter);

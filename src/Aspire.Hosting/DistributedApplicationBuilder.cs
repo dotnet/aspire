@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
@@ -41,6 +42,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private const string BuilderConstructingEventName = "DistributedApplicationBuilderConstructing";
     private const string BuilderConstructedEventName = "DistributedApplicationBuilderConstructed";
 
+    private readonly Lazy<Assembly?> _appHostAssembly;
+
     private readonly HostApplicationBuilder _innerBuilder;
 
     /// <inheritdoc />
@@ -54,6 +57,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     /// <inheritdoc />
     public string AppHostDirectory { get; }
+
+    /// <inheritdoc />
+    public Assembly? AppHostAssembly => _appHostAssembly.Value;
 
     /// <inheritdoc />
     public DistributedApplicationExecutionContext ExecutionContext { get; }
@@ -120,6 +126,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Logging.AddConfiguration(_innerBuilder.Configuration.GetSection("Logging"));
 
         AppHostDirectory = options.ProjectDirectory ?? _innerBuilder.Environment.ContentRootPath;
+        _appHostAssembly = new(() => options.Assembly);
 
         // Set configuration
         ConfigurePublishingOptions(options);

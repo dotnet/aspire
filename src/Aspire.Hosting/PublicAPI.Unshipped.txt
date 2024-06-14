@@ -1,5 +1,7 @@
 #nullable enable
 Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault
-Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault.UserSecretsParameterDefault(string! applicationName, string! parameterName, Aspire.Hosting.ApplicationModel.ParameterDefault! parameterDefault) -> void
+Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault.UserSecretsParameterDefault(System.Reflection.Assembly? appHostAssembly, string! applicationName, string! parameterName, Aspire.Hosting.ApplicationModel.ParameterDefault! parameterDefault) -> void
+Aspire.Hosting.DistributedApplicationBuilder.AppHostAssembly.get -> System.Reflection.Assembly?
+Aspire.Hosting.IDistributedApplicationBuilder.AppHostAssembly.get -> System.Reflection.Assembly?
 override Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault.GetDefaultValue() -> string!
 override Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault.WriteToManifest(Aspire.Hosting.Publishing.ManifestPublishingContext! context) -> void
