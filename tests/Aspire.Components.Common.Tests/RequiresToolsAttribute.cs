@@ -9,15 +9,11 @@ namespace Aspire.Components.Common.Tests;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
 public class RequiresToolsAttribute : Attribute, ITraitAttribute
 {
-    // private readonly string[] _executablesOnPath;
-
     public RequiresToolsAttribute(string[] executablesOnPath)
     {
-        Console.WriteLine ($"------------------------------- RequiresToolsAttribute -------------------------------");
         if (executablesOnPath.Length == 0)
         {
             throw new ArgumentException("At least one executable must be provided", nameof(executablesOnPath));
         }
-        // this._executablesOnPath = executablesOnPath;
     }
 }
