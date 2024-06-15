@@ -38,7 +38,7 @@ public static class ServiceDiscoveryDnsServiceCollectionExtensions
     public static IServiceCollection AddDnsSrvServiceEndpointProvider(this IServiceCollection services, Action<DnsSrvServiceEndpointProviderOptions> configureOptions)
     {
         services.AddServiceDiscoveryCore();
-        services.TryAddSingleton<IDnsQuery, LookupClient>();
+        services.TryAddSingleton<IDnsQuery>(_ => new LookupClient());
         services.AddSingleton<IServiceEndpointProviderFactory, DnsSrvServiceEndpointProviderFactory>();
         var options = services.AddOptions<DnsSrvServiceEndpointProviderOptions>();
         options.Configure(o => configureOptions?.Invoke(o));
