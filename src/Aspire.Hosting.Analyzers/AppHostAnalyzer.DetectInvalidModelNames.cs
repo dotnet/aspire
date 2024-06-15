@@ -21,7 +21,7 @@ public partial class AppHostAnalyzer
         {
             var target = operation.Key.Target;
             var token = operation.Key.ModelNameToken;
-            var modelName = token.Text;
+            var modelName = token.Text.Trim('"');
 
             if (!ModelName.TryValidateName(target, modelName, out var validationMessage))
             {

@@ -10,22 +10,11 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace Aspire.Hosting.Analyzers;
 
-/// <summary>
-/// 
-/// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public partial class AppHostAnalyzer : DiagnosticAnalyzer
 {
-    /// <summary>
-    /// 
-    /// </summary>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => Diagnostics.SupportedDiagnostics;
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="context"></param>
-    /// <exception cref="ArgumentNullException"></exception>
     public override void Initialize(AnalysisContext context)
     {
         // TODO: Don't register the analyzer if the project has disabled the analyzer in the project file.
