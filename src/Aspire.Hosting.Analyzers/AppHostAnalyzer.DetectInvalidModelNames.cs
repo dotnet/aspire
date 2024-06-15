@@ -21,9 +21,9 @@ public partial class AppHostAnalyzer
         {
             var target = operation.Key.Target;
             var token = operation.Key.ModelNameToken;
-            var modelName = token.Text.Trim('"');
+            var modelName = token.Value?.ToString();
 
-            if (!ModelName.TryValidateName(target, modelName, out var validationMessage))
+            if (modelName is not null && !ModelName.TryValidateName(target, modelName, out var validationMessage))
             {
                 context.ReportDiagnostic(Diagnostic.Create(Diagnostics.s_resourceMustHaveValidName, token.GetLocation(), target.ToLower(), modelName, validationMessage));
             }
