@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "TestShop": {
+      "commandName": "DebugRoslynComponent",
+      "targetProject": "..\\..\\playground\\TestShop\\AppHost\\AppHost.csproj"
+    }
+  }
+}
