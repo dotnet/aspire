@@ -151,7 +151,7 @@ public class SchemaTests
         return s_schema;
     }
 
-    [SkipOnHelixTheory]
+    [Theory]
     [MemberData(nameof(ApplicationSamples))]
     public async Task ValidateApplicationSamples(string testCaseName, Action<IDistributedApplicationBuilder> configurator)
     {
@@ -191,7 +191,7 @@ public class SchemaTests
         Assert.False(manifestJson.IsValid(schema));
     }
 
-    [SkipOnHelixFact]
+    [Fact]
     public async Task ManifestAcceptsUnknownResourceType()
     {
         var manifestTest = """
@@ -209,7 +209,7 @@ public class SchemaTests
         Assert.True(manifestJson.IsValid(schema));
     }
 
-    [SkipOnHelixFact]
+    [Fact]
     public async Task ManifestWithContainerResourceWithMissingImageIsRejected()
     {
         var manifestTest = """
@@ -227,7 +227,7 @@ public class SchemaTests
         Assert.False(manifestJson.IsValid(schema));
     }
 
-    [SkipOnHelixFact]
+    [Fact]
     public async Task ManifestWithValue0ResourceWithConnectionStringAndValueIsRejectedIsRejected()
     {
         var manifestTest = """
@@ -247,7 +247,7 @@ public class SchemaTests
         Assert.False(manifestJson.IsValid(schema));
     }
 
-    [SkipOnHelixFact]
+    [Fact]
     public async Task ManifestWithContainerResourceAndNoEnvOrBindingsIsAccepted()
     {
         var manifestTest = """
@@ -266,7 +266,7 @@ public class SchemaTests
         Assert.True(manifestJson.IsValid(schema));
     }
 
-    [SkipOnHelixFact]
+    [Fact]
     public async Task ManifestWithProjectResourceAndNoEnvOrBindingsIsAccepted()
     {
         var manifestTest = """
@@ -291,7 +291,7 @@ public class SchemaTests
         }
     }
 
-    [SkipOnHelixFact]
+    [Fact]
     public async Task BicepManifestIsAccepted()
     {
         // The reason this large test is here is that when submitting the positive test cases to SchemaStore.org
