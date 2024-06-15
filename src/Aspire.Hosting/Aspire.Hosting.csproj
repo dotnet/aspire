@@ -36,15 +36,11 @@
 
   <ItemGroup>
     <!-- Reference the analyzer to ensure it's built but don't reference its output -->
-    <ProjectReference Include="..\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj" OutputItemType="None" ReferenceOutputAssembly="false" Private="true" />
+    <ProjectReference Include="..\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj" OutputItemType="AnalyzerAssemblyPath" ReferenceOutputAssembly="false" Private="true" />
   </ItemGroup>
 
-  <Target Name="IncludeAnalyzerInPackage" AfterTargets="PrepareProjectReferences">
-    <MSBuild Projects="%(ProjectReference.Identity)" Targets="GetTargetPath" Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier)">
-      <Output TaskParameter="TargetOutputs" ItemName="PrimaryAssembly" />
-    </MSBuild>
+  <Target Name="IncludeAnalyzerInPackage" AfterTargets="ResolveProjectReferences">
     <ItemGroup>
-      <AnalyzerAssemblyPath Include="%(PrimaryAssembly.FullPath)" />
       <None Include="@(AnalyzerAssemblyPath -> '%(Identity)')" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
     </ItemGroup>
   </Target>
