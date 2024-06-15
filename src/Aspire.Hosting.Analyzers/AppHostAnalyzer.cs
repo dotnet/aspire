@@ -1,10 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
-using Aspire.Hosting.ApplicationModel;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace Aspire.Hosting.Analyzers;
 
@@ -26,40 +28,111 @@ public partial class AppHostAnalyzer : DiagnosticAnalyzer
     /// <exception cref="ArgumentNullException"></exception>
     public override void Initialize(AnalysisContext context)
     {
-        if (context == null)
-        {
-            throw new ArgumentNullException(nameof(context));
-        }
-
         // TODO: Don't register the analyzer if the project has disabled the analyzer in the project file.
 
         context.EnableConcurrentExecution();
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.ReportDiagnostics);
-        context.RegisterSymbolAction(AnalyzeParameter, SymbolKind.Parameter);
+        context.RegisterCompilationStartAction(AnalyzeCompilationStart);
     }
 
-    private void AnalyzeParameter(SymbolAnalysisContext context)
+    private void AnalyzeCompilationStart(CompilationStartAnalysisContext context)
     {
-        var parameter = (IParameterSymbol)context.Symbol;
-        var isStringType = parameter.Type.SpecialType is SpecialType.System_String;
+        var compilation = context.Compilation;
+        var wellKnownTypes = WellKnownTypes.GetOrCreate(compilation);
 
-        if (!isStringType || !parameter.HasExplicitDefaultValue)
+        // We want ConcurrentHashSet here in case RegisterOperationAction runs in parallel.
+        // Since ConcurrentHashSet doesn't exist, use ConcurrentDictionary and ignore the value.
+        var concurrentQueue = new ConcurrentQueue<ConcurrentDictionary<ModelNameOperation, byte>>();
+        context.RegisterOperationBlockStartAction(context =>
         {
-            return;
+            // Pool and reuse lists for each block.
+            if (!concurrentQueue.TryDequeue(out var modelNameOperations))
+            {
+                modelNameOperations = new ConcurrentDictionary<ModelNameOperation, byte>();
+            }
+
+            context.RegisterOperationAction(c => DoOperationAnalysis(c, modelNameOperations), OperationKind.Invocation);
+
+            context.RegisterOperationBlockEndAction(c =>
+            {
+                //DetectAmbiguousRoutes(c, wellKnownTypes, mapOperations);
+                ValidateModelNames(c, modelNameOperations);
+
+                // Return to the pool.
+                modelNameOperations.Clear();
+                concurrentQueue.Enqueue(modelNameOperations);
+            });
+        });
+
+        void DoOperationAnalysis(OperationAnalysisContext context, ConcurrentDictionary<ModelNameOperation, byte> modelNameOperations)
+        {
+            var invocation = (IInvocationOperation)context.Operation;
+            var targetMethod = invocation.TargetMethod;
+
+            if (!IsModelNameInvocation(wellKnownTypes, targetMethod, out var modelNameParameter))
+            {
+                return;
+            }
+
+            if (!TryGetStringToken(invocation, modelNameParameter!, out var token))
+            {
+                return;
+            }
+
+            modelNameOperations.TryAdd(ModelNameOperation.Create(invocation, "Resource", token), value: default);
+        }
+    }
+
+    private static bool TryGetStringToken(IInvocationOperation invocation, IParameterSymbol modelNameParameter, out SyntaxToken token)
+    {
+        IArgumentOperation? argumentOperation = null;
+        foreach (var argument in invocation.Arguments)
+        {
+            if (SymbolEqualityComparer.Default.Equals(modelNameParameter, argument.Parameter))
+            {
+                argumentOperation = argument;
+                break;
+            }
         }
 
-        var modelNameAttribute = context.Compilation.GetTypeByMetadataName("Aspire.Hosting.ApplicationModel.ModelNameAttribute");
-        var hasModelNameAttribute = parameter.GetAttributes().Any(a => a.AttributeClass?.Equals(modelNameAttribute, SymbolEqualityComparer.Default) == true);
-
-        if (!hasModelNameAttribute)
+        if (argumentOperation?.Syntax is not ArgumentSyntax routePatternArgumentSyntax ||
+            routePatternArgumentSyntax.Expression is not LiteralExpressionSyntax routePatternArgumentLiteralSyntax)
         {
-            return;
+            token = default;
+            return false;
         }
 
-        var value = parameter.ExplicitDefaultValue;
-        if (value is string modelName && !ModelName.TryValidateName(parameter.Name, modelName, out var validationMessage))
+        token = routePatternArgumentLiteralSyntax.Token;
+        return true;
+    }
+
+    private static bool IsModelNameInvocation(WellKnownTypes wellKnownTypes, IMethodSymbol targetMethod, out IParameterSymbol? modelNameParameter)
+    {
+        var candidateParameter = targetMethod.Parameters.SingleOrDefault(ps =>
+            SymbolEqualityComparer.Default.Equals(ps.Type, wellKnownTypes.Get(SpecialType.System_String))
+            && HasModelNameAttribute(ps));
+
+        if (candidateParameter is not null)
         {
-            context.ReportDiagnostic(Diagnostic.Create(Diagnostics.s_resourceMustHaveValidName, context.Symbol.Locations.FirstOrDefault(), context.Symbol.Locations, validationMessage));
+            modelNameParameter = candidateParameter;
+            return true;
+        }
+
+        modelNameParameter = null;
+        return false;
+
+        bool HasModelNameAttribute(IParameterSymbol parameter)
+        {
+            var modelNameAttribute = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.Aspire_Hosting_ApplicationModel_ModelNameAttribute);
+            return parameter.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, modelNameAttribute) == true);
+        }
+    }
+
+    private record struct ModelNameOperation(IInvocationOperation Operation, string Target, SyntaxToken ModelNameToken)
+    {
+        public static ModelNameOperation Create(IInvocationOperation operation, string target, SyntaxToken modelNameToken)
+        {
+            return new ModelNameOperation(operation, target, modelNameToken);
         }
     }
 }

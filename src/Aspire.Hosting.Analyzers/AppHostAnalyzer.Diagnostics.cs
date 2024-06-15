@@ -13,8 +13,8 @@ public partial class AppHostAnalyzer
     {
         internal static readonly DiagnosticDescriptor s_resourceMustHaveValidName = new(
             "ASR0000",
-            "Ensure resources have valid names",
-            "Resource names: must start with an ASCII letter; must contain only ASCII letters, digits, and hyphens; must not end with a hyphen; nust not contain consecutive hyphens; and must be between 1 and 64 characters long",
+            "Application model items must have valid names",
+            "Invalid {0} name '{1}'. {2}.",
             "Design",
             DiagnosticSeverity.Error,
             isEnabledByDefault: true,
