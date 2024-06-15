@@ -216,7 +216,8 @@ public class KestrelConfigTests
                   "scheme": "http",
                   "protocol": "tcp",
                   "transport": "http",
-                  "port": 5017
+                  "port": 5017,
+                  "targetPort": 8000
                 },
                 "ExplicitNoProxyHttp": {
                   "scheme": "http",

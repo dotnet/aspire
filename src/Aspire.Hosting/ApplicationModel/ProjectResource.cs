@@ -17,4 +17,18 @@ public class ProjectResource(string name) : Resource(name), IResourceWithEnviron
 
     // Track the https endpoint that was added as a default, and should be excluded from the port & kestrel environment
     internal EndpointAnnotation? DefaultHttpsEndpoint { get; set; }
+
+    internal bool IsDefaultEndpoint(EndpointAnnotation endpoint)
+    {
+        // Determine if the endpoint should be treated as the Default endpoint.
+        // Endpoints can come from 3 different sources (in this order):
+        // 1. Kestrel configuration
+        // 2. Default endpoints added by the framework
+        // 3. Explicitly added endpoints
+        // But wherever they come from, we treat the first one as Default (for each scheme).
+        // NOTE: the implementation is a bit inefficient as it iterates over the endpoints
+        // for each check, but it's not a performance critical path.
+        return endpoint == Annotations.OfType<EndpointAnnotation>().FirstOrDefault(
+            e => e.UriScheme == endpoint.UriScheme);
+    }
 }
