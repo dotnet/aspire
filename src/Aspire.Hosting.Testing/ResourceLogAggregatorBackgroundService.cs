@@ -20,10 +20,10 @@ internal sealed class ResourceLogAggregatorBackgroundService(
     public Action<string>? OnLogStreamComplete { get; set; }
 
     /// <inheritdoc/>
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
         // We need to pass the stopping token in here because the ResourceNotificationService doesn't stop on host shutdown
-        await WatchNotifications(stoppingToken).ConfigureAwait(false);
+        return WatchNotifications(stoppingToken);
     }
 
     private async Task WatchNotifications(CancellationToken cancellationToken)

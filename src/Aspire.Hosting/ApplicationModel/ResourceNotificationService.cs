@@ -83,7 +83,7 @@ public class ResourceNotificationService
     /// <param name="resourceName">The name of the resource.</param>
     /// <param name="targetStates">The set of states to wait for the resource to transition to one of. See <see cref="KnownResourceStates"/> for common states.</param>
     /// <param name="cancellationToken">A cancellation token that cancels the wait operation when signalled.</param>
-    /// <returns>A <see cref="Task"/> representing the wait operation.</returns>
+    /// <returns>A <see cref="Task{String}"/> representing the wait operation and which of the target states the resource reached.</returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
                                                      Justification = "targetState(s) parameters are mutually exclusive.")]
     public async Task<string> WaitForResourceAsync(string resourceName, IEnumerable<string> targetStates, CancellationToken cancellationToken = default)
@@ -100,7 +100,7 @@ public class ResourceNotificationService
             }
         }
 
-        throw new OperationCanceledException("The operation was cancelled before the resource reached one of the target states.");
+        throw new OperationCanceledException($"The operation was cancelled before the resource reached one of the target states: [{string.Join(", ", targetStates)}]");
     }
 
     /// <summary>
