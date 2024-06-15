@@ -1,6 +1,6 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var catalogDb = builder.AddPostgres("postgres")
+var catalogDb = builder.AddPostgres("easdf asdf #sfpostgres")
                        .WithPgAdmin()
                        .AddDatabase("catalogdb");
 

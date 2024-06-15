@@ -1,2 +1,4 @@
 #nullable enable
-
+Aspire.Hosting.ApplicationModel.ModelNameAttribute
+Aspire.Hosting.ApplicationModel.ModelNameAttribute.ModelNameAttribute(string! target) -> void
+Aspire.Hosting.ApplicationModel.ModelNameAttribute.Target.get -> string!

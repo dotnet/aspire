@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
+    <IsPackable>false</IsPackable>
+    <IsShipping>false</IsShipping>
+    <LangVersion>12.0</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Aspire.Hosting\ApplicationModel\ModelName.cs" Link="ModelName.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="All" /> 
+  </ItemGroup>
+
+</Project>
