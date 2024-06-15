@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Aspire.Hosting.Utils;
 
-internal sealed class ManifestUtils
+public sealed class ManifestUtils
 {
     public static async Task<JsonNode> GetManifest(IResource resource, string? manifestDirectory = null)
     {
