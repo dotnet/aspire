@@ -1,0 +1,33 @@
+{
+  "resources": {
+    "Stack": {
+      "error": "This resource does not support generation in the manifest."
+    },
+    "Table": {
+      "error": "This resource does not support generation in the manifest."
+    },
+    "webapp": {
+      "type": "project.v0",
+      "path": "../WebApp/WebApp.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "AWS__Resources__TableName": "{Stack.output.Table706B9215TableName}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    }
+  }
+}

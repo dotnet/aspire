@@ -9,22 +9,32 @@ using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.AWS.CloudFormation;
-internal sealed class CloudFormationProvisioner(
+
+internal class CloudFormationProvisioner(
     DistributedApplicationModel appModel,
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService)
 {
-    internal async Task ConfigureCloudFormation(CancellationToken cancellationToken = default)
+
+    protected DistributedApplicationModel AppModel { get; } = appModel;
+    protected ResourceLoggerService LoggerService { get; } = loggerService;
+    protected ResourceNotificationService NotificationService { get; } = notificationService;
+
+    internal Task ProvisionCloudFormation(CancellationToken cancellationToken = default)
+        => ProcessCloudFormationResourcesAsync(AppModel.Resources.OfType<CloudFormationResource>(), cancellationToken);
+
+    protected virtual async Task ProcessCloudFormationResourcesAsync(IEnumerable<CloudFormationResource> resources, CancellationToken cancellationToken = default)
     {
-        await ProcessCloudFormationStackResourceAsync(cancellationToken).ConfigureAwait(false);
-        await ProcessCloudFormationTemplateResourceAsync(cancellationToken).ConfigureAwait(false);
+        var cloudFormationResources = resources as CloudFormationResource[] ?? resources.ToArray();
+        await ProcessCloudFormationStackResourceAsync(cloudFormationResources.OfType<CloudFormationStackResource>(), cancellationToken).ConfigureAwait(false);
+        await ProcessCloudFormationTemplateResourceAsync(cloudFormationResources.OfType<CloudFormationTemplateResource>(), cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task ProcessCloudFormationStackResourceAsync(CancellationToken cancellationToken = default)
+    private async Task ProcessCloudFormationStackResourceAsync(IEnumerable<CloudFormationStackResource> resources, CancellationToken cancellationToken = default)
     {
-        foreach (var cloudFormationResource in appModel.Resources.OfType<CloudFormationStackResource>())
+        foreach (var cloudFormationResource in resources)
         {
-            var logger = loggerService.GetLogger(cloudFormationResource);
+            var logger = LoggerService.GetLogger(cloudFormationResource);
 
             await PublishCloudFormationUpdateStateAsync(cloudFormationResource, Constants.ResourceStateStarting).ConfigureAwait(false);
 
@@ -64,11 +74,11 @@ internal sealed class CloudFormationProvisioner(
         }
     }
 
-    private async Task ProcessCloudFormationTemplateResourceAsync(CancellationToken cancellationToken = default)
+    private async Task ProcessCloudFormationTemplateResourceAsync(IEnumerable<CloudFormationTemplateResource> resources, CancellationToken cancellationToken = default)
     {
-        foreach (var cloudFormationResource in appModel.Resources.OfType<CloudFormationTemplateResource>())
+        foreach (var cloudFormationResource in resources)
         {
-            var logger = loggerService.GetLogger(cloudFormationResource);
+            var logger = LoggerService.GetLogger(cloudFormationResource);
 
             try
             {
@@ -113,21 +123,21 @@ internal sealed class CloudFormationProvisioner(
         }
     }
 
-    private async Task PublishCloudFormationUpdateStateAsync(CloudFormationResource resource, string status, ImmutableArray<ResourcePropertySnapshot>? properties = null)
+    protected async Task PublishCloudFormationUpdateStateAsync(CloudFormationResource resource, string status, ImmutableArray<ResourcePropertySnapshot>? properties = null)
     {
         if (properties == null)
         {
             properties = ImmutableArray.Create<ResourcePropertySnapshot>();
         }
 
-        await notificationService.PublishUpdateAsync(resource, state => state with
+        await NotificationService.PublishUpdateAsync(resource, state => state with
         {
             State = status,
             Properties = state.Properties.AddRange(properties)
         }).ConfigureAwait(false);
     }
 
-    private static ImmutableArray<ResourcePropertySnapshot> ConvertOutputToProperties(Stack stack, string? templateFile = null)
+    protected static ImmutableArray<ResourcePropertySnapshot> ConvertOutputToProperties(Stack stack, string? templateFile = null)
     {
         var list = ImmutableArray.CreateBuilder<ResourcePropertySnapshot>();
 
@@ -146,7 +156,7 @@ internal sealed class CloudFormationProvisioner(
         return list.ToImmutableArray();
     }
 
-    private static IAmazonCloudFormation GetCloudFormationClient(ICloudFormationResource resource)
+    protected static IAmazonCloudFormation GetCloudFormationClient(ICloudFormationResource resource)
     {
         if (resource.CloudFormationClient != null)
         {
