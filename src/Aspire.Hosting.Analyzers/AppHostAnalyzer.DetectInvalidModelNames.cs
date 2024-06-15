@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Analyzers;
 
 public partial class AppHostAnalyzer
 {
-    private void ValidateModelNames(OperationBlockAnalysisContext context, ConcurrentDictionary<ModelNameOperation, byte> modelNameOperations)
+    private void DetectInvalidModelNames(OperationBlockAnalysisContext context, ConcurrentDictionary<ModelNameOperation, byte> modelNameOperations)
     {
         if (modelNameOperations.IsEmpty)
         {
@@ -19,12 +19,13 @@ public partial class AppHostAnalyzer
 
         foreach (var operation in modelNameOperations)
         {
-            // TODO: Extract the "Target" from the attribute on the parameter and flow to here
             var target = operation.Key.Target;
-            var modelName = operation.Key.ModelNameToken.Text;
+            var token = operation.Key.ModelNameToken;
+            var modelName = token.Text;
+
             if (!ModelName.TryValidateName(target, modelName, out var validationMessage))
             {
-                context.ReportDiagnostic(Diagnostic.Create(Diagnostics.s_resourceMustHaveValidName, operation.Key.ModelNameToken.GetLocation(), target.ToLower(), modelName, validationMessage));
+                context.ReportDiagnostic(Diagnostic.Create(Diagnostics.s_resourceMustHaveValidName, token.GetLocation(), target.ToLower(), modelName, validationMessage));
             }
         }
     }

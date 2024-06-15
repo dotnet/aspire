@@ -20,7 +20,7 @@ public static class NodeAppHostingExtension
     /// <param name="workingDirectory">The working directory to use for the command. If null, the working directory of the current process is used.</param>
     /// <param name="args">The arguments to pass to the command.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<NodeAppResource> AddNodeApp(this IDistributedApplicationBuilder builder, string name, string scriptPath, string? workingDirectory = null, string[]? args = null)
+    public static IResourceBuilder<NodeAppResource> AddNodeApp(this IDistributedApplicationBuilder builder, [ModelName(nameof(Resource))] string name, string scriptPath, string? workingDirectory = null, string[]? args = null)
     {
         args ??= [];
         string[] effectiveArgs = [scriptPath, .. args];
@@ -43,7 +43,7 @@ public static class NodeAppHostingExtension
     /// <param name="scriptName">The npm script to execute. Defaults to "start".</param>
     /// <param name="args">The arguments to pass to the command.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<NodeAppResource> AddNpmApp(this IDistributedApplicationBuilder builder, string name, string workingDirectory, string scriptName = "start", string[]? args = null)
+    public static IResourceBuilder<NodeAppResource> AddNpmApp(this IDistributedApplicationBuilder builder, [ModelName(nameof(Resource))] string name, string workingDirectory, string scriptName = "start", string[]? args = null)
     {
         string[] allArgs = args is { Length: > 0 }
             ? ["run", scriptName, "--", .. args]

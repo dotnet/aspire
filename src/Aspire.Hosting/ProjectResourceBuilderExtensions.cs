@@ -53,7 +53,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name) where TProject : IProjectMetadata, new()
+    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ModelName(nameof(Resource))] string name) where TProject : IProjectMetadata, new()
     {
         var project = new ProjectResource(name);
         return builder.AddResource(project)
@@ -85,7 +85,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath)
+    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ModelName(nameof(Resource))] string name, string projectPath)
     {
         var project = new ProjectResource(name);
 
@@ -133,7 +133,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name, string? launchProfileName) where TProject : IProjectMetadata, new()
+    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ModelName(nameof(Resource))] string name, string? launchProfileName) where TProject : IProjectMetadata, new()
     {
         var project = new ProjectResource(name);
         return builder.AddResource(project)
@@ -166,7 +166,7 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath, string? launchProfileName)
+    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ModelName(nameof(Resource))] string name, string projectPath, string? launchProfileName)
     {
         var project = new ProjectResource(name);
 

@@ -55,8 +55,7 @@ public partial class AppHostAnalyzer : DiagnosticAnalyzer
 
             context.RegisterOperationBlockEndAction(c =>
             {
-                //DetectAmbiguousRoutes(c, wellKnownTypes, mapOperations);
-                ValidateModelNames(c, modelNameOperations);
+                DetectInvalidModelNames(c, modelNameOperations);
 
                 // Return to the pool.
                 modelNameOperations.Clear();
@@ -79,6 +78,7 @@ public partial class AppHostAnalyzer : DiagnosticAnalyzer
                 return;
             }
 
+            // TODO: Extract the target from the attribute and use in place of "Resource".
             modelNameOperations.TryAdd(ModelNameOperation.Create(invocation, "Resource", token), value: default);
         }
     }
@@ -124,7 +124,9 @@ public partial class AppHostAnalyzer : DiagnosticAnalyzer
         bool HasModelNameAttribute(IParameterSymbol parameter)
         {
             var modelNameAttribute = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.Aspire_Hosting_ApplicationModel_ModelNameAttribute);
-            return parameter.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, modelNameAttribute) == true);
+            var attrData = parameter.GetAttributes().SingleOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, modelNameAttribute) == true);
+
+            return attrData is not null;
         }
     }
 
