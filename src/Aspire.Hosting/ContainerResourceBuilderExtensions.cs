@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -233,6 +234,279 @@ public static class ContainerResourceBuilderExtensions
     public static IResourceBuilder<T> PublishAsContainer<T>(this IResourceBuilder<T> builder) where T : ContainerResource
     {
         return builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
+    }
+
+    /// <summary>
+    /// Causes .NET Aspire to build the specified container image from a Dockerfile.
+    /// </summary>
+    /// <typeparam name="T">Type parameter specifying any type derived from <see cref="ContainerResource"/>/</typeparam>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/>.</param>
+    /// <param name="contextPath">Path to be used as the context for the container image build.</param>
+    /// <param name="dockerfilePath">Override path for the Dockerfile if it is not in the <paramref name="contextPath"/>.</param>
+    /// <param name="stage">The stage representing the image to be published in a multi-stage Dockerfile.</param>
+    /// <returns>A <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// When this method is called an annotation is added to the <see cref="ContainerResource"/> that specifies the context path and
+    /// Dockerfile path to be used when building the container image. These details are then used by the orchestrator to build the image
+    /// before using that image to start the container.
+    /// </para>
+    /// <para>
+    /// Both the <paramref name="contextPath"/> and <paramref name="dockerfilePath"/> are relative to the AppHost directory unless
+    /// they are fully qualified. If the <paramref name="dockerfilePath"/> is not provided, the path is assumed to be Dockerfile relative
+    /// to the <paramref name="contextPath"/>.
+    /// </para>
+    /// <para>
+    /// When generating the manifest for deployment tools, the <see cref="ContainerResourceBuilderExtensions.WithDockerfile{T}(IResourceBuilder{T}, string, string?, string?)"/>
+    /// method results in an additional attribute being added to the `container.v0` resource type which contains the configuration
+    /// necessary to allow the deployment tool to build the container image prior to deployment.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Creates a container called <c>mycontainer</c> with an image called <c>myimage</c>.
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// builder.AddContainer("mycontainer", "myimage")
+    ///        .WithDockerfile("path/to/context");
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithDockerfile<T>(this IResourceBuilder<T> builder, string contextPath, string? dockerfilePath = null, string? stage = null) where T : ContainerResource
+    {
+        ArgumentException.ThrowIfNullOrEmpty(contextPath);
+
+        var fullyQualifiedContextPath = Path.GetFullPath(contextPath, builder.ApplicationBuilder.AppHostDirectory);
+
+        dockerfilePath ??= "Dockerfile";
+
+        var fullyQualifiedDockerfilePath = Path.GetFullPath(dockerfilePath, fullyQualifiedContextPath);
+
+        if (!Directory.Exists(fullyQualifiedContextPath))
+        {
+            throw new DirectoryNotFoundException($"Context path not found at '{fullyQualifiedContextPath}'.");
+        }
+
+        if (!File.Exists(fullyQualifiedDockerfilePath))
+        {
+            throw new FileNotFoundException($"Dockerfile not found at '{fullyQualifiedDockerfilePath}'.");
+        }
+
+        var imageName = builder.GenerateImageName();
+        var annotation = new DockerfileBuildAnnotation(fullyQualifiedContextPath, fullyQualifiedDockerfilePath, stage);
+        return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
+                      .WithImageRegistry(null!)
+                      .WithImage(imageName)
+                      .WithImageTag("latest");
+    }
+
+    /// <summary>
+    /// Adds a Dockerfile to the application model that can be treated like a container resource.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="contextPath">Path to be used as the context for the container image build.</param>
+    /// <param name="dockerfilePath">Override path for the Dockerfile if it is not in the <paramref name="contextPath"/>.</param>
+    /// <param name="stage">The stage representing the image to be published in a multi-stage Dockerfile.</param>
+    /// <returns>A <see cref="IResourceBuilder{ContainerResource}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// Both the <paramref name="contextPath"/> and <paramref name="dockerfilePath"/> are relative to the AppHost directory unless
+    /// they are fully qualified. If the <paramref name="dockerfilePath"/> is not provided, the path is assumed to be Dockerfile relative
+    /// to the <paramref name="contextPath"/>.
+    /// </para>
+    /// <para>
+    /// When generating the manifest for deployment tools, the <see cref="AddDockerfile(IDistributedApplicationBuilder, string, string, string?, string?)"/>
+    /// method results in an additional attribute being added to the `container.v1` resource type which contains the configuration
+    /// necessary to allow the deployment tool to build the container image prior to deployment.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Creates a container called <c>mycontainer</c> based on a Dockerfile in the context path <c>path/to/context</c>.
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// builder.AddDockerfile("mycontainer", "path/to/context");
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, string name, string contextPath, string? dockerfilePath = null, string? stage = null)
+    {
+        return builder.AddContainer(name, "placeholder") // Image name will be replaced by WithDockerfile.
+                      .WithDockerfile(contextPath, dockerfilePath, stage);
+    }
+
+    /// <summary>
+    /// Adds a build argument when the container is build from a Dockerfile.
+    /// </summary>
+    /// <typeparam name="T">The type of container resoruce.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="name">The name of the build argument.</param>
+    /// <param name="value">The value of the build argument.</param>
+    /// <returns>The resource builder for the container resource.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when <see cref="ContainerResourceBuilderExtensions.WithBuildArg{T}(IResourceBuilder{T}, string, object)"/> is
+    /// called before <see cref="ContainerResourceBuilderExtensions.WithDockerfile{T}(IResourceBuilder{T}, string, string?, string?)"/>.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="ContainerResourceBuilderExtensions.WithBuildArg{T}(IResourceBuilder{T}, string, object)"/> extension method
+    /// adds an additional build argument the container resource to be used when the image is built. This method must be called after
+    /// <see cref="ContainerResourceBuilderExtensions.WithDockerfile{T}(IResourceBuilder{T}, string, string?, string?)"/>.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Adding a static build argument.
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// builder.AddContainer("mycontainer", "myimage")
+    ///        .WithDockerfile("../mycontainer")
+    ///        .WithBuildArg("CUSTOM_BRANDING", "/app/static/branding/custom");
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithBuildArg<T>(this IResourceBuilder<T> builder, string name, object value) where T : ContainerResource
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentNullException.ThrowIfNull(value);
+
+        var annotation = builder.Resource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault();
+
+        if (annotation is null)
+        {
+            throw new InvalidOperationException("The resource does not have a Dockerfile build annotation. Call WithDockerfile before calling WithBuildArg.");
+        }
+
+        annotation.BuildArguments[name] = value;
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a build argument when the container is built from a Dockerfile.
+    /// </summary>
+    /// <typeparam name="T">The type of container resoruce.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="name">The name of the build argument.</param>
+    /// <param name="value">The resource builder for a parameter resource.</param>
+    /// <returns>The resource builder for the container resource.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when <see cref="ContainerResourceBuilderExtensions.WithBuildArg{T}(IResourceBuilder{T}, string, IResourceBuilder{ParameterResource})"/> is
+    /// called before <see cref="ContainerResourceBuilderExtensions.WithDockerfile{T}(IResourceBuilder{T}, string, string?, string?)"/>.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="ContainerResourceBuilderExtensions.WithBuildArg{T}(IResourceBuilder{T}, string, IResourceBuilder{ParameterResource})"/> extension method
+    /// adds an additional build argument the container resource to be used when the image is built. This method must be called after
+    /// <see cref="ContainerResourceBuilderExtensions.WithDockerfile{T}(IResourceBuilder{T}, string, string?, string?)"/>.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Adding a build argument based on a parameter..
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var branding = builder.AddParameter("branding");
+    /// builder.AddContainer("mycontainer", "myimage")
+    ///        .WithDockerfile("../mycontainer")
+    ///        .WithBuildArg("CUSTOM_BRANDING", branding);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithBuildArg<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> value) where T : ContainerResource
+    {
+        if (value.Resource.Secret)
+        {
+            throw new InvalidOperationException("Cannot add secret parameter as a build argument. Use WithSecretBuildArg instead.");
+        }
+
+        return builder.WithBuildArg(name, value.Resource);
+    }
+
+    /// <summary>
+    /// Adds a secret build argument when the container is built from a Dockerfile.
+    /// </summary>
+    /// <typeparam name="T">The type of container resoruce.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="name">The name of the secret build argument.</param>
+    /// <param name="value">The resource builder for a parameter resource.</param>
+    /// <returns>The resource builder for the container resource.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when <see cref="ContainerResourceBuilderExtensions.WithBuildSecret{T}(IResourceBuilder{T}, string, IResourceBuilder{ParameterResource})"/> is
+    /// called before <see cref="ContainerResourceBuilderExtensions.WithDockerfile{T}(IResourceBuilder{T}, string, string?, string?)"/>.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="ContainerResourceBuilderExtensions.WithBuildSecret{T}(IResourceBuilder{T}, string, IResourceBuilder{ParameterResource})"/> extension method
+    /// results in a <c>--secret</c> argument being appended to the <c>docker build</c> or <c>podman build</c> command. This overload results in an environment
+    /// variable-based secret being passed to the build process. The value of the environment variable is the value of the secret referenced by the <see cref="ParameterResource"/>.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Adding a build secret based on a parameter.
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var accessToken = builder.AddParameter("accessToken", secret: true);
+    /// builder.AddContainer("mycontainer", "myimage")
+    ///        .WithDockerfile("../mycontainer")
+    ///        .WithBuildSecret("ACCESS_TOKEN", accessToken);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithBuildSecret<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> value) where T : ContainerResource
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentNullException.ThrowIfNull(value);
+
+        var annotation = builder.Resource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault();
+
+        if (annotation is null)
+        {
+            throw new InvalidOperationException("The resource does not have a Dockerfile build annotation. Call WithDockerfile before calling WithSecretBuildArg.");
+        }
+
+        annotation.BuildSecrets[name] = value.Resource;
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a secret build argument when the container is built from a Dockerfile.
+    /// </summary>
+    /// <typeparam name="T">The type of container resoruce.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="name">The name of the secret build argument.</param>
+    /// <param name="filePath">The resource builder for a parameter resource.</param>
+    /// <returns>The resource builder for the container resource.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when <see cref="ContainerResourceBuilderExtensions.WithBuildSecret{T}(IResourceBuilder{T}, string, FileInfo)"/> is
+    /// called before <see cref="ContainerResourceBuilderExtensions.WithDockerfile{T}(IResourceBuilder{T}, string, string?, string?)"/>.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="ContainerResourceBuilderExtensions.WithBuildSecret{T}(IResourceBuilder{T}, string, FileInfo)"/> extension method results in a
+    /// <c>--secret</c> argument being appended to the <c>docker build</c> or <c>podman build</c> command. This overload allows for specifying a secret
+    /// file to be mapped into the environment. The file must be present on the host machine and will be exposed to the container during the build process.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Adding a build secret based on a file.
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// builder.AddContainer("mycontainer", "myimage")
+    ///        .WithDockerfile("../mycontainer")
+    ///        .WithBuildSecret("NPMRC", new FileInfo(".npmrc"));
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithBuildSecret<T>(this IResourceBuilder<T> builder, string name, FileInfo filePath) where T : ContainerResource
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentNullException.ThrowIfNull(filePath);
+
+        var annotation = builder.Resource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault();
+
+        if (annotation is null)
+        {
+            throw new InvalidOperationException("The resource does not have a Dockerfile build annotation. Call WithDockerfile before calling WithSecretBuildArg.");
+        }
+
+        annotation.BuildSecrets[name] = filePath;
+
+        return builder;
     }
 }
 
