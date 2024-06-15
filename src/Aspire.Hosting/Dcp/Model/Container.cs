@@ -87,6 +87,14 @@ internal sealed class BuildContextSecret
     [JsonPropertyName("id")]
     public string? Id { get; set; }
 
+    // Type of the secret, can be "env" or "file".
+    [JsonPropertyName("type")]
+    public string? Type { get; set; }
+
+    // Value of the secret to be used in the build when the type of the secret is "env".
+    [JsonPropertyName("value")]
+    public string? Value { get; set; }
+
     // Path to secret file/folder that will be mounted as a build secret using --secret
     [JsonPropertyName("source")]
     public string? Source { get; set; }
