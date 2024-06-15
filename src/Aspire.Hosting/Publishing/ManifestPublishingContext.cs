@@ -224,17 +224,22 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <exception cref="DistributedApplicationException">Thrown if the container resource does not contain a <see cref="ContainerImageAnnotation"/>.</exception>
     public async Task WriteContainerAsync(ContainerResource container)
     {
-        Writer.WriteString("type", "container.v0");
-
-        // Attempt to write the connection string for the container (if this resource has one).
-        WriteConnectionString(container);
-
-        if (!container.TryGetContainerImageName(out var image))
+        if (container.Annotations.OfType<DockerfileBuildAnnotation>().Any())
         {
-            throw new DistributedApplicationException("Could not get container image name.");
+            Writer.WriteString("type", "container.v1");
+            WriteConnectionString(container);
+            WriteBuildContext(container);
         }
-
-        Writer.WriteString("image", image);
+        else
+        {
+            Writer.WriteString("type", "container.v0");
+            if (!container.TryGetContainerImageName(out var image))
+            {
+                throw new DistributedApplicationException("Could not get container image name.");
+            }
+            WriteConnectionString(container);
+            Writer.WriteString("image", image);
+        }
 
         if (container.Entrypoint is not null)
         {
@@ -249,6 +254,79 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         await WriteEnvironmentVariablesAsync(container).ConfigureAwait(false);
         WriteBindings(container);
+    }
+
+    private void WriteBuildContext(ContainerResource container)
+    {
+        if (container.TryGetAnnotationsOfType<DockerfileBuildAnnotation>(out var annotations) && annotations.Single() is { } annotation)
+        {
+            Writer.WriteStartObject("build");
+            Writer.WriteString("context", GetManifestRelativePath(annotation.ContextPath));
+            Writer.WriteString("dockerfile", GetManifestRelativePath(annotation.DockerfilePath));
+
+            if (annotation.Stage is { } stage)
+            {
+                Writer.WriteString("stage", stage);
+            }
+
+            if (annotation.BuildArguments.Count > 0)
+            {
+                Writer.WriteStartObject("args");
+
+                foreach (var (key, value) in annotation.BuildArguments)
+                {
+                    var valueString = value switch
+                    {
+                        string stringValue => stringValue,
+                        IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
+                        bool boolValue => boolValue ? "true" : "false",
+                        null => null, // null means let docker build pull from env var.
+                        _ => value.ToString()
+                    };
+
+                    Writer.WriteString(key, valueString);
+                }
+
+                Writer.WriteEndObject();
+            }
+
+            if (annotation.BuildSecrets.Count > 0)
+            {
+                Writer.WriteStartObject("secrets");
+
+                foreach (var (key, value) in annotation.BuildSecrets)
+                {
+                    var valueString = value switch
+                    {
+                        FileInfo fileValue => GetManifestRelativePath(fileValue.FullName),
+                        string stringValue => stringValue,
+                        IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
+                        bool boolValue => boolValue ? "true" : "false",
+                        null => null, // null means let docker build pull from env var.
+                        _ => value.ToString()
+                    };
+
+                    Writer.WriteStartObject(key);
+
+                    if (value is FileInfo)
+                    {
+                        Writer.WriteString("type", "file");
+                        Writer.WriteString("source", valueString);
+                    }
+                    else
+                    {
+                        Writer.WriteString("type", "env");
+                        Writer.WriteString("value", valueString);
+                    }
+
+                    Writer.WriteEndObject();
+                }
+
+                Writer.WriteEndObject();
+            }
+
+            Writer.WriteEndObject();
+        }
     }
 
     /// <summary>
