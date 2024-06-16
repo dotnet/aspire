@@ -73,7 +73,7 @@
     <PackageVersion Include="AspNetCore.HealthChecks.Rabbitmq" Version="8.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="8.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="8.0.2" />
-    <!--<PackageVersion Include="AspNetCore.HealthChecks.Elasticsearch" Version="8.0.1" />-->
+    <PackageVersion Include="AspNetCore.HealthChecks.Elasticsearch" Version="8.0.1" />
     <!-- efcore dependencies -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Cosmos" Version="$(MicrosoftEntityFrameworkCoreCosmosPackageVersion)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(MicrosoftEntityFrameworkCoreSqlServerPackageVersion)" />

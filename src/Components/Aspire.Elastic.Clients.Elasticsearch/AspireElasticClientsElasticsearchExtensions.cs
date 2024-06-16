@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-//using Aspire;
+using Aspire;
 using Aspire.Elastic.Clients.Elasticsearch;
 using Elastic.Clients.Elasticsearch;
 using Elastic.Transport;
@@ -95,19 +95,25 @@ public static class AspireElasticClientsElasticsearchExtensions
 
         //todo: Supports distributed tracing
 
-        //if (!settings.DisableHealthChecks)
-        //{
-        //    var healthCheckName = serviceKey is null ? "Elastic.Clients.Elasticsearch" : $"Elastic.Clients.Elasticsearch_{connectionName}";
+        if (!settings.DisableHealthChecks)
+        {
+            var healthCheckName = serviceKey is null ? "Elastic.Clients.Elasticsearch" : $"Elastic.Clients.Elasticsearch_{connectionName}";
 
-        //    //todo: how to add health check for cloud ?
-        //    if (settings.ConnectionString is not null)
-        //    {
-        //        builder.TryAddHealthCheck(
-        //        healthCheckName,
-        //        hcBuilder => hcBuilder.AddElasticsearch(settings.ConnectionString)
-        //        );
-        //    }
-        //}
+            //todo: how to add health check for cloud ?
+            if (settings.ConnectionString is not null)
+            {
+                builder.TryAddHealthCheck(
+                healthCheckName,
+                hcBuilder =>
+                    hcBuilder.AddElasticsearch(
+                        settings.ConnectionString,
+                        healthCheckName,
+                        null,
+                        null,
+                        settings.HealthCheckTimeout > 0 ? TimeSpan.FromMilliseconds(settings.HealthCheckTimeout.Value) : null)
+                );
+            }
+        }
     }
 
     private static ElasticsearchClientSettings CreateElasticsearchClientSettings(
