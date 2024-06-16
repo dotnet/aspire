@@ -47,6 +47,44 @@ public class KestrelConfigTests
     }
 
     [Fact]
+    public async Task KestrelHttpEndpointsAreIgnoredWhenFlagIsSet()
+    {
+        var resource = CreateTestProjectResource<ProjectWithProfileEndpointAndKestrelHttpEndpoint>(
+            operation: DistributedApplicationOperation.Run,
+            callback: builder =>
+            {
+                builder.WithHttpEndpoint(5017, name: "ExplicitHttp");
+            },
+            new ProjectResourceOptions { ExcludeKestrelEndpoints = true });
+
+        Assert.Collection(
+            resource.Annotations.OfType<EndpointAnnotation>(),
+            a =>
+            {
+                Assert.Equal("http", a.Name);
+                Assert.Equal("http", a.UriScheme);
+                Assert.Equal(5031, a.Port);
+            },
+            a =>
+            {
+                Assert.Equal("ExplicitHttp", a.Name);
+                Assert.Equal("http", a.UriScheme);
+                Assert.Equal(5017, a.Port);
+            }
+            );
+
+        AllocateTestEndpoints(resource);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+
+        // We're ignoring Kestrel, so we should be setting ASPNETCORE_URLS
+        Assert.Equal("http://localhost:port_http;http://localhost:port_ExplicitHttp", config["ASPNETCORE_URLS"]);
+
+        // And we should not be setting the Kestrel override
+        Assert.False(config.ContainsKey("Kestrel__Endpoints__http__Url"));
+    }
+
+    [Fact]
     public void SingleKestrelHttpsEndpointIsNamedHttps()
     {
         var resource = CreateTestProjectResource<ProjectWithKestrelHttpsEndpoint>(operation: DistributedApplicationOperation.Run);
@@ -233,10 +271,11 @@ public class KestrelConfigTests
 
     private static ProjectResource CreateTestProjectResource<TProject>(
         DistributedApplicationOperation operation = DistributedApplicationOperation.Publish,
-        Action<IResourceBuilder<ProjectResource>>? callback = null) where TProject : IProjectMetadata, new()
+        Action<IResourceBuilder<ProjectResource>>? callback = null,
+        ProjectResourceOptions? options = null) where TProject : IProjectMetadata, new()
     {
         var appBuilder = ProjectResourceTests.CreateBuilder(operation: operation);
-        var projectBuilder = appBuilder.AddProject<TProject>("projectName");
+        var projectBuilder = appBuilder.AddProject<TProject>("projectName", options ?? new());
         if (callback != null)
         {
             callback(projectBuilder);
