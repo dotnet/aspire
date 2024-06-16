@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
@@ -250,12 +251,12 @@ public static class ProjectResourceBuilderExtensions
             .GroupBy(entry => entry.BindingAddress.Scheme);
 
         // Helper to change the transport to http2 if needed
-        var isHttp2ConfiguredInKestrelEndpointDefaults = config["Kestrel:EndpointDefaults:Protocols"] == "Http2";
+        var isHttp2ConfiguredInKestrelEndpointDefaults = config["Kestrel:EndpointDefaults:Protocols"] == nameof(HttpProtocols.Http2);
         var adjustTransport = (EndpointAnnotation e, string? bindingLevelProtocols = null) => {
             if (bindingLevelProtocols != null)
             {
                 // If the Kestrel endpoint has an explicit protocol, use that and ignore any EndpointDefaults
-                e.Transport = bindingLevelProtocols == "Http2" ? "http2" : e.Transport;
+                e.Transport = bindingLevelProtocols == nameof(HttpProtocols.Http2) ? "http2" : e.Transport;
             }
             else if (isHttp2ConfiguredInKestrelEndpointDefaults)
             {
