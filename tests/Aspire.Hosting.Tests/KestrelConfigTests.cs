@@ -76,12 +76,15 @@ public class KestrelConfigTests
                 Assert.Equal("FirstHttpEndpoint", a.Name);
                 Assert.Equal("http", a.UriScheme);
                 Assert.Equal(5002, a.Port);
+                // The Http2 specified in Kestrel EndpointDefaults was overriden at Endpoint level
+                Assert.Equal("http", a.Transport);
             },
             a =>
             {
                 Assert.Equal("SecondHttpEndpoint", a.Name);
                 Assert.Equal("http", a.UriScheme);
                 Assert.Equal(5003, a.Port);
+                Assert.Equal("http2", a.Transport);
             }
             );
     }
@@ -197,7 +200,7 @@ public class KestrelConfigTests
                 "FirstHttpEndpoint": {
                   "scheme": "http",
                   "protocol": "tcp",
-                  "transport": "http2",
+                  "transport": "http",
                   "targetPort": 5002
                 },
                 "SecondHttpEndpoint": {
@@ -229,6 +232,46 @@ public class KestrelConfigTests
             """;
 
         Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task VerifyEndpointLevelKestrelProtocol()
+    {
+        var resource = CreateTestProjectResource<ProjectWithKestrelEndpointsLevelProtocols>(
+            operation: DistributedApplicationOperation.Publish);
+
+        var manifest = await ManifestUtils.GetManifest(resource);
+
+        var expectedBindings = """
+            {
+              "HttpEndpointUsingHttp2Transport": {
+                "scheme": "http",
+                "protocol": "tcp",
+                "transport": "http2",
+                "targetPort": 5002
+              },
+              "HttpEndpointUsingHttpTransport": {
+                "scheme": "http",
+                "protocol": "tcp",
+                "transport": "http",
+                "targetPort": 5003
+              },
+              "HttpsEndpointUsingHttp2Transport": {
+                "scheme": "https",
+                "protocol": "tcp",
+                "transport": "http2",
+                "targetPort": 5002
+              },
+              "HttpsEndpointUsingHttpTransport": {
+                "scheme": "https",
+                "protocol": "tcp",
+                "transport": "http",
+                "targetPort": 7003
+              }
+            }
+            """;
+
+        Assert.Equal(expectedBindings, manifest!["bindings"]!.ToString());
     }
 
     private static ProjectResource CreateTestProjectResource<TProject>(
@@ -313,7 +356,7 @@ public class KestrelConfigTests
                   "Protocols": "Http2"
                 },
                 "Endpoints": {
-                  "FirstHttpEndpoint": { "Url": "http://*:5002" },
+                  "FirstHttpEndpoint": { "Url": "http://*:5002", "Protocols": "Http" },
                   "SecondHttpEndpoint": { "Url": "http://localhost:5003" }
                 }
               }
@@ -321,6 +364,26 @@ public class KestrelConfigTests
             """;
         }
     }
+
+    private sealed class ProjectWithKestrelEndpointsLevelProtocols : ProjectResourceTests.BaseProjectWithProfileAndConfig
+    {
+        public ProjectWithKestrelEndpointsLevelProtocols()
+        {
+            JsonConfigString = """
+            {
+              "Kestrel": {
+                "Endpoints": {
+                  "HttpEndpointUsingHttp2Transport": { "Url": "http://*:5002", "Protocols": "Http2" },
+                  "HttpEndpointUsingHttpTransport": { "Url": "http://*:5003" },
+                  "HttpsEndpointUsingHttp2Transport": { "Url": "https://*:7002", "Protocols": "Http2" },
+                  "HttpsEndpointUsingHttpTransport": { "Url": "https://*:7003" }
+                }
+              }
+            }
+            """;
+        }
+    }
+
     private static void AllocateTestEndpoints(ProjectResource resource)
     {
         foreach (var endpoint in resource.Annotations.OfType<EndpointAnnotation>())

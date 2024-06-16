@@ -244,13 +244,25 @@ public static class ProjectResourceBuilderExtensions
             .Select(endpoint => new
             {
                 EndpointName = endpoint.Key,
-                BindingAddress = BindingAddress.Parse(endpoint["Url"]!)
+                BindingAddress = BindingAddress.Parse(endpoint["Url"]!),
+                Protocols = endpoint["Protocols"]
             })
             .GroupBy(entry => entry.BindingAddress.Scheme);
 
         // Helper to change the transport to http2 if needed
-        var isHttp2ConfiguredInAppSettings = config["Kestrel:EndpointDefaults:Protocols"] == "Http2";
-        var adjustTransport = (EndpointAnnotation e) => e.Transport = isHttp2ConfiguredInAppSettings ? "http2" : e.Transport;
+        var isHttp2ConfiguredInKestrelEndpointDefaults = config["Kestrel:EndpointDefaults:Protocols"] == "Http2";
+        var adjustTransport = (EndpointAnnotation e, string? bindingLevelProtocols = null) => {
+            if (bindingLevelProtocols != null)
+            {
+                // If the Kestrel endpoint has an explicit protocol, use that and ignore any EndpointDefaults
+                e.Transport = bindingLevelProtocols == "Http2" ? "http2" : e.Transport;
+            }
+            else if (isHttp2ConfiguredInKestrelEndpointDefaults)
+            {
+                // Fall back to honoring Http2 specified at EndpointDefaults level
+                e.Transport = "http2";
+            }
+        };
 
         foreach (var schemeGroup in kestrelEndpointsByScheme)
         {
@@ -276,7 +288,7 @@ public static class ProjectResourceBuilderExtensions
                         e.Port = endpoint.BindingAddress.Port;
                     }
                     e.UriScheme = endpoint.BindingAddress.Scheme;
-                    e.Transport = adjustTransport(e);
+                    adjustTransport(e, endpoint.Protocols);
                     // Keep track of the host separately since EndpointAnnotation doesn't have a host property
                     builder.Resource.KestrelEndpointAnnotationHosts[e] = endpoint.BindingAddress.Host;
                 },
@@ -316,7 +328,7 @@ public static class ProjectResourceBuilderExtensions
                         e.Port = uri.Port;
                         e.UriScheme = uri.Scheme;
                         e.FromLaunchProfile = true;
-                        e.Transport = adjustTransport(e);
+                        adjustTransport(e);
                     },
                     createIfNotExists: true);
                 }
@@ -369,7 +381,7 @@ public static class ProjectResourceBuilderExtensions
                     builder.WithEndpoint(scheme, e =>
                     {
                         e.UriScheme = scheme;
-                        e.Transport = adjustTransport(e);
+                        adjustTransport(e);
 
                         // Keep track of the default https endpoint so we can exclude it from HTTPS_PORTS & Kestrel env vars
                         if (scheme == "https")
