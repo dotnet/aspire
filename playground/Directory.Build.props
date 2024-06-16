@@ -1,6 +1,5 @@
 <Project>
-
-  <Import Project="..\Directory.Build.props" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
   <PropertyGroup>
     <!--
@@ -13,7 +12,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <AddPublicApiAnalyzers>false</AddPublicApiAnalyzers>
+    <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
   </PropertyGroup>
 
   <!-- Enable Azure ActivitySources so Azure Components participate in tracing. -->

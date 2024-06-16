@@ -7,16 +7,6 @@
         <target state="translated">필터 추가</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsAllApplications">
-        <source>(All)</source>
-        <target state="translated">(모두)</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsAllTypes">
-        <source>All</source>
-        <target state="translated">모두</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsEditFilter">
         <source>Edit filter</source>
         <target state="translated">편집 필터</target>
