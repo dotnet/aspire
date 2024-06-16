@@ -24,7 +24,7 @@
                     Class="severity-icon" />
     }
 }
-else if (Resource is { State: ResourceStates.StartingState })
+else if (Resource is { State: ResourceStates.StartingState } or { State: ResourceStates.BuildingState })
 {
     <FluentIcon Icon="Icons.Regular.Size16.CircleHint"
                 Color="Color.Info"

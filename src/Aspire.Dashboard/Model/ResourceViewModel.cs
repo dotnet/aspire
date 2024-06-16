@@ -115,5 +115,6 @@ public static class ResourceStates
     public const string FailedToStartState = "FailedToStart";
     public const string StartingState = "Starting";
     public const string RunningState = "Running";
+    public const string BuildingState = "Building";
     public const string HiddenState = "Hidden";
 }
