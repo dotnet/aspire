@@ -43,6 +43,10 @@ public static class ProjectResourceBuilderExtensions
     /// spaces in project names are converted to underscores. This normalization may lead to naming conflicts. If a conflict occurs the <c>&lt;ProjectReference /&gt;</c>
     /// that references the project can have a <c>AspireProjectMetadataTypeName="..."</c> attribute added to override the name.
     /// </para>
+    /// <para name="kestrel">
+    /// Note that endpoints coming from the Kestrel configuration are automatically added to the project. The Kestrel Url and Protocols are used
+    /// to build the equivalent <see cref="EndpointAnnotation"/>.
+    /// </para>
     /// </remarks>
     /// <example>
     /// Example of adding a project to the application model.
@@ -75,6 +79,7 @@ public static class ProjectResourceBuilderExtensions
     /// model using an path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
     /// path is not an absolute path then it will be computed relative to the app host directory.
     /// </para>
+    /// <inheritdoc cref="AddProject(IDistributedApplicationBuilder, string)" path="/remarks/para[@name='kestrel']" />
     /// </remarks>
     /// <example>
     /// Add a project to the app model via a project path.
@@ -123,6 +128,7 @@ public static class ProjectResourceBuilderExtensions
     /// spaces in project names are converted to underscores. This normalization may lead to naming conflicts. If a conflict occurs the <c>&lt;ProjectReference /&gt;</c>
     /// that references the project can have a <c>AspireProjectMetadataTypeName="..."</c> attribute added to override the name.
     /// </para>
+    /// <inheritdoc cref="AddProject(IDistributedApplicationBuilder, string)" path="/remarks/para[@name='kestrel']" />
     /// </remarks>
     /// <example>
     /// Example of adding a project to the application model.
@@ -156,6 +162,7 @@ public static class ProjectResourceBuilderExtensions
     /// model using an path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
     /// path is not an absolute path then it will be computed relative to the app host directory.
     /// </para>
+    /// <inheritdoc cref="AddProject(IDistributedApplicationBuilder, string)" path="/remarks/para[@name='kestrel']" />
     /// </remarks>
     /// <example>
     /// Add a project to the app model via a project path.
