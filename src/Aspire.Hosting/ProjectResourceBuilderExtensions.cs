@@ -142,10 +142,21 @@ public static class ProjectResourceBuilderExtensions
     /// <param name="launchProfileName">The launch profile to use. If <c>null</c> then no launch profile will be used.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
-    /// TODO!
+    /// <para>
+    /// This overload of the <see cref="AddProject(IDistributedApplicationBuilder, string, string)"/> method adds a project to the application
+    /// model using a path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
+    /// path is not an absolute path then it will be computed relative to the app host directory.
+    /// </para>
     /// </remarks>
     /// <example>
-    /// TODO!
+    /// Add a project to the app model via a project path.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// 
+    /// builder.AddProject("inventoryservice", @"..\InventoryService\InventoryService.csproj", launchProfileName: "otherLaunchProfile");
+    /// 
+    /// builder.Build().Run();
+    /// </code>
     /// </example>
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath, string? launchProfileName)
     {
@@ -165,10 +176,32 @@ public static class ProjectResourceBuilderExtensions
     /// <param name="configure">A callback to configure the project resource options.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
-    /// TODO!
+    /// <para>
+    /// This overload of the <see cref="AddProject{TProject}(IDistributedApplicationBuilder, string)"/> method takes
+    /// a <typeparamref name="TProject"/> type parameter. The <typeparamref name="TProject"/> type parameter is constrained
+    /// to types that implement the <see cref="IProjectMetadata"/> interface.
+    /// </para>
+    /// <para>
+    /// Classes that implement the <see cref="IProjectMetadata"/> interface are generated when a .NET project is added as a reference
+    /// to the app host project. The generated class contains a property that returns the path to the referenced project file. Using this path
+    /// .NET Aspire parses the <c>launchSettings.json</c> file to determine which launch profile to use when running the project, and
+    /// what endpoint configuration to automatically generate.
+    /// </para>
+    /// <para>
+    /// The name of the automatically generated project metadata type is a normalized version of the project name. Periods, dashes, and
+    /// spaces in project names are converted to underscores. This normalization may lead to naming conflicts. If a conflict occurs the <c>&lt;ProjectReference /&gt;</c>
+    /// that references the project can have a <c>AspireProjectMetadataTypeName="..."</c> attribute added to override the name.
+    /// </para>
     /// </remarks>
     /// <example>
-    /// TODO!
+    /// Example of adding a project to the application model.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// 
+    /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice", options => { options.LaunchProfileName = "otherLaunchProfile"; });
+    /// 
+    /// builder.Build().Run();
+    /// </code>
     /// </example>
     public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name, Action<ProjectResourceOptions> configure) where TProject : IProjectMetadata, new()
     {
@@ -201,7 +234,7 @@ public static class ProjectResourceBuilderExtensions
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     /// 
-    /// builder.AddProject("inventoryservice", @"..\InventoryService\InventoryService.csproj", launchProfileName: "otherLaunchProfile");
+    /// builder.AddProject("inventoryservice", @"..\InventoryService\InventoryService.csproj", options => { options.LaunchProfileName = "otherLaunchProfile"; });
     /// 
     /// builder.Build().Run();
     /// </code>
