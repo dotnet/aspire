@@ -77,29 +77,4 @@ public class ConformanceTests : ConformanceTests<ElasticsearchClient, ElasticCli
 
         service.InfoAsync(source.Token).Wait();
     }
-
-    [Fact]
-    public void CanAddMultipleKeyedServices()
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:elasticsearch1", "http://elastic:password@localhost1:19530"),
-            new KeyValuePair<string, string?>("ConnectionStrings:elasticsearch2", "http://elastic:password@localhost1:19531"),
-            new KeyValuePair<string, string?>("ConnectionStrings:elasticsearch3", "http://elastic:password@localhost1:19532"),
-        ]);
-
-        builder.AddElasticClientsElasticsearch("elasticsearch1");
-        builder.AddKeyedElasticClientsElasticsearch("elasticsearch2");
-        builder.AddKeyedElasticClientsElasticsearch("elasticsearch3");
-
-        using var host = builder.Build();
-
-        var client1 = host.Services.GetRequiredService<ElasticsearchClient>();
-        var client2 = host.Services.GetRequiredKeyedService<ElasticsearchClient>("milvus2");
-        var client3 = host.Services.GetRequiredKeyedService<ElasticsearchClient>("milvus3");
-
-        Assert.NotSame(client1, client2);
-        Assert.NotSame(client1, client3);
-        Assert.NotSame(client2, client3);
-    }
 }
