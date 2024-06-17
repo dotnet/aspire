@@ -46,7 +46,11 @@ internal sealed class ResourceLogSource<TResource>(
 
         async Task WaitForStreamsToCompleteAsync()
         {
-            await Task.WhenAll(startupStdoutStreamTask, startupStderrStreamTask, stdoutStreamTask, stderrStreamTask).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            // We want all the startup streams to be completed before we render anything
+            // else so that the output doesn't overlap.
+            await Task.WhenAll(startupStdoutStreamTask, startupStderrStreamTask).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+
+            await Task.WhenAll(stdoutStreamTask, stderrStreamTask).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
             channel.Writer.TryComplete();
         }
 
