@@ -24,6 +24,7 @@ public sealed class ResourceViewModel
     public required ImmutableArray<UrlViewModel> Urls { get; init; }
     public required FrozenDictionary<string, Value> Properties { get; init; }
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
+    public KnownResourceState? KnownState { get; init; }
 
     internal bool MatchesFilter(string filter)
     {
