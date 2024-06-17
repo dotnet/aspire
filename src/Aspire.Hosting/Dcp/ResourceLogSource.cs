@@ -25,6 +25,8 @@ internal sealed class ResourceLogSource<TResource>(
         }
 
         var timestamps = resource is Container; // Timestamps are available only for Containers as of Aspire P5.
+        var startupStdoutStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStartupStdOut, follow: true, timestamps: timestamps, cancellationToken).ConfigureAwait(false);
+        var startupStderrStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStartupStdErr, follow: true, timestamps: timestamps, cancellationToken).ConfigureAwait(false);
         var stdoutStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStdOut, follow: true, timestamps: timestamps, cancellationToken).ConfigureAwait(false);
         var stderrStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStdErr, follow: true, timestamps: timestamps, cancellationToken).ConfigureAwait(false);
 
@@ -35,6 +37,8 @@ internal sealed class ResourceLogSource<TResource>(
             SingleWriter = false
         });
 
+        var startupStdoutStreamTask = Task.Run(() => StreamLogsAsync(startupStdoutStream, isError: false), cancellationToken);
+        var startupStderrStreamTask = Task.Run(() => StreamLogsAsync(startupStderrStream, isError: true), cancellationToken);
         var stdoutStreamTask = Task.Run(() => StreamLogsAsync(stdoutStream, isError: false), cancellationToken);
         var stderrStreamTask = Task.Run(() => StreamLogsAsync(stderrStream, isError: true), cancellationToken);
 
@@ -42,7 +46,7 @@ internal sealed class ResourceLogSource<TResource>(
 
         async Task WaitForStreamsToCompleteAsync()
         {
-            await Task.WhenAll(stdoutStreamTask, stderrStreamTask).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            await Task.WhenAll(startupStdoutStreamTask, startupStderrStreamTask, stdoutStreamTask, stderrStreamTask).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
             channel.Writer.TryComplete();
         }
 
