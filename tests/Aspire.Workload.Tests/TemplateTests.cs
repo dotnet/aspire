@@ -18,8 +18,8 @@ public class TemplateTests : WorkloadTestsBase
         var data = new TheoryData<string, string>();
         foreach (var testType in TestFrameworkTypes)
         {
-            data.Add(testType, "Debug");
-            data.Add(testType, "Release");
+            data.Add("Debug", testType);
+            data.Add("Release", testType);
         }
         return data;
     }
