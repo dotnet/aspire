@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using Aspire.Dashboard.Extensions;
 using Google.Protobuf.WellKnownTypes;
 
 namespace Aspire.Dashboard.Model;
@@ -35,7 +36,7 @@ public sealed class ResourceViewModel
         var count = 0;
         foreach (var (_, item) in allResources)
         {
-            if (item.State == ResourceStates.HiddenState)
+            if (item.IsHiddenState())
             {
                 continue;
             }
@@ -106,15 +107,4 @@ public sealed class UrlViewModel
         Url = url;
         IsInternal = isInternal;
     }
-}
-
-public static class ResourceStates
-{
-    public const string FinishedState = "Finished";
-    public const string ExitedState = "Exited";
-    public const string FailedToStartState = "FailedToStart";
-    public const string StartingState = "Starting";
-    public const string RunningState = "Running";
-    public const string BuildingState = "Building";
-    public const string HiddenState = "Hidden";
 }
