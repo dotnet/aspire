@@ -384,7 +384,12 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                     _ => PortAllocator.AllocatePort()
                 };
 
-                schemesEncountered.Add(endpoint.UriScheme);
+                // We only keep track of schemes for project resources, since we don't want
+                // a non-project scheme to affect what project endpoints are considered default.
+                if (resource is ProjectResource)
+                {
+                    schemesEncountered.Add(endpoint.UriScheme);
+                }
 
                 int? exposedPort = (endpoint.UriScheme, endpoint.Port, targetPort) switch
                 {
