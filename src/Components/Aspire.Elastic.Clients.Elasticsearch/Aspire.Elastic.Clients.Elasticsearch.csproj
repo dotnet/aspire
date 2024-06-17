@@ -18,7 +18,11 @@
     <PackageReference Include="Elastic.Clients.Elasticsearch" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
-    <PackageReference Include="AspNetCore.HealthChecks.Elasticsearch" />
+
+    <!--AspNetCore.HealthChecks.Elasticsearch 8.0.1 using deprecated Nest package internaly
+    using so set 'PrivateAssets' to 'All' to prevent using ElasticClient in Nest
+    -->
+    <PackageReference Include="AspNetCore.HealthChecks.Elasticsearch" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>

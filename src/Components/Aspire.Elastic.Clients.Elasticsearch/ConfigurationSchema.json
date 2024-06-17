@@ -1,0 +1,47 @@
+{
+  "properties": {
+    "Aspire.Elastic.Clients.Elasticsearch": {
+      "type": "object",
+      "properties": {
+        "Cloud": {
+          "type": "object",
+          "properties": {
+            "ApiKey": {
+              "type": "string",
+              "description": "Gets or sets a string value that indicates the ApiKey to connecting elastic cloud."
+            },
+            "CloudId": {
+              "type": "string",
+              "description": "Gets or sets a string value that indicates the CloudId to connecting elastic cloud."
+            }
+          },
+          "description": "Gets or sets cloud connection setting that indicates the connection to elastic cloud."
+        },
+        "ConnectionString": {
+          "type": "string",
+          "description": "Gets or sets the comma-delimited configuration string used to connect to the Elasticsearch."
+        },
+        "DisableHealthChecks": {
+          "type": "boolean",
+          "description": "Gets or sets a boolean value that indicates whether the Elasticsearch health check is disabled or not.",
+          "default": false
+        },
+        "DisableTracing": {
+          "type": "boolean",
+          "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+          "default": false
+        },
+        "HealthCheckTimeout": {
+          "type": "integer",
+          "description": "Gets or sets a integer value that indicates the Elasticsearch health check timeout in milliseconds."
+        },
+        "UseCloud": {
+          "type": "boolean",
+          "description": "Gets or sets a boolean value that indicates whether the connection to elastic cloud or not.",
+          "default": false
+        }
+      }
+    }
+  },
+  "type": "object"
+}
