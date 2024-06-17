@@ -49,12 +49,6 @@
           "exclude": [
             "Aspire-StarterApplication.1.Tests/**/*.*"
           ]
-        },
-        {
-          "condition": "(TestFramework != \"xUnit.net\")",
-          "exclude": [
-            "Aspire-StarterApplication.1.Tests/XunitLogger.cs"
-          ]
         }
       ]
     }

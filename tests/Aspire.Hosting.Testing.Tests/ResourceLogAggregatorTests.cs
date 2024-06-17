@@ -21,7 +21,7 @@ public class ResourceLogAggregatorTests(ITestOutputHelper output)
         var appHost = await DistributedApplicationTestingBuilder.CreateAsync<TestingAppHost1_AppHost>();
         Assert.Contains(appHost.Services, sd =>
             sd.ServiceType == typeof(IHostedService)
-            && sd.ImplementationType == typeof(ResourceLogAggregatorBackgroundService)
+            && sd.ImplementationType == typeof(ResourceLoggerForwarderService)
             && sd.Lifetime == ServiceLifetime.Singleton);
     }
 
@@ -33,7 +33,7 @@ public class ResourceLogAggregatorTests(ITestOutputHelper output)
         var resourceLoggerService = new ResourceLoggerService();
         var hostEnvironment = new HostingEnvironment();
         var loggerFactory = new NullLoggerFactory();
-        var resourceLogAggregator = new ResourceLogAggregatorBackgroundService(resourceNotificationService, resourceLoggerService, hostEnvironment, loggerFactory);
+        var resourceLogAggregator = new ResourceLoggerForwarderService(resourceNotificationService, resourceLoggerService, hostEnvironment, loggerFactory);
 
         await resourceLogAggregator.StartAsync(hostApplicationLifetime.ApplicationStopping);
 
@@ -58,7 +58,7 @@ public class ResourceLogAggregatorTests(ITestOutputHelper output)
         var hostEnvironment = new HostingEnvironment { ApplicationName = "TestApp.AppHost" };
         var fakeLoggerProvider = new FakeLoggerProvider();
         var fakeLoggerFactory = new LoggerFactory([fakeLoggerProvider, new XunitLoggerProvider(output)]);
-        var resourceLogAggregator = new ResourceLogAggregatorBackgroundService(resourceNotificationService, resourceLoggerService, hostEnvironment, fakeLoggerFactory);
+        var resourceLogAggregator = new ResourceLoggerForwarderService(resourceNotificationService, resourceLoggerService, hostEnvironment, fakeLoggerFactory);
 
         var logStreamCompleteTcs = new TaskCompletionSource();
         resourceLogAggregator.OnLogStreamComplete = resourceId =>

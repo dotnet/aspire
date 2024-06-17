@@ -8,15 +8,18 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Hosting.Testing;
 
 /// <summary>
-/// A background service that aggregates resource logs and forwards them to the ILogger infrastructure.
+/// A background service that watches resource logs and forwards them to the host's <see cref="ILogger"/> infrastructure.
 /// </summary>
-internal sealed class ResourceLogAggregatorBackgroundService(
+internal sealed class ResourceLoggerForwarderService(
     ResourceNotificationService resourceNotificationService,
     ResourceLoggerService resourceLoggerService,
     IHostEnvironment hostEnvironment,
     ILoggerFactory loggerFactory)
     : BackgroundService
 {
+    /// <summary>
+    /// A callback to be invoked when a log stream is complete. The callback is passed the resource name of the stream that completed.
+    /// </summary>
     public Action<string>? OnLogStreamComplete { get; set; }
 
     /// <inheritdoc/>
