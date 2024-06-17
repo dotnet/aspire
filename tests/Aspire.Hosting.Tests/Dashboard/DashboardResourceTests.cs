@@ -79,8 +79,8 @@ public class DashboardResourceTests
 
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["ASPNETCORE_URLS"] = "http://localhost",
-            ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost"
+            ["ASPNETCORE_URLS"] = "http://localhost:0",
+            ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost:1"
         });
 
         var container = builder.AddContainer(KnownResourceNames.AspireDashboard, "my-image");
@@ -106,7 +106,7 @@ public class DashboardResourceTests
             e =>
             {
                 Assert.Equal("ASPNETCORE_URLS", e.Key);
-                Assert.Equal("http://localhost", e.Value);
+                Assert.Equal("http://localhost:0", e.Value);
             },
             e =>
             {
@@ -116,7 +116,7 @@ public class DashboardResourceTests
             e =>
             {
                 Assert.Equal("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL", e.Key);
-                Assert.Equal("http://localhost", e.Value);
+                Assert.Equal("http://localhost:1", e.Value);
             },
             e =>
             {
@@ -181,8 +181,8 @@ public class DashboardResourceTests
 
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["ASPNETCORE_URLS"] = "http://localhost",
-            ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost",
+            ["ASPNETCORE_URLS"] = "http://localhost:0",
+            ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost:1",
             ["AppHost:BrowserToken"] = "TestBrowserToken!",
             ["AppHost:OtlpApiKey"] = "TestOtlpApiKey!"
         });
@@ -216,8 +216,8 @@ public class DashboardResourceTests
 
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["ASPNETCORE_URLS"] = "http://localhost",
-            ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost"
+            ["ASPNETCORE_URLS"] = "http://localhost:0",
+            ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost:1"
         });
 
         using var app = builder.Build();
@@ -246,8 +246,8 @@ public class DashboardResourceTests
 
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["ASPNETCORE_URLS"] = "http://localhost",
-            ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost"
+            ["ASPNETCORE_URLS"] = "http://localhost:0",
+            ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost:1"
         });
 
         using var app = builder.Build();
