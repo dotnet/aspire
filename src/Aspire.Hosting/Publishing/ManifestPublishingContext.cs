@@ -352,6 +352,14 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     {
         if (resource.TryGetEndpoints(out var endpoints))
         {
+            // This is used to determine if an endpoint should be treated as the Default endpoint.
+            // Endpoints can come from 3 different sources (in this order):
+            // 1. Kestrel configuration
+            // 2. Default endpoints added by the framework
+            // 3. Explicitly added endpoints
+            // But wherever they come from, we treat the first one as Default, for each scheme.
+            var schemesEncountered = new HashSet<string>();
+
             Writer.WriteStartObject("bindings");
             foreach (var endpoint in endpoints)
             {
@@ -370,11 +378,13 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
                     // Check whether the project view this endpoint as Default (for its scheme).
                     // If so, we don't specify the target port, as it will get one from the deployment tool.
-                    (ProjectResource project, _, null, _) when project.IsDefaultEndpoint(endpoint) => null,
+                    (ProjectResource project, string uriScheme, null, _) when !schemesEncountered.Contains(uriScheme) => null,
 
                     // Allocate a dynamic port
                     _ => PortAllocator.AllocatePort()
                 };
+
+                schemesEncountered.Add(endpoint.UriScheme);
 
                 int? exposedPort = (endpoint.UriScheme, endpoint.Port, targetPort) switch
                 {
