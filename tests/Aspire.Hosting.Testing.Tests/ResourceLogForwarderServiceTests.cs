@@ -13,7 +13,7 @@ using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Testing.Tests;
 
-public class ResourceLogAggregatorTests(ITestOutputHelper output)
+public class ResourceLogForwarderServiceTests(ITestOutputHelper output)
 {
     [Fact]
     public async Task BackgroundServiceIsRegisteredInServiceProvider()
@@ -33,19 +33,19 @@ public class ResourceLogAggregatorTests(ITestOutputHelper output)
         var resourceLoggerService = new ResourceLoggerService();
         var hostEnvironment = new HostingEnvironment();
         var loggerFactory = new NullLoggerFactory();
-        var resourceLogAggregator = new ResourceLoggerForwarderService(resourceNotificationService, resourceLoggerService, hostEnvironment, loggerFactory);
+        var resourceLogForwarder = new ResourceLoggerForwarderService(resourceNotificationService, resourceLoggerService, hostEnvironment, loggerFactory);
 
-        await resourceLogAggregator.StartAsync(hostApplicationLifetime.ApplicationStopping);
+        await resourceLogForwarder.StartAsync(hostApplicationLifetime.ApplicationStopping);
 
-        Assert.NotNull(resourceLogAggregator.ExecuteTask);
-        Assert.Equal(TaskStatus.WaitingForActivation, resourceLogAggregator.ExecuteTask.Status);
+        Assert.NotNull(resourceLogForwarder.ExecuteTask);
+        Assert.Equal(TaskStatus.WaitingForActivation, resourceLogForwarder.ExecuteTask.Status);
 
         // Signal the stopping token
         hostApplicationLifetime.StopApplication();
 
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
         {
-            await resourceLogAggregator.ExecuteTask;
+            await resourceLogForwarder.ExecuteTask;
         });
     }
 
@@ -58,10 +58,10 @@ public class ResourceLogAggregatorTests(ITestOutputHelper output)
         var hostEnvironment = new HostingEnvironment { ApplicationName = "TestApp.AppHost" };
         var fakeLoggerProvider = new FakeLoggerProvider();
         var fakeLoggerFactory = new LoggerFactory([fakeLoggerProvider, new XunitLoggerProvider(output)]);
-        var resourceLogAggregator = new ResourceLoggerForwarderService(resourceNotificationService, resourceLoggerService, hostEnvironment, fakeLoggerFactory);
+        var resourceLogForwarder = new ResourceLoggerForwarderService(resourceNotificationService, resourceLoggerService, hostEnvironment, fakeLoggerFactory);
 
         var logStreamCompleteTcs = new TaskCompletionSource();
-        resourceLogAggregator.OnLogStreamComplete = resourceId =>
+        resourceLogForwarder.OnLogStreamComplete = resourceId =>
         {
             if (resourceId == "myresource")
             {
@@ -69,7 +69,7 @@ public class ResourceLogAggregatorTests(ITestOutputHelper output)
             }
         };
 
-        await resourceLogAggregator.StartAsync(hostApplicationLifetime.ApplicationStopping);
+        await resourceLogForwarder.StartAsync(hostApplicationLifetime.ApplicationStopping);
 
         // Publish an update to the resource to kickstart the notification service loop
         var myresource = new CustomResource("myresource");
