@@ -4,7 +4,7 @@
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Various properties to tweak the behavior of the project resource.
+/// Various properties to modify the behavior of the project resource.
 /// </summary>
 public class ProjectResourceOptions
 {
