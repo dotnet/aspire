@@ -15,6 +15,8 @@ public class WorkloadTestsBase
     private static Lazy<IBrowser> Browser => new(CreateBrowser);
     protected readonly TestOutputWrapper _testOutput;
 
+    public static readonly string[] TestFrameworkTypes = ["none", "mstest", "nunit", "xunit.net"];
+
     public WorkloadTestsBase(ITestOutputHelper testOutput)
         => _testOutput = new TestOutputWrapper(testOutput);
 
@@ -179,6 +181,50 @@ public class WorkloadTestsBase
     // Don't fixup the prefix so it can have characters meant for testing, like spaces
     public static string GetNewProjectId(string? prefix = null)
         => (prefix is null ? "" : $"{prefix}_") + Path.GetRandomFileName();
+
+    public static IEnumerable<string> GetProjectNamesForTest()
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            // ActiveIssue: https://github.com/dotnet/aspire/issues/4555
+            yield return "aspire_龦唉丂荳_㐁ᠭ_ᠤསྲིདخەلꌠ_1ᥕ_😀";
+        }
+
+        // ActiveIssue: https://github.com/dotnet/aspire/issues/4550
+        // yield return "aspire  sta-rter.test"; // Issue: two spaces
+
+        yield return "aspire_starter.1period then.34letters";
+        yield return "aspire-starter & with.1";
+
+        // basic case
+        yield return "aspire";
+    }
+
+    public static async Task AssertStarterTemplateRunAsync(IBrowserContext context, AspireProject project, string config, ITestOutputHelper _testOutput)
+    {
+        await project.StartAppHostAsync(extraArgs: [$"-c {config}"], noBuild: false);
+
+        var page = await project.OpenDashboardPageAsync(context);
+        ResourceRow[] resourceRows;
+        try
+        {
+            resourceRows = await CheckDashboardHasResourcesAsync(
+                                    page,
+                                    StarterTemplateRunTestsBase<StarterTemplateFixture>.GetExpectedResources(project, hasRedisCache: false),
+                                    _testOutput).ConfigureAwait(false);
+        }
+        catch
+        {
+            string screenshotPath = Path.Combine(project.LogPath, "dashboard-fail.png");
+            await page.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
+            _testOutput.WriteLine($"Dashboard screenshot saved to {screenshotPath}");
+            throw;
+        }
+
+        string url = resourceRows.First(r => r.Name == "webfrontend").Endpoints[0];
+        await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckWebFrontendWorksAsync(context, url, _testOutput, project.LogPath);
+        await project.StopAppHostAsync();
+    }
 
     public static async Task<CommandResult?> AssertTestProjectRunAsync(string testProjectDirectory, string testType, ITestOutputHelper testOutput, string config = "Debug", int testRunTimeoutSecs = 3 * 60)
     {
