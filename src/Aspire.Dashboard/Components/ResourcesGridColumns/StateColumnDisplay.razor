@@ -5,7 +5,7 @@
 
 @inject IStringLocalizer<Columns> Loc
 
-@if (Resource is { State: ResourceStates.ExitedState /* containers */ or ResourceStates.FinishedState /* executables */ or ResourceStates.FailedToStartState })
+@if (Resource is { State: ResourceStates.ExitedState /* containers */ or ResourceStates.FailedToStartState })
 {
     if (Resource.TryGetExitCode(out int exitCode) && exitCode is not 0)
     {
@@ -19,10 +19,17 @@
     {
         <!-- process completed, which may not have been unexpected -->
         <FluentIcon Title="@string.Format(Loc[Columns.StateColumnResourceExited], Resource.ResourceType)"
-                    Icon="Icons.Regular.Size16.CheckmarkUnderlineCircle"
-                    Color="Color.Success"
+                    Icon="Icons.Regular.Size16.Warning"
+                    Color="Color.Warning"
                     Class="severity-icon" />
     }
+}
+else if (Resource is { State: ResourceStates.FinishedState } /* executables */)
+{
+    <FluentIcon Title="@string.Format(Loc[Columns.StateColumnResourceExited], Resource.ResourceType)"
+                Icon="Icons.Regular.Size16.CheckmarkUnderlineCircle"
+                Color="Color.Success"
+                Class="severity-icon" />
 }
 else if (Resource is { State: ResourceStates.StartingState } or { State: ResourceStates.BuildingState })
 {
