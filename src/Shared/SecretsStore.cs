@@ -65,7 +65,12 @@ internal class SecretsStore
             File.Move(tempFilename, _secretsFilePath, overwrite: true);
         }
 
-        File.WriteAllText(_secretsFilePath, contents.ToJsonString(), Encoding.UTF8);
+        var json = contents.ToJsonString(new()
+        {
+            WriteIndented = true
+        });
+
+        File.WriteAllText(_secretsFilePath, json, Encoding.UTF8);
     }
 
     private void EnsureUserSecretsDirectory()
