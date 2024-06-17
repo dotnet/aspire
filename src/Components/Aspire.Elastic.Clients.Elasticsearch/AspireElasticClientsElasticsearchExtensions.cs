@@ -13,7 +13,7 @@ namespace Microsoft.Extensions.Hosting;
 public static class AspireElasticClientsElasticsearchExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:Elastic:Clients:Elasticsearch";
-
+    private const string ActivityNameSource = "Elastic.Transport";
     /// <summary>
     /// Registers <see cref="ElasticsearchClient"/> instance for connecting to Elasticsearch with Elastic.Clients.Elasticsearch client.
     /// </summary>
@@ -93,7 +93,12 @@ public static class AspireElasticClientsElasticsearchExtensions
             builder.Services.AddKeyedSingleton<ElasticsearchClient>(serviceKey, elasticsearchClient);
         }
 
-        //todo: Supports distributed tracing
+        if (!settings.DisableTracing)
+        {
+            builder.Services
+                .AddOpenTelemetry()
+                .WithTracing(tracer => tracer.AddSource(ActivityNameSource));
+        }
 
         if (!settings.DisableHealthChecks)
         {

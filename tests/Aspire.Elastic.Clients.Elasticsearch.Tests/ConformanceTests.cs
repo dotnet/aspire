@@ -17,7 +17,7 @@ public class ConformanceTests : ConformanceTests<ElasticsearchClient, ElasticCli
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
-    protected override string ActivitySourceName => "";
+    protected override string ActivitySourceName => "Elastic.Transport";
 
     protected override string[] RequiredLogCategories => Array.Empty<string>();
 
