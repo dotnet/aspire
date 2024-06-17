@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <RunTestsOnHelix>true</RunTestsOnHelix>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Elasticsearch\ElasticsearchContainerImageTags.cs" />
+    <None Include="$(RepoRoot)src\Components\Aspire.Elastic.Clients.Elasticsearch\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
+
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Testcontainers.Elasticsearch" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Components\Aspire.Elastic.Clients.Elasticsearch\Aspire.Elastic.Clients.Elasticsearch.csproj" />
+    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+  </ItemGroup>
+
+</Project>

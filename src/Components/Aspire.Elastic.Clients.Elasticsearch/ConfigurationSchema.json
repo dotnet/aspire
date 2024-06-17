@@ -1,4 +1,13 @@
 {
+  "definitions": {
+    "logLevel": {
+      "properties": {
+        "Elastic.Clients.Elasticsearch": {
+          "$ref": "#/definitions/logLevelThreshold"
+        }
+      }
+    }
+  },
   "properties": {
     "Aspire.Elastic.Clients.Elasticsearch": {
       "type": "object",

@@ -162,6 +162,11 @@ public class TestProgram : IDisposable
                 var milvus = AppBuilder.AddMilvus("milvus", milvusApiKey);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(milvus);
             }
+            if (!resourcesToSkip.HasFlag(TestResourceNames.elasticsearch))
+            {
+                var elasticsearch = AppBuilder.AddElasticsearch("elasticsearch");
+                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(elasticsearch);
+            }
         }
 
         AppBuilder.Services.AddLifecycleHook<EndPointWriterHook>();

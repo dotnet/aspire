@@ -23,7 +23,8 @@ public enum TestResourceNames
     eventhubs = 1 << 13,
     milvus = 1 << 14,
     valkey = 1 << 15,
-    All = cosmos | dashboard | kafka | mongodb | mysql | oracledatabase | efmysql | postgres | rabbitmq | redis | sqlserver | efnpgsql | garnet | eventhubs | milvus| valkey
+    elasticsearch = 1 << 16,
+    All = cosmos | dashboard | kafka | mongodb | mysql | oracledatabase | efmysql | postgres | rabbitmq | redis | sqlserver | efnpgsql | garnet | eventhubs | milvus | valkey | elasticsearch
 }
 
 public static class TestResourceNamesExtensions
