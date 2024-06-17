@@ -55,7 +55,7 @@ public class KestrelConfigTests
             {
                 builder.WithHttpEndpoint(5017, name: "ExplicitHttp");
             },
-            new ProjectResourceOptions { ExcludeKestrelEndpoints = true });
+            options => { options.ExcludeKestrelEndpoints = true; });
 
         Assert.Collection(
             resource.Annotations.OfType<EndpointAnnotation>(),
@@ -272,10 +272,10 @@ public class KestrelConfigTests
     private static ProjectResource CreateTestProjectResource<TProject>(
         DistributedApplicationOperation operation = DistributedApplicationOperation.Publish,
         Action<IResourceBuilder<ProjectResource>>? callback = null,
-        ProjectResourceOptions? options = null) where TProject : IProjectMetadata, new()
+        Action<ProjectResourceOptions>? configure = null) where TProject : IProjectMetadata, new()
     {
         var appBuilder = ProjectResourceTests.CreateBuilder(operation: operation);
-        var projectBuilder = appBuilder.AddProject<TProject>("projectName", options ?? new());
+        var projectBuilder = appBuilder.AddProject<TProject>("projectName", configure ?? (_ => { }));
         if (callback != null)
         {
             callback(projectBuilder);

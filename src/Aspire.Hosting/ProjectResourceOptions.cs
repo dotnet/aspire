@@ -11,14 +11,14 @@ public class ProjectResourceOptions
     /// <summary>
     /// The launch profile to use. If <c>null</c> then the default launch profile will be used.
     /// </summary>
-    public string? LaunchProfileName { get; init; }
+    public string? LaunchProfileName { get; set; }
     /// <summary>
     /// If set, no launch profile will be used, and LaunchProfileName will be ignored.
     /// </summary>
-    public bool ExcludeLaunchProfile { get; init; }
+    public bool ExcludeLaunchProfile { get; set; }
     /// <summary>
     /// If set, ignore endpoints coming from Kestrel configuration.
     /// </summary>
-    public bool ExcludeKestrelEndpoints { get; init; }
+    public bool ExcludeKestrelEndpoints { get; set; }
 }
 

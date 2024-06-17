@@ -55,7 +55,7 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name) where TProject : IProjectMetadata, new()
     {
-        return builder.AddProject<TProject>(name, new ProjectResourceOptions());
+        return builder.AddProject<TProject>(name, _ => { });
     }
 
     /// <summary>
@@ -84,7 +84,7 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath)
     {
-        return builder.AddProject(name, projectPath, new ProjectResourceOptions());
+        return builder.AddProject(name, projectPath, _ => { });
     }
 
     /// <summary>
@@ -126,10 +126,10 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name, string? launchProfileName) where TProject : IProjectMetadata, new()
     {
-        return builder.AddProject<TProject>(name, new ProjectResourceOptions
+        return builder.AddProject<TProject>(name, options =>
         {
-            ExcludeLaunchProfile = launchProfileName is null,
-            LaunchProfileName = launchProfileName
+            options.ExcludeLaunchProfile = launchProfileName is null;
+            options.LaunchProfileName = launchProfileName;
         });
     }
 
@@ -149,10 +149,10 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath, string? launchProfileName)
     {
-        return builder.AddProject(name, projectPath, new ProjectResourceOptions
+        return builder.AddProject(name, projectPath, options =>
         {
-            ExcludeLaunchProfile = launchProfileName is null,
-            LaunchProfileName = launchProfileName
+            options.ExcludeLaunchProfile = launchProfileName is null;
+            options.LaunchProfileName = launchProfileName;
         });
     }
 
@@ -162,7 +162,7 @@ public static class ProjectResourceBuilderExtensions
     /// <typeparam name="TProject">A type that represents the project reference.</typeparam>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
-    /// <param name="options">Options to configure the project resource.</param>
+    /// <param name="configure">A callback to configure the project resource options.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// TODO!
@@ -170,8 +170,11 @@ public static class ProjectResourceBuilderExtensions
     /// <example>
     /// TODO!
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name, ProjectResourceOptions options) where TProject : IProjectMetadata, new()
+    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name, Action<ProjectResourceOptions> configure) where TProject : IProjectMetadata, new()
     {
+        var options = new ProjectResourceOptions();
+        configure(options);
+
         var project = new ProjectResource(name);
         return builder.AddResource(project)
                       .WithAnnotation(new TProject())
@@ -184,7 +187,7 @@ public static class ProjectResourceBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
     /// <param name="projectPath">The path to the project file.</param>
-    /// <param name="options">Options to configure the project resource.</param>
+    /// <param name="configure">A callback to configure the project resource options.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
@@ -203,8 +206,11 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath, ProjectResourceOptions options)
+    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath, Action<ProjectResourceOptions> configure)
     {
+        var options = new ProjectResourceOptions();
+        configure(options);
+
         var project = new ProjectResource(name);
 
         projectPath = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectPath));
