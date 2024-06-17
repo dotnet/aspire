@@ -27,6 +27,11 @@ public static class ResourceViewModelExtensions
         return resource.GetKnownState() == KnownResourceState.Running;
     }
 
+    internal static bool IsFinishedState(this ResourceViewModel resource)
+    {
+        return resource.GetKnownState() is KnownResourceState.Finished;
+    }
+
     internal static bool IsStopped(this ResourceViewModel resource)
     {
         return resource.GetKnownState() is KnownResourceState.Exited or KnownResourceState.Finished or KnownResourceState.FailedToStart;
