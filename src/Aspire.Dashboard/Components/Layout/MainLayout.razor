@@ -34,7 +34,7 @@
             <UserProfile/>
         </FluentHeader>
 
-        <NavMenu/>
+        <DesktopNavMenu/>
     }
     else
     {
@@ -52,26 +52,13 @@
                 BackgroundColor="transparent"
                 OnClick="@(() => _isNavMenuOpen = !_isNavMenuOpen)"
                 Class="navigation-button"/>
-
         </FluentHeader>
 
-        <FluentMenu Open="@_isNavMenuOpen" Anchored="false" Style="grid-area: nav-menu; height: 100vh; margin-top: 2px;">
-            @foreach (var item in GetNavMenu())
-            {
-                <FluentMenuItem OnClick="@(async () => { _isNavMenuOpen = false; await item.OnClick(); })" Style="height: 40px; width: 100vw; margin-bottom: 6px;">
-                    @item.Text
-
-                    @if (item.Icon is { } icon)
-                    {
-                        <span slot="start">
-                            <FluentIcon Value="@icon" Slot="start" Color="Color.Neutral"/>
-                        </span>
-                    }
-                </FluentMenuItem>
-
-                <FluentDivider/>
-            }
-        </FluentMenu>
+        <MobileNavMenu
+            IsNavMenuOpen="_isNavMenuOpen"
+            CloseNavMenu="@CloseMobileNavMenu"
+            LaunchHelpAsync="@LaunchHelpAsync"
+            LaunchSettingsAsync="@LaunchSettingsAsync" />
     }
 
     <div class="messagebar-container">

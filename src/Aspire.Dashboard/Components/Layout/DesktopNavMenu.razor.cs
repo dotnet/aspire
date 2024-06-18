@@ -6,7 +6,7 @@ using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Layout;
 
-public partial class NavMenu : ComponentBase
+public partial class DesktopNavMenu : ComponentBase
 {
     internal static Icon ResourcesIcon(bool active = false) =>
         active ? new Icons.Filled.Size24.AppFolder()

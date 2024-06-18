@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Components.CustomIcons;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
@@ -234,67 +233,10 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         }
     }
 
-    private Task NavigateToAsync(string url)
+    private void CloseMobileNavMenu()
     {
-        NavigationManager.NavigateTo(url);
-        return Task.CompletedTask;
-    }
-
-    private IEnumerable<NavMenuItemEntry> GetNavMenu()
-    {
-        if (DashboardClient.IsEnabled)
-        {
-            yield return new(
-                Loc[nameof(Resources.Layout.NavMenuResourcesTab)],
-                () => NavigateToAsync(DashboardUrls.ResourcesUrl()),
-                NavMenu.ResourcesIcon()
-            );
-
-            yield return new(
-                Loc[nameof(Resources.Layout.NavMenuConsoleLogsTab)],
-                () => NavigateToAsync(DashboardUrls.ConsoleLogsUrl()),
-                NavMenu.ConsoleLogsIcon()
-            );
-        }
-
-        yield return new(
-            Loc[nameof(Resources.Layout.NavMenuStructuredLogsTab)],
-            () => NavigateToAsync(DashboardUrls.StructuredLogsUrl()),
-            NavMenu.StructuredLogsIcon()
-        );
-
-        yield return new(
-            Loc[nameof(Resources.Layout.NavMenuTracesTab)],
-            () => NavigateToAsync(DashboardUrls.TracesUrl()),
-            NavMenu.TracesIcon()
-        );
-
-        yield return new(
-            Loc[nameof(Resources.Layout.NavMenuMetricsTab)],
-            () => NavigateToAsync(DashboardUrls.MetricsUrl()),
-            NavMenu.MetricsIcon()
-        );
-
-        yield return new(
-            Loc[nameof(Resources.Layout.MainLayoutAspireRepoLink)],
-            async () =>
-            {
-                await JS.InvokeVoidAsync("open", ["https://aka.ms/dotnet/aspire/repo", "_blank"]);
-            },
-            new AspireIcons.Size24.GitHub()
-        );
-
-        yield return new(
-            Loc[nameof(Resources.Layout.MainLayoutAspireDashboardHelpLink)],
-            LaunchHelpAsync,
-            new Icons.Regular.Size24.QuestionCircle()
-        );
-
-        yield return new(
-            Loc[nameof(Resources.Layout.MainLayoutLaunchSettings)],
-            LaunchSettingsAsync,
-            new Icons.Regular.Size24.Settings()
-        );
+        _isNavMenuOpen = false;
+        StateHasChanged();
     }
 
     public async ValueTask DisposeAsync()
@@ -320,6 +262,4 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         await JSInteropHelpers.SafeDisposeAsync(_jsModule);
         await JSInteropHelpers.SafeDisposeAsync(_keyboardHandlers);
     }
-
-    private record NavMenuItemEntry(string Text, Func<Task> OnClick, Icon? Icon = null);
 }
