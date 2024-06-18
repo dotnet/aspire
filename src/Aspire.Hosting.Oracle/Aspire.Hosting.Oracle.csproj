@@ -7,6 +7,10 @@
     <Description>Oracle Database support for .NET Aspire.</Description>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <MinCodeCoverage>20</MinCodeCoverage>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
     <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
