@@ -6,7 +6,6 @@
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using System.Globalization
-@inject NavigationManager NavigationManager
 @inject IJSRuntime JS
 @inject IStringLocalizer<Dashboard.Resources.Traces> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
@@ -19,7 +18,7 @@
     <FluentToolbar Orientation="Orientation.Horizontal">
         <ResourceSelect Resources="_applicationViewModels"
                         AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
-                        @bind-SelectedResource="_selectedApplication"
+                        @bind-SelectedResource="PageViewModel.SelectedApplication"
                         @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync" />
         <FluentSearch @bind-Value="_filter"
                       @oninput="HandleFilter"

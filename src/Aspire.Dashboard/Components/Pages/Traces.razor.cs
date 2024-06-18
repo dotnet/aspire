@@ -9,24 +9,29 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
+using static Aspire.Dashboard.Components.Pages.Traces;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class Traces
+public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, TracesPageState>
 {
     private SelectViewModel<ResourceTypeDetails> _allApplication = null!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
     private List<OtlpApplication> _applications = default!;
     private List<SelectViewModel<ResourceTypeDetails>> _applicationViewModels = default!;
-    private SelectViewModel<ResourceTypeDetails> _selectedApplication = null!;
     private Subscription? _applicationsSubscription;
     private Subscription? _tracesSubscription;
     private bool _applicationChanged;
     private CancellationTokenSource? _filterCts;
     private string _filter = string.Empty;
+
+    public string SessionStorageKey => "Traces_PageState";
+    public string BasePath => DashboardUrls.TracesBasePath;
+    public TracesPageViewModel PageViewModel { get; set; } = null!;
 
     [Parameter]
     public string? ApplicationName { get; set; }
@@ -45,6 +50,12 @@ public partial class Traces
 
     [Inject]
     public required ILogger<Traces> Logger { get; init; }
+
+    [Inject]
+    public required NavigationManager NavigationManager { get; set; }
+
+    [Inject]
+    public required ProtectedSessionStorage SessionStorage { get; set; }
 
     private string GetNameTooltip(OtlpTrace trace)
     {
@@ -86,7 +97,7 @@ public partial class Traces
     protected override Task OnInitializedAsync()
     {
         _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = $"({ControlsStringsLoc[nameof(ControlsStrings.All)]})" };
-        _selectedApplication = _allApplication;
+        PageViewModel = new TracesPageViewModel { SelectedApplication = _allApplication };
 
         UpdateApplications();
         _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
@@ -98,10 +109,9 @@ public partial class Traces
         return Task.CompletedTask;
     }
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        _selectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
-        TracesViewModel.ApplicationServiceId = _selectedApplication.Id?.InstanceId;
+        await this.InitializeViewModelAsync();
         UpdateSubscription();
     }
 
@@ -115,19 +125,17 @@ public partial class Traces
 
     private Task HandleSelectedApplicationChangedAsync()
     {
-        NavigationManager.NavigateTo(DashboardUrls.TracesUrl(resource: _selectedApplication.Name));
         _applicationChanged = true;
-
-        return Task.CompletedTask;
+        return this.AfterViewModelChangedAsync();
     }
 
     private void UpdateSubscription()
     {
         // Subscribe to updates.
-        if (_tracesSubscription is null || _tracesSubscription.ApplicationId != _selectedApplication.Id?.InstanceId)
+        if (_tracesSubscription is null || _tracesSubscription.ApplicationId != PageViewModel.SelectedApplication.Id?.InstanceId)
         {
             _tracesSubscription?.Dispose();
-            _tracesSubscription = TelemetryRepository.OnNewTraces(_selectedApplication.Id?.InstanceId, SubscriptionType.Read, async () =>
+            _tracesSubscription = TelemetryRepository.OnNewTraces(PageViewModel.SelectedApplication.Id?.InstanceId, SubscriptionType.Read, async () =>
             {
                 TracesViewModel.ClearData();
                 await InvokeAsync(StateHasChanged);
@@ -179,5 +187,38 @@ public partial class Traces
     {
         _applicationsSubscription?.Dispose();
         _tracesSubscription?.Dispose();
+    }
+
+    public void UpdateViewModelFromQuery(TracesPageViewModel viewModel)
+    {
+        PageViewModel.SelectedApplication = _applicationViewModels.GetApplication(ApplicationName, _allApplication);
+        TracesViewModel.ApplicationServiceId = PageViewModel.SelectedApplication.Id?.InstanceId;
+        _ = Task.Run(async () =>
+        {
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+    public string GetUrlFromSerializableViewModel(TracesPageState serializable)
+    {
+        return DashboardUrls.TracesUrl(serializable.SelectedApplication);
+    }
+
+    public TracesPageState ConvertViewModelToSerializable()
+    {
+        return new TracesPageState
+        {
+            SelectedApplication = PageViewModel.SelectedApplication.Id is not null ? PageViewModel.SelectedApplication.Name : null,
+        };
+    }
+
+    public class TracesPageViewModel
+    {
+        public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }
+    }
+
+    public class TracesPageState
+    {
+        public string? SelectedApplication { get; set; }
     }
 }
