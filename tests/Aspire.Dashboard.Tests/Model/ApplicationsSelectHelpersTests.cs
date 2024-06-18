@@ -4,7 +4,9 @@
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Resource.V1;
 using Xunit;
@@ -53,11 +55,55 @@ public sealed class ApplicationsSelectHelpersTests
             });
 
         // Act
-        var app = appVMs.GetApplication("nodeapp", null!);
+        var app = appVMs.GetApplication(NullLogger.Instance, "nodeapp", null!);
 
         // Assert
         Assert.Equal("nodeapp", app.Id!.InstanceId);
         Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
+    }
+
+    [Fact]
+    public void GetApplication_NameDifferentByCase_Merge()
+    {
+        // Arrange
+        var apps = new Dictionary<string, OtlpApplication>();
+
+        var appVMs = ApplicationsSelectHelpers.CreateApplications(new List<OtlpApplication>
+        {
+            CreateOtlpApplication(apps, name: "nodeapp", instanceId: "nodeapp"),
+            CreateOtlpApplication(apps, name: "NODEAPP", instanceId: "nodeapp-abc")
+        });
+
+        Assert.Collection(appVMs,
+            app =>
+            {
+                Assert.Equal("nodeapp", app.Name);
+                Assert.Equal(OtlpApplicationType.ReplicaSet, app.Id!.Type);
+                Assert.Null(app.Id!.InstanceId);
+            },
+            app =>
+            {
+                Assert.Equal("nodeapp", app.Name);
+                Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
+                Assert.Equal("nodeapp", app.Id!.InstanceId);
+            },
+            app =>
+            {
+                Assert.Equal("nodeapp-abc", app.Name);
+                Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
+                Assert.Equal("nodeapp-abc", app.Id!.InstanceId);
+            });
+
+        var testSink = new TestSink();
+        var factory = LoggerFactory.Create(b => b.AddProvider(new TestLoggerProvider(testSink)));
+
+        // Act
+        var app = appVMs.GetApplication(factory.CreateLogger("Test"), "nodeapp", null!);
+
+        // Assert
+        Assert.Equal("nodeapp", app.Id!.InstanceId);
+        Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
+        Assert.Empty(testSink.Writes);
     }
 
     private static OtlpApplication CreateOtlpApplication(Dictionary<string, OtlpApplication> apps, string name, string instanceId)

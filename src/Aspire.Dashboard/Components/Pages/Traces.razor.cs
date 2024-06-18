@@ -43,6 +43,9 @@ public partial class Traces
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; set; }
 
+    [Inject]
+    public required ILogger<Traces> Logger { get; init; }
+
     private string GetNameTooltip(OtlpTrace trace)
     {
         var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesFullName)], trace.FullName);
@@ -97,7 +100,7 @@ public partial class Traces
 
     protected override void OnParametersSet()
     {
-        _selectedApplication = _applicationViewModels.GetApplication(ApplicationName, _allApplication);
+        _selectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
         TracesViewModel.ApplicationServiceId = _selectedApplication.Id?.InstanceId;
         UpdateSubscription();
     }
