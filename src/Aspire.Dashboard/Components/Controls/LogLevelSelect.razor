@@ -1,0 +1,30 @@
+﻿@using Aspire.Dashboard.Model.Otlp
+@inject IStringLocalizer<Resources.StructuredLogs> Loc
+
+<FluentSelect TOption="SelectViewModel<LogLevel?>"
+              Items="@LogLevels"
+              Position="SelectPosition.Below"
+              OptionText="@(c => c.Name)"
+              Label="@(IncludeLabel ? Loc[nameof(Resources.StructuredLogs.StructuredLogsLevels)].Value : null)"
+              @bind-SelectedOption="@LogLevel"
+              @bind-SelectedOption:after="@HandleSelectedLogLevelChangedInternalAsync"
+              Width="120px"
+              Style="min-width: auto;"
+              AriaLabel="@Loc[nameof(Resources.StructuredLogs.StructuredLogsSelectMinimumLogLevel)]"/>
+
+@code {
+    [Parameter]
+    public bool IncludeLabel { get; set; }
+
+    [Parameter, EditorRequired]
+    public required List<SelectViewModel<LogLevel?>> LogLevels { get; set; }
+
+    [Parameter, EditorRequired]
+    public required SelectViewModel<LogLevel?> LogLevel { get; set; }
+
+    [Parameter]
+    public EventCallback<SelectViewModel<LogLevel?>> LogLevelChanged { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Func<Task> HandleSelectedLogLevelChangedAsync { get; set; }
+}

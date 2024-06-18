@@ -43,29 +43,18 @@
                     <span>@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevels)]</span>
                     <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical"/>
 
-                    <FluentSelect TOption="SelectViewModel<LogLevel?>"
-                                  Items="@_logLevels"
-                                  Position="SelectPosition.Below"
-                                  OptionText="@(c => c.Name)"
-                                  @bind-SelectedOption="PageViewModel.SelectedLogLevel"
-                                  @bind-SelectedOption:after="HandleSelectedLogLevelChangedAsync"
-                                  Width="120px"
-                                  Style="min-width: auto;"
-                                  AriaLabel="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsSelectMinimumLogLevel)]"/>
+                    <LogLevelSelect IncludeLabel="false"
+                                    @bind-LogLevel="@PageViewModel.SelectedLogLevel"
+                                    LogLevels="@_logLevels"
+                                    HandleSelectedLogLevelChangedAsync="@HandleSelectedLogLevelChangedAsync" />
                 </div>
             }
             else
             {
-                <FluentSelect TOption="SelectViewModel<LogLevel?>"
-                              Items="@_logLevels"
-                              Label="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevels)]"
-                              Position="SelectPosition.Below"
-                              OptionText="@(c => c.Name)"
-                              @bind-SelectedOption="PageViewModel.SelectedLogLevel"
-                              @bind-SelectedOption:after="HandleSelectedLogLevelChangedAsync"
-                              Width="120px"
-                              Style="min-width: auto;"
-                              AriaLabel="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsSelectMinimumLogLevel)]"/>
+                <LogLevelSelect IncludeLabel="true"
+                                @bind-LogLevel="@PageViewModel.SelectedLogLevel"
+                                LogLevels="@_logLevels"
+                                HandleSelectedLogLevelChangedAsync="@HandleSelectedLogLevelChangedAsync" />
             }
             <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <FluentLabel slot="end">@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsFilters)]</FluentLabel>
