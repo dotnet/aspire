@@ -52,7 +52,7 @@ internal sealed class ResourceLoggerForwarderService(
     {
         var applicationName = hostEnvironment.ApplicationName;
         var logger = loggerFactory.CreateLogger($"{applicationName}.Resources.{resource.Name}");
-        await foreach (var logEvent in resourceLoggerService.WatchAsync(resourceId).WithCancellation(cancellationToken))
+        await foreach (var logEvent in resourceLoggerService.WatchAsync(resourceId).WithCancellation(cancellationToken).ConfigureAwait(false))
         {
             foreach (var line in logEvent)
             {
