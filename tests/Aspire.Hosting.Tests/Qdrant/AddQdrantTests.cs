@@ -16,7 +16,7 @@ public class AddQdrantTests
     private const int QdrantPortHttp = 6333;
 
     [Fact]
-    public void AddQdrantAddsGeneratedApiKeyParameterWithUserSecretsParameterDefault()
+    public void AddQdrantAddsGeneratedApiKeyParameterWithUserSecretsParameterDefaultInRunMode()
     {
         using var appBuilder = TestDistributedApplicationBuilder.Create();
 
@@ -26,9 +26,9 @@ public class AddQdrantTests
     }
 
     [Fact]
-    public void AddQdrantDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultWhenNotInDevelopment()
+    public void AddQdrantDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultInPublishMode()
     {
-        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        using var appBuilder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         appBuilder.Environment.EnvironmentName = "Test";
 
         var qd = appBuilder.AddQdrant("qd");

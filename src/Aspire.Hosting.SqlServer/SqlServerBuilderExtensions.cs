@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
 
@@ -26,7 +25,7 @@ public static class SqlServerBuilderExtensions
         // The password must be at least 8 characters long and contain characters from three of the following four sets: Uppercase letters, Lowercase letters, Base 10 digits, and Symbols
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, passwordParameterName, minLower: 1, minUpper: 1, minNumeric: 1);
 
-        if (builder.Environment.IsDevelopment() && builder.ExecutionContext.IsRunMode && passwordParameter.Default is not null)
+        if (builder.ExecutionContext.IsRunMode && passwordParameter.Default is not null)
         {
             passwordParameter.Default = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, passwordParameterName, passwordParameter.Default);
         }

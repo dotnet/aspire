@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Tests.Oracle;
 public class AddOracleTests
 {
     [Fact]
-    public void AddOracleAddsGeneratedPasswordParameterWithUserSecretsParameterDefault()
+    public void AddOracleAddsGeneratedPasswordParameterWithUserSecretsParameterDefaultInRunMode()
     {
         using var appBuilder = TestDistributedApplicationBuilder.Create();
 
@@ -22,9 +22,9 @@ public class AddOracleTests
     }
 
     [Fact]
-    public void AddOracleDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultWhenNotInDevelopment()
+    public void AddOracleDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultInPublishMode()
     {
-        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        using var appBuilder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         appBuilder.Environment.EnvironmentName = "Test";
 
         var orcl = appBuilder.AddOracle("orcl");

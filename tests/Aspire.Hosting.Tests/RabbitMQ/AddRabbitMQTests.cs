@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Tests.RabbitMQ;
 public class AddRabbitMQTests
 {
     [Fact]
-    public void AddRabbitMQAddsGeneratedPasswordParameterWithUserSecretsParameterDefault()
+    public void AddRabbitMQAddsGeneratedPasswordParameterWithUserSecretsParameterDefaultInRunMode()
     {
         using var appBuilder = TestDistributedApplicationBuilder.Create();
 
@@ -22,9 +22,9 @@ public class AddRabbitMQTests
     }
 
     [Fact]
-    public void AddRabbitMQDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultWhenNotInDevelopment()
+    public void AddRabbitMQDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultInPublishMode()
     {
-        using var appBuilder = TestDistributedApplicationBuilder.Create();
+        using var appBuilder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         appBuilder.Environment.EnvironmentName = "Test";
 
         var rmq = appBuilder.AddRabbitMQ("rmq");
