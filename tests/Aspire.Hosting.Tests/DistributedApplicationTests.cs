@@ -17,6 +17,7 @@ using Microsoft.Extensions.Options;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
+using Aspire.Components.Common.Tests;
 
 namespace Aspire.Hosting.Tests;
 
@@ -136,7 +137,7 @@ public class DistributedApplicationTests
         Assert.Empty(lifecycleHookDescriptors.Where(sd => sd.ImplementationFactory == callback2));
     }
 
-    [LocalOnlyFact]
+    [Fact]
     public async Task AllocatedPortsAssignedAfterHookRuns()
     {
         using var testProgram = CreateTestProgram();
@@ -168,7 +169,7 @@ public class DistributedApplicationTests
         }
     }
 
-    [LocalOnlyFact]
+    [Fact]
     public async Task TestServicesWithMultipleReplicas()
     {
         var replicaCount = 3;
@@ -219,7 +220,8 @@ public class DistributedApplicationTests
         }
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [RequiresDocker]
     public async Task VerifyDockerAppWorks()
     {
         using var testProgram = CreateTestProgram();
@@ -247,7 +249,8 @@ public class DistributedApplicationTests
         await app.StopAsync();
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [RequiresDocker]
     public async Task SpecifyingEnvPortInEndpointFlowsToEnv()
     {
         using var testProgram = CreateTestProgram(includeNodeApp: true, randomizePorts: false);
@@ -302,7 +305,7 @@ public class DistributedApplicationTests
         }
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
     public async Task StartAsync_DashboardAuthConfig_PassedToDashboardProcess()
     {
         var browserToken = "ThisIsATestToken";
@@ -344,7 +347,7 @@ public class DistributedApplicationTests
         }
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
     public async Task StartAsync_UnsecuredAllowAnonymous_PassedToDashboardProcess()
     {
         var args = new string[] {
@@ -381,7 +384,8 @@ public class DistributedApplicationTests
         }
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [RequiresDocker]
     public async Task VerifyDockerWithEntrypointWorks()
     {
         using var testProgram = CreateTestProgram();
@@ -411,7 +415,8 @@ public class DistributedApplicationTests
         await app.StopAsync();
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [RequiresDocker]
     public async Task VerifyDockerWithBindMountWorksWithAbsolutePaths()
     {
         using var testProgram = CreateTestProgram();
@@ -443,7 +448,8 @@ public class DistributedApplicationTests
         await app.StopAsync();
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [RequiresDocker]
     public async Task VerifyDockerWithBindMountWorksWithRelativePaths()
     {
         using var testProgram = CreateTestProgram();
@@ -475,7 +481,8 @@ public class DistributedApplicationTests
         await app.StopAsync();
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [RequiresDocker]
     public async Task VerifyDockerWithVolumeWorksWithName()
     {
         using var testProgram = CreateTestProgram();
@@ -506,7 +513,8 @@ public class DistributedApplicationTests
         await app.StopAsync();
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [RequiresDocker]
     public async Task KubernetesHasResourceNameForContainersAndExes()
     {
         using var testProgram = CreateTestProgram(includeIntegrationServices: true, includeNodeApp: true);
@@ -574,7 +582,7 @@ public class DistributedApplicationTests
         }
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
     public async Task ReplicasAndProxylessEndpointThrows()
     {
         using var testProgram = CreateTestProgram();
@@ -591,7 +599,7 @@ public class DistributedApplicationTests
         Assert.Equal($"Resource 'servicea_{suffix}' uses multiple replicas and a proxy-less endpoint 'http'. These features do not work together.", ex.Message);
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
     public async Task ProxylessEndpointWithoutPortThrows()
     {
         using var testProgram = CreateTestProgram();
@@ -609,7 +617,7 @@ public class DistributedApplicationTests
         Assert.Equal($"Service 'servicea_{suffix}' needs to specify a port for endpoint 'http' since it isn't using a proxy.", ex.Message);
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
     public async Task ProxylessEndpointWorks()
     {
         using var testProgram = CreateTestProgram();
@@ -640,7 +648,7 @@ public class DistributedApplicationTests
         });
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
     public async Task ProxylessAndProxiedEndpointBothWorkOnSameResource()
     {
         using var testProgram = CreateTestProgram();
@@ -704,7 +712,8 @@ public class DistributedApplicationTests
         }
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [RequiresDocker]
     public async Task ProxylessContainerCanBeReferenced()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -752,7 +761,8 @@ public class DistributedApplicationTests
         await app.StopAsync();
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [RequiresDocker]
     public async Task ProxylessContainerWithoutPortThrows()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -769,7 +779,8 @@ public class DistributedApplicationTests
         Assert.Equal($"The endpoint 'tcp' for container resource 'dummyRedis_{suffix}' must specify the TargetPort value", ex.Message);
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [RequiresDocker]
     public async Task AfterResourcesCreatedLifecycleHookWorks()
     {
         using var builder = TestDistributedApplicationBuilder.Create();

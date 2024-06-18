@@ -3,13 +3,13 @@
 
 using System.Diagnostics;
 
-namespace Aspire.Hosting.Utils;
+namespace Aspire.Components.Common.Tests;
 
 internal static class FileUtil
 {
-    public static string FindFullPathFromPath(string command) => FindFullPathFromPath(command, Environment.GetEnvironmentVariable("PATH"), Path.PathSeparator, File.Exists);
+    public static string? FindFullPathFromPath(string command) => FindFullPathFromPath(command, Environment.GetEnvironmentVariable("PATH"), Path.PathSeparator, File.Exists);
 
-    internal static string FindFullPathFromPath(string command, string? pathVariable, char pathSeparator, Func<string, bool> fileExists)
+    internal static string? FindFullPathFromPath(string command, string? pathVariable, char pathSeparator, Func<string, bool> fileExists)
     {
         Debug.Assert(!string.IsNullOrWhiteSpace(command));
 
@@ -28,6 +28,6 @@ internal static class FileUtil
             }
         }
 
-        return command;
+        return null;
     }
 }

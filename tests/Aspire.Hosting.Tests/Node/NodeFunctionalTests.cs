@@ -17,7 +17,8 @@ public class NodeFunctionalTests
         _nodeJsFixture = nodeJsFixture;
     }
 
-    [LocalOnlyFact("node")]
+    [Fact]
+    [RequiresTools("node")]
     public async Task VerifyNodeAppWorks()
     {
         var testProgram = _nodeJsFixture.TestProgram;
