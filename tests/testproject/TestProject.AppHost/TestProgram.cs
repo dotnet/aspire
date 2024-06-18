@@ -56,7 +56,7 @@ public class TestProgram : IDisposable
 
         var serviceAPath = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\TestProject.ServiceA\TestProject.ServiceA.csproj");
 
-        ServiceABuilder = AppBuilder.AddProject("servicea", serviceAPath, launchProfileName: "http").PublishAsDockerFile();
+        ServiceABuilder = AppBuilder.AddProject("servicea", serviceAPath, launchProfileName: "http");
         ServiceBBuilder = AppBuilder.AddProject<Projects.ServiceB>("serviceb", launchProfileName: "http");
         ServiceCBuilder = AppBuilder.AddProject<Projects.ServiceC>("servicec", launchProfileName: "http");
         WorkerABuilder = AppBuilder.AddProject<Projects.WorkerA>("workera");
