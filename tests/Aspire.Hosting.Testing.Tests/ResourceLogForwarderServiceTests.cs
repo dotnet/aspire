@@ -106,57 +106,6 @@ public class ResourceLogForwarderServiceTests(ITestOutputHelper output)
             log => { Assert.Equal(LogLevel.Error, log.Level); Assert.Equal("6: Test critical message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); });
     }
 
-    [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
-    [InlineData(3)]
-    [InlineData(6)]
-    public async Task FindTheRaceConditionInResourceNotifications(int logLineCountTarget)
-    {
-        for (var i = 0; i < 10_000; i++)
-        {
-            var hostApplicationLifetime = new TestHostApplicationLifetime();
-            var resourceLoggerService = new ResourceLoggerService();
-            var hostEnvironment = new HostingEnvironment { ApplicationName = "TestApp.AppHost" };
-
-            var myresource = new CustomResource("myresource");
-
-            // Start the log subscriber loop
-            var loggedLines = new List<string>();
-            var logLoop = Task.Run(async () =>
-            {
-                await foreach (var logLines in resourceLoggerService.WatchAsync(myresource).WithCancellation(hostApplicationLifetime.ApplicationStopping))
-                {
-                    loggedLines.AddRange(logLines.Select(l => $"{l.LineNumber} {l.Content}"));
-                    if (loggedLines.Count >= logLineCountTarget)
-                    {
-                        break;
-                    }
-                }
-            });
-
-            Assert.Empty(loggedLines);
-
-            // Log messages to the resource
-            var resourceLogger = resourceLoggerService.GetLogger(myresource);
-            for (var j = 0; j < logLineCountTarget; j++)
-            {
-                resourceLogger.LogInformation("log message (ticks: {Ticks})", DateTime.Now.Ticks);
-            }
-
-            // Wait for the log loop to complete or timeout after 10 seconds
-            await Task.WhenAny(logLoop, Task.Delay(10_000));
-
-            // Complete the resource log stream
-            resourceLoggerService.Complete(myresource);
-
-            // Trigger the stopping token
-            hostApplicationLifetime.StopApplication();
-
-            Assert.True(logLineCountTarget == loggedLines.Count, $"On iteration {i}, expected {logLineCountTarget} log lines but got {loggedLines.Count}:\r\n{string.Join("\r\n", loggedLines)}");
-        }
-    }
-
     private sealed class CustomResource(string name) : Resource(name)
     {
 

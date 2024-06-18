@@ -231,9 +231,14 @@ public class ResourceLoggerService
 
             OnNewLog += Log;
 
-            // ensure the backlog snapshot is taken after subscribing to OnNewLog
+            // We need to ensure the backlog snapshot is taken after subscribing to OnNewLog
             // to ensure the backlog snapshot contains the correct logs. The backlog
             // can get cleared when there are no subscribers, so we ensure we are subscribing first.
+            // However, this is racey, because as soon as we add the OnNewLog handler, logs are
+            // being written to the both the backlog AND the channel and in the time before we take
+            // the backlog snapshot below, a log line could be both in the backlog and in the channel.
+            // So in the channel read loop we need to ensure we haven't already returned the log line
+            // via the backlog snapshot already.
 
             // REVIEW: Performance makes me very sad, but we can optimize this later.
             var backlogSnapshot = GetBacklogSnapshot();
@@ -244,9 +249,28 @@ public class ResourceLoggerService
 
             try
             {
-                await foreach (var entry in channel.GetBatchesAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
+                var lineCount = 0;
+                while (await channel.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
                 {
-                    yield return entry;
+                    var batch = new List<LogLine>();
+                    while (channel.Reader.TryRead(out var log))
+                    {
+                        if (lineCount > backlogSnapshot.Length)
+                        {
+                            // We're beyond the number of lines in the backlog snapshot so no need to check for dupes anymore
+                            batch.Add(log);
+                        }
+                        else
+                        {
+                            // We need to check to ensure we haven't already returned this line via the backlog snapshot we took
+                            if (!backlogSnapshot.Contains(log))
+                            {
+                                batch.Add(log);
+                            }
+                            lineCount++;
+                        }
+                    }
+                    yield return batch;
                 }
             }
             finally
