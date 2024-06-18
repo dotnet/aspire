@@ -186,8 +186,8 @@ public class WorkloadTestsBase
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            // ActiveIssue: https://github.com/dotnet/aspire/issues/4555
-            yield return "aspire_龦唉丂荳_㐁ᠭ_ᠤསྲིདخەلꌠ_1ᥕ_😀";
+            // ActiveIssue for windows: https://github.com/dotnet/aspire/issues/4555
+            yield return "aspire_龦唉丂荳_㐁ᠭ_ᠤསྲིདخەلꌠ_1ᥕ";
         }
 
         // ActiveIssue: https://github.com/dotnet/aspire/issues/4550
@@ -195,6 +195,9 @@ public class WorkloadTestsBase
 
         yield return "aspire_starter.1period then.34letters";
         yield return "aspire-starter & with.1";
+
+        // ActiveIssue: https://github.com/dotnet/aspnetcore/issues/56277
+        // yield return "aspire_😀";
 
         // basic case
         yield return "aspire";
