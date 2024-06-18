@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -19,13 +20,13 @@ public static class AspireKeycloakExtensions
     /// <summary>
     /// Adds Keycloak JWT Bearer authentication to the application.
     /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="builder">The <see cref="AuthenticationBuilder" /> to add services to.</param>
     /// <param name="connectionName">The connection name to use to find a connection string.</param>
     /// <param name="realm">The realm of the Keycloak server to connect to.</param>
     /// <param name="authenticationScheme">The authentication scheme name. Default is "Bearer".</param>
     /// <param name="configureJwtBearerOptions">An optional action to configure the <see cref="JwtBearerOptions"/>.</param>
     public static void AddKeycloakJwtBearer(
-        this IHostApplicationBuilder builder,
+        this AuthenticationBuilder builder,
         string connectionName,
         string realm,
         string authenticationScheme = JwtBearerDefaults.AuthenticationScheme,
@@ -33,8 +34,7 @@ public static class AspireKeycloakExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.Services.AddAuthentication(authenticationScheme)
-                .AddJwtBearer(authenticationScheme);
+        builder.AddJwtBearer(authenticationScheme);
 
         builder.Services.AddHttpClient(KeycloakBackchannel);
 
@@ -52,14 +52,14 @@ public static class AspireKeycloakExtensions
     /// <summary>
     /// Adds Keycloak OpenID Connect authentication to the application.
     /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="builder">The <see cref="AuthenticationBuilder" /> to add services to.</param>
     /// <param name="connectionName">The connection name to use to find a connection string.</param>
     /// <param name="realm">The realm of the Keycloak server to connect to.</param>
     /// <param name="openIdConnectScheme">The OpenID Connect authentication scheme name. Default is "OpenIdConnect".</param>
     /// <param name="cookieScheme">The cookie authentication scheme name. Default is "Cookie".</param>
     /// <param name="configureOpenIdConnectOptions">An optional action to configure the <see cref="OpenIdConnectOptions"/>.</param>
     public static void AddKeycloakOpenIdConnect(
-        this IHostApplicationBuilder builder,
+        this AuthenticationBuilder builder,
         string connectionName,
         string realm,
         string openIdConnectScheme = OpenIdConnectDefaults.AuthenticationScheme,
@@ -68,9 +68,8 @@ public static class AspireKeycloakExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.Services.AddAuthentication(openIdConnectScheme)
-                        .AddCookie(cookieScheme)
-                        .AddOpenIdConnect(openIdConnectScheme, options => { });
+        builder.AddCookie(cookieScheme)
+               .AddOpenIdConnect(openIdConnectScheme, options => { });
 
         builder.Services.AddHttpClient(KeycloakBackchannel);
 
