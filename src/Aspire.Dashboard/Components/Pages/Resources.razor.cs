@@ -90,7 +90,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 var keysLeft = left.Keys;
                 var keysRight = right.Keys;
 
-                return keysLeft.Count == keysRight.Count && keysLeft.SequenceEqual(keysRight, StringComparers.ResourceType);
+                return keysLeft.Count == keysRight.Count && keysLeft.OrderBy(key => key).SequenceEqual(keysRight.OrderBy(key => key), StringComparers.ResourceType);
             }
 
             return SetEqualsKeys(_visibleResourceTypes, _allResourceTypes)

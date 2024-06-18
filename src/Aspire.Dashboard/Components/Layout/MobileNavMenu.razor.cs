@@ -1,4 +1,5 @@
-﻿using Aspire.Dashboard.Components.CustomIcons;
+﻿using System.Text.RegularExpressions;
+using Aspire.Dashboard.Components.CustomIcons;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
@@ -36,14 +37,14 @@ public partial class MobileNavMenu : ComponentBase
                 Loc[nameof(Resources.Layout.NavMenuResourcesTab)],
                 () => NavigateToAsync(DashboardUrls.ResourcesUrl()),
                 DesktopNavMenu.ResourcesIcon(),
-                Href: DashboardUrls.ResourcesUrl()
+                LinkMatchRegex: new Regex($"^{DashboardUrls.ResourcesUrl()}$")
             );
 
             yield return new MobileNavMenuEntry(
                 Loc[nameof(Resources.Layout.NavMenuConsoleLogsTab)],
                 () => NavigateToAsync(DashboardUrls.ConsoleLogsUrl()),
                 DesktopNavMenu.ConsoleLogsIcon(),
-                Href: DashboardUrls.ConsoleLogsUrl()
+                LinkMatchRegex: GetNonIndexPageRegex(DashboardUrls.ConsoleLogsUrl())
             );
         }
 
@@ -51,21 +52,21 @@ public partial class MobileNavMenu : ComponentBase
             Loc[nameof(Resources.Layout.NavMenuStructuredLogsTab)],
             () => NavigateToAsync(DashboardUrls.StructuredLogsUrl()),
             DesktopNavMenu.StructuredLogsIcon(),
-            Href: DashboardUrls.StructuredLogsUrl()
+            LinkMatchRegex: GetNonIndexPageRegex(DashboardUrls.StructuredLogsUrl())
         );
 
         yield return new MobileNavMenuEntry(
             Loc[nameof(Resources.Layout.NavMenuTracesTab)],
             () => NavigateToAsync(DashboardUrls.TracesUrl()),
             DesktopNavMenu.TracesIcon(),
-            Href: DashboardUrls.TracesUrl()
+            LinkMatchRegex: GetNonIndexPageRegex(DashboardUrls.TracesUrl())
         );
 
         yield return new MobileNavMenuEntry(
             Loc[nameof(Resources.Layout.NavMenuMetricsTab)],
             () => NavigateToAsync(DashboardUrls.MetricsUrl()),
             DesktopNavMenu.MetricsIcon(),
-            Href: DashboardUrls.MetricsUrl()
+            LinkMatchRegex: GetNonIndexPageRegex(DashboardUrls.MetricsUrl())
         );
 
         yield return new MobileNavMenuEntry(
@@ -88,6 +89,11 @@ public partial class MobileNavMenu : ComponentBase
             LaunchSettingsAsync,
             new Icons.Regular.Size24.Settings()
         );
+    }
+
+    private static Regex GetNonIndexPageRegex(string pageRelativeBasePath)
+    {
+        return new Regex($"^({pageRelativeBasePath}|{pageRelativeBasePath}/.+)$");
     }
 }
 
