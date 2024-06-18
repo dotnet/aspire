@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Microsoft.Extensions.Logging;
@@ -104,6 +105,30 @@ public sealed class ApplicationsSelectHelpersTests
         Assert.Equal("nodeapp", app.Id!.InstanceId);
         Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
         Assert.Empty(testSink.Writes);
+    }
+
+    [Fact]
+    public void GetApplication_MultipleMatches_UseFirst()
+    {
+        // Arrange
+        var apps = new Dictionary<string, OtlpApplication>();
+
+        var appVMs = new List<SelectViewModel<ResourceTypeDetails>>
+        {
+            new SelectViewModel<ResourceTypeDetails>() { Name = "test", Id = ResourceTypeDetails.CreateSingleton("test-abc") },
+            new SelectViewModel<ResourceTypeDetails>() { Name = "test", Id = ResourceTypeDetails.CreateSingleton("test-def") }
+        };
+
+        var testSink = new TestSink();
+        var factory = LoggerFactory.Create(b => b.AddProvider(new TestLoggerProvider(testSink)));
+
+        // Act
+        var app = appVMs.GetApplication(factory.CreateLogger("Test"), "test", null!);
+
+        // Assert
+        Assert.Equal("test-abc", app.Id!.InstanceId);
+        Assert.Equal(OtlpApplicationType.Singleton, app.Id!.Type);
+        Assert.Single(testSink.Writes);
     }
 
     private static OtlpApplication CreateOtlpApplication(Dictionary<string, OtlpApplication> apps, string name, string instanceId)
