@@ -48,21 +48,14 @@ public sealed class ResourceViewModel
                 count++;
                 if (count >= 2)
                 {
-                    // There are multiple resources with the same name so they're part of a replica set.
+                    // There are multiple resources with the same display name so they're part of a replica set.
                     // Need to change the name so it includes an ID to tell them apart.
-                    // DCP automatically includes a suffix on the name, however we don't want it.
-                    // Instead, combine resource name with the UID so the names are consistent between
-                    // resource pages and telemetry pages.
+                    // DCP automatically includes a suffix on a kind of resource name, however we don't want it
+                    // because we can't share it between resource pages and telemetry pages.
+                    // Instead, combine resource name with the UID.
                     // Before: catalogservice-mbrpbvo
                     // After: catalogservice (026d19d)
-                    var name = resource.Name;
-                    var idSuffixStartIndex = name.LastIndexOf('-');
-                    if (idSuffixStartIndex != -1)
-                    {
-                        name = name.Substring(0, idSuffixStartIndex);
-                    }
-
-                    return $"{name} ({OtlpHelpers.TruncateString(resource.Uid, maxLength: 7)})";
+                    return $"{resource.DisplayName} ({OtlpHelpers.TruncateString(resource.Uid, maxLength: 7)})";
                 }
             }
         }
