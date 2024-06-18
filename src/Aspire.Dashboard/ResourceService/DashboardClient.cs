@@ -227,9 +227,17 @@ internal sealed class DashboardClient : IDashboardClient
 
         async Task ConnectAndWatchResourcesAsync(CancellationToken cancellationToken)
         {
-            await ConnectAsync().ConfigureAwait(false);
+            try
+            {
+                await ConnectAsync().ConfigureAwait(false);
 
-            await WatchResourcesWithRecoveryAsync().ConfigureAwait(false);
+                await WatchResourcesWithRecoveryAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error load data from the resource service.");
+                throw;
+            }
 
             async Task ConnectAsync()
             {
@@ -279,7 +287,7 @@ internal sealed class DashboardClient : IDashboardClient
                         // This has been observed in unit tests where the client is created and disposed
                         // very quickly. This check should probably be in the gRPC library instead.
                     }
-                    catch (Exception ex)
+                    catch (RpcException ex)
                     {
                         errorCount++;
 
