@@ -12,6 +12,7 @@ using Aspire.Hosting.Redis;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
 using Aspire.Hosting.Valkey;
+using IdentityModel.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -175,6 +176,33 @@ public class ManifestGenerationTests
     }
 
     [Theory]
+    [InlineData("Dockerfile")]
+    [InlineData("CustomDockerfile")]
+    public void PublishAsDockerTakesTheCustomerDockerfile(string dockerFilename)
+    {
+        var appBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        { Args = GetManifestArgs(), DisableDashboard = true, AssemblyName = typeof(ManifestGenerationTests).Assembly.FullName });
+
+        appBuilder.AddProject<Projects.ServiceA>("servicea").PublishAsDockerFile(dockerFilename);
+
+        appBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
+
+        using var program = appBuilder.Build();
+        var publisher = program.Services.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var element = resources.GetProperty("servicea");
+        var projectRootPath = Path.GetDirectoryName(new Projects.ServiceA().ProjectPath);
+
+        Assert.Equal("dockerfile.v0", element.TryGetString("type"));
+        Assert.Equal(PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(projectRootPath!, dockerFilename)), PathNormalizer.NormalizePathForCurrentPlatform(element.TryGetString("path")));
+        Assert.Equal(PathNormalizer.NormalizePathForCurrentPlatform(projectRootPath!), PathNormalizer.NormalizePathForCurrentPlatform(element.TryGetString("context")));
+    }
+
+    [Theory]
     [InlineData(new string[] { "args1", "args2" }, new string[] { "withArgs1", "withArgs2" })]
     [InlineData(new string[] { }, new string[] { "withArgs1", "withArgs2" })]
     [InlineData(new string[] { "args1", "args2" }, new string[] { })]
@@ -272,7 +300,7 @@ public class ManifestGenerationTests
         Assert.Equal("container.v0", container.GetProperty("type").GetString());
         Assert.Equal("{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port}", container.GetProperty("connectionString").GetString());
     }
-    
+
     [Fact]
     public void EnsureAllPostgresManifestTypesHaveVersion0Suffix()
     {

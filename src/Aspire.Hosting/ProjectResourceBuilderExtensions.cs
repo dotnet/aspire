@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -183,6 +184,35 @@ public static class ProjectResourceBuilderExtensions
         return builder.AddResource(project)
                       .WithAnnotation(new ProjectMetadata(projectPath))
                       .WithProjectDefaults(excludeLaunchProfile: launchProfileName is null, launchProfileName);
+    }
+
+    /// <summary>
+    /// Adds annotation.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="filename"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<ProjectResource> PublishAsDockerFile(this IResourceBuilder<ProjectResource> builder, string filename = "Dockerfile")
+    {
+        return builder.WithManifestPublishingCallback(context => WriteProvidedDockerFileAsync(context, builder.Resource, filename));
+    }
+
+    private static async Task WriteProvidedDockerFileAsync(ManifestPublishingContext context, ProjectResource resource, string filename)
+    {
+        var projectMetadata = resource.GetProjectMetadata();
+        var projectDirectoryPath = Path.GetDirectoryName(projectMetadata.ProjectPath);
+
+        context.Writer.WriteString("type", "dockerfile.v0");
+
+        var appHostRelativePathToDockerfile = Path.Combine(projectDirectoryPath!, filename);
+        var manifestFileRelativePathToDockerfile = context.GetManifestRelativePath(appHostRelativePathToDockerfile);
+        context.Writer.WriteString("path", manifestFileRelativePathToDockerfile);
+
+        var manifestFileRelativePathToContextDirectory = context.GetManifestRelativePath(projectDirectoryPath);
+        context.Writer.WriteString("context", manifestFileRelativePathToContextDirectory);
+
+        await context.WriteEnvironmentVariablesAsync(resource).ConfigureAwait(false);
+        context.WriteBindings(resource);
     }
 
     private static IResourceBuilder<ProjectResource> WithProjectDefaults(this IResourceBuilder<ProjectResource> builder, bool excludeLaunchProfile, string? launchProfileName)
