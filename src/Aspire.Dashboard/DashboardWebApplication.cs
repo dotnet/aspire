@@ -152,6 +152,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         builder.Services.AddLocalization();
 
+        builder.Services.AddAntiforgery(options =>
+        {
+            options.Cookie.Name = ".Aspire.Dashboard.Antiforgery";
+        });
+
         _app = builder.Build();
 
         _dashboardOptionsMonitor = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>();
@@ -496,7 +501,10 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     o.ForwardChallenge = OpenIdConnectDefaults.AuthenticationScheme;
                 });
 
-                authentication.AddCookie();
+                authentication.AddCookie(options =>
+                {
+                    options.Cookie.Name = ".Aspire.Dashboard.Auth";
+                });
 
                 authentication.AddOpenIdConnect(options =>
                 {
@@ -543,6 +551,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                         claimsIdentity.AddClaim(new Claim(FrontendAuthorizationDefaults.BrowserTokenClaimName, bool.TrueString));
                         return Task.CompletedTask;
                     };
+                    options.Cookie.Name = ".Aspire.Dashboard.Auth";
                 });
                 break;
         }
