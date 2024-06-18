@@ -191,12 +191,8 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
 
     public void UpdateViewModelFromQuery(TracesPageViewModel viewModel)
     {
-        PageViewModel.SelectedApplication = _applicationViewModels.GetApplication(ApplicationName, _allApplication);
+        viewModel.SelectedApplication = _applicationViewModels.GetApplication(ApplicationName, _allApplication);
         TracesViewModel.ApplicationServiceId = PageViewModel.SelectedApplication.Id?.InstanceId;
-        _ = Task.Run(async () =>
-        {
-            await InvokeAsync(StateHasChanged);
-        });
     }
 
     public string GetUrlFromSerializableViewModel(TracesPageState serializable)
