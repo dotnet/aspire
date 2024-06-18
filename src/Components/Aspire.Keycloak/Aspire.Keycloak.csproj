@@ -9,6 +9,10 @@
     <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <MinCodeCoverage>10</MinCodeCoverage>
+  </PropertyGroup>      
+
   <ItemGroup>
     <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
   </ItemGroup>

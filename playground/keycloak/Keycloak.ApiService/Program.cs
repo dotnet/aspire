@@ -6,11 +6,12 @@ builder.AddServiceDefaults();
 // Add services to the container.
 builder.Services.AddProblemDetails();
 
-builder.AddKeycloakJwtBearer("keycloak", realm: "WeatherShop", configureJwtBearerOptions: options =>
-{
-    options.RequireHttpsMetadata = false;
-    options.Audience = "weather.api";
-});
+builder.Services.AddAuthentication()
+                .AddKeycloakJwtBearer("keycloak", realm: "WeatherShop", configureJwtBearerOptions: options =>
+                {
+                    options.RequireHttpsMetadata = false;
+                    options.Audience = "weather.api";
+                });
 
 builder.Services.AddAuthorizationBuilder();
 

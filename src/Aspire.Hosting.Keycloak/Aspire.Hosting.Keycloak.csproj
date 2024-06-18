@@ -7,6 +7,10 @@
     <Description>Keycloak support for .NET Aspire.</Description>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <MinCodeCoverage>10</MinCodeCoverage>
+  </PropertyGroup>    
+
   <ItemGroup>
     <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
   </ItemGroup>

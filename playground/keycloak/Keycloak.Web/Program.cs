@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using Keycloak.Web;
 using Keycloak.Web.Components;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,15 +26,20 @@ builder.Services.AddHttpClient<WeatherApiClient>(client =>
     })
     .AddHttpMessageHandler<AuthorizationHandler>();
 
-builder.AddKeycloakOpenIdConnect("keycloak", realm: "WeatherShop", configureOpenIdConnectOptions: options =>
-{
-    options.ClientId = "WeatherWeb";
-    options.ResponseType = OpenIdConnectResponseType.Code;
-    options.Scope.Add("weather:all");
-    options.RequireHttpsMetadata = false;
-    options.TokenValidationParameters.NameClaimType = JwtRegisteredClaimNames.Name;
-    options.SaveTokens = true;
-});
+builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
+                .AddKeycloakOpenIdConnect(
+                    "keycloak", 
+                    realm: "WeatherShop", 
+                    openIdConnectScheme: OpenIdConnectDefaults.AuthenticationScheme, 
+                    configureOpenIdConnectOptions: options =>
+                {
+                    options.ClientId = "WeatherWeb";
+                    options.ResponseType = OpenIdConnectResponseType.Code;
+                    options.Scope.Add("weather:all");
+                    options.RequireHttpsMetadata = false;
+                    options.TokenValidationParameters.NameClaimType = JwtRegisteredClaimNames.Name;
+                    options.SaveTokens = true;
+                });
 
 builder.Services.AddCascadingAuthenticationState();
 
