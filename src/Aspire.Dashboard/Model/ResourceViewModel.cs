@@ -6,6 +6,7 @@ using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Aspire.Dashboard.Extensions;
+using Aspire.Dashboard.Otlp.Model;
 using Google.Protobuf.WellKnownTypes;
 
 namespace Aspire.Dashboard.Model;
@@ -47,7 +48,21 @@ public sealed class ResourceViewModel
                 count++;
                 if (count >= 2)
                 {
-                    return resource.Name;
+                    // There are multiple resources with the same name so they're part of a replica set.
+                    // Need to change the name so it includes an ID to tell them apart.
+                    // DCP automatically includes a suffix on the name, however we don't want it.
+                    // Instead, combine resource name with the UID so the names are consistent between
+                    // resource pages and telemetry pages.
+                    // Before: catalogservice-mbrpbvo
+                    // After: catalogservice (026d19d)
+                    var name = resource.Name;
+                    var idSuffixStartIndex = name.LastIndexOf('-');
+                    if (idSuffixStartIndex != -1)
+                    {
+                        name = name.Substring(0, idSuffixStartIndex);
+                    }
+
+                    return $"{name} ({OtlpHelpers.TruncateString(resource.Uid, maxLength: 7)})";
                 }
             }
         }

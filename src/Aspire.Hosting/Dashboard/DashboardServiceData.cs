@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
+using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
 
@@ -31,9 +32,20 @@ internal sealed class DashboardServiceData : IAsyncDisposable
         {
             static GenericResourceSnapshot CreateResourceSnapshot(IResource resource, string resourceId, DateTime creationTimestamp, CustomResourceSnapshot snapshot)
             {
+                var uidProperty = snapshot.Properties.FirstOrDefault(p => string.Equals(p.Name, KnownProperties.Resource.Uid, StringComparisons.ResourcePropertyName));
+                string? uid = null;
+                if (uidProperty != null)
+                {
+                    snapshot = snapshot with
+                    {
+                        Properties = snapshot.Properties.Remove(uidProperty)
+                    };
+                    uid = uidProperty.Value as string;
+                }
+
                 return new GenericResourceSnapshot(snapshot)
                 {
-                    Uid = resourceId,
+                    Uid = uid ?? resourceId,
                     CreationTimeStamp = snapshot.CreationTimeStamp ?? creationTimestamp,
                     Name = resourceId,
                     DisplayName = resource.Name,

@@ -69,7 +69,7 @@ public static class ApplicationsSelectHelpers
                 new SelectViewModel<ResourceTypeDetails>
                 {
                     Id = ResourceTypeDetails.CreateReplicaInstance(replica.InstanceId, applicationName),
-                    Name = replica.InstanceId
+                    Name = OtlpApplication.GetResourceName(replica, applications)
                 }));
         }
 

@@ -279,7 +279,7 @@ internal sealed class DashboardClient : IDashboardClient
                         // This has been observed in unit tests where the client is created and disposed
                         // very quickly. This check should probably be in the gRPC library instead.
                     }
-                    catch (RpcException ex)
+                    catch (Exception ex)
                     {
                         errorCount++;
 
