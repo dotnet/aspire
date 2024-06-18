@@ -57,18 +57,44 @@ public partial class AppHostAnalyzer : DiagnosticAnalyzer
             var invocation = (IInvocationOperation)context.Operation;
             var targetMethod = invocation.TargetMethod;
 
-            if (!IsModelNameInvocation(wellKnownTypes, targetMethod, out var modelNameParameter))
+            if (!IsModelNameInvocation(wellKnownTypes, targetMethod, out var parameterData))
             {
                 return;
             }
 
-            if (!TryGetStringToken(invocation, modelNameParameter!, out var token))
+            if (!TryGetStringToken(invocation, parameterData?.ModelNameParameter!, out var token))
             {
                 return;
             }
 
-            // TODO: Extract the target from the attribute and use in place of "Resource".
-            modelNameOperations.TryAdd(ModelNameOperation.Create(invocation, "Resource", token), value: default);
+            modelNameOperations.TryAdd(ModelNameOperation.Create(invocation, parameterData?.Target!, token), value: default);
+        }
+    }
+
+    private static bool IsModelNameInvocation(WellKnownTypes wellKnownTypes, IMethodSymbol targetMethod, out (IParameterSymbol? ModelNameParameter, string? Target)? parameterData)
+    {
+        // Look for first string parameter annotated with ModelName attribute
+        string? target = null;
+        var candidateParameter = targetMethod.Parameters.FirstOrDefault(ps =>
+            SymbolEqualityComparer.Default.Equals(ps.Type, wellKnownTypes.Get(SpecialType.System_String))
+            && HasModelNameAttribute(ps, out target));
+
+        if (candidateParameter is not null)
+        {
+            parameterData = (candidateParameter, target);
+            return true;
+        }
+
+        parameterData = null;
+        return false;
+
+        bool HasModelNameAttribute(IParameterSymbol parameter, out string? target)
+        {
+            var modelNameAttribute = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.Aspire_Hosting_ApplicationModel_ModelNameAttribute);
+            var attrData = parameter.GetAttributes().SingleOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, modelNameAttribute) == true);
+            // Target model kind (e.g. Resource, Endpoint) is the first constructor parameter
+            target = attrData?.ConstructorArguments.FirstOrDefault().Value?.ToString();
+            return attrData is not null;
         }
     }
 
@@ -93,30 +119,6 @@ public partial class AppHostAnalyzer : DiagnosticAnalyzer
 
         token = routePatternArgumentLiteralSyntax.Token;
         return true;
-    }
-
-    private static bool IsModelNameInvocation(WellKnownTypes wellKnownTypes, IMethodSymbol targetMethod, out IParameterSymbol? modelNameParameter)
-    {
-        var candidateParameter = targetMethod.Parameters.SingleOrDefault(ps =>
-            SymbolEqualityComparer.Default.Equals(ps.Type, wellKnownTypes.Get(SpecialType.System_String))
-            && HasModelNameAttribute(ps));
-
-        if (candidateParameter is not null)
-        {
-            modelNameParameter = candidateParameter;
-            return true;
-        }
-
-        modelNameParameter = null;
-        return false;
-
-        bool HasModelNameAttribute(IParameterSymbol parameter)
-        {
-            var modelNameAttribute = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.Aspire_Hosting_ApplicationModel_ModelNameAttribute);
-            var attrData = parameter.GetAttributes().SingleOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, modelNameAttribute) == true);
-
-            return attrData is not null;
-        }
     }
 
     private record struct ModelNameOperation(IInvocationOperation Operation, string Target, SyntaxToken ModelNameToken)

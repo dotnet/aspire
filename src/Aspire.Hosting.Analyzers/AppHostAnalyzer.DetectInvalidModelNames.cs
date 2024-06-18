@@ -25,7 +25,7 @@ public partial class AppHostAnalyzer
 
             if (modelName is not null && !ModelName.TryValidateName(target, modelName, out var validationMessage))
             {
-                context.ReportDiagnostic(Diagnostic.Create(Diagnostics.s_resourceMustHaveValidName, token.GetLocation(), target.ToLower(), modelName, validationMessage));
+                context.ReportDiagnostic(Diagnostic.Create(Diagnostics.s_resourceMustHaveValidName, token.GetLocation(), validationMessage));
             }
         }
     }
