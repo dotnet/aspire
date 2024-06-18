@@ -24,29 +24,29 @@ public sealed class ApplicationsSelectHelpersTests
 
         var appVMs = ApplicationsSelectHelpers.CreateApplications(new List<OtlpApplication>
         {
-            CreateOtlpApplication(apps, name: "nodeapp", instanceId: "nodeapp"),
-            CreateOtlpApplication(apps, name: "nodeapp", instanceId: "nodeapp-abc"),
+            CreateOtlpApplication(apps, name: "app", instanceId: "app"),
+            CreateOtlpApplication(apps, name: "app", instanceId: "app-abc"),
             CreateOtlpApplication(apps, name: "singleton", instanceId: "singleton-abc")
         });
 
         Assert.Collection(appVMs,
             app =>
             {
-                Assert.Equal("nodeapp", app.Name);
+                Assert.Equal("app", app.Name);
                 Assert.Equal(OtlpApplicationType.ReplicaSet, app.Id!.Type);
                 Assert.Null(app.Id!.InstanceId);
             },
             app =>
             {
-                Assert.Equal("nodeapp", app.Name);
+                Assert.Equal("app (app)", app.Name);
                 Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
-                Assert.Equal("nodeapp", app.Id!.InstanceId);
+                Assert.Equal("app", app.Id!.InstanceId);
             },
             app =>
             {
-                Assert.Equal("nodeapp-abc", app.Name);
+                Assert.Equal("app (app-abc)", app.Name);
                 Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
-                Assert.Equal("nodeapp-abc", app.Id!.InstanceId);
+                Assert.Equal("app-abc", app.Id!.InstanceId);
             },
             app =>
             {
@@ -56,10 +56,10 @@ public sealed class ApplicationsSelectHelpersTests
             });
 
         // Act
-        var app = appVMs.GetApplication(NullLogger.Instance, "nodeapp", null!);
+        var app = appVMs.GetApplication(NullLogger.Instance, "app (app-abc)", null!);
 
         // Assert
-        Assert.Equal("nodeapp", app.Id!.InstanceId);
+        Assert.Equal("app-abc", app.Id!.InstanceId);
         Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
     }
 
@@ -71,38 +71,38 @@ public sealed class ApplicationsSelectHelpersTests
 
         var appVMs = ApplicationsSelectHelpers.CreateApplications(new List<OtlpApplication>
         {
-            CreateOtlpApplication(apps, name: "nodeapp", instanceId: "nodeapp"),
-            CreateOtlpApplication(apps, name: "NODEAPP", instanceId: "nodeapp-abc")
+            CreateOtlpApplication(apps, name: "app", instanceId: "app"),
+            CreateOtlpApplication(apps, name: "APP", instanceId: "app-abc")
         });
 
         Assert.Collection(appVMs,
             app =>
             {
-                Assert.Equal("nodeapp", app.Name);
+                Assert.Equal("app", app.Name);
                 Assert.Equal(OtlpApplicationType.ReplicaSet, app.Id!.Type);
                 Assert.Null(app.Id!.InstanceId);
             },
             app =>
             {
-                Assert.Equal("nodeapp", app.Name);
+                Assert.Equal("APP (app-abc)", app.Name);
                 Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
-                Assert.Equal("nodeapp", app.Id!.InstanceId);
+                Assert.Equal("app-abc", app.Id!.InstanceId);
             },
             app =>
             {
-                Assert.Equal("nodeapp-abc", app.Name);
+                Assert.Equal("APP (app)", app.Name);
                 Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
-                Assert.Equal("nodeapp-abc", app.Id!.InstanceId);
+                Assert.Equal("app", app.Id!.InstanceId);
             });
 
         var testSink = new TestSink();
         var factory = LoggerFactory.Create(b => b.AddProvider(new TestLoggerProvider(testSink)));
 
         // Act
-        var app = appVMs.GetApplication(factory.CreateLogger("Test"), "nodeapp", null!);
+        var app = appVMs.GetApplication(factory.CreateLogger("Test"), "app (app)", null!);
 
         // Assert
-        Assert.Equal("nodeapp", app.Id!.InstanceId);
+        Assert.Equal("app", app.Id!.InstanceId);
         Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
         Assert.Empty(testSink.Writes);
     }

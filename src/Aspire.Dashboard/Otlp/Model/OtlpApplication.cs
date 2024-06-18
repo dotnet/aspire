@@ -193,12 +193,12 @@ public class OtlpApplication
         var count = 0;
         foreach (var item in allApplications)
         {
-            if (item.ApplicationName == app.ApplicationName)
+            if (string.Equals(item.ApplicationName, app.ApplicationName, StringComparisons.ResourceName))
             {
                 count++;
                 if (count >= 2)
                 {
-                    return app.InstanceId;
+                    return $"{item.ApplicationName}-{OtlpHelpers.TruncateString(app.InstanceId, maxLength: 7)}";
                 }
             }
         }

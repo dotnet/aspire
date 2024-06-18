@@ -229,9 +229,17 @@ internal sealed class DashboardClient : IDashboardClient
 
         async Task ConnectAndWatchResourcesAsync(CancellationToken cancellationToken)
         {
-            await ConnectAsync().ConfigureAwait(false);
+            try
+            {
+                await ConnectAsync().ConfigureAwait(false);
 
-            await WatchResourcesWithRecoveryAsync().ConfigureAwait(false);
+                await WatchResourcesWithRecoveryAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error load data from the resource service.");
+                throw;
+            }
 
             async Task ConnectAsync()
             {

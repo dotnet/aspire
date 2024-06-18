@@ -27,9 +27,13 @@ public static class ApplicationsSelectHelpers
         {
             // There are multiple matches. Log as much information as possible about applications.
             logger.LogWarning(
-                $"Multiple matches found when getting application '{name}'. " +
-                $"Available applications: {string.Join(Environment.NewLine, applications)} " +
-                $"Matched applications: {string.Join(Environment.NewLine, matches)}");
+                """
+                Multiple matches found when getting application '{Name}'.
+                Available applications:
+                {AvailableApplications}
+                Matched applications:
+                {MatchedApplications}
+                """, name, string.Join(Environment.NewLine, applications), string.Join(Environment.NewLine, matches));
 
             // Return first match to not break app. Make the UI resilient to unexpectedly bad data.
             return matches[0];
@@ -69,10 +73,11 @@ public static class ApplicationsSelectHelpers
                 new SelectViewModel<ResourceTypeDetails>
                 {
                     Id = ResourceTypeDetails.CreateReplicaInstance(replica.InstanceId, applicationName),
-                    Name = replica.InstanceId
+                    Name = OtlpApplication.GetResourceName(replica, applications)
                 }));
         }
 
-        return selectViewModels;
+        var sortedVMs = selectViewModels.OrderBy(vm => vm.Name).ToList();
+        return sortedVMs;
     }
 }
