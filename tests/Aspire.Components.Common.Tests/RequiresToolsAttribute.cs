@@ -9,7 +9,7 @@ namespace Aspire.Components.Common.Tests;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
 public class RequiresToolsAttribute : Attribute, ITraitAttribute
 {
-    public RequiresToolsAttribute(string[] executablesOnPath)
+    public RequiresToolsAttribute(params string[] executablesOnPath)
     {
         if (executablesOnPath.Length == 0)
         {
