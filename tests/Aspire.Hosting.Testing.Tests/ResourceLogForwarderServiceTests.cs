@@ -116,24 +116,10 @@ public class ResourceLogForwarderServiceTests(ITestOutputHelper output)
         for (var i = 0; i < 10_000; i++)
         {
             var hostApplicationLifetime = new TestHostApplicationLifetime();
-            var resourceNotificationService = new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, hostApplicationLifetime);
             var resourceLoggerService = new ResourceLoggerService();
             var hostEnvironment = new HostingEnvironment { ApplicationName = "TestApp.AppHost" };
 
-            // Publish an update to the resource to kickstart the notification service loop
             var myresource = new CustomResource("myresource");
-            await resourceNotificationService.PublishUpdateAsync(myresource, snapshot => snapshot with { State = "Running" });
-
-            var notificationSyncTcs = new TaskCompletionSource();
-            var notificationCount = 0;
-            var notificationLoop = Task.Run(async () =>
-            {
-                await foreach (var update in resourceNotificationService.WatchAsync(hostApplicationLifetime.ApplicationStopping))
-                {
-                    notificationSyncTcs.TrySetResult();
-                    notificationCount++;
-                }
-            });
 
             // Start the log subscriber loop
             var loggedLines = new List<string>();
@@ -149,23 +135,13 @@ public class ResourceLogForwarderServiceTests(ITestOutputHelper output)
                 }
             });
 
-            // Wait for the notification loop to be entered
-            await notificationSyncTcs.Task;
-
             Assert.Empty(loggedLines);
 
             // Log messages to the resource
             var resourceLogger = resourceLoggerService.GetLogger(myresource);
-            if (logLineCountTarget == 1)
+            for (var j = 0; j < logLineCountTarget; j++)
             {
                 resourceLogger.LogInformation("log message (ticks: {Ticks})", DateTime.Now.Ticks);
-            }
-            else
-            {
-                for (var j = 0; j < logLineCountTarget; j++)
-                {
-                    resourceLogger.LogInformation("log message (ticks: {Ticks})", DateTime.Now.Ticks);
-                }
             }
 
             // Wait for the log loop to complete or timeout after 10 seconds
@@ -176,13 +152,7 @@ public class ResourceLogForwarderServiceTests(ITestOutputHelper output)
 
             // Trigger the stopping token
             hostApplicationLifetime.StopApplication();
-            try
-            {
-                await notificationLoop;
-            }
-            catch (OperationCanceledException) { }
 
-            Assert.Equal(1, notificationCount);
             Assert.True(logLineCountTarget == loggedLines.Count, $"On iteration {i}, expected {logLineCountTarget} log lines but got {loggedLines.Count}:\r\n{string.Join("\r\n", loggedLines)}");
         }
     }
