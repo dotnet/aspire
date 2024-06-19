@@ -184,7 +184,7 @@ public class WorkloadTestsBase
 
     public static IEnumerable<string> GetProjectNamesForTest()
     {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        if (!OperatingSystem.IsWindows())
         {
             // ActiveIssue for windows: https://github.com/dotnet/aspire/issues/4555
             yield return "aspire_龦唉丂荳_㐁ᠭ_ᠤསྲིདخەلꌠ_1ᥕ";
