@@ -18,9 +18,10 @@ internal sealed class ResourceLoggerForwarderService(
     : BackgroundService
 {
     /// <summary>
-    /// A callback to be invoked when a log stream is complete. The callback is passed the resource name of the stream that completed.
+    /// A callback to be invoked when a log is forwarded to ILogger. The callback is passed the resource name the log is for.<br/>
+    /// Used for testing.
     /// </summary>
-    public Action<string>? OnLogStreamComplete { get; set; }
+    public Action<string>? OnResourceLog { get; set; }
 
     /// <inheritdoc/>
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
@@ -62,9 +63,9 @@ internal sealed class ResourceLoggerForwarderService(
                 {
                     // Log message format here approximates the format shown in the dashboard
                     logger.Log(logLevel, "{LineNumber}: {LineContent}", line.LineNumber, line.Content);
+                    OnResourceLog?.Invoke(resourceId);
                 }
             }
         }
-        OnLogStreamComplete?.Invoke(resourceId);
     }
 }

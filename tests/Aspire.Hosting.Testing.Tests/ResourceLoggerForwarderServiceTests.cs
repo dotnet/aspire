@@ -60,12 +60,27 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
         var fakeLoggerFactory = new LoggerFactory([fakeLoggerProvider, new XunitLoggerProvider(output)]);
         var resourceLogForwarder = new ResourceLoggerForwarderService(resourceNotificationService, resourceLoggerService, hostEnvironment, fakeLoggerFactory);
 
-        var logStreamCompleteTcs = new TaskCompletionSource();
-        resourceLogForwarder.OnLogStreamComplete = resourceId =>
+        var subscribedTcs = new TaskCompletionSource();
+        var subscriberLoop = Task.Run(async () =>
         {
-            if (resourceId == "myresource")
+            await foreach (var sub in resourceLoggerService.WatchAnySubscribersAsync(hostApplicationLifetime.ApplicationStopping))
             {
-                logStreamCompleteTcs.SetResult();
+                if (sub.AnySubscribers && sub.Name == "myresource")
+                {
+                    subscribedTcs.TrySetResult();
+                }
+            }
+        });
+
+        var expectedLogCountTcs = new TaskCompletionSource();
+        var expectedLogCount = 6;
+        var logCount = 0;
+        resourceLogForwarder.OnResourceLog = resourceId =>
+        {
+            logCount++;
+            if (logCount >= expectedLogCount)
+            {
+                expectedLogCountTcs.TrySetResult();
             }
         };
 
@@ -75,10 +90,13 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
         var myresource = new CustomResource("myresource");
         await resourceNotificationService.PublishUpdateAsync(myresource, snapshot => snapshot with { State = "Running" });
 
+        // Wait for the log stream to begin
+        await subscribedTcs.Task.WaitAsync(TimeSpan.FromSeconds(15));
+
         // Log messages to the resource
-        var resourceLogger = resourceLoggerService.GetLogger(myresource);
         fakeLoggerProvider.Collector.Clear();
 
+        var resourceLogger = resourceLoggerService.GetLogger(myresource);
         resourceLogger.LogTrace("Test trace message");
         resourceLogger.LogDebug("Test debug message");
         resourceLogger.LogInformation("Test information message");
@@ -86,9 +104,11 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
         resourceLogger.LogError("Test error message");
         resourceLogger.LogCritical("Test critical message");
 
+        // Wait for the 6 log messages or timeout
+        await expectedLogCountTcs.Task.WaitAsync(TimeSpan.FromSeconds(15));
+
         // Complete the resource log stream and wait for it to end
         resourceLoggerService.Complete(myresource);
-        await logStreamCompleteTcs.Task;
         hostApplicationLifetime.StopApplication();
 
         // Get the logs from the fake logger

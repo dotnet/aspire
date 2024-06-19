@@ -224,53 +224,38 @@ public class ResourceLoggerService
 
             using var _ = _logStreamCts.Token.Register(() => channel.Writer.TryComplete());
 
+            var flushBacklogState = 0; // 0 = haven't flushed, 1 = flushed
             void Log(LogLine log)
             {
-                channel.Writer.TryWrite(log);
+                if (Interlocked.CompareExchange(ref flushBacklogState, 1, 0) == 0)
+                {
+                    // Flush the backlog on the first call to Log
+                    var backlogSnapshot = GetBacklogSnapshot();
+                    foreach (var backlogLogLine in backlogSnapshot)
+                    {
+                        channel.Writer.TryWrite(backlogLogLine);
+                    }
+                    // We need to ensure we don't write this log to the channel if it was already in the backlog
+                    if (!backlogSnapshot.Contains(log))
+                    {
+                        channel.Writer.TryWrite(log);
+                    }
+                }
+                else
+                {
+                    channel.Writer.TryWrite(log);
+                }
             }
 
+            // From the moment we add this callback, logs will be written to the backlog & to our Log method above
+            // so our Log method needs to ensure it flushes the backlog to the channel on the first call.
             OnNewLog += Log;
-
-            // We need to ensure the backlog snapshot is taken after subscribing to OnNewLog
-            // to ensure the backlog snapshot contains the correct logs. The backlog
-            // can get cleared when there are no subscribers, so we ensure we are subscribing first.
-            // However, this is racey, because as soon as we add the OnNewLog handler, logs are
-            // being written to the both the backlog AND the channel and in the time before we take
-            // the backlog snapshot below, a log line could be both in the backlog and in the channel.
-            // So in the channel read loop we need to ensure we haven't already returned the log line
-            // via the backlog snapshot already.
-
-            // REVIEW: Performance makes me very sad, but we can optimize this later.
-            var backlogSnapshot = GetBacklogSnapshot();
-            if (backlogSnapshot.Length > 0)
-            {
-                yield return backlogSnapshot;
-            }
 
             try
             {
-                var lineCount = 0;
-                while (await channel.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
+                await foreach (var entry in channel.GetBatchesAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
                 {
-                    var batch = new List<LogLine>();
-                    while (channel.Reader.TryRead(out var log))
-                    {
-                        if (lineCount > backlogSnapshot.Length)
-                        {
-                            // We're beyond the number of lines in the backlog snapshot so no need to check for dupes anymore
-                            batch.Add(log);
-                        }
-                        else
-                        {
-                            // We need to check to ensure we haven't already returned this line via the backlog snapshot we took
-                            if (!backlogSnapshot.Contains(log))
-                            {
-                                batch.Add(log);
-                            }
-                            lineCount++;
-                        }
-                    }
-                    yield return batch;
+                    yield return entry;
                 }
             }
             finally
