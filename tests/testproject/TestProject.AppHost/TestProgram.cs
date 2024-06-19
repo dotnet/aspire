@@ -162,6 +162,12 @@ public class TestProgram : IDisposable
                 var milvus = AppBuilder.AddMilvus("milvus", milvusApiKey);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(milvus);
             }
+            if (!resourcesToSkip.HasFlag(TestResourceNames.clickhouse))
+            {
+                var clickHouse = AppBuilder.AddClickHouse("clickhouse")
+                    .AddDatabase("default");
+                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(clickHouse);
+            }
         }
 
         AppBuilder.Services.AddLifecycleHook<EndPointWriterHook>();

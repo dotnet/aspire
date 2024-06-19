@@ -119,6 +119,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             TestResourceNames.sqlserver => "sqlserver",
             TestResourceNames.milvus => "milvus",
             TestResourceNames.eventhubs => "eventhubs",
+            TestResourceNames.clickhouse => "clickhouse",
             _ => throw new ArgumentException($"Unknown resource: {resource}")
         };
 
@@ -162,7 +163,8 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                               | TestResourceNames.mysql
                               | TestResourceNames.efmysql
                               | TestResourceNames.sqlserver
-                              | TestResourceNames.milvus,
+                              | TestResourceNames.milvus
+                              | TestResourceNames.clickhouse,
             "" or null => TestResourceNames.All,
             _ => throw new ArgumentException($"Unknown test scenario '{TestScenario}'")
         };

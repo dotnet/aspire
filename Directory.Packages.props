@@ -91,6 +91,7 @@
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsHttpResiliencePackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(MicrosoftExtensionsTimeProviderTestingVersion)" />
     <!-- external dependencies -->
+    <PackageVersion Include="ClickHouse.Client" Version="7.5.1" />
     <PackageVersion Include="Confluent.Kafka" Version="2.4.0" />
     <PackageVersion Include="Dapper" Version="2.1.37" />
     <PackageVersion Include="DnsClient" Version="1.7.0" />

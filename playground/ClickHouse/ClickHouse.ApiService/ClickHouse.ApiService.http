@@ -1,0 +1,10 @@
+@ClickHouse.ApiService_HostAddress = http://localhost:5041
+
+GET {{ClickHouse.ApiService_HostAddress}}/version/
+Accept: application/json
+
+###
+
+GET {{ClickHouse.ApiService_HostAddress}}/table-functions/
+Accept: application/json
+
