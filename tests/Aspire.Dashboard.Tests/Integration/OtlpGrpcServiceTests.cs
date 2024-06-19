@@ -1,29 +1,25 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Http.Json;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Nodes;
 using Aspire.Dashboard.Authentication.OtlpApiKey;
 using Aspire.Dashboard.Configuration;
 using Aspire.Hosting;
-using Google.Protobuf;
 using Grpc.Core;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Logging.Testing;
 using OpenTelemetry.Proto.Collector.Logs.V1;
-using OpenTelemetry.Proto.Collector.Metrics.V1;
-using OpenTelemetry.Proto.Collector.Trace.V1;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration;
 
-public class OtlpServiceTests
+public class OtlpGrpcServiceTests
 {
     private readonly ITestOutputHelper _testOutputHelper;
 
-    public OtlpServiceTests(ITestOutputHelper testOutputHelper)
+    public OtlpGrpcServiceTests(ITestOutputHelper testOutputHelper)
     {
         _testOutputHelper = testOutputHelper;
     }
@@ -312,80 +308,5 @@ public class OtlpServiceTests
 
         // Assert
         Assert.Equal(0, response.PartialSuccess.RejectedLogRecords);
-    }
-
-    [Fact]
-    public async Task CallService_OtlpHttpEndPoint_Logs_Success()
-    {
-        // Arrange
-        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, dictionary =>
-        {
-            dictionary[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://127.0.0.1:4318";
-        });
-        await app.StartAsync();
-
-        var endpoint = app.OtlpServiceHttpEndPointAccessor();
-        using var client = new HttpClient { BaseAddress = new Uri($"http://{endpoint.EndPoint}") };
-
-        var request = new ExportLogsServiceRequest();
-        using var content = new ByteArrayContent(request.ToByteArray());
-        var response = await client.PostAsync("/v1/logs", content);
-
-        // Act
-        var message = await response.Content.ReadFromJsonAsync<ExportLogsServiceResponse>();
-
-        // Assert
-        Assert.Equal(0, message!.PartialSuccess.RejectedLogRecords);
-        Assert.True(string.IsNullOrWhiteSpace(message.PartialSuccess.ErrorMessage), "error message should be empty");
-    }
-
-    [Fact]
-    public async Task CallService_OtlpHttpEndPoint_Traces_Success()
-    {
-        // Arrange
-        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, dictionary =>
-        {
-            dictionary[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://127.0.0.1:4318";
-        });
-        await app.StartAsync();
-
-        var endpoint = app.OtlpServiceHttpEndPointAccessor();
-        using var client = new HttpClient { BaseAddress = new Uri($"http://{endpoint.EndPoint}") };
-
-        var request = new ExportTraceServiceRequest();
-        using var content = new ByteArrayContent(request.ToByteArray());
-        var response = await client.PostAsync("/v1/traces", content);
-
-        // Act
-        var message = await response.Content.ReadFromJsonAsync<ExportTraceServiceResponse>();
-
-        // Assert
-        Assert.Equal(0, message!.PartialSuccess.RejectedSpans);
-        Assert.True(string.IsNullOrWhiteSpace(message.PartialSuccess.ErrorMessage), "error message should be empty");
-    }
-
-    [Fact]
-    public async Task CallService_OtlpHttpEndPoint_Metrics_Success()
-    {
-        // Arrange
-        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, dictionary =>
-        {
-            dictionary[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://127.0.0.1:4318";
-        });
-        await app.StartAsync();
-
-        var endpoint = app.OtlpServiceHttpEndPointAccessor();
-        using var client = new HttpClient { BaseAddress = new Uri($"http://{endpoint.EndPoint}") };
-
-        var request = new ExportMetricsServiceRequest();
-        using var content = new ByteArrayContent(request.ToByteArray());
-        var response = await client.PostAsync("/v1/metrics", content);
-
-        // Act
-        var message = await response.Content.ReadFromJsonAsync<ExportMetricsServiceResponse>();
-
-        // Assert
-        Assert.Equal(0, message!.PartialSuccess.RejectedDataPoints);
-        Assert.True(string.IsNullOrWhiteSpace(message.PartialSuccess.ErrorMessage), "error message should be empty");
     }
 }

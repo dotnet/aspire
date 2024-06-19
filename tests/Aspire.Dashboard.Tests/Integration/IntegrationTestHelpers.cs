@@ -31,6 +31,7 @@ public static class IntegrationTestHelpers
         {
             [DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "http://127.0.0.1:0",
             [DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] = "http://127.0.0.1:0",
+            [DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://127.0.0.1:0",
             [DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey] = nameof(OtlpAuthMode.Unsecured),
             [DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = nameof(FrontendAuthMode.Unsecured),
             // Allow the requirement of HTTPS communication with the OpenIdConnect authority to be relaxed during tests.
@@ -76,6 +77,30 @@ public static class IntegrationTestHelpers
         });
 
         return dashboardWebApplication;
+    }
+
+    public static HttpClient CreateHttpClient(
+        string address,
+        Action<X509Certificate2?>? validationCallback = null,
+        X509CertificateCollection? clientCertificates = null)
+    {
+        var handler = new SocketsHttpHandler
+        {
+            SslOptions =
+            {
+                RemoteCertificateValidationCallback = (message, cert, chain, errors) =>
+                {
+                    validationCallback?.Invoke((X509Certificate2)cert!);
+                    return true;
+                }
+            }
+        };
+        if (clientCertificates != null)
+        {
+            handler.SslOptions.ClientCertificates = clientCertificates;
+        }
+
+        return new HttpClient(handler) { BaseAddress = new Uri(address) };
     }
 
     public static GrpcChannel CreateGrpcChannel(

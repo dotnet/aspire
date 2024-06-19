@@ -76,9 +76,8 @@ public sealed class OtlpOptions
 
     public string? HttpEndpointUrl { get; set; }
 
-    public Uri GetGrpcEndpointUri()
+    public Uri? GetGrpcEndpointUri()
     {
-        Debug.Assert(_parsedGrpcEndpointUrl is not null, "Should have been parsed during validation.");
         return _parsedGrpcEndpointUrl;
     }
 
@@ -97,18 +96,16 @@ public sealed class OtlpOptions
 
     internal bool TryParseOptions([NotNullWhen(false)] out string? errorMessage)
     {
-        if (string.IsNullOrEmpty(GrpcEndpointUrl))
+        if (string.IsNullOrEmpty(GrpcEndpointUrl) && string.IsNullOrEmpty(HttpEndpointUrl))
         {
-            errorMessage = $"OTLP gRPC endpoint URL is not configured. Specify a {DashboardConfigNames.DashboardOtlpGrpcUrlName.EnvVarName} value.";
+            errorMessage = $"Both OTLP gRPC endpoint URL and OTLP HTTP endpoint URL are not configured. Specify either a {DashboardConfigNames.DashboardOtlpGrpcUrlName.EnvVarName} or {DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName} value.";
             return false;
         }
-        else
+
+        if (!string.IsNullOrEmpty(GrpcEndpointUrl) && !Uri.TryCreate(GrpcEndpointUrl, UriKind.Absolute, out _parsedGrpcEndpointUrl))
         {
-            if (!Uri.TryCreate(GrpcEndpointUrl, UriKind.Absolute, out _parsedGrpcEndpointUrl))
-            {
-                errorMessage = $"Failed to parse OTLP gRPC endpoint URL '{GrpcEndpointUrl}'.";
-                return false;
-            }
+            errorMessage = $"Failed to parse OTLP gRPC endpoint URL '{GrpcEndpointUrl}'.";
+            return false;
         }
 
         if (!string.IsNullOrEmpty(HttpEndpointUrl) && !Uri.TryCreate(HttpEndpointUrl, UriKind.Absolute, out _parsedHttpEndpointUrl))

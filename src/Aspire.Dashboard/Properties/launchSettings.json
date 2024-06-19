@@ -6,7 +6,7 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "https://localhost:15887",
-        "DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL": "https://localhost:4318"
+        "DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL": "https://localhost:15886"
       },
       "applicationUrl": "https://localhost:15889;http://localhost:15888"
     }

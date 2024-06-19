@@ -24,6 +24,6 @@ public class OtlpGrpcMetricsService : MetricsService.MetricsServiceBase
 
     public override Task<ExportMetricsServiceResponse> Export(ExportMetricsServiceRequest request, ServerCallContext context)
     {
-        return _metricsService.Export(request);
+        return Task.FromResult(_metricsService.Export(request));
     }
 }

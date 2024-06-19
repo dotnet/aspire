@@ -24,6 +24,6 @@ public class OtlpGrpcTraceService : TraceService.TraceServiceBase
 
     public override Task<ExportTraceServiceResponse> Export(ExportTraceServiceRequest request, ServerCallContext context)
     {
-        return _traceService.Export(request);
+        return Task.FromResult(_traceService.Export(request));
     }
 }

@@ -16,6 +16,7 @@ using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp;
 using Aspire.Dashboard.Otlp.Grpc;
+using Aspire.Dashboard.Otlp.Http;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Hosting;
 using Microsoft.AspNetCore.Authentication.Certificate;
@@ -35,9 +36,6 @@ namespace Aspire.Dashboard;
 
 public sealed class DashboardWebApplication : IAsyncDisposable
 {
-    internal const string DashboardOtlpUrlDefaultValue = "http://localhost:18889";
-    internal const string DashboardUrlDefaultValue = "http://localhost:18888";
-
     private readonly WebApplication _app;
     private readonly ILogger<DashboardWebApplication> _logger;
     private readonly IOptionsMonitor<DashboardOptions> _dashboardOptionsMonitor;
@@ -114,8 +112,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         ConfigureKestrelEndpoints(builder, dashboardOptions);
 
-        var browserHttpsPort = dashboardOptions.Frontend.GetEndpointUris().FirstOrDefault(IsHttps)?.Port;
-        var isAllHttps = browserHttpsPort is not null && IsHttps(dashboardOptions.Otlp.GetGrpcEndpointUri()) && IsHttps(dashboardOptions.Otlp.GetHttpEndpointUri());
+        var browserHttpsPort = dashboardOptions.Frontend.GetEndpointUris().FirstOrDefault(IsNullOrHttps)?.Port;
+        var isAllHttps = browserHttpsPort is not null && IsNullOrHttps(dashboardOptions.Otlp.GetGrpcEndpointUri()) && IsNullOrHttps(dashboardOptions.Otlp.GetHttpEndpointUri());
         if (isAllHttps)
         {
             // Explicitly configure the HTTPS redirect port as we're possibly listening on multiple HTTPS addresses
@@ -200,7 +198,12 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             if (_otlpServiceGrpcEndPointAccessor != null)
             {
                 // This isn't used by dotnet watch but still useful to have for debugging
-                _logger.LogInformation("OTLP server running at: {OtlpEndpointUri}", _otlpServiceGrpcEndPointAccessor().Address);
+                _logger.LogInformation("OTLP/gRPC server running at: {OtlpEndpointUri}", _otlpServiceGrpcEndPointAccessor().Address);
+            }
+            if (_otlpServiceHttpEndPointAccessor != null)
+            {
+                // This isn't used by dotnet watch but still useful to have for debugging
+                _logger.LogInformation("OTLP/HTTP server running at: {OtlpEndpointUri}", _otlpServiceHttpEndPointAccessor().Address);
             }
 
             if (_dashboardOptionsMonitor.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
@@ -359,7 +362,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         var frontendUris = dashboardOptions.Frontend.GetEndpointUris();
         var otlpGrpcUri = dashboardOptions.Otlp.GetGrpcEndpointUri();
         var otlpHttpUri = dashboardOptions.Otlp.GetHttpEndpointUri();
-        var hasSingleEndpoint = frontendUris.Count == 1 && frontendUris[0] == otlpGrpcUri && otlpGrpcUri.Port != 0 && (otlpHttpUri == null || (frontendUris[0] == otlpHttpUri && otlpHttpUri.Port != 0));
+        var hasSingleEndpoint = frontendUris.Count == 1 && IsSameOrNull(frontendUris[0], otlpGrpcUri) && IsSameOrNull(frontendUris[0], otlpHttpUri);
 
         var initialValues = new Dictionary<string, string?>();
         var browserEndpointNames = new List<string>(capacity: frontendUris.Count);
@@ -368,10 +371,13 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         {
             // Translate high-level config settings such as DOTNET_DASHBOARD_OTLP_ENDPOINT_URL and ASPNETCORE_URLS
             // to Kestrel's schema for loading endpoints from configuration.
-            AddEndpointConfiguration(initialValues, "OtlpGrpc", otlpGrpcUri.OriginalString, HttpProtocols.Http2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
+            if (otlpGrpcUri != null)
+            {
+                AddEndpointConfiguration(initialValues, "OtlpGrpc", otlpGrpcUri.OriginalString, HttpProtocols.Http2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
+            }
             if (otlpHttpUri != null)
             {
-                AddEndpointConfiguration(initialValues, "OtlpHttp", otlpHttpUri.AbsoluteUri, HttpProtocols.Http1AndHttp2, requiredClientCertificate: false);
+                AddEndpointConfiguration(initialValues, "OtlpHttp", otlpHttpUri.OriginalString, HttpProtocols.Http1AndHttp2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
             }
 
             if (frontendUris.Count == 1)
@@ -391,7 +397,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
         else
         {
-            AddEndpointConfiguration(initialValues, "OtlpGrpc", otlpGrpcUri.OriginalString, HttpProtocols.Http1AndHttp2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
+            // At least one gRPC endpoint must be present.
+            var url = otlpGrpcUri?.OriginalString ?? otlpHttpUri?.OriginalString;
+            AddEndpointConfiguration(initialValues, "OtlpGrpc", url!, HttpProtocols.Http1AndHttp2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
         }
 
         static void AddEndpointConfiguration(Dictionary<string, string?> values, string endpointName, string url, HttpProtocols? protocols = null, bool requiredClientCertificate = false)
@@ -403,7 +411,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 values[$"Kestrel:Endpoints:{endpointName}:Protocols"] = protocols.ToString();
             }
 
-            if (requiredClientCertificate)
+            if (requiredClientCertificate && IsNullOrHttps(new Uri(url)))
             {
                 values[$"Kestrel:Endpoints:{endpointName}:ClientCertificateMode"] = ClientCertificateMode.RequireCertificate.ToString();
             }
@@ -501,6 +509,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 return new EndpointInfo(resolvedAddress, endpoint, endpointConfiguration.IsHttps);
             };
         }
+    }
+
+    private static bool IsSameOrNull(Uri frontendUri, Uri? otlpUrl)
+    {
+        return otlpUrl == null || (frontendUri == otlpUrl && otlpUrl.Port != 0);
     }
 
     private static void ConfigureAuthentication(WebApplicationBuilder builder, DashboardOptions dashboardOptions)
@@ -667,7 +680,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         return _app.DisposeAsync();
     }
 
-    private static bool IsHttps(Uri? uri) => uri != null && string.Equals(uri.Scheme, "https", StringComparison.Ordinal);
+    private static bool IsNullOrHttps(Uri? uri) => uri == null || string.Equals(uri.Scheme, "https", StringComparison.Ordinal);
 
     public static class FrontendAuthenticationDefaults
     {
