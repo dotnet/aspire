@@ -56,6 +56,10 @@ internal sealed class ContainerSpec
     // Additional arguments to pass to the container run command
     [JsonPropertyName("runArgs")]
     public List<string>? RunArgs { get; set; }
+
+    // Should this container be created and persisted between DCP runs?
+    [JsonPropertyName("persistent")]
+    public bool? Persistent;
 }
 
 internal sealed class BuildContext
