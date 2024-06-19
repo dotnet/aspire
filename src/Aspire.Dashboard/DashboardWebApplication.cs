@@ -37,6 +37,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     internal const string DashboardOtlpUrlDefaultValue = "http://localhost:18889";
     internal const string DashboardUrlDefaultValue = "http://localhost:18888";
 
+    private const string DashboardAuthCookieName = ".Aspire.Dashboard.Auth";
+    private const string DashboardAntiForgeryCookieName = ".Aspire.Dashboard.Antiforgery";
+
     private readonly WebApplication _app;
     private readonly ILogger<DashboardWebApplication> _logger;
     private readonly IOptionsMonitor<DashboardOptions> _dashboardOptionsMonitor;
@@ -154,7 +157,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         builder.Services.AddAntiforgery(options =>
         {
-            options.Cookie.Name = ".Aspire.Dashboard.Antiforgery";
+            options.Cookie.Name = DashboardAntiForgeryCookieName;
         });
 
         _app = builder.Build();
@@ -503,7 +506,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
                 authentication.AddCookie(options =>
                 {
-                    options.Cookie.Name = ".Aspire.Dashboard.Auth";
+                    options.Cookie.Name = DashboardAuthCookieName;
                 });
 
                 authentication.AddOpenIdConnect(options =>
@@ -551,7 +554,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                         claimsIdentity.AddClaim(new Claim(FrontendAuthorizationDefaults.BrowserTokenClaimName, bool.TrueString));
                         return Task.CompletedTask;
                     };
-                    options.Cookie.Name = ".Aspire.Dashboard.Auth";
+                    options.Cookie.Name = DashboardAuthCookieName;
                 });
                 break;
         }
