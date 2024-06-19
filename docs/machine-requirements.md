@@ -6,7 +6,7 @@ Whether you want to contribute to Aspire, or just use the latest build of Aspire
 
 On Windows, Visual Studio contains special tooling support for .NET Aspire that you will want to have.
 
-[Visual Studio 2022 version 17.10 Preview](https://visualstudio.microsoft.com/vs/preview/)
+[Visual Studio 2022 version 17.11 Preview](https://visualstudio.microsoft.com/vs/preview/)
 
 When you install, ensure that both:
 * `ASP.NET and web development` Workload is checked.
