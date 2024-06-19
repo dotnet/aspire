@@ -190,31 +190,15 @@ public static class ParameterResourceBuilderExtensions
     public static ParameterResource CreateGeneratedParameter(
         IDistributedApplicationBuilder builder, string name, bool secret, GenerateParameterDefault parameterDefault)
     {
-        var parameterResource = CreateGeneratedParameter(builder.Configuration, name, secret, parameterDefault);
+        var parameterResource = new ParameterResource(name, parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault), secret)
+        {
+            Default = parameterDefault
+        };
 
         if (builder.ExecutionContext.IsRunMode && builder.AppHostAssembly is not null && parameterResource.Default is not null)
         {
             parameterResource.Default = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, name, parameterResource.Default);
         }
-
-        return parameterResource;
-    }
-
-    /// <summary>
-    /// Creates a new <see cref="ParameterResource"/> that has a generated value using the <paramref name="parameterDefault"/>.
-    /// </summary>
-    /// <param name="configuration">The application configuration.</param>
-    /// <param name="name">Name of parameter resource.</param>
-    /// <param name="secret">Flag indicating whether the parameter should be regarded as secret.</param>
-    /// <param name="parameterDefault">The <see cref="GenerateParameterDefault"/> that describes how the parameter's value should be generated.</param>
-    /// <returns>The created <see cref="ParameterResource"/>.</returns>
-    public static ParameterResource CreateGeneratedParameter(
-        IConfiguration configuration, string name, bool secret, GenerateParameterDefault parameterDefault)
-    {
-        var parameterResource = new ParameterResource(name, parameterDefault => GetParameterValue(configuration, name, parameterDefault), secret)
-        {
-            Default = parameterDefault
-        };
 
         return parameterResource;
     }
