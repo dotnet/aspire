@@ -73,6 +73,6 @@ public static class ApplicationsSelectHelpers
                 }));
         }
 
-        return selectViewModels;
+        return selectViewModels.OrderBy(vm => vm.Name).ToList();
     }
 }
