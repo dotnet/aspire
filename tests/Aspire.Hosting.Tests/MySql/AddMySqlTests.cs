@@ -75,7 +75,7 @@ public class AddMySqlTests
     public async Task AddMySqlAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration[$"Parameters:pass"] = "pass";
+        appBuilder.Configuration["Parameters:pass"] = "pass";
 
         var pass = appBuilder.AddParameter("pass");
         appBuilder.AddMySql("mysql", pass, 1234);

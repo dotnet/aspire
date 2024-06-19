@@ -28,11 +28,6 @@ public static class MySqlBuilderExtensions
         var passwordParameterName = $"{name}-password";
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, passwordParameterName);
 
-        if (builder.ExecutionContext.IsRunMode && passwordParameter.Default is not null)
-        {
-            passwordParameter.Default = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, passwordParameterName, passwordParameter.Default);
-        }
-
         var resource = new MySqlServerResource(name, passwordParameter);
         return builder.AddResource(resource)
                       .WithEndpoint(port: port, targetPort: 3306, name: MySqlServerResource.PrimaryEndpointName) // Internal port is always 3306.

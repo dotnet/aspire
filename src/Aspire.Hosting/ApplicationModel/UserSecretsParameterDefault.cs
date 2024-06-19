@@ -15,7 +15,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="appHostAssembly">The app host assembly.</param>
 /// <param name="applicationName">The application name.</param>
 /// <param name="parameterName">The parameter name.</param>
-/// <param name="parameterDefault">The parameter with a default value.</param>
+/// <param name="parameterDefault">The <see cref="ParameterDefault"/> that will produce the default value when it isn't found in the project's user secrets store.</param>
 public sealed class UserSecretsParameterDefault(Assembly? appHostAssembly, string applicationName, string parameterName, ParameterDefault parameterDefault)
     : ParameterDefault
 {

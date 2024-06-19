@@ -40,11 +40,6 @@ public static class QdrantBuilderExtensions
         var apiKeyParameter = apiKey?.Resource ??
             ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, apiKeyParameterName, special: false);
 
-        if (builder.ExecutionContext.IsRunMode && apiKeyParameter.Default is not null)
-        {
-            apiKeyParameter.Default = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, apiKeyParameterName, apiKeyParameter.Default);
-        }
-
         var qdrant = new QdrantServerResource(name, apiKeyParameter);
         return builder.AddResource(qdrant)
             .WithImage(QdrantContainerImageTags.Image, QdrantContainerImageTags.Tag)

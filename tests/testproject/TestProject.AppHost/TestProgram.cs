@@ -155,7 +155,7 @@ public class TestProgram : IDisposable
 
             if (!resourcesToSkip.HasFlag(TestResourceNames.milvus))
             {
-                builder.Configuration[$"Parameters:milvusApiKey"] = "root:Milvus";
+                builder.Configuration["Parameters:milvusApiKey"] = "root:Milvus";
 
                 var milvusApiKey = builder.AddParameter("milvusApiKey");
 

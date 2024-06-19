@@ -80,7 +80,7 @@ public class AddSqlServerTests
     public async Task SqlServerCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration[$"Parameters:pass"] = "p@ssw0rd1";
+        appBuilder.Configuration["Parameters:pass"] = "p@ssw0rd1";
 
         var pass = appBuilder.AddParameter("pass");
         appBuilder
@@ -102,7 +102,7 @@ public class AddSqlServerTests
     public async Task SqlServerDatabaseCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.Configuration[$"Parameters:pass"] = "p@ssw0rd1";
+        appBuilder.Configuration["Parameters:pass"] = "p@ssw0rd1";
 
         var pass = appBuilder.AddParameter("pass");
         appBuilder

@@ -26,11 +26,6 @@ public static class OracleDatabaseBuilderExtensions
         var passwordParameterName = $"{name}-password";
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, passwordParameterName);
 
-        if (builder.ExecutionContext.IsRunMode && passwordParameter.Default is not null)
-        {
-            passwordParameter.Default = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, passwordParameterName, passwordParameter.Default);
-        }
-
         var oracleDatabaseServer = new OracleDatabaseServerResource(name, passwordParameter);
         return builder.AddResource(oracleDatabaseServer)
                       .WithEndpoint(port: port, targetPort: 1521, name: OracleDatabaseServerResource.PrimaryEndpointName)
