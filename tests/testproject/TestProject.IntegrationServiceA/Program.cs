@@ -38,6 +38,10 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
 {
     builder.AddKeyedRedisClient("garnet");
 }
+if (!resourcesToSkip.HasFlag(TestResourceNames.valkey))
+{
+    builder.AddKeyedRedisClient("valkey");
+}
 if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
     builder.AddNpgsqlDataSource("postgresdb");
@@ -91,6 +95,11 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
     });
 }
 
+if (!resourcesToSkip.HasFlag(TestResourceNames.milvus))
+{
+    builder.AddMilvusClient("milvus");
+}
+
 // Ensure healthChecks are added. Some components like Cosmos
 // don't add this
 builder.Services.AddHealthChecks();
@@ -111,6 +120,11 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
 {
     app.MapGarnetApi();
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.valkey))
+{
+    app.MapValkeyApi();
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
@@ -165,6 +179,11 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
 if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
 {
     app.MapEventHubsApi();
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.milvus))
+{
+    app.MapMilvusApi();
 }
 
 app.Run();

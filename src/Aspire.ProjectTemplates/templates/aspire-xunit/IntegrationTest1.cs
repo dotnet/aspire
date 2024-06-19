@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Tests._1.Tests;
 
@@ -12,12 +13,16 @@ public class IntegrationTest1
     //    </ItemGroup>
     //
     // 2. Uncomment the following example test and update 'Projects.MyAspireApp_AppHost' to match your AppHost project:
-    // 
+    //
     // [Fact]
     // public async Task GetWebResourceRootReturnsOkStatusCode()
     // {
     //     // Arrange
     //     var appHost = await DistributedApplicationTestingBuilder.CreateAsync<Projects.MyAspireApp_AppHost>();
+    //     appHost.Services.ConfigureHttpClientDefaults(clientBuilder =>
+    //     {
+    //         clientBuilder.AddStandardResilienceHandler();
+    //     });
     //     await using var app = await appHost.BuildAsync();
     //     await app.StartAsync();
 

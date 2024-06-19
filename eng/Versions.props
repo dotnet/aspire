@@ -6,6 +6,12 @@
     <PatchVersion>0</PatchVersion>
     <VersionPrefix>8.1.0</VersionPrefix>
     <PreReleaseVersionLabel>preview.1</PreReleaseVersionLabel>
+    <!--
+      When running package validation as part of the build, we want to ensure we didn't break the API against the previous
+      version of each package. The following property points to the package version that should be used as baseline.
+      This should get updated each time packages are shipped.
+    -->
+    <BaselineVersionForPackageValidation>8.0.1</BaselineVersionForPackageValidation>
     <UseVSTestRunner>true</UseVSTestRunner>
     <!-- Enable to remove prerelease label. -->
     <StabilizePackageVersion Condition="'$(StabilizePackageVersion)' == ''">false</StabilizePackageVersion>
@@ -15,20 +21,20 @@
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->
     <MicrosoftDotnetSdkInternalPackageVersion>8.0.100-rtm.23512.16</MicrosoftDotnetSdkInternalPackageVersion>
     <!-- DCP -->
-    <MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>0.4.2</MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>0.4.2</MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>
-    <MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>0.4.2</MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>0.4.2</MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>
-    <MicrosoftDeveloperControlPlanewindows386PackageVersion>0.4.2</MicrosoftDeveloperControlPlanewindows386PackageVersion>
-    <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.4.2</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.4.2</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>0.5.2</MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>0.5.2</MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>0.5.2</MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>0.5.2</MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanewindows386PackageVersion>0.5.2</MicrosoftDeveloperControlPlanewindows386PackageVersion>
+    <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.5.2</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.5.2</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
     <!-- Other -->
-    <MicrosoftDotNetRemoteExecutorPackageVersion>8.0.0-beta.24270.4</MicrosoftDotNetRemoteExecutorPackageVersion>
-    <MicrosoftDotNetXUnitExtensionsPackageVersion>8.0.0-beta.24270.4</MicrosoftDotNetXUnitExtensionsPackageVersion>
-    <MicrosoftDotNetBuildTasksInstallersPackageVersion>8.0.0-beta.24270.4</MicrosoftDotNetBuildTasksInstallersPackageVersion>
-    <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>8.0.0-beta.24270.4</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
-    <MicrosoftExtensionsHttpResiliencePackageVersion>8.5.0</MicrosoftExtensionsHttpResiliencePackageVersion>
-    <MicrosoftExtensionsDiagnosticsTestingPackageVersion>8.5.0</MicrosoftExtensionsDiagnosticsTestingPackageVersion>
+    <MicrosoftDotNetRemoteExecutorPackageVersion>8.0.0-beta.24311.3</MicrosoftDotNetRemoteExecutorPackageVersion>
+    <MicrosoftDotNetXUnitExtensionsPackageVersion>8.0.0-beta.24311.3</MicrosoftDotNetXUnitExtensionsPackageVersion>
+    <MicrosoftDotNetBuildTasksInstallersPackageVersion>8.0.0-beta.24311.3</MicrosoftDotNetBuildTasksInstallersPackageVersion>
+    <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>8.0.0-beta.24311.3</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
+    <MicrosoftExtensionsHttpResiliencePackageVersion>8.6.0</MicrosoftExtensionsHttpResiliencePackageVersion>
+    <MicrosoftExtensionsDiagnosticsTestingPackageVersion>8.6.0</MicrosoftExtensionsDiagnosticsTestingPackageVersion>
     <MicrosoftExtensionsConfigurationAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsConfigurationAbstractionsPackageVersion>
     <MicrosoftExtensionsConfigurationBinderPackageVersion>8.0.1</MicrosoftExtensionsConfigurationBinderPackageVersion>
     <MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>8.0.1</MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>
@@ -38,20 +44,20 @@
     <MicrosoftExtensionsLoggingAbstractionsPackageVersion>8.0.1</MicrosoftExtensionsLoggingAbstractionsPackageVersion>
     <MicrosoftExtensionsOptionsPackageVersion>8.0.2</MicrosoftExtensionsOptionsPackageVersion>
     <MicrosoftExtensionsPrimitivesPackageVersion>8.0.0</MicrosoftExtensionsPrimitivesPackageVersion>
-    <MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>8.0.5</MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>
-    <MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion>8.0.5</MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion>
-    <MicrosoftAspNetCoreOpenApiPackageVersion>8.0.5</MicrosoftAspNetCoreOpenApiPackageVersion>
-    <MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>8.0.5</MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>
-    <MicrosoftExtensionsCachingStackExchangeRedisPackageVersion>8.0.5</MicrosoftExtensionsCachingStackExchangeRedisPackageVersion>
-    <MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>8.0.5</MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>
-    <MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>8.0.5</MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>
-    <MicrosoftExtensionsFeaturesPackageVersion>8.0.5</MicrosoftExtensionsFeaturesPackageVersion>
-    <MicrosoftExtensionsTimeProviderTestingVersion>8.5.0</MicrosoftExtensionsTimeProviderTestingVersion>
+    <MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>8.0.6</MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>
+    <MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion>8.0.6</MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion>
+    <MicrosoftAspNetCoreOpenApiPackageVersion>8.0.6</MicrosoftAspNetCoreOpenApiPackageVersion>
+    <MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>8.0.6</MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>
+    <MicrosoftExtensionsCachingStackExchangeRedisPackageVersion>8.0.6</MicrosoftExtensionsCachingStackExchangeRedisPackageVersion>
+    <MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>8.0.6</MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>
+    <MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>8.0.6</MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>
+    <MicrosoftExtensionsFeaturesPackageVersion>8.0.6</MicrosoftExtensionsFeaturesPackageVersion>
+    <MicrosoftExtensionsTimeProviderTestingVersion>8.6.0</MicrosoftExtensionsTimeProviderTestingVersion>
     <!-- EF -->
-    <MicrosoftEntityFrameworkCoreCosmosPackageVersion>8.0.5</MicrosoftEntityFrameworkCoreCosmosPackageVersion>
-    <MicrosoftEntityFrameworkCoreDesignPackageVersion>8.0.5</MicrosoftEntityFrameworkCoreDesignPackageVersion>
-    <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>8.0.5</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
-    <MicrosoftEntityFrameworkCoreToolsPackageVersion>8.0.5</MicrosoftEntityFrameworkCoreToolsPackageVersion>
+    <MicrosoftEntityFrameworkCoreCosmosPackageVersion>8.0.6</MicrosoftEntityFrameworkCoreCosmosPackageVersion>
+    <MicrosoftEntityFrameworkCoreDesignPackageVersion>8.0.6</MicrosoftEntityFrameworkCoreDesignPackageVersion>
+    <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>8.0.6</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
+    <MicrosoftEntityFrameworkCoreToolsPackageVersion>8.0.6</MicrosoftEntityFrameworkCoreToolsPackageVersion>
     <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.0-preview.5.24272.3</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
   </PropertyGroup>
 </Project>

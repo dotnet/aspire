@@ -17,3 +17,6 @@ dotnet_diagnostic.IDE0060.severity = silent
 
 # IDE0005: Using directive is unnecessary
 dotnet_diagnostic.IDE0005.severity = silent
+
+# IDE0073: File header
+dotnet_diagnostic.IDE0073.severity = silent

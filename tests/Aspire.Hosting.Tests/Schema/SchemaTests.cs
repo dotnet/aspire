@@ -44,6 +44,51 @@ public class SchemaTests
                     }
                 },
 
+                { "ContainerWithBuild", (IDistributedApplicationBuilder builder) =>
+                    {
+                        var tempPath = Path.GetTempPath();
+                        var tempContextPath = Path.Combine(tempPath, Path.GetRandomFileName());
+                        Directory.CreateDirectory(tempContextPath);
+                        var tempDockerfilePath = Path.Combine(tempContextPath, "Dockerfile");
+                        File.WriteAllText(tempDockerfilePath, "does not need to be valid dockerfile content here");
+
+                        builder.AddContainer("mycontainer", "myimage").WithDockerfile(tempContextPath);
+                    }
+                },
+
+                { "ContainerWithBuildAndBuildArgs", (IDistributedApplicationBuilder builder) =>
+                    {
+                        var tempPath = Path.GetTempPath();
+                        var tempContextPath = Path.Combine(tempPath, Path.GetRandomFileName());
+                        Directory.CreateDirectory(tempContextPath);
+                        var tempDockerfilePath = Path.Combine(tempContextPath, "Dockerfile");
+                        File.WriteAllText(tempDockerfilePath, "does not need to be valid dockerfile content here");
+
+                        var p = builder.AddParameter("p");
+                        builder.AddContainer("mycontainer", "myimage")
+                               .WithDockerfile(tempContextPath)
+                               .WithBuildArg("stringArg", "a string")
+                               .WithBuildArg("intArg", 42)
+                               .WithBuildArg("boolArg", true)
+                               .WithBuildArg("parameterArg", p);
+                    }
+                },
+
+                { "ContainerWithBuildAndSecretBuildArgs", (IDistributedApplicationBuilder builder) =>
+                    {
+                        var tempPath = Path.GetTempPath();
+                        var tempContextPath = Path.Combine(tempPath, Path.GetRandomFileName());
+                        Directory.CreateDirectory(tempContextPath);
+                        var tempDockerfilePath = Path.Combine(tempContextPath, "Dockerfile");
+                        File.WriteAllText(tempDockerfilePath, "does not need to be valid dockerfile content here");
+
+                        var p = builder.AddParameter("p", secret: true);
+                        builder.AddContainer("mycontainer", "myimage")
+                               .WithDockerfile(tempContextPath)
+                               .WithBuildSecret("secretArg", p);
+                    }
+                },
+
                 { "ContainerWithVolume", (IDistributedApplicationBuilder builder) =>
                     {
                         builder.AddRedis("redis").WithDataVolume();
@@ -255,6 +300,93 @@ public class SchemaTests
               "resources": {
                 "mycontainer": {
                   "type": "container.v0",
+                  "image": "myimage:latest"
+                }
+              }
+            }
+            """;
+
+        var manifestJson = JToken.Parse(manifestTest);
+        var schema = await GetSchemaAsync();
+        Assert.True(manifestJson.IsValid(schema));
+    }
+
+    [SkipOnHelixFact]
+    public async Task ManifestWithContainerV0ResourceAndBuildFieldIsRejected()
+    {
+        var manifestTest = """
+            {
+              "resources": {
+                "mycontainer": {
+                  "type": "container.v0",
+                  "image": "myimage:latest",
+                  "build": {
+                    "context": "relativepath",
+                    "dockerfile": "relativepath/Dockerfile"
+                  }
+                }
+              }
+            }
+            """;
+
+        var manifestJson = JToken.Parse(manifestTest);
+        var schema = await GetSchemaAsync();
+        Assert.False(manifestJson.IsValid(schema));
+    }
+
+    [SkipOnHelixFact]
+    public async Task ManifestWithContainerV1ResourceWithImageAndBuildFieldIsRejected()
+    {
+        var manifestTest = """
+            {
+              "resources": {
+                "mycontainer": {
+                  "type": "container.v1",
+                  "image": "myimage:latest",
+                  "build": {
+                    "context": "relativepath",
+                    "dockerfile": "relativepath/Dockerfile"
+                  }
+                }
+              }
+            }
+            """;
+
+        var manifestJson = JToken.Parse(manifestTest);
+        var schema = await GetSchemaAsync();
+        Assert.False(manifestJson.IsValid(schema));
+    }
+
+    [SkipOnHelixFact]
+    public async Task ManifestWithContainerV1ResourceAndBuildFieldIsAccepted()
+    {
+        var manifestTest = """
+            {
+              "resources": {
+                "mycontainer": {
+                  "type": "container.v1",
+                  "build": {
+                    "context": "relativepath",
+                    "dockerfile": "relativepath/Dockerfile"
+                  }
+                }
+              }
+            }
+            """;
+
+        var manifestJson = JToken.Parse(manifestTest);
+        var schema = await GetSchemaAsync();
+        Assert.True(manifestJson.IsValid(schema));
+    }
+
+    [SkipOnHelixFact]
+    public async Task ManifestWithContainerV1ResourceAndImageFieldIsAccepted()
+    {
+        var manifestTest = """
+            {
+              "resources": {
+                "mycontainer": {
+                  "type": "container.v1",
                   "image": "myimage:latest"
                 }
               }

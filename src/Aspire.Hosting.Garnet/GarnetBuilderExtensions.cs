@@ -20,7 +20,7 @@ public static class GarnetBuilderExtensions
     /// </summary>
     /// <example>
     /// Use in application host
-    /// <code>
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var garnet = builder.AddGarnet("garnet");
@@ -32,7 +32,7 @@ public static class GarnetBuilderExtensions
     /// </example>
     /// <example>
     /// Use in Api with Aspire.StackExchange.Redis
-    /// <code>
+    /// <code lang="csharp">
     /// var builder = WebApplication.CreateBuilder(args);
     /// builder.AddRedisClient("garnet");
     ///
@@ -63,7 +63,7 @@ public static class GarnetBuilderExtensions
     /// </summary>
     /// <example>
     /// Use <see cref="WithPersistence(IResourceBuilder{GarnetResource}, TimeSpan?, long)"/> to adjust Garnet persistence configuration, e.g.:
-    /// <code>
+    /// <code lang="csharp">
     /// var cache = builder.AddGarnet("cache")
     ///                    .WithDataVolume()
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
@@ -94,7 +94,7 @@ public static class GarnetBuilderExtensions
     /// </summary>
     /// <example>
     /// Use <see cref="WithPersistence(IResourceBuilder{GarnetResource}, TimeSpan?, long)"/> to adjust Garnet persistence configuration, e.g.:
-    /// <code>
+    /// <code lang="csharp">
     /// var garnet = builder.AddGarnet("garnet")
     ///                    .WithDataBindMount()
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
@@ -125,7 +125,7 @@ public static class GarnetBuilderExtensions
     /// <example>
     /// Use with <see cref="WithDataBindMount(IResourceBuilder{GarnetResource}, string, bool)"/>
     /// or <see cref="WithDataVolume(IResourceBuilder{GarnetResource}, string?, bool)"/> to persist Garnet data across sessions with custom persistence configuration, e.g.:
-    /// <code>
+    /// <code lang="csharp">
     /// var cache = builder.AddGarnet("cache")
     ///                    .WithDataVolume()
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);

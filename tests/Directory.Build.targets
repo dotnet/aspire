@@ -1,6 +1,10 @@
 <Project>
-  <Import Project="..\Directory.Build.targets" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
+
   <PropertyGroup>
+    <!-- forward the settings file path to RunTests target in arcade -->
+    <VSTestRunSettingsFile Condition="'$(VSTestRunSettingsFile)' == ''">$(RunSettingsFilePath)</VSTestRunSettingsFile>
+
     <DeployRunSettingsFile Condition="'$(DeployRunSettingsFile)' == ''">true</DeployRunSettingsFile>
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == ''">$(RepositoryEngineeringDir)testing\xunit.runner.json</XunitRunnerJson>
 

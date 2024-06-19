@@ -22,7 +22,9 @@
     <PackageVersion Include="Aspire.Hosting.Azure.SignalR" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.Sql" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Garnet" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Kafka" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Milvus" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.MongoDB" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.MySql" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Nats" Version="$(PackageVersion)" />
@@ -31,11 +33,12 @@
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Redis" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Garnet" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Seq" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.SqlServer" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Valkey" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Microsoft.Azure.Cosmos" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Microsoft.Data.SqlClient" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Milvus.Client" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.MongoDB.Driver" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.MySqlConnector" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Npgsql" Version="$(PackageVersion)" />

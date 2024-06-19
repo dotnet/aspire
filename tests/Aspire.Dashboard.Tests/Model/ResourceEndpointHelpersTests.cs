@@ -181,6 +181,7 @@ public sealed class ResourceEndpointHelpersTests
             Urls = urls,
             Properties = FrozenDictionary<string, Value>.Empty,
             State = null,
+            KnownState = null,
             StateStyle = null,
             Commands = []
         };

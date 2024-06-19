@@ -21,6 +21,7 @@
     <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.EventHubs\Aspire.Hosting.Azure.EventHubs.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.Storage\Aspire.Hosting.Azure.Storage.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.ServiceBus\Aspire.Hosting.Azure.ServiceBus.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.WebPubSub\Aspire.Hosting.Azure.WebPubSub.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.Sql\Aspire.Hosting.Azure.Sql.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.SignalR\Aspire.Hosting.Azure.SignalR.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.Search\Aspire.Hosting.Azure.Search.csproj" IsAspireProjectResource="false" />
@@ -29,12 +30,15 @@
     <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.AppConfiguration\Aspire.Hosting.Azure.AppConfiguration.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Dapr\Aspire.Hosting.Dapr.csproj" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Garnet\Aspire.Hosting.Garnet.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\..\src\Aspire.Hosting.Milvus\Aspire.Hosting.Milvus.csproj" IsAspireProjectResource="false"/>
     <ProjectReference Include="..\..\src\Aspire.Hosting.MongoDB\Aspire.Hosting.MongoDB.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.MySql\Aspire.Hosting.MySql.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Nats\Aspire.Hosting.Nats.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.PostgreSQL\Aspire.Hosting.PostgreSQL.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Qdrant\Aspire.Hosting.Qdrant.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Testing\Aspire.Hosting.Testing.csproj" />
+    <ProjectReference Include="..\..\src\Aspire.Hosting.Valkey\Aspire.Hosting.Valkey.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\testproject\TestProject.AppHost\TestProject.AppHost.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\Aspire.Hosting.Tests.SharedShim\Aspire.Hosting.Tests.SharedShim.csproj" IsAspireProjectResource="false" Aliases="AspireHostingShared" />
     <ProjectReference Include="..\..\src\Components\Aspire.Microsoft.Data.SqlClient\Aspire.Microsoft.Data.SqlClient.csproj" IsAspireProjectResource="false" />
@@ -50,11 +54,13 @@
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Garnet\GarnetContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Kafka\KafkaContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Nats\NatsContainerImageTags.cs" />
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Milvus\MilvusContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.MongoDB\MongoDBContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Oracle\OracleContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.RabbitMQ\RabbitMQContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Qdrant\QdrantContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.SqlServer\SqlServerContainerImageTags.cs" />
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Valkey\ValkeyContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Azure.EventHubs\EventHubsEmulatorContainerImageTags.cs" />
 
     <Content Include="$(RepoRoot)src\Schema\aspire-8.0.json" Link="Schema\aspire-8.0.json">
