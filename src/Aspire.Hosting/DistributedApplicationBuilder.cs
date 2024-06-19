@@ -42,7 +42,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private const string BuilderConstructingEventName = "DistributedApplicationBuilderConstructing";
     private const string BuilderConstructedEventName = "DistributedApplicationBuilderConstructed";
 
-    private readonly Lazy<Assembly?> _appHostAssembly;
+    private readonly DistributedApplicationOptions _options;
 
     private readonly HostApplicationBuilder _innerBuilder;
 
@@ -59,7 +59,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     public string AppHostDirectory { get; }
 
     /// <inheritdoc />
-    public Assembly? AppHostAssembly => _appHostAssembly.Value;
+    public Assembly? AppHostAssembly => _options.Assembly;
 
     /// <inheritdoc />
     public DistributedApplicationExecutionContext ExecutionContext { get; }
@@ -105,6 +105,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     {
         ArgumentNullException.ThrowIfNull(options);
 
+        _options = options;
+
         var innerBuilderOptions = new HostApplicationBuilderSettings();
 
         // Args are set later in config with switch mappings. But specify them when creating the builder
@@ -126,7 +128,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Logging.AddConfiguration(_innerBuilder.Configuration.GetSection("Logging"));
 
         AppHostDirectory = options.ProjectDirectory ?? _innerBuilder.Environment.ContentRootPath;
-        _appHostAssembly = new(() => options.Assembly);
 
         // Set configuration
         ConfigurePublishingOptions(options);
