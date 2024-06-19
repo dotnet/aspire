@@ -25,10 +25,8 @@ public class IntegrationTest1
     //     await app.StartAsync();
 
     //     // Act
-    //     var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-    //     var webfrontend = appModel.GetProjectResources().First(p => string.Equals(p.Name, "webfrontend", StringComparison.OrdinalIgnoreCase));
-    //     await resourceNotificationService.WaitForResourceAsync(webfrontend.Name, KnownResourceStates.Running).WaitAsync(TimeSpan.FromSeconds(30));
     //     var httpClient = app.CreateHttpClient("webfrontend");
+    //     await resourceNotificationService.WaitForResourceAsync("webfrontend", KnownResourceStates.Running).WaitAsync(TimeSpan.FromSeconds(30));
     //     var response = await httpClient.GetAsync("/");
 
     //     // Assert
