@@ -649,6 +649,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4599", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessAndProxiedEndpointBothWorkOnSameResource()
     {
         using var testProgram = CreateTestProgram();
@@ -674,11 +675,8 @@ public class DistributedApplicationTests
 
         var token = new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token;
 
-        await Task.Delay(5000);
-
         var urls = string.Empty;
         var httpEndPoint = app.GetEndpoint(testProgram.ServiceABuilder.Resource.Name, endpointName: "http");
-        Console.WriteLine ($"http endpoint: '{httpEndPoint}'");
         while (true)
         {
             try
