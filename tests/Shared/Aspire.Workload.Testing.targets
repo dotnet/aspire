@@ -170,9 +170,19 @@
   </Target>
 
   <Target Name="_ValidateExpectedSetOfPackagesExist" Condition="'$(SkipPackageCheckForWorkloadTesting)' != 'true'">
-    <GetExpectedNuGetPackageNames SourceDirectory="$(RepoRoot)src" PackagesDirectory="$(ArtifactsShippingPackagesDir)">
-      <Output TaskParameter="PackageNames" ItemName="ExpectedPackageNames" />
-    </GetExpectedNuGetPackageNames>
+    <ItemGroup>
+      <_SrcProjects Include="$(RepoRoot)src\**\*.csproj" Exclude="$(RepoRoot)src\Aspire.ProjectTemplates\templates\**" />
+    </ItemGroup>
+
+    <MSBuild Projects="@(_SrcProjects)" Targets="GetPackageName">
+      <Output TaskParameter="TargetOutputs" ItemName="_PackableProjectName" />
+    </MSBuild>
+    <ItemGroup>
+      <!-- Ignore Microsoft.NET.Sdk.Aspire as the emitted package name is special: Microsoft.NET.Sdk.Aspire.Manifest-$(sdkband)-* -->
+      <ExpectedPackageNames
+          Include="@(_PackableProjectName)"
+          Condition="'%(Identity)' != '' and '%(Identity)' != 'Microsoft.NET.Sdk.Aspire'" />
+    </ItemGroup>
 
     <!-- check against an arbitrary minimum limit to catch any issues getting the list of packages -->
     <Error Text="Too few packages? count: @(ExpectedPackageNames->Count())"
@@ -186,9 +196,8 @@
 
       <UnexpectedPackages Include="@(AllPackages)" Exclude="@(ExpectedPackagePaths)" />
 
-      <!-- Ignore the packages which are part of the workload. Existence of these would get checked
+      <!-- Ignore these packages which are part of the workload. Existence of these would get checked
             by the workload installation targets. And their names don't correspond to project names. -->
-      <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="'%(UnexpectedPackages.FileName)' == 'Aspire.Hosting.Sdk.$(PackageVersion)'" />
       <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Microsoft.NET.Sdk.Aspire.Manifest-'))" />
       <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Aspire.Hosting.Orchestration.'))" />
       <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Aspire.Dashboard.Sdk.'))" />
@@ -199,38 +208,4 @@
     <Error Text="Missing some expected packages in '$(ArtifactsShippingPackagesDir)': @(MissingPackages -> '%(FileName)%(Extension)',', ') . Make sure to build with `-pack`. Use %24(SkipPackageCheckForWorkloadTesting)='true' to skip this."
            Condition="@(MissingPackages -> Count()) &gt; 0" />
   </Target>
-
-  <UsingTask TaskName="GetExpectedNuGetPackageNames"
-      TaskFactory="RoslynCodeTaskFactory"
-      AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
-    <ParameterGroup>
-      <SourceDirectory ParameterType="System.String" Required="true" />
-      <PackagesDirectory ParameterType="System.String" Required="true" />
-      <PackageNames ParameterType="System.String[]" Output="true" />
-    </ParameterGroup>
-    <Task>
-      <Using Namespace="System.IO" />
-      <Code Type="Fragment" Language="cs">
-        <![CDATA[
-            if (!Directory.Exists(SourceDirectory))
-            {
-                Log.LogError($"Could not find {nameof(SourceDirectory)}={SourceDirectory}");
-                return false;
-            }
-            if (!Directory.Exists(PackagesDirectory))
-            {
-                Log.LogError($"Could not find {nameof(PackagesDirectory)}={PackagesDirectory}");
-                return false;
-            }
-
-            var files = Directory.EnumerateFiles(SourceDirectory, "*.csproj", SearchOption.AllDirectories);
-            PackageNames = files.Where(f => File.ReadAllText(f).Contains("<IsPackable>true</IsPackable>"))
-                                .Select(f => Path.GetFileNameWithoutExtension(f))
-                                .ToArray();
-
-        ]]>
-      </Code>
-    </Task>
-  </UsingTask>
-
 </Project>
