@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Threading.Channels;
+using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
@@ -707,5 +708,52 @@ public class LogTests
 
         var elapsed = stopwatch.Elapsed;
         CustomAssert.AssertExceedsMinInterval(elapsed, minExecuteInterval);
+    }
+
+    [Fact]
+    public void FilterLogs_With_Message_Returns_CorrectLog()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(instanceId: "1"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime.AddMinutes(1), message: "test_message", severity: SeverityNumber.Error),
+                        }
+                    }
+                }
+            }
+        });
+
+        var applicationId = repository.GetApplications().First().InstanceId;
+
+        Assert.Empty(repository.GetLogs(new GetLogsContext
+        {
+            ApplicationServiceId = applicationId,
+            StartIndex = 0,
+            Count = 1,
+            Filters = [new LogFilter { Condition = FilterCondition.Contains, Field = nameof(OtlpLogEntry.Message), Value = "does_not_contain" }]
+        }).Items);
+
+        Assert.Single(repository.GetLogs(new GetLogsContext
+        {
+            ApplicationServiceId = applicationId,
+            StartIndex = 0,
+            Count = 1,
+            Filters = [new LogFilter { Condition = FilterCondition.Contains, Field = nameof(OtlpLogEntry.Message), Value = "message" }]
+        }).Items);
+
     }
 }
