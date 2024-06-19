@@ -3,6 +3,7 @@
 
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Text;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.SecretManager.Tools.Internal;
@@ -42,6 +43,42 @@ public class UserSecretsParameterDefaultTests
 
         var initialValue = userSecretDefault.GetDefaultValue();
         Assert.NotNull(initialValue);
+    }
+
+    [Fact]
+    public void UserSecretsParameterDefault_GetDefaultValue_DoesntThrowIfSecretsFileContainsComments()
+    {
+        var userSecretsId = Guid.NewGuid().ToString("N");
+        DeleteUserSecretsFile(userSecretsId);
+        var userSecretsPath = PathHelper.GetSecretsPathFromSecretsId(userSecretsId);
+        if (File.Exists(userSecretsPath))
+        {
+            File.Delete(userSecretsPath);
+        }
+        var secretsFileContents = """
+            {
+                // This is a comment in a JSON file
+                "SomeConfigKey": "some value"
+            }
+            """;
+        EnsureUserSecretsDirectory(userSecretsPath);
+        File.WriteAllText(userSecretsPath, secretsFileContents, Encoding.UTF8);
+
+        var testAssembly = AssemblyBuilder.DefineDynamicAssembly(
+            new("TestAssembly"), AssemblyBuilderAccess.RunAndCollect, [new CustomAttributeBuilder(s_userSecretsIdAttrCtor, [userSecretsId])]);
+        var paramDefault = new TestParameterDefault();
+        var userSecretDefault = new UserSecretsParameterDefault(testAssembly, "TestApplication.AppHost", "param1", paramDefault);
+
+        var _ = userSecretDefault.GetDefaultValue();
+    }
+
+    private static void EnsureUserSecretsDirectory(string secretsFilePath)
+    {
+        var directoryName = Path.GetDirectoryName(secretsFilePath);
+        if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))
+        {
+            Directory.CreateDirectory(directoryName);
+        }
     }
 
     private static Dictionary<string, string?> GetUserSecrets(string userSecretsId)

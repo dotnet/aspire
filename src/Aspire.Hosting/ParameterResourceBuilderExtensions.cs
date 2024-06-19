@@ -190,12 +190,12 @@ public static class ParameterResourceBuilderExtensions
     public static ParameterResource CreateGeneratedParameter(
         IDistributedApplicationBuilder builder, string name, bool secret, GenerateParameterDefault parameterDefault)
     {
-        var parameterResource = new ParameterResource(name, parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault), secret)
+        var parameterResource = new ParameterResource(name, defaultValue => GetParameterValue(builder.Configuration, name, defaultValue), secret)
         {
             Default = parameterDefault
         };
 
-        if (builder.ExecutionContext.IsRunMode && builder.AppHostAssembly is not null && parameterResource.Default is not null)
+        if (builder.ExecutionContext.IsRunMode && builder.AppHostAssembly is not null)
         {
             parameterResource.Default = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, name, parameterResource.Default);
         }
