@@ -28,14 +28,12 @@ public abstract partial class PerTestFrameworkTemplatesTests : WorkloadTestsBase
         _testTemplateName = testType;
     }
 
-    public static TheoryData<string> ProjectNamesWithTestTemplate_TestData()
+    public static IEnumerable<object[]> ProjectNamesWithTestTemplate_TestData()
     {
-        var data = new TheoryData<string>();
         foreach (var name in GetProjectNamesForTest())
         {
-            data.Add(name);
+            yield return [name];
         }
-        return data;
     }
 
     [Theory]
