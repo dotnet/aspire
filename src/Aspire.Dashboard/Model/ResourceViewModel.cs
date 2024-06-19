@@ -54,8 +54,8 @@ public sealed class ResourceViewModel
                     // because we can't share it between resource pages and telemetry pages.
                     // Instead, combine resource name with the UID.
                     // Before: catalogservice-mbrpbvo
-                    // After: catalogservice (026d19d)
-                    return $"{resource.DisplayName} ({OtlpHelpers.TruncateString(resource.Uid, maxLength: 7)})";
+                    // After: catalogservice-{truncated-guid}
+                    return $"{resource.DisplayName}-{OtlpHelpers.TruncateString(resource.Uid, maxLength: 7)}";
                 }
             }
         }
