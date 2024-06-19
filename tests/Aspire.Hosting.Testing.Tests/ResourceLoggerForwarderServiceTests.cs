@@ -13,7 +13,7 @@ using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Testing.Tests;
 
-public class ResourceLogForwarderServiceTests(ITestOutputHelper output)
+public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
 {
     [Fact]
     public async Task BackgroundServiceIsRegisteredInServiceProvider()
