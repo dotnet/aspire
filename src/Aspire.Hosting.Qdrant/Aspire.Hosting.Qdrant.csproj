@@ -8,6 +8,10 @@
     <PackageIconFullPath>$(SharedDir)QdrantLogo_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <MinCodeCoverage>33</MinCodeCoverage>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
     <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />

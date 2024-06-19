@@ -58,6 +58,9 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     [Inject]
     public required TracesViewModel TracesViewModel { get; set; }
 
+    [Inject]
+    public required ILogger<Metrics> Logger { get; init; }
+
     protected override Task OnInitializedAsync()
     {
         _durations = new List<SelectViewModel<TimeSpan>>
@@ -116,7 +119,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public void UpdateViewModelFromQuery(MetricsViewModel viewModel)
     {
         viewModel.SelectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration);
-        viewModel.SelectedApplication = _applications.GetApplication(ApplicationName, _selectApplication);
+        viewModel.SelectedApplication = _applications.GetApplication(Logger, ApplicationName, _selectApplication);
         var selectedInstance = viewModel.SelectedApplication.Id?.InstanceId;
         viewModel.Instruments = !string.IsNullOrEmpty(selectedInstance) ? TelemetryRepository.GetInstrumentsSummary(selectedInstance) : null;
 

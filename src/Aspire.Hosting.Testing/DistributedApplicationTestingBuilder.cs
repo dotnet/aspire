@@ -1,5 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -139,6 +140,8 @@ public static class DistributedApplicationTestingBuilder
 
             public string AppHostDirectory => innerBuilder.AppHostDirectory;
 
+            public Assembly? AppHostAssembly => innerBuilder.AppHostAssembly;
+
             public IHostEnvironment Environment => innerBuilder.Environment;
 
             public IServiceCollection Services => innerBuilder.Services;
@@ -221,6 +224,11 @@ public interface IDistributedApplicationTestingBuilder
     /// Directory of the project where the app host is located. Defaults to the content root if there's no project.
     /// </summary>
     string AppHostDirectory { get; }
+
+    /// <summary>
+    /// The assembly of the app host.
+    /// </summary>
+    Assembly? AppHostAssembly { get; }
 
     /// <inheritdoc cref="HostApplicationBuilder.Environment" />
     IHostEnvironment Environment { get; }

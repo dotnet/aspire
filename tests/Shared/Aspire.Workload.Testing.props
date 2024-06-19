@@ -2,6 +2,8 @@
   <Import Project="$(RepoRoot)src\Shared\Workload.props" />
 
   <PropertyGroup>
+    <!-- Disable automatic installation of workload -->
+    <InstallWorkloadUsingArtifactsAfterThisTarget />
     <TemplateNuGetConfigPath>$(RepoRoot)NuGet.config</TemplateNuGetConfigPath>
     <PatchedNuGetConfigPath>$(ArtifactsObjDir)nuget.workload.config</PatchedNuGetConfigPath>
 

@@ -12,6 +12,26 @@ namespace Aspire.Hosting.Tests.SqlServer;
 public class AddSqlServerTests
 {
     [Fact]
+    public void AddSqlServerAddsGeneratedPasswordParameterWithUserSecretsParameterDefaultInRunMode()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+
+        var sql = appBuilder.AddSqlServer("sql");
+
+        Assert.IsType<UserSecretsParameterDefault>(sql.Resource.PasswordParameter.Default);
+    }
+
+    [Fact]
+    public void AddSqlServerDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultInPublishMode()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var sql = appBuilder.AddSqlServer("sql");
+
+        Assert.IsNotType<UserSecretsParameterDefault>(sql.Resource.PasswordParameter.Default);
+    }
+
+    [Fact]
     public async Task AddSqlServerContainerWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();

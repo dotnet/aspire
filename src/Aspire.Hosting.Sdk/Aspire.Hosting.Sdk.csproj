@@ -7,6 +7,10 @@
     <Description>.NET Aspire Hosting SDK. Enabled via &lt;IsAspireHost&gt;true&lt;/IsAspireHost&gt;.</Description>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <MinCodeCoverage>100</MinCodeCoverage>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Include="..\Aspire.Hosting\build\*.targets" Link="SDK\%(Filename)%(Extension)" Pack="true" PackagePath="Sdk\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Update="SDK\*.props;SDK\*.targets" Pack="true" PackagePath="Sdk\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

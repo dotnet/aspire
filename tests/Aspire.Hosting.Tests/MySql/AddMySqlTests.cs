@@ -14,6 +14,26 @@ namespace Aspire.Hosting.Tests.MySql;
 public class AddMySqlTests
 {
     [Fact]
+    public void AddMySqlAddsGeneratedPasswordParameterWithUserSecretsParameterDefaultInRunMode()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+
+        var mysql = appBuilder.AddMySql("mysql");
+
+        Assert.IsType<UserSecretsParameterDefault>(mysql.Resource.PasswordParameter.Default);
+    }
+
+    [Fact]
+    public void AddMySqlDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultInPublishMode()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var mysql = appBuilder.AddMySql("mysql");
+
+        Assert.IsNotType<UserSecretsParameterDefault>(mysql.Resource.PasswordParameter.Default);
+    }
+
+    [Fact]
     public async Task AddMySqlContainerWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();

@@ -184,7 +184,7 @@ public class OtlpApplication
     public static Dictionary<string, List<OtlpApplication>> GetReplicasByApplicationName(IEnumerable<OtlpApplication> allApplications)
     {
         return allApplications
-            .GroupBy(application => application.ApplicationName)
+            .GroupBy(application => application.ApplicationName, StringComparers.ResourceName)
             .ToDictionary(grouping => grouping.Key, grouping => grouping.ToList());
     }
 

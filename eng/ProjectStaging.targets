@@ -1,0 +1,9 @@
+<Project>
+
+  <!-- Produce errors if we don't have all the right properties defined -->
+  <Target Name="_CheckPropsExist" Condition="'$(IsPackable)' == 'true'" BeforeTargets="Build">
+    <Error Condition="'$(Description)' == ''" Text="Missing 'Description' property." />
+    <Error Condition="'$(MinCodeCoverage)' == ''" Text="Missing 'MinCodeCoverage' property." />
+  </Target>
+
+</Project>

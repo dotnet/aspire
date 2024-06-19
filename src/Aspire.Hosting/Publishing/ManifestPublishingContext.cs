@@ -224,17 +224,22 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <exception cref="DistributedApplicationException">Thrown if the container resource does not contain a <see cref="ContainerImageAnnotation"/>.</exception>
     public async Task WriteContainerAsync(ContainerResource container)
     {
-        Writer.WriteString("type", "container.v0");
-
-        // Attempt to write the connection string for the container (if this resource has one).
-        WriteConnectionString(container);
-
-        if (!container.TryGetContainerImageName(out var image))
+        if (container.Annotations.OfType<DockerfileBuildAnnotation>().Any())
         {
-            throw new DistributedApplicationException("Could not get container image name.");
+            Writer.WriteString("type", "container.v1");
+            WriteConnectionString(container);
+            WriteBuildContext(container);
         }
-
-        Writer.WriteString("image", image);
+        else
+        {
+            Writer.WriteString("type", "container.v0");
+            if (!container.TryGetContainerImageName(out var image))
+            {
+                throw new DistributedApplicationException("Could not get container image name.");
+            }
+            WriteConnectionString(container);
+            Writer.WriteString("image", image);
+        }
 
         if (container.Entrypoint is not null)
         {
@@ -249,6 +254,79 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         await WriteEnvironmentVariablesAsync(container).ConfigureAwait(false);
         WriteBindings(container);
+    }
+
+    private void WriteBuildContext(ContainerResource container)
+    {
+        if (container.TryGetAnnotationsOfType<DockerfileBuildAnnotation>(out var annotations) && annotations.Single() is { } annotation)
+        {
+            Writer.WriteStartObject("build");
+            Writer.WriteString("context", GetManifestRelativePath(annotation.ContextPath));
+            Writer.WriteString("dockerfile", GetManifestRelativePath(annotation.DockerfilePath));
+
+            if (annotation.Stage is { } stage)
+            {
+                Writer.WriteString("stage", stage);
+            }
+
+            if (annotation.BuildArguments.Count > 0)
+            {
+                Writer.WriteStartObject("args");
+
+                foreach (var (key, value) in annotation.BuildArguments)
+                {
+                    var valueString = value switch
+                    {
+                        string stringValue => stringValue,
+                        IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
+                        bool boolValue => boolValue ? "true" : "false",
+                        null => null, // null means let docker build pull from env var.
+                        _ => value.ToString()
+                    };
+
+                    Writer.WriteString(key, valueString);
+                }
+
+                Writer.WriteEndObject();
+            }
+
+            if (annotation.BuildSecrets.Count > 0)
+            {
+                Writer.WriteStartObject("secrets");
+
+                foreach (var (key, value) in annotation.BuildSecrets)
+                {
+                    var valueString = value switch
+                    {
+                        FileInfo fileValue => GetManifestRelativePath(fileValue.FullName),
+                        string stringValue => stringValue,
+                        IManifestExpressionProvider manifestExpression => manifestExpression.ValueExpression,
+                        bool boolValue => boolValue ? "true" : "false",
+                        null => null, // null means let docker build pull from env var.
+                        _ => value.ToString()
+                    };
+
+                    Writer.WriteStartObject(key);
+
+                    if (value is FileInfo)
+                    {
+                        Writer.WriteString("type", "file");
+                        Writer.WriteString("source", valueString);
+                    }
+                    else
+                    {
+                        Writer.WriteString("type", "env");
+                        Writer.WriteString("value", valueString);
+                    }
+
+                    Writer.WriteEndObject();
+                }
+
+                Writer.WriteEndObject();
+            }
+
+            Writer.WriteEndObject();
+        }
     }
 
     /// <summary>
@@ -274,6 +352,14 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     {
         if (resource.TryGetEndpoints(out var endpoints))
         {
+            // This is used to determine if an endpoint should be treated as the Default endpoint.
+            // Endpoints can come from 3 different sources (in this order):
+            // 1. Kestrel configuration
+            // 2. Default endpoints added by the framework
+            // 3. Explicitly added endpoints
+            // But wherever they come from, we treat the first one as Default, for each scheme.
+            var schemesEncountered = new HashSet<string>();
+
             Writer.WriteStartObject("bindings");
             foreach (var endpoint in endpoints)
             {
@@ -290,13 +376,20 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                     // Container resources get their default listening port from the exposed port.
                     (ContainerResource, _, null, int port) => port,
 
-                    // Project resources get their default listening port from the deployment tool
-                    // ideally we would default to a known port but we don't know it at this point
-                    (ProjectResource, var scheme, null, _) when scheme is "http" or "https" => null,
+                    // Check whether the project view this endpoint as Default (for its scheme).
+                    // If so, we don't specify the target port, as it will get one from the deployment tool.
+                    (ProjectResource project, string uriScheme, null, _) when !schemesEncountered.Contains(uriScheme) => null,
 
                     // Allocate a dynamic port
                     _ => PortAllocator.AllocatePort()
                 };
+
+                // We only keep track of schemes for project resources, since we don't want
+                // a non-project scheme to affect what project endpoints are considered default.
+                if (resource is ProjectResource)
+                {
+                    schemesEncountered.Add(endpoint.UriScheme);
+                }
 
                 int? exposedPort = (endpoint.UriScheme, endpoint.Port, targetPort) switch
                 {

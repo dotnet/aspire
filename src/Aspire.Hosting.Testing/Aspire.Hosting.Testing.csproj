@@ -10,6 +10,10 @@
     <Description>Testing support for the .NET Aspire application model.</Description>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <MinCodeCoverage>4</MinCodeCoverage>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Include="$(SharedDir)LaunchSettings.cs" Link="LaunchSettings.cs" />
     <Compile Include="$(SharedDir)LaunchProfile.cs" Link="LaunchProfile.cs" />

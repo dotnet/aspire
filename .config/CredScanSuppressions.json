@@ -20,6 +20,10 @@
     {
       "placeholder": "p@ssw0rd1",
       "_justification": "This is fake password, used in integration tests."
+    },
+    {
+      "placeholder": "thisIsAFakeSecret",
+      "_justification": "This isn't a real secret, it's used in one of the playground applications for testing purposes."
     }
   ]
 }

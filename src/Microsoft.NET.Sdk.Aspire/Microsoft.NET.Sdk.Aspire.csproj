@@ -7,6 +7,10 @@
     <Description>.NET Aspire workload manifest</Description>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <MinCodeCoverage>100</MinCodeCoverage>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Include="WorkloadManifest.in.json" Pack="true" PerformTextReplacement="True" />
     <None Include="WorkloadManifest.targets" Pack="true" PackagePath="data" CopyToOutputDirectory="PreserveNewest" />

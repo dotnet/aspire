@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
+  "resources": {
+    "goversion": {
+      "type": "parameter.v0",
+      "value": "{goversion.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "secret": {
+      "type": "parameter.v0",
+      "value": "{secret.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
+    "mycontainer": {
+      "type": "container.v1",
+      "build": {
+        "context": "qots",
+        "dockerfile": "qots/Dockerfile",
+        "args": {
+          "GO_VERSION": "{goversion.value}"
+        },
+        "secrets": {
+          "SECRET_ASFILE": {
+            "type": "file",
+            "source": "Program.cs"
+          },
+          "SECRET_ASENV": {
+            "type": "env",
+            "value": "{secret.value}"
+          }
+        }
+      }
+    },
+    "vanillaredis": {
+      "type": "container.v0",
+      "connectionString": "{vanillaredis.bindings.tcp.host}:{vanillaredis.bindings.tcp.port}",
+      "image": "docker.io/library/redis:7.2",
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 6379
+        }
+      }
+    },
+    "spicyredis": {
+      "type": "container.v1",
+      "connectionString": "{spicyredis.bindings.tcp.host}:{spicyredis.bindings.tcp.port}",
+      "build": {
+        "context": "spicyredis",
+        "dockerfile": "spicyredis/Dockerfile"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 6380
+        }
+      }
+    }
+  }
+}

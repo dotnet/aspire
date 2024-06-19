@@ -18,6 +18,10 @@
     <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <MinCodeCoverage>27</MinCodeCoverage>
+  </PropertyGroup>
+
   <ItemGroup>
     <!-- Build service and client types. Integration tests use the client types to call OTLP services. -->
     <Protobuf Include="Otlp\**\*.proto">
