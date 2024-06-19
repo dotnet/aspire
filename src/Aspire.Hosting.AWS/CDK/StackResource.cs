@@ -19,7 +19,7 @@ internal class StackResource(string name, Stack stack, IResourceWithConstruct pa
     public IResourceWithConstruct Parent { get; } = parentConstruct;
 
     private IAWSSDKConfig? _awsSdkConfig;
-    IAWSSDKConfig? ICloudFormationResource.AWSSDKConfig
+    IAWSSDKConfig? IAWSResource.AWSSDKConfig
     {
         get => _awsSdkConfig ?? this.FindParentOfType<ICloudFormationResource>().AWSSDKConfig;
         set => _awsSdkConfig = value;

@@ -17,13 +17,9 @@ Aspire.Hosting.AWS.CDK.IStackResource.StackName.get -> string!
 Aspire.Hosting.AWS.CDK.IStackResource<T>
 Aspire.Hosting.AWS.CDK.IStackResource<T>.Stack.get -> T!
 Aspire.Hosting.AWS.CloudFormation.ICloudFormationResource
-Aspire.Hosting.AWS.CloudFormation.ICloudFormationResource.AWSSDKConfig.get -> Aspire.Hosting.AWS.IAWSSDKConfig?
-Aspire.Hosting.AWS.CloudFormation.ICloudFormationResource.AWSSDKConfig.set -> void
 Aspire.Hosting.AWS.CloudFormation.ICloudFormationResource.CloudFormationClient.get -> Amazon.CloudFormation.IAmazonCloudFormation?
 Aspire.Hosting.AWS.CloudFormation.ICloudFormationResource.CloudFormationClient.set -> void
 Aspire.Hosting.AWS.CloudFormation.ICloudFormationResource.Outputs.get -> System.Collections.Generic.List<Amazon.CloudFormation.Model.Output!>?
-Aspire.Hosting.AWS.CloudFormation.ICloudFormationResource.ProvisioningTaskCompletionSource.get -> System.Threading.Tasks.TaskCompletionSource?
-Aspire.Hosting.AWS.CloudFormation.ICloudFormationResource.ProvisioningTaskCompletionSource.set -> void
 Aspire.Hosting.AWS.CloudFormation.ICloudFormationStackResource
 Aspire.Hosting.AWS.CloudFormation.ICloudFormationTemplateResource
 Aspire.Hosting.AWS.CloudFormation.ICloudFormationTemplateResource.AddParameter(string! parameterName, string! parameterValue) -> Aspire.Hosting.AWS.CloudFormation.ICloudFormationTemplateResource!
@@ -42,11 +38,17 @@ Aspire.Hosting.AWS.CloudFormation.StackOutputReference.Resource.get -> Aspire.Ho
 Aspire.Hosting.AWS.CloudFormation.StackOutputReference.StackOutputReference(string! name, Aspire.Hosting.AWS.CloudFormation.ICloudFormationResource! resource) -> void
 Aspire.Hosting.AWS.CloudFormation.StackOutputReference.Value.get -> string?
 Aspire.Hosting.AWS.CloudFormation.StackOutputReference.ValueExpression.get -> string!
+Aspire.Hosting.AWS.IAWSResource
+Aspire.Hosting.AWS.IAWSResource.AWSSDKConfig.get -> Aspire.Hosting.AWS.IAWSSDKConfig?
+Aspire.Hosting.AWS.IAWSResource.AWSSDKConfig.set -> void
+Aspire.Hosting.AWS.IAWSResource.ProvisioningTaskCompletionSource.get -> System.Threading.Tasks.TaskCompletionSource?
+Aspire.Hosting.AWS.IAWSResource.ProvisioningTaskCompletionSource.set -> void
 Aspire.Hosting.AWS.IAWSSDKConfig
 Aspire.Hosting.AWS.IAWSSDKConfig.Profile.get -> string?
 Aspire.Hosting.AWS.IAWSSDKConfig.Profile.set -> void
 Aspire.Hosting.AWS.IAWSSDKConfig.Region.get -> Amazon.RegionEndpoint?
 Aspire.Hosting.AWS.IAWSSDKConfig.Region.set -> void
+Aspire.Hosting.AWSProvisionerExtensions
 Aspire.Hosting.CDKExtensions
 Aspire.Hosting.CloudFormationExtensions
 Aspire.Hosting.CognitoResourceExtensions
@@ -56,6 +58,7 @@ Aspire.Hosting.S3ResourceExtensions
 Aspire.Hosting.SDKResourceExtensions
 Aspire.Hosting.SNSResourceExtensions
 Aspire.Hosting.SQSResourceExtensions
+static Aspire.Hosting.AWSProvisionerExtensions.AddAWSProvisioning(this Aspire.Hosting.IDistributedApplicationBuilder! builder) -> Aspire.Hosting.IDistributedApplicationBuilder!
 static Aspire.Hosting.CDKExtensions.AddAWSCDK(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string? stackName = null, Amazon.CDK.IAppProps? props = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.CDK.ICDKResource!>!
 static Aspire.Hosting.CDKExtensions.AddConstruct<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.CDK.IResourceWithConstruct!>! builder, string! name, Aspire.Hosting.AWS.CDK.ConstructBuilderDelegate<T!>! constructBuilder) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.CDK.IConstructResource<T!>!>!
 static Aspire.Hosting.CDKExtensions.AddOutput<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.CDK.IConstructResource<T!>!>! builder, string! name, Aspire.Hosting.AWS.CDK.ConstructOutputDelegate<T!>! output) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.CDK.IConstructResource<T!>!>!

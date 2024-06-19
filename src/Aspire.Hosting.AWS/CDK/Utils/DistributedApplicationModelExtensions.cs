@@ -5,13 +5,6 @@ namespace Aspire.Hosting.AWS.CDK;
 
 internal static class DistributedApplicationModelExtensions
 {
-    public static IResourceBuilder<TDestination> AddResource<TSource, TDestination>(this IResourceBuilder<TSource> builder, Func<TSource, TDestination> resource)
-        where TSource : IResource
-        where TDestination : IResourceWithConstruct
-    {
-        return builder.ApplicationBuilder.AddResource(resource(builder.Resource));
-    }
-
     public static T? TryFindParentOfType<T>(this IResourceWithParent resource)
         where T : IResource
     {

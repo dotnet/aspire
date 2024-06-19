@@ -33,12 +33,11 @@ public static class CloudFormationExtensions
     /// <returns></returns>
     public static IResourceBuilder<ICloudFormationTemplateResource> AddAWSCloudFormationTemplate(this IDistributedApplicationBuilder builder, string stackName, string templatePath)
     {
+        builder.AddAWSProvisioning();
         var resource = new CloudFormationTemplateResource(stackName, templatePath);
-        var cfBuilder = builder.AddResource(resource)
-                                .WithManifestPublishingCallback(resource.WriteToManifest);
-
-        builder.AddCloudFormationProvisioning();
-        return cfBuilder;
+        return builder
+            .AddResource(resource)
+            .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
     /// <summary>
@@ -62,12 +61,11 @@ public static class CloudFormationExtensions
     /// <returns></returns>
     public static IResourceBuilder<ICloudFormationStackResource> AddAWSCloudFormationStack(this IDistributedApplicationBuilder builder, string stackName)
     {
+        builder.AddAWSProvisioning();
         var resource = new CloudFormationStackResource(stackName);
-        var cfBuilder = builder.AddResource(resource)
-                                .WithManifestPublishingCallback(resource.WriteToManifest);
-
-        builder.AddCloudFormationProvisioning();
-        return cfBuilder;
+        return builder
+            .AddResource(resource)
+            .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
     /// <summary>

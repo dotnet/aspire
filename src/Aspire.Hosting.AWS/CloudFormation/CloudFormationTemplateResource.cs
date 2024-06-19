@@ -33,7 +33,7 @@ internal sealed class CloudFormationTemplateResource(string name, string templat
         return this;
     }
 
-    internal void WriteToManifest(ManifestPublishingContext context)
+    internal override void WriteToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "aws.cloudformation.template.v0");
         context.Writer.TryWriteString("stack-name", Name);

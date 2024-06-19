@@ -1,20 +1,47 @@
 {
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
-    "Stack": {
-      "error": "This resource does not support generation in the manifest."
+    "cdk": {
+      "type": "aws.cloudformation.stack.v0",
+      "stack-name": "cdk",
+      "template-path": "cdk.out/AspireStack.template.json",
+      "references": []
     },
-    "Table": {
-      "error": "This resource does not support generation in the manifest."
+    "stack": {
+      "type": "aws.cloudformation.stack.v0",
+      "stack-name": "stack",
+      "template-path": "cdk.out/stack.template.json",
+      "references": []
     },
-    "webapp": {
+    "topic": {
+      "type": "aws.cdk.construct.v0",
+      "construct-name": "topic",
+      "references": [
+        {
+          "parent-resource": "cdk"
+        }
+      ]
+    },
+    "queue": {
+      "type": "aws.cdk.construct.v0",
+      "construct-name": "queue",
+      "references": [
+        {
+          "parent-resource": "cdk"
+        }
+      ]
+    },
+    "frontend": {
       "type": "project.v0",
-      "path": "../WebApp/WebApp.csproj",
+      "path": "../Frontend/Frontend.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
-        "AWS__Resources__TableName": "{Stack.output.Table706B9215TableName}"
+        "HTTP_PORTS": "{frontend.bindings.http.targetPort}",
+        "AWS__Resources__BucketName": "{stack.output.BucketName}",
+        "AWS__Resources__ChatTopicArn": "{cdk.output.topic05640A92AWSResourcesChatTopicArn}"
       },
       "bindings": {
         "http": {

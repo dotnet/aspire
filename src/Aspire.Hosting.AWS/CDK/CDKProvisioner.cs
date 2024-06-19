@@ -32,10 +32,10 @@ internal sealed class CDKProvisioner(
         PrepareConstructResources(AppModel.Resources.OfType<IResourceWithConstruct>().ToArray());
 
         // Provision CDK resources
-        await ProcessCDKResourcesAsync(AppModel.Resources.OfType<ICDKResource>().ToArray(), cancellationToken).ConfigureAwait(false);
+        await ProcessCDKResourcesAsync(AppModel.Resources.OfType<CDKResource>().ToArray(), cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task ProcessCDKResourcesAsync(ICDKResource[] cdkResources, CancellationToken cancellationToken = default)
+    private async Task ProcessCDKResourcesAsync(CDKResource[] cdkResources, CancellationToken cancellationToken = default)
     {
         // Update state to starting
         foreach (var cdkResource in cdkResources)
@@ -49,7 +49,7 @@ internal sealed class CDKProvisioner(
         }
     }
 
-    private async Task ProcessCDKResourceAsync(ICDKResource appResource, CancellationToken cancellationToken = default)
+    private async Task ProcessCDKResourceAsync(CDKResource appResource, CancellationToken cancellationToken = default)
     {
         var logger = LoggerService.GetLogger(appResource);
         var stackResources = appResource

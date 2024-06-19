@@ -6,8 +6,8 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS;
 using Aspire.Hosting.AWS.CDK;
 using Aspire.Hosting.AWS.CloudFormation;
+using Aspire.Hosting.Lifecycle;
 using Constructs;
-using Microsoft.Extensions.DependencyInjection;
 using Stack = Amazon.CDK.Stack;
 using StackResource = Aspire.Hosting.AWS.CDK.StackResource;
 
@@ -18,11 +18,9 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class CDKExtensions
 {
-    internal static IDistributedApplicationBuilder AddCDKProvisioning(this IDistributedApplicationBuilder builder)
+    internal static IDistributedApplicationBuilder AddAWSCDKPublishing(this IDistributedApplicationBuilder builder)
     {
-
-        builder.AddCloudFormationProvisioning();
-        builder.Services.AddSingleton<ICloudFormationProvisionerFactory, CDKProvisionerFactory>();
+        builder.Services.TryAddLifecycleHook<CDKLifecycleHook>();
         return builder;
     }
 
@@ -36,8 +34,14 @@ public static class CDKExtensions
     /// <returns></returns>
     public static IResourceBuilder<ICDKResource> AddAWSCDK(this IDistributedApplicationBuilder builder, string name, string? stackName = null, IAppProps? props = null)
     {
-        builder.AddCDKProvisioning();
-        return builder.AddResource(new CDKResource(name, stackName, props));
+
+        builder
+            .AddAWSCDKPublishing()
+            .AddAWSProvisioning();
+        var resource = new CDKResource(name, stackName, props);
+        return builder
+            .AddResource(resource)
+            .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
     /// <summary>
@@ -56,8 +60,13 @@ public static class CDKExtensions
     /// <param name="name">The name of the stack resource.</param>
     /// <param name="stackName">Cloud Formation stack same if different from the resource name.</param>
     /// <returns></returns>
-    public static IResourceBuilder<IStackResource> AddStack(this IResourceBuilder<ICDKResource> builder, string name, string stackName)
-        => builder.AddResource(app => new StackResource(name, new Stack(app.App, stackName), builder.Resource));
+    public static IResourceBuilder<IStackResource> AddStack(this IResourceBuilder<ICDKResource> builder, string name,
+        string stackName)
+    {
+        var parent = builder.Resource;
+        var resource = new StackResource(name, new Stack(parent.App, stackName), parent);
+        return builder.ApplicationBuilder.AddResource(resource).WithManifestPublishingCallback(resource.WriteToManifest);
+    }
 
     /// <summary>
     /// Adds and build an AWS CDK stack as resource.
@@ -66,9 +75,14 @@ public static class CDKExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="stackBuilder">The stack builder delegate.</param>
     /// <returns></returns>
-    public static IResourceBuilder<IStackResource<T>> AddStack<T>(this IResourceBuilder<ICDKResource> builder, string name, ConstructBuilderDelegate<T> stackBuilder)
+    public static IResourceBuilder<IStackResource<T>> AddStack<T>(this IResourceBuilder<ICDKResource> builder,
+        string name, ConstructBuilderDelegate<T> stackBuilder)
         where T : Stack
-        => builder.AddResource(app => new StackResource<T>(name, stackBuilder(app.App), builder.Resource));
+    {
+        var parent = builder.Resource;
+        var resource = new StackResource<T>(name, stackBuilder(parent.App), parent);
+        return builder.ApplicationBuilder.AddResource(resource).WithManifestPublishingCallback(resource.WriteToManifest);
+    }
 
     /// <summary>
     /// Adds and build an AWS CDK construct as resource.
@@ -77,9 +91,15 @@ public static class CDKExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="constructBuilder">The construct builder delegate.</param>
     /// <returns></returns>
-    public static IResourceBuilder<IConstructResource<T>> AddConstruct<T>(this IResourceBuilder<IResourceWithConstruct> builder, string name, ConstructBuilderDelegate<T> constructBuilder)
+    public static IResourceBuilder<IConstructResource<T>> AddConstruct<T>(
+        this IResourceBuilder<IResourceWithConstruct> builder, string name,
+        ConstructBuilderDelegate<T> constructBuilder)
         where T : Construct
-        => builder.AddResource(parent => new ConstructResource<T>(name, constructBuilder((Construct)parent.Construct), builder.Resource));
+    {
+        var parent = builder.Resource;
+        var resource = new ConstructResource<T>(name, constructBuilder((Construct)parent.Construct), parent);
+        return builder.ApplicationBuilder.AddResource(resource).WithManifestPublishingCallback(resource.WriteToManifest);
+    }
 
     /// <summary>
     /// Adds a stack reference to an output from the CloudFormation stack.
