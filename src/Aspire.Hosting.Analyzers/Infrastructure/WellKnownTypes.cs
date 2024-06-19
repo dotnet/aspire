@@ -2,9 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis;
 
-namespace Aspire.Hosting.Analyzers;
+namespace Aspire.Hosting.Analyzers.Infrastructure;
 
 internal class WellKnownTypes
 {
@@ -109,7 +110,7 @@ internal class WellKnownTypes
 
     public bool IsType(ITypeSymbol type, WellKnownTypeData.WellKnownType[] wellKnownTypes) => IsType(type, wellKnownTypes, out var _);
 
-    public bool IsType(ITypeSymbol type, WellKnownTypeData.WellKnownType[] wellKnownTypes, /*[NotNullWhen(true)]*/ out WellKnownTypeData.WellKnownType? match)
+    public bool IsType(ITypeSymbol type, WellKnownTypeData.WellKnownType[] wellKnownTypes, [NotNullWhen(true)] out WellKnownTypeData.WellKnownType? match)
     {
         foreach (var wellKnownType in wellKnownTypes)
         {

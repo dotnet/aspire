@@ -3,6 +3,8 @@
 
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting.Analyzers.Infrastructure;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -17,8 +19,6 @@ public partial class AppHostAnalyzer : DiagnosticAnalyzer
 
     public override void Initialize(AnalysisContext context)
     {
-        // TODO: Don't register the analyzer if the project has disabled the analyzer in the project file.
-
         context.EnableConcurrentExecution();
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.ReportDiagnostics);
         context.RegisterCompilationStartAction(AnalyzeCompilationStart);
@@ -62,16 +62,16 @@ public partial class AppHostAnalyzer : DiagnosticAnalyzer
                 return;
             }
 
-            if (!TryGetStringToken(invocation, parameterData?.ModelNameParameter!, out var token))
+            if (!TryGetStringToken(invocation, parameterData.Value.ModelNameParameter, out var token))
             {
                 return;
             }
 
-            modelNameOperations.TryAdd(ModelNameOperation.Create(invocation, parameterData?.Target!, token), value: default);
+            modelNameOperations.TryAdd(ModelNameOperation.Create(invocation, parameterData.Value.Target, token), value: default);
         }
     }
 
-    private static bool IsModelNameInvocation(WellKnownTypes wellKnownTypes, IMethodSymbol targetMethod, out (IParameterSymbol? ModelNameParameter, string? Target)? parameterData)
+    private static bool IsModelNameInvocation(WellKnownTypes wellKnownTypes, IMethodSymbol targetMethod, [NotNullWhen(true)] out (IParameterSymbol ModelNameParameter, string? Target)? parameterData)
     {
         // Look for first string parameter annotated with ModelName attribute
         string? target = null;

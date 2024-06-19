@@ -24,4 +24,6 @@
   </ItemGroup>
 
   <Import Project="$(RepositoryEngineeringDir)/apicompat/PublicApiAnalyzer.targets" />
+  <Import Project="$(RepositoryEngineeringDir)/NullablePolyfill.targets" />
+
 </Project>
