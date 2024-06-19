@@ -1,6 +1,3 @@
-using System.Net;
-using Microsoft.Extensions.DependencyInjection;
-
 namespace Aspire.Tests._1;
 
 [TestClass]
@@ -29,7 +26,9 @@ public class IntegrationTest1
     //     await app.StartAsync();
 
     //     // Act
-    //     await resourceNotificationService.WaitForResourceAsync("webfrontend", KnownResourceStates.Running).WaitAsync(TimeSpan.FormSeconds(30));
+    //     var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+    //     var webfrontend = appModel.GetProjectResources().First(p => string.Equals(p.Name, "webfrontend", StringComparison.OrdinalIgnoreCase));
+    //     await resourceNotificationService.WaitForResourceAsync(webfrontend.Name, KnownResourceStates.Running).WaitAsync(TimeSpan.FromSeconds(30));
     //     var httpClient = app.CreateHttpClient("webfrontend");
     //     var response = await httpClient.GetAsync("/");
 

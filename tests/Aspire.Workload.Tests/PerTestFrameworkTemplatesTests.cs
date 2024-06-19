@@ -79,7 +79,7 @@ public abstract partial class PerTestFrameworkTemplatesTests : WorkloadTestsBase
         res = await cmd.ExecuteAsync($"test -c {config}");
 
         Assert.True(res.ExitCode != 0, $"Expected the tests project build to fail");
-        Assert.Matches("System.ArgumentException.*Resource 'webfrontend' not found.", res.Output);
+        Assert.Matches("System.InvalidOperationException.*Sequence contains no matching element", res.Output);
         Assert.Matches("Failed! * - Failed: *1, Passed: *0, Skipped: *0, Total: *1", res.Output);
 
         async Task AssertBasicTemplateAsync(IBrowserContext context)

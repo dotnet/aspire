@@ -29,9 +29,10 @@ public class WebTests
         await app.StartAsync();
 
         // Act
-        using var waitForResourceCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-        await resourceNotificationService.WaitForResourceAsync("webfrontend", KnownResourceStates.Running, waitForResourceCts.Token);
-        var httpClient = app.CreateHttpClient("webfrontend");
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var webfrontend = appModel.GetProjectResources().First(p => string.Equals(p.Name, "webfrontend", StringComparison.OrdinalIgnoreCase));
+        await resourceNotificationService.WaitForResourceAsync(webfrontend.Name, KnownResourceStates.Running).WaitAsync(TimeSpan.FromSeconds(30));
+        var httpClient = app.CreateHttpClient(webfrontend.Name);
         var response = await httpClient.GetAsync("/");
 
         // Assert
