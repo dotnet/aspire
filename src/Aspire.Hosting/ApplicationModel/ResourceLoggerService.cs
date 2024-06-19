@@ -250,12 +250,13 @@ public class ResourceLoggerService
             try
             {
                 var lineCount = 0;
+                var backlogLength = backlogSnapshot.Length;
                 while (await channel.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
                 {
                     var batch = new List<LogLine>();
                     while (channel.Reader.TryRead(out var log))
                     {
-                        if (lineCount > backlogSnapshot.Length)
+                        if (lineCount > backlogLength)
                         {
                             // We're beyond the number of lines in the backlog snapshot so no need to check for dupes anymore
                             batch.Add(log);
