@@ -31,8 +31,7 @@ public static class PostgresBuilderExtensions
         IResourceBuilder<ParameterResource>? password = null,
         int? port = null)
     {
-        var passwordParameterName = $"{name}-password";
-        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, passwordParameterName);
+        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 
         var postgresServer = new PostgresServerResource(name, userName?.Resource, passwordParameter);
 

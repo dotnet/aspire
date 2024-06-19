@@ -25,7 +25,6 @@ public class AddRabbitMQTests
     public void AddRabbitMQDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultInPublishMode()
     {
         using var appBuilder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        appBuilder.Environment.EnvironmentName = "Test";
 
         var rmq = appBuilder.AddRabbitMQ("rmq");
 

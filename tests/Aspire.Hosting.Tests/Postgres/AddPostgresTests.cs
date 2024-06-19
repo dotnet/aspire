@@ -27,7 +27,6 @@ public class AddPostgresTests
     public void AddPostgresDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultInPublishMode()
     {
         using var appBuilder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        appBuilder.Environment.EnvironmentName = "Test";
 
         var pg = appBuilder.AddPostgres("pg");
 

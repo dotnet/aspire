@@ -25,7 +25,6 @@ public class AddSqlServerTests
     public void AddSqlServerDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultInPublishMode()
     {
         using var appBuilder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        appBuilder.Environment.EnvironmentName = "Test";
 
         var sql = appBuilder.AddSqlServer("sql");
 

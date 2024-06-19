@@ -25,7 +25,6 @@ public class AddOracleTests
     public void AddOracleDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultInPublishMode()
     {
         using var appBuilder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        appBuilder.Environment.EnvironmentName = "Test";
 
         var orcl = appBuilder.AddOracle("orcl");
 

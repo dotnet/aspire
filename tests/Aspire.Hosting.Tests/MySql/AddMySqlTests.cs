@@ -27,7 +27,6 @@ public class AddMySqlTests
     public void AddMySqlDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultInPublishMode()
     {
         using var appBuilder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        appBuilder.Environment.EnvironmentName = "Test";
 
         var mysql = appBuilder.AddMySql("mysql");
 

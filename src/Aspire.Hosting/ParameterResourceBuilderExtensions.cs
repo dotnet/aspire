@@ -192,7 +192,7 @@ public static class ParameterResourceBuilderExtensions
     {
         var parameterResource = CreateGeneratedParameter(builder.Configuration, name, secret, parameterDefault);
 
-        if (builder.ExecutionContext.IsRunMode && parameterResource.Default is not null)
+        if (builder.ExecutionContext.IsRunMode && builder.AppHostAssembly is not null && parameterResource.Default is not null)
         {
             parameterResource.Default = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, name, parameterResource.Default);
         }

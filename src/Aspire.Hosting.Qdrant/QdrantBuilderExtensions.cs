@@ -36,9 +36,8 @@ public static class QdrantBuilderExtensions
         int? grpcPort = null,
         int? httpPort = null)
     {
-        var apiKeyParameterName = $"{name}-Key";
         var apiKeyParameter = apiKey?.Resource ??
-            ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, apiKeyParameterName, special: false);
+            ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-Key", special: false);
 
         var qdrant = new QdrantServerResource(name, apiKeyParameter);
         return builder.AddResource(qdrant)

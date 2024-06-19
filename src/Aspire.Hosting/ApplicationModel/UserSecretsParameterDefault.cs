@@ -16,7 +16,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="applicationName">The application name.</param>
 /// <param name="parameterName">The parameter name.</param>
 /// <param name="parameterDefault">The <see cref="ParameterDefault"/> that will produce the default value when it isn't found in the project's user secrets store.</param>
-public sealed class UserSecretsParameterDefault(Assembly? appHostAssembly, string applicationName, string parameterName, ParameterDefault parameterDefault)
+internal sealed class UserSecretsParameterDefault(Assembly appHostAssembly, string applicationName, string parameterName, ParameterDefault parameterDefault)
     : ParameterDefault
 {
     /// <inheritdoc/>
@@ -36,9 +36,9 @@ public sealed class UserSecretsParameterDefault(Assembly? appHostAssembly, strin
     /// <inheritdoc/>
     public override void WriteToManifest(ManifestPublishingContext context) => parameterDefault.WriteToManifest(context);
 
-    private static bool TrySetUserSecret(Assembly? assembly, string name, string value)
+    private static bool TrySetUserSecret(Assembly assembly, string name, string value)
     {
-        if (assembly is not null && assembly.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId is { } userSecretsId)
+        if (assembly.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId is { } userSecretsId)
         {
             // Save the value to the secret store
             try

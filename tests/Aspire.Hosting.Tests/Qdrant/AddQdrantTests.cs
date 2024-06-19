@@ -29,7 +29,6 @@ public class AddQdrantTests
     public void AddQdrantDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultInPublishMode()
     {
         using var appBuilder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        appBuilder.Environment.EnvironmentName = "Test";
 
         var qd = appBuilder.AddQdrant("qd");
 
