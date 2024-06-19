@@ -49,6 +49,10 @@ internal sealed class ContainerSpec
     [JsonPropertyName("args")]
     public List<string>? Args { get; set; }
 
+    // Optional labels to apply to the container instance
+    [JsonPropertyName("labels")]
+    public List<ContainerLabel>? Labels { get; set; }
+
     // Additional arguments to pass to the container run command
     [JsonPropertyName("runArgs")]
     public List<string>? RunArgs { get; set; }
@@ -79,6 +83,10 @@ internal sealed class BuildContext
     // Optional additional tags to apply to the built image
     [JsonPropertyName("tags")]
     public List<string>? Tags { get; set; }
+
+    // Optional labels to apply to the built image
+    [JsonPropertyName("labels")]
+    public List<ContainerLabel>? Labels { get; set; }
 }
 
 internal sealed class BuildContextSecret
@@ -126,6 +134,17 @@ internal sealed class VolumeMount
     // True if the mounted file system is supposed to be read-only
     [JsonPropertyName("readOnly")]
     public bool IsReadOnly { get; set; } = false;
+}
+
+internal sealed class ContainerLabel
+{
+    // The label key
+    [JsonPropertyName("key")]
+    public string? Key { get; set; }
+
+    // The label value
+    [JsonPropertyName("value")]
+    public string? Value { get; set; }
 }
 
 internal static class ContainerRestartPolicy
