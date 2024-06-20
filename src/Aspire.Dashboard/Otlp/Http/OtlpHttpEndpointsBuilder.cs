@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Net.Http.Headers;
+using System.Reflection;
 using Aspire.Dashboard.Authentication;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Mvc;
@@ -19,58 +20,74 @@ public static class OtlpHttpEndpointsBuilder
     public const string ProtobufContentType = "application/x-protobuf";
     public const string JsonContentType = "application/json";
 
-    public static void ConfigureHttpOtlp(this IEndpointRouteBuilder endpoints)
+    public class MessageBindable<TMessage> : IBindableFromHttpContext<MessageBindable<TMessage>> where TMessage : IMessage<TMessage>, new()
+    {
+        public static readonly MessageBindable<TMessage> Empty = new MessageBindable<TMessage>();
+
+        public TMessage? Message { get; private set; }
+
+        public static async ValueTask<MessageBindable<TMessage>?> BindAsync(HttpContext context, ParameterInfo parameter)
+        {
+            switch (GetKnownContentType(context.Request.ContentType, out var charSet))
+            {
+                case KnownContentType.Protobuf:
+                    try
+                    {
+                        var message = await ReadOtlpData(context, data =>
+                        {
+                            var message = new TMessage();
+                            message.MergeFrom(data);
+                            return message;
+                        }).ConfigureAwait(false);
+
+                        return new MessageBindable<TMessage> { Message = message };
+                    }
+                    catch (BadHttpRequestException ex)
+                    {
+                        context.Response.StatusCode = ex.StatusCode;
+                        return Empty;
+                    }
+                case KnownContentType.Json:
+                default:
+                    context.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
+                    return Empty;
+            }
+        }
+    }
+
+    public static void MapHttpOtlpApi(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints
             .MapGroup("/v1")
-            .AddOtlpHttpMetadata()
-            .AddEndpointFilter<ErrorHandlerEndpointFilter>();
+            .AddOtlpHttpMetadata();
 
         group.MapPost("logs", LogsEndpoint);
         group.MapPost("traces", TracesEndpoint);
         group.MapPost("metrics", MetricsEndpoint);
 
-        async Task<IResult> LogsEndpoint(HttpContext context, OtlpLogsService service)
+        IResult LogsEndpoint(MessageBindable<ExportLogsServiceRequest> request, OtlpLogsService service)
         {
-            switch (GetKnownContentType(context.Request.ContentType, out var charSet))
+            if (request.Message == null)
             {
-                case KnownContentType.Protobuf:
-                    var request = await ReadOtlpData(context, ExportLogsServiceRequest.Parser.ParseFrom).ConfigureAwait(false);
-                    var response = service.Export(request);
-
-                    return new ProtobufResult<ExportLogsServiceResponse>(response);
-                case KnownContentType.Json:
-                default:
-                    return Results.StatusCode(StatusCodes.Status415UnsupportedMediaType);
+                return Results.Empty;
             }
+            return new ProtobufResult<ExportLogsServiceResponse>(service.Export(request.Message));
         }
-        async Task<IResult> TracesEndpoint(HttpContext context, OtlpTraceService service)
+        IResult TracesEndpoint(MessageBindable<ExportTraceServiceRequest> request, OtlpTraceService service)
         {
-            switch (GetKnownContentType(context.Request.ContentType, out var charSet))
+            if (request.Message == null)
             {
-                case KnownContentType.Protobuf:
-                    var request = await ReadOtlpData(context, ExportTraceServiceRequest.Parser.ParseFrom).ConfigureAwait(false);
-                    var response = service.Export(request);
-
-                    return new ProtobufResult<ExportTraceServiceResponse>(response);
-                case KnownContentType.Json:
-                default:
-                    return Results.StatusCode(StatusCodes.Status415UnsupportedMediaType);
+                return Results.Empty;
             }
+            return new ProtobufResult<ExportTraceServiceResponse>(service.Export(request.Message));
         }
-        async Task<IResult> MetricsEndpoint(HttpContext context, OtlpMetricsService service)
+        IResult MetricsEndpoint(MessageBindable<ExportMetricsServiceRequest> request, OtlpMetricsService service)
         {
-            switch (GetKnownContentType(context.Request.ContentType, out var charSet))
+            if (request.Message == null)
             {
-                case KnownContentType.Protobuf:
-                    var request = await ReadOtlpData(context, ExportMetricsServiceRequest.Parser.ParseFrom).ConfigureAwait(false);
-                    var response = service.Export(request);
-
-                    return new ProtobufResult<ExportMetricsServiceResponse>(response);
-                case KnownContentType.Json:
-                default:
-                    return Results.StatusCode(StatusCodes.Status415UnsupportedMediaType);
+                return Results.Empty;
             }
+            return new ProtobufResult<ExportMetricsServiceResponse>(service.Export(request.Message));
         }
     }
 
@@ -108,29 +125,6 @@ public static class OtlpHttpEndpointsBuilder
             .RequireAuthorization(OtlpAuthorization.PolicyName)
             .Add(b => b.Metadata.Add(new SkipStatusCodePagesAttribute()));
         return builder;
-    }
-
-    private sealed class ErrorHandlerEndpointFilter : IEndpointFilter
-    {
-        private readonly ILogger<ErrorHandlerEndpointFilter> _logger;
-
-        public ErrorHandlerEndpointFilter(ILogger<ErrorHandlerEndpointFilter> logger)
-        {
-            _logger = logger;
-        }
-
-        public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
-        {
-            try
-            {
-                return await next(context).ConfigureAwait(false);
-            }
-            catch (BadHttpRequestException ex)
-            {
-                _logger.LogError(ex, "Bad HTTP request when receiving OTLP data.");
-                return Results.BadRequest(ex.Message);
-            }
-        }
     }
 
     private sealed class ProtobufResult<T> : IResult where T : IMessage

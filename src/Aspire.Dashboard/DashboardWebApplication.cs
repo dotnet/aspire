@@ -276,7 +276,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         var httpEndpoint = dashboardOptions.Otlp.GetHttpEndpointUri();
         if (httpEndpoint != null)
         {
-            _app.ConfigureHttpOtlp();
+            _app.MapHttpOtlpApi();
         }
 
         // OTLP gRPC services.
