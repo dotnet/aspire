@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Tests.Helpers;
+// using Aspire.Hosting.Tests.Helpers;
 using Xunit;
 
 namespace Aspire.Hosting.Testing.Tests;
@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Testing.Tests;
 // Tests that DistributedApplicationTestingBuilder throws exceptions at the right times when the app crashes.
 public class TestingFactoryCrashTests
 {
-    [LocalOnlyTheory]
+    [Theory]
     [InlineData("before-build")]
     [InlineData("after-build")]
     [InlineData("after-start")]

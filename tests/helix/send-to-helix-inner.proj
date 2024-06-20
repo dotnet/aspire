@@ -6,8 +6,6 @@
 
     <_workItemTimeout>00:20:00</_workItemTimeout>
 
-    <IncludeDotNetCli>true</IncludeDotNetCli>
-    <DotNetCliPackageType>sdk</DotNetCliPackageType>
     <NeedsCreateDotNetDevScripts Condition="'$(OS)' != 'Windows_NT'">true</NeedsCreateDotNetDevScripts>
     <HasDocker Condition="'$(OS)' != 'Windows_NT'">true</HasDocker>
 
@@ -69,6 +67,15 @@
   </ItemGroup>
 
   <Import Project="$(MSBuildThisFileDirectory)send-to-helix-$(TestCategory).targets" />
+
+  <PropertyGroup>
+    <NeedsDotNetSdk Condition="'$(NeedsWorkload)' != 'true'">true</NeedsDotNetSdk>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(NeedsDotNetSdk)' == 'true'">
+    <IncludeDotNetCli>true</IncludeDotNetCli>
+    <DotNetCliPackageType>sdk</DotNetCliPackageType>
+  </PropertyGroup>
 
   <ItemGroup Condition="'$(NeedsPlaywright)' == 'true'">
     <HelixCorrelationPayload Include="$(PlaywrightDependenciesDirectory)" Destination="playwright-deps" />
@@ -139,7 +146,7 @@
            Text="Could not find dotnet-coverage tool. %24(_DotNetCoverageToolDir)=$(_DotNetCoverageToolDir)" />
 
     <PropertyGroup>
-      <HelixPreCommands>$(HelixPreCommands);@(HelixPreCommand)</HelixPreCommands>
+      <HelixPreCommands>$(HelixPreCommands);@(HelixPreCommand, '$(_ShellCommandSeparator)')</HelixPreCommands>
       <HelixPostCommands>$(HelixPostCommands);@(HelixPostCommand)</HelixPostCommands>
     </PropertyGroup>
 

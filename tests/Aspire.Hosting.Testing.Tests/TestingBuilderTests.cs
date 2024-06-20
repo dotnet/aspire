@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Http.Json;
-using Aspire.Hosting.Tests.Helpers;
+// using Aspire.Hosting.Tests.Helpers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Testing.Tests;
 
 public class TestingBuilderTests
 {
-    [LocalOnlyTheory]
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task HasEndPoints(bool genericEntryPoint)
@@ -34,7 +34,7 @@ public class TestingBuilderTests
         Assert.True(pgConnectionString.Length > 0);
     }
 
-    [LocalOnlyTheory]
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task CanGetResources(bool genericEntryPoint)
@@ -51,7 +51,7 @@ public class TestingBuilderTests
         Assert.Contains(appModel.GetProjectResources(), p => p.Name == "myworker1");
     }
 
-    [LocalOnlyTheory]
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task HttpClientGetTest(bool genericEntryPoint)
@@ -68,7 +68,7 @@ public class TestingBuilderTests
         Assert.True(result1.Length > 0);
     }
 
-    [LocalOnlyTheory]
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task GetHttpClientBeforeStart(bool genericEntryPoint)
@@ -80,7 +80,7 @@ public class TestingBuilderTests
         Assert.Throws<InvalidOperationException>(() => app.CreateHttpClient("mywebapp1"));
     }
 
-    [LocalOnlyTheory]
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task SetsCorrectContentRoot(bool genericEntryPoint)
@@ -94,7 +94,7 @@ public class TestingBuilderTests
         Assert.Contains("TestingAppHost1", hostEnvironment.ContentRootPath);
     }
 
-    [LocalOnlyTheory]
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task SelectsFirstLaunchProfile(bool genericEntryPoint)
@@ -116,7 +116,7 @@ public class TestingBuilderTests
     }
 
     // Tests that DistributedApplicationTestingBuilder throws exceptions at the right times when the app crashes.
-    [LocalOnlyTheory]
+    [Theory]
     [InlineData(true, "before-build")]
     [InlineData(true, "after-build")]
     [InlineData(true, "after-start")]
