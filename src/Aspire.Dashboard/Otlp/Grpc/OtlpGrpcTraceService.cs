@@ -13,12 +13,10 @@ namespace Aspire.Dashboard.Otlp.Grpc;
 [SkipStatusCodePages]
 public class OtlpGrpcTraceService : TraceService.TraceServiceBase
 {
-    private readonly ILogger<OtlpGrpcTraceService> _logger;
     private readonly OtlpTraceService _traceService;
 
-    public OtlpGrpcTraceService(ILogger<OtlpGrpcTraceService> logger, OtlpTraceService traceService)
+    public OtlpGrpcTraceService(OtlpTraceService traceService)
     {
-        _logger = logger;
         _traceService = traceService;
     }
 

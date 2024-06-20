@@ -13,12 +13,10 @@ namespace Aspire.Dashboard.Otlp.Grpc;
 [SkipStatusCodePages]
 public class OtlpGrpcMetricsService : MetricsService.MetricsServiceBase
 {
-    private readonly ILogger<OtlpGrpcMetricsService> _logger;
     private readonly OtlpMetricsService _metricsService;
 
-    public OtlpGrpcMetricsService(ILogger<OtlpGrpcMetricsService> logger, OtlpMetricsService metricsService)
+    public OtlpGrpcMetricsService(OtlpMetricsService metricsService)
     {
-        _logger = logger;
         _metricsService = metricsService;
     }
 

@@ -23,6 +23,8 @@ public sealed class OtlpTraceService
         var addContext = new AddContext();
         _telemetryRepository.AddTraces(addContext, request.ResourceSpans);
 
+        _logger.LogDebug("Processed trace export. Failure count: {FailureCount}", addContext.FailureCount);
+
         return new ExportTraceServiceResponse
         {
             PartialSuccess = new ExportTracePartialSuccess
