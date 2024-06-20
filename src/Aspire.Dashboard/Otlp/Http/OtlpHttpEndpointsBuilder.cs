@@ -127,7 +127,7 @@ public static class OtlpHttpEndpointsBuilder
             }
             catch (BadHttpRequestException ex)
             {
-                _logger.LogError(ex, "Exceeded max request data size.");
+                _logger.LogError(ex, "Bad HTTP request when receiving OTLP data.");
                 return Results.BadRequest(ex.Message);
             }
         }
@@ -141,6 +141,7 @@ public static class OtlpHttpEndpointsBuilder
 
         public async Task ExecuteAsync(HttpContext httpContext)
         {
+            // This isn't very efficent but OTLP Protobuf responses are small.
             var ms = new MemoryStream();
             _message.WriteTo(ms);
             ms.Seek(0, SeekOrigin.Begin);
