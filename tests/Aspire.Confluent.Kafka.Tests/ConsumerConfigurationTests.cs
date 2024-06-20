@@ -186,8 +186,9 @@ public class ConsumerConfigurationTests
         Assert.Equal(CommonHelpers.TestingEndpoint, config.BootstrapServers);
         return;
 
-        void ConfigureBuilder(IServiceProvider _, ConsumerBuilder<string, string> __)
+        void ConfigureBuilder(IServiceProvider provider, ConsumerBuilder<string, string> _)
         {
+            var __ = provider.GetRequiredService<IConfiguration>();
             isCalled = true;
         }
     }

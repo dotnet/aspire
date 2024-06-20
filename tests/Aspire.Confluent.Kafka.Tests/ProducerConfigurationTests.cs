@@ -173,8 +173,9 @@ public class ProducerConfigurationTests
         Assert.Equal(CommonHelpers.TestingEndpoint, config.BootstrapServers);
         return;
 
-        void ConfigureBuilder(IServiceProvider _, ProducerBuilder<string, string> __)
+        void ConfigureBuilder(IServiceProvider provider, ProducerBuilder<string, string> _)
         {
+            var __ = provider.GetRequiredService<IConfiguration>();
             isCalled = true;
         }
     }
