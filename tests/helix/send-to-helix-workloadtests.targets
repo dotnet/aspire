@@ -68,36 +68,6 @@
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>
       </HelixWorkItem>
-      <HelixWorkItem Include="@(_WorkloadTestsClassNames->'%(Identity)-6')">
-        <PayloadArchive>$(TestArchiveTestsDirForWorkloadTests)\$(TestProjectName).zip</PayloadArchive>
-        <Command>$(_TestRunCommand)</Command>
-        <Timeout>$(_workItemTimeout)</Timeout>
-      </HelixWorkItem>
-      <HelixWorkItem Include="@(_WorkloadTestsClassNames->'%(Identity)-7')">
-        <PayloadArchive>$(TestArchiveTestsDirForWorkloadTests)\$(TestProjectName).zip</PayloadArchive>
-        <Command>$(_TestRunCommand)</Command>
-        <Timeout>$(_workItemTimeout)</Timeout>
-      </HelixWorkItem>
-      <HelixWorkItem Include="@(_WorkloadTestsClassNames->'%(Identity)-8')">
-        <PayloadArchive>$(TestArchiveTestsDirForWorkloadTests)\$(TestProjectName).zip</PayloadArchive>
-        <Command>$(_TestRunCommand)</Command>
-        <Timeout>$(_workItemTimeout)</Timeout>
-      </HelixWorkItem>
-      <HelixWorkItem Include="@(_WorkloadTestsClassNames->'%(Identity)-9')">
-        <PayloadArchive>$(TestArchiveTestsDirForWorkloadTests)\$(TestProjectName).zip</PayloadArchive>
-        <Command>$(_TestRunCommand)</Command>
-        <Timeout>$(_workItemTimeout)</Timeout>
-      </HelixWorkItem>
-      <HelixWorkItem Include="@(_WorkloadTestsClassNames->'%(Identity)-10')">
-        <PayloadArchive>$(TestArchiveTestsDirForWorkloadTests)\$(TestProjectName).zip</PayloadArchive>
-        <Command>$(_TestRunCommand)</Command>
-        <Timeout>$(_workItemTimeout)</Timeout>
-      </HelixWorkItem>
-      <HelixWorkItem Include="@(_WorkloadTestsClassNames->'%(Identity)-11')">
-        <PayloadArchive>$(TestArchiveTestsDirForWorkloadTests)\$(TestProjectName).zip</PayloadArchive>
-        <Command>$(_TestRunCommand)</Command>
-        <Timeout>$(_workItemTimeout)</Timeout>
-      </HelixWorkItem>
     </ItemGroup>
   </Target>
 </Project>
