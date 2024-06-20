@@ -112,8 +112,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         ConfigureKestrelEndpoints(builder, dashboardOptions);
 
-        var browserHttpsPort = dashboardOptions.Frontend.GetEndpointUris().FirstOrDefault(IsNullOrHttps)?.Port;
-        var isAllHttps = browserHttpsPort is not null && IsNullOrHttps(dashboardOptions.Otlp.GetGrpcEndpointUri()) && IsNullOrHttps(dashboardOptions.Otlp.GetHttpEndpointUri());
+        var browserHttpsPort = dashboardOptions.Frontend.GetEndpointUris().FirstOrDefault(IsHttpsOrNull)?.Port;
+        var isAllHttps = browserHttpsPort is not null && IsHttpsOrNull(dashboardOptions.Otlp.GetGrpcEndpointUri()) && IsHttpsOrNull(dashboardOptions.Otlp.GetHttpEndpointUri());
         if (isAllHttps)
         {
             // Explicitly configure the HTTPS redirect port as we're possibly listening on multiple HTTPS addresses
@@ -198,12 +198,12 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             if (_otlpServiceGrpcEndPointAccessor != null)
             {
                 // This isn't used by dotnet watch but still useful to have for debugging
-                _logger.LogInformation("OTLP/gRPC server running at: {OtlpEndpointUri}", _otlpServiceGrpcEndPointAccessor().Address);
+                _logger.LogInformation("OTLP/gRPC listening on: {OtlpEndpointUri}", _otlpServiceGrpcEndPointAccessor().Address);
             }
             if (_otlpServiceHttpEndPointAccessor != null)
             {
                 // This isn't used by dotnet watch but still useful to have for debugging
-                _logger.LogInformation("OTLP/HTTP server running at: {OtlpEndpointUri}", _otlpServiceHttpEndPointAccessor().Address);
+                _logger.LogInformation("OTLP/HTTP listening on: {OtlpEndpointUri}", _otlpServiceHttpEndPointAccessor().Address);
             }
 
             if (_dashboardOptionsMonitor.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
@@ -411,7 +411,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 values[$"Kestrel:Endpoints:{endpointName}:Protocols"] = protocols.ToString();
             }
 
-            if (requiredClientCertificate && IsNullOrHttps(new Uri(url)))
+            if (requiredClientCertificate && IsHttpsOrNull(new Uri(url)))
             {
                 values[$"Kestrel:Endpoints:{endpointName}:ClientCertificateMode"] = ClientCertificateMode.RequireCertificate.ToString();
             }
@@ -680,7 +680,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         return _app.DisposeAsync();
     }
 
-    private static bool IsNullOrHttps(Uri? uri) => uri == null || string.Equals(uri.Scheme, "https", StringComparison.Ordinal);
+    private static bool IsHttpsOrNull(Uri? uri) => uri == null || string.Equals(uri.Scheme, "https", StringComparison.Ordinal);
 
     public static class FrontendAuthenticationDefaults
     {

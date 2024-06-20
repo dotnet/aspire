@@ -163,14 +163,14 @@ public class FrontendBrowserTokenAuthTests
             },
             w =>
             {
-                Assert.Equal("OTLP/gRPC server running at: {OtlpEndpointUri}", GetValue(w.State, "{OriginalFormat}"));
+                Assert.Equal("OTLP/gRPC listening on: {OtlpEndpointUri}", GetValue(w.State, "{OriginalFormat}"));
 
                 var uri = new Uri((string)GetValue(w.State, "OtlpEndpointUri")!);
                 Assert.NotEqual(0, uri.Port);
             },
             w =>
             {
-                Assert.Equal("OTLP/HTTP server running at: {OtlpEndpointUri}", GetValue(w.State, "{OriginalFormat}"));
+                Assert.Equal("OTLP/HTTP listening on: {OtlpEndpointUri}", GetValue(w.State, "{OriginalFormat}"));
 
                 var uri = new Uri((string)GetValue(w.State, "OtlpEndpointUri")!);
                 Assert.NotEqual(0, uri.Port);
