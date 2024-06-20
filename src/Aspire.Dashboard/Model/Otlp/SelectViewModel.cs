@@ -10,4 +10,9 @@ public class SelectViewModel<T>
 {
     public required string Name { get; init; }
     public required T? Id { get; init; }
+
+    public override string ToString()
+    {
+        return $"Name = {Name}, Id = {{{Id}}}";
+    }
 }

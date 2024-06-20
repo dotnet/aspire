@@ -7,6 +7,8 @@ Aspire.Hosting.ProjectResourceOptions.ExcludeLaunchProfile.set -> void
 Aspire.Hosting.ProjectResourceOptions.LaunchProfileName.get -> string?
 Aspire.Hosting.ProjectResourceOptions.LaunchProfileName.set -> void
 Aspire.Hosting.ProjectResourceOptions.ProjectResourceOptions() -> void
+Aspire.Hosting.DistributedApplicationBuilder.AppHostAssembly.get -> System.Reflection.Assembly?
+Aspire.Hosting.IDistributedApplicationBuilder.AppHostAssembly.get -> System.Reflection.Assembly?
 static Aspire.Hosting.ContainerResourceBuilderExtensions.AddDockerfile(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! contextPath, string? dockerfilePath = null, string? stage = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ContainerResource!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithDockerfile<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! contextPath, string? dockerfilePath = null, string? stage = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithBuildArg<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!

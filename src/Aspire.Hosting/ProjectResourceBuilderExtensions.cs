@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
@@ -42,6 +43,10 @@ public static class ProjectResourceBuilderExtensions
     /// spaces in project names are converted to underscores. This normalization may lead to naming conflicts. If a conflict occurs the <c>&lt;ProjectReference /&gt;</c>
     /// that references the project can have a <c>AspireProjectMetadataTypeName="..."</c> attribute added to override the name.
     /// </para>
+    /// <para name="kestrel">
+    /// Note that endpoints coming from the Kestrel configuration are automatically added to the project. The Kestrel Url and Protocols are used
+    /// to build the equivalent <see cref="EndpointAnnotation"/>.
+    /// </para>
     /// </remarks>
     /// <example>
     /// Example of adding a project to the application model.
@@ -71,6 +76,7 @@ public static class ProjectResourceBuilderExtensions
     /// model using a path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
     /// path is not an absolute path then it will be computed relative to the app host directory.
     /// </para>
+    /// <inheritdoc cref="AddProject(IDistributedApplicationBuilder, string)" path="/remarks/para[@name='kestrel']" />
     /// </remarks>
     /// <example>
     /// Add a project to the app model via a project path.
@@ -113,6 +119,7 @@ public static class ProjectResourceBuilderExtensions
     /// spaces in project names are converted to underscores. This normalization may lead to naming conflicts. If a conflict occurs the <c>&lt;ProjectReference /&gt;</c>
     /// that references the project can have a <c>AspireProjectMetadataTypeName="..."</c> attribute added to override the name.
     /// </para>
+    /// <inheritdoc cref="AddProject(IDistributedApplicationBuilder, string)" path="/remarks/para[@name='kestrel']" />
     /// </remarks>
     /// <example>
     /// Example of adding a project to the application model.
@@ -147,6 +154,7 @@ public static class ProjectResourceBuilderExtensions
     /// model using a path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
     /// path is not an absolute path then it will be computed relative to the app host directory.
     /// </para>
+    /// <inheritdoc cref="AddProject(IDistributedApplicationBuilder, string)" path="/remarks/para[@name='kestrel']" />
     /// </remarks>
     /// <example>
     /// Add a project to the app model via a project path.
@@ -320,13 +328,25 @@ public static class ProjectResourceBuilderExtensions
             .Select(endpoint => new
             {
                 EndpointName = endpoint.Key,
-                BindingAddress = BindingAddress.Parse(endpoint["Url"]!)
+                BindingAddress = BindingAddress.Parse(endpoint["Url"]!),
+                Protocols = endpoint["Protocols"]
             })
             .GroupBy(entry => entry.BindingAddress.Scheme);
 
         // Helper to change the transport to http2 if needed
-        var isHttp2ConfiguredInAppSettings = config["Kestrel:EndpointDefaults:Protocols"] == "Http2";
-        var adjustTransport = (EndpointAnnotation e) => e.Transport = isHttp2ConfiguredInAppSettings ? "http2" : e.Transport;
+        var isHttp2ConfiguredInKestrelEndpointDefaults = config["Kestrel:EndpointDefaults:Protocols"] == nameof(HttpProtocols.Http2);
+        var adjustTransport = (EndpointAnnotation e, string? bindingLevelProtocols = null) => {
+            if (bindingLevelProtocols != null)
+            {
+                // If the Kestrel endpoint has an explicit protocol, use that and ignore any EndpointDefaults
+                e.Transport = bindingLevelProtocols == nameof(HttpProtocols.Http2) ? "http2" : e.Transport;
+            }
+            else if (isHttp2ConfiguredInKestrelEndpointDefaults)
+            {
+                // Fall back to honoring Http2 specified at EndpointDefaults level
+                e.Transport = "http2";
+            }
+        };
 
         foreach (var schemeGroup in kestrelEndpointsByScheme)
         {
@@ -352,7 +372,7 @@ public static class ProjectResourceBuilderExtensions
                         e.Port = endpoint.BindingAddress.Port;
                     }
                     e.UriScheme = endpoint.BindingAddress.Scheme;
-                    e.Transport = adjustTransport(e);
+                    adjustTransport(e, endpoint.Protocols);
                     // Keep track of the host separately since EndpointAnnotation doesn't have a host property
                     builder.Resource.KestrelEndpointAnnotationHosts[e] = endpoint.BindingAddress.Host;
                 },
@@ -392,7 +412,7 @@ public static class ProjectResourceBuilderExtensions
                         e.Port = uri.Port;
                         e.UriScheme = uri.Scheme;
                         e.FromLaunchProfile = true;
-                        e.Transport = adjustTransport(e);
+                        adjustTransport(e);
                     },
                     createIfNotExists: true);
                 }
@@ -445,7 +465,7 @@ public static class ProjectResourceBuilderExtensions
                     builder.WithEndpoint(scheme, e =>
                     {
                         e.UriScheme = scheme;
-                        e.Transport = adjustTransport(e);
+                        adjustTransport(e);
 
                         // Keep track of the default https endpoint so we can exclude it from HTTPS_PORTS & Kestrel env vars
                         if (scheme == "https")
