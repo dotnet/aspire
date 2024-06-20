@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Http.Json;
-// using Aspire.Hosting.Tests.Helpers;
+using Aspire.Components.Common.Tests;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -13,6 +13,7 @@ namespace Aspire.Hosting.Testing.Tests;
 public class TestingBuilderTests
 {
     [Theory]
+    [RequiresDocker]
     [InlineData(false)]
     [InlineData(true)]
     public async Task HasEndPoints(bool genericEntryPoint)
@@ -35,6 +36,7 @@ public class TestingBuilderTests
     }
 
     [Theory]
+    [RequiresDocker]
     [InlineData(false)]
     [InlineData(true)]
     public async Task CanGetResources(bool genericEntryPoint)
@@ -52,6 +54,7 @@ public class TestingBuilderTests
     }
 
     [Theory]
+    [RequiresDocker]
     [InlineData(false)]
     [InlineData(true)]
     public async Task HttpClientGetTest(bool genericEntryPoint)
@@ -62,13 +65,14 @@ public class TestingBuilderTests
         await using var app = await appHost.BuildAsync();
         await app.StartAsync();
 
-        var httpClient = app.CreateHttpClient("mywebapp1");
+        var httpClient = app.CreateHttpClientWithResilience("mywebapp1");
         var result1 = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
         Assert.NotNull(result1);
         Assert.True(result1.Length > 0);
     }
 
     [Theory]
+    [RequiresDocker]
     [InlineData(false)]
     [InlineData(true)]
     public async Task GetHttpClientBeforeStart(bool genericEntryPoint)
@@ -81,6 +85,7 @@ public class TestingBuilderTests
     }
 
     [Theory]
+    [RequiresDocker]
     [InlineData(false)]
     [InlineData(true)]
     public async Task SetsCorrectContentRoot(bool genericEntryPoint)
@@ -95,6 +100,7 @@ public class TestingBuilderTests
     }
 
     [Theory]
+    [RequiresDocker]
     [InlineData(false)]
     [InlineData(true)]
     public async Task SelectsFirstLaunchProfile(bool genericEntryPoint)
@@ -117,6 +123,7 @@ public class TestingBuilderTests
 
     // Tests that DistributedApplicationTestingBuilder throws exceptions at the right times when the app crashes.
     [Theory]
+    [RequiresDocker]
     [InlineData(true, "before-build")]
     [InlineData(true, "after-build")]
     [InlineData(true, "after-start")]

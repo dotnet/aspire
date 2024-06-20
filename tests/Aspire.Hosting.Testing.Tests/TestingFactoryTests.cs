@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Http.Json;
-// using Aspire.Hosting.Tests.Helpers;
+using Aspire.Components.Common.Tests;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -15,6 +15,7 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
     private readonly DistributedApplication _app = fixture.Application;
 
     [Fact]
+    [RequiresDocker]
     public async Task HasEndPoints()
     {
         // Get an endpoint from a resource
@@ -29,6 +30,7 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
     }
 
     [Fact]
+    [RequiresDocker]
     public void CanGetResources()
     {
         var appModel = _app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -37,15 +39,17 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
     }
 
     [Fact]
+    [RequiresDocker]
     public async Task HttpClientGetTest()
     {
-        var httpClient = _app.CreateHttpClient("mywebapp1");
+        var httpClient = _app.CreateHttpClientWithResilience("mywebapp1");
         var result1 = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
         Assert.NotNull(result1);
         Assert.True(result1.Length > 0);
     }
 
     [Fact]
+    [RequiresDocker]
     public void SetsCorrectContentRoot()
     {
         var appModel = _app.Services.GetRequiredService<IHostEnvironment>();
@@ -53,6 +57,7 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
     }
 
     [Fact]
+    [RequiresDocker]
     public async Task SelectsFirstLaunchProfile()
     {
         var config = _app.Services.GetRequiredService<IConfiguration>();
@@ -60,7 +65,7 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
         Assert.Equal("https", profileName);
 
         // Explicitly get the HTTPS endpoint - this is only available on the "https" launch profile.
-        var httpClient = _app.CreateHttpClient("mywebapp1", "https");
+        var httpClient = _app.CreateHttpClientWithResilience("mywebapp1", "https");
         var result = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
         Assert.NotNull(result);
         Assert.True(result.Length > 0);

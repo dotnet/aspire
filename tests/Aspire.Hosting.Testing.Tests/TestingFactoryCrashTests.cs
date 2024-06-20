@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-// using Aspire.Hosting.Tests.Helpers;
+using Aspire.Components.Common.Tests;
 using Xunit;
 
 namespace Aspire.Hosting.Testing.Tests;
@@ -10,6 +10,7 @@ namespace Aspire.Hosting.Testing.Tests;
 public class TestingFactoryCrashTests
 {
     [Theory]
+    [RequiresDocker]
     [InlineData("before-build")]
     [InlineData("after-build")]
     [InlineData("after-start")]

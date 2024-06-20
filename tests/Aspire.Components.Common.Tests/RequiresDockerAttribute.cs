@@ -22,8 +22,7 @@ public class RequiresDockerAttribute : Attribute, ITraitAttribute
     // - Linux - Local, or CI: always assume that docker is installed
     public static bool IsSupported =>
         !OperatingSystem.IsWindows() ||
-        (Environment.GetEnvironmentVariable("BUILD_BUILDID") is null && // NOT CI - build machine or helix
-            Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is null);
+        (!PlatformDetection.IsRunningOnBuildMachine && !PlatformDetection.IsRunningOnHelix);
 
     public string? Reason { get; init; }
     public RequiresDockerAttribute(string? reason = null)

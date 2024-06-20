@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Testing;
-// using Aspire.Hosting.Tests.Helpers;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -30,7 +29,7 @@ public class SlimTestProgramTests
 
     private static async Task EnsureServicesAreRunning(TestProgram testProgram, CancellationToken cancellationToken)
     {
-        var app = testProgram.App!;
+        var app = testProgram.App ?? throw new ArgumentException("TestProgram.App is null");
         using var clientA = app.CreateHttpClient(testProgram.ServiceABuilder.Resource.Name, "http");
         await clientA.GetStringAsync("/", cancellationToken);
 
