@@ -153,7 +153,7 @@ internal sealed class ContainerNetworkConnection
 	// Aliases of the container on the network
 	// This enables container DNS resolution
     [JsonPropertyName("aliases")]
-	public List<string>? Aliases;
+	public List<string>? Aliases { get; set; }
 }
 
 internal sealed class ContainerLabel
