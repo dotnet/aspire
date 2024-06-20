@@ -101,7 +101,7 @@
     <PackageVersion Include="Humanizer.Core" Version="2.14.1" />
     <PackageVersion Include="KubernetesClient" Version="14.0.2" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="5.2.1" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.7.2" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.8.0" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.8.0" />
     <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1"/>
     <PackageVersion Include="MongoDB.Driver" Version="2.25.0" />
