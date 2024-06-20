@@ -60,10 +60,7 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name) where TProject : IProjectMetadata, new()
     {
-        var project = new ProjectResource(name);
-        return builder.AddResource(project)
-                      .WithAnnotation(new TProject())
-                      .WithProjectDefaults(excludeLaunchProfile: false, launchProfileName: null);
+        return builder.AddProject<TProject>(name, _ => { });
     }
 
     /// <summary>
@@ -76,7 +73,7 @@ public static class ProjectResourceBuilderExtensions
     /// <remarks>
     /// <para>
     /// This overload of the <see cref="AddProject(IDistributedApplicationBuilder, string, string)"/> method adds a project to the application
-    /// model using an path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
+    /// model using a path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
     /// path is not an absolute path then it will be computed relative to the app host directory.
     /// </para>
     /// <inheritdoc cref="AddProject(IDistributedApplicationBuilder, string)" path="/remarks/para[@name='kestrel']" />
@@ -93,13 +90,7 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath)
     {
-        var project = new ProjectResource(name);
-
-        projectPath = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectPath));
-
-        return builder.AddResource(project)
-                      .WithAnnotation(new ProjectMetadata(projectPath))
-                      .WithProjectDefaults(excludeLaunchProfile: false, launchProfileName: null);
+        return builder.AddProject(name, projectPath, _ => { });
     }
 
     /// <summary>
@@ -142,10 +133,11 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name, string? launchProfileName) where TProject : IProjectMetadata, new()
     {
-        var project = new ProjectResource(name);
-        return builder.AddResource(project)
-                      .WithAnnotation(new TProject())
-                      .WithProjectDefaults(excludeLaunchProfile: launchProfileName is null, launchProfileName);
+        return builder.AddProject<TProject>(name, options =>
+        {
+            options.ExcludeLaunchProfile = launchProfileName is null;
+            options.LaunchProfileName = launchProfileName;
+        });
     }
 
     /// <summary>
@@ -159,7 +151,7 @@ public static class ProjectResourceBuilderExtensions
     /// <remarks>
     /// <para>
     /// This overload of the <see cref="AddProject(IDistributedApplicationBuilder, string, string)"/> method adds a project to the application
-    /// model using an path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
+    /// model using a path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
     /// path is not an absolute path then it will be computed relative to the app host directory.
     /// </para>
     /// <inheritdoc cref="AddProject(IDistributedApplicationBuilder, string)" path="/remarks/para[@name='kestrel']" />
@@ -176,16 +168,100 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath, string? launchProfileName)
     {
+        return builder.AddProject(name, projectPath, options =>
+        {
+            options.ExcludeLaunchProfile = launchProfileName is null;
+            options.LaunchProfileName = launchProfileName;
+        });
+    }
+
+    /// <summary>
+    /// Adds a .NET project to the application model.
+    /// </summary>
+    /// <typeparam name="TProject">A type that represents the project reference.</typeparam>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
+    /// <param name="configure">A callback to configure the project resource options.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This overload of the <see cref="AddProject{TProject}(IDistributedApplicationBuilder, string)"/> method takes
+    /// a <typeparamref name="TProject"/> type parameter. The <typeparamref name="TProject"/> type parameter is constrained
+    /// to types that implement the <see cref="IProjectMetadata"/> interface.
+    /// </para>
+    /// <para>
+    /// Classes that implement the <see cref="IProjectMetadata"/> interface are generated when a .NET project is added as a reference
+    /// to the app host project. The generated class contains a property that returns the path to the referenced project file. Using this path
+    /// .NET Aspire parses the <c>launchSettings.json</c> file to determine which launch profile to use when running the project, and
+    /// what endpoint configuration to automatically generate.
+    /// </para>
+    /// <para>
+    /// The name of the automatically generated project metadata type is a normalized version of the project name. Periods, dashes, and
+    /// spaces in project names are converted to underscores. This normalization may lead to naming conflicts. If a conflict occurs the <c>&lt;ProjectReference /&gt;</c>
+    /// that references the project can have a <c>AspireProjectMetadataTypeName="..."</c> attribute added to override the name.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Example of adding a project to the application model.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// 
+    /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice", options => { options.LaunchProfileName = "otherLaunchProfile"; });
+    /// 
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name, Action<ProjectResourceOptions> configure) where TProject : IProjectMetadata, new()
+    {
+        var options = new ProjectResourceOptions();
+        configure(options);
+
+        var project = new ProjectResource(name);
+        return builder.AddResource(project)
+                      .WithAnnotation(new TProject())
+                      .WithProjectDefaults(options);
+    }
+
+    /// <summary>
+    /// Adds a .NET project to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
+    /// <param name="projectPath">The path to the project file.</param>
+    /// <param name="configure">A callback to configure the project resource options.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This overload of the <see cref="AddProject(IDistributedApplicationBuilder, string, string)"/> method adds a project to the application
+    /// model using a path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
+    /// path is not an absolute path then it will be computed relative to the app host directory.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Add a project to the app model via a project path.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// 
+    /// builder.AddProject("inventoryservice", @"..\InventoryService\InventoryService.csproj", options => { options.LaunchProfileName = "otherLaunchProfile"; });
+    /// 
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath, Action<ProjectResourceOptions> configure)
+    {
+        var options = new ProjectResourceOptions();
+        configure(options);
+
         var project = new ProjectResource(name);
 
         projectPath = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectPath));
 
         return builder.AddResource(project)
                       .WithAnnotation(new ProjectMetadata(projectPath))
-                      .WithProjectDefaults(excludeLaunchProfile: launchProfileName is null, launchProfileName);
+                      .WithProjectDefaults(options);
     }
 
-    private static IResourceBuilder<ProjectResource> WithProjectDefaults(this IResourceBuilder<ProjectResource> builder, bool excludeLaunchProfile, string? launchProfileName)
+    private static IResourceBuilder<ProjectResource> WithProjectDefaults(this IResourceBuilder<ProjectResource> builder, ProjectResourceOptions options)
     {
         // We only want to turn these on for .NET projects, ConfigureOtlpEnvironment works for any resource type that
         // implements IDistributedApplicationResourceWithEnvironment.
@@ -221,13 +297,13 @@ public static class ProjectResourceBuilderExtensions
             });
         }
 
-        if (excludeLaunchProfile)
+        if (options.ExcludeLaunchProfile)
         {
             builder.WithAnnotation(new ExcludeLaunchProfileAnnotation());
         }
-        else if (!string.IsNullOrEmpty(launchProfileName))
+        else if (!string.IsNullOrEmpty(options.LaunchProfileName))
         {
-            builder.WithAnnotation(new LaunchProfileAnnotation(launchProfileName));
+            builder.WithAnnotation(new LaunchProfileAnnotation(options.LaunchProfileName));
         }
         else
         {
@@ -239,12 +315,12 @@ public static class ProjectResourceBuilderExtensions
             }
         }
 
-        var effectiveLaunchProfile = excludeLaunchProfile ? null : projectResource.GetEffectiveLaunchProfile(throwIfNotFound: true);
+        var effectiveLaunchProfile = options.ExcludeLaunchProfile ? null : projectResource.GetEffectiveLaunchProfile(throwIfNotFound: true);
         var launchProfile = effectiveLaunchProfile?.LaunchProfile;
 
         // Get all the endpoints from the Kestrel configuration
         var config = GetConfiguration(projectResource);
-        var kestrelEndpoints = config.GetSection("Kestrel:Endpoints").GetChildren();
+        var kestrelEndpoints = options.ExcludeKestrelEndpoints ? [] : config.GetSection("Kestrel:Endpoints").GetChildren();
 
         // Get all the Kestrel configuration endpoint bindings, grouped by scheme
         var kestrelEndpointsByScheme = kestrelEndpoints

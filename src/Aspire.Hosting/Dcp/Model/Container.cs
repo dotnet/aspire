@@ -56,6 +56,10 @@ internal sealed class ContainerSpec
     // Additional arguments to pass to the container run command
     [JsonPropertyName("runArgs")]
     public List<string>? RunArgs { get; set; }
+
+    // Should this container be created and persisted between DCP runs?
+    [JsonPropertyName("persistent")]
+    public bool? Persistent;
 }
 
 internal sealed class BuildContext
@@ -315,7 +319,9 @@ internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
     }
 
     public bool LogsAvailable =>
-        this.Status?.State == ContainerState.Running
+        this.Status?.State == ContainerState.Starting
+        || this.Status?.State == ContainerState.Building
+        || this.Status?.State == ContainerState.Running
         || this.Status?.State == ContainerState.Paused
         || this.Status?.State == ContainerState.Stopping
         || this.Status?.State == ContainerState.Exited
