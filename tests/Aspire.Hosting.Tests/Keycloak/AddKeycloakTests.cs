@@ -70,6 +70,26 @@ public class AddKeycloakTests
     }
 
     [Fact]
+    public void AddAddKeycloakAddsGeneratedPasswordParameterWithUserSecretsParameterDefaultInRunMode()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+
+        var rmq = appBuilder.AddKeycloak("keycloak");
+
+        Assert.IsType<UserSecretsParameterDefault>(rmq.Resource.AdminPasswordParameter.Default);
+    }
+
+    [Fact]
+    public void AddAddKeycloakDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultInPublishMode()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var rmq = appBuilder.AddKeycloak("keycloak");
+
+        Assert.IsNotType<UserSecretsParameterDefault>(rmq.Resource.AdminPasswordParameter.Default);
+    }
+
+    [Fact]
     public async Task VerifyManifest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
