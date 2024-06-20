@@ -53,10 +53,10 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
             IAsyncDisposable? processDisposable = null;
             Task<ProcessResult> task;
 
+            var outputStringBuilder = new StringBuilder();
+
             try
             {
-                var outputStringBuilder = new StringBuilder();
-
                 var arguments = "info";
                 if (!string.IsNullOrEmpty(containerRuntime))
                 {
@@ -102,6 +102,10 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
             }
             catch (Exception ex) when (ex is not DistributedApplicationException)
             {
+                if (ex is TimeoutException)
+                {
+                     Console.WriteLine($"Output from running dcp: {outputStringBuilder}");
+                }
                 throw new DistributedApplicationException(string.Format(
                     CultureInfo.InvariantCulture,
                     Resources.DcpDependencyCheckFailedMessage,
