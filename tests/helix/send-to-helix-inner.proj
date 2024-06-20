@@ -74,7 +74,7 @@
     <HelixCorrelationPayload Include="$(PlaywrightDependenciesDirectory)" Destination="playwright-deps" />
 
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="chmod +x $HELIX_WORKITEM_ROOT/.playwright/node/linux-x64/node" />
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="echo &quot;Error! Bad return status for module build on kernel: 6.5.0-1022-azure (x86_64)&quot; %3B exit 1" />
+    <!--<HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="echo &quot;Error! Bad return status for module build on kernel: 6.5.0-1022-azure (x86_64)&quot; %3B exit 1" />-->
     <!-- wait for lock for 2mins -->
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="sudo apt-get -o DPkg::Lock::Timeout=120 install -y libgbm1 libxkbcommon0" />
 
