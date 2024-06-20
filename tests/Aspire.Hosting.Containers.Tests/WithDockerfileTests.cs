@@ -21,6 +21,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
     // Currently we can only run this locally because the CI agents don't have buildkit support enabled.
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4613")]
     public async Task WithBuildSecretPopulatesSecretFilesCorrectly()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -56,6 +57,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4613")]
     public async Task WithDockerfileLaunchesContainerSuccessfully()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -88,6 +90,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4613")]
     public async Task AddDockerfileLaunchesContainerSuccessfully()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -398,6 +401,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4613")]
     public async Task WithDockerfileWithParameterLaunchesContainerSuccessfully()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -467,6 +471,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4613")]
     public async Task AddDockerfileWithParameterLaunchesContainerSuccessfully()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
