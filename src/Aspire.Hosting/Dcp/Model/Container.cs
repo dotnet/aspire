@@ -319,7 +319,9 @@ internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
     }
 
     public bool LogsAvailable =>
-        this.Status?.State == ContainerState.Running
+        this.Status?.State == ContainerState.Starting
+        || this.Status?.State == ContainerState.Building
+        || this.Status?.State == ContainerState.Running
         || this.Status?.State == ContainerState.Paused
         || this.Status?.State == ContainerState.Stopping
         || this.Status?.State == ContainerState.Exited
