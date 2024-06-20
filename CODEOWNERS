@@ -1,6 +1,7 @@
 /eng/SourceBuild* @dotnet/source-build-internal
 
 /dogfood.sh @radical @eerhardt
+/src/Components @radical @eerhardt @sebastienros
 /src/Aspire.Hosting.Testing @reubenbond
 /src/Microsoft.NET.Sdk.Aspire @joperezr @radical
 
