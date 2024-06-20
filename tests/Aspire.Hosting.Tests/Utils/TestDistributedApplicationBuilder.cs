@@ -55,7 +55,7 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
         {
             // Make sure we have a dashboard URL and OTLP endpoint URL (but don't overwrite them if they're already set)
             o.DashboardUrl ??= "http://localhost:8080";
-            o.OtlpEndpointUrl ??= "http://localhost:4317";
+            o.OtlpGrpcEndpointUrl ??= "http://localhost:4317";
         });
 
         _innerBuilder.Services.AddHttpClient();

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Buffers;
+using System.IO.Pipelines;
 using System.Net.Http.Headers;
 using Aspire.Dashboard.Authentication;
 using Google.Protobuf;
@@ -15,79 +16,62 @@ namespace Aspire.Dashboard.Otlp.Http;
 
 public static class OtlpHttpEndpointsBuilder
 {
-    // https://docs.microsoft.com/en-us/dotnet/standard/garbage-collection/large-object-heap
-    private const int MaxSizeLessThanLOH = 84999;
     public const string ProtobufContentType = "application/x-protobuf";
     public const string JsonContentType = "application/json";
 
-    public static void ConfigureHttpOtlp(this IEndpointRouteBuilder endpoints, Uri httpEndpoint)
+    public static void ConfigureHttpOtlp(this IEndpointRouteBuilder endpoints)
     {
-        var logsService = endpoints.ServiceProvider.GetRequiredService<OtlpLogsService>();
-        var traceService = endpoints.ServiceProvider.GetRequiredService<OtlpTraceService>();
-        var metricsService = endpoints.ServiceProvider.GetRequiredService<OtlpMetricsService>();
+        var group = endpoints
+            .MapGroup("/v1")
+            .AddOtlpHttpMetadata()
+            .AddEndpointFilter<ErrorHandlerEndpointFilter>();
 
-        endpoints.MapPost("/v1/logs", LogsEndpoint).AddOtlpHttpMetadata();
-        endpoints.MapPost("/v1/traces", TracesEndpoint).AddOtlpHttpMetadata();
-        endpoints.MapPost("/v1/metrics", MetricsEndpoint).AddOtlpHttpMetadata();
+        group.MapPost("logs", LogsEndpoint);
+        group.MapPost("traces", TracesEndpoint);
+        group.MapPost("metrics", MetricsEndpoint);
 
-        async Task LogsEndpoint(HttpContext context)
+        async Task<IResult> LogsEndpoint(HttpContext context, OtlpLogsService service)
         {
             switch (GetKnownContentType(context.Request.ContentType, out var charSet))
             {
                 case KnownContentType.Protobuf:
                     var request = await ReadOtlpData(context, ExportLogsServiceRequest.Parser.ParseFrom).ConfigureAwait(false);
-                    var response = logsService.Export(request);
+                    var response = service.Export(request);
 
-                    await WriteOtlpResponse(context, response).ConfigureAwait(false);
-                    break;
+                    return new ProtobufResult<ExportLogsServiceResponse>(response);
                 case KnownContentType.Json:
                 default:
-                    context.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
-                    break;
+                    return Results.StatusCode(StatusCodes.Status415UnsupportedMediaType);
             }
         }
-        async Task TracesEndpoint(HttpContext context)
+        async Task<IResult> TracesEndpoint(HttpContext context, OtlpTraceService service)
         {
             switch (GetKnownContentType(context.Request.ContentType, out var charSet))
             {
                 case KnownContentType.Protobuf:
                     var request = await ReadOtlpData(context, ExportTraceServiceRequest.Parser.ParseFrom).ConfigureAwait(false);
-                    var response = traceService.Export(request);
+                    var response = service.Export(request);
 
-                    await WriteOtlpResponse(context, response).ConfigureAwait(false);
-                    break;
+                    return new ProtobufResult<ExportTraceServiceResponse>(response);
                 case KnownContentType.Json:
                 default:
-                    context.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
-                    break;
+                    return Results.StatusCode(StatusCodes.Status415UnsupportedMediaType);
             }
         }
-        async Task MetricsEndpoint(HttpContext context)
+        async Task<IResult> MetricsEndpoint(HttpContext context, OtlpMetricsService service)
         {
             switch (GetKnownContentType(context.Request.ContentType, out var charSet))
             {
                 case KnownContentType.Protobuf:
                     var request = await ReadOtlpData(context, ExportMetricsServiceRequest.Parser.ParseFrom).ConfigureAwait(false);
-                    var response = metricsService.Export(request);
+                    var response = service.Export(request);
 
-                    await WriteOtlpResponse(context, response).ConfigureAwait(false);
-                    break;
+                    return new ProtobufResult<ExportMetricsServiceResponse>(response);
                 case KnownContentType.Json:
                 default:
-                    context.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
-                    break;
+                    return Results.StatusCode(StatusCodes.Status415UnsupportedMediaType);
             }
         }
-    }
-
-    private static async Task WriteOtlpResponse<T>(HttpContext context, T response) where T : IMessage
-    {
-        var ms = new MemoryStream();
-        response.WriteTo(ms);
-        ms.Seek(0, SeekOrigin.Begin);
-
-        context.Response.ContentType = ProtobufContentType;
-        await ms.CopyToAsync(context.Response.Body).ConfigureAwait(false);
     }
 
     private enum KnownContentType
@@ -118,7 +102,7 @@ public static class OtlpHttpEndpointsBuilder
         return KnownContentType.None;
     }
 
-    private static IEndpointConventionBuilder AddOtlpHttpMetadata(this IEndpointConventionBuilder builder)
+    private static T AddOtlpHttpMetadata<T>(this T builder) where T : IEndpointConventionBuilder
     {
         builder
             .RequireAuthorization(OtlpAuthorization.PolicyName)
@@ -126,35 +110,90 @@ public static class OtlpHttpEndpointsBuilder
         return builder;
     }
 
+    private sealed class ErrorHandlerEndpointFilter : IEndpointFilter
+    {
+        private readonly ILogger<ErrorHandlerEndpointFilter> _logger;
+
+        public ErrorHandlerEndpointFilter(ILogger<ErrorHandlerEndpointFilter> logger)
+        {
+            _logger = logger;
+        }
+
+        public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+        {
+            try
+            {
+                return await next(context).ConfigureAwait(false);
+            }
+            catch (BadHttpRequestException ex)
+            {
+                _logger.LogError(ex, "Exceeded max request data size.");
+                return Results.BadRequest(ex.Message);
+            }
+        }
+    }
+
+    private sealed class ProtobufResult<T> : IResult where T : IMessage
+    {
+        private readonly T _message;
+
+        public ProtobufResult(T message) => _message = message;
+
+        public async Task ExecuteAsync(HttpContext httpContext)
+        {
+            var ms = new MemoryStream();
+            _message.WriteTo(ms);
+            ms.Seek(0, SeekOrigin.Begin);
+
+            httpContext.Response.ContentType = ProtobufContentType;
+            await ms.CopyToAsync(httpContext.Response.Body).ConfigureAwait(false);
+        }
+    }
+
     private static async Task<T> ReadOtlpData<T>(
         HttpContext httpContext,
         Func<ReadOnlySequence<byte>, T> exporter)
     {
-        var readSize = (int?)httpContext.Request.Headers.ContentLength ?? MaxSizeLessThanLOH;
-        SequencePosition position = default;
+        const int MaxRequestSize = 1024 * 1024 * 4; // 4 MB. Matches default gRPC request limit.
+
+        ReadResult result = default;
         try
         {
-            var result = await httpContext.Request.BodyReader.ReadAtLeastAsync(readSize, httpContext.RequestAborted)
-                .ConfigureAwait(false);
-            position = result.Buffer.End;
-            if (result.IsCanceled)
+            do
             {
-                throw new OperationCanceledException("Read call was canceled.");
-            }
+                result = await httpContext.Request.BodyReader.ReadAsync().ConfigureAwait(false);
 
-            if (!result.IsCompleted || result.Buffer.Length > readSize)
-            {
-                // Too big!
-                throw new BadHttpRequestException(
-                    $"The request body was larger than the max allowed of {readSize} bytes.",
-                    StatusCodes.Status400BadRequest);
-            }
+                if (result.IsCanceled)
+                {
+                    throw new OperationCanceledException("Read call was canceled.");
+                }
+
+                if (result.Buffer.Length > MaxRequestSize)
+                {
+                    // Too big!
+                    throw new BadHttpRequestException(
+                        $"The request body was larger than the max allowed of {MaxRequestSize} bytes.",
+                        StatusCodes.Status400BadRequest);
+                }
+
+                if (result.IsCompleted)
+                {
+                    break;
+                }
+                else
+                {
+                    httpContext.Request.BodyReader.AdvanceTo(result.Buffer.Start, result.Buffer.End);
+                }
+            } while (true);
 
             return exporter(result.Buffer);
         }
         finally
         {
-            httpContext.Request.BodyReader.AdvanceTo(position);
+            if (!result.Equals(default(ReadResult)))
+            {
+                httpContext.Request.BodyReader.AdvanceTo(result.Buffer.End);
+            }
         }
     }
 }

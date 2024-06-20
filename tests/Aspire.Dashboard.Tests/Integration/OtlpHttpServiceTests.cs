@@ -7,12 +7,14 @@ using System.Text;
 using Aspire.Dashboard.Authentication.OtlpApiKey;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Http;
+using Aspire.Dashboard.Tests.TelemetryRepositoryTests;
 using Aspire.Hosting;
 using Google.Protobuf;
 using Microsoft.AspNetCore.InternalTesting;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
 using OpenTelemetry.Proto.Collector.Trace.V1;
+using OpenTelemetry.Proto.Logs.V1;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -28,7 +30,7 @@ public class OtlpHttpServiceTests
     }
 
     [Fact]
-    public async Task CallService_OtlpHttpEndPoint_Success()
+    public async Task CallService_OtlpHttpEndPoint_BigData_Success()
     {
         // Arrange
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper);
@@ -36,7 +38,9 @@ public class OtlpHttpServiceTests
 
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.OtlpServiceHttpEndPointAccessor().EndPoint}");
 
-        var content = new ByteArrayContent(new ExportLogsServiceRequest().ToByteArray());
+        var request = CreateExportLogsServiceRequest(logRecordsCount: 10000);
+
+        var content = new ByteArrayContent(request.ToByteArray());
         content.Headers.TryAddWithoutValidation("content-type", OtlpHttpEndpointsBuilder.ProtobufContentType);
 
         // Act
@@ -49,6 +53,49 @@ public class OtlpHttpServiceTests
         Assert.Equal(OtlpHttpEndpointsBuilder.ProtobufContentType, responseMessage.Content.Headers.GetValues("content-type").Single());
         Assert.False(responseMessage.Headers.Contains("content-security-policy"));
         Assert.Equal(0, response.PartialSuccess.RejectedLogRecords);
+    }
+
+    [Theory]
+    [InlineData(100000)]
+    [InlineData(300000)]
+    public async Task CallService_OtlpHttpEndPoint_ExceedRequestLimit_Failure(int logRecordsCount)
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper);
+        await app.StartAsync();
+
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.OtlpServiceHttpEndPointAccessor().EndPoint}");
+
+        var request = CreateExportLogsServiceRequest(logRecordsCount);
+
+        var content = new ByteArrayContent(request.ToByteArray());
+        content.Headers.TryAddWithoutValidation("content-type", OtlpHttpEndpointsBuilder.ProtobufContentType);
+
+        // Act
+        var responseMessage = await httpClient.PostAsync("/v1/logs", content);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, responseMessage.StatusCode);
+    }
+
+    private static ExportLogsServiceRequest CreateExportLogsServiceRequest(int logRecordsCount)
+    {
+        var scopeLogs = new ScopeLogs
+        {
+            Scope = TestHelpers.CreateScope("TestLogger")
+        };
+        for (var i = 0; i < logRecordsCount; i++)
+        {
+            scopeLogs.LogRecords.Add(TestHelpers.CreateLogRecord(message: $"This is the test log message {i}. The quick brown fox jumped over the lazy dog. Peter Pipper picked a patch of pickled peppers."));
+        }
+
+        var request = new ExportLogsServiceRequest();
+        request.ResourceLogs.Add(new ResourceLogs
+        {
+            Resource = TestHelpers.CreateResource(),
+            ScopeLogs = { scopeLogs }
+        });
+        return request;
     }
 
     [Fact]
