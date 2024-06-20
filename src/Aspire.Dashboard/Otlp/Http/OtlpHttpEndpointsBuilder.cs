@@ -20,75 +20,36 @@ public static class OtlpHttpEndpointsBuilder
     public const string ProtobufContentType = "application/x-protobuf";
     public const string JsonContentType = "application/json";
 
-    public class MessageBindable<TMessage> : IBindableFromHttpContext<MessageBindable<TMessage>> where TMessage : IMessage<TMessage>, new()
-    {
-        public static readonly MessageBindable<TMessage> Empty = new MessageBindable<TMessage>();
-
-        public TMessage? Message { get; private set; }
-
-        public static async ValueTask<MessageBindable<TMessage>?> BindAsync(HttpContext context, ParameterInfo parameter)
-        {
-            switch (GetKnownContentType(context.Request.ContentType, out var charSet))
-            {
-                case KnownContentType.Protobuf:
-                    try
-                    {
-                        var message = await ReadOtlpData(context, data =>
-                        {
-                            var message = new TMessage();
-                            message.MergeFrom(data);
-                            return message;
-                        }).ConfigureAwait(false);
-
-                        return new MessageBindable<TMessage> { Message = message };
-                    }
-                    catch (BadHttpRequestException ex)
-                    {
-                        context.Response.StatusCode = ex.StatusCode;
-                        return Empty;
-                    }
-                case KnownContentType.Json:
-                default:
-                    context.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
-                    return Empty;
-            }
-        }
-    }
-
     public static void MapHttpOtlpApi(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints
             .MapGroup("/v1")
             .AddOtlpHttpMetadata();
 
-        group.MapPost("logs", LogsEndpoint);
-        group.MapPost("traces", TracesEndpoint);
-        group.MapPost("metrics", MetricsEndpoint);
-
-        IResult LogsEndpoint(MessageBindable<ExportLogsServiceRequest> request, OtlpLogsService service)
+        group.MapPost("logs", static (MessageBindable<ExportLogsServiceRequest> request, OtlpLogsService service) =>
         {
             if (request.Message == null)
             {
                 return Results.Empty;
             }
-            return new ProtobufResult<ExportLogsServiceResponse>(service.Export(request.Message));
-        }
-        IResult TracesEndpoint(MessageBindable<ExportTraceServiceRequest> request, OtlpTraceService service)
+            return OtlpResult.Response(service.Export(request.Message));
+        });
+        group.MapPost("traces", static (MessageBindable<ExportTraceServiceRequest> request, OtlpTraceService service) =>
         {
             if (request.Message == null)
             {
                 return Results.Empty;
             }
-            return new ProtobufResult<ExportTraceServiceResponse>(service.Export(request.Message));
-        }
-        IResult MetricsEndpoint(MessageBindable<ExportMetricsServiceRequest> request, OtlpMetricsService service)
+            return OtlpResult.Response(service.Export(request.Message));
+        });
+        group.MapPost("metrics", (MessageBindable<ExportMetricsServiceRequest> request, OtlpMetricsService service) =>
         {
             if (request.Message == null)
             {
                 return Results.Empty;
             }
-            return new ProtobufResult<ExportMetricsServiceResponse>(service.Export(request.Message));
-        }
+            return OtlpResult.Response(service.Export(request.Message));
+        });
     }
 
     private enum KnownContentType
@@ -127,22 +88,72 @@ public static class OtlpHttpEndpointsBuilder
         return builder;
     }
 
-    private sealed class ProtobufResult<T> : IResult where T : IMessage
+    private sealed class MessageBindable<TMessage> : IBindableFromHttpContext<MessageBindable<TMessage>> where TMessage : IMessage<TMessage>, new()
+    {
+        public static readonly MessageBindable<TMessage> Empty = new MessageBindable<TMessage>();
+
+        public TMessage? Message { get; private set; }
+
+        public static async ValueTask<MessageBindable<TMessage>?> BindAsync(HttpContext context, ParameterInfo parameter)
+        {
+            switch (GetKnownContentType(context.Request.ContentType, out var charSet))
+            {
+                case KnownContentType.Protobuf:
+                    try
+                    {
+                        var message = await ReadOtlpData(context, data =>
+                        {
+                            var message = new TMessage();
+                            message.MergeFrom(data);
+                            return message;
+                        }).ConfigureAwait(false);
+
+                        return new MessageBindable<TMessage> { Message = message };
+                    }
+                    catch (BadHttpRequestException ex)
+                    {
+                        context.Response.StatusCode = ex.StatusCode;
+                        return Empty;
+                    }
+                case KnownContentType.Json:
+                default:
+                    context.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
+                    return Empty;
+            }
+        }
+    }
+
+    private sealed class OtlpResult<T> : IResult where T : IMessage
     {
         private readonly T _message;
 
-        public ProtobufResult(T message) => _message = message;
+        public OtlpResult(T message) => _message = message;
 
         public async Task ExecuteAsync(HttpContext httpContext)
         {
-            // This isn't very efficent but OTLP Protobuf responses are small.
-            var ms = new MemoryStream();
-            _message.WriteTo(ms);
-            ms.Seek(0, SeekOrigin.Begin);
+            switch (GetKnownContentType(httpContext.Request.ContentType, out _))
+            {
+                case KnownContentType.Protobuf:
 
-            httpContext.Response.ContentType = ProtobufContentType;
-            await ms.CopyToAsync(httpContext.Response.Body).ConfigureAwait(false);
+                    // This isn't very efficent but OTLP Protobuf responses are small.
+                    var ms = new MemoryStream();
+                    _message.WriteTo(ms);
+                    ms.Seek(0, SeekOrigin.Begin);
+
+                    httpContext.Response.ContentType = ProtobufContentType;
+                    await ms.CopyToAsync(httpContext.Response.Body).ConfigureAwait(false);
+                    break;
+                case KnownContentType.Json:
+                default:
+                    httpContext.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
+                    break;
+            }
         }
+    }
+
+    private sealed class OtlpResult
+    {
+        public static OtlpResult<T> Response<T>(T response) where T : IMessage => new OtlpResult<T>(response);
     }
 
     private static async Task<T> ReadOtlpData<T>(
