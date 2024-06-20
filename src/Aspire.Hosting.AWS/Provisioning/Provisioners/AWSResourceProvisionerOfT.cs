@@ -5,16 +5,16 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.AWS.Provisioning;
 
-internal class ProvisioningContext(DistributedApplicationModel model)
+internal class ProvisioningContext(ILookup<IAWSResource?, IResourceWithParent>? parentChildLookup)
 {
-    public DistributedApplicationModel AppModel { get; } = model;
+    public ILookup<IAWSResource?, IResourceWithParent>? ParentChildLookup { get; } = parentChildLookup;
 }
 
 internal interface IAWSResourceProvisioner
 {
     bool ShouldProvision(IAWSResource resource);
 
-    Task GetOrCreateResourceAsync(IAWSResource resource, CancellationToken cancellationToken = default);
+    Task GetOrCreateResourceAsync(IAWSResource resource, ProvisioningContext context, CancellationToken cancellationToken = default);
 }
 
 internal abstract class AWSResourceProvisioner<TResource> : IAWSResourceProvisioner
@@ -22,13 +22,11 @@ internal abstract class AWSResourceProvisioner<TResource> : IAWSResourceProvisio
 {
     Task IAWSResourceProvisioner.GetOrCreateResourceAsync(
         IAWSResource resource,
+        ProvisioningContext context,
         CancellationToken cancellationToken)
-        => GetOrCreateResourceAsync((TResource)resource, cancellationToken);
+        => GetOrCreateResourceAsync((TResource)resource, context, cancellationToken);
 
-    public bool ShouldProvision(IAWSResource resource)
-    {
-        throw new NotImplementedException();
-    }
+    public virtual bool ShouldProvision(IAWSResource resource) => true;
 
-    protected abstract Task GetOrCreateResourceAsync(TResource resource, CancellationToken cancellationToken);
+    protected abstract Task GetOrCreateResourceAsync(TResource resource, ProvisioningContext context, CancellationToken cancellationToken);
 }

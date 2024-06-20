@@ -27,29 +27,7 @@ internal sealed class AWSProvisioner(
             return;
         }
 
-        // parent -> children lookup
-        var parentChildLookup = appModel.Resources.OfType<IResourceWithParent>()
-            .Select(x => (Child: x, Root: SelectParentAWSResource(x.Parent)))
-            .Where(x => x.Root is not null)
-            .ToLookup(x => x.Root, x => x.Child);
-
-        // Mark all resources as starting
-        foreach (var r in awsResources)
-        {
-            r.ProvisioningTaskCompletionSource = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            await UpdateStateAsync(r, s => s with
-            {
-                State = new ResourceStateSnapshot("Starting", KnownResourceStateStyles.Info)
-            }).ConfigureAwait(false);
-
-            // After the resource is provisioned, set its state
-            _ = AfterProvisionAsync(r);
-        }
-
-        // This is fully async, so we can just fire and forget
-        _ = Task.Run(() => ProvisionAWSResources(awsResources, cancellationToken), cancellationToken);
-        return;
+        
 
         static IAWSResource? SelectParentAWSResource(IResource resource) => resource switch
         {
@@ -57,6 +35,13 @@ internal sealed class AWSProvisioner(
             IResourceWithParent rp => SelectParentAWSResource(rp.Parent),
             _ => null
         };
+        // parent -> children lookup
+        var parentChildLookup = appModel.Resources.OfType<IResourceWithParent>()
+            .Select(x => (Child: x, Root: SelectParentAWSResource(x.Parent)))
+            .Where(x => x.Root is not null)
+            .ToLookup(x => x.Root, x => x.Child);
+
+        var context = new ProvisioningContext(parentChildLookup);
 
         // Sets the state of the resource and all of its children
         async Task UpdateStateAsync(IAWSResource resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
@@ -67,7 +52,6 @@ internal sealed class AWSProvisioner(
                 await notificationService.PublishUpdateAsync(child, stateFactory).ConfigureAwait(false);
             }
         }
-
         // After the resource is provisioned, set its state
         async Task AfterProvisionAsync(IAWSResource resource)
         {
@@ -88,15 +72,31 @@ internal sealed class AWSProvisioner(
                 }).ConfigureAwait(false);
             }
         }
+        // Mark all resources as starting
+        foreach (var r in awsResources)
+        {
+            r.ProvisioningTaskCompletionSource = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            await UpdateStateAsync(r, s => s with
+            {
+                State = new ResourceStateSnapshot("Starting", KnownResourceStateStyles.Info)
+            }).ConfigureAwait(false);
+
+            // After the resource is provisioned, set its state
+            _ = AfterProvisionAsync(r);
+        }
+
+        // This is fully async, so we can just fire and forget
+        _ = Task.Run(() => ProvisionAWSResources(awsResources, context, cancellationToken), cancellationToken);
     }
 
-    private async Task ProvisionAWSResources(IList<IAWSResource> awsResources, CancellationToken cancellationToken)
+    private async Task ProvisionAWSResources(IList<IAWSResource> awsResources, ProvisioningContext context, CancellationToken cancellationToken)
     {
         var tasks = new List<Task>();
 
         foreach (var resource in awsResources)
         {
-            tasks.Add(ProcessResourceAsync(resource, cancellationToken));
+            tasks.Add(ProcessResourceAsync(resource, context, cancellationToken));
         }
 
         var task = Task.WhenAll(tasks);
@@ -111,7 +111,7 @@ internal sealed class AWSProvisioner(
         }
     }
 
-    private async Task ProcessResourceAsync(IAWSResource resource, CancellationToken cancellationToken)
+    private async Task ProcessResourceAsync(IAWSResource resource, ProvisioningContext context, CancellationToken cancellationToken)
     {
         var provisioner = SelectProvisioner(resource);
 
@@ -135,15 +135,10 @@ internal sealed class AWSProvisioner(
 
             try
             {
-                await provisioner.GetOrCreateResourceAsync(resource, cancellationToken).ConfigureAwait(false);
+                await provisioner.GetOrCreateResourceAsync(resource, context, cancellationToken).ConfigureAwait(false);
 
                 resource.ProvisioningTaskCompletionSource?.TrySetResult();
             }
-            /*catch (AzureCliNotOnPathException ex)
-            {
-                resourceLogger.LogCritical("Using Azure resources during local development requires the installation of the Azure CLI. See https://aka.ms/dotnet/aspire/azcli for instructions.");
-                resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
-            }*/
             catch (Exception ex)
             {
                 resourceLogger.LogError(ex, "Error provisioning {ResourceName}", resource.Name);

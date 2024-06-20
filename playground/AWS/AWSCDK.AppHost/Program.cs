@@ -11,7 +11,7 @@ var awsConfig = builder.AddAWSSDKConfig()
 var cdk = builder.AddAWSCDK("cdk", "AspireStack").WithReference(awsConfig);
 
 // Adds a custom stack and reference constructs as output
-var stack = cdk.AddStack("stack", scope => new CustomStack(scope, "stack"));
+var stack = cdk.AddStack("stack", scope => new CustomStack(scope, "AspireStack-stack"));
 stack.AddOutput("BucketName", s => s.Bucket.BucketName);
 
 var topic = cdk.AddSNSTopic("topic");

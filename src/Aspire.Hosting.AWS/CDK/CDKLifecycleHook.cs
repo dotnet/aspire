@@ -18,11 +18,6 @@ internal sealed class CDKLifecycleHook(DistributedApplicationExecutionContext ex
 {
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        if (!executionContext.IsPublishMode)
-        {
-            return Task.CompletedTask;
-        }
-
         var parentChildLookup = appModel.Resources.OfType<IResourceWithParent>()
             .Select(x => (Child: x, Root: SelectParentCDKResource(x.Parent)))
             .Where(x => x.Root is not null)
@@ -50,15 +45,20 @@ internal sealed class CDKLifecycleHook(DistributedApplicationExecutionContext ex
 
             var cloudAssembly = cdkResource.App.Synth();
 
-            var outputDirectory = Path.Combine(Environment.CurrentDirectory, "cdk.out");
-            DirectoryCopy.CopyDirectory(cloudAssembly.Directory, outputDirectory, true);
+            var outputDirectory = executionContext.IsPublishMode ? Path.Combine(Environment.CurrentDirectory, "cdk.out") : cloudAssembly.Directory;
+            if (executionContext.IsPublishMode)
+            {
+                DirectoryCopy.CopyDirectory(cloudAssembly.Directory, outputDirectory, true);
+            }
 
             var stackResources = parentChildLookup[cdkResource].OfType<IStackResource>().Concat([cdkResource]);
             foreach (var stackResource in stackResources)
             {
                 var stack = cloudAssembly.Stacks.FirstOrDefault(stack => stack.StackName == stackResource.StackName)
                             ?? throw new InvalidOperationException($"Stack '{stackResource.StackName}' not found in synthesized cloud assembly.");
+
                 stackResource.Annotations.Add(new CloudFormationTemplatePathAnnotation(Path.Combine(outputDirectory, stack.TemplateFile)));
+                stackResource.Annotations.Add(new StackArtifactResourceAnnotation(stack));
             }
         }
 

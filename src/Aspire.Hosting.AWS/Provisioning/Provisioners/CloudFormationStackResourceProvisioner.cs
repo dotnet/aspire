@@ -12,11 +12,11 @@ namespace Aspire.Hosting.AWS.Provisioning;
 internal sealed class CloudFormationStackResourceProvisioner(
     ResourceLoggerService loggerService,
     ResourceNotificationService notificationService)
-    : CloudFormationResourceProvisioner<CloudFormationStackResource>(notificationService)
+    : CloudFormationResourceProvisioner<CloudFormationStackResource>(loggerService, notificationService)
 {
-    protected override async Task GetOrCreateResourceAsync(CloudFormationStackResource resource, CancellationToken cancellationToken)
+    protected override async Task GetOrCreateResourceAsync(CloudFormationStackResource resource, ProvisioningContext context, CancellationToken cancellationToken)
     {
-        var logger = loggerService.GetLogger(resource);
+        var logger = LoggerService.GetLogger(resource);
 
         await PublishCloudFormationUpdateStateAsync(resource, Constants.ResourceStateStarting).ConfigureAwait(false);
 
