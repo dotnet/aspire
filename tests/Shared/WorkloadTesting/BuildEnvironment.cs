@@ -95,7 +95,7 @@ public class BuildEnvironment
                 var probePath = Path.Combine(RepoRoot.FullName, "artifacts", "bin", "playwright-deps");
                 if (Directory.Exists(probePath))
                 {
-                    Environment.SetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH", probePath);
+                    //Environment.SetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH", probePath);
                     Console.WriteLine($"** Found playwright dependencies in {probePath}");
                 }
             }
