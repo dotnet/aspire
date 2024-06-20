@@ -739,6 +739,7 @@ public class LogTests
 
         var applicationId = repository.GetApplications().First().InstanceId;
 
+        // Assert
         Assert.Empty(repository.GetLogs(new GetLogsContext
         {
             ApplicationServiceId = applicationId,
@@ -754,6 +755,5 @@ public class LogTests
             Count = 1,
             Filters = [new LogFilter { Condition = FilterCondition.Contains, Field = nameof(OtlpLogEntry.Message), Value = "message" }]
         }).Items);
-
     }
 }
