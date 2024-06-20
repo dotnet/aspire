@@ -1,6 +1,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var keycloak = builder.AddKeycloak("keycloak");
+var keycloak = builder.AddKeycloak("keycloak")
+                      .WithDataVolume();
 
 var apiService = builder.AddProject<Projects.Keycloak_ApiService>("apiservice")
                         .WithReference(keycloak);
