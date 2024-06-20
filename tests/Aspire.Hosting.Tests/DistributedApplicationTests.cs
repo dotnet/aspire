@@ -18,6 +18,7 @@ using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.Testing.Tests;
 
 namespace Aspire.Hosting.Tests;
 
@@ -634,7 +635,7 @@ public class DistributedApplicationTests
         await using var app = testProgram.Build();
         await app.StartAsync();
 
-        var client = app.CreateHttpClient("servicea", "http");
+        var client = app.CreateHttpClientWithResilience("servicea", "http");
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
         var result = await client.GetStringAsync("pid", cts.Token);
