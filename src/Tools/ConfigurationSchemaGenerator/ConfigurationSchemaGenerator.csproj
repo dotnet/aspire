@@ -20,13 +20,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
     <PackageReference Include="System.CommandLine" />
-    <PackageReference Include="IgnoresAccessChecksToGenerator" PrivateAssets="all" />
 
     <InternalsVisibleTo Include="$(AssemblyName).Tests" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <InternalsAssemblyName Include="Microsoft.CodeAnalysis.Workspaces" />
   </ItemGroup>
 
 </Project>

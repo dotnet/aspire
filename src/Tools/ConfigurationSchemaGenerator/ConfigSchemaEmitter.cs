@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
+using System.Reflection;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -11,7 +13,6 @@ using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.DotnetRuntime.Extensions;
 using Microsoft.Extensions.Configuration.Binder.SourceGeneration;
-using InternalSymbolExtensions = Microsoft.CodeAnalysis.Shared.Extensions.ISymbolExtensions;
 
 namespace ConfigurationSchemaGenerator;
 
@@ -310,8 +311,16 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
     {
         if (symbol != null)
         {
-            var comment = InternalSymbolExtensions.GetDocumentationComment(symbol, _compilation, expandIncludes: true, expandInheritdoc: true);
-            var xml = comment.FullXmlFragment;
+            // Support using <inheritdoc /> in code and external assemblies.
+            // Because roslyn provides no public API to expand inherited doc-comments(see https://github.com/dotnet/csharplang/issues/313),
+            // use the internal Microsoft.CodeAnalysis.Shared.Extensions.ISymbolExtensions.GetDocumentationComment method.
+            // This method behaves a bit odd though: If there's no doc-comment on a member, it internally assumes that the member contains "<doc><inheritdoc/></doc>"
+            // (which is completely invalid) and feeds that to itself. As a consequence, the method may return something wrapped in <doc>, instead of the expected
+            // <member> element.
+
+            object[] args = [symbol, _compilation, /*preferredCulture:*/ null, /*expandIncludes:*/ true, /*expandInheritdoc:*/ true, default(CancellationToken)];
+            var docComment = s_getDocumentationCommentMethodInfo.Invoke(null, args);
+            var xml = s_getFullXmlFragmentMethodInfo.Invoke(docComment, null) as string;
 
             if (!string.IsNullOrEmpty(xml) && xml != "<doc />")
             {
@@ -321,6 +330,14 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
 
         return null;
     }
+
+    private static readonly MethodInfo s_getDocumentationCommentMethodInfo =
+        Type.GetType("Microsoft.CodeAnalysis.Shared.Extensions.ISymbolExtensions, Microsoft.CodeAnalysis.Workspaces")!
+            .GetMethod("GetDocumentationComment", BindingFlags.Public | BindingFlags.Static, [typeof(ISymbol), typeof(Compilation), typeof(CultureInfo), typeof(bool), typeof(bool), typeof(CancellationToken)])!;
+
+    private static readonly MethodInfo s_getFullXmlFragmentMethodInfo =
+        Type.GetType("Microsoft.CodeAnalysis.Shared.Utilities.DocumentationComment, Microsoft.CodeAnalysis.Workspaces")!
+            .GetMethod("get_FullXmlFragment", BindingFlags.Public | BindingFlags.Instance)!;
 
     private IPropertySymbol? GetPropertySymbol(TypeSpec type, PropertySpec property)
     {
@@ -485,7 +502,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             return $"<br/><br/>{element.Value}<br/><br/>";
         }
 
-        if( element.Name == "br")
+        if (element.Name == "br")
         {
             return "<br/>";
         }
