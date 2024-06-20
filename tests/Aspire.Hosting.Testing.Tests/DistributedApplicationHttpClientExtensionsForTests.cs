@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Testing.Tests;
 
-internal static class DistributedApplicationHttpClientExtensions
+internal static class DistributedApplicationHttpClientExtensionsForTests
 {
     private static readonly Lazy<IHttpClientFactory> s_httpClientFactory = new(CreateHttpClientFactoryWithResilience);
     public static HttpClient CreateHttpClientWithResilience(this DistributedApplication app, string resourceName, string? endpointName = default)
