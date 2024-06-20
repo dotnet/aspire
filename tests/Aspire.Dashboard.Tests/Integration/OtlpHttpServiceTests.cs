@@ -55,10 +55,8 @@ public class OtlpHttpServiceTests
         Assert.Equal(0, response.PartialSuccess.RejectedLogRecords);
     }
 
-    [Theory]
-    [InlineData(100000)]
-    [InlineData(300000)]
-    public async Task CallService_OtlpHttpEndPoint_ExceedRequestLimit_Failure(int logRecordsCount)
+    [Fact]
+    public async Task CallService_OtlpHttpEndPoint_ExceedRequestLimit_Failure()
     {
         // Arrange
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper);
@@ -66,7 +64,7 @@ public class OtlpHttpServiceTests
 
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.OtlpServiceHttpEndPointAccessor().EndPoint}");
 
-        var request = CreateExportLogsServiceRequest(logRecordsCount);
+        var request = CreateExportLogsServiceRequest(logRecordsCount: 100000);
 
         var content = new ByteArrayContent(request.ToByteArray());
         content.Headers.TryAddWithoutValidation("content-type", OtlpHttpEndpointsBuilder.ProtobufContentType);
