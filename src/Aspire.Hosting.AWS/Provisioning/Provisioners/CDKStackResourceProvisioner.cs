@@ -1,14 +1,20 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS.CDK;
+using Aspire.Hosting.AWS.Provisioning.Provisioners;
 
 namespace Aspire.Hosting.AWS.Provisioning;
 
-internal sealed class CDKResourceProvisioner(ResourceLoggerService loggerService, ResourceNotificationService notificationService) : CloudFormationResourceProvisioner<CDKResource>(loggerService, notificationService)
+internal sealed class CDKStackResourceProvisioner<T>(
+    ResourceLoggerService loggerService,
+    ResourceNotificationService notificationService)
+    : CloudFormationResourceProvisioner<T>(loggerService, notificationService)
+    where T : IStackResource
 {
-    protected override Task GetOrCreateResourceAsync(CDKResource resource, ProvisioningContext context, CancellationToken cancellationToken)
+    protected override Task GetOrCreateResourceAsync(T resource, ProvisioningContext context, CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
     }
@@ -80,4 +86,10 @@ internal sealed class CDKResourceProvisioner(ResourceLoggerService loggerService
         }
         return false;
     }*/
+    protected override Task<CloudFormationStackExecutionContext> CreateCloudFormationExecutionContext(T resource, CancellationToken cancellationToken)
+    {
+        var artifact = resource.Annotations.OfType<StackArtifactResourceAnnotation>().Single();
+        var template = JsonSerializer.Serialize(artifact.StackArtifact.Template);
+        return Task.FromResult(new CloudFormationStackExecutionContext(resource.Name, template));
+    }
 }

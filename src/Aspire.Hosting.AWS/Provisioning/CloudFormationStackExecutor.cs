@@ -8,10 +8,10 @@ using Amazon.CloudFormation;
 using Amazon.CloudFormation.Model;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.AWS.CloudFormation;
+namespace Aspire.Hosting.AWS.Provisioning.Provisioners;
 internal sealed class CloudFormationStackExecutor(
     IAmazonCloudFormation cloudFormationClient,
-    ICloudFormationTemplateProvider cloudFormationTemplate,
+    CloudFormationStackExecutionContext context,
     ILogger logger)
 {
     // Name of the Tag for the stack to store the SHA256 of the CloudFormation template
@@ -21,7 +21,7 @@ internal sealed class CloudFormationStackExecutor(
     const string IN_PROGRESS_SUFFIX = "IN_PROGRESS";
 
     // Polling interval for checking status of CloudFormation stack when creating or updating the stack.
-    TimeSpan StackPollingDelay { get; } = TimeSpan.FromSeconds(cloudFormationTemplate.StackPollingInterval);
+    TimeSpan StackPollingDelay { get; } = TimeSpan.FromSeconds(context.StackPollingInterval);
 
     /// <summary>
     /// Using the template and configuration from the CloudFormationTemplateResource create or update
@@ -36,15 +36,15 @@ internal sealed class CloudFormationStackExecutor(
         var existingStack = await FindStackAsync().ConfigureAwait(false);
         var changeSetType = await DetermineChangeSetTypeAsync(existingStack, cancellationToken).ConfigureAwait(false);
 
-        var templateBody = await cloudFormationTemplate.GetCloudFormationTemplate(cancellationToken).ConfigureAwait(false);
-        var computedSha256 = ComputeSHA256(templateBody, cloudFormationTemplate.CloudFormationParameters);
+        var templateBody = context.Template;
+        var computedSha256 = ComputeSHA256(templateBody, context.CloudFormationParameters);
 
         (var tags, var existingSha256) = SetupTags(existingStack, changeSetType, computedSha256);
 
         // Check to see if the template hasn't change. If it hasn't short circuit out.
-        if (!cloudFormationTemplate.DisableDiffCheck && string.Equals(computedSha256, existingSha256))
+        if (!context.DisableDiffCheck && string.Equals(computedSha256, existingSha256))
         {
-            logger.LogInformation("CloudFormation Template for CloudFormation stack {StackName} has not changed", cloudFormationTemplate.StackName);
+            logger.LogInformation("CloudFormation Template for CloudFormation stack {StackName} has not changed", context.StackName);
             return existingStack;
         }
 
@@ -99,7 +99,7 @@ internal sealed class CloudFormationStackExecutor(
     private List<Parameter> SetupTemplateParameters()
     {
         var templateParameters = new List<Parameter>();
-        foreach (var kvp in cloudFormationTemplate.CloudFormationParameters)
+        foreach (var kvp in context.CloudFormationParameters)
         {
             templateParameters.Add(new Parameter
             {
@@ -129,28 +129,28 @@ internal sealed class CloudFormationStackExecutor(
             logger.LogInformation("Creating CloudFormation change set.");
             var capabilities = new List<string>();
 
-            if (cloudFormationTemplate.DisabledCapabilities.FirstOrDefault(x => string.Equals(x, "CAPABILITY_IAM", StringComparison.OrdinalIgnoreCase)) == null)
+            if (context.DisabledCapabilities.FirstOrDefault(x => string.Equals(x, "CAPABILITY_IAM", StringComparison.OrdinalIgnoreCase)) == null)
             {
                 capabilities.Add("CAPABILITY_IAM");
             }
-            if (cloudFormationTemplate.DisabledCapabilities.FirstOrDefault(x => string.Equals(x, "CAPABILITY_NAMED_IAM", StringComparison.OrdinalIgnoreCase)) == null)
+            if (context.DisabledCapabilities.FirstOrDefault(x => string.Equals(x, "CAPABILITY_NAMED_IAM", StringComparison.OrdinalIgnoreCase)) == null)
             {
                 capabilities.Add("CAPABILITY_NAMED_IAM");
             }
-            if (cloudFormationTemplate.DisabledCapabilities.FirstOrDefault(x => string.Equals(x, "CAPABILITY_AUTO_EXPAND", StringComparison.OrdinalIgnoreCase)) == null)
+            if (context.DisabledCapabilities.FirstOrDefault(x => string.Equals(x, "CAPABILITY_AUTO_EXPAND", StringComparison.OrdinalIgnoreCase)) == null)
             {
                 capabilities.Add("CAPABILITY_AUTO_EXPAND");
             }
 
             var changeSetRequest = new CreateChangeSetRequest
             {
-                StackName = cloudFormationTemplate.StackName,
+                StackName = context.StackName,
                 Parameters = templateParameters,
                 // Change set name needs to be unique. Since the changeset isn't be created directly by the user the name isn't really important.
                 ChangeSetName = "Aspire-AppHost-" + DateTime.Now.Ticks,
                 ChangeSetType = changeSetType,
                 Capabilities = capabilities,
-                RoleARN = cloudFormationTemplate.RoleArn,
+                RoleARN = context.RoleArn,
                 TemplateBody = templateBody,
                 Tags = tags
             };
@@ -183,7 +183,7 @@ internal sealed class CloudFormationStackExecutor(
     {
         var executeChangeSetRequest = new ExecuteChangeSetRequest
         {
-            StackName = cloudFormationTemplate.StackName,
+            StackName = context.StackName,
             ChangeSetName = changeSetId
         };
 
@@ -195,11 +195,11 @@ internal sealed class CloudFormationStackExecutor(
             await cloudFormationClient.ExecuteChangeSetAsync(executeChangeSetRequest, cancellationToken).ConfigureAwait(false);
             if (changeSetType == ChangeSetType.CREATE)
             {
-                logger.LogInformation($"Initiated CloudFormation stack creation for {cloudFormationTemplate.StackName}");
+                logger.LogInformation("Initiated CloudFormation stack creation for {cloudFormationTemplate.StackName}", context.StackName);
             }
             else
             {
-                logger.LogInformation($"Initiated CloudFormation stack update on {cloudFormationTemplate.StackName}");
+                logger.LogInformation("Initiated CloudFormation stack update on {cloudFormationTemplate.StackName}", context.StackName);
             }
         }
         catch (Exception e)
@@ -396,7 +396,7 @@ internal sealed class CloudFormationStackExecutor(
         const int RESOURCE_STATUS = 40;
         var mostRecentEventId = string.Empty;
 
-        var waitingMessage = $"... Waiting for CloudFormation stack {cloudFormationTemplate.StackName} to be ready";
+        var waitingMessage = $"... Waiting for CloudFormation stack {context.StackName} to be ready";
         logger.LogInformation(waitingMessage);
         logger.LogInformation(new string('-', waitingMessage.Length));
 
@@ -449,7 +449,7 @@ internal sealed class CloudFormationStackExecutor(
         DescribeStackEventsResponse? response = null;
         do
         {
-            var request = new DescribeStackEventsRequest() { StackName = cloudFormationTemplate.StackName };
+            var request = new DescribeStackEventsRequest() { StackName = context.StackName };
             if (response != null)
             {
                 request.NextToken = response.NextToken;
@@ -495,7 +495,7 @@ internal sealed class CloudFormationStackExecutor(
     {
         await foreach (var stack in cloudFormationClient.Paginators.DescribeStacks(new DescribeStacksRequest()).Stacks.ConfigureAwait(false))
         {
-            if (string.Equals(cloudFormationTemplate.StackName, stack.StackName, StringComparison.Ordinal))
+            if (string.Equals(context.StackName, stack.StackName, StringComparison.Ordinal))
             {
                 return stack;
             }

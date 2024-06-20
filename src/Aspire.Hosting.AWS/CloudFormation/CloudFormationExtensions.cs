@@ -5,8 +5,6 @@ using Amazon.CloudFormation;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS;
 using Aspire.Hosting.AWS.CloudFormation;
-using Aspire.Hosting.Lifecycle;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
@@ -16,14 +14,6 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class CloudFormationExtensions
 {
-
-    internal static IDistributedApplicationBuilder AddCloudFormationProvisioning(this IDistributedApplicationBuilder builder)
-    {
-        builder.Services.TryAddLifecycleHook<CloudFormationLifecycleHook>();
-        builder.Services.TryAddSingleton<ICloudFormationProvisionerFactory, CloudFormationProvisionerFactory>();
-        return builder;
-    }
-
     /// <summary>
     /// Add a CloudFormation stack for provisioning application resources.
     /// </summary>

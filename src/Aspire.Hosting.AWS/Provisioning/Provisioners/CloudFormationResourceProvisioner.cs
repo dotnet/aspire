@@ -7,25 +7,30 @@ using Amazon.CloudFormation.Model;
 using Amazon.Runtime;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS.CloudFormation;
+using Aspire.Hosting.AWS.Provisioning.Provisioners;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.AWS.Provisioning;
 
 internal abstract class CloudFormationResourceProvisioner<T>(ResourceLoggerService loggerService, ResourceNotificationService notificationService) : AWSResourceProvisioner<T>
-    where T : CloudFormationResource
+    where T : ICloudFormationResource
 {
 
     protected ResourceLoggerService LoggerService => loggerService;
 
     protected ResourceNotificationService NotificationService => notificationService;
 
-    protected async Task ProvisionCloudFormationTemplateAsync(CloudFormationResource resource, ICloudFormationTemplateProvider templateProvider, CancellationToken cancellationToken)
+    protected virtual Task<CloudFormationStackExecutionContext> CreateCloudFormationExecutionContext(T resource, CancellationToken cancellationToken)
+        => throw new NotImplementedException();
+
+    protected async Task ProvisionCloudFormationTemplateAsync(T resource, CancellationToken cancellationToken)
     {
         var logger = loggerService.GetLogger(resource);
 
         using var cfClient = GetCloudFormationClient(resource);
 
-        var executor = new CloudFormationStackExecutor(cfClient, templateProvider, logger);
+        var context = await CreateCloudFormationExecutionContext(resource, cancellationToken).ConfigureAwait(false);
+        var executor = new CloudFormationStackExecutor(cfClient, context, logger);
         var stack = await executor.ExecuteTemplateAsync(cancellationToken).ConfigureAwait(false);
 
         if (stack != null)
@@ -41,7 +46,10 @@ internal abstract class CloudFormationResourceProvisioner<T>(ResourceLoggerServi
 
             logger.LogInformation("CloudFormation provisioning complete");
 
-            resource.Outputs = stack.Outputs;
+            if (resource is CloudFormationResource cloudformationResource)
+            {
+                cloudformationResource.Outputs = stack.Outputs;
+            }
             var templatePath = (resource as ICloudFormationTemplateResource)?.TemplatePath ?? resource.Annotations.OfType<CloudFormationTemplatePathAnnotation>().FirstOrDefault()?.TemplatePath;
             await PublishCloudFormationUpdateStateAsync(resource, Constants.ResourceStateRunning, ConvertOutputToProperties(stack, templatePath)).ConfigureAwait(false);
         }
@@ -53,7 +61,7 @@ internal abstract class CloudFormationResourceProvisioner<T>(ResourceLoggerServi
         }
     }
 
-    protected async Task PublishCloudFormationUpdateStateAsync(CloudFormationResource resource, string status, ImmutableArray<ResourcePropertySnapshot>? properties = null)
+    protected async Task PublishCloudFormationUpdateStateAsync(T resource, string status, ImmutableArray<ResourcePropertySnapshot>? properties = null)
     {
         if (properties == null)
         {
@@ -86,7 +94,7 @@ internal abstract class CloudFormationResourceProvisioner<T>(ResourceLoggerServi
         return list.ToImmutableArray();
     }
 
-    protected static IAmazonCloudFormation GetCloudFormationClient(ICloudFormationResource resource)
+    protected static IAmazonCloudFormation GetCloudFormationClient(T resource)
     {
         if (resource.CloudFormationClient != null)
         {

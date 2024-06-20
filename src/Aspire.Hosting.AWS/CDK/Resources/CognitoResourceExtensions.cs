@@ -32,7 +32,7 @@ public static class CognitoResourceExtensions
     /// <param name="options">The options of the client.</param>
     public static IResourceBuilder<IConstructResource<UserPoolClient>> AddClient(this IResourceBuilder<IConstructResource<UserPool>> builder, string name, IUserPoolClientOptions? options = null)
     {
-        return builder.AddConstruct(name, scope => builder.Resource.Construct.AddClient(name, options));
+        return builder.AddConstruct(name, _ => builder.Resource.Construct.AddClient(name, options));
     }
 
     /// <summary>
