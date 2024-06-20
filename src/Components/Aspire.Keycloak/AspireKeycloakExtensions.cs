@@ -11,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Microsoft.Extensions.Hosting;
 
 /// <summary>
-/// Provides extension methods for registering Keycloak-related services in an <see cref="IHostApplicationBuilder"/>.
+/// Provides extension methods for registering Keycloak-related services in an <see cref="AuthenticationBuilder"/>.
 /// </summary>
 public static class AspireKeycloakExtensions
 {
