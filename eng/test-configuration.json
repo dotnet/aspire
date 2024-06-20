@@ -1,10 +1,12 @@
 {
-  "version": 1,
+  "version": 2,
   "defaultOnFailure": "fail",
   "localRerunCount": 1,
+  "remoteRerunCount": 1,
   "retryOnRules": [
     { "testAssembly": { "regex": "Aspire.EndToEnd.*" }, "failureMessage": { "regex": "App run failed" } },
     { "testAssembly": { "regex": "Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.*" } },
-    { "testAssembly": { "regex": "Aspire.Microsoft.EntityFrameworkCore.SqlServer.*" } }
+    { "testAssembly": { "regex": "Aspire.Microsoft.EntityFrameworkCore.SqlServer.*" } },
+    { "failureMessage": { "regex": "Bad return status for module build on kernel" } }
   ]
 }
