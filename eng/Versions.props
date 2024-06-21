@@ -6,6 +6,12 @@
     <PatchVersion>0</PatchVersion>
     <VersionPrefix>8.1.0</VersionPrefix>
     <PreReleaseVersionLabel>preview.1</PreReleaseVersionLabel>
+    <!--
+      When running package validation as part of the build, we want to ensure we didn't break the API against the previous
+      version of each package. The following property points to the package version that should be used as baseline.
+      This should get updated each time packages are shipped.
+    -->
+    <BaselineVersionForPackageValidation>8.0.1</BaselineVersionForPackageValidation>
     <UseVSTestRunner>true</UseVSTestRunner>
     <!-- Enable to remove prerelease label. -->
     <StabilizePackageVersion Condition="'$(StabilizePackageVersion)' == ''">false</StabilizePackageVersion>
@@ -15,20 +21,20 @@
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->
     <MicrosoftDotnetSdkInternalPackageVersion>8.0.100-rtm.23512.16</MicrosoftDotnetSdkInternalPackageVersion>
     <!-- DCP -->
-    <MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>0.4.3</MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>0.4.3</MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>
-    <MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>0.4.3</MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>0.4.3</MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>
-    <MicrosoftDeveloperControlPlanewindows386PackageVersion>0.4.3</MicrosoftDeveloperControlPlanewindows386PackageVersion>
-    <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.4.3</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.4.3</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>0.5.4</MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>0.5.4</MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>0.5.4</MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>0.5.4</MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanewindows386PackageVersion>0.5.4</MicrosoftDeveloperControlPlanewindows386PackageVersion>
+    <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.5.4</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.5.4</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
     <!-- Other -->
-    <MicrosoftDotNetRemoteExecutorPackageVersion>8.0.0-beta.24270.4</MicrosoftDotNetRemoteExecutorPackageVersion>
-    <MicrosoftDotNetXUnitExtensionsPackageVersion>8.0.0-beta.24270.4</MicrosoftDotNetXUnitExtensionsPackageVersion>
-    <MicrosoftDotNetBuildTasksInstallersPackageVersion>8.0.0-beta.24270.4</MicrosoftDotNetBuildTasksInstallersPackageVersion>
-    <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>8.0.0-beta.24270.4</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
-    <MicrosoftExtensionsHttpResiliencePackageVersion>8.5.0</MicrosoftExtensionsHttpResiliencePackageVersion>
-    <MicrosoftExtensionsDiagnosticsTestingPackageVersion>8.5.0</MicrosoftExtensionsDiagnosticsTestingPackageVersion>
+    <MicrosoftDotNetRemoteExecutorPackageVersion>8.0.0-beta.24311.3</MicrosoftDotNetRemoteExecutorPackageVersion>
+    <MicrosoftDotNetXUnitExtensionsPackageVersion>8.0.0-beta.24311.3</MicrosoftDotNetXUnitExtensionsPackageVersion>
+    <MicrosoftDotNetBuildTasksInstallersPackageVersion>8.0.0-beta.24311.3</MicrosoftDotNetBuildTasksInstallersPackageVersion>
+    <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>8.0.0-beta.24311.3</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
+    <MicrosoftExtensionsHttpResiliencePackageVersion>8.6.0</MicrosoftExtensionsHttpResiliencePackageVersion>
+    <MicrosoftExtensionsDiagnosticsTestingPackageVersion>8.6.0</MicrosoftExtensionsDiagnosticsTestingPackageVersion>
     <MicrosoftExtensionsConfigurationAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsConfigurationAbstractionsPackageVersion>
     <MicrosoftExtensionsConfigurationBinderPackageVersion>8.0.1</MicrosoftExtensionsConfigurationBinderPackageVersion>
     <MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>8.0.1</MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>
@@ -46,7 +52,7 @@
     <MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>8.0.6</MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>
     <MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>8.0.6</MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>
     <MicrosoftExtensionsFeaturesPackageVersion>8.0.6</MicrosoftExtensionsFeaturesPackageVersion>
-    <MicrosoftExtensionsTimeProviderTestingVersion>8.5.0</MicrosoftExtensionsTimeProviderTestingVersion>
+    <MicrosoftExtensionsTimeProviderTestingVersion>8.6.0</MicrosoftExtensionsTimeProviderTestingVersion>
     <!-- EF -->
     <MicrosoftEntityFrameworkCoreCosmosPackageVersion>8.0.6</MicrosoftEntityFrameworkCoreCosmosPackageVersion>
     <MicrosoftEntityFrameworkCoreDesignPackageVersion>8.0.6</MicrosoftEntityFrameworkCoreDesignPackageVersion>

@@ -115,6 +115,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             TestResourceNames.rabbitmq => "rabbitmq",
             TestResourceNames.redis => "redis",
             TestResourceNames.garnet => "garnet",
+            TestResourceNames.valkey => "valkey",
             TestResourceNames.sqlserver => "sqlserver",
             TestResourceNames.milvus => "milvus",
             TestResourceNames.eventhubs => "eventhubs",
@@ -155,6 +156,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                               | TestResourceNames.rabbitmq
                               | TestResourceNames.redis
                               | TestResourceNames.garnet
+                              | TestResourceNames.valkey
                               | TestResourceNames.postgres
                               | TestResourceNames.efnpgsql
                               | TestResourceNames.mysql
