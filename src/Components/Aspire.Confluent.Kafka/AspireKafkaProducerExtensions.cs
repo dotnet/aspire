@@ -20,97 +20,25 @@ public static class AspireKafkaProducerExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:Confluent:Kafka:Producer";
 
-    /// <summary>
-    /// Registers <see cref="IProducer{TKey,TValue}"/> as a singleton in the services provided by the <paramref name="builder"/>.
-    /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureSettings">An optional method used for customizing the <see cref="KafkaProducerSettings"/>.</param>
-    /// <param name="configureBuilder">A method used for customizing the <see cref="ProducerBuilder{TKey,TValue}"/>.</param>
-    /// <remarks>Reads the configuration from "Aspire:Kafka:Producer" section.</remarks>
-    public static void AddKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string connectionName, Action<KafkaProducerSettings>? configureSettings, Action<ProducerBuilder<TKey, TValue>>? configureBuilder)
-        => AddKafkaProducerInternal<TKey, TValue>(builder, DefaultConfigSectionName, configureSettings, Wrap(configureBuilder), connectionName, serviceKey: null);
-
-    /// <summary>
-    /// Registers <see cref="IProducer{TKey,TValue}"/> as a singleton in the services provided by the <paramref name="builder"/>.
-    /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureSettings">An optional method used for customizing the <see cref="KafkaProducerSettings"/>.</param>
-    /// <remarks>Reads the configuration from "Aspire:Kafka:Producer" section.</remarks>
-    public static void AddKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string connectionName, Action<KafkaProducerSettings>? configureSettings)
-        => AddKafkaProducerInternal<TKey, TValue>(builder, DefaultConfigSectionName, configureSettings, null, connectionName, serviceKey: null);
-
-    /// <summary>
-    /// Registers <see cref="IProducer{TKey,TValue}"/> as a singleton in the services provided by the <paramref name="builder"/>.
-    /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureBuilder">A method used for customizing the <see cref="ProducerBuilder{TKey,TValue}"/>.</param>
-    /// <remarks>Reads the configuration from "Aspire:Kafka:Producer" section.</remarks>
-    public static void AddKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string connectionName, Action<ProducerBuilder<TKey, TValue>>? configureBuilder)
-        => AddKafkaProducerInternal<TKey, TValue>(builder, DefaultConfigSectionName, null, Wrap(configureBuilder), connectionName, serviceKey: null);
-
-    /// <summary>
-    /// Registers <see cref="IProducer{TKey,TValue}"/> as a singleton in the services provided by the <paramref name="builder"/>.
-    /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <remarks>Reads the configuration from "Aspire:Kafka:Producer" section.</remarks>
+    /// <inheritdoc cref="AddKafkaProducer{TKey, TValue}(IHostApplicationBuilder, string, Action{KafkaProducerSettings}?, Action{IServiceProvider, ProducerBuilder{TKey, TValue}}?)"/>
     public static void AddKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string connectionName)
         => AddKafkaProducerInternal<TKey, TValue>(builder, DefaultConfigSectionName, null, null, connectionName, serviceKey: null);
 
-    /// <summary>
-    /// Registers <see cref="IProducer{TKey,TValue}"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
-    /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureSettings">An optional method used for customizing the <see cref="KafkaProducerSettings"/>.</param>
-    /// <param name="configureBuilder">An optional method used for customizing the <see cref="ProducerBuilder{TKey,TValue}"/>.</param>
-    /// <remarks>Reads the configuration from "Aspire:Kafka:Producer:{name}" section.</remarks>
-    public static void AddKeyedKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string name, Action<KafkaProducerSettings>? configureSettings, Action<ProducerBuilder<TKey, TValue>>? configureBuilder)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        AddKafkaProducerInternal<TKey, TValue>(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, Wrap(configureBuilder), connectionName: name, serviceKey: name);
-    }
+    /// <inheritdoc cref="AddKafkaProducer{TKey, TValue}(IHostApplicationBuilder, string, Action{KafkaProducerSettings}?, Action{IServiceProvider, ProducerBuilder{TKey, TValue}}?)"/>
+    public static void AddKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string connectionName, Action<KafkaProducerSettings>? configureSettings)
+        => AddKafkaProducerInternal<TKey, TValue>(builder, DefaultConfigSectionName, configureSettings, null, connectionName, serviceKey: null);
 
-    /// <summary>
-    /// Registers <see cref="IProducer{TKey,TValue}"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
-    /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureSettings">An optional method used for customizing the <see cref="KafkaProducerSettings"/>.</param>
-    /// <remarks>Reads the configuration from "Aspire:Kafka:Producer:{name}" section.</remarks>
-    public static void AddKeyedKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string name, Action<KafkaProducerSettings>? configureSettings)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        AddKafkaProducerInternal<TKey, TValue>(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, null, connectionName: name, serviceKey: name);
-    }
+    /// <inheritdoc cref="AddKafkaProducer{TKey, TValue}(IHostApplicationBuilder, string, Action{KafkaProducerSettings}?, Action{IServiceProvider, ProducerBuilder{TKey, TValue}}?)"/>
+    public static void AddKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string connectionName, Action<ProducerBuilder<TKey, TValue>>? configureBuilder)
+        => AddKafkaProducerInternal<TKey, TValue>(builder, DefaultConfigSectionName, null, Wrap(configureBuilder), connectionName, serviceKey: null);
 
-    /// <summary>
-    /// Registers <see cref="IProducer{TKey,TValue}"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
-    /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureBuilder">An optional method used for customizing the <see cref="ProducerBuilder{TKey,TValue}"/>.</param>
-    /// <remarks>Reads the configuration from "Aspire:Kafka:Producer:{name}" section.</remarks>
-    public static void AddKeyedKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string name, Action<ProducerBuilder<TKey, TValue>>? configureBuilder)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        AddKafkaProducerInternal<TKey, TValue>(builder, $"{DefaultConfigSectionName}:{name}", null, Wrap(configureBuilder), connectionName: name, serviceKey: name);
-    }
+    /// <inheritdoc cref="AddKafkaProducer{TKey, TValue}(IHostApplicationBuilder, string, Action{KafkaProducerSettings}?, Action{IServiceProvider, ProducerBuilder{TKey, TValue}}?)"/>
+    public static void AddKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string connectionName, Action<IServiceProvider, ProducerBuilder<TKey, TValue>>? configureBuilder)
+        => AddKafkaProducerInternal<TKey, TValue>(builder, DefaultConfigSectionName, null, configureBuilder, connectionName, serviceKey: null);
 
-    /// <summary>
-    /// Registers <see cref="IProducer{TKey,TValue}"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
-    /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <remarks>Reads the configuration from "Aspire:Kafka:Producer:{name}" section.</remarks>
-    public static void AddKeyedKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string name)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        AddKafkaProducerInternal<TKey, TValue>(builder, $"{DefaultConfigSectionName}:{name}", null, null, connectionName: name, serviceKey: name);
-    }
+    /// <inheritdoc cref="AddKafkaProducer{TKey, TValue}(IHostApplicationBuilder, string, Action{KafkaProducerSettings}?, Action{IServiceProvider, ProducerBuilder{TKey, TValue}}?)"/>
+    public static void AddKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string connectionName, Action<KafkaProducerSettings>? configureSettings, Action<ProducerBuilder<TKey, TValue>>? configureBuilder)
+        => AddKafkaProducerInternal<TKey, TValue>(builder, DefaultConfigSectionName, configureSettings, Wrap(configureBuilder), connectionName, serviceKey: null);
 
     /// <summary>
     /// Registers <see cref="IProducer{TKey,TValue}"/> as a singleton in the services provided by the <paramref name="builder"/>.
@@ -123,15 +51,40 @@ public static class AspireKafkaProducerExtensions
     public static void AddKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string connectionName, Action<KafkaProducerSettings>? configureSettings, Action<IServiceProvider, ProducerBuilder<TKey, TValue>>? configureBuilder)
        => AddKafkaProducerInternal<TKey, TValue>(builder, DefaultConfigSectionName, configureSettings, configureBuilder, connectionName, serviceKey: null);
 
-    /// <summary>
-    /// Registers <see cref="IProducer{TKey,TValue}"/> as a singleton in the services provided by the <paramref name="builder"/>.
-    /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureBuilder">A method used for customizing the <see cref="ProducerBuilder{TKey,TValue}"/>.</param>
-    /// <remarks>Reads the configuration from "Aspire:Kafka:Producer" section.</remarks>
-    public static void AddKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string connectionName, Action<IServiceProvider, ProducerBuilder<TKey, TValue>>? configureBuilder)
-        => AddKafkaProducerInternal<TKey, TValue>(builder, DefaultConfigSectionName, null, configureBuilder, connectionName, serviceKey: null);
+    /// <inheritdoc cref="AddKafkaProducerInternal{TKey, TValue}(IHostApplicationBuilder, string, Action{KafkaProducerSettings}?, Action{IServiceProvider, ProducerBuilder{TKey, TValue}}?, string, string?)"/>
+    public static void AddKeyedKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string name)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        AddKafkaProducerInternal<TKey, TValue>(builder, $"{DefaultConfigSectionName}:{name}", null, null, connectionName: name, serviceKey: name);
+    }
+
+    /// <inheritdoc cref="AddKafkaProducerInternal{TKey, TValue}(IHostApplicationBuilder, string, Action{KafkaProducerSettings}?, Action{IServiceProvider, ProducerBuilder{TKey, TValue}}?, string, string?)"/>
+    public static void AddKeyedKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string name, Action<KafkaProducerSettings>? configureSettings)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        AddKafkaProducerInternal<TKey, TValue>(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, null, connectionName: name, serviceKey: name);
+    }
+
+    /// <inheritdoc cref="AddKafkaProducerInternal{TKey, TValue}(IHostApplicationBuilder, string, Action{KafkaProducerSettings}?, Action{IServiceProvider, ProducerBuilder{TKey, TValue}}?, string, string?)"/>
+    public static void AddKeyedKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string name, Action<ProducerBuilder<TKey, TValue>>? configureBuilder)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        AddKafkaProducerInternal<TKey, TValue>(builder, $"{DefaultConfigSectionName}:{name}", null, Wrap(configureBuilder), connectionName: name, serviceKey: name);
+    }
+
+    /// <inheritdoc cref="AddKafkaProducerInternal{TKey, TValue}(IHostApplicationBuilder, string, Action{KafkaProducerSettings}?, Action{IServiceProvider, ProducerBuilder{TKey, TValue}}?, string, string?)"/>
+    public static void AddKeyedKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string name, Action<IServiceProvider, ProducerBuilder<TKey, TValue>>? configureBuilder)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        AddKafkaProducerInternal<TKey, TValue>(builder, $"{DefaultConfigSectionName}:{name}", null, configureBuilder, connectionName: name, serviceKey: name);
+    }
+
+    /// <inheritdoc cref="AddKafkaProducerInternal{TKey, TValue}(IHostApplicationBuilder, string, Action{KafkaProducerSettings}?, Action{IServiceProvider, ProducerBuilder{TKey, TValue}}?, string, string?)"/>
+    public static void AddKeyedKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string name, Action<KafkaProducerSettings>? configureSettings, Action<ProducerBuilder<TKey, TValue>>? configureBuilder)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        AddKafkaProducerInternal<TKey, TValue>(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, Wrap(configureBuilder), connectionName: name, serviceKey: name);
+    }
 
     /// <summary>
     /// Registers <see cref="IProducer{TKey,TValue}"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
@@ -145,19 +98,6 @@ public static class AspireKafkaProducerExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
         AddKafkaProducerInternal<TKey, TValue>(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureBuilder, connectionName: name, serviceKey: name);
-    }
-
-    /// <summary>
-    /// Registers <see cref="IProducer{TKey,TValue}"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
-    /// </summary>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureBuilder">An optional method used for customizing the <see cref="ProducerBuilder{TKey,TValue}"/>.</param>
-    /// <remarks>Reads the configuration from "Aspire:Kafka:Producer:{name}" section.</remarks>
-    public static void AddKeyedKafkaProducer<TKey, TValue>(this IHostApplicationBuilder builder, string name, Action<IServiceProvider, ProducerBuilder<TKey, TValue>>? configureBuilder)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        AddKafkaProducerInternal<TKey, TValue>(builder, $"{DefaultConfigSectionName}:{name}", null, configureBuilder, connectionName: name, serviceKey: name);
     }
 
     private static void AddKafkaProducerInternal<TKey, TValue>(
