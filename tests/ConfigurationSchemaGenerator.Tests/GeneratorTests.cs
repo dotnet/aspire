@@ -392,7 +392,6 @@ public partial class GeneratorTests
           }
         }
         """)]
-#if NETCOREAPP
     [InlineData("Int128",
         """
         "type": "integer"
@@ -416,7 +415,6 @@ public partial class GeneratorTests
         """
         "type": "string"
         """)]
-#endif
     public void ShouldConvertTypes(string propertyType, string expected)
     {
         var source =
