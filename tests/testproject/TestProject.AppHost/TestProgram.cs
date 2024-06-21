@@ -51,6 +51,7 @@ public class TestProgram : IDisposable
         builder.Configuration["DcpPublisher:DeleteResourcesOnShutdown"] = "true";
         builder.Configuration["DcpPublisher:ResourceNameSuffix"] = $"{Random.Shared.Next():x}";
         builder.Configuration["DcpPublisher:RandomizePorts"] = randomizePorts.ToString(CultureInfo.InvariantCulture);
+        
         AppBuilder = builder;
 
         var serviceAPath = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\TestProject.ServiceA\TestProject.ServiceA.csproj");

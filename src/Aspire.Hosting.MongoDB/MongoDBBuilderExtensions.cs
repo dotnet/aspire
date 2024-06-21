@@ -55,15 +55,12 @@ public static class MongoDBBuilderExtensions
             .AddResource(mongoDBContainer)
             .WithEndpoint(port: port, targetPort: DefaultContainerPort, name: MongoDBServerResource.PrimaryEndpointName)
             .WithImage(MongoDBContainerImageTags.Image, MongoDBContainerImageTags.Tag)
-            .WithImageRegistry(MongoDBContainerImageTags.Registry);
-        if (mongoDBContainer.PasswordParameter is not null)
-        {
-            resBuilder.WithEnvironment(context =>
+            .WithImageRegistry(MongoDBContainerImageTags.Registry)
+            .WithEnvironment(context =>
             {
                 context.EnvironmentVariables[UserEnvVarName] = mongoDBContainer.UserNameReference;
-                context.EnvironmentVariables[PasswordEnvVarName] = mongoDBContainer.PasswordParameter;
+                context.EnvironmentVariables[PasswordEnvVarName] = mongoDBContainer.PasswordParameter!;
             });
-        }
 
         return resBuilder;
     }
