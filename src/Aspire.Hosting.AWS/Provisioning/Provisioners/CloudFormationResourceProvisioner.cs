@@ -51,7 +51,7 @@ internal abstract class CloudFormationResourceProvisioner<T>(ResourceLoggerServi
                 cloudformationResource.Outputs = stack.Outputs;
             }
             var templatePath = (resource as ICloudFormationTemplateResource)?.TemplatePath ?? resource.Annotations.OfType<CloudFormationTemplatePathAnnotation>().FirstOrDefault()?.TemplatePath;
-            await PublishCloudFormationUpdateStateAsync(resource, Constants.ResourceStateRunning, ConvertOutputToProperties(stack, templatePath)).ConfigureAwait(false);
+            await PublishCloudFormationUpdatePropertiesAsync(resource, ConvertOutputToProperties(stack, templatePath)).ConfigureAwait(false);
         }
         else
         {
@@ -61,16 +61,15 @@ internal abstract class CloudFormationResourceProvisioner<T>(ResourceLoggerServi
         }
     }
 
-    protected async Task PublishCloudFormationUpdateStateAsync(T resource, string status, ImmutableArray<ResourcePropertySnapshot>? properties = null)
+    protected async Task PublishCloudFormationUpdatePropertiesAsync(T resource, ImmutableArray<ResourcePropertySnapshot>? properties = null)
     {
         if (properties == null)
         {
             properties = ImmutableArray.Create<ResourcePropertySnapshot>();
         }
 
-        await notificationService.PublishUpdateAsync(resource, state => state with
+        await NotificationService.PublishUpdateAsync(resource, state => state with
         {
-            State = status,
             Properties = state.Properties.AddRange(properties)
         }).ConfigureAwait(false);
     }
@@ -79,22 +78,22 @@ internal abstract class CloudFormationResourceProvisioner<T>(ResourceLoggerServi
     {
         var list = ImmutableArray.CreateBuilder<ResourcePropertySnapshot>();
 
+        list.Add(new ResourcePropertySnapshot(CustomResourceKnownProperties.Source, stack.StackId));
+
+        if (!string.IsNullOrEmpty(templateFile))
+        {
+            list.Add(new("aws.cloudformation.template", templateFile));
+        }
+
         foreach (var output in stack.Outputs)
         {
             list.Add(new ResourcePropertySnapshot("aws.cloudformation.output." + output.OutputKey, output.OutputValue));
         }
 
-        list.Add(new ResourcePropertySnapshot(CustomResourceKnownProperties.Source, stack.StackId));
-
-        if (!string.IsNullOrEmpty(templateFile))
-        {
-            list.Add(new ResourcePropertySnapshot("aws.cloudformation.template", templateFile));
-        }
-
         return list.ToImmutableArray();
     }
 
-    protected static IAmazonCloudFormation GetCloudFormationClient(T resource)
+    protected static IAmazonCloudFormation GetCloudFormationClient(ICloudFormationResource resource)
     {
         if (resource.CloudFormationClient != null)
         {

@@ -12,7 +12,7 @@ internal sealed class CloudFormationTemplateResourceProvisioner(
     ResourceNotificationService notificationService)
     : CloudFormationResourceProvisioner<CloudFormationTemplateResource>(loggerService, notificationService)
 {
-    protected override Task GetOrCreateResourceAsync(CloudFormationTemplateResource resource, ProvisioningContext context, CancellationToken cancellationToken)
+    protected override Task GetOrCreateResourceAsync(CloudFormationTemplateResource resource, CancellationToken cancellationToken)
         => ProvisionCloudFormationTemplateAsync(resource, cancellationToken);
 
     protected override async Task<CloudFormationStackExecutionContext> CreateCloudFormationExecutionContext(CloudFormationTemplateResource resource, CancellationToken cancellationToken)

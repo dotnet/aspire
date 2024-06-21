@@ -41,6 +41,11 @@ public static class CDKExtensions
         var resource = new CDKResource(name, stackName, props);
         return builder
             .AddResource(resource)
+            .WithInitialState(new()
+            {
+                Properties = [],
+                ResourceType = GetResourceType<Stack>(resource),
+            })
             .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
@@ -65,7 +70,14 @@ public static class CDKExtensions
     {
         var parent = builder.Resource;
         var resource = new StackResource(name, new Stack(parent.App, stackName), parent);
-        return builder.ApplicationBuilder.AddResource(resource).WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.ApplicationBuilder
+            .AddResource(resource)
+            .WithInitialState(new()
+            {
+                Properties = [],
+                ResourceType = GetResourceType<Stack>(resource),
+            })
+            .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
     /// <summary>
@@ -81,7 +93,14 @@ public static class CDKExtensions
     {
         var parent = builder.Resource;
         var resource = new StackResource<T>(name, stackBuilder(parent.App), parent);
-        return builder.ApplicationBuilder.AddResource(resource).WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.ApplicationBuilder
+            .AddResource(resource)
+            .WithInitialState(new()
+            {
+                Properties = [],
+                ResourceType = GetResourceType<Stack>(resource),
+            })
+            .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
     /// <summary>
@@ -98,7 +117,14 @@ public static class CDKExtensions
     {
         var parent = builder.Resource;
         var resource = new ConstructResource<T>(name, constructBuilder((Construct)parent.Construct), parent);
-        return builder.ApplicationBuilder.AddResource(resource).WithManifestPublishingCallback(resource.WriteToManifest);
+        return builder.ApplicationBuilder
+            .AddResource(resource)
+            .WithInitialState(new()
+            {
+                Properties = [],
+                ResourceType = GetResourceType<Construct>(resource),
+            })
+            .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
     /// <summary>
@@ -210,5 +236,13 @@ public static class CDKExtensions
             construct.WithAnnotation(new ConstructOutputAnnotation<TConstruct>(outputName, outputDelegate));
         }
         return builder.WithEnvironment(name, new StackOutputReference(construct.Resource.Construct.StackUniqueId() + outputName, construct.Resource.FindParentOfType<IStackResource>()));
+    }
+
+    private static string GetResourceType<T>(IResourceWithConstruct constructResource)
+        where T : Construct
+    {
+        var constructType = constructResource.Construct.GetType();
+        var baseConstructType = typeof(T);
+        return constructType == baseConstructType ? baseConstructType.Name : constructType.Name;
     }
 }

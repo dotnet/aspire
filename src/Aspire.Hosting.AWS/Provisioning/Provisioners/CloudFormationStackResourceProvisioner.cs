@@ -14,12 +14,9 @@ internal sealed class CloudFormationStackResourceProvisioner(
     ResourceNotificationService notificationService)
     : CloudFormationResourceProvisioner<CloudFormationStackResource>(loggerService, notificationService)
 {
-    protected override async Task GetOrCreateResourceAsync(CloudFormationStackResource resource, ProvisioningContext context, CancellationToken cancellationToken)
+    protected override async Task GetOrCreateResourceAsync(CloudFormationStackResource resource, CancellationToken cancellationToken)
     {
         var logger = LoggerService.GetLogger(resource);
-
-        await PublishCloudFormationUpdateStateAsync(resource, Constants.ResourceStateStarting).ConfigureAwait(false);
-
         try
         {
             using var cfClient = GetCloudFormationClient(resource);
@@ -35,7 +32,7 @@ internal sealed class CloudFormationStackResourceProvisioner(
             // projects IConfiguration.
             resource.Outputs = stack!.Outputs;
 
-            await PublishCloudFormationUpdateStateAsync(resource, Constants.ResourceStateRunning, ConvertOutputToProperties(stack)).ConfigureAwait(false);
+            await PublishCloudFormationUpdatePropertiesAsync(resource, ConvertOutputToProperties(stack)).ConfigureAwait(false);
         }
         catch (Exception e)
         {

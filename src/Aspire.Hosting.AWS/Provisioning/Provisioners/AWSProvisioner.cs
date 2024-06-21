@@ -27,8 +27,6 @@ internal sealed class AWSProvisioner(
             return;
         }
 
-        
-
         static IAWSResource? SelectParentAWSResource(IResource resource) => resource switch
         {
             IAWSResource ar => ar,
@@ -40,8 +38,6 @@ internal sealed class AWSProvisioner(
             .Select(x => (Child: x, Root: SelectParentAWSResource(x.Parent)))
             .Where(x => x.Root is not null)
             .ToLookup(x => x.Root, x => x.Child);
-
-        var context = new ProvisioningContext(parentChildLookup);
 
         // Sets the state of the resource and all of its children
         async Task UpdateStateAsync(IAWSResource resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
@@ -87,16 +83,16 @@ internal sealed class AWSProvisioner(
         }
 
         // This is fully async, so we can just fire and forget
-        _ = Task.Run(() => ProvisionAWSResources(awsResources, context, cancellationToken), cancellationToken);
+        _ = Task.Run(() => ProvisionAWSResources(awsResources, cancellationToken), cancellationToken);
     }
 
-    private async Task ProvisionAWSResources(IList<IAWSResource> awsResources, ProvisioningContext context, CancellationToken cancellationToken)
+    private async Task ProvisionAWSResources(IList<IAWSResource> awsResources, CancellationToken cancellationToken)
     {
         var tasks = new List<Task>();
 
         foreach (var resource in awsResources)
         {
-            tasks.Add(ProcessResourceAsync(resource, context, cancellationToken));
+            tasks.Add(ProcessResourceAsync(resource, cancellationToken));
         }
 
         var task = Task.WhenAll(tasks);
@@ -111,7 +107,7 @@ internal sealed class AWSProvisioner(
         }
     }
 
-    private async Task ProcessResourceAsync(IAWSResource resource, ProvisioningContext context, CancellationToken cancellationToken)
+    private async Task ProcessResourceAsync(IAWSResource resource, CancellationToken cancellationToken)
     {
         var provisioner = SelectProvisioner(resource);
 
@@ -135,7 +131,7 @@ internal sealed class AWSProvisioner(
 
             try
             {
-                await provisioner.GetOrCreateResourceAsync(resource, context, cancellationToken).ConfigureAwait(false);
+                await provisioner.GetOrCreateResourceAsync(resource, cancellationToken).ConfigureAwait(false);
 
                 resource.ProvisioningTaskCompletionSource?.TrySetResult();
             }

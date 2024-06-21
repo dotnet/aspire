@@ -27,6 +27,11 @@ public static class CloudFormationExtensions
         var resource = new CloudFormationTemplateResource(stackName, templatePath);
         return builder
             .AddResource(resource)
+            .WithInitialState(new()
+            {
+                Properties = [],
+                ResourceType = "CloudFormationTemplate",
+            })
             .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
@@ -55,6 +60,11 @@ public static class CloudFormationExtensions
         var resource = new CloudFormationStackResource(stackName);
         return builder
             .AddResource(resource)
+            .WithInitialState(new()
+            {
+                Properties = [],
+                ResourceType = "CloudFormationStack",
+            })
             .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 

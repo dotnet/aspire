@@ -11,6 +11,8 @@
     <!-- AWS SDK for .NET dependencies -->
     <PackageVersion Include="AWSSDK.CloudFormation" Version="3.7.308.9" />
     <PackageVersion Include="AWSSDK.SQS" Version="3.7.301.17" />
+    <PackageVersion Include="AWSSDK.SSO" Version="3.7.300.108" />
+    <PackageVersion Include="AWSSDK.SSOOIDC" Version="3.7.302.19" />
     <PackageVersion Include="AWSSDK.SimpleNotificationService" Version="3.7.301.52" />
     <PackageVersion Include="AWSSDK.Core" Version="3.7.304.14" />
     <PackageVersion Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.301" />
@@ -105,7 +107,7 @@
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="5.2.1" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.7.2" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.7.2" />
-    <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1"/>
+    <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1" />
     <PackageVersion Include="MongoDB.Driver" Version="2.25.0" />
     <PackageVersion Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" Version="1.4.0" />
     <PackageVersion Include="MySqlConnector.DependencyInjection" Version="2.3.6" />
@@ -156,7 +158,6 @@
     <PackageVersion Include="Testcontainers.Redis" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.Nats" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.Milvus" Version="$(TestcontainersPackageVersion)" />
-
     <!-- playground apps dependencies -->
     <PackageVersion Include="Dapr.AspNetCore" Version="1.13.1" />
     <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="8.1.0" />
