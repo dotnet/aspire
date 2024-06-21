@@ -13,6 +13,7 @@ trigger:
       - .github/*
       - docs/*
       - CODE_OF_CONDUCT.md
+      - CODEOWNERS
       - CONTRIBUTING.md
       - README.md
       - SECURITY.md
