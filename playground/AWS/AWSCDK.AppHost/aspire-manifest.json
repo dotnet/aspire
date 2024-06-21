@@ -3,19 +3,20 @@
   "resources": {
     "cdk": {
       "type": "aws.cloudformation.stack.v0",
-      "stack-name": "cdk",
+      "stack-name": "AspireStack",
       "template-path": "cdk.out/AspireStack.template.json",
       "references": []
     },
     "stack": {
       "type": "aws.cloudformation.stack.v0",
-      "stack-name": "stack",
+      "stack-name": "AspireStack-stack",
       "template-path": "cdk.out/AspireStack-stack.template.json",
       "references": []
     },
     "topic": {
       "type": "aws.cdk.construct.v0",
       "construct-name": "topic",
+      "stack-unique-id": "topic05640A92",
       "references": [
         {
           "parent-resource": "cdk"
@@ -25,6 +26,7 @@
     "queue": {
       "type": "aws.cdk.construct.v0",
       "construct-name": "queue",
+      "stack-unique-id": "queue39C6A038",
       "references": [
         {
           "parent-resource": "cdk"

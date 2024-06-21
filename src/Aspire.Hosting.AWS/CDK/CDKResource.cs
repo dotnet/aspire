@@ -25,5 +25,7 @@ internal class CDKResource : CloudFormationResource, ICDKResource
 
     public string StackName => Stack.StackName;
 
+    protected override string GetStackName() => StackName;
+
     IConstruct IResourceWithConstruct.Construct => Stack;
 }

@@ -22,6 +22,8 @@ internal class ConstructResource(string name, IConstruct construct, IResourceWit
         context.Writer.WriteString("type", "aws.cdk.construct.v0");
         context.Writer.TryWriteString("construct-name", Name);
 
+        context.Writer.TryWriteString("stack-unique-id", Construct.StackUniqueId());
+
         context.Writer.WritePropertyName("references");
         context.Writer.WriteStartArray();
         context.Writer.WriteStartObject();

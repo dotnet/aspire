@@ -24,10 +24,12 @@ internal abstract class CloudFormationResource(string name) : Resource(name), IC
     /// <inheritdoc/>
     public TaskCompletionSource? ProvisioningTaskCompletionSource { get; set; }
 
+    protected virtual string GetStackName() => Name;
+
     internal virtual void WriteToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "aws.cloudformation.stack.v0");
-        context.Writer.TryWriteString("stack-name", Name);
+        context.Writer.TryWriteString("stack-name", GetStackName());
         var templatePathAnnotation = Annotations.OfType<CloudFormationTemplatePathAnnotation>().FirstOrDefault();
         if (templatePathAnnotation != null)
         {

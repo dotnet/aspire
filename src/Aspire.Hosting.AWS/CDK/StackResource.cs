@@ -24,6 +24,8 @@ internal class StackResource(string name, Stack stack, IResourceWithConstruct pa
         get => _awsSdkConfig ?? this.FindParentOfType<ICloudFormationResource>().AWSSDKConfig;
         set => _awsSdkConfig = value;
     }
+
+    protected override string GetStackName() => StackName;
 }
 
 internal sealed class StackResource<T>(string name, T stack, IResourceWithConstruct parentConstruct) : StackResource(name, stack, parentConstruct), IStackResource<T>
