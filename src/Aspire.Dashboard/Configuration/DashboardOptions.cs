@@ -64,19 +64,26 @@ public sealed class ResourceServiceClientCertificateOptions
 // Don't set values after validating/parsing options.
 public sealed class OtlpOptions
 {
-    private Uri? _parsedEndpointUrl;
+    private Uri? _parsedGrpcEndpointUrl;
+    private Uri? _parsedHttpEndpointUrl;
     private byte[]? _primaryApiKeyBytes;
     private byte[]? _secondaryApiKeyBytes;
 
     public string? PrimaryApiKey { get; set; }
     public string? SecondaryApiKey { get; set; }
     public OtlpAuthMode? AuthMode { get; set; }
-    public string? EndpointUrl { get; set; }
+    public string? GrpcEndpointUrl { get; set; }
 
-    public Uri GetEndpointUri()
+    public string? HttpEndpointUrl { get; set; }
+
+    public Uri? GetGrpcEndpointUri()
     {
-        Debug.Assert(_parsedEndpointUrl is not null, "Should have been parsed during validation.");
-        return _parsedEndpointUrl;
+        return _parsedGrpcEndpointUrl;
+    }
+
+    public Uri? GetHttpEndpointUri()
+    {
+        return _parsedHttpEndpointUrl;
     }
 
     public byte[] GetPrimaryApiKeyBytes()
@@ -89,18 +96,22 @@ public sealed class OtlpOptions
 
     internal bool TryParseOptions([NotNullWhen(false)] out string? errorMessage)
     {
-        if (string.IsNullOrEmpty(EndpointUrl))
+        if (string.IsNullOrEmpty(GrpcEndpointUrl) && string.IsNullOrEmpty(HttpEndpointUrl))
         {
-            errorMessage = $"OTLP endpoint URL is not configured. Specify a {DashboardConfigNames.DashboardOtlpUrlName.EnvVarName} value.";
+            errorMessage = $"Neither OTLP/gRPC or OTLP/HTTP endpoint URLs are configured. Specify either a {DashboardConfigNames.DashboardOtlpGrpcUrlName.EnvVarName} or {DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName} value.";
             return false;
         }
-        else
+
+        if (!string.IsNullOrEmpty(GrpcEndpointUrl) && !Uri.TryCreate(GrpcEndpointUrl, UriKind.Absolute, out _parsedGrpcEndpointUrl))
         {
-            if (!Uri.TryCreate(EndpointUrl, UriKind.Absolute, out _parsedEndpointUrl))
-            {
-                errorMessage = $"Failed to parse OTLP endpoint URL '{EndpointUrl}'.";
-                return false;
-            }
+            errorMessage = $"Failed to parse OTLP gRPC endpoint URL '{GrpcEndpointUrl}'.";
+            return false;
+        }
+
+        if (!string.IsNullOrEmpty(HttpEndpointUrl) && !Uri.TryCreate(HttpEndpointUrl, UriKind.Absolute, out _parsedHttpEndpointUrl))
+        {
+            errorMessage = $"Failed to parse OTLP HTTP endpoint URL '{HttpEndpointUrl}'.";
+            return false;
         }
 
         _primaryApiKeyBytes = PrimaryApiKey != null ? Encoding.UTF8.GetBytes(PrimaryApiKey) : null;
