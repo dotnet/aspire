@@ -5,6 +5,7 @@ Provides extension methods and resources definition for a .NET Aspire AppHost to
 ## Prerequisites
 
 - [Configure AWS credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
+- [Node.js](https://nodejs.org) _(AWS CDK only)_
 
 ## Install the package
 
@@ -125,6 +126,34 @@ var awsResources = builder.AddAWSCloudFormationStack("ExistingStackName")
 
 builder.AddProject<Projects.Frontend>("Frontend")
        .WithReference(awsResources);
+```
+
+## Provisioning application resources with AWS CDK
+
+Adding [AWS CDK](https://aws.amazon.com/cdk/) to the AppHost makes it possible to provision AWS resources using code. Under the hood AWS CDK is using CloudFormation to create the resources in AWS.
+
+In the AppHost the `AddAWSCDK` methods is used to create a CDK Resources which will hold the constructs for describing the AWS resources.
+
+A number of methods are available to add common resources to the AppHost like S3 Buckets, DynamoDB Tables, SQS Queues, SNS Topics, Kinesis Streams and Cognito User Pools. These resources can be added either the CDK resource or a dedicated stack that can be created.
+
+```csharp
+var cdk = builder.AddAWSCDK("CDK");
+var bucket = cdk.AddS3Bucket("Bucket");
+
+builder.AddProject<Projects.Frontend>("Frontend")
+       .WithReference(bucket);
+```
+
+Resources created with these methods can be directly referenced by project resources and common properies like resource names, ARNs or URLs will be made availabile as configuration environment variables. The default config section will be `AWS:Resources`
+
+Alternative constructs can created in free form using the `AddConstruct` methods. These constructs can be references with the `WithReference` method and need to be provided with a property selector and an output name. This will make this property available as configuration environment variable
+
+```csharp
+var cdk = builder.AddAWSCDK("CDK");
+var constuct = cdk.AddConstruct("Construct", scope => new CustomConstruct(scope, "Construct"));
+
+builder.AddProject<Projects.Frontend>("Frontend")
+       .WithReference(construct, c => c.Url, "Url");
 ```
 
 ## Feedback & contributing
