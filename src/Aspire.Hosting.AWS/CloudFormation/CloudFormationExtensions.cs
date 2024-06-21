@@ -90,6 +90,8 @@ public static class CloudFormationExtensions
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, StackOutputReference stackOutputReference)
         where T : IResourceWithEnvironment
     {
+        stackOutputReference.Resource.Annotations.Add(new CloudFormationReferenceAnnotation(builder.Resource.Name));
+
         return builder.WithEnvironment(async ctx =>
         {
             if (ctx.ExecutionContext.IsPublishMode)

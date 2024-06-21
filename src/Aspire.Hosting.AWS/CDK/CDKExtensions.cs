@@ -235,6 +235,7 @@ public static class CDKExtensions
         {
             construct.WithAnnotation(new ConstructOutputAnnotation<TConstruct>(outputName, outputDelegate));
         }
+        construct.WithAnnotation(new ConstructReferenceAnnotation(builder.Resource.Name, outputName));
         return builder.WithEnvironment(name, new StackOutputReference(construct.Resource.Construct.StackUniqueId() + outputName, construct.Resource.FindParentOfType<IStackResource>()));
     }
 

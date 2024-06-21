@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.AWS.CloudFormation;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Constructs;
@@ -29,10 +28,10 @@ internal class ConstructResource(string name, IConstruct construct, IResourceWit
         context.Writer.WriteStartObject();
         context.Writer.WriteString("parent-resource", Parent.Name);
         context.Writer.WriteEndObject();
-        foreach (var cloudFormationResource in Annotations.OfType<CloudFormationReferenceAnnotation>())
+        foreach (var constructResource in Annotations.OfType<ConstructReferenceAnnotation>())
         {
             context.Writer.WriteStartObject();
-            context.Writer.WriteString("target-resource", cloudFormationResource.TargetResource);
+            context.Writer.WriteString("target-resource", constructResource.TargetResource);
             context.Writer.WriteEndObject();
         }
         context.Writer.WriteEndArray();
