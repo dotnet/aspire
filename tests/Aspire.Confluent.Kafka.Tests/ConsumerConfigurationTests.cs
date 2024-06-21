@@ -12,7 +12,7 @@ namespace Aspire.Confluent.Kafka.Tests;
 
 public class ConsumerConfigurationTests
 {
-    [ConditionalTheory]
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void ReadsFromConnectionStringsCorrectly(bool useKeyed)
@@ -44,7 +44,7 @@ public class ConsumerConfigurationTests
         Assert.Equal(CommonHelpers.TestingEndpoint, config.BootstrapServers);
     }
 
-    [ConditionalTheory]
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void ConnectionStringCanBeSetInCode(bool useKeyed)
@@ -77,7 +77,7 @@ public class ConsumerConfigurationTests
         Assert.Equal(CommonHelpers.TestingEndpoint, config.BootstrapServers);
     }
 
-    [ConditionalTheory]
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void ConnectionNameWinsOverConfigSection(bool useKeyed)
@@ -110,7 +110,7 @@ public class ConsumerConfigurationTests
         Assert.Equal(CommonHelpers.TestingEndpoint, config.BootstrapServers);
     }
 
-    [ConditionalTheory]
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void ConfigureConsumerBuilder(bool useKeyed)
@@ -151,7 +151,7 @@ public class ConsumerConfigurationTests
         }
     }
 
-    [ConditionalTheory]
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void ConfigureConsumerBuilderWithServiceProvider(bool useKeyed)
