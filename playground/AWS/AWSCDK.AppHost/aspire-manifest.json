@@ -10,7 +10,7 @@
     "stack": {
       "type": "aws.cloudformation.stack.v0",
       "stack-name": "stack",
-      "template-path": "cdk.out/stack.template.json",
+      "template-path": "cdk.out/AspireStack-stack.template.json",
       "references": []
     },
     "topic": {
