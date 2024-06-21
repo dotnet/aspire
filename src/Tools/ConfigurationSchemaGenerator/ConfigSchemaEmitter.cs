@@ -439,6 +439,14 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
 
     internal static string FormatDescription(XElement element)
     {
+        // Because line breaks have no semantic meaning in XML text, we replace them with spaces.
+        // But we'd like to preserve blank lines for readability, so we substitute them with <br/> placeholders upfront.
+        // At the end, we convert all <br/> placeholders back to regular line breaks (accounting for inserted spaces around them).
+        //
+        // When <para> is used, it needs to be surrounded by line breaks, so we replace <para>text</para> with <br/>text<br/>.
+        // But when <para>one</para><para>two</para> is used, we now have two line breaks between them instead of one.
+        // So at the end, duplicate blank lines (\n\n\n\n) are reduced to a single blank line (\n\n).
+
         var text = string.Join(string.Empty, element.Nodes().Select(GetNodeText));
         var lines = text.Split(s_lineBreaks, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
         return string.Join(' ', lines)
