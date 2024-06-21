@@ -224,32 +224,35 @@ public class ResourceLoggerService
 
             using var _ = _logStreamCts.Token.Register(() => channel.Writer.TryComplete());
 
-            var flushBacklogState = 0; // 0 = haven't flushed, 1 = flushed
+            LogLine[]? backlogSnapshot = default;
+            var flushBacklogSync = new ManualResetEventSlim();
             void Log(LogLine log)
             {
-                if (Interlocked.CompareExchange(ref flushBacklogState, 1, 0) == 0)
+                if (flushBacklogSync.IsSet)
                 {
-                    // Flush the backlog on the first call to Log
-                    var backlogSnapshot = GetBacklogSnapshot();
-                    foreach (var backlogLogLine in backlogSnapshot)
-                    {
-                        channel.Writer.TryWrite(backlogLogLine);
-                    }
-                    // We need to ensure we don't write this log to the channel if it was already in the backlog
-                    if (!backlogSnapshot.Contains(log))
-                    {
-                        channel.Writer.TryWrite(log);
-                    }
+                    channel.Writer.TryWrite(log);
+                    return;
                 }
-                else
+
+                flushBacklogSync.Wait(cancellationToken);
+                // We need to ensure we don't write this log to the channel if it was already in the backlog
+                if (backlogSnapshot?.Contains(log) == false)
                 {
                     channel.Writer.TryWrite(log);
                 }
             }
 
             // From the moment we add this callback, logs will be written to the backlog & to our Log method above
-            // so our Log method needs to ensure it flushes the backlog to the channel on the first call.
+            // so our Log method needs to ensure it de-dupes logs.
             OnNewLog += Log;
+
+            backlogSnapshot = GetBacklogSnapshot();
+            flushBacklogSync.Set();
+
+            if (backlogSnapshot.Length > 0)
+            {
+                yield return backlogSnapshot;
+            }
 
             try
             {

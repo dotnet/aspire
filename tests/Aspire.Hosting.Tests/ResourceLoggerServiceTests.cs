@@ -34,17 +34,15 @@ public class ResourceLoggerServiceTests
         Assert.Equal("Hello, error!", allLogs[1].Content);
         Assert.True(allLogs[1].IsErrorMessage);
 
-        // New sub should get the previous logs when the next log is sent
+        // New sub should get the previous logs
         subsLoop = WatchForSubscribers(service);
-        logsLoop = WatchForLogs(service, 3, testResource);
+        logsLoop = WatchForLogs(service, 2, testResource);
         await subsLoop.WaitAsync(TimeSpan.FromSeconds(15));
-        logger.LogInformation("The third log");
         allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
 
-        Assert.Equal(3, allLogs.Count);
+        Assert.Equal(2, allLogs.Count);
         Assert.Equal("Hello, world!", allLogs[0].Content);
         Assert.Equal("Hello, error!", allLogs[1].Content);
-        Assert.Equal("The third log", allLogs[2].Content);
     }
 
     [Fact]
@@ -78,11 +76,11 @@ public class ResourceLoggerServiceTests
 
         Assert.DoesNotContain("The third log", allLogs.Select(x => x.Content));
 
-        // New sub should not get any logs as the stream is completed
+        // New sub should not get new logs as the stream is completed
         logsLoop = WatchForLogs(service, 100, testResource);
         allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
 
-        Assert.Equal(0, allLogs.Count);
+        Assert.Equal(2, allLogs.Count);
     }
 
     [Fact]
@@ -111,17 +109,15 @@ public class ResourceLoggerServiceTests
         Assert.Equal("Hello, error!", allLogs[1].Content);
         Assert.True(allLogs[1].IsErrorMessage);
 
-        // New sub should get the previous logs (backlog) when the next log is sent
+        // New sub should get the previous logs (backlog)
         subsLoop = WatchForSubscribers(service);
-        logsLoop = WatchForLogs(service, 3, testResource);
+        logsLoop = WatchForLogs(service, 2, testResource);
         await subsLoop.WaitAsync(TimeSpan.FromSeconds(15));
-        logger.LogInformation("The third log");
         allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
 
-        Assert.Equal(3, allLogs.Count);
+        Assert.Equal(2, allLogs.Count);
         Assert.Equal("Hello, world!", allLogs[0].Content);
         Assert.Equal("Hello, error!", allLogs[1].Content);
-        Assert.Equal("The third log", allLogs[2].Content);
 
         // Clear the backlog and ensure new subs only get new logs
         service.ClearBacklog(testResource.Name);
@@ -129,12 +125,12 @@ public class ResourceLoggerServiceTests
         subsLoop = WatchForSubscribers(service);
         logsLoop = WatchForLogs(service, 1, testResource);
         await subsLoop.WaitAsync(TimeSpan.FromSeconds(15));
-        logger.LogInformation("The fourth log");
+        logger.LogInformation("The third log");
         allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
 
         // The backlog should be cleared so only new logs are received
         Assert.Equal(1, allLogs.Count);
-        Assert.Equal("The fourth log", allLogs[0].Content);
+        Assert.Equal("The third log", allLogs[0].Content);
     }
 
     private sealed class TestResource(string name) : Resource(name)
