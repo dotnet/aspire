@@ -106,6 +106,13 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
 
         var pathSegment = pathSegments.Dequeue();
 
+        // While descending into the node tree, a container node is created or an existing one is reused, which is then passed to the subtree generator.
+        // Each generator is responsible for reverting to the original state of its children and return false, in case there's nothing to generate.
+        // The parent generator then removes the container node or restores it from a backup.
+        //
+        // This strategy ensures that generators don't affect the existing tree (potentially overwriting data) when they produce no output.
+        // For example, the generator here adds "type: object". But when generating the subtree results in no objects, that change needs to be reverted,
+        // so that an existing "type: string" is preserved. Or the schema remains empty if it was before.
         var backupTypeNode = currentNode["type"];
         currentNode["type"] = "object";
 
@@ -312,7 +319,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         if (symbol != null)
         {
             // Support using <inheritdoc /> in code and external assemblies.
-            // Because roslyn provides no public API to expand inherited doc-comments(see https://github.com/dotnet/csharplang/issues/313),
+            // Because roslyn provides no public API to expand inherited doc-comments (see https://github.com/dotnet/csharplang/issues/313),
             // use the internal Microsoft.CodeAnalysis.Shared.Extensions.ISymbolExtensions.GetDocumentationComment method.
             // This method behaves a bit odd though: If there's no doc-comment on a member, it internally assumes that the member contains "<doc><inheritdoc/></doc>"
             // (which is completely invalid) and feeds that to itself. As a consequence, the method may return something wrapped in <doc>, instead of the expected
