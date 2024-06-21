@@ -85,8 +85,8 @@
           Outputs="$(GeneratedConfigurationSchemaOutputPath)">
     <PropertyGroup>
 
-      <GeneratorCommandLine>"$(DotNetTool)" exec $(ConfigurationSchemaGeneratorPath)</GeneratorCommandLine>
-      <GeneratorCommandLine>$(GeneratorCommandLine) @$(ConfigurationSchemaGeneratorRspPath)</GeneratorCommandLine>
+      <GeneratorCommandLine>"$(DotNetTool)" exec "$(ConfigurationSchemaGeneratorPath)"</GeneratorCommandLine>
+      <GeneratorCommandLine>$(GeneratorCommandLine) @"$(ConfigurationSchemaGeneratorRspPath)"</GeneratorCommandLine>
     </PropertyGroup>
 
     <Exec Command="$(GeneratorCommandLine)" />
