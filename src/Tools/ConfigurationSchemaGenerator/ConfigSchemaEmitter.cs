@@ -35,7 +35,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
     private readonly Stack<TypeSpec> _visitedTypes = new();
     private readonly string[] _exclusionPaths = CreateExclusionPaths(spec.ExclusionPaths);
 
-    [GeneratedRegex(@"( *)(?:\r?\n\s*\r?\n)( *)")]
+    [GeneratedRegex(@"(\s*)(?:\r?\n\s*\r?\n)(\s*)")]
     private static partial Regex BlankLinesInDocComment();
 
     public string GenerateSchema()
