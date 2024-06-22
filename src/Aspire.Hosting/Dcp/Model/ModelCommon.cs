@@ -228,6 +228,8 @@ internal static class Rules
 
 internal static class Logs
 {
+    public const string StreamTypeStartupStdOut = "startup_stdout";
+    public const string StreamTypeStartupStdErr = "startup_stderr";
     public const string StreamTypeStdOut = "stdout";
     public const string StreamTypeStdErr = "stderr";
     public const string StreamTypeAll = "all";
