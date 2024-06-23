@@ -90,6 +90,104 @@ public sealed class DashboardOptionsTests
         Assert.Equal("Failed to parse resource service client endpoint URL 'invalid'.", result.FailureMessage);
     }
 
+    [Fact]
+    public void ResourceServiceClientOptions_ApiKeyMode_Empty()
+    {
+        var options = GetValidOptions();
+        options.ResourceServiceClient.Url = "http://localhost";
+        options.ResourceServiceClient.AuthMode = ResourceClientAuthMode.ApiKey;
+        options.ResourceServiceClient.ApiKey = "";
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal($"{DashboardConfigNames.ResourceServiceClientAuthModeName.ConfigKey} is \"{nameof(ResourceClientAuthMode.ApiKey)}\", but no {DashboardConfigNames.ResourceServiceClientApiKeyName.ConfigKey} is configured.", result.FailureMessage);
+    }
+
+    [Fact]
+    public void ResourceServiceClientOptions_CertificateMode_FileSource_FilePathEmpty()
+    {
+        var options = GetValidOptions();
+        options.ResourceServiceClient.Url = "http://localhost";
+        options.ResourceServiceClient.AuthMode = ResourceClientAuthMode.Certificate;
+        options.ResourceServiceClient.ClientCertificates.Source = DashboardClientCertificateSource.File;
+        options.ResourceServiceClient.ClientCertificates.FilePath = "";
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Dashboard:ResourceServiceClient:ClientCertificate:Source is \"File\", but no Dashboard:ResourceServiceClient:ClientCertificate:FilePath is configured.", result.FailureMessage);
+    }
+
+    [Fact]
+    public void ResourceServiceClientOptions_CertificateMode_KeyStoreSource_SubjectEmpty()
+    {
+        var options = GetValidOptions();
+        options.ResourceServiceClient.Url = "http://localhost";
+        options.ResourceServiceClient.AuthMode = ResourceClientAuthMode.Certificate;
+        options.ResourceServiceClient.ClientCertificates.Source = DashboardClientCertificateSource.KeyStore;
+        options.ResourceServiceClient.ClientCertificates.Subject = "";
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Dashboard:ResourceServiceClient:ClientCertificate:Source is \"KeyStore\", but no Dashboard:ResourceServiceClient:ClientCertificate:Subject is configured.", result.FailureMessage);
+    }
+
+    [Fact]
+    public void ResourceServiceClientOptions_CertificateMode_NullSource()
+    {
+        var options = GetValidOptions();
+        options.ResourceServiceClient.Url = "http://localhost";
+        options.ResourceServiceClient.AuthMode = ResourceClientAuthMode.Certificate;
+        options.ResourceServiceClient.ClientCertificates.Source = null;
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal($"The resource service client is configured to use certificates, but no certificate source is specified. Specify Dashboard:ResourceServiceClient:ClientCertificate:Source. Possible values: {string.Join(", ", typeof(DashboardClientCertificateSource).GetEnumNames())}", result.FailureMessage);
+    }
+
+    [Fact]
+    public void ResourceServiceClientOptions_CertificateMode_InvalidSource()
+    {
+        var options = GetValidOptions();
+        options.ResourceServiceClient.Url = "http://localhost";
+        options.ResourceServiceClient.AuthMode = ResourceClientAuthMode.Certificate;
+        options.ResourceServiceClient.ClientCertificates.Source = (DashboardClientCertificateSource)int.MaxValue;
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal($"Unexpected resource service client certificate source: {options.ResourceServiceClient.ClientCertificates.Source}", result.FailureMessage);
+    }
+
+    [Fact]
+    public void ResourceServiceClientOptions_NullMode()
+    {
+        var options = GetValidOptions();
+        options.ResourceServiceClient.Url = "http://localhost";
+        options.ResourceServiceClient.AuthMode = null;
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal($"Resource service client authentication is not configured. Specify {DashboardConfigNames.ResourceServiceClientAuthModeName.ConfigKey}. Possible values: {string.Join(", ", typeof(ResourceClientAuthMode).GetEnumNames())}", result.FailureMessage);
+    }
+
+    [Fact]
+    public void ResourceServiceClientOptions_InvalidMode()
+    {
+        var options = GetValidOptions();
+        options.ResourceServiceClient.Url = "http://localhost";
+        options.ResourceServiceClient.AuthMode = (ResourceClientAuthMode)int.MaxValue;
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal($"Unexpected resource service client authentication mode: {int.MaxValue}", result.FailureMessage);
+    }
+
     #endregion
 
     #region OTLP options
