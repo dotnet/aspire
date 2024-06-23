@@ -14,7 +14,7 @@ internal class ConstructResource(string name, IConstruct construct, IResourceWit
 
     public IResourceWithConstruct Parent { get; } = parent;
 
-    public IStackResource Stack => Parent as IStackResource ?? this.FindParentOfType<IStackResource>();
+    public IStackResource Stack => Parent as IStackResource ?? this.Parent.SelectParentResource<IStackResource>();
 
     internal void WriteToManifest(ManifestPublishingContext context)
     {

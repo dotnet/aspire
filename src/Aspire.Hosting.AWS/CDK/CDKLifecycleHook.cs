@@ -6,7 +6,6 @@ using Aspire.Hosting.AWS.CDK;
 using Aspire.Hosting.AWS.CloudFormation;
 using Aspire.Hosting.AWS.Utils;
 using Aspire.Hosting.Lifecycle;
-using IResource = Aspire.Hosting.ApplicationModel.IResource;
 
 namespace Aspire.Hosting.AWS;
 
@@ -19,7 +18,7 @@ internal sealed class CDKLifecycleHook(DistributedApplicationExecutionContext ex
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
         var parentChildLookup = appModel.Resources.OfType<IResourceWithParent>()
-            .Select(x => (Child: x, Root: SelectParentCDKResource(x.Parent)))
+            .Select(x => (Child: x, Root: x.Parent.TrySelectParentResource<ICDKResource>()))
             .Where(x => x.Root is not null)
             .ToLookup(x => x.Root, x => x.Child);
 
@@ -63,12 +62,5 @@ internal sealed class CDKLifecycleHook(DistributedApplicationExecutionContext ex
         }
 
         return Task.CompletedTask;
-
-        static ICDKResource? SelectParentCDKResource(IResource resource) => resource switch
-        {
-            ICDKResource ar => ar,
-            IResourceWithParent rp => SelectParentCDKResource(rp.Parent),
-            _ => null
-        };
     }
 }

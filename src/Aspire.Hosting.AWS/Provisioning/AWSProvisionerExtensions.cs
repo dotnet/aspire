@@ -13,7 +13,7 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Provides extension methods for adding support for generating AWS resources dynamically during application startup.
 /// </summary>
-public static class AWSProvisionerExtensions
+internal static class AWSProvisionerExtensions
 {
     /// <summary>
     /// Adds support for generating azure resources dynamically during application startup.

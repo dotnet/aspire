@@ -4,8 +4,6 @@ namespace Aspire.Hosting.AWS.Provisioning;
 
 internal interface IAWSResourceProvisioner
 {
-    bool ShouldProvision(IAWSResource resource);
-
     Task GetOrCreateResourceAsync(IAWSResource resource, CancellationToken cancellationToken = default);
 }
 
@@ -16,8 +14,6 @@ internal abstract class AWSResourceProvisioner<TResource> : IAWSResourceProvisio
         IAWSResource resource,
         CancellationToken cancellationToken)
         => GetOrCreateResourceAsync((TResource)resource, cancellationToken);
-
-    public virtual bool ShouldProvision(IAWSResource resource) => true;
 
     protected abstract Task GetOrCreateResourceAsync(TResource resource, CancellationToken cancellationToken);
 }

@@ -39,7 +39,7 @@ internal sealed class CDKStackResourceProvisioner<T>(
         return Task.CompletedTask;
     }
 
-    protected override Task<CloudFormationStackExecutionContext> CreateCloudFormationExecutionContext(T resource, CancellationToken cancellationToken)
+    protected override Task<CloudFormationStackExecutionContext> CreateCloudFormationExecutionContextAsync(T resource, CancellationToken cancellationToken)
     {
         var artifact = resource.Annotations.OfType<StackArtifactResourceAnnotation>().Single().StackArtifact;
         var template = JsonSerializer.Serialize(artifact.Template);

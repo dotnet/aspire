@@ -48,7 +48,6 @@ Aspire.Hosting.AWS.IAWSSDKConfig.Profile.get -> string?
 Aspire.Hosting.AWS.IAWSSDKConfig.Profile.set -> void
 Aspire.Hosting.AWS.IAWSSDKConfig.Region.get -> Amazon.RegionEndpoint?
 Aspire.Hosting.AWS.IAWSSDKConfig.Region.set -> void
-Aspire.Hosting.AWSProvisionerExtensions
 Aspire.Hosting.CDKExtensions
 Aspire.Hosting.CloudFormationExtensions
 Aspire.Hosting.CognitoResourceExtensions
@@ -58,7 +57,6 @@ Aspire.Hosting.S3ResourceExtensions
 Aspire.Hosting.SDKResourceExtensions
 Aspire.Hosting.SNSResourceExtensions
 Aspire.Hosting.SQSResourceExtensions
-static Aspire.Hosting.AWSProvisionerExtensions.AddAWSProvisioning(this Aspire.Hosting.IDistributedApplicationBuilder! builder) -> Aspire.Hosting.IDistributedApplicationBuilder!
 static Aspire.Hosting.CDKExtensions.AddAWSCDK(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string? stackName = null, Amazon.CDK.IAppProps? props = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.CDK.ICDKResource!>!
 static Aspire.Hosting.CDKExtensions.AddConstruct<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.CDK.IResourceWithConstruct!>! builder, string! name, Aspire.Hosting.AWS.CDK.ConstructBuilderDelegate<T!>! constructBuilder) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.CDK.IConstructResource<T!>!>!
 static Aspire.Hosting.CDKExtensions.AddOutput<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.CDK.IConstructResource<T!>!>! builder, string! name, Aspire.Hosting.AWS.CDK.ConstructOutputDelegate<T!>! output) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.AWS.CDK.IConstructResource<T!>!>!

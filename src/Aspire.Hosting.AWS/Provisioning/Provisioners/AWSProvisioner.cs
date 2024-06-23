@@ -27,141 +27,94 @@ internal sealed class AWSProvisioner(
             return;
         }
 
-        static IAWSResource? SelectParentAWSResource(IResource resource) => resource switch
-        {
-            IAWSResource ar => ar,
-            IResourceWithParent rp => SelectParentAWSResource(rp.Parent),
-            _ => null
-        };
         // parent -> children lookup
         var parentChildLookup = appModel.Resources.OfType<IResourceWithParent>()
-            .Select(x => (Child: x, Root: SelectParentAWSResource(x.Parent)))
+            .Select(x => (Child: x, Root: x.Parent.TrySelectParentResource<IAWSResource>()))
             .Where(x => x.Root is not null)
             .ToLookup(x => x.Root, x => x.Child);
 
-        // Sets the state of the resource and all of its children
-        async Task UpdateStateAsync(IAWSResource resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
-        {
-            await notificationService.PublishUpdateAsync(resource, stateFactory).ConfigureAwait(false);
-            foreach (var child in parentChildLookup[resource])
-            {
-                await notificationService.PublishUpdateAsync(child, stateFactory).ConfigureAwait(false);
-            }
-        }
-        // After the resource is provisioned, set its state
-        async Task AfterProvisionAsync(IAWSResource resource)
-        {
-            try
-            {
-                await resource.ProvisioningTaskCompletionSource!.Task.ConfigureAwait(false);
-
-                await UpdateStateAsync(resource, s => s with
-                {
-                    State = new ResourceStateSnapshot("Running", KnownResourceStateStyles.Success)
-                }).ConfigureAwait(false);
-            }
-            catch (Exception)
-            {
-                await UpdateStateAsync(resource, s => s with
-                {
-                    State = new ResourceStateSnapshot("Failed to Provision", KnownResourceStateStyles.Error)
-                }).ConfigureAwait(false);
-            }
-        }
         // Mark all resources as starting
         foreach (var r in awsResources)
         {
             r.ProvisioningTaskCompletionSource = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            await UpdateStateAsync(r, s => s with
+            await UpdateStateAsync(r, parentChildLookup, s => s with
             {
                 State = new ResourceStateSnapshot("Starting", KnownResourceStateStyles.Info)
             }).ConfigureAwait(false);
-
-            // After the resource is provisioned, set its state
-            _ = AfterProvisionAsync(r);
         }
 
         // This is fully async, so we can just fire and forget
-        _ = Task.Run(() => ProvisionAWSResources(awsResources, cancellationToken), cancellationToken);
+        _ = Task.Run(() => ProvisionAWSResourcesAsync(awsResources, parentChildLookup, cancellationToken), cancellationToken);
     }
 
-    private async Task ProvisionAWSResources(IList<IAWSResource> awsResources, CancellationToken cancellationToken)
+    private async Task ProvisionAWSResourcesAsync(IList<IAWSResource> awsResources, ILookup<IAWSResource?, IResourceWithParent> parentChildLookup, CancellationToken cancellationToken)
     {
-        var tasks = new List<Task>();
-
         foreach (var resource in awsResources)
         {
-            tasks.Add(ProcessResourceAsync(resource, cancellationToken));
-        }
+            var provisioner = SelectProvisioner(resource);
 
-        var task = Task.WhenAll(tasks);
+            var resourceLogger = loggerService.GetLogger(resource);
 
-        // Suppress throwing so that we can save the user secrets even if the task fails
-        await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
-
-        // Set the completion source for all resources
-        foreach (var resource in awsResources)
-        {
-            resource.ProvisioningTaskCompletionSource?.TrySetResult();
-        }
-    }
-
-    private async Task ProcessResourceAsync(IAWSResource resource, CancellationToken cancellationToken)
-    {
-        var provisioner = SelectProvisioner(resource);
-
-        var resourceLogger = loggerService.GetLogger(resource);
-
-        if (provisioner is null)
-        {
-            resource.ProvisioningTaskCompletionSource?.TrySetResult();
-
-            resourceLogger.LogWarning("No provisioner found for {ResourceType} skipping", resource.GetType().Name);
-        }
-        else if (!provisioner.ShouldProvision(resource))
-        {
-            resource.ProvisioningTaskCompletionSource?.TrySetResult();
-
-            resourceLogger.LogInformation("Skipping {ResourceName} because it is not configured to be provisioned", resource.Name);
-        }
-        else
-        {
-            resourceLogger.LogInformation("Provisioning {ResourceName}...", resource.Name);
-
-            try
+            if (provisioner is null)
             {
-                await provisioner.GetOrCreateResourceAsync(resource, cancellationToken).ConfigureAwait(false);
-
                 resource.ProvisioningTaskCompletionSource?.TrySetResult();
-            }
-            catch (Exception ex)
-            {
-                resourceLogger.LogError(ex, "Error provisioning {ResourceName}", resource.Name);
 
-                resource.ProvisioningTaskCompletionSource?.TrySetException(new InvalidOperationException($"Unable to resolve references from {resource.Name}"));
+                resourceLogger.LogWarning("No provisioner found for {ResourceType} skipping", resource.GetType().Name);
+            }
+            else
+            {
+                resourceLogger.LogInformation("Provisioning {ResourceName}...", resource.Name);
+
+                try
+                {
+                    await provisioner.GetOrCreateResourceAsync(resource, cancellationToken).ConfigureAwait(false);
+
+                    await UpdateStateAsync(resource, parentChildLookup, s => s with
+                    {
+                        State = new ResourceStateSnapshot("Running", KnownResourceStateStyles.Success)
+                    }).ConfigureAwait(false);
+                    resource.ProvisioningTaskCompletionSource?.TrySetResult();
+                }
+                catch (Exception ex)
+                {
+                    resourceLogger.LogError(ex, "Error provisioning {ResourceName}", resource.Name);
+
+                    await UpdateStateAsync(resource, parentChildLookup, s => s with
+                    {
+                        State = new ResourceStateSnapshot("Failed to Provision", KnownResourceStateStyles.Error)
+                    }).ConfigureAwait(false);
+                    resource.ProvisioningTaskCompletionSource?.TrySetException(new InvalidOperationException($"Unable to resolve references from {resource.Name}"));
+                }
             }
         }
+    }
 
-        return;
+    private IAWSResourceProvisioner? SelectProvisioner(IAWSResource resource)
+    {
+        var type = resource.GetType();
 
-        IAWSResourceProvisioner? SelectProvisioner(IAWSResource resource)
+        while (type is not null)
         {
-            var type = resource.GetType();
+            var provisioner = serviceProvider.GetKeyedService<IAWSResourceProvisioner>(type);
 
-            while (type is not null)
+            if (provisioner is not null)
             {
-                var provisioner = serviceProvider.GetKeyedService<IAWSResourceProvisioner>(type);
-
-                if (provisioner is not null)
-                {
-                    return provisioner;
-                }
-
-                type = type.BaseType;
+                return provisioner;
             }
 
-            return null;
+            type = type.BaseType;
+        }
+
+        return null;
+    }
+
+    private async Task UpdateStateAsync(IAWSResource resource, ILookup<IAWSResource?, IResourceWithParent> parentChildLookup, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
+    {
+        await notificationService.PublishUpdateAsync(resource, stateFactory).ConfigureAwait(false);
+        foreach (var child in parentChildLookup[resource])
+        {
+            await notificationService.PublishUpdateAsync(child, stateFactory).ConfigureAwait(false);
         }
     }
 }

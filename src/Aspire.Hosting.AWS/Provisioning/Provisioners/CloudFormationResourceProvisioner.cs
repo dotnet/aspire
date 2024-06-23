@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using System.Text.RegularExpressions;
+using Amazon;
 using Amazon.CloudFormation;
 using Amazon.CloudFormation.Model;
 using Amazon.Runtime;
@@ -12,16 +14,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.AWS.Provisioning;
 
-internal abstract class CloudFormationResourceProvisioner<T>(ResourceLoggerService loggerService, ResourceNotificationService notificationService) : AWSResourceProvisioner<T>
+internal abstract partial class CloudFormationResourceProvisioner<T>(ResourceLoggerService loggerService, ResourceNotificationService notificationService) : AWSResourceProvisioner<T>
     where T : ICloudFormationResource
 {
-
     protected ResourceLoggerService LoggerService => loggerService;
 
     protected ResourceNotificationService NotificationService => notificationService;
-
-    protected virtual Task<CloudFormationStackExecutionContext> CreateCloudFormationExecutionContext(T resource, CancellationToken cancellationToken)
-        => throw new NotImplementedException();
 
     protected async Task ProvisionCloudFormationTemplateAsync(T resource, CancellationToken cancellationToken)
     {
@@ -29,7 +27,7 @@ internal abstract class CloudFormationResourceProvisioner<T>(ResourceLoggerServi
 
         using var cfClient = GetCloudFormationClient(resource);
 
-        var context = await CreateCloudFormationExecutionContext(resource, cancellationToken).ConfigureAwait(false);
+        var context = await CreateCloudFormationExecutionContextAsync(resource, cancellationToken).ConfigureAwait(false);
         var executor = new CloudFormationStackExecutor(cfClient, context, logger);
         var stack = await executor.ExecuteTemplateAsync(cancellationToken).ConfigureAwait(false);
 
@@ -51,17 +49,20 @@ internal abstract class CloudFormationResourceProvisioner<T>(ResourceLoggerServi
                 cloudformationResource.Outputs = stack.Outputs;
             }
             var templatePath = (resource as ICloudFormationTemplateResource)?.TemplatePath ?? resource.Annotations.OfType<CloudFormationTemplatePathAnnotation>().FirstOrDefault()?.TemplatePath;
-            await PublishCloudFormationUpdatePropertiesAsync(resource, ConvertOutputToProperties(stack, templatePath)).ConfigureAwait(false);
+            await PublishCloudFormationUpdatePropertiesAsync(resource, ConvertOutputToProperties(stack, templatePath), MapCloudFormationStackUrl(cfClient, stack.StackId)).ConfigureAwait(false);
         }
         else
         {
             logger.LogError("CloudFormation provisioning failed");
 
-            throw new AWSProvisioningException("Failed to apply CloudFormation template", null);
+            throw new AWSProvisioningException("Failed to apply CloudFormation template");
         }
     }
 
-    protected async Task PublishCloudFormationUpdatePropertiesAsync(T resource, ImmutableArray<ResourcePropertySnapshot>? properties = null)
+    protected virtual Task<CloudFormationStackExecutionContext> CreateCloudFormationExecutionContextAsync(T resource, CancellationToken cancellationToken)
+        => throw new NotImplementedException();
+
+    protected async Task PublishCloudFormationUpdatePropertiesAsync(T resource, ImmutableArray<ResourcePropertySnapshot>? properties = null, ImmutableArray<UrlSnapshot>? urls = default)
     {
         if (properties == null)
         {
@@ -70,7 +71,8 @@ internal abstract class CloudFormationResourceProvisioner<T>(ResourceLoggerServi
 
         await NotificationService.PublishUpdateAsync(resource, state => state with
         {
-            Properties = state.Properties.AddRange(properties)
+            Properties = state.Properties.AddRange(properties),
+            Urls = urls ?? []
         }).ConfigureAwait(false);
     }
 
@@ -91,6 +93,37 @@ internal abstract class CloudFormationResourceProvisioner<T>(ResourceLoggerServi
         }
 
         return list.ToImmutableArray();
+    }
+
+    [GeneratedRegex("^(us|eu|ap|sa|ca|me|af|il)-\\w+-\\d+$", RegexOptions.Singleline)]
+    private static partial Regex AwsRegionRegex();
+
+    internal static ImmutableArray<UrlSnapshot>? MapCloudFormationStackUrl(IAmazonCloudFormation client, string stackId)
+    {
+        try
+        {
+            var endpointUrl = client.DetermineServiceOperationEndpoint(new DescribeStacksRequest { StackName = stackId })?.URL;
+            if (endpointUrl == null || !endpointUrl.Contains(".amazonaws.", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            if (!Arn.TryParse(stackId, out var arn) || !AwsRegionRegex().IsMatch(arn.Region))
+            {
+                return null;
+            }
+
+            var url = $"https://console.aws.amazon.com/cloudformation/home?region={Uri.EscapeDataString(arn.Region)}#/stacks/resources?stackId={Uri.EscapeDataString(stackId)}";
+
+            return
+            [
+                new UrlSnapshot("aws-console", url, IsInternal: false)
+            ];
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 
     protected static IAmazonCloudFormation GetCloudFormationClient(ICloudFormationResource resource)

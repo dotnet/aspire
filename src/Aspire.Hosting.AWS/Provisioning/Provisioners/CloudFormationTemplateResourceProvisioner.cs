@@ -15,7 +15,7 @@ internal sealed class CloudFormationTemplateResourceProvisioner(
     protected override Task GetOrCreateResourceAsync(CloudFormationTemplateResource resource, CancellationToken cancellationToken)
         => ProvisionCloudFormationTemplateAsync(resource, cancellationToken);
 
-    protected override async Task<CloudFormationStackExecutionContext> CreateCloudFormationExecutionContext(CloudFormationTemplateResource resource, CancellationToken cancellationToken)
+    protected override async Task<CloudFormationStackExecutionContext> CreateCloudFormationExecutionContextAsync(CloudFormationTemplateResource resource, CancellationToken cancellationToken)
     {
         var template = await File.ReadAllTextAsync(resource.TemplatePath, cancellationToken).ConfigureAwait(false);
         return new CloudFormationStackExecutionContext(resource.Name, template)

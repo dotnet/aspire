@@ -189,7 +189,7 @@ public static class CDKExtensions
         where T : Construct
     {
         builder.WithAnnotation(new ConstructOutputAnnotation<T>(name, output));
-        return new StackOutputReference(builder.Resource.Construct.StackUniqueId() + name, builder.Resource.FindParentOfType<StackResource>());
+        return new StackOutputReference(builder.Resource.Construct.StackUniqueId() + name, builder.Resource.Parent.SelectParentResource<IStackResource>());
     }
 
     /// <summary>
@@ -236,7 +236,7 @@ public static class CDKExtensions
             construct.WithAnnotation(new ConstructOutputAnnotation<TConstruct>(outputName, outputDelegate));
         }
         construct.WithAnnotation(new ConstructReferenceAnnotation(builder.Resource.Name, outputName));
-        return builder.WithEnvironment(name, new StackOutputReference(construct.Resource.Construct.StackUniqueId() + outputName, construct.Resource.FindParentOfType<IStackResource>()));
+        return builder.WithEnvironment(name, new StackOutputReference(construct.Resource.Construct.StackUniqueId() + outputName, construct.Resource.Parent.SelectParentResource<IStackResource>()));
     }
 
     private static string GetResourceType<T>(IResourceWithConstruct constructResource)
