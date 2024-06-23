@@ -12,10 +12,10 @@ namespace Aspire.Dashboard.Configuration;
 public sealed class DashboardOptions
 {
     public string? ApplicationName { get; set; }
-    public OtlpOptions Otlp { get; set; } = new OtlpOptions();
-    public FrontendOptions Frontend { get; set; } = new FrontendOptions();
-    public ResourceServiceClientOptions ResourceServiceClient { get; set; } = new ResourceServiceClientOptions();
-    public TelemetryLimitOptions TelemetryLimits { get; set; } = new TelemetryLimitOptions();
+    public OtlpOptions Otlp { get; set; } = new();
+    public FrontendOptions Frontend { get; set; } = new();
+    public ResourceServiceClientOptions ResourceServiceClient { get; set; } = new();
+    public TelemetryLimitOptions TelemetryLimits { get; set; } = new();
 }
 
 // Don't set values after validating/parsing options.
@@ -26,7 +26,7 @@ public sealed class ResourceServiceClientOptions
 
     public string? Url { get; set; }
     public ResourceClientAuthMode? AuthMode { get; set; }
-    public ResourceServiceClientCertificateOptions ClientCertificates { get; set; } = new ResourceServiceClientCertificateOptions();
+    public ResourceServiceClientCertificateOptions ClientCertificates { get; set; } = new();
     public string? ApiKey { get; set; }
 
     public Uri? GetUri() => _parsedUrl;
@@ -131,7 +131,7 @@ public sealed class FrontendOptions
     public string? EndpointUrls { get; set; }
     public FrontendAuthMode? AuthMode { get; set; }
     public string? BrowserToken { get; set; }
-    public OpenIdConnectOptions OpenIdConnect { get; set; } = new OpenIdConnectOptions();
+    public OpenIdConnectOptions OpenIdConnect { get; set; } = new();
 
     public byte[]? GetBrowserTokenBytes() => _browserTokenBytes;
 
