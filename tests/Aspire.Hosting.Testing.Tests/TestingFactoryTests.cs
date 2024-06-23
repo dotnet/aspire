@@ -42,6 +42,9 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
     [RequiresDocker]
     public async Task HttpClientGetTest()
     {
+        var rns = _app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceAsync("mywebapp1");
+
         var httpClient = _app.CreateHttpClientWithResilience("mywebapp1");
         var result1 = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
         Assert.NotNull(result1);
