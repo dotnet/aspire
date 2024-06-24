@@ -38,8 +38,14 @@ public static class PythonProjectResourceBuilderExtensions
     /// your Python project.
     /// </remarks>
     public static IResourceBuilder<PythonProjectResource> AddPythonProject(
-        this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath, string virtualEnvironmentPath = ".venv", params string[] scriptArgs)
+        this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath,
+        string? virtualEnvironmentPath = null, params string[] scriptArgs)
     {
+        if(virtualEnvironmentPath == null)
+        {
+            virtualEnvironmentPath = ".venv";
+        }
+
         projectDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectDirectory));
         var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
             ? virtualEnvironmentPath
