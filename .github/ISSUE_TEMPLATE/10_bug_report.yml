@@ -61,6 +61,7 @@ body:
       label: Anything else?
       description: |
         - ASP.NET Core version:
+        - .NET Aspire version (e.g. package versions): 
         - The IDE (VS / VS Code / Rider / Other) you're running on, and its version (and any extension versions):
 
         Links? References? Anything that will give us more context about the issue you are encountering!
