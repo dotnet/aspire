@@ -42,8 +42,9 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
     [RequiresDocker]
     public async Task HttpClientGetTest()
     {
+        // Wait for resource to start.
         var rns = _app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync("mywebapp1");
+        await rns.WaitForResourceAsync("mywebapp1").WaitAsync(TimeSpan.FromSeconds(60));
 
         var httpClient = _app.CreateHttpClientWithResilience("mywebapp1");
         var result1 = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
@@ -66,6 +67,10 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
         var config = _app.Services.GetRequiredService<IConfiguration>();
         var profileName = config["AppHost:DefaultLaunchProfileName"];
         Assert.Equal("https", profileName);
+
+        // Wait for resource to start.
+        var rns = _app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceAsync("mywebapp1").WaitAsync(TimeSpan.FromSeconds(60));
 
         // Explicitly get the HTTPS endpoint - this is only available on the "https" launch profile.
         var httpClient = _app.CreateHttpClientWithResilience("mywebapp1", "https");
