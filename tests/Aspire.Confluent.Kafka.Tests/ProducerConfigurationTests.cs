@@ -104,25 +104,60 @@ public class ProducerConfigurationTests
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void ConfigureProducerBuilder(bool useKeyed)
+    [InlineData(true, true, false, false)]
+    [InlineData(true, true, true, false)]
+    [InlineData(true, true, false, true)]
+    [InlineData(true, false, false, false)]
+    [InlineData(true, false, true, false)]
+    [InlineData(true, false, false, true)]
+    [InlineData(false, true, false, false)]
+    [InlineData(false, true, true, false)]
+    [InlineData(false, true, false, true)]
+    [InlineData(false, false, false, false)]
+    [InlineData(false, false, true, false)]
+    [InlineData(false, false, false, true)]
+    public void ConfigureProducerBuilder(bool useKeyed, bool useConfigureSettings, bool useConfigureBuilder, bool useConfigureBuilderWithServiceProvider)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:messaging", CommonHelpers.TestingEndpoint)
         ]);
 
-        var isCalled = false;
+        bool configureBuilderIsCalled = false, configureSettingsIsCalled = false;
 
-        if (useKeyed)
-        {
-            builder.AddKeyedKafkaProducer<string, string>("messaging", ConfigureBuilder);
-        }
-        else
-        {
-            builder.AddKafkaProducer<string, string>("messaging", ConfigureBuilder);
-        }
+        Action act =
+            (useKeyed, useConfigureSettings, useConfigureBuilder, useConfigureBuilderWithServiceProvider) switch
+            {
+                (true, true, false, false) => () => builder.AddKeyedKafkaProducer<string, string>("messaging",
+                    configureSettings: ConfigureSettings),
+                (true, true, true, false) => () => builder.AddKeyedKafkaProducer<string, string>("messaging",
+                    configureSettings: ConfigureSettings, configureBuilder: ConfigureBuilder),
+                (true, true, false, true) => () => builder.AddKeyedKafkaProducer<string, string>("messaging",
+                    configureSettings: ConfigureSettings, configureBuilder: ConfigureBuilderWithServiceProvider),
+                (true, false, false, false) => () =>
+                    builder.AddKeyedKafkaProducer<string, string>("messaging"),
+                (true, false, true, false) => () =>
+                    builder.AddKeyedKafkaProducer<string, string>("messaging", configureBuilder: ConfigureBuilder),
+                (true, false, false, true) => () =>
+                    builder.AddKeyedKafkaProducer<string, string>("messaging",
+                        configureBuilder: ConfigureBuilderWithServiceProvider),
+                (false, true, false, false) => () => builder.AddKafkaProducer<string, string>("messaging",
+                    configureSettings: ConfigureSettings),
+                (false, true, true, false) => () => builder.AddKafkaProducer<string, string>("messaging",
+                    configureSettings: ConfigureSettings, configureBuilder: ConfigureBuilder),
+                (false, true, false, true) => () => builder.AddKafkaProducer<string, string>("messaging",
+                    configureSettings: ConfigureSettings, configureBuilder: ConfigureBuilderWithServiceProvider),
+                (false, false, false, false) => () =>
+                    builder.AddKafkaProducer<string, string>("messaging"),
+                (false, false, true, false) => () =>
+                    builder.AddKafkaProducer<string, string>("messaging", configureBuilder: ConfigureBuilder),
+                (false, false, false, true) => () =>
+                    builder.AddKafkaProducer<string, string>("messaging",
+                        configureBuilder: ConfigureBuilderWithServiceProvider),
+                _ => throw new InvalidOperationException()
+            };
+
+        act();
 
         using var host = builder.Build();
         var connectionFactory = useKeyed ?
@@ -131,52 +166,33 @@ public class ProducerConfigurationTests
 
         var config = GetProducerConfig(connectionFactory)!;
 
-        Assert.True(isCalled);
+        if (useConfigureBuilder || useConfigureBuilderWithServiceProvider)
+        {
+            Assert.True(configureBuilderIsCalled);
+        }
+
+        if (useConfigureSettings)
+        {
+            Assert.True(configureSettingsIsCalled);
+        }
+
         Assert.Equal(CommonHelpers.TestingEndpoint, config.BootstrapServers);
         return;
 
         void ConfigureBuilder(ProducerBuilder<string, string> _)
         {
-            isCalled = true;
-        }
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void ConfigureProducerBuilderWithServiceProvider(bool useKeyed)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:messaging", CommonHelpers.TestingEndpoint)
-        ]);
-
-        var isCalled = false;
-
-        if (useKeyed)
-        {
-            builder.AddKeyedKafkaProducer<string, string>("messaging", ConfigureBuilder);
-        }
-        else
-        {
-            builder.AddKafkaProducer<string, string>("messaging", ConfigureBuilder);
+            configureBuilderIsCalled = true;
         }
 
-        using var host = builder.Build();
-        var connectionFactory = useKeyed ?
-            host.Services.GetRequiredKeyedService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value, "messaging") :
-            host.Services.GetRequiredService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value);
-
-        var config = GetProducerConfig(connectionFactory)!;
-
-        Assert.True(isCalled);
-        Assert.Equal(CommonHelpers.TestingEndpoint, config.BootstrapServers);
-        return;
-
-        void ConfigureBuilder(IServiceProvider provider, ProducerBuilder<string, string> _)
+        void ConfigureBuilderWithServiceProvider(IServiceProvider provider, ProducerBuilder<string, string> _)
         {
             var __ = provider.GetRequiredService<IConfiguration>();
-            isCalled = true;
+            configureBuilderIsCalled = true;
+        }
+
+        void ConfigureSettings(KafkaProducerSettings _)
+        {
+            configureSettingsIsCalled = true;
         }
     }
 

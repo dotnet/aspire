@@ -111,9 +111,20 @@ public class ConsumerConfigurationTests
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void ConfigureConsumerBuilder(bool useKeyed)
+    [InlineData(true, true, false, false)]
+    [InlineData(true, true, true, false)]
+    [InlineData(true, true, false, true)]
+    [InlineData(true, false, false, false)]
+    [InlineData(true, false, true, false)]
+    [InlineData(true, false, false, true)]
+    [InlineData(false, true, false, false)]
+    [InlineData(false, true, true, false)]
+    [InlineData(false, true, false, true)]
+    [InlineData(false, false, false, false)]
+    [InlineData(false, false, true, false)]
+    [InlineData(false, false, false, true)]
+
+    public void ConfigureConsumerBuilder(bool useKeyed, bool useConfigureSettings, bool useConfigureBuilder, bool useConfigureBuilderWithServiceProvider)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
@@ -123,16 +134,41 @@ public class ConsumerConfigurationTests
             new KeyValuePair<string, string?>(ProducerConformanceTests.CreateConfigKey("Aspire:Confluent:Kafka:Consumer", key, "Config:GroupId"), "unused")
         ]);
 
-        var isCalled = false;
+        bool configureBuilderIsCalled = false, configureSettingsIsCalled = false;
 
-        if (useKeyed)
-        {
-            builder.AddKeyedKafkaConsumer<string, string>("messaging", ConfigureBuilder);
-        }
-        else
-        {
-            builder.AddKafkaConsumer<string, string>("messaging", ConfigureBuilder);
-        }
+        Action act =
+            (useKeyed, useConfigureSettings, useConfigureBuilder, useConfigureBuilderWithServiceProvider) switch
+            {
+                (true, true, false, false) => () => builder.AddKeyedKafkaConsumer<string, string>("messaging",
+                    configureSettings: ConfigureSettings),
+                (true, true, true, false) => () => builder.AddKeyedKafkaConsumer<string, string>("messaging",
+                    configureSettings: ConfigureSettings, configureBuilder: ConfigureBuilder),
+                (true, true, false, true) => () => builder.AddKeyedKafkaConsumer<string, string>("messaging",
+                    configureSettings: ConfigureSettings, configureBuilder: ConfigureBuilderWithServiceProvider),
+                (true, false, false, false) => () =>
+                    builder.AddKeyedKafkaConsumer<string, string>("messaging"),
+                (true, false, true, false) => () =>
+                    builder.AddKeyedKafkaConsumer<string, string>("messaging", configureBuilder: ConfigureBuilder),
+                (true, false, false, true) => () =>
+                    builder.AddKeyedKafkaConsumer<string, string>("messaging",
+                        configureBuilder: ConfigureBuilderWithServiceProvider),
+                (false, true, false, false) => () => builder.AddKafkaConsumer<string, string>("messaging",
+                    configureSettings: ConfigureSettings),
+                (false, true, true, false) => () => builder.AddKafkaConsumer<string, string>("messaging",
+                    configureSettings: ConfigureSettings, configureBuilder: ConfigureBuilder),
+                (false, true, false, true) => () => builder.AddKafkaConsumer<string, string>("messaging",
+                    configureSettings: ConfigureSettings, configureBuilder: ConfigureBuilderWithServiceProvider),
+                (false, false, false, false) => () =>
+                    builder.AddKafkaConsumer<string, string>("messaging"),
+                (false, false, true, false) => () =>
+                    builder.AddKafkaConsumer<string, string>("messaging", configureBuilder: ConfigureBuilder),
+                (false, false, false, true) => () =>
+                    builder.AddKafkaConsumer<string, string>("messaging",
+                        configureBuilder: ConfigureBuilderWithServiceProvider),
+                _ => throw new InvalidOperationException()
+            };
+
+        act();
 
         using var host = builder.Build();
         var connectionFactory = useKeyed
@@ -141,55 +177,33 @@ public class ConsumerConfigurationTests
 
         var config = GetConsumerConfig(connectionFactory)!;
 
-        Assert.True(isCalled);
+        if (useConfigureBuilder || useConfigureBuilderWithServiceProvider)
+        {
+            Assert.True(configureBuilderIsCalled);
+        }
+
+        if (useConfigureSettings)
+        {
+            Assert.True(configureSettingsIsCalled);
+        }
+
         Assert.Equal(CommonHelpers.TestingEndpoint, config.BootstrapServers);
         return;
 
         void ConfigureBuilder(ConsumerBuilder<string, string> _)
         {
-            isCalled = true;
-        }
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void ConfigureConsumerBuilderWithServiceProvider(bool useKeyed)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-
-        var key = useKeyed ? "messaging" : null;
-        builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:messaging", CommonHelpers.TestingEndpoint),
-            new KeyValuePair<string, string?>(ProducerConformanceTests.CreateConfigKey("Aspire:Confluent:Kafka:Consumer", key, "Config:GroupId"), "unused")
-        ]);
-
-        var isCalled = false;
-
-        if (useKeyed)
-        {
-            builder.AddKeyedKafkaConsumer<string, string>("messaging", ConfigureBuilder);
-        }
-        else
-        {
-            builder.AddKafkaConsumer<string, string>("messaging", ConfigureBuilder);
+            configureBuilderIsCalled = true;
         }
 
-        using var host = builder.Build();
-        var connectionFactory = useKeyed
-            ? host.Services.GetRequiredKeyedService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value, "messaging")
-            : host.Services.GetRequiredService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value);
-
-        var config = GetConsumerConfig(connectionFactory)!;
-
-        Assert.True(isCalled);
-        Assert.Equal(CommonHelpers.TestingEndpoint, config.BootstrapServers);
-        return;
-
-        void ConfigureBuilder(IServiceProvider provider, ConsumerBuilder<string, string> _)
+        void ConfigureBuilderWithServiceProvider(IServiceProvider provider, ConsumerBuilder<string, string> _)
         {
             var __ = provider.GetRequiredService<IConfiguration>();
-            isCalled = true;
+            configureBuilderIsCalled = true;
+        }
+
+        void ConfigureSettings(KafkaConsumerSettings _)
+        {
+            configureSettingsIsCalled = true;
         }
     }
 
