@@ -7,14 +7,33 @@ namespace Aspire.Dashboard.Model.Otlp;
 
 public static class ApplicationsSelectHelpers
 {
-    public static SelectViewModel<ResourceTypeDetails> GetApplication(this List<SelectViewModel<ResourceTypeDetails>> applications, string? name, SelectViewModel<ResourceTypeDetails> fallback)
+    public static SelectViewModel<ResourceTypeDetails> GetApplication(this List<SelectViewModel<ResourceTypeDetails>> applications, ILogger logger, string? name, SelectViewModel<ResourceTypeDetails> fallback)
     {
         if (name is null)
         {
             return fallback;
         }
 
-        return applications.SingleOrDefault(e => e.Id?.Type is OtlpApplicationType.ReplicaInstance or OtlpApplicationType.Singleton && string.Equals(name, e.Name, StringComparisons.ResourceName)) ?? fallback;
+        var matches = applications.Where(e => e.Id?.Type is OtlpApplicationType.ReplicaInstance or OtlpApplicationType.Singleton && string.Equals(name, e.Name, StringComparisons.ResourceName)).ToList();
+        if (matches.Count == 1)
+        {
+            return matches[0];
+        }
+        else if (matches.Count == 0)
+        {
+            return fallback;
+        }
+        else
+        {
+            // There are multiple matches. Log as much information as possible about applications.
+            logger.LogWarning(
+                $"Multiple matches found when getting application '{name}'. " +
+                $"Available applications: {string.Join(Environment.NewLine, applications)} " +
+                $"Matched applications: {string.Join(Environment.NewLine, matches)}");
+
+            // Return first match to not break app. Make the UI resilient to unexpectedly bad data.
+            return matches[0];
+        }
     }
 
     public static List<SelectViewModel<ResourceTypeDetails>> CreateApplications(List<OtlpApplication> applications)
@@ -32,7 +51,7 @@ public static class ApplicationsSelectHelpers
                 selectViewModels.Add(new SelectViewModel<ResourceTypeDetails>
                 {
                     Id = ResourceTypeDetails.CreateSingleton(app.InstanceId),
-                    Name = app.ApplicationName
+                    Name = applicationName
                 });
 
                 continue;
