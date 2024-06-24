@@ -92,12 +92,12 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
                     pathSegments.Enqueue(segment);
                 }
 
-                GenerateComponent(rootNode, type, pathSegments);
+                GeneratePathSegment(rootNode, type, pathSegments);
             }
         }
     }
 
-    private bool GenerateComponent(JsonObject currentNode, TypeSpec type, Queue<string> pathSegments)
+    private bool GeneratePathSegment(JsonObject currentNode, TypeSpec type, Queue<string> pathSegments)
     {
         if (pathSegments.Count == 0)
         {
@@ -132,7 +132,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             ownsComponent = true;
         }
 
-        var hasGenerated = GenerateComponent(componentNode, type, pathSegments);
+        var hasGenerated = GeneratePathSegment(componentNode, type, pathSegments);
         if (!hasGenerated)
         {
             RestoreBackup(backupTypeNode, "type", currentNode);
