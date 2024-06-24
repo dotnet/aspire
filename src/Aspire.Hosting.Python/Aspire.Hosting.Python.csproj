@@ -5,6 +5,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting python</PackageTags>
     <Description>Python support for .NET Aspire.</Description>
+    <MinCodeCoverage>80</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>
