@@ -16,19 +16,27 @@ internal sealed class VirtualEnvironment(string virtualEnvironmentPath)
     /// <returns>Returns the path to the executable if it exists in the virtual environment.</returns>
     public string? GetExecutable(string name)
     {
-        string[] allowedExtensions = [".exe", ".cmd", ".bat", ""];
-        string[] executableDirectories = ["bin", "Scripts"];
-
-        foreach (var executableDirectory in executableDirectories)
+        if(OperatingSystem.IsWindows())
         {
-            foreach (var extension in allowedExtensions)
-            {
-                var executablePath = Path.Join(virtualEnvironmentPath, executableDirectory, name + extension);
+            string[] allowedExtensions = [".exe", ".cmd", ".bat"];
 
-                if (File.Exists(executablePath))
+            foreach(var allowedExtension in allowedExtensions)
+            {
+                string executablePath = Path.Join(virtualEnvironmentPath, "Scripts", name + allowedExtension);
+
+                if(File.Exists(executablePath))
                 {
                     return executablePath;
                 }
+            }
+        }
+        else
+        {
+            var executablePath = Path.Join(virtualEnvironmentPath, "bin", name);
+
+            if (File.Exists(executablePath))
+            {
+                return executablePath;
             }
         }
 
