@@ -15,6 +15,16 @@ public static class PythonProjectResourceBuilderExtensions
     /// <summary>
     /// Adds a python application with a virtual environment to the application model.
     /// </summary>
+    /// <example>
+    /// Use in application host
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddPythonProject("python-project", "PythonProject", "main.py");
+    /// 
+    /// builder.Build().Run(); 
+    /// </code>
+    /// </example>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="projectDirectory">The path to the directory containing the python project files.</param>
