@@ -491,7 +491,27 @@ public partial class GeneratorTests
 
         var schema = GenerateSchemaFromCode(source, []);
 
-        Assert.Contains("FormatSettings", schema);
+        AssertIsJson(schema,
+            """
+            {
+              "type": "object",
+              "properties": {
+                "TestComponent": {
+                  "type": "object",
+                  "properties": {
+                    "FormatSettings": {
+                      "type": "object",
+                      "properties": {
+                        "WriteIndented": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """);
     }
 
     [Fact]
@@ -510,8 +530,31 @@ public partial class GeneratorTests
 
         var schema = GenerateSchemaFromCode(source, []);
 
-        Assert.Contains("CollectionOfInt", schema);
-        Assert.Contains("DictionaryOfStringToInt", schema);
+        AssertIsJson(schema,
+            """
+            {
+              "type": "object",
+              "properties": {
+                "TestComponent": {
+                  "type": "object",
+                  "properties": {
+                    "CollectionOfInt": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      }
+                    },
+                    "DictionaryOfStringToInt": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """);
     }
 
     [Fact]
