@@ -17,6 +17,9 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Binder.SourceGeneration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Xunit;
 
@@ -514,24 +517,16 @@ public partial class GeneratorTests
     [Fact]
     public void ShouldAllowFreeFormatViaRecursiveSubtree()
     {
-        // Example appsettings.json:
-        // {
-        //   "TestComponent": {
-        //     "TestProperty": {
-        //       "UserName": "john.doe@email.com",
-        //       "Password": "P@ssw0rd!",
-        //       "Options": {
-        //         "RequireSSL": "false"
-        //       }
-        //     }
-        //   }
-        // }
-
         var source =
             """
+            using System;
             using System.ComponentModel;
             using System.Diagnostics;
             using System.Globalization;
+            using Microsoft.Extensions.Hosting;
+            using Microsoft.Extensions.DependencyInjection;
+            using Microsoft.Extensions.Configuration;
+            using Microsoft.Extensions.Options;
 
             [assembly: Aspire.ConfigurationSchema("TestComponent", typeof(TestSettings))]
 
@@ -574,11 +569,85 @@ public partial class GeneratorTests
                     return value is string stringValue ? new TreeOfString(stringValue) : base.ConvertFrom(context, culture, value);
                 }
             }
+
+            public static class AppUsageDemo
+            {
+                public static void Run()
+                {
+                    var builder = Host.CreateApplicationBuilder();
+                    
+                    builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                    {
+                        ["TestComponent:TestSettings:TestProperty1:UserName"] = "john.doe@email.com",
+                        ["TestComponent:TestSettings:TestProperty1:Password"] = "P@ssw0rd!",
+                        ["TestComponent:TestSettings:TestProperty1:Options:RequireSSL"] = "false",
+                        ["TestComponent:TestSettings:TestProperty2:UserName"] = "jane.doe@email.com",
+                        ["TestComponent:TestSettings:TestProperty2:Auth:Token:Key"] = "39B4D4E4-AC46-471D-A89A-EBEAB4CA1697",
+                        ["TestComponent:TestSettings:TestProperty2:Options:UseSingleSignOn"] = "true"
+                    });
+                    
+                    builder.Services.AddOptions<TestSettings>().BindConfiguration("TestComponent:TestSettings");
+                    
+                    using var host = builder.Build();
+                    
+                    var optionsMonitor = host.Services.GetRequiredService<IOptionsMonitor<TestSettings>>();
+                    var testSettings = optionsMonitor.CurrentValue;
+                    
+                    Console.WriteLine(nameof(TestSettings.TestProperty1));
+                    Print(testSettings.TestProperty1, 1);
+                    Console.WriteLine(nameof(TestSettings.TestProperty2));
+                    Print(testSettings.TestProperty2, 1);
+                    
+                    /*
+                    When run, prints the following to the console:
+                    TestProperty1
+                      Options
+                        RequireSSL = false
+                      Password = P@ssw0rd!
+                      UserName = john.doe@email.com
+                    TestProperty2
+                      Auth
+                        Token
+                          Key = 39B4D4E4-AC46-471D-A89A-EBEAB4CA1697
+                      Options
+                        UseSingleSignOn = true
+                      UserName = jane.doe@email.com        
+                    */
+                }
+                
+                private static void Print(IDictionary<string, TreeOfString> source, int depth = 0)
+                {
+                    var indent = new string(' ', depth * 2);
+                
+                    foreach ((string key, TreeOfString subTree) in source)
+                    {
+                        if (!string.IsNullOrEmpty(subTree.Value))
+                        {
+                            Console.WriteLine($"{indent}{key} = {subTree.Value}");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"{indent}{key}");
+                            Print(subTree, depth + 1);
+                        }
+                    }
+                }
+            }
             """;
 
         ImmutableArray<MetadataReference> references = [
             MetadataReference.CreateFromFile(typeof(TypeConverter).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(TypeConverterAttribute).Assembly.Location)
+            MetadataReference.CreateFromFile(typeof(TypeConverterAttribute).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(Host).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(IHost).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(IServiceCollection).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(IServiceProvider).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(IConfigurationBuilder).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(ConfigurationManager).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(IOptionsMonitor<>).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(OptionsBuilderConfigurationExtensions).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(BinderOptions).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(Console).Assembly.Location)
         ];
         var schema = GenerateSchemaFromCode(source, references);
 
