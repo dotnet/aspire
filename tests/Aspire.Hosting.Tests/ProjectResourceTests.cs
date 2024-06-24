@@ -110,6 +110,11 @@ public class ProjectResourceTests
             },
             env =>
             {
+                Assert.Equal("OTEL_METRICS_EXEMPLAR_FILTER", env.Key);
+                Assert.Equal("trace_based", env.Value);
+            },
+            env =>
+            {
                 Assert.Equal("DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION", env.Key);
                 Assert.Equal("true", env.Value);
             },
