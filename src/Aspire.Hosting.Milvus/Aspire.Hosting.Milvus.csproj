@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <PackageTags>aspire hosting milvus database vector search</PackageTags>
+    <Description>Milvus vector database support for .NET Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)Milvus_256x.png</PackageIconFullPath>
+    <!-- Disable package validation as this package hasn't shipped yet. -->
+    <EnablePackageValidation>false</EnablePackageValidation>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>17</MinCodeCoverage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
+    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+  </ItemGroup>
+
+</Project>

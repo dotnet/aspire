@@ -65,7 +65,7 @@ public class TestProgram : IDisposable
         {
             // Relative to this project so that it doesn't changed based on
             // where this code is referenced from.
-            var path = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\nodeapp");
+            var path = Path.Combine(Projects.TestProject_AppHost.ProjectPath, "..", "nodeapp");
             var scriptPath = Path.Combine(path, "app.js");
 
             NodeAppBuilder = AppBuilder.AddNodeApp("nodeapp", scriptPath)
@@ -104,6 +104,11 @@ public class TestProgram : IDisposable
             {
                 var garnet = AppBuilder.AddGarnet("garnet");
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(garnet);
+            }
+            if (!resourcesToSkip.HasFlag(TestResourceNames.valkey))
+            {
+                var valkey = AppBuilder.AddValkey("valkey");
+                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(valkey);
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
             {
@@ -146,6 +151,16 @@ public class TestProgram : IDisposable
             {
                 var eventHub = AppBuilder.AddAzureEventHubs("eventhubns").RunAsEmulator().AddEventHub("hub");
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(eventHub);
+            }
+
+            if (!resourcesToSkip.HasFlag(TestResourceNames.milvus))
+            {
+                builder.Configuration["Parameters:milvusApiKey"] = "root:Milvus";
+
+                var milvusApiKey = builder.AddParameter("milvusApiKey");
+
+                var milvus = AppBuilder.AddMilvus("milvus", milvusApiKey);
+                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(milvus);
             }
         }
 
