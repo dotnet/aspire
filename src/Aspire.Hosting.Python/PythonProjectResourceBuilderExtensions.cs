@@ -14,13 +14,6 @@ public static class PythonProjectResourceBuilderExtensions
 {
     /// <summary>
     /// Adds a python application with a virtual environment to the application model.
-    /// The Python project should have a virtual environment set up in the project directory under the name ".venv".
-    /// <para>
-    /// The python script in the project is automatically instrumented with opentelemetry when the virtual environment
-    /// contains the opentelemetry-instrument executable. You can get this by adding the opentelemtry-distro package
-    /// to your python project. In addition to the opentelemetry-distro package, you need to add the opentelemetry-exporter-otlp
-    /// for the traces, logs, and metrics to be exported to the Aspire observability platform.
-    /// </para>
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the resource.</param>
@@ -29,6 +22,11 @@ public static class PythonProjectResourceBuilderExtensions
     /// <param name="virtualEnvironmentPath">Path to the virtual environment.</param>
     /// <param name="scriptArgs">The arguments for the script.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// To receive traces, logs, and metrics from the python project in the dashboard, the project must be instrumented with OpenTelemetry.
+    /// You can instrument your project by adding the <c>opentelemetry-distro</c>, and <c>opentelemetry-exporter-otlp</c> to
+    /// your Python project.
+    /// </remarks>
     public static IResourceBuilder<PythonProjectResource> AddPythonProject(
         this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath, string virtualEnvironmentPath = ".venv", params string[] scriptArgs)
     {
