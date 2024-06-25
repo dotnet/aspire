@@ -6,7 +6,6 @@
     <PackageTags>aspire hosting python</PackageTags>
     <Description>Python support for .NET Aspire.</Description>
     <MinCodeCoverage>80</MinCodeCoverage>
-    <UsePublicApiAnalyzers>true</UsePublicApiAnalyzers>
   </PropertyGroup>
 
   <ItemGroup>
