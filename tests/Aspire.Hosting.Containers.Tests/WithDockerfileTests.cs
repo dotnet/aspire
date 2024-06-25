@@ -9,8 +9,6 @@ using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Polly;
-using Polly.Timeout;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -18,10 +16,8 @@ namespace Aspire.Hosting.Containers.Tests;
 
 public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 {
-    // Currently we can only run this locally because the CI agents don't have buildkit support enabled.
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4613")]
     public async Task WithBuildSecretPopulatesSecretFilesCorrectly()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -44,12 +40,14 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
         await app.StartAsync();
 
+        await WaitForResourceAsync(app, "testcontainer", "Running");
+
         using var client = app.CreateHttpClient("testcontainer", "http");
 
-        var envSecretMessage = await client.GetStringWithRetryAsync("/ENV_SECRET.txt");
+        var envSecretMessage = await client.GetStringAsync("/ENV_SECRET.txt");
         Assert.Equal("open sesame from env", envSecretMessage);
 
-        var fileSecretMessage = await client.GetStringWithRetryAsync("/FILE_SECRET.txt");
+        var fileSecretMessage = await client.GetStringAsync("/FILE_SECRET.txt");
         Assert.Equal("open sesame from file", fileSecretMessage);
 
         await app.StopAsync();
@@ -57,7 +55,6 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4613")]
     public async Task WithDockerfileLaunchesContainerSuccessfully()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -72,9 +69,11 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
         await app.StartAsync();
 
+        await WaitForResourceAsync(app, "testcontainer", "Running");
+
         using var client = app.CreateHttpClient("testcontainer", "http");
 
-        var message = await client.GetStringWithRetryAsync("/aspire.html"); // Proves the container built, ran, and contains customizations!
+        var message = await client.GetStringAsync("/aspire.html");
 
         Assert.Equal($"{DefaultMessage}\n", message);
 
@@ -90,7 +89,6 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4613")]
     public async Task AddDockerfileLaunchesContainerSuccessfully()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -104,9 +102,10 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
         await app.StartAsync();
 
-        using var client = app.CreateHttpClient("testcontainer", "http");
+        await WaitForResourceAsync(app, "testcontainer", "Running");
 
-        var message = await client.GetStringWithRetryAsync("/aspire.html"); // Proves the container built, ran, and contains customizations!
+        using var client = app.CreateHttpClient("testcontainer", "http");
+        var message = await client.GetStringAsync("/aspire.html");
 
         Assert.Equal($"{DefaultMessage}\n", message);
 
@@ -401,7 +400,6 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4613")]
     public async Task WithDockerfileWithParameterLaunchesContainerSuccessfully()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -424,9 +422,11 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
         await app.StartAsync();
 
+        await WaitForResourceAsync(app, "testcontainer", "Running");
+
         using var client = app.CreateHttpClient("testcontainer", "http");
 
-        var message = await client.GetStringWithRetryAsync("/aspire.html"); // Proves the container built, ran, and contains customizations!
+        var message = await client.GetStringAsync("/aspire.html");
 
         Assert.Equal($"hello\n", message);
 
@@ -471,7 +471,6 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4613")]
     public async Task AddDockerfileWithParameterLaunchesContainerSuccessfully()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -493,9 +492,11 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
         await app.StartAsync();
 
+        await WaitForResourceAsync(app, "testcontainer", "Running");
+
         using var client = app.CreateHttpClient("testcontainer", "http");
 
-        var message = await client.GetStringWithRetryAsync("/aspire.html"); // Proves the container built, ran, and contains customizations!
+        var message = await client.GetStringAsync("/aspire.html");
 
         Assert.Equal($"hello\n", message);
 
@@ -812,6 +813,12 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         return (tempContextPath, tempDockerfilePath);
     }
 
+    private static async Task WaitForResourceAsync(DistributedApplication app, string resourceName, string resourceState, TimeSpan? timeout = null)
+    {
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceAsync(resourceName, resourceState).WaitAsync(timeout ?? TimeSpan.FromMinutes(3));
+    }
+
     private const string DefaultMessage = "aspire!";
 
     private const string HelloWorldDockerfile = $$"""
@@ -839,29 +846,4 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         RUN --mount=type=secret,id=FILE_SECRET cp /run/secrets/FILE_SECRET /app/static/FILE_SECRET.txt
         RUN --mount=type=secret,id=ENV_SECRET cp /run/secrets/ENV_SECRET /app/static/ENV_SECRET.txt
         """;
-}
-
-internal static class RetryExtensions
-{
-    private static ResiliencePipeline? s_pipeline;
-
-    public static async Task<string> GetStringWithRetryAsync(this HttpClient client, string uri, CancellationToken cancellationToken = default)
-    {
-        if (s_pipeline is null)
-        {
-            s_pipeline = new ResiliencePipelineBuilder()
-                .AddRetry(new Polly.Retry.RetryStrategyOptions()
-                {
-                    ShouldHandle = new PredicateBuilder()
-                    .Handle<TimeoutRejectedException>()
-                })
-                .AddTimeout(TimeSpan.FromSeconds(120))
-                .Build();
-        }
-
-        return await s_pipeline.ExecuteAsync(
-            async ct => await client.GetStringAsync(uri, ct),
-            cancellationToken
-            );
-    }
 }

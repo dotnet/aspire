@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Configuration;
@@ -9,14 +10,22 @@ namespace Aspire.Dashboard.Configuration;
 public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<DashboardOptions>
 {
     private readonly IConfiguration _configuration;
+    private readonly ILogger _logger;
 
-    public PostConfigureDashboardOptions(IConfiguration configuration)
+    public PostConfigureDashboardOptions(IConfiguration configuration) : this(configuration, NullLogger<PostConfigureDashboardOptions>.Instance)
+    {
+    }
+
+    public PostConfigureDashboardOptions(IConfiguration configuration, ILogger<PostConfigureDashboardOptions> logger)
     {
         _configuration = configuration;
+        _logger = logger;
     }
 
     public void PostConfigure(string? name, DashboardOptions options)
     {
+        _logger.LogDebug($"PostConfigure {nameof(DashboardOptions)} with name '{name}'.");
+
         // Copy aliased config values to the strongly typed options.
         if (_configuration[DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] is { Length: > 0 } otlpGrpcUrl)
         {

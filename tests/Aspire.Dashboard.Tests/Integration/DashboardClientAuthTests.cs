@@ -23,10 +23,12 @@ public sealed class DashboardClientAuthTests
 {
     private const string ApiKeyHeaderName = "x-resource-service-api-key";
 
-    [Fact]
-    public async Task ConnectsToResourceService_Unsecured()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ConnectsToResourceService_Unsecured(bool useHttps)
     {
-        await using var server = await CreateResourceServiceServerAsync();
+        await using var server = await CreateResourceServiceServerAsync(useHttps);
         await using var client = await CreateDashboardClientAsync(server.Url, authMode: ResourceClientAuthMode.Unsecured);
 
         var call = server.Calls.ApplicationInformationCalls.Single();
@@ -36,10 +38,12 @@ public sealed class DashboardClientAuthTests
         Assert.Null(call.RequestHeaders.Get(ApiKeyHeaderName));
     }
 
-    [Fact]
-    public async Task ConnectsToResourceService_ApiKey()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ConnectsToResourceService_ApiKey(bool useHttps)
     {
-        await using var server = await CreateResourceServiceServerAsync();
+        await using var server = await CreateResourceServiceServerAsync(useHttps);
         await using var client = await CreateDashboardClientAsync(server.Url, authMode: ResourceClientAuthMode.ApiKey, configureOptions: options => options.ResourceServiceClient.ApiKey = "TestApiKey!");
 
         var call = server.Calls.ApplicationInformationCalls.Single();
@@ -49,7 +53,7 @@ public sealed class DashboardClientAuthTests
         Assert.Equal("TestApiKey!", call.RequestHeaders.GetValue(ApiKeyHeaderName));
     }
 
-    private static async Task<ResourceServiceServer> CreateResourceServiceServerAsync(Action<TestCalls>? configureCalls = null)
+    private static async Task<ResourceServiceServer> CreateResourceServiceServerAsync(bool useHttps, Action<TestCalls>? configureCalls = null)
     {
         var serverAppBuilder = WebApplication.CreateSlimBuilder();
 
@@ -70,16 +74,21 @@ public sealed class DashboardClientAuthTests
 
         return new(serverApp, testCalls);
 
-        static void ConfigureKestrel(KestrelServerOptions kestrelOptions)
+        void ConfigureKestrel(KestrelServerOptions kestrelOptions)
         {
             // Listen on a random port.
             kestrelOptions.Listen(IPAddress.Loopback, port: 0, ConfigureListen);
 
-            static void ConfigureListen(ListenOptions options)
+            void ConfigureListen(ListenOptions options)
             {
                 // Force HTTP/2 for gRPC, so that it works over non-TLS connections
                 // which cannot negotiate between HTTP/1.1 and HTTP/2.
                 options.Protocols = HttpProtocols.Http2;
+
+                if (useHttps)
+                {
+                    options.UseHttps();
+                }
             }
         }
     }
@@ -105,7 +114,8 @@ public sealed class DashboardClientAuthTests
         DashboardClient client = new(
             loggerFactory: NullLoggerFactory.Instance,
             configuration: new ConfigurationManager(),
-            dashboardOptions: Options.Create(options));
+            dashboardOptions: Options.Create(options),
+            configureHttpHandler: handler => handler.SslOptions.RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true);
 
         var iClient = (IDashboardClient)client;
 

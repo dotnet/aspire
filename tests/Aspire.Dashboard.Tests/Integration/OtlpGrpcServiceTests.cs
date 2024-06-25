@@ -166,7 +166,8 @@ public class OtlpGrpcServiceTests
                 }
             }
         };
-        File.WriteAllText(configPath, configJson.ToString());
+        _testOutputHelper.WriteLine("Writing original JSON file.");
+        await File.WriteAllTextAsync(configPath, configJson.ToString());
 
         var testSink = new TestSink();
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
@@ -178,6 +179,7 @@ public class OtlpGrpcServiceTests
         var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var monitorRegistration = app.DashboardOptionsMonitor.OnChange((o, n) =>
         {
+            _testOutputHelper.WriteLine("Options changed.");
             tcs.TrySetResult();
         });
 
@@ -207,9 +209,14 @@ public class OtlpGrpcServiceTests
                 }
             }
         };
-        File.WriteAllText(configPath, configJson.ToString());
 
+        _testOutputHelper.WriteLine("Writing new JSON file.");
+        await File.WriteAllTextAsync(configPath, configJson.ToString());
+
+        _testOutputHelper.WriteLine("Waiting for options change.");
         await tcs.Task;
+
+        Assert.Equal("Different", app.DashboardOptionsMonitor.CurrentValue.Otlp.PrimaryApiKey);
 
         // Act 2
         var ex = await Assert.ThrowsAsync<RpcException>(() => client.ExportAsync(new ExportLogsServiceRequest(), metadata).ResponseAsync);
