@@ -41,7 +41,7 @@ steps:
         displayName: Install devcerts
 
     - ${{ if eq(parameters.isWindows, 'true') }}:
-      - script: dotnet dev-certs https --check
+      - script: dotnet dev-certs https --verbose
         displayName: Install devcerts
 
     - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
