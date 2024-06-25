@@ -9,13 +9,10 @@ trigger:
     include:
       - '*'
     exclude:
+      - '**.md'
       - eng/Version.Details.xml
       - .github/*
       - docs/*
-      - CODE_OF_CONDUCT.md
-      - CONTRIBUTING.md
-      - README.md
-      - SECURITY.md
       - LICENSE.TXT
       - PATENTS.TXT
       - THIRD-PARTY-NOTICES.TXT
@@ -31,13 +28,10 @@ pr:
     include:
       - '*'
     exclude:
+      - '**.md'
       - eng/Version.Details.xml
       - .github/*
       - docs/*
-      - CODE_OF_CONDUCT.md
-      - CONTRIBUTING.md
-      - README.md
-      - SECURITY.md
       - LICENSE.TXT
       - PATENTS.TXT
       - THIRD-PARTY-NOTICES.TXT
