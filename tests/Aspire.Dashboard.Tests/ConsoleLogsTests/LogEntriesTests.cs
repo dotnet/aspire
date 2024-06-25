@@ -10,7 +10,7 @@ namespace Aspire.Dashboard.Tests.ConsoleLogsTests;
 public class LogEntriesTests
 {
     [Fact]
-    public void InsertSorted_Sametimes_ReturnInOrder()
+    public void InsertSorted_OutOfOrderWithSameTimestamp_ReturnInOrder()
     {
         // Arrange
         var logEntries = new LogEntries();
