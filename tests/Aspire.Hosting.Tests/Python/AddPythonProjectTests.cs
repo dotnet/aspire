@@ -11,6 +11,33 @@ namespace Aspire.Hosting.Tests.Python;
 public class AddPythonProjectTests
 {
     [Fact]
+    public async Task AddPythonProjectProducesDockerfileResourceInManifest()
+    {
+        var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject();
+        _ = pythonExecutable;
+
+        var manifestPath = Path.Combine(projectDirectory, "aspire-manifest.json");
+
+        var builder = TestDistributedApplicationBuilder.Create(options =>
+        {
+            options.ProjectDirectory = Path.GetFullPath(projectDirectory);
+            options.Args = ["--publisher", "manifest", "--output-path", manifestPath];
+        });
+
+        var pyproj = builder.AddPythonProject("pyproj", projectDirectory, scriptName);
+
+        var manifest = await ManifestUtils.GetManifest(pyproj.Resource, manifestDirectory: projectDirectory);
+        var expectedManifest = $$"""
+            {
+              "type": "dockerfile.v0",
+              "path": "Dockerfile",
+              "context": "."
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
     public async Task AddPythonProject_SetsResourcePropertiesCorrectly()
     {
         using var builder = TestDistributedApplicationBuilder.Create();

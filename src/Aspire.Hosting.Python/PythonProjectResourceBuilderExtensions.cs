@@ -15,7 +15,6 @@ public static class PythonProjectResourceBuilderExtensions
     /// <summary>
     /// Adds a python application with a virtual environment to the application model.
     /// </summary>
-    /// </example>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="projectDirectory">The path to the directory containing the python project files.</param>
@@ -57,6 +56,7 @@ public static class PythonProjectResourceBuilderExtensions
     /// 
     /// builder.Build().Run(); 
     /// </code>
+    /// </example>
     public static IResourceBuilder<PythonProjectResource> AddPythonProject(
         this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath,
         string? virtualEnvironmentPath = null, params string[] scriptArgs)
