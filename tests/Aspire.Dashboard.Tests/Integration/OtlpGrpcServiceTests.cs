@@ -216,6 +216,8 @@ public class OtlpGrpcServiceTests
         _testOutputHelper.WriteLine("Waiting for options change.");
         await tcs.Task;
 
+        Assert.Equal("Different", app.DashboardOptionsMonitor.CurrentValue.Otlp.PrimaryApiKey);
+
         // Act 2
         var ex = await Assert.ThrowsAsync<RpcException>(() => client.ExportAsync(new ExportLogsServiceRequest(), metadata).ResponseAsync);
 
