@@ -40,9 +40,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
         await app.StartAsync();
 
-        var runningCts = new CancellationTokenSource(TimeSpan.FromSeconds(180));
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync("testcontainer", "Running", runningCts.Token);
+        await WaitForResourceAsync(app, "testcontainer", "Running");
 
         using var client = app.CreateHttpClient("testcontainer", "http");
 
@@ -71,9 +69,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
         await app.StartAsync();
 
-        var runningCts = new CancellationTokenSource(TimeSpan.FromSeconds(180));
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync("testcontainer", "Running", runningCts.Token);
+        await WaitForResourceAsync(app, "testcontainer", "Running");
 
         using var client = app.CreateHttpClient("testcontainer", "http");
 
@@ -106,9 +102,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
         await app.StartAsync();
 
-        var runningCts = new CancellationTokenSource(TimeSpan.FromSeconds(180));
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync("testcontainer", "Running", runningCts.Token);
+        await WaitForResourceAsync(app, "testcontainer", "Running");
 
         using var client = app.CreateHttpClient("testcontainer", "http");
         var message = await client.GetStringAsync("/aspire.html");
@@ -428,9 +422,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
         await app.StartAsync();
 
-        var runningCts = new CancellationTokenSource(TimeSpan.FromSeconds(180));
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync("testcontainer", "Running", runningCts.Token);
+        await WaitForResourceAsync(app, "testcontainer", "Running");
 
         using var client = app.CreateHttpClient("testcontainer", "http");
 
@@ -500,9 +492,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
         await app.StartAsync();
 
-        var runningCts = new CancellationTokenSource(TimeSpan.FromSeconds(180));
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync("testcontainer", "Running", runningCts.Token);
+        await WaitForResourceAsync(app, "testcontainer", "Running");
 
         using var client = app.CreateHttpClient("testcontainer", "http");
 
@@ -821,6 +811,12 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         }
 
         return (tempContextPath, tempDockerfilePath);
+    }
+
+    private static async Task WaitForResourceAsync(DistributedApplication app, string resourceName, string resourceState, TimeSpan? timeout = null)
+    {
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceAsync(resourceName, resourceState).WaitAsync(timeout ?? TimeSpan.FromMinutes(3));
     }
 
     private const string DefaultMessage = "aspire!";
