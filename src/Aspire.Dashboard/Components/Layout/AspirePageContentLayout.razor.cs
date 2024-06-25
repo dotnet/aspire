@@ -43,6 +43,14 @@ public partial class AspirePageContentLayout : ComponentBase
 
     public List<Func<Task>> DialogCloseListeners { get; } = new();
 
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ViewportInformation.IsDesktop && IsToolbarPanelOpen)
+        {
+            await CloseMobileToolbarAsync();
+        }
+    }
+
     private string GetMobileMainStyle()
     {
         var style = "grid-area: main;" + MainContentStyle;

@@ -129,6 +129,15 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         }
     }
 
+    protected override void OnParametersSet()
+    {
+        if (ViewportInformation.IsDesktop && _isNavMenuOpen)
+        {
+            _isNavMenuOpen = false;
+            CloseMobileNavMenu();
+        }
+    }
+
     private async Task LaunchHelpAsync()
     {
         DialogParameters parameters = new()
