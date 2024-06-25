@@ -171,6 +171,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task TestServicesWithMultipleReplicas()
     {
         var replicaCount = 3;
