@@ -3,9 +3,9 @@
     <!-- This repo version -->
     <MajorVersion>8</MajorVersion>
     <MinorVersion>0</MinorVersion>
-    <PatchVersion>1</PatchVersion>
-    <VersionPrefix>8.0.1</VersionPrefix>
-    <PreReleaseVersionLabel>preview.8</PreReleaseVersionLabel>
+    <PatchVersion>2</PatchVersion>
+    <VersionPrefix>8.0.2</VersionPrefix>
+    <PreReleaseVersionLabel>preview.1</PreReleaseVersionLabel>
     <UseVSTestRunner>true</UseVSTestRunner>
     <!-- Enable to remove prerelease label. -->
     <StabilizePackageVersion Condition="'$(StabilizePackageVersion)' == ''">true</StabilizePackageVersion>
