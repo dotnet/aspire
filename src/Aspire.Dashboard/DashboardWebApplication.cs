@@ -36,6 +36,9 @@ namespace Aspire.Dashboard;
 
 public sealed class DashboardWebApplication : IAsyncDisposable
 {
+    private const string DashboardAuthCookieName = ".Aspire.Dashboard.Auth";
+    private const string DashboardAntiForgeryCookieName = ".Aspire.Dashboard.Antiforgery";
+
     private readonly WebApplication _app;
     private readonly ILogger<DashboardWebApplication> _logger;
     private readonly IOptionsMonitor<DashboardOptions> _dashboardOptionsMonitor;
@@ -166,6 +169,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddScoped<BrowserTimeProvider>();
 
         builder.Services.AddLocalization();
+
+        builder.Services.AddAntiforgery(options =>
+        {
+            options.Cookie.Name = DashboardAntiForgeryCookieName;
+        });
 
         postConfigureBuilder?.Invoke(builder);
 
@@ -567,7 +575,10 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     o.ForwardChallenge = OpenIdConnectDefaults.AuthenticationScheme;
                 });
 
-                authentication.AddCookie();
+                authentication.AddCookie(options =>
+                {
+                    options.Cookie.Name = DashboardAuthCookieName;
+                });
 
                 authentication.AddOpenIdConnect(options =>
                 {
@@ -614,6 +625,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                         claimsIdentity.AddClaim(new Claim(FrontendAuthorizationDefaults.BrowserTokenClaimName, bool.TrueString));
                         return Task.CompletedTask;
                     };
+                    options.Cookie.Name = DashboardAuthCookieName;
                 });
                 break;
         }
