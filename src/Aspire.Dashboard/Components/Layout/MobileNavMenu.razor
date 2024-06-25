@@ -9,7 +9,14 @@
                 var isActive = item.LinkMatchRegex is not null && item.LinkMatchRegex.IsMatch($"/{NavigationManager.ToBaseRelativePath(NavigationManager.Uri)}");
 
                 <span slot="start">
-                    <FluentIcon Class="align-text-bottom" Value="@icon" Slot="start" Color="@(isActive ? Color.Accent : Color.Neutral)"/>
+                    @if (isActive)
+                    {
+                        <FluentIcon Class="align-text-bottom" Value="@icon" Slot="start" CustomColor="var(--accent-foreground-active)" Color="Color.Custom"/>
+                    }
+                    else
+                    {
+                        <FluentIcon Class="align-text-bottom" Value="@icon" Slot="start" Color="Color.Neutral" />
+                    }
                 </span>
             }
         </FluentMenuItem>
