@@ -40,6 +40,10 @@ steps:
                 ./ubuntu-create-dotnet-devcert.sh
         displayName: Install devcerts
 
+    - ${{ if eq(parameters.isWindows, 'true') }}:
+      - script: dotnet dev-certs https --check --verbose
+        displayName: Check dev-certs are installed
+
     - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
               --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
               --output ${{ parameters.repoTestResultsPath }}/NonHelix.cobertura.xml
