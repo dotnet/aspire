@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <PackageTags>aspire hosting ollama llm ai</PackageTags>
+    <Description>Ollama support for .NET Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)Ollama_256x.png</PackageIconFullPath>
+    <!-- Disable package validation as this package hasn't shipped yet. -->
+    <EnablePackageValidation>false</EnablePackageValidation>
+    <NoWarn>$(NoWarn);CS8002</NoWarn> <!-- OllamaSharp package is not signed -->
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>17</MinCodeCoverage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="PublicAPI.Shipped.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OllamaSharp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
+    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
+    <Compile Include="PublicAPI.Shipped.txt" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+  </ItemGroup>
+
+</Project>

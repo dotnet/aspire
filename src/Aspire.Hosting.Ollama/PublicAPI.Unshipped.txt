@@ -1,0 +1,15 @@
+Aspire.Hosting.ApplicationModel.OllamaBuilderExtensions
+Aspire.Hosting.Ollama.OllamaResource
+Aspire.Hosting.Ollama.OllamaResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
+Aspire.Hosting.Ollama.OllamaResource.Models.get -> System.Collections.Generic.List<string!>!
+Aspire.Hosting.Ollama.OllamaResource.OllamaResource(string! name, bool enableGpu = false) -> void
+Aspire.Hosting.Ollama.OllamaResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
+Aspire.Hosting.Ollama.OpenWebUIResource
+Aspire.Hosting.Ollama.OpenWebUIResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
+Aspire.Hosting.Ollama.OpenWebUIResource.OpenWebUIResource(string! name) -> void
+Aspire.Hosting.Ollama.OpenWebUIResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
+static Aspire.Hosting.ApplicationModel.OllamaBuilderExtensions.AddModel(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Ollama.OllamaResource!>! builder, string! modelName) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Ollama.OllamaResource!>!
+static Aspire.Hosting.ApplicationModel.OllamaBuilderExtensions.AddOllama(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, bool enableGpu = false, int? port = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Ollama.OllamaResource!>!
+static Aspire.Hosting.ApplicationModel.OllamaBuilderExtensions.WithDataBindMount(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Ollama.OllamaResource!>! builder, string! source, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Ollama.OllamaResource!>!
+static Aspire.Hosting.ApplicationModel.OllamaBuilderExtensions.WithDataVolume(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Ollama.OllamaResource!>! builder, string? name = null, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Ollama.OllamaResource!>!
+static Aspire.Hosting.ApplicationModel.OllamaBuilderExtensions.WithOpenWebUI<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Ollama.OpenWebUIResource!>!>? configureContainer = null, string? containerName = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!

@@ -1,0 +1,9 @@
+# Variables
+@hostname = https://localhost:7315
+
+# get a list of models
+GET {{hostname}}/models
+
+###
+# Tell me a dad joke
+GET {{hostname}}/joke
