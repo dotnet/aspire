@@ -22,7 +22,7 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
 
     public ValidateOptionsResult Validate(string? name, DashboardOptions options)
     {
-        _logger.LogInformation($"Validating {nameof(DashboardOptions)}.");
+        _logger.LogDebug($"Validating {nameof(DashboardOptions)}.");
 
         var errorMessages = new List<string>();
 

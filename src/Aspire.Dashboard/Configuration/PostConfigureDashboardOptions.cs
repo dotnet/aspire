@@ -24,7 +24,7 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
 
     public void PostConfigure(string? name, DashboardOptions options)
     {
-        _logger.LogInformation($"PostConfigure {nameof(DashboardOptions)} with name '{name}'.");
+        _logger.LogDebug($"PostConfigure {nameof(DashboardOptions)} with name '{name}'.");
 
         // Copy aliased config values to the strongly typed options.
         if (_configuration[DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] is { Length: > 0 } otlpGrpcUrl)
