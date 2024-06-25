@@ -5,20 +5,22 @@ using Xunit;
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Hosting.Utils;
 using Aspire.Hosting.Tests.Utils;
+using System.Diagnostics;
+using Aspire.Components.Common.Tests;
 
 namespace Aspire.Hosting.Tests.Python;
 
 public class AddPythonProjectTests
 {
     [Fact]
+    [RequiresTools(["python"])]
     public async Task AddPythonProjectProducesDockerfileResourceInManifest()
     {
         var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject();
-        _ = pythonExecutable;
 
         var manifestPath = Path.Combine(projectDirectory, "aspire-manifest.json");
 
-        var builder = TestDistributedApplicationBuilder.Create(options =>
+        using var builder = TestDistributedApplicationBuilder.Create(options =>
         {
             options.ProjectDirectory = Path.GetFullPath(projectDirectory);
             options.Args = ["--publisher", "manifest", "--output-path", manifestPath];
@@ -35,9 +37,69 @@ public class AddPythonProjectTests
             }
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
+
+        // If we don't throw, clean up the directories.
+        Directory.Delete(projectDirectory, true);
     }
 
     [Fact]
+    [RequiresTools(["python"])]
+    public async Task AddInstrumentedPythonProjectProducesDockerfileResourceInManifest()
+    {
+        var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject(instrument: true);
+
+        var manifestPath = Path.Combine(projectDirectory, "aspire-manifest.json");
+
+        using var builder = TestDistributedApplicationBuilder.Create(options =>
+        {
+            options.ProjectDirectory = Path.GetFullPath(projectDirectory);
+            options.Args = ["--publisher", "manifest", "--output-path", manifestPath];
+        });
+
+        var pyproj = builder.AddPythonProject("pyproj", projectDirectory, scriptName);
+
+        var manifest = await ManifestUtils.GetManifest(pyproj.Resource, manifestDirectory: projectDirectory);
+        var expectedManifest = $$"""
+            {
+              "type": "dockerfile.v0",
+              "path": "Dockerfile",
+              "context": ".",
+              "env": {
+                "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED": "true"
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+
+        // If we don't throw, clean up the directories.
+        Directory.Delete(projectDirectory, true);
+    }
+
+    [Fact]
+    [RequiresTools(["python"])]
+    public async Task PythonResourceFinishesSuccessfully()
+    {
+        var (projectDirectory, _, scriptName) = CreateTempPythonProject();
+
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.AddPythonProject("pyproj", projectDirectory, scriptName);
+
+        using var app = builder.Build();
+
+        await app.StartAsync();
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceAsync("pyproj", "Finished").WaitAsync(TimeSpan.FromSeconds(30));
+
+        await app.StopAsync();
+
+        // If we don't throw, clean up the directories.
+        Directory.Delete(projectDirectory, true);
+    }
+
+    [Fact]
+    [RequiresTools(["python"])]
     public async Task AddPythonProject_SetsResourcePropertiesCorrectly()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -67,9 +129,13 @@ public class AddPythonProjectTests
         var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource);
 
         Assert.Equal(scriptName, commandArguments[0]);
+
+        // If we don't throw, clean up the directories.
+        Directory.Delete(projectDirectory, true);
     }
 
     [Fact]
+    [RequiresTools(["python"])]
     public async Task AddPythonProjectWithInstrumentation_SwitchesExecutableToInstrumentationExecutable()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -102,9 +168,13 @@ public class AddPythonProjectTests
         Assert.Equal("otlp", commandArguments[5]);
         Assert.Equal(pythonExecutable, commandArguments[6]);
         Assert.Equal(scriptName, commandArguments[7]);
+
+        // If we don't throw, clean up the directories.
+        Directory.Delete(projectDirectory, true);
     }
 
     [Fact]
+    [RequiresTools(["python"])]
     public async Task AddPythonProjectWithScriptArgs_IncludesTheArguments()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -135,52 +205,92 @@ public class AddPythonProjectTests
 
         Assert.Equal(scriptName, commandArguments[0]);
         Assert.Equal("test", commandArguments[1]);
+
+        // If we don't throw, clean up the directories.
+        Directory.Delete(projectDirectory, true);
     }
 
     private static (string projectDirectory, string pythonExecutable, string scriptName) CreateTempPythonProject(bool instrument = false)
     {
-        
-
         var projectDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
         Directory.CreateDirectory(projectDirectory);
 
-        // Create a fake virtual environment.
-        var virtualEnvDirectory = Path.Combine(projectDirectory, ".venv");
-        Directory.CreateDirectory(virtualEnvDirectory);
-
-        string pythonExecutable = Path.Combine(virtualEnvDirectory, OperatingSystem.IsWindows() ? "Scripts\\python.exe" : "bin/python");
-
-        if (OperatingSystem.IsWindows())
+        if (instrument)
         {
-            var scriptsDirectory = Path.Join(virtualEnvDirectory, "Scripts");
-            Directory.CreateDirectory(scriptsDirectory);
-
-            File.WriteAllText(pythonExecutable, "");
-
-            if(instrument)
-            {
-                File.WriteAllText(Path.Join(scriptsDirectory, "opentelemetry-instrument.exe"), "");
-            }
+            PreparePythonProject(projectDirectory, PythonApp, InstrumentedPythonAppRequirements);
         }
         else
         {
-            var binariesDirectory = Path.Join(virtualEnvDirectory, "bin");
-            Directory.CreateDirectory(binariesDirectory);
-
-            File.WriteAllText(pythonExecutable, "");
-
-            if (instrument)
-            {
-                File.WriteAllText(Path.Join(binariesDirectory, "opentelemetry-instrument"), "");
-            }
+            PreparePythonProject(projectDirectory, PythonApp);
         }
 
-        // Create the main script with some bogus content.
-        var scriptName = "main.py";
-        var scriptPath = Path.Combine(projectDirectory, scriptName);
+        var pythonExecutable = Path.Combine(projectDirectory,
+            ".venv", "Scripts", OperatingSystem.IsWindows() ? "python.exe" : "python"
+            );
 
-        File.WriteAllText(scriptPath, "print('Hello, World!')");
-
-        return (projectDirectory, pythonExecutable, scriptName);
+        return (projectDirectory, pythonExecutable, "main.py");
     }
+
+    private static void PreparePythonProject(string projectDirectory, string scriptContent, string? requirementsContent = null)
+    {
+        var scriptPath = Path.Combine(projectDirectory, "main.py");
+        File.WriteAllText(scriptPath, scriptContent);
+
+        var requirementsPath = Path.Combine(projectDirectory, "requirements.txt");
+        File.WriteAllText(requirementsPath, requirementsContent);
+
+        var prepareVirtualEnvironmentStartInfo = new ProcessStartInfo()
+        {
+            FileName = "python",
+            Arguments = $"-m venv .venv",
+            WorkingDirectory = projectDirectory
+        };
+
+        var createVirtualEnvironmentProcess = Process.Start(prepareVirtualEnvironmentStartInfo);
+        var createVirtualEnvironmentProcessResult = createVirtualEnvironmentProcess!.WaitForExit(10000);
+
+        if (!createVirtualEnvironmentProcessResult)
+        {
+            createVirtualEnvironmentProcess.Kill(true);
+            throw new InvalidOperationException("Failed to create virtual environment.");
+        }
+
+        var relativePipPath = Path.Combine(
+            ".venv",
+            "Scripts",
+            OperatingSystem.IsWindows() ? "pip.exe" : "pip"
+            );
+        var pipPath = Path.GetFullPath(relativePipPath, projectDirectory);
+
+        var installRequirementsStartInfo = new ProcessStartInfo()
+        {
+            FileName = pipPath,
+            Arguments = $"install -r requirements.txt",
+            WorkingDirectory = projectDirectory
+        };
+
+        var installRequirementsProcess = Process.Start(installRequirementsStartInfo);
+        var installRequirementsProcessResult = installRequirementsProcess!.WaitForExit(20000);
+
+        if (!installRequirementsProcessResult)
+        {
+            installRequirementsProcess.Kill(true);
+            throw new InvalidOperationException("Failed to install requirements.");
+        }
+    }
+
+    private const string PythonApp = """"
+        import logging
+
+        # Reset the logging configuration to a sensible default.
+        logging.basicConfig()
+        logging.getLogger().setLevel(logging.NOTSET)
+
+        # Write a basic log message.
+        logging.getLogger(__name__).info("Hello world!")
+        """";
+
+    private const string InstrumentedPythonAppRequirements = """"
+        opentelemetry-distro[otlp]
+        """";
 }
