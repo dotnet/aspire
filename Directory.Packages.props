@@ -50,14 +50,14 @@
     <PackageVersion Include="Azure.Provisioning.Sql" Version="0.1.0" />
     <PackageVersion Include="Azure.Provisioning.Storage" Version="0.2.0" />
     <!-- ASP.NET Core dependencies -->
-    <PackageVersion Include="Microsoft.AspNetCore.Authentication.Certificate" Version="8.0.6" />
-    <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.6" />
-    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="8.0.6" />
-    <PackageVersion Include="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" Version="8.0.6" />
-    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.6" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="8.0.6" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="8.0.6" />
-    <PackageVersion Include="Microsoft.Extensions.Features" Version="8.0.6" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.Certificate" Version="$(MicrosoftAspNetCoreAuthenticationCertificatePackageVersion)" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="$(MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion)" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(MicrosoftAspNetCoreOpenApiPackageVersion)" />
+    <PackageVersion Include="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" Version="$(MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="$(MicrosoftExtensionsCachingStackExchangeRedisPackageVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="$(MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="$(MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Features" Version="$(MicrosoftExtensionsFeaturesPackageVersion)" />
     <!-- AspNetCore.HealthChecks dependencies (3rd party packages) -->
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.Data.Tables" Version="8.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.KeyVault.Secrets" Version="8.0.1" />
@@ -72,10 +72,10 @@
     <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="8.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="8.0.2" />
     <!-- efcore dependencies -->
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Cosmos" Version="8.0.6" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.6" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.6" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.6" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Cosmos" Version="$(MicrosoftEntityFrameworkCoreCosmosPackageVersion)" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(MicrosoftEntityFrameworkCoreSqlServerPackageVersion)" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="$(MicrosoftEntityFrameworkCoreToolsPackageVersion)" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="$(MicrosoftEntityFrameworkCoreDesignPackageVersion)" />
     <!-- runtime dependencies-->
     <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="$(MicrosoftExtensionsConfigurationAbstractionsPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="$(MicrosoftExtensionsConfigurationBinderPackageVersion)" />
@@ -86,8 +86,8 @@
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MicrosoftExtensionsLoggingAbstractionsPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="$(MicrosoftExtensionsOptionsPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Primitives" Version="$(MicrosoftExtensionsPrimitivesPackageVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="8.6.0" />
-    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="8.6.0" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsHttpResiliencePackageVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(MicrosoftExtensionsTimeProviderTestingVersion)" />
     <!-- external dependencies -->
     <PackageVersion Include="Confluent.Kafka" Version="2.4.0" />
     <PackageVersion Include="Dapper" Version="2.1.35" />
@@ -138,14 +138,14 @@
     <PackageVersion Include="JsonSchema.Net" Version="7.1.0" />
     <PackageVersion Include="Microsoft.DotNet.RemoteExecutor" Version="$(MicrosoftDotNetRemoteExecutorPackageVersion)" />
     <PackageVersion Include="Microsoft.DotNet.XUnitExtensions" Version="$(MicrosoftDotNetXUnitExtensionsPackageVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="8.6.0" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="$(MicrosoftExtensionsDiagnosticsTestingPackageVersion)" />
     <PackageVersion Include="Microsoft.NET.Runtime.WorkloadTesting.Internal" Version="$(MicrosoftNETRuntimeWorkloadTestingInternalVersion)" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageVersion Include="Testcontainers.MongoDb" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Testcontainers.MsSql" Version="3.9.0" />
-    <PackageVersion Include="Testcontainers.MySql" Version="3.9.0" />
-    <PackageVersion Include="Testcontainers.PostgreSQL" Version="3.9.0" />
-    <PackageVersion Include="Testcontainers.RabbitMq" Version="3.9.0" />
+    <PackageVersion Include="Testcontainers.MsSql" Version="$(TestcontainersPackageVersion)" />
+    <PackageVersion Include="Testcontainers.MySql" Version="$(TestcontainersPackageVersion)" />
+    <PackageVersion Include="Testcontainers.PostgreSQL" Version="$(TestcontainersPackageVersion)" />
+    <PackageVersion Include="Testcontainers.RabbitMq" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.Redis" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.Nats" Version="3.9.0" />
     <!-- playground apps dependencies -->
