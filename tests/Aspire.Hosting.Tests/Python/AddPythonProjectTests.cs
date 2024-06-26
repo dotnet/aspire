@@ -266,7 +266,7 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
 
         var relativePipPath = Path.Combine(
             ".venv",
-            "Scripts",
+            OperatingSystem.IsWindows() ? "Scripts" : "bin",
             OperatingSystem.IsWindows() ? "pip.exe" : "pip"
             );
         var pipPath = Path.GetFullPath(relativePipPath, projectDirectory);
