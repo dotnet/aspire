@@ -21,6 +21,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+    <ProjectReference Include="..\..\eng\dashboardpack\Aspire.Dashboard.Sdk.win-x86.csproj" />
+    <ProjectReference Include="..\..\eng\dashboardpack\Aspire.Dashboard.Sdk.win-x64.csproj" />
+    <ProjectReference Include="..\..\eng\dashboardpack\Aspire.Dashboard.Sdk.win-arm64.csproj" />
+    <ProjectReference Include="..\..\eng\dashboardpack\Aspire.Dashboard.Sdk.linux-x64.csproj" />
+    <ProjectReference Include="..\..\eng\dashboardpack\Aspire.Dashboard.Sdk.linux-arm64.csproj" />
+    <ProjectReference Include="..\..\eng\dashboardpack\Aspire.Dashboard.Sdk.osx-x64.csproj" />
+    <ProjectReference Include="..\..\eng\dashboardpack\Aspire.Dashboard.Sdk.osx-arm64.csproj" />
   </ItemGroup>
 
   <!-- Download DCP orchestrator components for local development -->

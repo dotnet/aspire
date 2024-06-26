@@ -2,8 +2,6 @@
 
   <Sdk Name="Aspire.Hosting.Orchestration.$(DefaultAppHostRuntimeIdentifier)" Version="@VERSION@" />
 
-  <Sdk Name="Aspire.Dashboard.Sdk.$(DefaultAppHostRuntimeIdentifier)" Version="@VERSION@" />
-
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" Version="@VERSION@" />
   </ItemGroup>

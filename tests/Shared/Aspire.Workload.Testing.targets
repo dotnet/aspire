@@ -39,7 +39,7 @@
 
       <NuGetsToBuildForWorkloadTesting
                       Include="$(_ShippingPackagesDir)Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier).nupkg"
-                      Project="$(RepoRoot)eng/dashboardpack/dashboardpack.csproj"
+                      Project="$(RepoRoot)eng/dashboardpack/Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier).csproj"
                       Properties="@(DefaultPropertiesForNuGetBuild, ';');@(_PropertiesForNuGetBuilds, ';')"
                       Descriptor="Dashboard pack"/>
 
@@ -60,9 +60,9 @@
     <MSBuild Projects="$(RepoRoot)eng/dcppack/dcppack.csproj"
               Properties="$(_CombinedProps)"
               Targets="Restore;Build" />
-    <MSBuild Projects="$(RepoRoot)eng/dashboardpack/dashboardpack.csproj"
+    <!-- <MSBuild Projects="$(RepoRoot)eng/dashboardpack/dashboardpack.csproj"
               Properties="$(_CombinedProps)"
-              Targets="Restore;Build" />
+              Targets="Restore;Build" /> -->
   </Target>
 
   <Target Name="_GetWorkloadsToInstall" DependsOnTargets="_SetPackageVersionForWorkloadsTesting" Returns="@(WorkloadIdForTesting);@(WorkloadCombinationsToInstall)">

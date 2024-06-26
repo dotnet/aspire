@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <DashboardRuntime>win-arm64</DashboardRuntime>
+    <DashboardPlatformType>Windows</DashboardPlatformType>
+  </PropertyGroup>
+
+  <Import Project="Common.projitems" />
+
+</Project>
