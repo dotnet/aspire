@@ -290,7 +290,7 @@ public class ProjectResourceTests
                   .WithHttpEndpoint(port: 5002, name: "http2", env: "SOME_ENV")
                   .WithHttpEndpoint(port: 5003, name: "dontinjectme")
                   // Should not be included in ASPNETCORE_URLS
-                  .WithEndpointsInEnvironment(filter: e => e.EndpointName != "dontinjectme")
+                  .WithEndpointsInEnvironment(filter: e => e.Name != "dontinjectme")
                   .WithEndpoint("http", e =>
                   {
                       e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p0");

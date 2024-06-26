@@ -564,13 +564,13 @@ public static class ProjectResourceBuilderExtensions
     /// <param name="filter">The filter callback that returns true if and only if the endpoint should be included.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<ProjectResource> WithEndpointsInEnvironment(
-        this IResourceBuilder<ProjectResource> builder, Func<EndpointReference, bool> filter)
+        this IResourceBuilder<ProjectResource> builder, Func<EndpointAnnotation, bool> filter)
     {
-        foreach (var e in builder.Resource.GetEndpoints())
+        foreach (var e in builder.Resource.Annotations.OfType<EndpointAnnotation>())
         {
             if (!filter(e))
             {
-                builder.Resource.SkipEndpointEnvironment(e.EndpointAnnotation);
+                builder.Resource.SkipEndpointEnvironment(e);
             }
         }
         return builder;

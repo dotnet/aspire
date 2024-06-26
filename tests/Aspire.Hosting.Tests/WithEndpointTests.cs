@@ -523,7 +523,7 @@ public class WithEndpointTests
             .WithHttpsEndpoint(name: "hps3", targetPort: 7004)
             .WithHttpsEndpoint(name: "hps4", targetPort: 7005)
             // Should not be included in HTTP_PORTS
-            .WithEndpointsInEnvironment(e => e.EndpointName != "dontinjectme");
+            .WithEndpointsInEnvironment(e => e.Name != "dontinjectme");
 
         var manifest = await ManifestUtils.GetManifest(project.Resource);
 
