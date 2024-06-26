@@ -230,9 +230,11 @@ public class AddPythonProjectTests
             await PreparePythonProject(projectDirectory, PythonApp);
         }
 
-        var pythonExecutable = Path.Combine(projectDirectory,
-            ".venv", "Scripts", OperatingSystem.IsWindows() ? "python.exe" : "python"
-            );
+        var pythonExecutable = Path.Combine(
+            projectDirectory,
+            ".venv",
+            OperatingSystem.IsWindows() ? "Scripts" : "bin",
+            OperatingSystem.IsWindows() ? "python.exe" : "python");
 
         return (projectDirectory, pythonExecutable, "main.py");
     }
