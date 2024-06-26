@@ -20,7 +20,7 @@ If you need to tag folks on an issue or PR, you will generally want to tag the o
 | area-service-discovery    | @ReubenBond          | @dotnet-area-service-discovery    | Issues/PRs related to Aspire's Service Discovery and communication between services               |
 | area-templates            | @DamianEdwards       | @dotnet-area-templates            | Issues/PRs related to the Aspire templates                                                        |
 | area-telemetry            | @samsp-msft          | @dotnet-area-telemetry            | Issues/PRs related to telemetry (logs, metrics, tracing)                                          |
-| area-tooling              | @vijayrkn            | @dotnet-area-tooling              | Issues/PRs related to Visual Studio and Visual Studio Code tooling                                |
+| area-tooling              | @vijayrkn            | @dotnet-area-tooling              | Issues/PRs related to Visual Studio and Visual Studio Code tooling for Aspire                    |
 
 ## Community Triagers
 
