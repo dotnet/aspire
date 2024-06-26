@@ -10,9 +10,9 @@
   <ItemGroup>
     <!-- AWS SDK for .NET dependencies -->
     <PackageVersion Include="AWSSDK.CloudFormation" Version="3.7.308.9" />
-    <PackageVersion Include="AWSSDK.SQS" Version="3.7.301.17" />
+    <PackageVersion Include="AWSSDK.SQS" Version="3.7.301.23" />
     <PackageVersion Include="AWSSDK.SimpleNotificationService" Version="3.7.301.52" />
-    <PackageVersion Include="AWSSDK.Core" Version="3.7.304.14" />
+    <PackageVersion Include="AWSSDK.Core" Version="3.7.304.20" />
     <PackageVersion Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.301" />
     <PackageVersion Include="AWS.Messaging" Version="0.9.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AWS" Version="1.1.0-beta.4" />
