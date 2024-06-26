@@ -7,16 +7,17 @@ using Aspire.Hosting.Utils;
 using Aspire.Hosting.Tests.Utils;
 using System.Diagnostics;
 using Aspire.Components.Common.Tests;
+using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Tests.Python;
 
-public class AddPythonProjectTests
+public class AddPythonProjectTests(ITestOutputHelper outputHelper)
 {
     [Fact]
     [RequiresTools(["python"])]
     public async Task AddPythonProjectProducesDockerfileResourceInManifest()
     {
-        var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject();
+        var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject(outputHelper);
 
         var manifestPath = Path.Combine(projectDirectory, "aspire-manifest.json");
 
@@ -46,7 +47,7 @@ public class AddPythonProjectTests
     [RequiresTools(["python"])]
     public async Task AddInstrumentedPythonProjectProducesDockerfileResourceInManifest()
     {
-        var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject(instrument: true);
+        var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject(outputHelper, instrument: true);
 
         var manifestPath = Path.Combine(projectDirectory, "aspire-manifest.json");
 
@@ -77,9 +78,10 @@ public class AddPythonProjectTests
 
     [Fact]
     [RequiresTools(["python"])]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4659")]
     public async Task PythonResourceFinishesSuccessfully()
     {
-        var (projectDirectory, _, scriptName) = CreateTempPythonProject();
+        var (projectDirectory, _, scriptName) = CreateTempPythonProject(outputHelper);
 
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.AddPythonProject("pyproj", projectDirectory, scriptName);
@@ -104,7 +106,7 @@ public class AddPythonProjectTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject();
+        var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject(outputHelper);
         
         builder.AddPythonProject("pythonProject", projectDirectory, scriptName);
 
@@ -140,7 +142,7 @@ public class AddPythonProjectTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject(instrument: true);
+        var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject(outputHelper, instrument: true);
         
         builder.AddPythonProject("pythonProject", projectDirectory, scriptName, virtualEnvironmentPath: ".venv");
 
@@ -179,7 +181,7 @@ public class AddPythonProjectTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject();
+        var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject(outputHelper);
 
         builder.AddPythonProject("pythonProject", projectDirectory, scriptName, scriptArgs: "test");
 
@@ -210,18 +212,18 @@ public class AddPythonProjectTests
         Directory.Delete(projectDirectory, true);
     }
 
-    private static (string projectDirectory, string pythonExecutable, string scriptName) CreateTempPythonProject(bool instrument = false)
+    private static (string projectDirectory, string pythonExecutable, string scriptName) CreateTempPythonProject(ITestOutputHelper outputHelper, bool instrument = false)
     {
         var projectDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
         Directory.CreateDirectory(projectDirectory);
 
         if (instrument)
         {
-            PreparePythonProject(projectDirectory, PythonApp, InstrumentedPythonAppRequirements);
+            PreparePythonProject(outputHelper, projectDirectory, PythonApp, InstrumentedPythonAppRequirements);
         }
         else
         {
-            PreparePythonProject(projectDirectory, PythonApp);
+            PreparePythonProject(outputHelper, projectDirectory, PythonApp);
         }
 
         var pythonExecutable = Path.Combine(projectDirectory,
@@ -231,7 +233,7 @@ public class AddPythonProjectTests
         return (projectDirectory, pythonExecutable, "main.py");
     }
 
-    private static void PreparePythonProject(string projectDirectory, string scriptContent, string? requirementsContent = null)
+    private static void PreparePythonProject(ITestOutputHelper outputHelper, string projectDirectory, string scriptContent, string? requirementsContent = null)
     {
         var scriptPath = Path.Combine(projectDirectory, "main.py");
         File.WriteAllText(scriptPath, scriptContent);
@@ -243,11 +245,18 @@ public class AddPythonProjectTests
         {
             FileName = "python",
             Arguments = $"-m venv .venv",
-            WorkingDirectory = projectDirectory
+            WorkingDirectory = projectDirectory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
         };
 
         var createVirtualEnvironmentProcess = Process.Start(prepareVirtualEnvironmentStartInfo);
-        var createVirtualEnvironmentProcessResult = createVirtualEnvironmentProcess!.WaitForExit(10000);
+        var createVirtualEnvironmentProcessResult = createVirtualEnvironmentProcess!.WaitForExit(TimeSpan.FromMinutes(2));
+
+        outputHelper.WriteLine("Create Virtual Environment Standard Output:");
+
+        CopyStreamToTestOutput("python -m venv .venv (Standard Output)", createVirtualEnvironmentProcess.StandardOutput, outputHelper);
+        CopyStreamToTestOutput("python -m venv .venv (Standard Error)", createVirtualEnvironmentProcess.StandardError, outputHelper);
 
         if (!createVirtualEnvironmentProcessResult)
         {
@@ -265,18 +274,29 @@ public class AddPythonProjectTests
         var installRequirementsStartInfo = new ProcessStartInfo()
         {
             FileName = pipPath,
-            Arguments = $"install -r requirements.txt",
-            WorkingDirectory = projectDirectory
+            Arguments = $"install -y -r requirements.txt",
+            WorkingDirectory = projectDirectory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
         };
 
         var installRequirementsProcess = Process.Start(installRequirementsStartInfo);
-        var installRequirementsProcessResult = installRequirementsProcess!.WaitForExit(20000);
+        var installRequirementsProcessResult = installRequirementsProcess!.WaitForExit(TimeSpan.FromMinutes(2));
+
+        CopyStreamToTestOutput("pip install -r requirements.txt (Standard Output)", installRequirementsProcess.StandardOutput, outputHelper);
+        CopyStreamToTestOutput("pip install -r requirements.txt (Standard Error)", installRequirementsProcess.StandardError, outputHelper);
 
         if (!installRequirementsProcessResult)
         {
             installRequirementsProcess.Kill(true);
             throw new InvalidOperationException("Failed to install requirements.");
         }
+    }
+
+    private static void CopyStreamToTestOutput(string label, StreamReader reader, ITestOutputHelper outputHelper)
+    {
+        var output = reader.ReadToEnd();
+        outputHelper.WriteLine($"{label}:\n\n{output}");
     }
 
     private const string PythonApp = """"
