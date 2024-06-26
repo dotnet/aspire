@@ -1,1 +1,5 @@
-<Project />
+<Project>
+
+  <Import Project="Sdk.targets" Sdk="Aspire.Hosting.Sdk" />
+
+</Project>
