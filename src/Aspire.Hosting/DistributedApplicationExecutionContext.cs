@@ -14,6 +14,17 @@ public class DistributedApplicationExecutionContext(DistributedApplicationOperat
     /// </summary>
     public DistributedApplicationOperation Operation { get; } = operation;
 
+    private IServiceProvider? _serviceProvider;
+
+    /// <summary>
+    /// The <see cref="IServiceProvider"/> for the AppHost.
+    /// </summary>
+    public IServiceProvider ServiceProvider
+    {
+        get =>_serviceProvider ?? throw new InvalidOperationException("The ServiceProvider has not been set.");
+        internal set => _serviceProvider = value;
+    }
+
     /// <summary>
     /// Returns true if the current operation is publishing.
     /// </summary>
