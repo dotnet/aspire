@@ -27,7 +27,7 @@ public class DashboardServerFixture : IAsyncLifetime
         var initialData = new Dictionary<string, string?>
         {
             [DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "http://127.0.0.1:0",
-            [DashboardConfigNames.DashboardOtlpUrlName.ConfigKey] = "http://127.0.0.1:0",
+            [DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://127.0.0.1:0",
             [DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey] = nameof(OtlpAuthMode.Unsecured),
             [DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = nameof(FrontendAuthMode.Unsecured)
         };
