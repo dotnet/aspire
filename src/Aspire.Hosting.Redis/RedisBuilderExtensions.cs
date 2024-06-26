@@ -19,11 +19,28 @@ public static class RedisBuilderExtensions
     /// </summary>
     /// <remarks>
     /// The default image is "redis" and the tag is "7.2.4".
+    /// Password resource will be added to the model at publish time.
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port to bind the underlying container to.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <example>
+    /// Use in application host.
+    /// 
+    /// the example of adding <see cref="RedisResource"/> to application model.
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var redis = builder.AddRedis("redis",6379);
+    /// 
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithReference(redis);
+    ///   
+    /// builder.Build().Run(); 
+    /// </code>
+    ///
+    /// </example>
     public static IResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name, int? port)
     {
         return builder.AddRedis(name, port, null);
@@ -34,12 +51,47 @@ public static class RedisBuilderExtensions
     /// </summary>
     /// <remarks>
     /// The default image is "redis" and the tag is "7.2.4".
+    /// If a password parameter is not supplied, a password resource will be added to the model at publish time.
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port to bind the underlying container to.</param>
     /// <param name="password">The parameter used to provide the password for the Redis resource. If <see langword="null"/> resource will be not password protected.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <example>
+    /// Use in application host
+    /// <list type="bullet">
+    /// <item>
+    /// the example of adding <see cref="RedisResource"/> to application model without password
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var redis = builder.AddRedis("redis");
+    /// 
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithReference(redis);
+    ///   
+    /// builder.Build().Run(); 
+    /// </code>
+    /// </item>
+    /// <item>
+    /// the example of adding <see cref="RedisResource"/> to application model with password
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// 
+    /// builder.Configuration["Parameters:pass"] = "StrongPassword";
+    /// var password = builder.AddParameter("pass");
+    /// 
+    /// var redis = builder.AddRedis("redis", password: password);
+    ///
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithReference(redis);
+    ///   
+    /// builder.Build().Run(); 
+    /// </code>
+    /// </item>
+    /// </list>
+    /// </example>
     public static IResourceBuilder<RedisResource> AddRedis(
         this IDistributedApplicationBuilder builder,
         string name,
@@ -78,7 +130,7 @@ public static class RedisBuilderExtensions
                               .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
                               .WithImageRegistry(RedisContainerImageTags.Registry);
             }
-            throw new InvalidOperationException();
+            throw new InvalidOperationException($"{nameof(AddRedis)} is not supported in current {nameof(builder.ExecutionContext)}. {builder.ExecutionContext.Operation} Operation is not supported.");
         }
     }
 
