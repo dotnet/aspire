@@ -227,7 +227,9 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
         }
 
         var pythonExecutable = Path.Combine(projectDirectory,
-            ".venv", "Scripts", OperatingSystem.IsWindows() ? "python.exe" : "python"
+            ".venv",
+            OperatingSystem.IsWindows() ? "Scripts" : "bin",
+            OperatingSystem.IsWindows() ? "python.exe" : "python"
             );
 
         return (projectDirectory, pythonExecutable, "main.py");
