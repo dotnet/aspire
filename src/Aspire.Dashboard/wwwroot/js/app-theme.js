@@ -3,7 +3,10 @@ import {
     baseLayerLuminance,
     SwatchRGB,
     fillColor,
-    neutralLayerL2
+    neutralLayerL2,
+    neutralPalette,
+    DesignToken,
+    neutralFillLayerRestDelta
 } from "/_content/Microsoft.FluentUI.AspNetCore.Components/Microsoft.FluentUI.AspNetCore.Components.lib.module.js";
 
 const currentThemeCookieName = "currentTheme";
@@ -12,6 +15,7 @@ const themeSettingDark = "Dark";
 const themeSettingLight = "Light";
 const darkThemeLuminance = 0.19;
 const lightThemeLuminance = 1.0;
+const darknessLuminanceTarget = (-0.1 + Math.sqrt(0.21)) / 2;
 
 /**
  * Updates the current theme on the site based on the specified theme
@@ -160,6 +164,85 @@ function applyTheme(theme) {
     setThemeOnDocument(theme);
 }
 
+/**
+ * 
+ * @param {Palette} palette
+ * @param {number} baseLayerLuminance
+ * @returns {number}
+ */
+function neutralLayer1Index(palette, baseLayerLuminance) {
+    return palette.closestIndexOf(SwatchRGB.create(baseLayerLuminance, baseLayerLuminance, baseLayerLuminance));
+}
+
+/**
+ * 
+ * @param {Palette} palette
+ * @param {Swatch} reference
+ * @param {number} baseLayerLuminance
+ * @param {number} layerDelta
+ * @param {number} hoverDeltaLight
+ * @param {number} hoverDeltaDark
+ * @returns {Swatch}
+ */
+function neutralLayerHoverAlgorithm(palette, reference, baseLayerLuminance, layerDelta, hoverDeltaLight, hoverDeltaDark) {
+    const baseIndex = neutralLayer1Index(palette, baseLayerLuminance);
+    // Determine both the size of the delta (from the value passed in) and the direction (if the current color is dark,
+    // the hover color will be a lower index (lighter); if the current color is light, the hover color will be a higher index (darker))
+    const hoverDelta = isDark(reference) ? hoverDeltaDark * -1 : hoverDeltaLight;
+    return palette.get(baseIndex + (layerDelta * -1) + hoverDelta);
+}
+
+/**
+ * 
+ * @param {Swatch} color
+ * @returns {boolean}
+ */
+function isDark(color) {
+    return color.relativeLuminance <= darknessLuminanceTarget;
+}
+
+function createAdditionalDesignTokens() {
+    const neutralLayer1HoverLightDelta = DesignToken.create({ name: 'neutral-layer-1-hover-light-delta', cssCustomPropertyName: null }).withDefault(3);
+    const neutralLayer1HoverDarkDelta = DesignToken.create({ name: 'neutral-layer-1-hover-dark-delta', cssCustomPropertyName: null }).withDefault(2);
+    const neutralLayer2HoverLightDelta = DesignToken.create({ name: 'neutral-layer-2-hover-light-delta', cssCustomPropertyName: null }).withDefault(2);
+    const neutralLayer2HoverDarkDelta = DesignToken.create({ name: 'neutral-layer-2-hover-dark-delta', cssCustomPropertyName: null }).withDefault(2);
+
+    const neutralLayer1HoverRecipe = DesignToken.create({ name: 'neutral-layer-1-hover-recipe', cssCustomPropertyName: null }).withDefault({
+        evaluate: (element, reference) =>
+            neutralLayerHoverAlgorithm(
+                neutralPalette.getValueFor(element),
+                reference || fillColor.getValueFor(element),
+                baseLayerLuminance.getValueFor(element),
+                0, // No layer delta since this is for neutral-layer-1
+                neutralLayer1HoverLightDelta.getValueFor(element),
+                neutralLayer1HoverDarkDelta.getValueFor(element)
+            ),
+    });
+
+    const neutralLayer2HoverRecipe = DesignToken.create({ name: 'neutral-layer-2-hover-recipe', cssCustomPropertyName: null }).withDefault({
+        evaluate: (element, reference) =>
+            neutralLayerHoverAlgorithm(
+                neutralPalette.getValueFor(element),
+                reference || fillColor.getValueFor(element),
+                baseLayerLuminance.getValueFor(element),
+                // Use the same layer delta used by the base recipe to calculate layer 2
+                neutralFillLayerRestDelta.getValueFor(element),
+                neutralLayer2HoverLightDelta.getValueFor(element),
+                neutralLayer2HoverDarkDelta.getValueFor(element)
+            ),
+    });
+
+    // Creates the --neutral-layer-1-hover custom CSS property
+    DesignToken.create('neutral-layer-1-hover').withDefault((element) =>
+        neutralLayer1HoverRecipe.getValueFor(element).evaluate(element),
+    );
+
+    // Creates the --neutral-layer-2-hover custom CSS property
+    DesignToken.create('neutral-layer-2-hover').withDefault((element) =>
+        neutralLayer2HoverRecipe.getValueFor(element).evaluate(element),
+    );
+}
+
 function initializeTheme() {
     const themeCookieValue = getThemeCookieValue();
     const effectiveTheme = getEffectiveTheme(themeCookieValue);
@@ -167,4 +250,5 @@ function initializeTheme() {
     applyTheme(effectiveTheme);
 }
 
+createAdditionalDesignTokens();
 initializeTheme();
