@@ -1,0 +1,5 @@
+#nullable enable
+Aspire.Hosting.ApplicationModel.StructurizrResource
+Aspire.Hosting.ApplicationModel.StructurizrResource.HttpEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
+Aspire.Hosting.ApplicationModel.StructurizrResource.StructurizrResource(string! name) -> void
+Aspire.Hosting.StructurizrResourceBuilderExtensions

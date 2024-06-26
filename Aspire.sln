@@ -502,6 +502,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "python", "python", "{7123AB
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Python.AppHost", "playground\python\Python.AppHost\Python.AppHost.csproj", "{173BDA6E-F175-4457-BF64-58CD184E9A81}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Structurizr", "src\Aspire.Hosting.Structurizr\Aspire.Hosting.Structurizr.csproj", "{B76A5D67-62FD-4E08-8E12-49C77E4C58FB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1316,6 +1318,10 @@ Global
 		{173BDA6E-F175-4457-BF64-58CD184E9A81}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{173BDA6E-F175-4457-BF64-58CD184E9A81}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{173BDA6E-F175-4457-BF64-58CD184E9A81}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B76A5D67-62FD-4E08-8E12-49C77E4C58FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B76A5D67-62FD-4E08-8E12-49C77E4C58FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B76A5D67-62FD-4E08-8E12-49C77E4C58FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B76A5D67-62FD-4E08-8E12-49C77E4C58FB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1556,6 +1562,7 @@ Global
 		{588CD2D7-EE70-43C1-8233-330854BDF53C} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{7123AB7A-A4FD-4F64-8B05-D2DD0C3E2ABC} = {D173887B-AF42-4576-B9C1-96B9E9B3D9C0}
 		{173BDA6E-F175-4457-BF64-58CD184E9A81} = {7123AB7A-A4FD-4F64-8B05-D2DD0C3E2ABC}
+		{B76A5D67-62FD-4E08-8E12-49C77E4C58FB} = {B80354C7-BE58-43F6-8928-9F3A74AB7F47}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <PackageTags>aspire hosting Structurizr</PackageTags>
+    <Description>Structurizr support for .NET Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)Structurizr.558x447.png</PackageIconFullPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>100</MinCodeCoverage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+  </ItemGroup>
+
+</Project>
