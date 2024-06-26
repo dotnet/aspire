@@ -25,6 +25,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{silo.bindings.http.targetPort}",
         "Orleans__Clustering__ProviderType": "AzureTableStorage",
         "Orleans__Clustering__ServiceKey": "clustering",
         "ConnectionStrings__clustering": "{clustering.connectionString}",
@@ -52,7 +53,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "targetPort": 8000
+          "port": 8000
         },
         "orleans-gateway": {
           "scheme": "tcp",
@@ -70,6 +71,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{frontend.bindings.http.targetPort}",
         "Orleans__Clustering__ProviderType": "AzureTableStorage",
         "Orleans__Clustering__ServiceKey": "clustering",
         "ConnectionStrings__clustering": "{clustering.connectionString}",
