@@ -54,6 +54,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; set; }
 
+    [Inject]
+    public required ILogger<Traces> Logger { get; init; }
+
     [Parameter]
     [SupplyParameterFromQuery]
     public string? TraceId { get; set; }
@@ -332,7 +335,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     public void UpdateViewModelFromQuery(StructuredLogsPageViewModel viewModel)
     {
-        PageViewModel.SelectedApplication = _applicationViewModels.GetApplication(ApplicationName, _allApplication);
+        PageViewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
         ViewModel.ApplicationServiceId = PageViewModel.SelectedApplication.Id?.InstanceId;
 
         if (LogLevelText is not null && Enum.TryParse<LogLevel>(LogLevelText, ignoreCase: true, out var logLevel))

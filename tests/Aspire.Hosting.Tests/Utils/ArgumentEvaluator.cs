@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.Tests.Utils;
 
-internal sealed class ArgumentEvaluator
+public sealed class ArgumentEvaluator
 {
     public static async ValueTask<List<string>> GetArgumentListAsync(IResource resource)
     {
