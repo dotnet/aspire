@@ -78,7 +78,7 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
 
     [Fact]
     [RequiresTools(["python"])]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4659")]
+    //[ActiveIssue("https://github.com/dotnet/aspire/issues/4659")]
     public async Task PythonResourceFinishesSuccessfully()
     {
         var (projectDirectory, _, scriptName) = CreateTempPythonProject(outputHelper);
@@ -274,7 +274,7 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
         var installRequirementsStartInfo = new ProcessStartInfo()
         {
             FileName = pipPath,
-            Arguments = $"install -y -r requirements.txt",
+            Arguments = $"install -q -r requirements.txt",
             WorkingDirectory = projectDirectory,
             RedirectStandardOutput = true,
             RedirectStandardError = true
