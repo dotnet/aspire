@@ -170,7 +170,7 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
         Assert.Equal("otlp", commandArguments[5]);
         Assert.Equal(pythonExecutable, commandArguments[6]);
         Assert.Equal(scriptName, commandArguments[7]);
-
+         
         // If we don't throw, clean up the directories.
         Directory.Delete(projectDirectory, true);
     }
