@@ -40,6 +40,7 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4650", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task HttpClientGetTest()
     {
         // Wait for resource to start.
@@ -62,6 +63,7 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4650")]
     public async Task SelectsFirstLaunchProfile()
     {
         var config = _app.Services.GetRequiredService<IConfiguration>();
