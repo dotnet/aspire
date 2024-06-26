@@ -18,7 +18,6 @@
     <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(ArchiveTests)' == 'true'">true</ExtractTestClassNamesForHelix>
   </PropertyGroup>
 
-  <Import Project="..\Shared\provisioning.targets" />
   <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" />
 
   <ItemGroup>

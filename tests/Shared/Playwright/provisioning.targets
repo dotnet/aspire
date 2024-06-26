@@ -1,6 +1,10 @@
 <Project>
 
-  <Target Name="ProvisionChrome" AfterTargets="Build" Condition="'$(InstallChromeForPlaywright)' == 'true'">
+  <ItemGroup>
+    <BrowsersForPlaywrightToInstall Include="chromium" />
+  </ItemGroup>
+
+  <Target Name="ProvisionChrome" AfterTargets="Build" Condition="'$(InstallBrowsersForPlaywright)' == 'true' and @(BrowsersForPlaywrightToInstall->Count()) > 0">
     <PropertyGroup>
       <ChromeDirectory>$(ArtifactsBinDir)chrome</ChromeDirectory>
 
@@ -11,13 +15,11 @@
            Text="Could not find %24(_MicrosoftPlaywrightDllPath)=$(_MicrosoftPlaywrightDllPath). This expects the project to reference the Microsoft.Playwright nuget." />
 
     <ItemGroup>
-      <_BrowsersToInstall Include="chromium" />
-
       <_EnvVarsForPlaywrightInstall Include="PLAYWRIGHT_BROWSERS_PATH=$(PlaywrightDependenciesDirectory)" />
       <_EnvVarsForPlaywrightInstall Condition="'$(ContinuousIntegrationBuild)' == 'true'" Include="PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=true" />
     </ItemGroup>
 
-    <Exec Command="dotnet exec --runtimeconfig $(MSBuildThisFileDirectory)Microsoft.Playwright.runtimeconfig.json $(_MicrosoftPlaywrightDllPath) install @(_BrowsersToInstall, ' ')"
+    <Exec Command="dotnet exec --runtimeconfig $(MSBuildThisFileDirectory)Microsoft.Playwright.runtimeconfig.json $(_MicrosoftPlaywrightDllPath) install @(BrowsersForPlaywrightToInstall, ' ')"
           EnvironmentVariables="@(_EnvVarsForPlaywrightInstall)" />
   </Target>
 
