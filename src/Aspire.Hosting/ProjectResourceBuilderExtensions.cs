@@ -557,7 +557,7 @@ public static class ProjectResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Call a filter on each endpoint to determine if it should be included in the environment injection.
+    /// Set a filter that determines if environment variables are injected for a given endpoint.
     /// By default, all endpoints are included (if this method is not called).
     /// </summary>
     /// <param name="builder">The project resource builder.</param>
