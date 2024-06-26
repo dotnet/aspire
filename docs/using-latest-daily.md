@@ -6,38 +6,25 @@ These instructions will get you set up with the latest build of Aspire. If you j
 
 See [machine-requirements.md](machine-requirements.md).
 
-## Add necessary NuGet feeds
+## Run the workload installation script
 
-The latest builds are pushed to a special feed, which you need to add:
-```sh
-dotnet nuget add source --name dotnet8 https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json
-```
+The [workload installation script](./../eng/installLatestFromReleaseBranch.ps1)) will install the latest .NET Aspire workload from the release branch, but it can also install latest from main (latest nightly build) if the `-FromMain` flag is used (`--fromMain` on Linux/macOS).
 
-As usual this will add the feed to any existing NuGet.config in the directory or above, or else in the global NuGet.config. See [configuring NuGet behavior](https://learn.microsoft.com/en-us/nuget/consume-packages/configuring-nuget-behavior) to read more about that.
+### Windows
 
-Alternatively, if you are using Visual Studio, you can [Install and manage packages in Visual Studio](https://learn.microsoft.com/nuget/consume-packages/install-use-packages-visual-studio#package-sources) and add the feed `https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json` there.
-
-## Install the .NET Aspire dotnet workload
-
-First, we need to make sure you have the latest version of the workload manifest in your sdk. You can do this by running:
+From a powershell prompt, and from the root of the aspire repo, run:
 
 ```shell
-dotnet workload update --skip-sign-check --source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json
+.\eng\installLatestFromReleaseBranch.ps1 -FromMain
 ```
-If you are already on the latest version, then the command is a no-op.
 
-Then, we are now able to install the workload with the version of the manifest that we just updated.
+### Linux/macOS
+
+From a terminal, and from the root of the aspire repo, run:
 
 ```shell
-dotnet workload install aspire --skip-sign-check --source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json
+./eng/installLatestFromReleaseBranch.sh --fromMain
 ```
-
-To update it later if you wish
-```shell
-dotnet workload update --source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json
-```
-
-Now you are ready to create and run an Aspire app using these latest Aspire components.
 
 ## Create a new Project
 

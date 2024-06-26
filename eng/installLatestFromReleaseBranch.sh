@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# Function to display usage information
+show_help() {
+    echo "Usage: $0 [--fromMain] [--help]"
+    echo ""
+    echo "Options:"
+    echo "  --fromMain  Use the latest build from main branch instead of release."
+    echo "  --help      Display this help message and exit."
+}
+
 # Check if jq is installed
 if ! command -v jq &> /dev/null
 then
@@ -9,8 +18,28 @@ then
     exit 1
 fi
 
-# NuGet Feed URL
+# Default NuGet Feed URL
 nugetUrl="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json"
+
+# Check for script arguments
+fromMain=false
+for arg in "$@"; do
+    case $arg in
+        --fromMain)
+            fromMain=true
+            nugetUrl="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json"
+            ;;
+        --help)
+            show_help
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $arg"
+            show_help
+            exit 1
+            ;;
+    esac
+done
 
 # Package name to search for
 packageName="Microsoft.NET.Sdk.Aspire.Manifest-8.0.100"
@@ -38,14 +67,26 @@ END
 # Write to file
 echo "$fileContent" > aspire-rollback.txt
 
-# Run dotnet workload update command
-dotnet workload update --source "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json" --skip-sign-check --from-rollback-file ./aspire-rollback.txt
+# Run dotnet workload update command with optional --include-previews parameter
+updateCommand="dotnet workload update --source $nugetUrl --skip-sign-check --from-rollback-file ./aspire-rollback.txt"
+if [ "$fromMain" = true ]; then
+    updateCommand+=" --include-previews"
+fi
+eval $updateCommand
 
-# Run dotnet workload install command
-dotnet workload install aspire --source "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json" --skip-sign-check --from-rollback-file ./aspire-rollback.txt
+# Run dotnet workload install command with optional --include-previews parameter
+installCommand="dotnet workload install aspire --source $nugetUrl --skip-sign-check --from-rollback-file ./aspire-rollback.txt"
+if [ "$fromMain" = true ]; then
+    installCommand+=" --include-previews"
+fi
+eval $installCommand
 
 # Delete the rollback file as it is no longer needed.
 rm -f ./aspire-rollback.txt
 
 # Output the latest version
-echo "Installed Latest version of aspire produced from the release branch. Version installed was $latestVersion."
+if [ "$fromMain" = true ]; then
+    echo "Installed Latest version of aspire produced from the main branch. Version installed was $latestVersion."
+else
+    echo "Installed Latest version of aspire produced from the release branch. Version installed was $latestVersion."
+fi
