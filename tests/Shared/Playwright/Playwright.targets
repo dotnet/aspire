@@ -1,0 +1,9 @@
+<Project>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)*.cs" Link="Playwright" />
+
+    <PackageReference Include="Microsoft.Playwright" />
+  </ItemGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)provisioning.targets" />
+</Project>
