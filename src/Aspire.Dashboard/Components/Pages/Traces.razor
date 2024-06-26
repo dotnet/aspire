@@ -78,14 +78,21 @@
                         </TemplateColumn>
                         <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]">
                             <div class="duration-container">
-                                <FluentProgressRing Class="duration-ring"
-                                                    Min="0"
-                                                    Max="@Convert.ToInt32(TracesViewModel.MaxDuration.TotalMilliseconds)"
-                                                    Value="@Convert.ToInt32(context.Duration.TotalMilliseconds)"
-                                                    aria-label="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]" />
-                                <span class="trace-duration">
-                                @DurationFormatter.FormatDuration(context.Duration)
-                            </span>
+                                @if (ViewportInformation.IsDesktop)
+                                {
+                                    <FluentProgressRing Class="duration-ring"
+                                                        Min="0"
+                                                        Max="@Convert.ToInt32(TracesViewModel.MaxDuration.TotalMilliseconds)"
+                                                        Value="@Convert.ToInt32(context.Duration.TotalMilliseconds)"
+                                                        aria-label="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]"/>
+                                    <span class="trace-duration">
+                                        @DurationFormatter.FormatDuration(context.Duration)
+                                    </span>
+                                }
+                                else
+                                {
+                                    @DurationFormatter.FormatDuration(context.Duration)
+                                }
                             </div>
                         </TemplateColumn>
 
