@@ -26,6 +26,13 @@ From a terminal, and from the root of the aspire repo, run:
 ./eng/installLatestFromReleaseBranch.sh --fromMain
 ```
 
+## Add necessary NuGet feeds
+
+The latest builds are pushed to a special feed, which you need to add:
+```sh
+dotnet nuget add source --name dotnet8 https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json
+```
+
 ## Create a new Project
 
 Create an empty .NET Aspire project on the command line:
@@ -55,7 +62,7 @@ Alternatively, if you are using Visual Studio, you can instead create a new Blaz
 
 ## [Optional] Using scripts to install the latest .NET Aspire build from release branches
 
-If you want to install the latest build from the main branch, then you shouldn't follow the next steps, and instead check out: [Add necessary NuGet feeds](#add-necessary-nuget-feeds).
+If you want to install the latest build from the main branch, then you shouldn't follow the next steps, and instead check out: [Run the workload installation script](#run-the-workload-installation-script).
 
 If you want to use the latest .NET Aspire build from release branches, you can use the scripts in this repo to install the latest .NET Aspire build from those. The reason why we provide scripts for builds from release branches but not for main, is that when working with dotnet workloads, it is not easy to specify exactly which version of the workload you want to install, and instead you get the latest NuGet package version that the SDK is able to find in your configured NuGet feeds. For release branches though, this will not work as main branch produces packages like 8.0.0-preview.x, while release branches produce packages like 8.0.0-preview.(x-1). For example, when main produces packages with version 8.0.0-preview.3, release branches produce packages with version 8.0.0-preview.2.
 
