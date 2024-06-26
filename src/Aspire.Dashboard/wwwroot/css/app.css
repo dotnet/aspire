@@ -443,8 +443,15 @@ fluent-data-grid-cell.no-ellipsis {
     height: inherit !important;
 }
 
-.single-line-toolbar-button {
-    margin-top: 5px;
+.mobile-toolbar {
+    width: 100%;
+    height: max(5vh, 30px);
+}
+
+.mobile-absolute-toolbar {
+    position: absolute;
+    left: 0;
+    bottom: 0;
 }
 
 .page-content-container {
