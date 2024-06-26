@@ -68,7 +68,7 @@ Remove-Item "aspire-rollback.txt" -Force
 
 # Output the latest version
 if ($FromMain) {
-    Write-Output "Installed Latest version of aspire produced from the main branch. Version installed was $latestVersion."
+    Write-Output "Installed Latest version of .NET Aspire produced from the main branch. Version installed was $latestVersion."
 } else {
-    Write-Output "Installed Latest version of aspire produced from the release branch. Version installed was $latestVersion."
+    Write-Output "Installed Latest version of .NET Aspire produced from the release branch. Version installed was $latestVersion."
 }
