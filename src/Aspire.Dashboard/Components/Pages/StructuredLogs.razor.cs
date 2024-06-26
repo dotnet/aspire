@@ -58,6 +58,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; set; }
 
+    [Inject]
+    public required DimensionManager DimensionManager { get; set; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
@@ -344,7 +347,17 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         if (firstRender)
         {
             await JS.InvokeVoidAsync("initializeContinuousScroll");
+            DimensionManager.OnBrowserDimensionsChanged += OnBrowserResize;
         }
+    }
+
+    private void OnBrowserResize(object? o, EventArgs args)
+    {
+        InvokeAsync(async () =>
+        {
+            await JS.InvokeVoidAsync("resetContinuousScrollPosition");
+            await JS.InvokeVoidAsync("initializeContinuousScroll");
+        });
     }
 
     public void Dispose()
@@ -352,6 +365,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         _applicationsSubscription?.Dispose();
         _logsSubscription?.Dispose();
         _filterCts?.Dispose();
+        DimensionManager.OnBrowserDimensionsChanged -= OnBrowserResize;
     }
 
     public string GetUrlFromSerializableViewModel(StructuredLogsPageState serializable)

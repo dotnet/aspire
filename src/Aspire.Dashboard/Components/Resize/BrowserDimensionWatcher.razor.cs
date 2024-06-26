@@ -14,6 +14,8 @@ public class BrowserDimensionWatcher : ComponentBase
 
     [Inject] public required IJSRuntime JS { get; init; }
 
+    [Inject] public required DimensionManager DimensionManager { get; init; }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -37,6 +39,7 @@ public class BrowserDimensionWatcher : ComponentBase
         {
             ViewportInformation = newViewportInformation;
             await ViewportInformationChanged.InvokeAsync(newViewportInformation);
+            DimensionManager.InvokeOnBrowserDimensionsChanged();
         }
     }
 

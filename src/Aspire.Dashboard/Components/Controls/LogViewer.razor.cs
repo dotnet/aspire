@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Globalization;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
@@ -27,6 +28,9 @@ public sealed partial class LogViewer
     [Inject]
     public required LogViewerViewModel ViewModel { get; init; }
 
+    [Inject]
+    public required DimensionManager DimensionManager { get; set; }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_applicationChanged)
@@ -37,7 +41,17 @@ public sealed partial class LogViewer
         if (firstRender)
         {
             await JS.InvokeVoidAsync("initializeContinuousScroll");
+            DimensionManager.OnBrowserDimensionsChanged += OnBrowserResize;
         }
+    }
+
+    private void OnBrowserResize(object? o, EventArgs args)
+    {
+        InvokeAsync(async () =>
+        {
+            await JS.InvokeVoidAsync("resetContinuousScrollPosition");
+            await JS.InvokeVoidAsync("initializeContinuousScroll");
+        });
     }
 
     internal async Task SetLogSourceAsync(string resourceName, IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> batches, bool convertTimestampsFromUtc)
@@ -156,5 +170,6 @@ public sealed partial class LogViewer
     public async ValueTask DisposeAsync()
     {
         await _cancellationSeries.ClearAsync();
+        DimensionManager.OnBrowserDimensionsChanged -= OnBrowserResize;
     }
 }
