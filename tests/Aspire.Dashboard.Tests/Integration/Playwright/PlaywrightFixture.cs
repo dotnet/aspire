@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Workload.Tests;
 using Microsoft.Playwright;
 using Polly;
 using Polly.Retry;
@@ -12,22 +13,12 @@ public class PlaywrightFixture : IAsyncLifetime
 {
     public IBrowser Browser { get; set; } = null!;
 
-    private IPlaywright _playwrightInstance = null!;
     private ResiliencePipeline _resiliencePipeline = null!;
 
     public async Task InitializeAsync()
     {
-        var installExitCode = Microsoft.Playwright.Program.Main(new[] {"install"});
-        if (installExitCode != 0)
-        {
-            throw new PlaywrightException($"Playwright exited with code {installExitCode}");
-        }
-
-        var installDepsExitCode = Microsoft.Playwright.Program.Main(new[] {"install-deps"});
-        if (installDepsExitCode != 0)
-        {
-            throw new PlaywrightException($"Playwright exited with code {installDepsExitCode}");
-        }
+        PlaywrightProvider.DetectAndSetInstalledPlaywrightDependenciesPath();
+        Browser = await PlaywrightProvider.CreateBrowserAsync();
 
         var retryOptions = new RetryStrategyOptions
         {
@@ -43,9 +34,6 @@ public class PlaywrightFixture : IAsyncLifetime
             .AddRetry(retryOptions)
             .AddTimeout(TimeSpan.FromSeconds(10));
         _resiliencePipeline = resiliencePipelineBuilder.Build();
-
-        _playwrightInstance = await Microsoft.Playwright.Playwright.CreateAsync();
-        Browser = await _playwrightInstance.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
     }
 
     public async Task DisposeAsync()

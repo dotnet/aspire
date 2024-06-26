@@ -2,11 +2,11 @@
 
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
+    <InstallBrowsersForPlaywright>true</InstallBrowsersForPlaywright>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Grpc.Tools" />
-    <PackageReference Include="Microsoft.Playwright" />
     <PackageReference Include="Polly.Extensions" />
 
     <ProjectReference Include="..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
@@ -17,4 +17,6 @@
 
     <Content Include="..\..\src\Aspire.Dashboard\wwwroot\**\*.*" LinkBase="wwwroot" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <Import Project="..\Shared\Playwright\Playwright.targets" />
 </Project>
