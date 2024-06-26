@@ -274,6 +274,35 @@ public class KestrelConfigTests
     }
 
     [Fact]
+    public async Task VerifyKestrelEnvVariablesGetOmittedFromManifestIfExcluded()
+    {
+        var resource = CreateTestProjectResource<ProjectWithMultipleHttpKestrelEndpoints>(
+            operation: DistributedApplicationOperation.Publish,
+            callback: builder =>
+            {
+                builder.WithHttpEndpoint(5017, name: "ExplicitProxiedHttp")
+                    .WithHttpEndpoint(5018, name: "ExplicitNoProxyHttp", isProxied: false)
+                    // Exclude both a Kestrel endpoint and an explicit endpoint from environment injection
+                    .WithEndpointsInEnvironment(filter: e => e.EndpointName != "FirstHttpEndpoint" && e.EndpointName != "ExplicitProxiedHttp");
+            });
+
+        var manifest = await ManifestUtils.GetManifest(resource);
+
+        var expectedEnv = """
+            {
+              "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+              "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+              "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+              "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+              "Kestrel__Endpoints__SecondHttpEndpoint__Url": "http://*:{projectName.bindings.SecondHttpEndpoint.targetPort}",
+              "Kestrel__Endpoints__ExplicitNoProxyHttp__Url": "http://*:{projectName.bindings.ExplicitNoProxyHttp.targetPort}"
+            }
+            """;
+
+        Assert.Equal(expectedEnv, manifest["env"]!.ToString());
+    }
+
+    [Fact]
     public async Task VerifyEndpointLevelKestrelProtocol()
     {
         var resource = CreateTestProjectResource<ProjectWithKestrelEndpointsLevelProtocols>(

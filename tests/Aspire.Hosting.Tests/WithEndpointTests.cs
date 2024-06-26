@@ -516,11 +516,14 @@ public class WithEndpointTests
             .WithHttpEndpoint(name: "hp2", port: 5002, targetPort: 5003)
             .WithHttpEndpoint(name: "hp3", targetPort: 5004)
             .WithHttpEndpoint(name: "hp4")
+            .WithHttpEndpoint(name: "dontinjectme")
             .WithHttpsEndpoint()
             .WithHttpsEndpoint(name: "hps1", port: 7001)
             .WithHttpsEndpoint(name: "hps2", port: 7002, targetPort: 7003)
             .WithHttpsEndpoint(name: "hps3", targetPort: 7004)
-            .WithHttpsEndpoint(name: "hps4", targetPort: 7005);
+            .WithHttpsEndpoint(name: "hps4", targetPort: 7005)
+            // Should not be included in HTTP_PORTS
+            .WithEndpointsInEnvironment(e => e.EndpointName != "dontinjectme");
 
         var manifest = await ManifestUtils.GetManifest(project.Resource);
 
