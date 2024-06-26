@@ -566,13 +566,7 @@ public static class ProjectResourceBuilderExtensions
     public static IResourceBuilder<ProjectResource> WithEndpointsInEnvironment(
         this IResourceBuilder<ProjectResource> builder, Func<EndpointAnnotation, bool> filter)
     {
-        foreach (var e in builder.Resource.Annotations.OfType<EndpointAnnotation>())
-        {
-            if (!filter(e))
-            {
-                builder.Resource.SkipEndpointEnvironment(e);
-            }
-        }
+        builder.Resource.InjectEnvironmentForEndpoint = filter;
         return builder;
     }
 
@@ -604,7 +598,7 @@ public static class ProjectResourceBuilderExtensions
         return
             endpoint.UriScheme is "http" or "https" && // Only process http and https endpoints
             endpoint.TargetPortEnvironmentVariable is null && // Skip if target port env variable was set
-            !builder.Resource.ShouldSkipEndpointEnvironment(endpoint); // Skip if the endpoint was marked to be skipped
+            builder.Resource.InjectEnvironmentForEndpoint(endpoint); // Skip if the env filter returns false
     }
 
     private static void SetAspNetCoreUrls(this IResourceBuilder<ProjectResource> builder)
