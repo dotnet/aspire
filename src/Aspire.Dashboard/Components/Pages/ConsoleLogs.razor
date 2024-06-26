@@ -30,7 +30,16 @@
         </ToolbarSection>
 
         <MobilePageTitleToolbarSection>
-            <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@PageViewModel.Status</FluentLabel>
+            <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">
+                @if (PageViewModel.SelectedOption.Id is not null)
+                {
+                    @($"{PageViewModel.SelectedOption.Name}: {PageViewModel.Status}")
+                }
+                else
+                {
+                    @PageViewModel.Status
+                }
+            </FluentLabel>
         </MobilePageTitleToolbarSection>
 
         <MainSection>
