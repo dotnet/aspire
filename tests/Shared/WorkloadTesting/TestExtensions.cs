@@ -18,33 +18,6 @@ public static class TestExtensions
         return page;
     }
 
-    public static bool TryGetHasExited(this Process process)
-    {
-        try
-        {
-            return process.HasExited;
-        }
-        catch (InvalidOperationException ie) when (ie.Message.Contains("No process is associated with this object"))
-        {
-            return true;
-        }
-    }
-
-    public static void CloseAndKillProcessIfRunning(this Process process)
-    {
-        if (process is null || process.TryGetHasExited())
-        {
-            return;
-        }
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            process.CloseMainWindow();
-        }
-        process.Kill(entireProcessTree: true);
-        process.Dispose();
-    }
-
     public static void AssertEqual(object expected, object actual, string message)
     {
         if (expected?.Equals(actual) == true)
