@@ -25,4 +25,36 @@ public class ResourceExtensionsTests
         Assert.True(container.Resource.TryGetContainerImageName(out var imageName));
         Assert.Equal("grafana/grafana:10.3.1", imageName);
     }
+
+    [Fact]
+    public async Task GetEnvironmentVariableValuesAsyncReturnCorrectVariablesInRunMode()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var container = builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
+         .WithEnvironment("discovery.type", "single-node")
+         .WithEnvironment("xpack.security.enabled", "true")
+         .WithEnvironment(context =>
+         {
+             context.EnvironmentVariables["ELASTIC_PASSWORD"] = "123456";
+         });
+
+        var env = await container.Resource.GetEnvironmentVariableValuesAsync();
+
+        Assert.Collection(env,
+            env =>
+            {
+                Assert.Equal("discovery.type", env.Key);
+                Assert.Equal("single-node", env.Value);
+            },
+            env =>
+            {
+                Assert.Equal("xpack.security.enabled", env.Key);
+                Assert.Equal("true", env.Value);
+            },
+            env =>
+            {
+                Assert.Equal("ELASTIC_PASSWORD", env.Key);
+                Assert.False(string.IsNullOrEmpty(env.Value));
+            });
+    }
 }
