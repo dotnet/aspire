@@ -115,8 +115,8 @@ public sealed class ApplicationsSelectHelpersTests
 
         var appVMs = new List<SelectViewModel<ResourceTypeDetails>>
         {
-            new SelectViewModel<ResourceTypeDetails>() { Name = "test", Id = ResourceTypeDetails.CreateSingleton("test-abc") },
-            new SelectViewModel<ResourceTypeDetails>() { Name = "test", Id = ResourceTypeDetails.CreateSingleton("test-def") }
+            new SelectViewModel<ResourceTypeDetails>() { Name = "test", Id = ResourceTypeDetails.CreateSingleton("test-abc", "test") },
+            new SelectViewModel<ResourceTypeDetails>() { Name = "test", Id = ResourceTypeDetails.CreateSingleton("test-def", "test") }
         };
 
         var testSink = new TestSink();
@@ -131,15 +131,18 @@ public sealed class ApplicationsSelectHelpersTests
         Assert.Single(testSink.Writes);
     }
 
-    private static OtlpApplication CreateOtlpApplication(Dictionary<string, OtlpApplication> apps, string name, string instanceId)
+    private static OtlpApplication CreateOtlpApplication(string name, string instanceId)
     {
-        return new OtlpApplication(new Resource
+        var resource = new Resource
         {
             Attributes =
                 {
                     new KeyValue { Key = "service.name", Value = new AnyValue { StringValue = name } },
                     new KeyValue { Key = "service.instance.id", Value = new AnyValue { StringValue = instanceId } }
                 }
-        }, apps, NullLogger.Instance, new TelemetryLimitOptions());
+        };
+        var applicationKey = OtlpHelpers.GetApplicationKey(resource);
+
+        return new OtlpApplication(applicationKey.Name, applicationKey.InstanceId, resource, NullLogger.Instance, new TelemetryLimitOptions());
     }
 }
