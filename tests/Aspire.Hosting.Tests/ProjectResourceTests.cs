@@ -74,7 +74,7 @@ public class ProjectResourceTests
             env =>
             {
                 Assert.Equal("OTEL_RESOURCE_ATTRIBUTES", env.Key);
-                Assert.Equal("service.instance.id={{- .Name -}}", env.Value);
+                Assert.Equal("service.instance.id={{- index .Annotations \"otel-service-instance-id\" -}}", env.Value);
             },
             env =>
             {
