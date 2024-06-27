@@ -154,14 +154,12 @@ public class TraceTests
                 AssertId("2", trace.TraceId);
                 AssertId("2-1", trace.FirstSpan.SpanId);
                 AssertId("2-1", trace.RootSpan!.SpanId);
-                Assert.Equal("", trace.TraceScope.ScopeName);
             },
             trace =>
             {
                 AssertId("1", trace.TraceId);
                 AssertId("1-2", trace.FirstSpan.SpanId);
                 Assert.Null(trace.RootSpan);
-                Assert.Equal("", trace.TraceScope.ScopeName);
             });
 
         var addContext3 = new AddContext();
@@ -196,17 +194,15 @@ public class TraceTests
             {
                 AssertId("1", trace.TraceId);
                 AssertId("1-1", trace.FirstSpan.SpanId);
-                AssertId("", trace.FirstSpan.ScopeName);
+                Assert.Equal("", trace.FirstSpan.Scope.ScopeName);
                 AssertId("1-1", trace.RootSpan!.SpanId);
-                Assert.Equal("", trace.TraceScope.ScopeName);
             },
             trace =>
             {
                 AssertId("2", trace.TraceId);
                 AssertId("2-1", trace.FirstSpan.SpanId);
-                AssertId("", trace.FirstSpan.ScopeName);
+                Assert.Equal("", trace.FirstSpan.Scope.ScopeName);
                 AssertId("2-1", trace.RootSpan!.SpanId);
-                Assert.Equal("", trace.TraceScope.ScopeName);
             });
     }
 

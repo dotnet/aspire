@@ -222,6 +222,11 @@
         <target state="translated">選取應用程式</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanDetailsContextHeader">
+        <source>Context</source>
+        <target state="new">Context</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanDetailsDuration">
         <source>Duration &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="translated">期間 &lt;strong&gt;{0}&lt;/strong&gt;</target>

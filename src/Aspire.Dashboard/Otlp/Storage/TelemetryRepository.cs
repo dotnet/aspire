@@ -571,11 +571,11 @@ public sealed class TelemetryRepository
                         }
                         else if (!TryGetTraceById(_traces, span.TraceId.Memory, out trace))
                         {
-                            trace = new OtlpTrace(span.TraceId.Memory, scope);
+                            trace = new OtlpTrace(span.TraceId.Memory);
                             newTrace = true;
                         }
 
-                        var newSpan = CreateSpan(application, span, trace, _dashboardOptions.TelemetryLimits);
+                        var newSpan = CreateSpan(application, span, trace, scope, _dashboardOptions.TelemetryLimits);
                         trace.AddSpan(newSpan);
 
                         // Traces are sorted by the start time of the first span.
@@ -684,7 +684,7 @@ public sealed class TelemetryRepository
         }
     }
 
-    private static OtlpSpan CreateSpan(OtlpApplication application, Span span, OtlpTrace trace, TelemetryLimitOptions options)
+    private static OtlpSpan CreateSpan(OtlpApplication application, Span span, OtlpTrace trace, OtlpScope scope, TelemetryLimitOptions options)
     {
         var id = span.SpanId?.ToHexString();
         if (id is null)
@@ -708,7 +708,7 @@ public sealed class TelemetryRepository
             }
         }
 
-        var newSpan = new OtlpSpan(application, trace)
+        var newSpan = new OtlpSpan(application, trace, scope)
         {
             SpanId = id,
             ParentSpanId = span.ParentSpanId?.ToHexString(),
