@@ -40,17 +40,7 @@ public class BuildEnvironment
     {
         HasWorkloadFromArtifacts = !useSystemDotNet;
         TargetFramework = targetFramework;
-        RepoRoot = new(AppContext.BaseDirectory);
-        while (RepoRoot != null)
-        {
-            // To support git worktrees, check for either a directory or a file named ".git"
-            if (Directory.Exists(Path.Combine(RepoRoot.FullName, ".git")) || File.Exists(Path.Combine(RepoRoot.FullName, ".git")))
-            {
-                break;
-            }
-
-            RepoRoot = RepoRoot.Parent;
-        }
+        RepoRoot = TestUtils.FindRepoRoot();
 
         string sdkForWorkloadPath;
         if (RepoRoot is not null)

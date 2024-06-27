@@ -44,22 +44,7 @@ public class PlaywrightProvider
             return;
         }
 
-        if (repoRoot is null)
-        {
-            // try to find the repo root
-            repoRoot = new(AppContext.BaseDirectory);
-            while (repoRoot != null)
-            {
-                // To support git worktrees, check for either a directory or a file named ".git"
-                if (Directory.Exists(Path.Combine(repoRoot.FullName, ".git")) || File.Exists(Path.Combine(repoRoot.FullName, ".git")))
-                {
-                    break;
-                }
-
-                repoRoot = repoRoot.Parent;
-            }
-        }
-
+        repoRoot ??= TestUtils.FindRepoRoot();
         if (repoRoot is not null)
         {
             // Running from inside the repo
