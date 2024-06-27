@@ -39,6 +39,7 @@ public class PlaywrightProvider
     {
         if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(PlaywrightBrowsersPathEnvironmentVariableName)))
         {
+            Console.WriteLine ($"Found exiting var: {Environment.GetEnvironmentVariable(PlaywrightBrowsersPathEnvironmentVariableName)}");
             // this would be the case for helix where the path is set to a
             // payload directory
             return;
@@ -48,6 +49,7 @@ public class PlaywrightProvider
         {
             // try to find the repo root
             repoRoot = new(AppContext.BaseDirectory);
+            Console.WriteLine ($"** Looking for repoRoot starting at {repoRoot}");
             while (repoRoot != null)
             {
                 // To support git worktrees, check for either a directory or a file named ".git"
@@ -59,9 +61,11 @@ public class PlaywrightProvider
                 repoRoot = repoRoot.Parent;
             }
         }
+        Console.WriteLine ($"** Using repoRoot: {repoRoot}");
 
         if (repoRoot is not null)
         {
+            Console.WriteLine ($"** Checking in {repoRoot}");
             // Running from inside the repo
 
             // Check if we already have playwright-deps in artifacts
@@ -71,6 +75,14 @@ public class PlaywrightProvider
                 Environment.SetEnvironmentVariable(PlaywrightBrowsersPathEnvironmentVariableName, probePath);
                 Console.WriteLine($"** Found playwright dependencies in {probePath}");
             }
+            else
+            {
+                Console.WriteLine ($"** Could not find playwright-deps at {probePath}");
+            }
+        }
+        else
+        {
+            Console.WriteLine ($"** RepoRoot is null, so no playwright-deps!");
         }
     }
 }
