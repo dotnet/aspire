@@ -128,32 +128,42 @@ public class ProducerConfigurationTests
         Action act =
             (useKeyed, useConfigureSettings, useConfigureBuilder, useConfigureBuilderWithServiceProvider) switch
             {
-                (true, true, false, false) => () => builder.AddKeyedKafkaProducer<string, string>("messaging",
-                    configureSettings: ConfigureSettings),
-                (true, true, true, false) => () => builder.AddKeyedKafkaProducer<string, string>("messaging",
-                    configureSettings: ConfigureSettings, configureBuilder: ConfigureBuilder),
-                (true, true, false, true) => () => builder.AddKeyedKafkaProducer<string, string>("messaging",
-                    configureSettings: ConfigureSettings, configureBuilder: ConfigureBuilderWithServiceProvider),
                 (true, false, false, false) => () =>
                     builder.AddKeyedKafkaProducer<string, string>("messaging"),
-                (true, false, true, false) => () =>
-                    builder.AddKeyedKafkaProducer<string, string>("messaging", configureBuilder: ConfigureBuilder),
-                (true, false, false, true) => () =>
-                    builder.AddKeyedKafkaProducer<string, string>("messaging",
-                        configureBuilder: ConfigureBuilderWithServiceProvider),
-                (false, true, false, false) => () => builder.AddKafkaProducer<string, string>("messaging",
-                    configureSettings: ConfigureSettings),
-                (false, true, true, false) => () => builder.AddKafkaProducer<string, string>("messaging",
-                    configureSettings: ConfigureSettings, configureBuilder: ConfigureBuilder),
-                (false, true, false, true) => () => builder.AddKafkaProducer<string, string>("messaging",
-                    configureSettings: ConfigureSettings, configureBuilder: ConfigureBuilderWithServiceProvider),
                 (false, false, false, false) => () =>
                     builder.AddKafkaProducer<string, string>("messaging"),
-                (false, false, true, false) => () =>
-                    builder.AddKafkaProducer<string, string>("messaging", configureBuilder: ConfigureBuilder),
-                (false, false, false, true) => () =>
-                    builder.AddKafkaProducer<string, string>("messaging",
-                        configureBuilder: ConfigureBuilderWithServiceProvider),
+
+                // only configureSettings
+                (true, true, false, false) => () => builder.AddKeyedKafkaProducer<string, string>("messaging",
+                    configureSettings: ConfigureSettings),
+                (false, true, false, false) => () => builder.AddKafkaProducer<string, string>("messaging",
+                    configureSettings: ConfigureSettings),
+
+                // only configureBuilder
+                (true, false, true, false) => () => builder.AddKeyedKafkaProducer<string, string>("messaging",
+                    configureBuilder: ConfigureBuilder),
+                (true, false, false, true) => () => builder.AddKeyedKafkaProducer<string, string>("messaging",
+                    configureBuilder: ConfigureBuilderWithServiceProvider),
+                (false, false, true, false) => () => builder.AddKafkaProducer<string, string>("messaging",
+                    configureBuilder: ConfigureBuilder),
+                (false, false, false, true) => () => builder.AddKafkaProducer<string, string>("messaging",
+                    configureBuilder: ConfigureBuilderWithServiceProvider),
+
+                // both configureSettings, and configureBuilder
+                (true, true, true, false) => () => builder.AddKeyedKafkaProducer<string, string>("messaging",
+                    configureSettings: ConfigureSettings,
+                    configureBuilder: ConfigureBuilder),
+                (false, true, true, false) => () => builder.AddKafkaProducer<string, string>("messaging",
+                    configureSettings: ConfigureSettings,
+                    configureBuilder: ConfigureBuilder),
+
+                (true, true, false, true) => () => builder.AddKeyedKafkaProducer<string, string>("messaging",
+                    configureSettings: ConfigureSettings,
+                    configureBuilder: ConfigureBuilderWithServiceProvider),
+                (false, true, false, true) => () => builder.AddKafkaProducer<string, string>("messaging",
+                    configureSettings: ConfigureSettings,
+                    configureBuilder: ConfigureBuilderWithServiceProvider),
+
                 _ => throw new InvalidOperationException()
             };
 

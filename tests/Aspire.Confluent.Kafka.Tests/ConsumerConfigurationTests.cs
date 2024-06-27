@@ -139,32 +139,41 @@ public class ConsumerConfigurationTests
         Action act =
             (useKeyed, useConfigureSettings, useConfigureBuilder, useConfigureBuilderWithServiceProvider) switch
             {
+                (true, false, false, false) => () => builder.AddKeyedKafkaConsumer<string, string>("messaging"),
+                (false, false, false, false) => () => builder.AddKafkaConsumer<string, string>("messaging"),
+
+                // only configureSettings
                 (true, true, false, false) => () => builder.AddKeyedKafkaConsumer<string, string>("messaging",
                     configureSettings: ConfigureSettings),
-                (true, true, true, false) => () => builder.AddKeyedKafkaConsumer<string, string>("messaging",
-                    configureSettings: ConfigureSettings, configureBuilder: ConfigureBuilder),
-                (true, true, false, true) => () => builder.AddKeyedKafkaConsumer<string, string>("messaging",
-                    configureSettings: ConfigureSettings, configureBuilder: ConfigureBuilderWithServiceProvider),
-                (true, false, false, false) => () =>
-                    builder.AddKeyedKafkaConsumer<string, string>("messaging"),
-                (true, false, true, false) => () =>
-                    builder.AddKeyedKafkaConsumer<string, string>("messaging", configureBuilder: ConfigureBuilder),
-                (true, false, false, true) => () =>
-                    builder.AddKeyedKafkaConsumer<string, string>("messaging",
-                        configureBuilder: ConfigureBuilderWithServiceProvider),
                 (false, true, false, false) => () => builder.AddKafkaConsumer<string, string>("messaging",
                     configureSettings: ConfigureSettings),
+
+                // only configureBuilder
+                (true, false, true, false) => () => builder.AddKeyedKafkaConsumer<string, string>("messaging",
+                    configureBuilder: ConfigureBuilder),
+                (false, false, true, false) => () => builder.AddKafkaConsumer<string, string>("messaging",
+                    configureBuilder: ConfigureBuilder),
+
+                (true, false, false, true) => () => builder.AddKeyedKafkaConsumer<string, string>("messaging",
+                    configureBuilder: ConfigureBuilderWithServiceProvider),
+                (false, false, false, true) => () => builder.AddKafkaConsumer<string, string>("messaging",
+                    configureBuilder: ConfigureBuilderWithServiceProvider),
+
+                // both configureSettings, and configureBuilder
+                (true, true, true, false) => () => builder.AddKeyedKafkaConsumer<string, string>("messaging",
+                    configureSettings: ConfigureSettings,
+                    configureBuilder: ConfigureBuilder),
                 (false, true, true, false) => () => builder.AddKafkaConsumer<string, string>("messaging",
-                    configureSettings: ConfigureSettings, configureBuilder: ConfigureBuilder),
+                    configureSettings: ConfigureSettings,
+                    configureBuilder: ConfigureBuilder),
+
+                (true, true, false, true) => () => builder.AddKeyedKafkaConsumer<string, string>("messaging",
+                    configureSettings: ConfigureSettings,
+                    configureBuilder: ConfigureBuilderWithServiceProvider),
                 (false, true, false, true) => () => builder.AddKafkaConsumer<string, string>("messaging",
-                    configureSettings: ConfigureSettings, configureBuilder: ConfigureBuilderWithServiceProvider),
-                (false, false, false, false) => () =>
-                    builder.AddKafkaConsumer<string, string>("messaging"),
-                (false, false, true, false) => () =>
-                    builder.AddKafkaConsumer<string, string>("messaging", configureBuilder: ConfigureBuilder),
-                (false, false, false, true) => () =>
-                    builder.AddKafkaConsumer<string, string>("messaging",
-                        configureBuilder: ConfigureBuilderWithServiceProvider),
+                    configureSettings: ConfigureSettings,
+                    configureBuilder: ConfigureBuilderWithServiceProvider),
+
                 _ => throw new InvalidOperationException()
             };
 
