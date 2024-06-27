@@ -1,14 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json.Nodes;
+using Amazon;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
-using Xunit;
+using Json.Schema;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json.Schema;
-using Newtonsoft.Json.Linq;
-using Amazon;
+using Xunit;
 
 namespace Aspire.Hosting.Tests.Schema;
 
@@ -181,16 +181,15 @@ public class SchemaTests
         }
     }
 
-    private static JSchema? s_schema;
+    private static JsonSchema? s_schema;
 
-    private static async Task<JSchema> GetSchemaAsync()
+    private static JsonSchema GetSchema()
     {
         if (s_schema == null)
         {
             var relativePath = Path.Combine("Schema", "aspire-8.0.json");
             var schemaPath = Path.GetFullPath(relativePath);
-            var schemaText = await File.ReadAllTextAsync(schemaPath);
-            s_schema = JSchema.Parse(schemaText);
+            s_schema = JsonSchema.FromFile(schemaPath);
         }
 
         return s_schema;
@@ -198,7 +197,7 @@ public class SchemaTests
 
     [Theory]
     [MemberData(nameof(ApplicationSamples))]
-    public async Task ValidateApplicationSamples(string testCaseName, Action<IDistributedApplicationBuilder> configurator)
+    public void ValidateApplicationSamples(string testCaseName, Action<IDistributedApplicationBuilder> configurator)
     {
         _ = testCaseName;
 
@@ -212,32 +211,26 @@ public class SchemaTests
         program.Run();
 
         var manifestText = publisher.ManifestDocument.RootElement.ToString();
-        var manifestJson = JToken.Parse(manifestText);
-        var schema = await GetSchemaAsync();
-        var isValid = manifestJson.IsValid(schema, out IList<ValidationError> errors);
-
-        if (!isValid)
-        {
-            var errorMessages = errors.Select(e => e.Message).ToList();
-            Assert.True(isValid, string.Join(Environment.NewLine, errorMessages));
-        }
+        var manifestJson = JsonNode.Parse(manifestText);
+        var schema = GetSchema();
+        AssertValid(manifestJson, schema);
     }
 
     [Fact]
-    public async Task SchemaRejectsEmptyManifest()
+    public void SchemaRejectsEmptyManifest()
     {
         var manifestTest = """
             {
             }
             """;
 
-        var manifestJson = JToken.Parse(manifestTest);
-        var schema = await GetSchemaAsync();
-        Assert.False(manifestJson.IsValid(schema));
+        var manifestJson = JsonNode.Parse(manifestTest);
+        var schema = GetSchema();
+        Assert.False(schema.Evaluate(manifestJson).IsValid);
     }
 
     [Fact]
-    public async Task ManifestAcceptsUnknownResourceType()
+    public void ManifestAcceptsUnknownResourceType()
     {
         var manifestTest = """
             {
@@ -249,13 +242,13 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JToken.Parse(manifestTest);
-        var schema = await GetSchemaAsync();
-        Assert.True(manifestJson.IsValid(schema));
+        var manifestJson = JsonNode.Parse(manifestTest);
+        var schema = GetSchema();
+        Assert.True(schema.Evaluate(manifestJson).IsValid);
     }
 
     [Fact]
-    public async Task ManifestWithContainerResourceWithMissingImageIsRejected()
+    public void ManifestWithContainerResourceWithMissingImageIsRejected()
     {
         var manifestTest = """
             {
@@ -267,13 +260,13 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JToken.Parse(manifestTest);
-        var schema = await GetSchemaAsync();
-        Assert.False(manifestJson.IsValid(schema));
+        var manifestJson = JsonNode.Parse(manifestTest);
+        var schema = GetSchema();
+        Assert.False(schema.Evaluate(manifestJson).IsValid);
     }
 
     [Fact]
-    public async Task ManifestWithValue0ResourceWithConnectionStringAndValueIsRejectedIsRejected()
+    public void ManifestWithValue0ResourceWithConnectionStringAndValueIsRejectedIsRejected()
     {
         var manifestTest = """
             {
@@ -287,13 +280,13 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JToken.Parse(manifestTest);
-        var schema = await GetSchemaAsync();
-        Assert.False(manifestJson.IsValid(schema));
+        var manifestJson = JsonNode.Parse(manifestTest);
+        var schema = GetSchema();
+        Assert.False(schema.Evaluate(manifestJson).IsValid);
     }
 
     [Fact]
-    public async Task ManifestWithContainerResourceAndNoEnvOrBindingsIsAccepted()
+    public void ManifestWithContainerResourceAndNoEnvOrBindingsIsAccepted()
     {
         var manifestTest = """
             {
@@ -306,13 +299,13 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JToken.Parse(manifestTest);
-        var schema = await GetSchemaAsync();
-        Assert.True(manifestJson.IsValid(schema));
+        var manifestJson = JsonNode.Parse(manifestTest);
+        var schema = GetSchema();
+        Assert.True(schema.Evaluate(manifestJson).IsValid);
     }
 
     [Fact]
-    public async Task ManifestWithContainerV0ResourceAndBuildFieldIsRejected()
+    public void ManifestWithContainerV0ResourceAndBuildFieldIsRejected()
     {
         var manifestTest = """
             {
@@ -329,13 +322,13 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JToken.Parse(manifestTest);
-        var schema = await GetSchemaAsync();
-        Assert.False(manifestJson.IsValid(schema));
+        var manifestJson = JsonNode.Parse(manifestTest);
+        var schema = GetSchema();
+        Assert.False(schema.Evaluate(manifestJson).IsValid);
     }
 
     [Fact]
-    public async Task ManifestWithContainerV1ResourceWithImageAndBuildFieldIsRejected()
+    public void ManifestWithContainerV1ResourceWithImageAndBuildFieldIsRejected()
     {
         var manifestTest = """
             {
@@ -352,13 +345,13 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JToken.Parse(manifestTest);
-        var schema = await GetSchemaAsync();
-        Assert.False(manifestJson.IsValid(schema));
+        var manifestJson = JsonNode.Parse(manifestTest);
+        var schema = GetSchema();
+        Assert.False(schema.Evaluate(manifestJson).IsValid);
     }
 
     [Fact]
-    public async Task ManifestWithContainerV1ResourceAndBuildFieldIsAccepted()
+    public void ManifestWithContainerV1ResourceAndBuildFieldIsAccepted()
     {
         var manifestTest = """
             {
@@ -374,13 +367,13 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JToken.Parse(manifestTest);
-        var schema = await GetSchemaAsync();
-        Assert.True(manifestJson.IsValid(schema));
+        var manifestJson = JsonNode.Parse(manifestTest);
+        var schema = GetSchema();
+        Assert.True(schema.Evaluate(manifestJson).IsValid);
     }
 
     [Fact]
-    public async Task ManifestWithContainerV1ResourceAndImageFieldIsAccepted()
+    public void ManifestWithContainerV1ResourceAndImageFieldIsAccepted()
     {
         var manifestTest = """
             {
@@ -393,13 +386,13 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JToken.Parse(manifestTest);
-        var schema = await GetSchemaAsync();
-        Assert.True(manifestJson.IsValid(schema));
+        var manifestJson = JsonNode.Parse(manifestTest);
+        var schema = GetSchema();
+        Assert.True(schema.Evaluate(manifestJson).IsValid);
     }
 
     [Fact]
-    public async Task ManifestWithProjectResourceAndNoEnvOrBindingsIsAccepted()
+    public void ManifestWithProjectResourceAndNoEnvOrBindingsIsAccepted()
     {
         var manifestTest = """
             {
@@ -412,19 +405,13 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JToken.Parse(manifestTest);
-        var schema = await GetSchemaAsync();
-        var isValid = manifestJson.IsValid(schema, out IList<ValidationError> errors);
-
-        if (!isValid)
-        {
-            var errorMessages = errors.Select(e => e.Message).ToList();
-            Assert.True(isValid, string.Join(Environment.NewLine, errorMessages));
-        }
+        var manifestJson = JsonNode.Parse(manifestTest);
+        var schema = GetSchema();
+        AssertValid(manifestJson, schema);
     }
 
     [Fact]
-    public async Task BicepManifestIsAccepted()
+    public void BicepManifestIsAccepted()
     {
         // The reason this large test is here is that when submitting the positive test cases to SchemaStore.org
         // I found this one was failing. So I'm including it here.
@@ -636,14 +623,19 @@ public class SchemaTests
 
             """;
 
-        var manifestJson = JToken.Parse(manifestTest);
-        var schema = await GetSchemaAsync();
-        var isValid = manifestJson.IsValid(schema, out IList<ValidationError> errors);
+        var manifestJson = JsonNode.Parse(manifestTest);
+        var schema = GetSchema();
+        AssertValid(manifestJson, schema);
+    }
 
-        if (!isValid)
+    private static void AssertValid(JsonNode? manifestJson, JsonSchema schema)
+    {
+        var results = schema.Evaluate(manifestJson);
+
+        if (!results.IsValid)
         {
-            var errorMessages = errors.Select(e => e.Message).ToList();
-            Assert.True(isValid, string.Join(Environment.NewLine, errorMessages));
+            var errorMessages = results.Details.Where(x => x.HasErrors).SelectMany(e => e.Errors!).Select(e => e.Value);
+            Assert.True(results.IsValid, string.Join(Environment.NewLine, errorMessages ?? ["Schema failed validation with no errors"]));
         }
     }
 }
