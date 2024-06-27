@@ -87,6 +87,83 @@ public class TraceTests
     }
 
     [Fact]
+    public void AddTraces_Scope_Multiple()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope("scope1"),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10)),
+                        }
+                    }
+                }
+            }
+        });
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope("scope2"),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1")
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var applications = repository.GetApplications();
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+            });
+
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationServiceId = applications[0].InstanceId,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10
+        });
+        Assert.Collection(traces.PagedResult.Items,
+            trace =>
+            {
+                AssertId("1", trace.TraceId);
+                AssertId("1-1", trace.FirstSpan.SpanId);
+                AssertId("1-1", trace.RootSpan!.SpanId);
+                Assert.Equal(2, trace.Spans.Count);
+
+                Assert.Collection(trace.Spans,
+                    span => Assert.Equal("scope1", span.Scope.ScopeName),
+                    span => Assert.Equal("scope2", span.Scope.ScopeName));
+            });
+    }
+
+    [Fact]
     public void AddTraces_Traces_MultipleOutOrOrder()
     {
         // Arrange
