@@ -237,7 +237,7 @@ internal sealed class DashboardClient : IDashboardClient
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error load data from the resource service.");
+                _logger.LogError(ex, "Error loading data from the resource service.");
                 throw;
             }
 

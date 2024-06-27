@@ -6,7 +6,6 @@ using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Aspire.Dashboard.Extensions;
-using Aspire.Dashboard.Otlp.Model;
 using Google.Protobuf.WellKnownTypes;
 
 namespace Aspire.Dashboard.Model;
@@ -49,13 +48,8 @@ public sealed class ResourceViewModel
                 if (count >= 2)
                 {
                     // There are multiple resources with the same display name so they're part of a replica set.
-                    // Need to change the name so it includes an ID to tell them apart.
-                    // DCP automatically includes a suffix on a kind of resource name, however we don't want it
-                    // because we can't share it between resource pages and telemetry pages.
-                    // Instead, combine resource name with the UID.
-                    // Before: catalogservice-mbrpbvo
-                    // After: catalogservice-{truncated-guid}
-                    return $"{resource.DisplayName}-{OtlpHelpers.TruncateString(resource.Uid, maxLength: 7)}";
+                    // Need to use the name which has a unique ID to tell them apart.
+                    return resource.Name;
                 }
             }
         }

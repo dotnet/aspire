@@ -198,7 +198,7 @@ public class OtlpApplication
                 count++;
                 if (count >= 2)
                 {
-                    return $"{item.ApplicationName}-{OtlpHelpers.TruncateString(app.InstanceId, maxLength: 7)}";
+                    return $"{item.ApplicationName}-{app.InstanceId}";
                 }
             }
         }
