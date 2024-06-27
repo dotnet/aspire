@@ -49,9 +49,20 @@ internal sealed class ContainerSpec
     [JsonPropertyName("args")]
     public List<string>? Args { get; set; }
 
+    // Optional labels to apply to the container instance
+    [JsonPropertyName("labels")]
+    public List<ContainerLabel>? Labels { get; set; }
+
     // Additional arguments to pass to the container run command
     [JsonPropertyName("runArgs")]
     public List<string>? RunArgs { get; set; }
+
+    // Should this container be created and persisted between DCP runs?
+    [JsonPropertyName("persistent")]
+    public bool? Persistent { get; set; }
+
+    [JsonPropertyName("networks")]
+    public List<ContainerNetworkConnection>? Networks { get; set; }
 }
 
 internal sealed class BuildContext
@@ -79,6 +90,10 @@ internal sealed class BuildContext
     // Optional additional tags to apply to the built image
     [JsonPropertyName("tags")]
     public List<string>? Tags { get; set; }
+
+    // Optional labels to apply to the built image
+    [JsonPropertyName("labels")]
+    public List<ContainerLabel>? Labels { get; set; }
 }
 
 internal sealed class BuildContextSecret
@@ -86,6 +101,14 @@ internal sealed class BuildContextSecret
     // The ID of the secret (a secret can be used in a Dockerfile with `RUN --mount-type=secret,id=<id>,target=<targetpath>`)
     [JsonPropertyName("id")]
     public string? Id { get; set; }
+
+    // Type of the secret, can be "env" or "file".
+    [JsonPropertyName("type")]
+    public string? Type { get; set; }
+
+    // Value of the secret to be used in the build when the type of the secret is "env".
+    [JsonPropertyName("value")]
+    public string? Value { get; set; }
 
     // Path to secret file/folder that will be mounted as a build secret using --secret
     [JsonPropertyName("source")]
@@ -118,6 +141,30 @@ internal sealed class VolumeMount
     // True if the mounted file system is supposed to be read-only
     [JsonPropertyName("readOnly")]
     public bool IsReadOnly { get; set; } = false;
+}
+
+internal sealed class ContainerNetworkConnection
+{
+    // DCP Resource name of a ContainerNetwork to connect to
+    // A container won't start running until it can be conneced to all specified networks
+    [JsonPropertyName("name")]
+	public string? Name { get; set; }
+
+	// Aliases of the container on the network
+	// This enables container DNS resolution
+    [JsonPropertyName("aliases")]
+	public List<string>? Aliases { get; set; }
+}
+
+internal sealed class ContainerLabel
+{
+    // The label key
+    [JsonPropertyName("key")]
+    public string? Key { get; set; }
+
+    // The label value
+    [JsonPropertyName("value")]
+    public string? Value { get; set; }
 }
 
 internal static class ContainerRestartPolicy
@@ -236,6 +283,10 @@ internal sealed class ContainerStatus : V1Status
     [JsonPropertyName("effectiveArgs")]
     public List<string>? EffectiveArgs { get; set; }
 
+    // Any ContainerNetworks this container is attached to
+    [JsonPropertyName("networks")]
+    public List<string>? Networks { get; set; }
+
     // Note: the ContainerStatus has "Message" property that represents a human-readable information about Container state.
     // It is provided by V1Status base class.
 }
@@ -288,7 +339,9 @@ internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
     }
 
     public bool LogsAvailable =>
-        this.Status?.State == ContainerState.Running
+        this.Status?.State == ContainerState.Starting
+        || this.Status?.State == ContainerState.Building
+        || this.Status?.State == ContainerState.Running
         || this.Status?.State == ContainerState.Paused
         || this.Status?.State == ContainerState.Stopping
         || this.Status?.State == ContainerState.Exited

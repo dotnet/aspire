@@ -5,6 +5,12 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting valkey</PackageTags>
     <Description>Valkey® support for .NET Aspire.</Description>
+    <!-- Disable package validation as this package hasn't shipped yet. -->
+    <EnablePackageValidation>false</EnablePackageValidation>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>92</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>

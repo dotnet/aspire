@@ -6,6 +6,12 @@
     <PackageTags>aspire hosting milvus database vector search</PackageTags>
     <Description>Milvus vector database support for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)Milvus_256x.png</PackageIconFullPath>
+    <!-- Disable package validation as this package hasn't shipped yet. -->
+    <EnablePackageValidation>false</EnablePackageValidation>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>17</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>
