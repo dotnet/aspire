@@ -283,7 +283,9 @@ public class KestrelConfigTests
                 builder.WithHttpEndpoint(5017, name: "ExplicitProxiedHttp")
                     .WithHttpEndpoint(5018, name: "ExplicitNoProxyHttp", isProxied: false)
                     // Exclude both a Kestrel endpoint and an explicit endpoint from environment injection
-                    .WithEndpointsInEnvironment(filter: e => e.Name != "FirstHttpEndpoint" && e.Name != "ExplicitProxiedHttp");
+                    // We do it as separate filters to ensure they are combined correctly
+                    .WithEndpointsInEnvironment(e => e.Name != "FirstHttpEndpoint")
+                    .WithEndpointsInEnvironment(e => e.Name != "ExplicitProxiedHttp");
             });
 
         var manifest = await ManifestUtils.GetManifest(resource);

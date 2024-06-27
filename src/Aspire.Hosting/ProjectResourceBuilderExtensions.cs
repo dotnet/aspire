@@ -566,7 +566,7 @@ public static class ProjectResourceBuilderExtensions
     public static IResourceBuilder<ProjectResource> WithEndpointsInEnvironment(
         this IResourceBuilder<ProjectResource> builder, Func<EndpointAnnotation, bool> filter)
     {
-        builder.Resource.InjectEnvironmentForEndpoint = filter;
+        builder.Resource.AddEnvironmentInjectionFilter(filter);
         return builder;
     }
 
@@ -591,16 +591,6 @@ public static class ProjectResourceBuilderExtensions
         return configBuilder.Build();
     }
 
-    private static bool ShouldInjectEndpointEnvironment(this IResourceBuilder<ProjectResource> builder, EndpointReference e)
-    {
-        // Check a set of conditions to determine if we should inject environment variables for this endpoint.
-        var endpoint = e.EndpointAnnotation;
-        return
-            endpoint.UriScheme is "http" or "https" && // Only process http and https endpoints
-            endpoint.TargetPortEnvironmentVariable is null && // Skip if target port env variable was set
-            builder.Resource.InjectEnvironmentForEndpoint(endpoint); // Skip if the env filter returns false
-    }
-
     private static void SetAspNetCoreUrls(this IResourceBuilder<ProjectResource> builder)
     {
         builder.WithEnvironment(context =>
@@ -617,7 +607,7 @@ public static class ProjectResourceBuilderExtensions
             var first = true;
 
             // Turn http and https endpoints into a single ASPNETCORE_URLS environment variable.
-            foreach (var e in builder.Resource.GetEndpoints().Where(builder.ShouldInjectEndpointEnvironment))
+            foreach (var e in builder.Resource.GetEndpoints().Where(builder.Resource.ShouldInjectEndpointEnvironment))
             {
                 if (!first)
                 {
@@ -666,7 +656,7 @@ public static class ProjectResourceBuilderExtensions
         var firstPort = true;
 
         // Turn endpoint ports into a single environment variable
-        foreach (var e in builder.Resource.GetEndpoints().Where(builder.ShouldInjectEndpointEnvironment))
+        foreach (var e in builder.Resource.GetEndpoints().Where(builder.Resource.ShouldInjectEndpointEnvironment))
         {
             // Skip the default https endpoint because the container likely won't be set up to listen on https (e.g. ACA case)
             if (e.EndpointAnnotation.UriScheme == scheme && e.EndpointAnnotation != builder.Resource.DefaultHttpsEndpoint)
@@ -697,7 +687,7 @@ public static class ProjectResourceBuilderExtensions
             // don't come from Kestrel. This is because having Kestrel endpoints overrides everything
             if (builder.Resource.HasKestrelEndpoints)
             {
-                foreach (var e in builder.Resource.GetEndpoints().Where(builder.ShouldInjectEndpointEnvironment))
+                foreach (var e in builder.Resource.GetEndpoints().Where(builder.Resource.ShouldInjectEndpointEnvironment))
                 {
                     // Skip the default https endpoint because the container likely won't be set up to listen on https (e.g. ACA case)
                     if (e.EndpointAnnotation == builder.Resource.DefaultHttpsEndpoint)
