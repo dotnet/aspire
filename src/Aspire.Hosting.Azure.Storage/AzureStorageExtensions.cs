@@ -56,6 +56,10 @@ public static class AzureStorageExtensions
 
             storageAccount.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
 
+            // Set the minimum TLS version to 1.2 to ensure resources provisioned are compliant
+            // with the pending deprecation of TLS 1.0 and 1.1.
+            storageAccount.AssignProperty(p => p.MinimumTlsVersion, "'TLS1_2'");
+
             var blobService = new BlobService(construct);
 
             var blobRole = storageAccount.AssignRole(RoleDefinition.StorageBlobDataContributor);
