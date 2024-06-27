@@ -378,7 +378,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
                     // Check whether the project view this endpoint as Default (for its scheme).
                     // If so, we don't specify the target port, as it will get one from the deployment tool.
-                    (ProjectResource project, string uriScheme, null, _) when !schemesEncountered.Contains(uriScheme) => null,
+                    (ProjectResource project, string uriScheme, null, _) when uriScheme is "http" or "https" && !schemesEncountered.Contains(uriScheme) => null,
 
                     // Allocate a dynamic port
                     _ => PortAllocator.AllocatePort()
