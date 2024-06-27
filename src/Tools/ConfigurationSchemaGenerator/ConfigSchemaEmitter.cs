@@ -124,15 +124,15 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             ownsProperties = true;
         }
 
-        var ownsComponent = false;
-        if (propertiesNode[pathSegment] is not JsonObject componentNode)
+        var ownsPathSegment = false;
+        if (propertiesNode[pathSegment] is not JsonObject pathSegmentNode)
         {
-            componentNode = new JsonObject();
-            propertiesNode[pathSegment] = componentNode;
-            ownsComponent = true;
+            pathSegmentNode = new JsonObject();
+            propertiesNode[pathSegment] = pathSegmentNode;
+            ownsPathSegment = true;
         }
 
-        var hasGenerated = GeneratePathSegment(componentNode, type, pathSegments);
+        var hasGenerated = GeneratePathSegment(pathSegmentNode, type, pathSegments);
         if (!hasGenerated)
         {
             RestoreBackup(backupTypeNode, "type", currentNode);
@@ -141,7 +141,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             {
                 currentNode.Remove("properties");
             }
-            else if (ownsComponent)
+            else if (ownsPathSegment)
             {
                 propertiesNode.Remove(pathSegment);
             }
