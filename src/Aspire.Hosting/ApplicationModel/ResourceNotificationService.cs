@@ -162,15 +162,17 @@ public class ResourceNotificationService
 
             OnResourceUpdated?.Invoke(new ResourceEvent(resource, resourceId, newState));
 
-            if (_logger.IsEnabled(LogLevel.Debug) && newState.State?.Text is { Length: > 0 } newStateText)
+            if (_logger.IsEnabled(LogLevel.Debug) && newState.State?.Text is { Length: > 0 } newStateText && !string.IsNullOrWhiteSpace(newStateText))
             {
                 var previousStateText = previousState?.State?.Text;
-                if (!string.IsNullOrEmpty(previousStateText) && !string.Equals(previousStateText, newStateText, StringComparison.OrdinalIgnoreCase))
+                if (!string.IsNullOrWhiteSpace(previousStateText) && !string.Equals(previousStateText, newStateText, StringComparison.OrdinalIgnoreCase))
                 {
+                    // The state text has changed from the previous state
                     _logger.LogDebug("Resource {Resource}/{ResourceId} changed state: {PreviousState} -> {NewState}", resource.Name, resourceId, previousStateText, newStateText);
                 }
-                else
+                else if (string.IsNullOrWhiteSpace(previousStateText))
                 {
+                    // There was no previous state text so just log the new state
                     _logger.LogDebug("Resource {Resource}/{ResourceId} changed state: {NewState}", resource.Name, resourceId, newStateText);
                 }
             }
@@ -178,7 +180,7 @@ public class ResourceNotificationService
             if (_logger.IsEnabled(LogLevel.Trace))
             {
                 _logger.LogTrace("Resource {Resource}/{ResourceId} update published: " +
-                    "ResourceType = {ResourceType}, CreationTimeStamp = {CreationTimeStamp}, State = {{ Text = {StateText}, Style = {StateStyle} }}, " +
+                    "ResourceType = {ResourceType}, CreationTimeStamp = {CreationTimeStamp:s}, State = {{ Text = {StateText}, Style = {StateStyle} }}, " +
                     "ExitCode = {ExitCode}, EnvironmentVariables = {{ {EnvironmentVariables} }}, Urls = {{ {Urls} }}, " +
                     "Properties = {{ {Properties} }}",
                     resource.Name, resourceId,
