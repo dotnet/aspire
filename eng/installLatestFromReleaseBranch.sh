@@ -5,7 +5,7 @@ show_help() {
     echo "Usage: $0 [--fromMain] [--help]"
     echo ""
     echo "Options:"
-    echo "  --fromMain  Use the latest build from main branch instead of release."
+    echo "  --fromMain  Get the latest build from main branch (default: latest build from the release branch)."
     echo "  --help      Display this help message and exit."
 }
 
@@ -86,7 +86,7 @@ rm -f ./aspire-rollback.txt
 
 # Output the latest version
 if [ "$fromMain" = true ]; then
-    echo "Installed Latest version of aspire produced from the main branch. Version installed was $latestVersion."
+    echo "Installed Latest version of .NET Aspire produced from the main branch. Version installed was $latestVersion."
 else
-    echo "Installed Latest version of aspire produced from the release branch. Version installed was $latestVersion."
+    echo "Installed Latest version of .NET Aspire produced from the release branch. Version installed was $latestVersion."
 fi

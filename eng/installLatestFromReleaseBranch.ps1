@@ -7,7 +7,7 @@ function Show-Help {
     Write-Output "Usage: .\script.ps1 [-FromMain] [-Help]"
     Write-Output ""
     Write-Output "Options:"
-    Write-Output "  -FromMain  Use the latest build from main branch instead of release."
+    Write-Output "  -FromMain  Get the latest build from main branch (default: latest build from the release branch)."
     Write-Output "  -Help      Display this help message and exit."
 }
 
