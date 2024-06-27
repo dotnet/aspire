@@ -1,5 +1,5 @@
 ---
-name: API proposal
+name: 📄 API proposal
 about: Propose a change to the public API surface
 title: ''
 labels: api-suggestion
