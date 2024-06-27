@@ -6,6 +6,8 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <IsPackable>true</IsPackable>
+    <!-- Unset PackageType as that is being set by Workload.targets to DotnetPlatform, which this package no longer is. -->
+    <PackageType />
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <IncludeBuildOutput>false</IncludeBuildOutput>
@@ -14,16 +16,22 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <DcpRuntime Condition=" '$(DcpRuntime)' == '' ">win-x64</DcpRuntime>
     <DcpPlatform Condition=" '$(DcpPlatform)' == '' ">$([System.String]::Copy('$(DcpRuntime)').Replace('win-', 'windows-').Replace('osx-', 'darwin-').Replace('-x86', '-386').Replace('-x64', '-amd64'))</DcpPlatform>
-    <DcpPlatformType Condition=" '$(DcpPlatformType)' == '' and $(DcpPlatform.StartsWith('windows-')) ">Windows</DcpPlatformType>
-    <DcpPlatformType Condition=" '$(DcpPlatformType)' == '' ">Unix</DcpPlatformType>
   </PropertyGroup>
 
   <PropertyGroup>
     <PackageId>Aspire.Hosting.Orchestration.$(DcpRuntime)</PackageId>
     <Description>.NET Aspire Orchestration Dependencies</Description>
   </PropertyGroup>
+
+  <ItemGroup>
+    <TextReplacementValue Include="PlatformRuntime" NewValue="$(DcpRuntime)" />
+    <TextReplacementValue Include="PackageName" NewValue="$(AssemblyName)" />
+  </ItemGroup>
+
+   <ItemGroup>
+    <None Include="build*/*.props;**/*.targets" Pack="true" PerformTextReplacement="true" PackagePath="%(RecursiveDir)$(AssemblyName)%(Extension)" />
+   </ItemGroup>
 
   <!-- Package downloads to DCP packages as we need to repack the binaries from them -->
   <ItemGroup>
@@ -53,15 +61,8 @@
   </Target>
 
   <ItemGroup>
-    <None Include="Sdk.props" Pack="true" PackagePath="Sdk/" />
-    <None Include="Sdk.in.targets" PerformTextReplacement="True" Pack="true" PackagePath="Sdk/" />
-    <None Include="Aspire.Hosting.Orchestration.props" pack="true" PackagePath="build/$(PackageId).props" />
-    <None Include="Aspire.Hosting.Orchestration.targets" pack="true" PackagePath="build/$(PackageId).targets" />
+    <None Include="Aspire.Hosting.Orchestration.in.targets" PerformTextReplacement="True" pack="true" PackagePath="build/$(PackageId).targets" />
     <None Include="UnixFilePermissions.xml" Pack="true" PackagePath="data/" Condition=" '$(DcpPlatformType)' == 'Unix' " />
-  </ItemGroup>
-
-  <ItemGroup>
-    <TextReplacementValue Include="RUNTIME" NewValue="$(DcpRuntime)" />
   </ItemGroup>
 
 </Project>

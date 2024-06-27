@@ -45,7 +45,7 @@
 
       <NuGetsToBuildForWorkloadTesting
                       Include="$(_ShippingPackagesDir)Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier).nupkg"
-                      Project="$(RepoRoot)eng/dcppack/dcppack.csproj"
+                      Project="$(RepoRoot)eng/dcppack/Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier).csproj"
                       Properties="@(DefaultPropertiesForNuGetBuild, ';');@(_PropertiesForNuGetBuilds, ';')"
                       Descriptor="Dcp pack"/>
     </ItemGroup>
@@ -57,10 +57,10 @@
       Explicitly invoke Build on these two projects so the GenerateTextReplacementFiles target gets triggered.
       This can be removed once the workloadtesting targets support a custom list of targets to invoke
     -->
-    <MSBuild Projects="$(RepoRoot)eng/dcppack/dcppack.csproj"
+    <!-- <MSBuild Projects="$(RepoRoot)eng/dcppack/dcppack.csproj"
               Properties="$(_CombinedProps)"
               Targets="Restore;Build" />
-    <!-- <MSBuild Projects="$(RepoRoot)eng/dashboardpack/dashboardpack.csproj"
+    <MSBuild Projects="$(RepoRoot)eng/dashboardpack/dashboardpack.csproj"
               Properties="$(_CombinedProps)"
               Targets="Restore;Build" /> -->
   </Target>

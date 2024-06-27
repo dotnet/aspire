@@ -73,8 +73,6 @@
       </ShortNames>
     </ItemGroup>
 
-    <MSBuild Projects="../dcppack/dcppack.csproj" Targets="restore;build" Properties="DcpRuntime=%(_PackRuntimes.Identity);PackageOutputPath=$(WorkloadsPackageSource)" />
-
     <ItemGroup>
       <ManifestPackages Include="$(WorkloadsPackageSource)Microsoft.NET.Sdk.Aspire.Manifest*.nupkg"
                         MsiVersion="$(MsiVersion)"
