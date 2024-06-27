@@ -38,13 +38,13 @@ public sealed class ApplicationsSelectHelpersTests
             },
             app =>
             {
-                Assert.Equal("app (app)", app.Name);
+                Assert.Equal("app-app", app.Name);
                 Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
                 Assert.Equal("app", app.Id!.InstanceId);
             },
             app =>
             {
-                Assert.Equal("app (app-abc)", app.Name);
+                Assert.Equal("app-app-abc", app.Name);
                 Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
                 Assert.Equal("app-abc", app.Id!.InstanceId);
             },
@@ -56,7 +56,7 @@ public sealed class ApplicationsSelectHelpersTests
             });
 
         // Act
-        var app = appVMs.GetApplication(NullLogger.Instance, "app (app-abc)", null!);
+        var app = appVMs.GetApplication(NullLogger.Instance, "app-app-abc", null!);
 
         // Assert
         Assert.Equal("app-abc", app.Id!.InstanceId);
@@ -84,22 +84,22 @@ public sealed class ApplicationsSelectHelpersTests
             },
             app =>
             {
-                Assert.Equal("APP (app-abc)", app.Name);
+                Assert.Equal("APP-app", app.Name);
                 Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
-                Assert.Equal("app-abc", app.Id!.InstanceId);
+                Assert.Equal("app", app.Id!.InstanceId);
             },
             app =>
             {
-                Assert.Equal("APP (app)", app.Name);
+                Assert.Equal("APP-app-abc", app.Name);
                 Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
-                Assert.Equal("app", app.Id!.InstanceId);
+                Assert.Equal("app-abc", app.Id!.InstanceId);
             });
 
         var testSink = new TestSink();
         var factory = LoggerFactory.Create(b => b.AddProvider(new TestLoggerProvider(testSink)));
 
         // Act
-        var app = appVMs.GetApplication(factory.CreateLogger("Test"), "app (app)", null!);
+        var app = appVMs.GetApplication(factory.CreateLogger("Test"), "app-app", null!);
 
         // Assert
         Assert.Equal("app", app.Id!.InstanceId);

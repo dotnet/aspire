@@ -77,7 +77,7 @@ public static class ApplicationsSelectHelpers
                 }));
         }
 
-        var sortedVMs = selectViewModels.OrderBy(vm => vm.Name).ToList();
+        var sortedVMs = selectViewModels.OrderBy(vm => vm.Name, StringComparers.ResourceName).ToList();
         return sortedVMs;
     }
 }
