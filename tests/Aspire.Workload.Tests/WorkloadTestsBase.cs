@@ -59,7 +59,9 @@ public class WorkloadTestsBase
     }
 
     public static Task<IBrowserContext> CreateNewBrowserContextAsync()
-        => Browser.Value.NewContextAsync(new BrowserNewContextOptions { IgnoreHTTPSErrors = true });
+        => BuildEnvironment.HasPlaywrightSupport
+                ? Browser.Value.NewContextAsync(new BrowserNewContextOptions { IgnoreHTTPSErrors = true })
+                : throw new InvalidOperationException("Playwright is not available");
 
     protected Task<ResourceRow[]> CheckDashboardHasResourcesAsync(IPage dashboardPage, IEnumerable<ResourceRow> expectedResources, int timeoutSecs = 120)
         => CheckDashboardHasResourcesAsync(dashboardPage, expectedResources, _testOutput, timeoutSecs);
@@ -203,29 +205,37 @@ public class WorkloadTestsBase
         yield return "aspire";
     }
 
-    public static async Task AssertStarterTemplateRunAsync(IBrowserContext context, AspireProject project, string config, ITestOutputHelper _testOutput)
+    public static async Task AssertStarterTemplateRunAsync(IBrowserContext? context, AspireProject project, string config, ITestOutputHelper _testOutput)
     {
         await project.StartAppHostAsync(extraArgs: [$"-c {config}"], noBuild: false);
 
-        var page = await project.OpenDashboardPageAsync(context);
-        ResourceRow[] resourceRows;
-        try
+        if (context is not null)
         {
-            resourceRows = await CheckDashboardHasResourcesAsync(
-                                    page,
-                                    StarterTemplateRunTestsBase<StarterTemplateFixture>.GetExpectedResources(project, hasRedisCache: false),
-                                    _testOutput).ConfigureAwait(false);
+            var page = await project.OpenDashboardPageAsync(context);
+            ResourceRow[] resourceRows;
+            try
+            {
+                resourceRows = await CheckDashboardHasResourcesAsync(
+                                        page,
+                                        StarterTemplateRunTestsBase<StarterTemplateFixture>.GetExpectedResources(project, hasRedisCache: false),
+                                        _testOutput).ConfigureAwait(false);
+            }
+            catch
+            {
+                string screenshotPath = Path.Combine(project.LogPath, "dashboard-fail.png");
+                await page.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
+                _testOutput.WriteLine($"Dashboard screenshot saved to {screenshotPath}");
+                throw;
+            }
+
+            string url = resourceRows.First(r => r.Name == "webfrontend").Endpoints[0];
+            await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckWebFrontendWorksAsync(context, url, _testOutput, project.LogPath);
         }
-        catch
+        else
         {
-            string screenshotPath = Path.Combine(project.LogPath, "dashboard-fail.png");
-            await page.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
-            _testOutput.WriteLine($"Dashboard screenshot saved to {screenshotPath}");
-            throw;
+            _testOutput.WriteLine($"Skipping playwright part of the test");
         }
 
-        string url = resourceRows.First(r => r.Name == "webfrontend").Endpoints[0];
-        await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckWebFrontendWorksAsync(context, url, _testOutput, project.LogPath);
         await project.StopAppHostAsync();
     }
 
