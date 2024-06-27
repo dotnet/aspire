@@ -40,17 +40,7 @@ public class BuildEnvironment
     {
         HasWorkloadFromArtifacts = !useSystemDotNet;
         TargetFramework = targetFramework;
-        RepoRoot = new(AppContext.BaseDirectory);
-        while (RepoRoot != null)
-        {
-            // To support git worktrees, check for either a directory or a file named ".git"
-            if (Directory.Exists(Path.Combine(RepoRoot.FullName, ".git")) || File.Exists(Path.Combine(RepoRoot.FullName, ".git")))
-            {
-                break;
-            }
-
-            RepoRoot = RepoRoot.Parent;
-        }
+        RepoRoot = TestUtils.FindRepoRoot();
 
         string sdkForWorkloadPath;
         if (RepoRoot is not null)
@@ -90,16 +80,7 @@ public class BuildEnvironment
 
             BuiltNuGetsPath = Path.Combine(RepoRoot.FullName, "artifacts", "packages", EnvironmentVariables.BuildConfiguration, "Shipping");
 
-            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH")) && RepoRoot is not null)
-            {
-                // Check if we already have playwright-deps in artifacts
-                var probePath = Path.Combine(RepoRoot.FullName, "artifacts", "bin", "playwright-deps");
-                if (Directory.Exists(probePath))
-                {
-                    Environment.SetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH", probePath);
-                    Console.WriteLine($"** Found playwright dependencies in {probePath}");
-                }
-            }
+            PlaywrightProvider.DetectAndSetInstalledPlaywrightDependenciesPath(RepoRoot);
         }
         else
         {

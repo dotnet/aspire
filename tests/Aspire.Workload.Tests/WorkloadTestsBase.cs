@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Xunit;
@@ -22,31 +21,7 @@ public class WorkloadTestsBase
 
     private static IBrowser CreateBrowser()
     {
-        var t = Task.Run(async () =>
-        {
-            var playwright = await Playwright.CreateAsync();
-            string? browserPath = EnvironmentVariables.BrowserPath;
-            if (!string.IsNullOrEmpty(browserPath) && !File.Exists(browserPath))
-            {
-                throw new FileNotFoundException($"Browser path BROWSER_PATH='{browserPath}' does not exist");
-            }
-
-            BrowserTypeLaunchOptions options = new()
-            {
-                Headless = true,
-                ExecutablePath = browserPath
-            };
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && string.IsNullOrEmpty(browserPath))
-            {
-                var probePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-                if (File.Exists(probePath))
-                {
-                    options.ExecutablePath = probePath;
-                }
-            }
-            return await playwright.Chromium.LaunchAsync(options).ConfigureAwait(false);
-        });
+        var t = Task.Run(async () => await PlaywrightProvider.CreateBrowserAsync());
 
         // default timeout for playwright.Chromium.LaunchAsync is 30secs,
         // so using a timeout here as a fallback
