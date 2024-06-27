@@ -74,7 +74,7 @@ public static class ResourceExtensions
     /// and environment variables were provided from <see cref="IValueProvider"/> otherwise it will be synchronous.
     /// </remarks>
     /// <param name="resource">The resource to get the environment variables from.</param>
-    /// <param name="applicationOperation">The context in which the AppHost is being executed</param>
+    /// <param name="applicationOperation">The context in which the AppHost is being executed.</param>
     /// <returns>The environment variables retrieved from the resource.</returns>
     /// <example>
     /// <code>
