@@ -68,11 +68,40 @@ public static class ResourceExtensions
     /// <summary>
     ///  Get the environment variables from the given resource.
     /// </summary>
+    /// <remarks>
+    /// This method is useful when you want to make sure the environment variables are added properly to resources, mostly in test situations.
+    /// This method has asynchronous behavior if <paramref name = "applicationOperation" /> be <see cref="DistributedApplicationOperation.Run"/>
+    /// and environment variables were provided from <see cref="IValueProvider"/> otherwise it will be synchronous.
+    /// </remarks>
     /// <param name="resource">The resource to get the environment variables from.</param>
     /// <param name="applicationOperation">The context in which the AppHost is being executed</param>
     /// <returns>The environment variables retrieved from the resource.</returns>
+    /// <example>
+    /// <code>
+    /// using var builder = TestDistributedApplicationBuilder.Create();
+    ///
+    /// builder.AddMongoDB("mongo")
+    ///      .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000, containerHost))
+    ///      .WithMongoExpress();
+    ///
+    ///   var env = await mongoExpress.GetEnvironmentVariableValuesAsync();
+    ///
+    ///   Assert.Collection(env,
+    ///       e =>
+    ///           {
+    ///               Assert.Equal("ME_CONFIG_MONGODB_URL", e.Key);
+    ///               Assert.Equal($"mongodb://{containerHost}:3000/?directConnection=true", e.Value);
+    ///           },
+    ///           e =>
+    ///           {
+    ///               Assert.Equal("ME_CONFIG_BASICAUTH", e.Key);
+    ///               Assert.Equal("false", e.Value);
+    ///           });
+    /// </code>
+    /// </example>
+
     public static async ValueTask<IReadOnlyDictionary<string, string>> GetEnvironmentVariableValuesAsync(this IResourceWithEnvironment resource,
-        DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
+            DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
         var environmentVariables = new Dictionary<string, string>();
 
