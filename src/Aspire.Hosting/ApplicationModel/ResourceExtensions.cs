@@ -66,7 +66,7 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    ///  Get the environment variables from the given resource.
+    /// Get the environment variables from the given resource.
     /// </summary>
     /// <remarks>
     /// This method is useful when you want to make sure the environment variables are added properly to resources, mostly in test situations.
