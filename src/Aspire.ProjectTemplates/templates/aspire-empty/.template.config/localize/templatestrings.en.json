@@ -1,7 +1,7 @@
 {
   "author": "Microsoft",
-  "name": ".NET Aspire Empty App",
-  "description": "A project template for creating an empty .NET Aspire app.",
+  "name": ".NET Aspire Empty Project",
+  "description": "A project template for creating an empty .NET Aspire App Host and Service Defaults.",
   "symbols/Framework/description": "The target framework for the project.",
   "symbols/Framework/choices/net8.0/description": "Target net8.0",
   "symbols/appHostHttpPort/description": "Port number to use for the HTTP endpoint in launchSettings.json of the AppHost project.",

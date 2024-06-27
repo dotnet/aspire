@@ -1,6 +1,6 @@
 # Aspire.Hosting.Orleans library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure an Orleans cluster.
+Provides extension methods and resource definitions for a .NET Aspire App Host to configure an Orleans cluster.
 
 ## Getting started
 

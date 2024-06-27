@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.Redis library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure Cache for Redis.
+Provides extension methods and resource definitions for a .NET Aspire App Host to configure Azure Cache for Redis.
 
 ## Getting started
 

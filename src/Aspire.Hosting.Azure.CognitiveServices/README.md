@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.CognitiveServices library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure OpenAI.
+Provides extension methods and resource definitions for a .NET Aspire App Host to configure Azure OpenAI.
 
 ## Getting started
 

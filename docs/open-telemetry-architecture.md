@@ -1,8 +1,8 @@
 # .NET Aspire OpenTelemetry architecture
 
-One of .NET Aspire's objectives is to ensure that apps are straightforward to debug and diagnose. By default, .NET Aspire apps are configured to collect and export telemetry using [OpenTelemetry (OTEL)](https://opentelemetry.io/). Additionally, .NET Aspire local development includes UI in the dashboard for viewing OTEL data. Telemetry just works and is easy to use.
+One of .NET Aspire's objectives is to ensure that apps are straightforward to debug and diagnose. By default, .NET Aspire projects are configured to collect and export telemetry using [OpenTelemetry (OTEL)](https://opentelemetry.io/). Additionally, .NET Aspire local development includes UI in the dashboard for viewing OTEL data. Telemetry just works and is easy to use.
 
-This document details how OpenTelemetry is used in .NET Aspire apps.
+This document details how OpenTelemetry is used in .NET Aspire projects.
 
 ## Telemetry types
 
@@ -18,7 +18,7 @@ When an OpenTelemetry SDK is configured in an app, it receives data from these A
 
 The [.NET OpenTelemetry SDK](https://github.com/open-telemetry/opentelemetry-dotnet) offers features for gathering data from several .NET APIs, including `ILogger`, `Activity`, `Meter`, and `Instrument<T>`. It then facilitates the export of this telemetry data to a data store or reporting tool. The telemetry export mechanism relies on the [OpenTelemetry protocol (OTLP)](https://opentelemetry.io/docs/specs/otel/protocol/), which serves as a standardized approach for transmitting telemetry data through REST or gRPC.
 
-.NET projects setup the .NET OpenTelemetry SDK using the _service defaults_ project. .NET Aspire templates automatically create the service defaults, and .NET Aspire apps call it at startup. The service defaults enable collecting and exporting telemetry for .NET apps.
+.NET projects setup the .NET OpenTelemetry SDK using the _service defaults_ project. .NET Aspire templates automatically create the service defaults, and .NET Aspire projects call it at startup. The service defaults enable collecting and exporting telemetry for .NET apps.
 
 ## OpenTelemetry environment variables
 
@@ -38,7 +38,7 @@ The .NET Aspire dashboard provides UI for viewing the telemetry of apps. Telemet
 
 Aspire debugging workflow:
 
-* Developer starts the .NET Aspire app with debugging, presses <kbd>F5</kbd>.
+* Developer starts the .NET Aspire project with debugging, presses <kbd>F5</kbd>.
 * .NET Aspire dashboard and developer control plane (DCP) start.
 * App configuration is run in the _AppHost_ project.
   * OTEL environment variables are automatically added to .NET projects during app configuration.
@@ -47,7 +47,7 @@ Aspire debugging workflow:
   * Small export intervals (`OTEL_BSP_SCHEDULE_DELAY`, `OTEL_BLRP_SCHEDULE_DELAY`, `OTEL_METRIC_EXPORT_INTERVAL`) so data is quickly available in the dashboard. Small values are used in local development to prioritize dashboard responsiveness over efficiency.
 * The DCP starts configured projects, containers, and executables.
 * Once started, apps send telemetry to the dashboard.
-* Dashboard displays near real-time telemetry of all .NET Aspire apps.
+* Dashboard displays near real-time telemetry of all .NET Aspire projects.
 
 ## .NET Aspire deployment
 

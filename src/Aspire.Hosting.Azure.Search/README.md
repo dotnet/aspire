@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.Search library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure AI Search Service.
+Provides extension methods and resource definitions for a .NET Aspire App Host to configure Azure AI Search Service.
 
 ## Getting started
 

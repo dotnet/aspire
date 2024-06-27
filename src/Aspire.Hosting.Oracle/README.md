@@ -1,6 +1,6 @@
 # Aspire.Hosting.Oracle library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure an Oracle database resource.
+Provides extension methods and resource definitions for a .NET Aspire App Host to configure an Oracle database resource.
 
 ## Getting started
 

@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.PostgreSQL library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure Database for PostgreSQL.
+Provides extension methods and resource definitions for a .NET Aspire App Host to configure Azure Database for PostgreSQL.
 
 ## Getting started
 

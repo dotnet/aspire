@@ -12,7 +12,7 @@ The `IReverseProxyBuilder.AddServiceDiscoveryDestinationResolver()` extension me
 
 YARP supports _direct forwarding_ of specific requests using the `IHttpForwarder` interface. This, too, can benefit from service discovery using the _Microsoft.Extensions.ServiceDiscovery_ library. To take advantage of service discovery when using YARP Direct Forwarding, use the `IServiceCollection.AddHttpForwarderWithServiceDiscovery` method.
 
-For example, consider the following .NET Aspire application:
+For example, consider the following .NET Aspire project:
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);

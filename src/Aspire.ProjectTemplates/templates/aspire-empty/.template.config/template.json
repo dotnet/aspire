@@ -10,9 +10,9 @@
     "API",
     "Service"
   ],
-  "name": ".NET Aspire Empty App",
+  "name": ".NET Aspire Empty Project",
   "defaultName": "AspireApp",
-  "description": "A project template for creating an empty .NET Aspire app.",
+  "description": "A project template for creating an empty .NET Aspire App Host with Service Defaults.",
   "shortName": "aspire",
   "sourceName": "AspireApplication.1",
   "preferNameDirectory": true,

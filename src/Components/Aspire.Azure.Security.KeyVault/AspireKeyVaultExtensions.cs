@@ -17,7 +17,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 namespace Microsoft.Extensions.Hosting;
 
 /// <summary>
-/// Provides extension methods for registering and configuring Azure Key Vault secrets in a .NET Aspire application.
+/// Provides extension methods for registering and configuring Azure Key Vault secrets in a .NET Aspire project.
 /// </summary>
 public static class AspireKeyVaultExtensions
 {

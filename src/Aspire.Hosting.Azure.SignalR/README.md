@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.SignalR library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure SignalR.
+Provides extension methods and resource definitions for a .NET Aspire App Host to configure Azure SignalR.
 
 ## Getting started
 

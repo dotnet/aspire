@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.AppConfiguration library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure App Configuration.
+Provides extension methods and resource definitions for a .NET Aspire App Host to configure Azure App Configuration.
 
 ## Getting started
 

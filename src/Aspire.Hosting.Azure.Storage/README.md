@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.Storage library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure Storage.
+Provides extension methods and resource definitions for a .NET Aspire App Host to configure Azure Storage.
 
 ## Getting started
 

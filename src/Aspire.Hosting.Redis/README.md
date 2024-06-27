@@ -1,6 +1,6 @@
 # Aspire.Hosting.Redis library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure a Redis resource.
+Provides extension methods and resource definitions for a .NET Aspire App Host to configure a Redis resource.
 
 ## Getting started
 

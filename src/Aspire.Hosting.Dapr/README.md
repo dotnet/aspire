@@ -1,6 +1,6 @@
 # Aspire.Hosting.Dapr library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Dapr resources.
+Provides extension methods and resource definitions for a .NET Aspire App Host to configure Dapr resources.
 
 ## Getting started
 

@@ -1,6 +1,6 @@
 # Aspire.Hosting.Milvus library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure a Milvus vector database resource.
+Provides extension methods and resource definitions for a .NET Aspire App Host to configure a Milvus vector database resource.
 
 ## Getting started
 
