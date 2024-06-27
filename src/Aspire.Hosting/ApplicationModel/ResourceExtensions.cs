@@ -70,7 +70,7 @@ public static class ResourceExtensions
     /// </summary>
     /// <remarks>
     /// This method is useful when you want to make sure the environment variables are added properly to resources, mostly in test situations.
-    /// This method has asynchronous behavior if <paramref name = "applicationOperation" /> be <see cref="DistributedApplicationOperation.Run"/>
+    /// This method has asynchronous behavior when <paramref name = "applicationOperation" /> is <see cref="DistributedApplicationOperation.Run"/>
     /// and environment variables were provided from <see cref="IValueProvider"/> otherwise it will be synchronous.
     /// </remarks>
     /// <param name="resource">The resource to get the environment variables from.</param>
