@@ -1,119 +1,130 @@
 {
+  "type": "object",
   "properties": {
-    "RecordWithPrimitives": {
+    "ExampleComponent": {
       "type": "object",
       "properties": {
-        "Prop0": {
+        "PropertyOfBool": {
           "type": "boolean",
-          "description": "Prop0 is a bool."
+          "description": "A value of type 'System.Boolean'.\n\nBlank lines are preserved.",
+          "default": true
         },
-        "Prop1": {
-          "type": "integer"
+        "PropertyOfByteArray": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[-A-Za-z0-9+/]*={0,3}$"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            }
+          ],
+          "description": "A value of type 'byte[]', or a base64-encoded 'System.String'."
         },
-        "Prop10": {
+        "PropertyOfDefaultSettings": {
+          "type": "object",
+          "properties": {
+            "LineNumber": {
+              "type": "integer",
+              "description": "Gets the current line number."
+            },
+            "LinePosition": {
+              "type": "integer"
+            },
+            "Parent": {
+              "description": "A circular reference (preserved, but without schema)."
+            },
+            "Value": {
+              "type": "string",
+              "description": "Gets or sets the value.\n\nShould never be null, and not longer than 100 characters."
+            }
+          },
+          "description": "A value of type 'ConfigurationSchemaGenerator.Tests.DefaultSettings'."
+        },
+        "PropertyOfDoubleWithAlternateName": {
           "type": [
             "number",
             "string"
           ],
-          "description": "Prop10 is a float."
+          "description": "A value of type 'System.Double'."
         },
-        "Prop11": {
-          "type": [
-            "number",
-            "string"
-          ]
-        },
-        "Prop12": {
-          "type": "integer"
-        },
-        "Prop13": {
-          "type": "integer"
-        },
-        "Prop14": {
-          "type": "integer"
-        },
-        "Prop15": {
-          "type": "integer"
-        },
-        "Prop16": {
-          "type": "string"
-        },
-        "Prop17": {
-          "type": "string"
-        },
-        "Prop18": {
-          "type": "string"
-        },
-        "Prop19": {
-          "type": "string"
-        },
-        "Prop2": {
-          "type": "integer"
-        },
-        "Prop20": {
-          "type": "string"
-        },
-        "Prop21": {
-          "type": [
-            "number",
-            "string"
-          ]
-        },
-        "Prop22": {
-          "type": "string"
-        },
-        "Prop23": {
-          "type": "string",
-          "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$"
-        },
-        "Prop24": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "Prop25": {
-          "type": "string",
-          "format": "uri"
-        },
-        "Prop26": {
-          "type": "string"
-        },
-        "Prop27": {
+        "PropertyOfEnum": {
           "enum": [
-            "Sunday",
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-            "Saturday"
-          ]
+            "Ascending",
+            "Descending"
+          ],
+          "description": "A value of type 'System.Enum'."
         },
-        "Prop3": {
-          "type": "integer"
+        "PropertyOfGuid": {
+          "type": "string",
+          "format": "uuid",
+          "description": "A value of type 'System.Guid'."
         },
-        "Prop4": {
-          "type": [
-            "number",
-            "string"
-          ]
+        "PropertyOfIntCollection": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "description": "A 'System.Collections.Generic.ICollection`1' containing 'System.Int32' elements."
         },
-        "Prop5": {
-          "type": "string"
+        "PropertyOfObject": {
+          "type": "object",
+          "description": "A value of type 'System.Object' (free-format)."
         },
-        "Prop6": {
-          "type": "integer"
+        "PropertyOfString": {
+          "type": "string",
+          "description": "A value of type 'System.String'."
         },
-        "Prop7": {
-          "type": "integer"
+        "PropertyOfStringToDefaultSettings": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "LineNumber": {
+                "type": "integer",
+                "description": "Gets the current line number."
+              },
+              "LinePosition": {
+                "type": "integer"
+              },
+              "Parent": {
+                "description": "A circular reference (preserved, but without schema)."
+              },
+              "Value": {
+                "type": "string",
+                "description": "Gets or sets the value.\n\nShould never be null, and not longer than 100 characters."
+              }
+            },
+            "description": "Nested settings."
+          },
+          "description": "A 'System.Collections.Generic.IDictionary`2' of 'System.String' to 'ConfigurationSchemaGenerator.Tests.DefaultSettings'."
         },
-        "Prop8": {
-          "type": "integer"
+        "PropertyOfStringToTimeSpan": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$"
+          },
+          "description": "A 'System.Collections.Generic.IDictionary`2' of 'System.String' to 'System.TimeSpan'."
         },
-        "Prop9": {
-          "type": "integer"
+        "PropertyOfTimeSpan": {
+          "type": "string",
+          "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
+          "description": "A value of type 'System.TimeSpan'."
+        },
+        "PropertyOfUri": {
+          "type": "string",
+          "format": "uri",
+          "description": "A value of type 'System.Uri'."
+        },
+        "Tree": {
+          "description": "A recursive data structure (preserved, but without schema)"
         }
-      }
+      },
+      "description": "Example settings."
     }
-  },
-  "type": "object"
+  }
 }
