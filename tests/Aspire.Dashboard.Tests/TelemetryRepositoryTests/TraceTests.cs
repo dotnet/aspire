@@ -502,6 +502,8 @@ public class TraceTests
         for (var i = 0; i < 2000; i++)
         {
             var traceId = (i + 1).ToString(CultureInfo.InvariantCulture);
+
+            // Insert traces out of order to stress the circular buffer type.
             var startTime = testTime.AddMinutes(i + (i % 2 == 0 ? -5 : 0));
 
             AddTrace(repository, traceId, startTime);
@@ -524,15 +526,15 @@ public class TraceTests
             Count = 10
         });
 
+        // Most recent traces are returned.
         var first = GetStringId(traces.PagedResult.Items.First().TraceId);
         var last = GetStringId(traces.PagedResult.Items.Last().TraceId);
-
         Assert.Equal("1984", first);
         Assert.Equal("2000", last);
 
+        // Traces returned are ordered by start time.
         var actualOrder = traces.PagedResult.Items.Select(t => t.TraceId).ToList();
         var expectedOrder = traces.PagedResult.Items.OrderBy(t => t.FirstSpan.StartTime).Select(t => t.TraceId).ToList();
-
         Assert.Equal(expectedOrder, actualOrder);
     }
 
