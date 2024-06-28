@@ -13,6 +13,7 @@ public class PlaywrightFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
+        PlaywrightProvider.DetectAndSetInstalledPlaywrightDependenciesPath();
         Browser = await PlaywrightProvider.CreateBrowserAsync();
     }
 
