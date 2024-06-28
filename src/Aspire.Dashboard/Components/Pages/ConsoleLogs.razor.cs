@@ -7,6 +7,7 @@ using System.Diagnostics;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Components.Resize;
+using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -185,7 +186,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         builder.Add(_noSelection);
 
         foreach (var resourceGroupsByApplicationName in _resourceByName
-            .Where(r => r.Value.State != ResourceStates.HiddenState)
+            .Where(r => !r.Value.IsHiddenState())
             .OrderBy(c => c.Value.Name)
             .GroupBy(r => r.Value.DisplayName, r => r.Value))
         {
@@ -222,12 +223,17 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             {
                 var resourceName = ResourceViewModel.GetResourceName(resource, _resourceByName);
 
-                return resource.State switch
+                if (resource.HasNoState())
                 {
-                    null or { Length: 0 } => $"{resourceName} ({Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)]})",
-                    ResourceStates.RunningState => resourceName,
-                    _ => $"{resourceName} ({resource.State})"
-                };
+                    return $"{resourceName} ({Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)]})";
+                }
+
+                if (resource.IsRunningState())
+                {
+                    return resourceName;
+                }
+
+                return $"{resourceName} ({resource.State})";
             }
         }
     }

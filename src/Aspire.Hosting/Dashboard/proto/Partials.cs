@@ -4,7 +4,7 @@
 using Aspire.Hosting.Dashboard;
 using Google.Protobuf.WellKnownTypes;
 
-namespace Aspire.V1;
+namespace Aspire.ResourceService.Proto.V1;
 
 partial class Resource
 {

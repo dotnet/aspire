@@ -46,6 +46,9 @@ public partial class Traces
     public required BrowserTimeProvider TimeProvider { get; set; }
 
     [Inject]
+    public required ILogger<Traces> Logger { get; init; }
+
+    [Inject]
     public required ProtectedSessionStorage SessionStorage { get; init; }
 
     [Inject]
@@ -111,7 +114,7 @@ public partial class Traces
 
     protected override void OnParametersSet()
     {
-        _selectedApplication = _applicationViewModels.GetApplication(ApplicationName, _allApplication);
+        _selectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
         TracesViewModel.ApplicationServiceId = _selectedApplication.Id?.InstanceId;
 
         UpdateSubscription();

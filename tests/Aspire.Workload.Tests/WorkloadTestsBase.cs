@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Xunit;
@@ -15,36 +14,14 @@ public class WorkloadTestsBase
     private static Lazy<IBrowser> Browser => new(CreateBrowser);
     protected readonly TestOutputWrapper _testOutput;
 
+    public static readonly string[] TestFrameworkTypes = ["none", "mstest", "nunit", "xunit.net"];
+
     public WorkloadTestsBase(ITestOutputHelper testOutput)
         => _testOutput = new TestOutputWrapper(testOutput);
 
     private static IBrowser CreateBrowser()
     {
-        var t = Task.Run(async () =>
-        {
-            var playwright = await Playwright.CreateAsync();
-            string? browserPath = EnvironmentVariables.BrowserPath;
-            if (!string.IsNullOrEmpty(browserPath) && !File.Exists(browserPath))
-            {
-                throw new FileNotFoundException($"Browser path BROWSER_PATH='{browserPath}' does not exist");
-            }
-
-            BrowserTypeLaunchOptions options = new()
-            {
-                Headless = true,
-                ExecutablePath = browserPath
-            };
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && string.IsNullOrEmpty(browserPath))
-            {
-                var probePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-                if (File.Exists(probePath))
-                {
-                    options.ExecutablePath = probePath;
-                }
-            }
-            return await playwright.Chromium.LaunchAsync(options).ConfigureAwait(false);
-        });
+        var t = Task.Run(async () => await PlaywrightProvider.CreateBrowserAsync());
 
         // default timeout for playwright.Chromium.LaunchAsync is 30secs,
         // so using a timeout here as a fallback
@@ -57,7 +34,9 @@ public class WorkloadTestsBase
     }
 
     public static Task<IBrowserContext> CreateNewBrowserContextAsync()
-        => Browser.Value.NewContextAsync(new BrowserNewContextOptions { IgnoreHTTPSErrors = true });
+        => BuildEnvironment.HasPlaywrightSupport
+                ? Browser.Value.NewContextAsync(new BrowserNewContextOptions { IgnoreHTTPSErrors = true })
+                : throw new InvalidOperationException("Playwright is not available");
 
     protected Task<ResourceRow[]> CheckDashboardHasResourcesAsync(IPage dashboardPage, IEnumerable<ResourceRow> expectedResources, int timeoutSecs = 120)
         => CheckDashboardHasResourcesAsync(dashboardPage, expectedResources, _testOutput, timeoutSecs);
@@ -179,6 +158,61 @@ public class WorkloadTestsBase
     // Don't fixup the prefix so it can have characters meant for testing, like spaces
     public static string GetNewProjectId(string? prefix = null)
         => (prefix is null ? "" : $"{prefix}_") + Path.GetRandomFileName();
+
+    public static IEnumerable<string> GetProjectNamesForTest()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            // ActiveIssue for windows: https://github.com/dotnet/aspire/issues/4555
+            yield return "aspire_龦唉丂荳_㐁ᠭ_ᠤསྲིདخەلꌠ_1ᥕ";
+        }
+
+        // ActiveIssue: https://github.com/dotnet/aspire/issues/4550
+        // yield return "aspire  sta-rter.test"; // Issue: two spaces
+
+        yield return "aspire_starter.1period then.34letters";
+        yield return "aspire-starter & with.1";
+
+        // ActiveIssue: https://github.com/dotnet/aspnetcore/issues/56277
+        // yield return "aspire_😀";
+
+        // basic case
+        yield return "aspire";
+    }
+
+    public static async Task AssertStarterTemplateRunAsync(IBrowserContext? context, AspireProject project, string config, ITestOutputHelper _testOutput)
+    {
+        await project.StartAppHostAsync(extraArgs: [$"-c {config}"], noBuild: false);
+
+        if (context is not null)
+        {
+            var page = await project.OpenDashboardPageAsync(context);
+            ResourceRow[] resourceRows;
+            try
+            {
+                resourceRows = await CheckDashboardHasResourcesAsync(
+                                        page,
+                                        StarterTemplateRunTestsBase<StarterTemplateFixture>.GetExpectedResources(project, hasRedisCache: false),
+                                        _testOutput).ConfigureAwait(false);
+            }
+            catch
+            {
+                string screenshotPath = Path.Combine(project.LogPath, "dashboard-fail.png");
+                await page.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
+                _testOutput.WriteLine($"Dashboard screenshot saved to {screenshotPath}");
+                throw;
+            }
+
+            string url = resourceRows.First(r => r.Name == "webfrontend").Endpoints[0];
+            await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckWebFrontendWorksAsync(context, url, _testOutput, project.LogPath);
+        }
+        else
+        {
+            _testOutput.WriteLine($"Skipping playwright part of the test");
+        }
+
+        await project.StopAppHostAsync();
+    }
 
     public static async Task<CommandResult?> AssertTestProjectRunAsync(string testProjectDirectory, string testType, ITestOutputHelper testOutput, string config = "Debug", int testRunTimeoutSecs = 3 * 60)
     {

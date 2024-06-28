@@ -1,8 +1,10 @@
 <Project>
- <ItemGroup>
-  <Compile Include="$(MSBuildThisFileDirectory)*.cs" Link="WorkloadTestingCommon" />
-  <Compile Include="$(RepoRoot)tests\Aspire.Components.Common.Tests\RequiresDockerTheoryAttribute.cs" />
+ <Import Project="$(MSBuildThisFileDirectory)..\Playwright\Playwright.targets" />
 
-  <PackageReference Include="Microsoft.Playwright" />
+ <ItemGroup>
+   <Compile Include="$(MSBuildThisFileDirectory)*.cs" Link="WorkloadTestingCommon" />
+
+   <!-- needed for the RequiresDocker attribute, and discoverer -->
+   <ProjectReference Include="$(RepoRoot)tests\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
  </ItemGroup>
 </Project>

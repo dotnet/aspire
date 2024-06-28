@@ -59,6 +59,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     public required BrowserTimeProvider TimeProvider { get; set; }
 
     [Inject]
+    public required ILogger<Traces> Logger { get; init; }
+
+    [Inject]
     public required DimensionManager DimensionManager { get; set; }
 
     [CascadingParameter]
@@ -117,39 +120,19 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
         _allApplication = new()
         {
-            Id = null, Name = Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAllApplications)]
+            Id = null,
+            Name = Loc[nameof(Dashboard.Resources.ControlsStrings.All)]
         };
 
         _logLevels = new List<SelectViewModel<LogLevel?>>
         {
-            new SelectViewModel<LogLevel?>
-            {
-                Id = null, Name = $"({Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAllTypes)]})"
-            },
-            new SelectViewModel<LogLevel?>
-            {
-                Id = LogLevel.Trace, Name = "Trace"
-            },
-            new SelectViewModel<LogLevel?>
-            {
-                Id = LogLevel.Debug, Name = "Debug"
-            },
-            new SelectViewModel<LogLevel?>
-            {
-                Id = LogLevel.Information, Name = "Information"
-            },
-            new SelectViewModel<LogLevel?>
-            {
-                Id = LogLevel.Warning, Name = "Warning"
-            },
-            new SelectViewModel<LogLevel?>
-            {
-                Id = LogLevel.Error, Name = "Error"
-            },
-            new SelectViewModel<LogLevel?>
-            {
-                Id = LogLevel.Critical, Name = "Critical"
-            },
+            new SelectViewModel<LogLevel?> { Id = null, Name = $"({Loc[nameof(Dashboard.Resources.ControlsStrings.All)]})" },
+            new SelectViewModel<LogLevel?> { Id = LogLevel.Trace, Name = "Trace" },
+            new SelectViewModel<LogLevel?> { Id = LogLevel.Debug, Name = "Debug" },
+            new SelectViewModel<LogLevel?> { Id = LogLevel.Information, Name = "Information" },
+            new SelectViewModel<LogLevel?> { Id = LogLevel.Warning, Name = "Warning" },
+            new SelectViewModel<LogLevel?> { Id = LogLevel.Error, Name = "Error" },
+            new SelectViewModel<LogLevel?> { Id = LogLevel.Critical, Name = "Critical" },
         };
 
         PageViewModel = new StructuredLogsPageViewModel

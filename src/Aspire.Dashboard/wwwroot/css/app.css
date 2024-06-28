@@ -432,17 +432,6 @@ fluent-data-grid-cell.no-ellipsis {
     padding: calc(((var(--design-unit) * 0.5) - var(--stroke-width)) * 1px) calc((var(--design-unit) - var(--stroke-width)) * 1px);
 }
 
-.column-header {
-    /*
-        fluent-data-grid-cells have a height of 100%, which should correspond to
-        the height of their parent fluent-data-grid-row.
-        On Safari only, this is not the case; height actually computes to the grid height.
-        We can force column headers to take the height of their parent by inheriting height
-        of their row.
-     */
-    height: inherit !important;
-}
-
 .mobile-toolbar {
     width: 100%;
     height: max(5vh, 30px);

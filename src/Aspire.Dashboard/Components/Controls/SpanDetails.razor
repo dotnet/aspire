@@ -76,14 +76,20 @@
                     <ExtraValueContent>
                         @if (context.Attributes.Length > 0)
                         {
-                            <div class="event-attributes-header">Attributes</div>
-                            <PropertyGrid TItem="SpanPropertyViewModel"
-                                Items="@Queryable.AsQueryable(context.Attributes.Select(a => new SpanPropertyViewModel() { Name = a.Key, Value = a.Value }))"
+                            <div class="event-attributes-header">@Loc[nameof(ControlsStrings.TraceDetailAttributesHeader)]</div>
+
+                            /* There's a weird bug where trying to render a nested FluentDataGrid here with a non-primitive
+                               TItem leads to the click event not being raised *only in the value (not header) rows*. A
+                               workaround is to use the attribute index as the item and query the attributes list for its
+                               name and value in the name/value producers.
+                             */
+                            <PropertyGrid TItem="int"
+                                Items="@context.Attributes.Select((_, i) => i).AsQueryable()"
                                 GridTemplateColumns="1fr 2fr"
-                                NameColumnValue="(vm) => vm.Name"
-                                ValueColumnValue="(vm) => vm.Value"
+                                NameColumnValue="(i) => context.Attributes[i].Key"
+                                ValueColumnValue="(i) => context.Attributes[i].Value"
                                 IsNameSortable="false"
-                                IsValueSortable="false" />
+                                IsValueSortable="false"></PropertyGrid>
                         }
                     </ExtraValueContent>
                 </PropertyGrid>

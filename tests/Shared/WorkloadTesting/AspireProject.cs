@@ -355,7 +355,7 @@ public class AspireProject : IAsyncDisposable
 
     public async Task DumpDockerInfoAsync(ITestOutputHelper? testOutputArg = null)
     {
-        if (!RequiresDockerTheoryAttribute.IsSupported)
+        if (!RequiresDockerAttribute.IsSupported)
         {
             return;
         }
@@ -372,7 +372,7 @@ public class AspireProject : IAsyncDisposable
 
     public async Task DumpComponentLogsAsync(string component, ITestOutputHelper? testOutputArg = null)
     {
-        if (!RequiresDockerTheoryAttribute.IsSupported)
+        if (!RequiresDockerAttribute.IsSupported)
         {
             return;
         }
