@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
@@ -487,5 +488,78 @@ public class TraceTests
 
         Assert.Equal(5, trace.FirstSpan.Events.Count);
         Assert.Equal(5, trace.FirstSpan.Events[0].Attributes.Length);
+    }
+
+    [Fact]
+    public void AddTraces_ExceedLimit_FirstInFirstOut()
+    {
+        // Arrange
+        var repository = CreateRepository(maxTraceCount: 10);
+
+        var testTime = s_testTime.AddDays(1);
+
+        // Act
+        for (var i = 0; i < 2000; i++)
+        {
+            var traceId = (i + 1).ToString(CultureInfo.InvariantCulture);
+            var startTime = testTime.AddMinutes(i + (i % 2 == 0 ? -5 : 0));
+
+            AddTrace(repository, traceId, startTime);
+        }
+
+        // Assert
+        var applications = repository.GetApplications();
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+            });
+
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationServiceId = applications[0].InstanceId,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10
+        });
+
+        var first = GetStringId(traces.PagedResult.Items.First().TraceId);
+        var last = GetStringId(traces.PagedResult.Items.Last().TraceId);
+
+        Assert.Equal("1984", first);
+        Assert.Equal("2000", last);
+
+        var actualOrder = traces.PagedResult.Items.Select(t => t.TraceId).ToList();
+        var expectedOrder = traces.PagedResult.Items.OrderBy(t => t.FirstSpan.StartTime).Select(t => t.TraceId).ToList();
+
+        Assert.Equal(expectedOrder, actualOrder);
+    }
+
+    private static void AddTrace(TelemetryRepository repository, string traceId, DateTime startTime)
+    {
+        var addContext = new AddContext();
+
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: traceId, spanId: $"{traceId}-2", startTime: startTime.AddMinutes(5), endTime: startTime.AddMinutes(1), parentSpanId: $"{traceId}-1"),
+                            CreateSpan(traceId: traceId, spanId: $"{traceId}-1", startTime: startTime.AddMinutes(1), endTime: startTime.AddMinutes(10))
+                        }
+                    }
+                }
+            }
+        });
+
+        Assert.Equal(0, addContext.FailureCount);
     }
 }
