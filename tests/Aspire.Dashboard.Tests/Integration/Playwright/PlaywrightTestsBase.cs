@@ -1,7 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Workload.Tests;
 using Microsoft.Playwright;
 using Xunit;
 
@@ -23,41 +22,30 @@ public class PlaywrightTestsBase : IClassFixture<DashboardServerFixture>, IClass
     public async Task RunTestAsync(Func<IPage, Task> test)
     {
         var page = await CreateNewPageAsync();
-
-        if (page is not null)
+        try
         {
-            try
-            {
-                await test(page);
-            }
-            finally
-            {
-                await page.CloseAsync();
-            }
+            await test(page);
+        }
+        finally
+        {
+            await page.CloseAsync();
         }
     }
 
-    private async Task<IPage?> CreateNewPageAsync()
+    private async Task<IPage> CreateNewPageAsync()
     {
-        _context ??= BuildEnvironment.HasPlaywrightSupport
-            ? await PlaywrightFixture.Browser.NewContextAsync(new BrowserNewContextOptions
-            {
-                IgnoreHTTPSErrors = true,
-                BaseURL = DashboardServerFixture.DashboardApp.FrontendEndPointAccessor().Address
-            })
-            : null;
-
-        if (_context is not null)
+        _context ??= await PlaywrightFixture.Browser.NewContextAsync(new BrowserNewContextOptions
         {
-            return await _context.NewPageAsync();
-        }
+            IgnoreHTTPSErrors = true,
+            BaseURL = DashboardServerFixture.DashboardApp.FrontendEndPointAccessor().Address
+        });
 
-        return null;
+        return await _context.NewPageAsync();
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_context != null)
+        if (_context is not null)
         {
             await _context.DisposeAsync();
         }

@@ -2,11 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Resources;
+using Aspire.Workload.Tests;
 using Microsoft.Playwright;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright;
 
+[ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
 public class AppBarTests : PlaywrightTestsBase
 {
     public AppBarTests(DashboardServerFixture dashboardServerFixture, PlaywrightFixture playwrightFixture)
