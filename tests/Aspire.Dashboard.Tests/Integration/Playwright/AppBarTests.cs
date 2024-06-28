@@ -7,40 +7,43 @@ using Xunit;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright;
 
-public class AppBarTests(DashboardServerFixture dashboardServerFixture, PlaywrightFixture playwrightFixture) : IClassFixture<DashboardServerFixture>, IClassFixture<PlaywrightFixture>
+public class AppBarTests : PlaywrightTestsBase
 {
+    public AppBarTests(DashboardServerFixture dashboardServerFixture, PlaywrightFixture playwrightFixture)
+        : base(dashboardServerFixture, playwrightFixture)
+    {
+    }
+
     [Fact]
     public async Task AppBar_Change_Theme()
     {
         // Arrange
-        var page = await playwrightFixture.Browser.NewPageAsync(new BrowserNewPageOptions { BaseURL = dashboardServerFixture.DashboardApp.FrontendEndPointAccessor().Address});
-        await playwrightFixture.GoToHomeAndWaitForDataGridLoad(page);
-
-        var settingsButton = page.GetByRole(AriaRole.Button, new PageGetByRoleOptions
+        await RunTestAsync(async page =>
         {
-            Name = Layout.MainLayoutLaunchSettings
+            await PlaywrightFixture.GoToHomeAndWaitForDataGridLoad(page);
+
+            var settingsButton = page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = Layout.MainLayoutLaunchSettings });
+
+            await settingsButton.ClickAsync();
+
+            // Act and Assert
+
+            // set to dark
+            var darkThemeCheckbox = page.GetByRole(AriaRole.Radio).And(page.GetByText(Dialogs.SettingsDialogDarkTheme)).First;
+            var lightThemeCheckbox = page.GetByRole(AriaRole.Radio).And(page.GetByText(Dialogs.SettingsDialogLightTheme)).First;
+
+            await SetAndVerifyTheme(darkThemeCheckbox, "dark");
+            await SetAndVerifyTheme(lightThemeCheckbox, "light");
+
+            return;
+
+            async Task SetAndVerifyTheme(ILocator locator, string expected)
+            {
+                await locator.ClickAsync();
+                await Assertions
+                    .Expect(page.Locator("html"))
+                    .ToHaveAttributeAsync("data-theme", expected);
+            }
         });
-
-        await settingsButton.ClickAsync();
-
-        // Act and Assert
-
-        // set to dark
-        var darkThemeCheckbox = page.GetByRole(AriaRole.Radio).And(page.GetByText(Dialogs.SettingsDialogDarkTheme)).First;
-        var lightThemeCheckbox = page.GetByRole(AriaRole.Radio).And(page.GetByText(Dialogs.SettingsDialogLightTheme)).First;
-
-        await SetAndVerifyTheme(darkThemeCheckbox, "dark");
-        await SetAndVerifyTheme(lightThemeCheckbox, "light");
-
-        return;
-
-        async Task SetAndVerifyTheme(ILocator locator, string expected)
-        {
-            await locator.ClickAsync();
-            await Assertions
-                .Expect(page.Locator("html"))
-                .ToHaveAttributeAsync("data-theme", expected);
-        }
     }
 }
-
