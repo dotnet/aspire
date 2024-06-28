@@ -46,7 +46,7 @@ public static class OllamaBuilderExtensions
         var ollama = new OllamaResource(name);
 
         var resource = builder.AddResource(ollama)
-            .WithImage(OllamaContainerImageTags.Image)
+            .WithImage(OllamaContainerImageTags.Image, OllamaContainerImageTags.Tag)
             .WithImageRegistry(OllamaContainerImageTags.Registry)
             .WithHttpEndpoint(port: port, targetPort: 11434, OllamaResource.PrimaryEndpointName)
             .ExcludeFromManifest()

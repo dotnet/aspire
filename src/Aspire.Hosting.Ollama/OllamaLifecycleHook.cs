@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Logging;
@@ -60,11 +61,17 @@ internal sealed class OllamaLifecycleHook(
 
                 if (!modelsToDownload.Any())
                 {
-                    logger.LogInformation("[{Models}] are already downloaded for resource {ResourceName}", string.Join(", ", resource.Models), resource.Name);
+                    logger.LogInformation("{TimeStamp}: [{Models}] are already downloaded for resource {ResourceName}",
+                        DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture),
+                        string.Join(", ", resource.Models),
+                        resource.Name);
                     return;
                 }
 
-                logger.LogInformation("Downloading models [{Models}] for resource {ResourceName}...", string.Join(", ", modelsToDownload), resource.Name);
+                logger.LogInformation("{TimeStamp}: Downloading models [{Models}] for resource {ResourceName}...",
+                    DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture),
+                    string.Join(", ", modelsToDownload),
+                    resource.Name);
 
                 await notificationService.PublishUpdateAsync(resource, state => state with
                 {
@@ -92,7 +99,9 @@ internal sealed class OllamaLifecycleHook(
 
     private async Task PullModel(ILogger logger, OllamaResource resource, OllamaApiClient ollamaClient, string model, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Pulling ollama model {Model}...", model);
+        logger.LogInformation("{TimeStamp}: Pulling ollama model {Model}...",
+            DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture),
+            model);
 
         await notificationService.PublishUpdateAsync(resource, state => state with
         {
@@ -120,7 +129,9 @@ internal sealed class OllamaLifecycleHook(
             }
         }, cancellationToken).ConfigureAwait(false);
 
-        logger.LogInformation("Finished pulling ollama model {Model}", model);
+        logger.LogInformation("{TimeStamp}: Finished pulling ollama model {Model}",
+            DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture),
+            model);
     }
 
     public ValueTask DisposeAsync()
