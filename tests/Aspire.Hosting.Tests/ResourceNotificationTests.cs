@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -289,6 +291,95 @@ public class ResourceNotificationTests
         {
             await waitTask;
         });
+    }
+
+    [Fact]
+    public async Task PublishLogsStateTextChangesCorrectly()
+    {
+        var resource1 = new CustomResource("resource1");
+        var logger = new FakeLogger<ResourceNotificationService>();
+        var notificationService = new ResourceNotificationService(logger, new TestHostApplicationLifetime());
+
+        await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = "SomeState" });
+
+        var logs = logger.Collector.GetSnapshot();
+
+        // Initial state text, log just the new state
+        Assert.Single(logs.Where(l => l.Level == LogLevel.Debug));
+        Assert.Contains(logs, l => l.Level == LogLevel.Debug && l.Message.Contains("Resource resource1/resource1 changed state: SomeState"));
+
+        logger.Collector.Clear();
+
+        // Same state text as previous state, no log
+        await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = "SomeState" });
+
+        logs = logger.Collector.GetSnapshot();
+
+        Assert.Empty(logs.Where(l => l.Level == LogLevel.Debug));
+        Assert.DoesNotContain(logs, l => l.Level == LogLevel.Debug && l.Message.Contains("Resource resource1/resource1 changed state: SomeState"));
+
+        logger.Collector.Clear();
+
+        // Different state text, log the transition from the previous state to the new state
+        await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = "NewState" });
+
+        logs = logger.Collector.GetSnapshot();
+
+        Assert.Single(logs.Where(l => l.Level == LogLevel.Debug));
+        Assert.Contains(logs, l => l.Level == LogLevel.Debug && l.Message.Contains("Resource resource1/resource1 changed state: SomeState -> NewState"));
+
+        logger.Collector.Clear();
+
+        // Null state text, no log
+        await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = null });
+
+        logs = logger.Collector.GetSnapshot();
+
+        Assert.Empty(logs.Where(l => l.Level == LogLevel.Debug));
+        Assert.DoesNotContain(logs, l => l.Level == LogLevel.Debug && l.Message.Contains("Resource resource1/resource1 changed state:"));
+
+        logger.Collector.Clear();
+
+        // Empty state text, no log
+        await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = "" });
+
+        logs = logger.Collector.GetSnapshot();
+
+        Assert.Empty(logs.Where(l => l.Level == LogLevel.Debug));
+        Assert.DoesNotContain(logs, l => l.Level == LogLevel.Debug && l.Message.Contains("Resource resource1/resource1 changed state:"));
+
+        logger.Collector.Clear();
+
+        // White space state text, no log
+        await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = " " });
+
+        logs = logger.Collector.GetSnapshot();
+
+        Assert.Empty(logs.Where(l => l.Level == LogLevel.Debug));
+        Assert.DoesNotContain(logs, l => l.Level == LogLevel.Debug && l.Message.Contains("Resource resource1/resource1 changed state:"));
+
+        logger.Collector.Clear();
+    }
+
+    [Fact]
+    public async Task PublishLogsTraceStateDetailsCorrectly()
+    {
+        var resource1 = new CustomResource("resource1");
+        var logger = new FakeLogger<ResourceNotificationService>();
+        var notificationService = new ResourceNotificationService(logger, new TestHostApplicationLifetime());
+
+        var createdDate = DateTime.Now;
+        await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { CreationTimeStamp = createdDate });
+        await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { State = "SomeState" });
+        await notificationService.PublishUpdateAsync(resource1, snapshot => snapshot with { ExitCode = 0 });
+
+        var logs = logger.Collector.GetSnapshot();
+
+        Assert.Single(logs.Where(l => l.Level == LogLevel.Debug));
+        Assert.Equal(3, logs.Where(l => l.Level == LogLevel.Trace).Count());
+        Assert.Contains(logs, l => l.Level == LogLevel.Trace && l.Message.Contains("Resource resource1/resource1 update published:") && l.Message.Contains($"CreationTimeStamp = {createdDate:s}"));
+        Assert.Contains(logs, l => l.Level == LogLevel.Trace && l.Message.Contains("Resource resource1/resource1 update published:") && l.Message.Contains("State = { Text = SomeState"));
+        Assert.Contains(logs, l => l.Level == LogLevel.Trace && l.Message.Contains("Resource resource1/resource1 update published:") && l.Message.Contains("ExitCode = 0"));
     }
 
     private sealed class CustomResource(string name) : Resource(name),
