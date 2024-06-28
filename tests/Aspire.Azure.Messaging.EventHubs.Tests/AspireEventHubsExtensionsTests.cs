@@ -29,6 +29,7 @@ public class AspireEventHubsExtensionsTests
 
     private static readonly Action<HostApplicationBuilder, string, Action<AzureMessagingEventHubsSettings>?>[] s_keyedClientAdders =
     [
+        (builder, key, settings) => builder.AddKeyedAzureEventHubBufferedProducerClient(key, settings),
         (builder, key, settings) => builder.AddKeyedAzureEventHubProducerClient(key, settings),
         (builder, key, settings) => builder.AddKeyedAzureEventHubConsumerClient(key, settings),
         (builder, key, settings) => builder.AddKeyedAzureEventProcessorClient(key, settings),
@@ -37,6 +38,7 @@ public class AspireEventHubsExtensionsTests
 
     private static readonly Action<HostApplicationBuilder, string, Action<AzureMessagingEventHubsSettings>?>[] s_clientAdders =
     [
+        (builder, name, settings) => builder.AddAzureEventHubBufferedProducerClient(name, settings),
         (builder, name, settings) => builder.AddAzureEventHubProducerClient(name, settings),
         (builder, name, settings) => builder.AddAzureEventHubConsumerClient(name, settings),
         (builder, name, settings) => builder.AddAzureEventProcessorClient(name, settings),

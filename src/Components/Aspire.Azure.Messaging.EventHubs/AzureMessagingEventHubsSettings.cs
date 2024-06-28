@@ -21,7 +21,7 @@ public abstract class AzureMessagingEventHubsSettings : IConnectionStringSetting
     internal AzureMessagingEventHubsSettings() { }
 
     /// <summary>
-    /// Gets or sets the connection string used to connect to the Event Hubs namespace. 
+    /// Gets or sets the connection string used to connect to the Event Hubs namespace.
     /// </summary>
     /// <remarks>
     /// If <see cref="ConnectionString"/> is set, it overrides <see cref="FullyQualifiedNamespace"/> and <see cref="Credential"/>.
@@ -29,7 +29,7 @@ public abstract class AzureMessagingEventHubsSettings : IConnectionStringSetting
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets the fully qualified Event Hubs namespace. 
+    /// Gets or sets the fully qualified Event Hubs namespace.
     /// </summary>
     /// <remarks>
     /// Used along with <see cref="Credential"/> to establish the connection.
@@ -102,6 +102,11 @@ public abstract class AzureMessagingEventHubsSettings : IConnectionStringSetting
 /// Represents additional settings for configuring a <see cref="EventHubProducerClient"/>.
 /// </summary>
 public sealed class AzureMessagingEventHubsProducerSettings : AzureMessagingEventHubsSettings { }
+
+/// <summary>
+/// Represents additional settings for configuring a <see cref="EventHubBufferedProducerClient"/>.
+/// </summary>
+public sealed class AzureMessagingEventHubsBufferedProducerSettings : AzureMessagingEventHubsSettings { }
 
 /// <summary>
 /// Represents additional settings for configuring a <see cref="EventHubConsumerClient"/>.
