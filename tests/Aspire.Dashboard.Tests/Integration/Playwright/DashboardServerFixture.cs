@@ -17,7 +17,7 @@ public class DashboardServerFixture : IAsyncLifetime
 {
     public DashboardWebApplication DashboardApp { get; private set; } = null!;
 
-    public async Task InitializeAsync()
+    public Task InitializeAsync()
     {
         const string aspireDashboardAssemblyName = "Aspire.Dashboard";
         var currentAssemblyName = Assembly.GetExecutingAssembly().GetName().Name!;
@@ -53,11 +53,11 @@ public class DashboardServerFixture : IAsyncLifetime
                 builder.Services.AddSingleton<IDashboardClient, MockDashboardClient>();
             });
 
-        await DashboardApp.StartAsync();
+        return DashboardApp.StartAsync();
     }
 
-    public async Task DisposeAsync()
+    public Task DisposeAsync()
     {
-        await DashboardApp.DisposeAsync();
+        return DashboardApp.DisposeAsync().AsTask();
     }
 }
