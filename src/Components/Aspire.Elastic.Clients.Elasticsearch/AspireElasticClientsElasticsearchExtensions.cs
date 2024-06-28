@@ -104,20 +104,16 @@ public static class AspireElasticClientsElasticsearchExtensions
         {
             var healthCheckName = serviceKey is null ? "Elastic.Clients.Elasticsearch" : $"Elastic.Clients.Elasticsearch_{connectionName}";
 
-            //todo: how to add health check for cloud ?
-            if (settings.ConnectionString is not null)
-            {
-                builder.TryAddHealthCheck(
+            builder.TryAddHealthCheck(
                 healthCheckName,
                 hcBuilder =>
-                    hcBuilder.AddElasticsearch(
-                        settings.ConnectionString,
-                        healthCheckName,
-                        null,
-                        null,
-                        settings.HealthCheckTimeout > 0 ? TimeSpan.FromMilliseconds(settings.HealthCheckTimeout.Value) : null)
-                );
-            }
+                hcBuilder.AddElasticsearch(
+                    clientFactory: (sp) => elasticsearchClient,
+                    healthCheckName,
+                    null,
+                    null,
+                      settings.HealthCheckTimeout > 0 ? TimeSpan.FromMilliseconds(settings.HealthCheckTimeout.Value) : null
+                    ));
         }
     }
 
