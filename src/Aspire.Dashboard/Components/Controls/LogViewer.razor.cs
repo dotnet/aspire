@@ -53,8 +53,6 @@ public sealed partial class LogViewer
         });
     }
 
-    private readonly LogEntries _logEntries = new();
-
     internal async Task SetLogSourceAsync(string resourceName, IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> batches, bool convertTimestampsFromUtc)
     {
         ViewModel.ResourceName = resourceName;
@@ -75,12 +73,12 @@ public sealed partial class LogViewer
             {
                 // Keep track of the base line number to ensure that we can calculate the line number of each log entry.
                 // This becomes important when the total number of log entries exceeds the limit and is truncated.
-                if (_logEntries.BaseLineNumber is null)
+                if (ViewModel.LogEntries.BaseLineNumber is null)
                 {
-                    _logEntries.BaseLineNumber = lineNumber;
+                    ViewModel.LogEntries.BaseLineNumber = lineNumber;
                 }
 
-                _logEntries.InsertSorted(logParser.CreateLogEntry(content, isErrorOutput));
+                ViewModel.LogEntries.InsertSorted(logParser.CreateLogEntry(content, isErrorOutput));
             }
 
             StateHasChanged();
