@@ -211,20 +211,18 @@ public class SchemaTests
         program.Run();
 
         var manifestText = publisher.ManifestDocument.RootElement.ToString();
-        var manifestJson = JsonNode.Parse(manifestText);
-        var schema = GetSchema();
-        AssertValid(manifestJson, schema);
+        AssertValid(manifestText);
     }
 
     [Fact]
     public void SchemaRejectsEmptyManifest()
     {
-        var manifestTest = """
+        var manifestText = """
             {
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestTest);
+        var manifestJson = JsonNode.Parse(manifestText);
         var schema = GetSchema();
         Assert.False(schema.Evaluate(manifestJson).IsValid);
     }
@@ -232,7 +230,7 @@ public class SchemaTests
     [Fact]
     public void ManifestAcceptsUnknownResourceType()
     {
-        var manifestTest = """
+        var manifestText = """
             {
               "resources": {
                 "aresource": {
@@ -242,15 +240,13 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestTest);
-        var schema = GetSchema();
-        Assert.True(schema.Evaluate(manifestJson).IsValid);
+        AssertValid(manifestText);
     }
 
     [Fact]
     public void ManifestWithContainerResourceWithMissingImageIsRejected()
     {
-        var manifestTest = """
+        var manifestText = """
             {
               "resources": {
                 "mycontainer": {
@@ -260,7 +256,7 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestTest);
+        var manifestJson = JsonNode.Parse(manifestText);
         var schema = GetSchema();
         Assert.False(schema.Evaluate(manifestJson).IsValid);
     }
@@ -268,7 +264,7 @@ public class SchemaTests
     [Fact]
     public void ManifestWithValue0ResourceWithConnectionStringAndValueIsRejectedIsRejected()
     {
-        var manifestTest = """
+        var manifestText = """
             {
               "resources": {
                 "valueresource": {
@@ -280,7 +276,7 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestTest);
+        var manifestJson = JsonNode.Parse(manifestText);
         var schema = GetSchema();
         Assert.False(schema.Evaluate(manifestJson).IsValid);
     }
@@ -288,7 +284,7 @@ public class SchemaTests
     [Fact]
     public void ManifestWithContainerResourceAndNoEnvOrBindingsIsAccepted()
     {
-        var manifestTest = """
+        var manifestText = """
             {
               "resources": {
                 "mycontainer": {
@@ -299,15 +295,13 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestTest);
-        var schema = GetSchema();
-        Assert.True(schema.Evaluate(manifestJson).IsValid);
+        AssertValid(manifestText);
     }
 
     [Fact]
     public void ManifestWithContainerV0ResourceAndBuildFieldIsRejected()
     {
-        var manifestTest = """
+        var manifestText = """
             {
               "resources": {
                 "mycontainer": {
@@ -322,7 +316,7 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestTest);
+        var manifestJson = JsonNode.Parse(manifestText);
         var schema = GetSchema();
         Assert.False(schema.Evaluate(manifestJson).IsValid);
     }
@@ -330,7 +324,7 @@ public class SchemaTests
     [Fact]
     public void ManifestWithContainerV1ResourceWithImageAndBuildFieldIsRejected()
     {
-        var manifestTest = """
+        var manifestText = """
             {
               "resources": {
                 "mycontainer": {
@@ -345,7 +339,7 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestTest);
+        var manifestJson = JsonNode.Parse(manifestText);
         var schema = GetSchema();
         Assert.False(schema.Evaluate(manifestJson).IsValid);
     }
@@ -353,7 +347,7 @@ public class SchemaTests
     [Fact]
     public void ManifestWithContainerV1ResourceAndBuildFieldIsAccepted()
     {
-        var manifestTest = """
+        var manifestText = """
             {
               "resources": {
                 "mycontainer": {
@@ -367,15 +361,13 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestTest);
-        var schema = GetSchema();
-        Assert.True(schema.Evaluate(manifestJson).IsValid);
+        AssertValid(manifestText);
     }
 
     [Fact]
     public void ManifestWithContainerV1ResourceAndImageFieldIsAccepted()
     {
-        var manifestTest = """
+        var manifestText = """
             {
               "resources": {
                 "mycontainer": {
@@ -386,15 +378,13 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestTest);
-        var schema = GetSchema();
-        Assert.True(schema.Evaluate(manifestJson).IsValid);
+        AssertValid(manifestText);
     }
 
     [Fact]
     public void ManifestWithProjectResourceAndNoEnvOrBindingsIsAccepted()
     {
-        var manifestTest = """
+        var manifestText = """
             {
               "resources": {
                 "myapp": {
@@ -405,9 +395,7 @@ public class SchemaTests
             }
             """;
 
-        var manifestJson = JsonNode.Parse(manifestTest);
-        var schema = GetSchema();
-        AssertValid(manifestJson, schema);
+        AssertValid(manifestText);
     }
 
     [Fact]
@@ -415,7 +403,7 @@ public class SchemaTests
     {
         // The reason this large test is here is that when submitting the positive test cases to SchemaStore.org
         // I found this one was failing. So I'm including it here.
-        var manifestTest = """
+        var manifestText = """
             {
               "resources": {
                 "administratorLogin": {
@@ -623,13 +611,13 @@ public class SchemaTests
 
             """;
 
-        var manifestJson = JsonNode.Parse(manifestTest);
-        var schema = GetSchema();
-        AssertValid(manifestJson, schema);
+        AssertValid(manifestText);
     }
 
-    private static void AssertValid(JsonNode? manifestJson, JsonSchema schema)
+    private static void AssertValid(string manifestText)
     {
+        var manifestJson = JsonNode.Parse(manifestText);
+        var schema = GetSchema();
         var results = schema.Evaluate(manifestJson);
 
         if (!results.IsValid)
