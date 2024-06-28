@@ -224,19 +224,31 @@ public class ResourceLoggerService
 
             using var _ = _logStreamCts.Token.Register(() => channel.Writer.TryComplete());
 
+            LogLine[]? backlogSnapshot = default;
+            var flushBacklogSync = new ManualResetEventSlim();
             void Log(LogLine log)
             {
-                channel.Writer.TryWrite(log);
+                if (flushBacklogSync.IsSet)
+                {
+                    channel.Writer.TryWrite(log);
+                    return;
+                }
+
+                flushBacklogSync.Wait(cancellationToken);
+                // We need to ensure we don't write this log to the channel if it was already in the backlog
+                if (backlogSnapshot?.Contains(log) == false)
+                {
+                    channel.Writer.TryWrite(log);
+                }
             }
 
+            // From the moment we add this callback, logs will be written to the backlog & to our Log method above
+            // so our Log method needs to ensure it de-dupes logs.
             OnNewLog += Log;
 
-            // ensure the backlog snapshot is taken after subscribing to OnNewLog
-            // to ensure the backlog snapshot contains the correct logs. The backlog
-            // can get cleared when there are no subscribers, so we ensure we are subscribing first.
+            backlogSnapshot = GetBacklogSnapshot();
+            flushBacklogSync.Set();
 
-            // REVIEW: Performance makes me very sad, but we can optimize this later.
-            var backlogSnapshot = GetBacklogSnapshot();
             if (backlogSnapshot.Length > 0)
             {
                 yield return backlogSnapshot;

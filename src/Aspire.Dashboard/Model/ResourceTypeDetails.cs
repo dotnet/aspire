@@ -34,4 +34,9 @@ public class ResourceTypeDetails
     {
         return new ResourceTypeDetails(OtlpApplicationType.ReplicaInstance, instanceId, replicaSetName);
     }
+
+    public override string ToString()
+    {
+        return $"Type = {Type}, InstanceId = {InstanceId}, ReplicaSetName = {ReplicaSetName}";
+    }
 }

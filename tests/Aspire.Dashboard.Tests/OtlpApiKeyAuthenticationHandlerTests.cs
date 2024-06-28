@@ -78,7 +78,7 @@ public class OtlpApiKeyAuthenticationHandlerTests
         {
             Otlp =
             {
-                EndpointUrl = "http://localhost",
+                GrpcEndpointUrl = "http://localhost",
                 PrimaryApiKey = primaryApiKey,
                 SecondaryApiKey = secondaryApiKey
             }
