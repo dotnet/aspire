@@ -37,9 +37,9 @@ public class AppBarTests(DashboardServerFixture dashboardServerFixture, Playwrig
         async Task SetAndVerifyTheme(ILocator locator, string expected)
         {
             await locator.ClickAsync();
-            await Task.Delay(500);
-
-            Assert.Equal(expected, await page.Locator("html").First.GetAttributeAsync("data-theme"));
+            await Assertions
+                .Expect(page.Locator("html"))
+                .ToHaveAttributeAsync("data-theme", expected);
         }
     }
 }

@@ -6,7 +6,6 @@
 
   <ItemGroup>
     <PackageReference Include="Grpc.Tools" />
-    <PackageReference Include="Polly.Extensions" />
 
     <ProjectReference Include="..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
 

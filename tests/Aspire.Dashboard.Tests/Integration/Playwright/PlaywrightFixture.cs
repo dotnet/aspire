@@ -3,8 +3,6 @@
 
 using Aspire.Workload.Tests;
 using Microsoft.Playwright;
-using Polly;
-using Polly.Retry;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright;
@@ -12,26 +10,9 @@ namespace Aspire.Dashboard.Tests.Integration.Playwright;
 public class PlaywrightFixture : IAsyncLifetime
 {
     public IBrowser Browser { get; set; } = null!;
-    private ResiliencePipeline _resiliencePipeline = null!;
 
     public async Task InitializeAsync()
     {
-
-        var retryOptions = new RetryStrategyOptions
-        {
-            ShouldHandle = new PredicateBuilder().Handle<ArgumentException>(),
-            BackoffType = DelayBackoffType.Exponential,
-            UseJitter = true,
-            MaxRetryAttempts = 20,
-            Delay = TimeSpan.FromMilliseconds(100),
-        };
-
-        var resiliencePipelineBuilder = new ResiliencePipelineBuilder();
-        resiliencePipelineBuilder
-            .AddRetry(retryOptions)
-            .AddTimeout(TimeSpan.FromSeconds(10));
-        _resiliencePipeline = resiliencePipelineBuilder.Build();
-
         Browser = await PlaywrightProvider.CreateBrowserAsync();
     }
 
@@ -43,14 +24,8 @@ public class PlaywrightFixture : IAsyncLifetime
     public async Task GoToHomeAndWaitForDataGridLoad(IPage page)
     {
         await page.GotoAsync("/");
-
-        await _resiliencePipeline.ExecuteAsync(async _ =>
-        {
-            if (await page.GetByText(MockDashboardClient.TestResource1.DisplayName).CountAsync() == 0)
-            {
-                throw new ArgumentException("Data grid has not loaded yet");
-            }
-
-        });
+        await Assertions
+            .Expect(page.GetByText(MockDashboardClient.TestResource1.DisplayName))
+            .ToBeVisibleAsync();
     }
 }
