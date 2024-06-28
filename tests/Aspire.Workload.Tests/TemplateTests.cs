@@ -50,7 +50,7 @@ public class TemplateTests : WorkloadTestsBase
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
         await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
 
-        if (BuildEnvironment.HasPlaywrightSupport)
+        if (PlaywrightProvider.HasPlaywrightSupport)
         {
             await using var context = await CreateNewBrowserContextAsync();
             var page = await project.OpenDashboardPageAsync(context);
@@ -70,7 +70,7 @@ public class TemplateTests : WorkloadTestsBase
             _testOutput,
             buildEnvironment: BuildEnvironment.ForDefaultFramework);
 
-        await using var context = BuildEnvironment.HasPlaywrightSupport ? await CreateNewBrowserContextAsync() : null;
+        await using var context = PlaywrightProvider.HasPlaywrightSupport ? await CreateNewBrowserContextAsync() : null;
         await AssertStarterTemplateRunAsync(context, project, config, _testOutput);
     }
 
@@ -100,7 +100,7 @@ public class TemplateTests : WorkloadTestsBase
         testSpecificBuildEnvironment.EnvVars["ASPIRE_ALLOW_UNSECURED_TRANSPORT"] = "true";
         await project.StartAppHostAsync();
 
-        if (BuildEnvironment.HasPlaywrightSupport)
+        if (PlaywrightProvider.HasPlaywrightSupport)
         {
             await using var context = await CreateNewBrowserContextAsync();
             var page = await project.OpenDashboardPageAsync(context);
