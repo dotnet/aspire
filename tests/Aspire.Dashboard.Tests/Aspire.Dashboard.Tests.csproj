@@ -2,6 +2,10 @@
 
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
+
+    <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(CODESPACES)' == 'true'">true</InstallBrowsersForPlaywright>
+    <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</InstallBrowsersForPlaywright>
+    <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(OS)' == 'Windows_NT' and '$(ContinuousIntegrationBuild)' != 'true'">true</InstallBrowsersForPlaywright>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,7 +18,7 @@
     <Content Include="$(TestsSharedDir)TestCertificates\*.pfx" LinkBase="shared/TestCertificates" CopyToOutputDirectory="PreserveNewest" />
 
     <Content Include="..\..\src\Aspire.Dashboard\wwwroot\**\*.*" LinkBase="wwwroot" CopyToOutputDirectory="PreserveNewest" />
-
-    <ProjectReference Include="..\Aspire.EndToEnd.Tests\Aspire.EndToEnd.Tests.csproj" />
   </ItemGroup>
+
+  <Import Project="..\Shared\Playwright\Playwright.targets" />
 </Project>
