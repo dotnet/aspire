@@ -76,6 +76,44 @@
     </ItemGroup>
   </Target>
 
+  <Target Name="_GeneratePackagesProps" BeforeTargets="Build">
+    <ItemGroup>
+      <_PackageVersionEvaluated Include="@(PackageVersion -> '&lt;PackageVersion Include=&quot;%(Identity)&quot; Version=&quot;%(Version)&quot; /&gt;')" />
+
+      <!-- doing this separately so the property value can be extracted from the name -->
+      <_PropertiesToPass
+        Include="$(%(PropertyForHelixRun.Identity))"
+        Name="%(PropertyForHelixRun.Identity)"
+        ConditionToUse__="%(PropertyForHelixRun.ConditionToUse__)" />
+
+      <_PropertiesToPassEvaluated Include="@(_PropertiesToPass -> '&lt;%(Name)&gt;%(Identity)&lt;/%(Name)&gt;')" />
+    </ItemGroup>
+
+    <PropertyGroup>
+      <_HelixPropsContent>
+        <![CDATA[
+      <Project>
+        <PropertyGroup>
+          <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+        </PropertyGroup>
+
+        <ItemGroup>
+            @(_PackageVersionEvaluated, '
+            ')
+        </ItemGroup>
+
+        <PropertyGroup>
+            @(_PropertiesToPassEvaluated, '
+            ')
+        </PropertyGroup>
+      </Project>
+          ]]>
+      </_HelixPropsContent>
+    </PropertyGroup>
+
+    <WriteLinesToFile Lines="$(_HelixPropsContent)" File="$(GeneratedPackagesVersionsPropsPath)" Overwrite="true" />
+  </Target>
+
   <UsingTask TaskName="PrepareNuGetConfigForWorkloadTesting"
       TaskFactory="RoslynCodeTaskFactory"
       AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
