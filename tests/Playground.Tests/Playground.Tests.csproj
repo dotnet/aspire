@@ -1,0 +1,71 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(NetCurrent)</TargetFramework>
+
+    <!-- no docker support on helix/windows yet -->
+    <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
+    <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
+
+    <!-- no docker support on helix/windows yet -->
+    <TestUsingWorkloads Condition="! ('$(ContinuousIntegrationBuild)' == 'true' and '$(OS)' == 'Windows_NT')">true</TestUsingWorkloads>
+    <InstallWorkloadForTesting>$(TestUsingWorkloads)</InstallWorkloadForTesting>
+
+    <TestsRunningOutsideOfRepo Condition="'$(TestsRunningOutsideOfRepo)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</TestsRunningOutsideOfRepo>
+    <DefineConstants Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">TESTS_RUNNING_OUTSIDE_OF_REPO;$(DefineConstants)</DefineConstants>
+
+    <!--<XunitRunnerJson>xunit.runner.json</XunitRunnerJson>-->
+    <!--<RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>-->
+    <TestArchiveTestsDir>$(TestArchiveTestsDirForWorkloadTests)</TestArchiveTestsDir>
+    <TestsArchiveSourceDir>$(ArtifactsObjDir)staging-archive\$(MSBuildProjectName)\</TestsArchiveSourceDir>
+    <IncludeTestPackages>true</IncludeTestPackages>
+  </PropertyGroup>
+
+    <!--- copy playground to out-of-repo-->
+    <!--- add shared dir from src-->
+    <!--- copy testingoutofrepo.*-->
+    <!--- copy helix.props-->
+    <!--- copy tests/Shared/nuget-for-hosting-testing.config-->
+    <!--- dump in the generated packages.versions,.props-->
+
+  <ItemGroup>
+    <FileToArchive Include="$(RepoRoot)playground\**\*" DestinationPath="playground\%(RecursiveDir)%(FileName)%(Extension)" />
+    <FileToArchive Include="$(RepoRoot)src\Shared\*.cs" DestinationPath="Shared-src\%(FileName)%(Extension)" />
+
+    <FileToArchive Include="..\Shared\TestsRunningOutsideOfRepo.*" DestinationPath="playground\%(FileName)%(Extension)" />
+    <FileToArchive Include="..\Shared\nuget-for-hosting-testing.config" DestinationPath="nuget.config" />
+    <FileToArchive Include="$(GeneratedPackagesVersionsPropsPath)" DestinationPath="playground\Directory.Packages.Versions.props" />
+    <FileToArchive Include="..\Shared\HostingTestingTests\Directory.Packages.Helix.props" DestinationPath="playground\%(FileName)%(Extension)" />
+
+    <!--<None Include="" CopyToOutputDirectory="PreserveNewest" />-->
+    <!--<None Include="$(RepoRoot)Directory.Packages.props" Link="testassets\testproject\Directory.Packages.repo.props" CopyToOutputDirectory="PreserveNewest" />-->
+
+    <!--<PackageReference Include="Microsoft.Extensions.Http.Resilience" />-->
+    <!--<PackageReference Include="Microsoft.DotNet.XUnitExtensions" />-->
+
+    <PropertyForHelixRun Include="XunitPackageVersion" />
+    <PropertyForHelixRun Include="XunitRunnerVisualStudioPackageVersion" />
+    <PropertyForHelixRun Include="XunitPackageVersion" />
+    <PropertyForHelixRun Include="MSTestTestAdapterPackageVersion" />
+    <PropertyForHelixRun Include="MicrosoftNETTestSdkPackageVersion" />
+
+    <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
+  </ItemGroup>
+
+  <Target Name="_StageForHelix" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true'">
+    <RemoveDir Directories="$(TestsArchiveSourceDir)" />
+    <MakeDir Directories="$(TestsArchiveSourceDir)" />
+
+    <ItemGroup>
+      <!-- default to just the filename -->
+      <FileToArchive DestinationPath="%(FileName)%(Extension)" Condition="'%(FileToArchive.DestinationPath)' == ''" />
+    </ItemGroup>
+
+    <Copy SourceFiles="%(FileToArchive.Identity)"
+          DestinationFiles="$(TestsArchiveSourceDir)%(FileToArchive.DestinationPath)"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" />
+</Project>
