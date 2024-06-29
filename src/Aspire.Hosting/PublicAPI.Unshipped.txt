@@ -2,6 +2,20 @@
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, string? targetState = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, System.Collections.Generic.IEnumerable<string!>! targetStates, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+Aspire.Hosting.Utils.Cache.CacheBuilderExtensions
+Aspire.Hosting.Utils.Cache.CacheContainerImageTags
+Aspire.Hosting.Utils.Cache.CacheContainerImageTags.CacheContainerImageTags(string! registry, string! image, string! tag) -> void
+Aspire.Hosting.Utils.Cache.CacheContainerImageTags.Image.get -> string!
+Aspire.Hosting.Utils.Cache.CacheContainerImageTags.Registry.get -> string!
+Aspire.Hosting.Utils.Cache.CacheContainerImageTags.Tag.get -> string!
+Aspire.Hosting.Utils.Cache.CacheResource
+Aspire.Hosting.Utils.Cache.CacheResource.CacheResource(string! name) -> void
+Aspire.Hosting.Utils.Cache.CacheResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
+Aspire.Hosting.Utils.Cache.CacheResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
+static Aspire.Hosting.Utils.Cache.CacheBuilderExtensions.AddCache(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! registry, string! image, string! tag, int targetPort, int? port = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Utils.Cache.CacheResource!>!
+static Aspire.Hosting.Utils.Cache.CacheBuilderExtensions.WithDataBindMount(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Utils.Cache.CacheResource!>! builder, string! source, string! target, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Utils.Cache.CacheResource!>!
+static Aspire.Hosting.Utils.Cache.CacheBuilderExtensions.WithDataVolume(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Utils.Cache.CacheResource!>! builder, string! target, string? name = null, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Utils.Cache.CacheResource!>!
+static Aspire.Hosting.Utils.Cache.CacheBuilderExtensions.WithPersistence(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Utils.Cache.CacheResource!>! builder, System.TimeSpan? interval = null, long keysChangedThreshold = 1) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Utils.Cache.CacheResource!>!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Exited -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.FailedToStart -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Finished -> string!
