@@ -9,22 +9,22 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <NonComponentReferenceForTests Include="Aspire.Hosting.Azure" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.Azure.CosmosDB" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.Azure.EventHubs" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.Garnet" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.Kafka" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.Milvus" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.MongoDB" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.MySql" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.NodeJs" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.Oracle" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.PostgreSQL" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.RabbitMQ" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.Redis" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.SqlServer" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.Valkey" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.Azure" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.Azure.CosmosDB" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.Azure.EventHubs" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.Garnet" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.Kafka" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.Milvus" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.MongoDB" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.MySql" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.NodeJs" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.Oracle" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.PostgreSQL" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.RabbitMQ" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.Redis" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.SqlServer" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.Valkey" IsAspireProjectResource="false" />
   </ItemGroup>
 
   <ItemGroup>

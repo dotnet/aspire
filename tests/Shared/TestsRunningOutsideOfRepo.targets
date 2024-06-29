@@ -19,12 +19,16 @@
     <PackageReference Include="@(NonComponentReferenceForTests)" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
+  <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true' and '$(IncludeTestPackages)' == 'true'">
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.assert" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <DefineConstants>TESTS_RUNNING_OUTSIDE_OF_REPO;$(DefineConstants)</DefineConstants>
+  </PropertyGroup>
 
   <Import Project="$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets"
           Condition="'$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'" />

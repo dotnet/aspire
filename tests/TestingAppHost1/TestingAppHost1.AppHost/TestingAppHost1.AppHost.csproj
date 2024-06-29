@@ -9,9 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.PostgreSQL" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.Redis" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost"  IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.PostgreSQL"  IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.Redis"  IsAspireProjectResource="false" />
 
     <ProjectReference Include="..\TestingAppHost1.MyWebApp\TestingAppHost1.MyWebApp.csproj" />
     <ProjectReference Include="..\TestingAppHost1.MyWorker\TestingAppHost1.MyWorker.csproj" />

@@ -76,7 +76,7 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="_GeneratePackagesProps" BeforeTargets="Build">
+  <Target Name="_GeneratePackagesProps" BeforeTargets="_StageForHelix">
     <ItemGroup>
       <_PackageVersionEvaluated Include="@(PackageVersion -> '&lt;PackageVersion Include=&quot;%(Identity)&quot; Version=&quot;%(Version)&quot; /&gt;')" />
 
