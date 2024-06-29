@@ -5,9 +5,9 @@ using Aspire.Hosting.Utils.Cache;
 
 namespace Aspire.Hosting.Garnet;
 
-internal sealed class GarnetContainerImageTags() : CacheContainerImageTags(RegistryValue, ImageValue, TagValue)
+internal sealed class GarnetContainerImageTags() : CacheContainerImageTags(Registry, Image, Tag)
 {
-    private const string RegistryValue = "ghcr.io";
-    private const string ImageValue = "microsoft/garnet";
-    private const string TagValue = "1.0";
+    public const string Registry = "ghcr.io";
+    public const string Image = "microsoft/garnet";
+    public const string Tag = "1.0";
 }

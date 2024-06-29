@@ -47,14 +47,16 @@ public static class GarnetBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port to bind the underlying container to.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<GarnetResource> AddGarnet(this IDistributedApplicationBuilder builder, string name,
+    public static IResourceBuilder<GarnetResource> AddGarnet(this IDistributedApplicationBuilder builder,
+        string name,
         int? port = null)
     {
+        var garnetResource = new GarnetResource(name);
         var garnetContainerImageTags = new GarnetContainerImageTags();
-
-        var builderCacheResource = CacheBuilderExtensions.AddCache(builder, name, garnetContainerImageTags.Registry, garnetContainerImageTags.Image, garnetContainerImageTags.Tag, 6379, port);
-
-        return (IResourceBuilder<GarnetResource>)builderCacheResource;
+        return builder.AddCache(garnetResource,
+            garnetContainerImageTags,
+            6379,
+            port);
     }
 
     /// <summary>
@@ -76,12 +78,9 @@ public static class GarnetBuilderExtensions
     /// </param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<GarnetResource> WithDataVolume(this IResourceBuilder<GarnetResource> builder,
-        string? name = null, bool isReadOnly = false)
-    {
-        var builderCacheResource = CacheBuilderExtensions.WithDataVolume(builder, GarnetContainerDataDirectory, name, isReadOnly);
-
-        return (IResourceBuilder<GarnetResource>)builderCacheResource;
-    }
+        string? name = null,
+        bool isReadOnly = false)
+        => builder.WithDataVolume(GarnetContainerDataDirectory, name, isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the data folder to a Cache container resource and enables Cache persistence.
@@ -102,12 +101,9 @@ public static class GarnetBuilderExtensions
     /// </param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<GarnetResource> WithDataBindMount(this IResourceBuilder<GarnetResource> builder,
-        string source, bool isReadOnly = false)
-    {
-        var builderCacheResource = CacheBuilderExtensions.WithDataBindMount(builder, source, GarnetContainerDataDirectory, isReadOnly);
-
-        return (IResourceBuilder<GarnetResource>)builderCacheResource;
-    }
+        string source,
+        bool isReadOnly = false)
+        => builder.WithDataBindMount(source, GarnetContainerDataDirectory, isReadOnly);
 
     /// <summary>
     /// Configures a Cache container resource for persistence.
@@ -126,10 +122,7 @@ public static class GarnetBuilderExtensions
     /// <param name="keysChangedThreshold">The number of key change operations required to trigger a snapshot at the interval. Defaults to 1.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<GarnetResource> WithPersistence(this IResourceBuilder<GarnetResource> builder,
-        TimeSpan? interval = null, long keysChangedThreshold = 1)
-    {
-        var builderCacheResource = CacheBuilderExtensions.WithPersistence(builder, interval, keysChangedThreshold);
-
-        return (IResourceBuilder<GarnetResource>)builderCacheResource;
-    }
+        TimeSpan? interval = null,
+        long keysChangedThreshold = 1)
+        => CacheBuilderExtensions.WithPersistence(builder, interval, keysChangedThreshold);
 }

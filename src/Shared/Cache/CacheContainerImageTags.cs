@@ -11,15 +11,15 @@ public class CacheContainerImageTags(string registry, string image, string tag)
     /// <summary>
     /// 
     /// </summary>
-    public string Registry => registry;
+    public string GetRegistry() => registry;
 
     /// <summary>
     /// 
     /// </summary>
-    public string Image => image;
+    public string GetImage() => image;
 
     /// <summary>
     /// 
     /// </summary>
-    public string Tag => tag;
+    public string GetTag() => tag;
 }

@@ -38,35 +38,27 @@ public static class CacheBuilderExtensions
     /// </code>
     /// </example>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <param name="registry"></param>
-    /// <param name="image"></param>
-    /// <param name="tag"></param>
-    /// <param name="port">The host port to bind the underlying container to.</param>
+    /// <param name="cacheResource"></param>  //The name of the resource. This name will be used as the connection string name when referenced in a dependency.
+    /// <param name="cacheContainerImageTags"></param>
     /// <param name="targetPort"></param>
+    /// <param name="port">The host port to bind the underlying container to.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<CacheResource> AddCache(this IDistributedApplicationBuilder builder,
-        string name,
-        string registry,
-        string image,
-        string tag,
+    public static IResourceBuilder<T> AddCache<T>(this IDistributedApplicationBuilder builder,
+        T cacheResource,
+        CacheContainerImageTags cacheContainerImageTags,
         int targetPort,
-        int? port = null
-        )
-    {
-        var cache = new CacheResource(name);
-        
-        return builder.AddResource(cache)
+        int? port = null)
+        where T : CacheResource
+        => builder.AddResource(cacheResource)
             .WithEndpoint(port: port, targetPort: targetPort, name: CacheResource.PrimaryEndpointName)
-            .WithImage(image, tag)
-            .WithImageRegistry(registry);
-    }
+            .WithImage(cacheContainerImageTags.GetImage(), cacheContainerImageTags.GetTag())
+            .WithImageRegistry(cacheContainerImageTags.GetRegistry());
 
     /// <summary>
     /// Adds a named volume for the data folder to a Cache container resource and enables Cache persistence.
     /// </summary>
     /// <example>
-    /// Use <see cref="WithPersistence(IResourceBuilder{CacheResource}, TimeSpan?, long)"/> to adjust Cache persistence configuration, e.g.:
+    /// Use <see cref="WithPersistence{T}(IResourceBuilder{T}, TimeSpan?, long)"/> to adjust Cache persistence configuration, e.g.:
     /// <code lang="csharp">
     /// var cache = builder.AddCache("cache")
     ///                    .WithDataVolume()
@@ -81,10 +73,11 @@ public static class CacheBuilderExtensions
     /// Defaults to <c>false</c>.
     /// </param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<CacheResource> WithDataVolume(this IResourceBuilder<CacheResource> builder,
+    public static IResourceBuilder<T> WithDataVolume<T>(this IResourceBuilder<T> builder,
         string target,
         string? name = null,
         bool isReadOnly = false)
+    where T : CacheResource
     {
         builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), target,
             isReadOnly);
@@ -100,7 +93,7 @@ public static class CacheBuilderExtensions
     /// Adds a bind mount for the data folder to a Cache container resource and enables Cache persistence.
     /// </summary>
     /// <example>
-    /// Use <see cref="WithPersistence(IResourceBuilder{CacheResource}, TimeSpan?, long)"/> to adjust Cache persistence configuration, e.g.:
+    /// Use <see cref="WithPersistence{T}(IResourceBuilder{T}, TimeSpan?, long)"/> to adjust Cache persistence configuration, e.g.:
     /// <code lang="csharp">
     /// var cache = builder.AddCache("cache")
     ///                    .WithDataBindMount()
@@ -115,10 +108,11 @@ public static class CacheBuilderExtensions
     /// Defaults to <c>false</c>.
     /// </param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<CacheResource> WithDataBindMount(this IResourceBuilder<CacheResource> builder,
+    public static IResourceBuilder<T> WithDataBindMount<T>(this IResourceBuilder<T> builder,
         string source,
         string target,
         bool isReadOnly = false)
+    where T : CacheResource
     {
         builder.WithBindMount(source, target, isReadOnly);
         if (!isReadOnly)
@@ -133,8 +127,8 @@ public static class CacheBuilderExtensions
     /// Configures a Cache container resource for persistence.
     /// </summary>
     /// <example>
-    /// Use with <see cref="WithDataBindMount(IResourceBuilder{CacheResource}, string, string, bool)"/>
-    /// or <see cref="WithDataVolume(IResourceBuilder{CacheResource}, string, string?, bool)"/> to persist Cache data across sessions with custom persistence configuration, e.g.:
+    /// Use with <see cref="WithDataBindMount{T}(IResourceBuilder{T}, string, string, bool)"/>
+    /// or <see cref="WithDataVolume{T}(IResourceBuilder{T}, string, string?, bool)"/> to persist Cache data across sessions with custom persistence configuration, e.g.:
     /// <code lang="csharp">
     /// var cache = builder.AddCache("cache")
     ///                    .WithDataVolume()
@@ -145,8 +139,10 @@ public static class CacheBuilderExtensions
     /// <param name="interval">The interval between snapshot exports. Defaults to 60 seconds.</param>
     /// <param name="keysChangedThreshold">The number of key change operations required to trigger a snapshot at the interval. Defaults to 1.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<CacheResource> WithPersistence(this IResourceBuilder<CacheResource> builder,
-        TimeSpan? interval = null, long keysChangedThreshold = 1)
+    public static IResourceBuilder<T> WithPersistence<T>(this IResourceBuilder<T> builder,
+        TimeSpan? interval = null,
+        long keysChangedThreshold = 1)
+    where T : CacheResource
         => builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
         {
             context.Args.Add("--save");

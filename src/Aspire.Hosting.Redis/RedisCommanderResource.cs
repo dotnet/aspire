@@ -9,6 +9,4 @@ namespace Aspire.Hosting.Redis;
 /// A resource that represents a Redis Commander container.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class RedisCommanderResource(string name) : ContainerResource(name)
-{
-}
+public class RedisCommanderResource(string name) : ContainerResource(name);

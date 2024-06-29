@@ -33,11 +33,10 @@ public class AddGarnetTests
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
 
-        var garnetContainerImageTags = new GarnetContainerImageTags();
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal(garnetContainerImageTags.Tag, containerAnnotation.Tag);
-        Assert.Equal(garnetContainerImageTags.Image, containerAnnotation.Image);
-        Assert.Equal(garnetContainerImageTags.Registry, containerAnnotation.Registry);
+        Assert.Equal(GarnetContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(GarnetContainerImageTags.Image, containerAnnotation.Image);
+        Assert.Equal(GarnetContainerImageTags.Registry, containerAnnotation.Registry);
     }
 
     [Fact]
@@ -62,11 +61,10 @@ public class AddGarnetTests
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
 
-        var garnetContainerImageTags = new GarnetContainerImageTags();
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal(garnetContainerImageTags.Tag, containerAnnotation.Tag);
-        Assert.Equal(garnetContainerImageTags.Image, containerAnnotation.Image);
-        Assert.Equal(garnetContainerImageTags.Registry, containerAnnotation.Registry);
+        Assert.Equal(GarnetContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(GarnetContainerImageTags.Image, containerAnnotation.Image);
+        Assert.Equal(GarnetContainerImageTags.Registry, containerAnnotation.Registry);
     }
 
     [Fact]
@@ -94,12 +92,11 @@ public class AddGarnetTests
 
         var manifest = await ManifestUtils.GetManifest(garnet.Resource);
 
-        var garnetContainerImageTags = new GarnetContainerImageTags();
         var expectedManifest = $$"""
                                  {
                                    "type": "container.v0",
                                    "connectionString": "{myGarnet.bindings.tcp.host}:{myGarnet.bindings.tcp.port}",
-                                   "image": "{{garnetContainerImageTags.Registry}}/{{garnetContainerImageTags.Image}}:{{garnetContainerImageTags.Tag}}",
+                                   "image": "{{GarnetContainerImageTags.Registry}}/{{GarnetContainerImageTags.Image}}:{{GarnetContainerImageTags.Tag}}",
                                    "bindings": {
                                      "tcp": {
                                        "scheme": "tcp",

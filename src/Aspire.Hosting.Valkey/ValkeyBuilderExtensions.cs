@@ -1,10 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils.Cache;
 using Aspire.Hosting.Valkey;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -52,11 +51,12 @@ public static class ValkeyBuilderExtensions
         string name,
         int? port = null)
     {
-        var valkey = new ValkeyResource(name);
-        return builder.AddResource(valkey)
-            .WithEndpoint(port: port, targetPort: 6379, name: ValkeyResource.PrimaryEndpointName)
-            .WithImage(ValkeyContainerImageTags.Image, ValkeyContainerImageTags.Tag)
-            .WithImageRegistry(ValkeyContainerImageTags.Registry);
+        var valkeyResource = new ValkeyResource(name);
+        var valkeyContainerImageTags = new ValkeyContainerImageTags();
+        return builder.AddCache(valkeyResource,
+            valkeyContainerImageTags,
+            6379,
+            port);
     }
 
     /// <summary>
@@ -78,17 +78,9 @@ public static class ValkeyBuilderExtensions
     /// </example>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<ValkeyResource> WithDataVolume(this IResourceBuilder<ValkeyResource> builder,
-        string? name = null, bool isReadOnly = false)
-    {
-        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), ValkeyContainerDataDirectory,
-            isReadOnly);
-        if (!isReadOnly)
-        {
-            builder.WithPersistence();
-        }
-
-        return builder;
-    }
+        string? name = null,
+        bool isReadOnly = false)
+        => builder.WithDataVolume(ValkeyContainerDataDirectory, name, isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the data folder to a Valkey container resource and enables Valkey persistence.
@@ -109,16 +101,9 @@ public static class ValkeyBuilderExtensions
     /// </example>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<ValkeyResource> WithDataBindMount(this IResourceBuilder<ValkeyResource> builder,
-        string source, bool isReadOnly = false)
-    {
-        builder.WithBindMount(source, ValkeyContainerDataDirectory, isReadOnly);
-        if (!isReadOnly)
-        {
-            builder.WithPersistence();
-        }
-
-        return builder;
-    }
+        string source,
+        bool isReadOnly = false)
+        => builder.WithDataBindMount(source, ValkeyContainerDataDirectory, isReadOnly);
 
     /// <summary>
     /// Configures a Valkey container resource for persistence.
@@ -137,12 +122,7 @@ public static class ValkeyBuilderExtensions
     /// </example>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<ValkeyResource> WithPersistence(this IResourceBuilder<ValkeyResource> builder,
-        TimeSpan? interval = null, long keysChangedThreshold = 1)
-        => builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
-        {
-            context.Args.Add("--save");
-            context.Args.Add((interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
-            context.Args.Add(keysChangedThreshold.ToString(CultureInfo.InvariantCulture));
-            return Task.CompletedTask;
-        }), ResourceAnnotationMutationBehavior.Replace);
+        TimeSpan? interval = null,
+        long keysChangedThreshold = 1)
+        => CacheBuilderExtensions.WithPersistence(builder, interval, keysChangedThreshold);
 }
