@@ -1,6 +1,8 @@
 <Project>
-  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
-  <Import Project="$(RepoRoot)tests\Shared\TestsRunningOutsideOfRepo.props" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
+
+  <Import Project="$(RepoRoot)tests\Shared\TestsRunningOutsideOfRepo.props" Condition="'$(RepoRoot)' != ''" />
+  <Import Project="$(MSBuildThisFileDirectory)TestsRunningOutsideOfRepo.props" Condition="'$(RepoRoot)' == ''" />
 
   <PropertyGroup>
     <!--
