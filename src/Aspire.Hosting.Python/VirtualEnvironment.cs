@@ -16,6 +16,7 @@ internal sealed class VirtualEnvironment(string virtualEnvironmentPath)
     /// <returns>Returns the path to the executable if it exists in the virtual environment.</returns>
     public string? GetExecutable(string name)
     {
+        Console.WriteLine ($"** GetExecutable: virtualEnvironmentPath: {virtualEnvironmentPath}, name: {name}");
         if(OperatingSystem.IsWindows())
         {
             string[] allowedExtensions = [".exe", ".cmd", ".bat"];

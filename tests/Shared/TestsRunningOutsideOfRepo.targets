@@ -8,7 +8,7 @@
     <_ConvertedProjectReference Include="@(ComponentReferenceForTests -> '$(RepoRoot)src\Components\%(Identity)\%(Identity).csproj')" />
     <_ConvertedProjectReference Include="@(NonComponentReferenceForTests -> '$(RepoRoot)src\%(Identity)\%(Identity).csproj')" />
 
-    <_ConvertedProjectReference Update="@(_ConvertedProjectReference)" IsAspireProjectResource="false" Condition="'$(IsAspireHost)' == 'true'" />
+    <!--<_ConvertedProjectReference Update="@(_ConvertedProjectReference)" IsAspireProjectResource="false" Condition="'$(IsAspireHost)' == 'true'" />-->
     <ProjectReference Include="@(_ConvertedProjectReference)" />
   </ItemGroup>
 
@@ -25,5 +25,10 @@
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
   </ItemGroup>
+
+  <Import Project="$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets"
+          Condition="'$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'" />
+  <Import Project="$(RepoRoot)src\Aspire.Hosting.Sdk\SDK\Sdk.targets"
+          Condition="'$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'" />
 
 </Project>
