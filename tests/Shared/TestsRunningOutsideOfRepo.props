@@ -1,0 +1,5 @@
+<Project>
+  <Import Project="$(RepoRoot)src/Aspire.Hosting.AppHost/build/Aspire.Hosting.AppHost.props"
+          Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
+          <!--Condition="'$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'" />-->
+</Project>
