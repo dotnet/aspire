@@ -14,9 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Python\Aspire.Hosting.Python.csproj" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Dashboard" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.Python" IsAspireProjectResource="false" />
   </ItemGroup>
 
 </Project>
