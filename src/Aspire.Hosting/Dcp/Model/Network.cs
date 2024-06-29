@@ -10,50 +10,50 @@ internal sealed class ContainerNetworkSpec
 {
     // Name of the network (if omitted, a name is generated based on the resource name)
     [JsonPropertyName("networkName")]
-    public string? NetworkName;
+    public string? NetworkName { get; set; }
 
     // Shouild IPv6 be enabled for the network?
     [JsonPropertyName("ipv6")]
-    public bool? IPV6;
+    public bool? IPV6 { get; set; }
 
     // Should this network be created and persisted between DCP runs?
     [JsonPropertyName("persistent")]
-    public bool? Persistent;
+    public bool? Persistent { get; set; }
 }
 
 internal sealed class ContainerNetworkStatus : V1Status
 {
     // The current state of the network
     [JsonPropertyName("state")]
-    public string? State;
+    public string? State { get; set; }
 
     // The ID of the network
     [JsonPropertyName("id")]
-    public string? ID;
+    public string? ID { get; set; }
 
     // The name of the network
     [JsonPropertyName("networkName")]
-    public string? NetworkName;
+    public string? NetworkName { get; set; }
 
     // The driver of the network
     [JsonPropertyName("driver")]
-    public string? Driver;
+    public string? Driver { get; set; }
 
     // Does the network support IPv6?
     [JsonPropertyName("ipv6")]
-    public bool? IPv6;
+    public bool? IPv6 { get; set; }
 
     // Subnets allocated to the network (if any)
     [JsonPropertyName("subnets")]
-    public List<string>? Subnets;
+    public List<string>? Subnets { get; set; }
 
     // Gateways allocated to the network (if any)
     [JsonPropertyName("gateways")]
-    public List<string>? Gateways;
+    public List<string>? Gateways { get; set; }
 
     // The list of container IDs connected to the network
     [JsonPropertyName("containerIds")]
-    public List<string>? ContainerIDs;
+    public List<string>? ContainerIDs { get; set; }
 
     // Note: the ContainerNetworkStatus has "Message" property that represents a human-readable information about Network state.
     // It is provided by V1Status base class.

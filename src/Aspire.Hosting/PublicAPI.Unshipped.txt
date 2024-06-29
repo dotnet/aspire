@@ -1,4 +1,13 @@
 #nullable enable
+Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
+Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, string? targetState = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, System.Collections.Generic.IEnumerable<string!>! targetStates, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Exited -> string!
+static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.FailedToStart -> string!
+static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Finished -> string!
+static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Running -> string!
+static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Starting -> string!
+static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Stopping -> string!
 Aspire.Hosting.ProjectResourceOptions
 Aspire.Hosting.ProjectResourceOptions.ExcludeKestrelEndpoints.get -> bool
 Aspire.Hosting.ProjectResourceOptions.ExcludeKestrelEndpoints.set -> void

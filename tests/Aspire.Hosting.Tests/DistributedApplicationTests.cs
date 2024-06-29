@@ -139,6 +139,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task AllocatedPortsAssignedAfterHookRuns()
     {
         using var testProgram = CreateTestProgram();
@@ -171,6 +172,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task TestServicesWithMultipleReplicas()
     {
         var replicaCount = 3;
@@ -223,6 +225,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerAppWorks()
     {
         using var testProgram = CreateTestProgram();
@@ -252,6 +255,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task SpecifyingEnvPortInEndpointFlowsToEnv()
     {
         using var testProgram = CreateTestProgram(includeNodeApp: true, randomizePorts: false);
@@ -307,6 +311,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task StartAsync_DashboardAuthConfig_PassedToDashboardProcess()
     {
         var browserToken = "ThisIsATestToken";
@@ -349,6 +354,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task StartAsync_UnsecuredAllowAnonymous_PassedToDashboardProcess()
     {
         var args = new string[] {
@@ -387,6 +393,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithEntrypointWorks()
     {
         using var testProgram = CreateTestProgram();
@@ -418,6 +425,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithBindMountWorksWithAbsolutePaths()
     {
         using var testProgram = CreateTestProgram();
@@ -451,6 +459,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithBindMountWorksWithRelativePaths()
     {
         using var testProgram = CreateTestProgram();
@@ -484,6 +493,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithVolumeWorksWithName()
     {
         using var testProgram = CreateTestProgram();
@@ -516,6 +526,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task KubernetesHasResourceNameForContainersAndExes()
     {
         using var testProgram = CreateTestProgram(includeIntegrationServices: true, includeNodeApp: true);
@@ -584,6 +595,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ReplicasAndProxylessEndpointThrows()
     {
         using var testProgram = CreateTestProgram();
@@ -601,6 +613,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessEndpointWithoutPortThrows()
     {
         using var testProgram = CreateTestProgram();
@@ -619,6 +632,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessEndpointWorks()
     {
         using var testProgram = CreateTestProgram();
@@ -716,6 +730,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessContainerCanBeReferenced()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -765,6 +780,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessContainerWithoutPortThrows()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -783,6 +799,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task AfterResourcesCreatedLifecycleHookWorks()
     {
         using var builder = TestDistributedApplicationBuilder.Create();

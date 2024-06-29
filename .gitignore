@@ -145,3 +145,6 @@ node_modules/
 /playground/**/azure.yaml
 /playground/**/next-steps.md
 *.svclog
+
+# Python virtual environments
+.venv

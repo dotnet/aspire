@@ -114,7 +114,7 @@ public class OtlpTrace
 
     private string DebuggerToString()
     {
-        return $@"TraceId = ""{TraceId}"", Spans = {Spans.Count}, StartTime = {FirstSpan.StartTime.ToLocalTime():h:mm:ss.fff tt}, Duration = {Duration}";
+        return $@"TraceId = ""{TraceId}"", Spans = {Spans.Count}, StartDate = {FirstSpan.StartTime.ToLocalTime():yyyy:MM:dd}, StartTime = {FirstSpan.StartTime.ToLocalTime():h:mm:ss.fff tt}, Duration = {Duration}";
     }
 
     private sealed class SpanStartDateComparer : IComparer<OtlpSpan>

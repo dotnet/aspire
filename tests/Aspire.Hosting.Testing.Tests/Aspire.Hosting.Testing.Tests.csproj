@@ -37,6 +37,8 @@
     <ProjectReference Include="..\TestingAppHost1\TestingAppHost1.AppHost\TestingAppHost1.AppHost.csproj" />
     <!-- FIXME: rename HostingTestingTestsSupportProject to reflect that this is a directory -->
     <HostingTestingTestsSupportProject Condition="'$(ArchiveTests)' == 'true'" Include="..\TestingAppHost1" />
+
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
   </ItemGroup>
 
   <Target Name="_PrepareForArchiveTests" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true'">
@@ -58,5 +60,6 @@
     <Copy SourceFiles="$(RepoRoot)Directory.Packages.props" DestinationFiles="$(_TestsArchiveStagingDir)Directory.Packages.repo.props" />
     <Copy SourceFiles="..\Shared\nuget-for-hosting-testing.config" DestinationFiles="$(_TestsArchiveStagingDir)nuget.config" />
   </Target>
+
 
 </Project>

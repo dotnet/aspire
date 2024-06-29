@@ -50,9 +50,12 @@ public abstract partial class PerTestFrameworkTemplatesTests : WorkloadTestsBase
             buildEnvironment: BuildEnvironment.ForDefaultFramework);
 
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]).ConfigureAwait(false);
-        await using (var context = await CreateNewBrowserContextAsync())
+        if (BuildEnvironment.HasPlaywrightSupport)
         {
-            await AssertBasicTemplateAsync(context).ConfigureAwait(false);
+            await using (var context = await CreateNewBrowserContextAsync())
+            {
+                await AssertBasicTemplateAsync(context).ConfigureAwait(false);
+            }
         }
 
         // Add test project
@@ -78,7 +81,7 @@ public abstract partial class PerTestFrameworkTemplatesTests : WorkloadTestsBase
 
         res = await cmd.ExecuteAsync($"test -c {config}");
 
-        Assert.True(res.ExitCode != 0, $"Expected the tests project build to fail");
+        Assert.True(res.ExitCode != 0, $"Expected the tests project run to fail");
         Assert.Matches("System.ArgumentException.*Resource 'webfrontend' not found.", res.Output);
         Assert.Matches("Failed! * - Failed: *1, Passed: *0, Skipped: *0, Total: *1", res.Output);
 
