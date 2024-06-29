@@ -1,5 +1,5 @@
 <Project>
-  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Packages.repo.props', '$(MSBuildThisFileDirectory)'))" />
+  <Import Project="$(MSBuildThisFileDirectory)Directory.Packages.Versions.props" />
 
   <ItemGroup>
     <PackageVersion Include="Aspire.Azure.Messaging.EventHubs" Version="$(PackageVersion)" />
@@ -46,6 +46,9 @@
     <PackageVersion Include="Aspire.StackExchange.Redis" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Testing" Version="$(PackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(PackageVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Dns" Version="$(PackageVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Yarp" Version="$(PackageVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Abstractions" Version="$(PackageVersion)" />
 
     <PackageVersion Include="xunit" Version="$(XunitPackageVersion)" />
     <PackageVersion Include="xunit.assert" Version="$(XunitPackageVersion)" />
