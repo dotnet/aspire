@@ -1,0 +1,55 @@
+<Project>
+
+  <PropertyGroup>
+    <BuildHelixWorkItemsDependsOn>$(BuildHelixWorkItemsDependsOn);BuildHelixWorkItemsForPlaygroundTests</BuildHelixWorkItemsDependsOn>
+    <NeedsWorkload>true</NeedsWorkload>
+    <NeedsPlaywright>true</NeedsPlaywright>
+
+    <TestProjectName>Aspire.Playground.Tests</TestProjectName>
+
+    <_CleanupProcessesCommand Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; get-ciminstance win32_process | where-object ExecutablePath -Match 'dotnet-latest|dcp.exe|dcpctrl.exe' | foreach-object { echo $_.ProcessId $_.ExecutablePath %3B stop-process -id $_.ProcessId -force -ErrorAction SilentlyContinue }"</_CleanupProcessesCommand>
+
+    <_CleanupProcessesCommand Condition="'$(OS)' != 'Windows_NT'">pgrep -lf "dotnet-latest|dcp.exe|dcpctrl.exe" | awk '{print %3B system("kill -9 "$1)}'</_CleanupProcessesCommand>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) TEST_NAME=$(TestProjectName)" />
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) SHOW_BUILD_OUTPUT=true" />
+
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PLAYGROUND_APPS_PATH=%HELIX_WORKITEM_ROOT%\playground" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PLAYGROUND_APPS_PATH=$HELIX_WORKITEM_ROOT\playground" />
+
+    <HelixPreCommand Include="$(_CleanupProcessesCommand)" />
+
+    <HelixPostCommand Include="$(_CleanupProcessesCommand)" />
+  </ItemGroup>
+
+  <Target Name="BuildHelixWorkItemsForPlaygroundTests">
+    <ItemGroup>
+      <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="${TEST_ARGS}" />
+      <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="%TEST_ARGS%" />
+    </ItemGroup>
+
+    <PropertyGroup>
+      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
+      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" />
+
+      <HelixWorkItem Include="$(TestArchiveTestsDirForPlaygroundTests)\$(TestProjectName).zip">
+        <PayloadArchive>$(TestArchiveTestsDirForWorkloadTests)\$(TestProjectName).zip</PayloadArchive>
+
+        <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=-%(TestNameSuffix)&quot;</PreCommands>
+
+        <Command>$(_TestRunCommand)</Command>
+        <Timeout>00:10:00</Timeout>
+
+        <!-- Download results file so coverage files can be extracted -->
+        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
+      </HelixWorkItem>
+    </ItemGroup>
+  </Target>
+</Project>
