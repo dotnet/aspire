@@ -60,7 +60,7 @@ public class PlaygroundAppFixture : IAsyncLifetime
             }
 
             BuildEnvironment.EnvVars["TestsRunningOutsideOfRepo"] = "true";
-            BuildEnvironment.EnvVars["PackageVersion"] = "8.1.0-dev";
+            BuildEnvironment.EnvVars["PackageVersion"] = BuildEnvironment.IsRunningOnCI ? "8.1.0-ci" : "8.1.0-dev";
             BuildEnvironment.EnvVars["TestAssetsDir"] = BuildEnvironment.TestAssetsPath + "/";
 
             // maps to src/Shared
