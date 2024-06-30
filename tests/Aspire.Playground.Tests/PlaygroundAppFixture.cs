@@ -7,21 +7,18 @@ using Aspire.Workload.Tests;
 
 namespace Aspire.EndToEnd.Tests;
 
-/// <summary>
-/// This fixture ensures the TestProject.AppHost application is started before a test is executed.
-///
-/// Represents the the IntegrationServiceA project in the test application used to send HTTP requests
-/// to the project's endpoints.
-/// </summary>
 public class PlaygroundAppFixture : IAsyncLifetime
 {
-#if TESTS_RUNNING_OUTSIDE_OF_REPO
-    public static bool TestsRunningOutsideOfRepo = true;
-#else
-    public static bool TestsRunningOutsideOfRepo;
-#endif
+// #if TESTS_RUNNING_OUTSIDE_OF_REPO
+//     private static bool TestsRunningOutsideOfRepo = true;
+// #else
+//     private static bool TestsRunningOutsideOfRepo;
+// #endif
+
+    private static readonly bool s_testsRunningOutsideOfRepo = Environment.GetEnvironmentVariable("TESTS_RUNNING_OUTSIDE_OF_REPO") is "true";
 
     public static string? TestScenario { get; } = EnvironmentVariables.TestScenario;
+    public string PlaygroundAppsPath { get; set; }
     public Dictionary<string, ProjectInfo> Projects => Project?.InfoTable ?? throw new InvalidOperationException("Project is not initialized");
 
     private readonly string _relativeAppHostProjectDir;
@@ -40,14 +37,27 @@ public class PlaygroundAppFixture : IAsyncLifetime
         _relativeAppHostProjectDir = relativeAppHostProjectDir;
         _diagnosticMessageSink = diagnosticMessageSink;
         _testOutput = new TestOutputWrapper(messageSink: _diagnosticMessageSink);
-        BuildEnvironment = new(useSystemDotNet: !TestsRunningOutsideOfRepo);
-        if (TestsRunningOutsideOfRepo)
+        BuildEnvironment = new(useSystemDotNet: !s_testsRunningOutsideOfRepo);
+        if (s_testsRunningOutsideOfRepo)
         {
             if (!BuildEnvironment.HasWorkloadFromArtifacts)
             {
                 throw new InvalidOperationException("Expected to have sdk+workload from artifacts when running tests outside of the repo");
             }
+
+            if (EnvironmentVariables.PlaygroundAppsPath is null)
+            {
+                throw new InvalidOperationException("Expected to have the PLAYGROUND_APPS_PATH environment variable set when running tests outside of the repo");
+            }
+            PlaygroundAppsPath = EnvironmentVariables.PlaygroundAppsPath;
+            if (!Directory.Exists(PlaygroundAppsPath))
+            {
+                throw new ArgumentException($"Cannot find PlaygroundAppsPath={PlaygroundAppsPath}");
+            }
+
             BuildEnvironment.EnvVars["TestsRunningOutsideOfRepo"] = "true";
+            BuildEnvironment.EnvVars["PackageVersion"] = "8.1.0-dev";
+            BuildEnvironment.EnvVars["SharedDir"] = Path.GetFullPath(Path.Combine(PlaygroundAppsPath, "..", "Shared-src")) + "/";
         }
         else
         {
@@ -62,12 +72,17 @@ public class PlaygroundAppFixture : IAsyncLifetime
             {
                 throw new ArgumentException($"Cannot find TestAssetsPath={BuildEnvironment.TestAssetsPath}");
             }
+            PlaygroundAppsPath = Path.Combine(BuildEnvironment.RepoRoot.FullName, "playground");
+            if (!Directory.Exists(PlaygroundAppsPath))
+            {
+                throw new ArgumentException($"Cannot find PlaygroundAppsPath={PlaygroundAppsPath}");
+            }
         }
     }
 
     public async Task InitializeAsync()
     {
-        string pgProjectDir = Path.Combine(BuildEnvironment.PlaygroundAppsPath, _relativeAppHostProjectDir);
+        string pgProjectDir = Path.Combine(PlaygroundAppsPath, _relativeAppHostProjectDir);
         if (!Directory.Exists(pgProjectDir))
         {
             throw new DirectoryNotFoundException($"Playground project directory not found: {pgProjectDir}");
@@ -77,7 +92,7 @@ public class PlaygroundAppFixture : IAsyncLifetime
                                      _testOutput,
                                      BuildEnvironment,
                                      relativeAppHostProjectDir: pgProjectDir);
-        if (TestsRunningOutsideOfRepo)
+        if (s_testsRunningOutsideOfRepo)
         {
             _testOutput.WriteLine("");
             _testOutput.WriteLine($"****************************************");
@@ -87,7 +102,7 @@ public class PlaygroundAppFixture : IAsyncLifetime
             _testOutput.WriteLine("");
         }
 
-        // await Project.BuildAsync();
+        await Project.BuildAsync();
 
         string extraArgs = "";
         // _resourcesToSkip = GetResourcesToSkip();

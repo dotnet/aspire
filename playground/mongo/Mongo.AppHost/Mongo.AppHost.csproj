@@ -10,13 +10,13 @@
 
   <ItemGroup>
     <Compile Include="$(SharedDir)KnownResourceNames.cs" Link="KnownResourceNames.cs" />
-    <Compile Include="$(RepoRoot)tests\Aspire.Workload.Tests\data\EndPointWriterHook_cs" Link="EndPointWriterHook.cs" />
+    <Compile Include="$(Root)tests\Aspire.Workload.Tests\data\EndPointWriterHook_cs" Link="EndPointWriterHook.cs" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
 
-    <NonComponentReferenceForTests Include="Aspire.Hosting" IsAspireProjectResource="false" />
+    <!-- <NonComponentReferenceForTests Include="Aspire.Hosting" IsAspireProjectResource="false" /> -->
     <NonComponentReferenceForTests Include="Aspire.Hosting.Azure" IsAspireProjectResource="false" />
     <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
     <NonComponentReferenceForTests Include="Aspire.Hosting.MongoDB" IsAspireProjectResource="false" />
