@@ -8,11 +8,11 @@ using Aspire.Workload.Tests;
 using Xunit;
 using Xunit.Abstractions;
 
-public class MongoDbTests : PlaygroundTestsBase, IClassFixture<MongoPlaygroundAppFixture>
+public class MySqlDbTests : PlaygroundTestsBase, IClassFixture<MysqlPlaygroundFixture>
 {
-    private readonly MongoPlaygroundAppFixture _testFixture;
+    private readonly MysqlPlaygroundFixture _testFixture;
 
-    public MongoDbTests(MongoPlaygroundAppFixture testFixture, ITestOutputHelper testOutput) : base(testOutput)
+    public MySqlDbTests(MysqlPlaygroundFixture testFixture, ITestOutputHelper testOutput) : base(testOutput)
     {
         _testFixture = testFixture;
     }

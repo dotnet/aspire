@@ -6,7 +6,7 @@ var db = builder.AddMongoDB("mongo")
     .WithMongoExpress(c => c.WithHostPort(3022))
     .PublishAsContainer();
 
-builder.AddProject<Projects.Mongo_ApiService>("api")
+builder.AddProject<Projects.Mongo_ApiService>("apiservice")
        .WithExternalHttpEndpoints()
        .WithReference(db);
 

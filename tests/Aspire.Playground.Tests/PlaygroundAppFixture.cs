@@ -232,3 +232,11 @@ public sealed class MongoPlaygroundAppFixture : PlaygroundAppFixture
     {
     }
 }
+
+public sealed class MysqlPlaygroundFixture : PlaygroundAppFixture
+{
+    public MysqlPlaygroundFixture(IMessageSink diagnosticMessageSink)
+        : base ("mysql/MySqlDb.AppHost", diagnosticMessageSink)
+    {
+    }
+}
