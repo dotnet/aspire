@@ -43,7 +43,7 @@
 
         <!--<PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=-%(TestNameSuffix)&quot;</PreCommands>-->
 
-        <Command>$(_TestRunCommand)</Command>
+        <Command>cd test %3B $(_TestRunCommand)</Command>
         <Timeout>00:10:00</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
