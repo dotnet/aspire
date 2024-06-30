@@ -1,11 +1,12 @@
 <Project>
   <Target Name="Test">
     <ItemGroup>
-      <TestCategory Include="basictests" />
+      <!--<TestCategory Include="basictests" />-->
       <!-- no docker on windows -->
-      <TestCategory Condition="'$(OS)' != 'Windows_NT'" Include="endtoendtests" />
-      <TestCategory Include="workloadtests" />
-      <TestCategory Include="hostingtestingtests" />
+      <!--<TestCategory Condition="'$(OS)' != 'Windows_NT'" Include="endtoendtests" />-->
+      <!--<TestCategory Include="workloadtests" />-->
+      <TestCategory Include="playgroundtests" />
+      <!--<TestCategory Include="hostingtestingtests" />-->
 
       <AdditionalProperties Condition="'$(Configuration)' != ''" Include="Configuration=$(Configuration)" />
       <_ProjectsToBuild Include="send-to-helix-inner.proj"

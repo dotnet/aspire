@@ -8,6 +8,7 @@
     <TestArchiveTestsDirForWorkloadTests Condition="'$(TestArchiveTestsDirForWorkloadTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'workload-tests'))</TestArchiveTestsDirForWorkloadTests>
     <TestArchiveTestsDirForEndToEndTests Condition="'$(TestArchiveTestsDirForEndToEndTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'e2e-tests'))</TestArchiveTestsDirForEndToEndTests>
     <TestArchiveTestsDirForHostingTestingTests Condition="'$(TestArchiveTestsDirForHostingTestingTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'hosting-testing-tests'))</TestArchiveTestsDirForHostingTestingTests>
+    <TestArchiveTestsDirForPlaygroundTests Condition="'$(TestArchiveTestsDirForPlaygroundTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'playground-tests'))</TestArchiveTestsDirForPlaygroundTests>
     <PlaywrightDependenciesDirectory>$(ArtifactsBinDir)playwright-deps</PlaywrightDependenciesDirectory>
 
     <!-- This is useful for local runs -->
