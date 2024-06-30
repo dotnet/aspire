@@ -95,7 +95,7 @@ public class PlaygroundAppFixture : IAsyncLifetime
         // {
         //     extraArgs += $"--skip-resources {skipArg}";
         // }
-        await Project.StartAppHostAsync([extraArgs], expectEndpointsHook: false);
+        await Project.StartAppHostAsync([extraArgs]);
 
         foreach (var project in Projects.Values)
         {
