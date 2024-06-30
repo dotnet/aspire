@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <DefineConstants>TESTS_RUNNING_OUTSIDE_OF_REPO;$(DefineConstants)</DefineConstants>
+    <DefineConstants Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">TESTS_RUNNING_OUTSIDE_OF_REPO;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
 
   <Import Project="$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets"

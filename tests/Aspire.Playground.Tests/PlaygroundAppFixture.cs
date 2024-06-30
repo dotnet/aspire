@@ -15,7 +15,7 @@ public class PlaygroundAppFixture : IAsyncLifetime
 //     private static bool TestsRunningOutsideOfRepo;
 // #endif
 
-    private static readonly bool s_testsRunningOutsideOfRepo = Environment.GetEnvironmentVariable("TESTS_RUNNING_OUTSIDE_OF_REPO") is "true";
+    // private static readonly bool s_testsRunningOutsideOfRepo = Environment.GetEnvironmentVariable("TESTS_RUNNING_OUTSIDE_OF_REPO") is "true";
 
     public static string? TestScenario { get; } = EnvironmentVariables.TestScenario;
     public string PlaygroundAppsPath { get; set; }
@@ -26,6 +26,7 @@ public class PlaygroundAppFixture : IAsyncLifetime
     // private TestResourceNames _resourcesToSkip;
     private readonly IMessageSink _diagnosticMessageSink;
     private readonly TestOutputWrapper _testOutput;
+    private readonly bool _testsRunningOutsideOfRepo;
     private AspireProject? _project;
 
     public BuildEnvironment BuildEnvironment { get; init; }
@@ -37,8 +38,11 @@ public class PlaygroundAppFixture : IAsyncLifetime
         _relativeAppHostProjectDir = relativeAppHostProjectDir;
         _diagnosticMessageSink = diagnosticMessageSink;
         _testOutput = new TestOutputWrapper(messageSink: _diagnosticMessageSink);
-        BuildEnvironment = new(useSystemDotNet: !s_testsRunningOutsideOfRepo);
-        if (s_testsRunningOutsideOfRepo)
+
+        var repoRoot = TestUtils.FindRepoRoot();
+        _testsRunningOutsideOfRepo = repoRoot is null;
+        BuildEnvironment = new(useSystemDotNet: !_testsRunningOutsideOfRepo);
+        if (_testsRunningOutsideOfRepo)
         {
             if (!BuildEnvironment.HasWorkloadFromArtifacts)
             {
@@ -92,7 +96,7 @@ public class PlaygroundAppFixture : IAsyncLifetime
                                      _testOutput,
                                      BuildEnvironment,
                                      relativeAppHostProjectDir: pgProjectDir);
-        if (s_testsRunningOutsideOfRepo)
+        if (_testsRunningOutsideOfRepo)
         {
             _testOutput.WriteLine("");
             _testOutput.WriteLine($"****************************************");
