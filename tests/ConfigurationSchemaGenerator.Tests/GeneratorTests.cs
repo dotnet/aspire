@@ -622,7 +622,7 @@ public partial class GeneratorTests
                     builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
                         ["TestComponent:TestSettings:TestProperty1:UserName"] = "john.doe@email.com",
-                        ["TestComponent:TestSettings:TestProperty1:Password"] = "P@ssw0rd!",
+                        ["TestComponent:TestSettings:TestProperty1:Password"] = "p@ssw0rd1",
                         ["TestComponent:TestSettings:TestProperty1:Options:RequireSSL"] = "false",
                         ["TestComponent:TestSettings:TestProperty2:UserName"] = "jane.doe@email.com",
                         ["TestComponent:TestSettings:TestProperty2:Auth:Token:Key"] = "39B4D4E4-AC46-471D-A89A-EBEAB4CA1697",
@@ -646,7 +646,7 @@ public partial class GeneratorTests
                     TestProperty1
                       Options
                         RequireSSL = false
-                      Password = P@ssw0rd!
+                      Password = p@ssw0rd1
                       UserName = john.doe@email.com
                     TestProperty2
                       Auth
