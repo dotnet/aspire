@@ -13,7 +13,7 @@ namespace Aspire.EndToEnd.Tests;
 /// Represents the the IntegrationServiceA project in the test application used to send HTTP requests
 /// to the project's endpoints.
 /// </summary>
-public sealed class PlaygroundAppFixture : IAsyncLifetime
+public class PlaygroundAppFixture : IAsyncLifetime
 {
 #if TESTS_RUNNING_OUTSIDE_OF_REPO
     public static bool TestsRunningOutsideOfRepo = true;
@@ -72,7 +72,11 @@ public sealed class PlaygroundAppFixture : IAsyncLifetime
         {
             throw new DirectoryNotFoundException($"Playground project directory not found: {pgProjectDir}");
         }
-        _project = new AspireProject(Path.GetFileName(_relativeAppHostProjectDir), pgProjectDir, _testOutput, BuildEnvironment);
+        _project = new AspireProject(Path.GetFileName(_relativeAppHostProjectDir),
+                                     baseDir: Path.Combine(pgProjectDir, ".."),
+                                     _testOutput,
+                                     BuildEnvironment,
+                                     relativeAppHostProjectDir: pgProjectDir);
         if (TestsRunningOutsideOfRepo)
         {
             _testOutput.WriteLine("");
@@ -195,4 +199,12 @@ public sealed class PlaygroundAppFixture : IAsyncLifetime
 
     //     return resourcesToSkip;
     // }
+}
+
+public sealed class MongoPlaygroundAppFixture : PlaygroundAppFixture
+{
+    public MongoPlaygroundAppFixture(IMessageSink diagnosticMessageSink)
+        : base ("mongo/Mongo.AppHost", diagnosticMessageSink)
+    {
+    }
 }

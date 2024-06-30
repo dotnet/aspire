@@ -18,6 +18,7 @@ public class BuildEnvironment
     public bool                             HasWorkloadFromArtifacts      { get; init; }
     public bool                             UsesSystemDotNet => !HasWorkloadFromArtifacts;
     public string                           TestAssetsPath                { get; set; }
+    public string                           PlaygroundAppsPath             { get; set; }
     public string?                          NuGetPackagesPath             { get; init; }
     public TestTargetFramework              TargetFramework               { get; init; }
     public DirectoryInfo?                   RepoRoot                      { get; init; }
@@ -79,6 +80,7 @@ public class BuildEnvironment
             }
 
             BuiltNuGetsPath = Path.Combine(RepoRoot.FullName, "artifacts", "packages", EnvironmentVariables.BuildConfiguration, "Shipping");
+            PlaygroundAppsPath = Path.Combine(RepoRoot.FullName, "playground");
 
             PlaywrightProvider.DetectAndSetInstalledPlaywrightDependenciesPath(RepoRoot);
         }
@@ -96,6 +98,7 @@ public class BuildEnvironment
                 throw new ArgumentException($"Cannot find 'BUILT_NUGETS_PATH={EnvironmentVariables.BuiltNuGetsPath}' or {BuiltNuGetsPath}");
             }
             BuiltNuGetsPath = EnvironmentVariables.BuiltNuGetsPath;
+            PlaygroundAppsPath = "set-me-for-helix";
         }
 
         TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "testassets");
@@ -216,6 +219,7 @@ public class BuildEnvironment
         NuGetPackagesPath = otherBuildEnvironment.NuGetPackagesPath;
         TargetFramework = otherBuildEnvironment.TargetFramework;
         RepoRoot = otherBuildEnvironment.RepoRoot;
+        PlaygroundAppsPath = otherBuildEnvironment.PlaygroundAppsPath;
     }
 }
 
