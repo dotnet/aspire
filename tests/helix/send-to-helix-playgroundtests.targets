@@ -41,14 +41,13 @@
       <HelixWorkItem Include="$(TestProjectName)">
         <PayloadArchive>$(TestArchiveTestsDirForWorkloadTests)\$(TestProjectName).zip</PayloadArchive>
 
-        <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
-        <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=-%(TestNameSuffix)&quot;</PreCommands>
+        <!--<PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=-%(TestNameSuffix)&quot;</PreCommands>-->
 
         <Command>$(_TestRunCommand)</Command>
         <Timeout>00:10:00</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
-        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
+        <DownloadFilesFromResults>logs/$(TestProjectName).cobertura.xml</DownloadFilesFromResults>
       </HelixWorkItem>
     </ItemGroup>
   </Target>
