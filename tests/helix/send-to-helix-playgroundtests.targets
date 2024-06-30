@@ -39,7 +39,7 @@
       <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" />
 
       <HelixWorkItem Include="$(TestProjectName)">
-        <PayloadArchive>$(TestArchiveTestsDirForWorkloadTests)\$(TestProjectName).zip</PayloadArchive>
+        <PayloadArchive>$(TestArchiveTestsDirForPlaygroundTests)\$(TestProjectName).zip</PayloadArchive>
 
         <!--<PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=-%(TestNameSuffix)&quot;</PreCommands>-->
 

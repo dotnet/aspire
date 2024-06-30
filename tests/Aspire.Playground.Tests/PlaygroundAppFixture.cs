@@ -85,6 +85,8 @@ public class PlaygroundAppFixture : IAsyncLifetime
                 throw new ArgumentException($"Cannot find PlaygroundAppsPath={PlaygroundAppsPath}");
             }
         }
+
+        BuildEnvironment.EnvVars["BuildForTest"] = "true";
     }
 
     public async Task InitializeAsync()

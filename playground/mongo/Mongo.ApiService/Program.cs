@@ -12,6 +12,7 @@ builder.AddMongoDBClient("mongo");
 
 var app = builder.Build();
 
+app.MapDefaultEndpoints();
 app.MapGet("/", async (IMongoClient mongoClient) =>
 {
     const string collectionName = "entries";
@@ -27,7 +28,6 @@ app.MapGet("/", async (IMongoClient mongoClient) =>
 
     return items.ToListAsync();
 });
-app.MapDefaultEndpoints();
 
 app.Run();
 

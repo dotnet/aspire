@@ -16,7 +16,7 @@
 
     <!--<XunitRunnerJson>xunit.runner.json</XunitRunnerJson>-->
     <!--<RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>-->
-    <TestArchiveTestsDir>$(TestArchiveTestsDirForWorkloadTests)</TestArchiveTestsDir>
+    <TestArchiveTestsDir>$(TestArchiveTestsDirForPlaygroundTests)</TestArchiveTestsDir>
     <TestsArchiveSourceDir>$(ArtifactsObjDir)staging-archive\$(MSBuildProjectName)\</TestsArchiveSourceDir>
     <IncludeTestPackages>true</IncludeTestPackages>
   </PropertyGroup>

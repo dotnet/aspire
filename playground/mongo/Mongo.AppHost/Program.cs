@@ -10,7 +10,7 @@ builder.AddProject<Projects.Mongo_ApiService>("api")
        .WithExternalHttpEndpoints()
        .WithReference(db);
 
-#if TESTS_RUNNING_OUTSIDE_OF_REPO
+#if BUILD_FOR_TEST
 builder.Services.AddLifecycleHook<EndPointWriterHook>();
 #endif
 
@@ -27,7 +27,7 @@ builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard
 
 var app = builder.Build();
 
-#if TESTS_RUNNING_OUTSIDE_OF_REPO
+#if BUILD_FOR_TEST
 // Run a task to read from the console and stop the app if an external process sends "Stop".
 // This allows for easier control than sending CTRL+C to the console in a cross-platform way.
 _ = Task.Run(async () =>
