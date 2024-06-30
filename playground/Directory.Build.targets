@@ -4,10 +4,9 @@
   <Import Project="$(RepoRoot)tests\Shared\TestsRunningOutsideOfRepo.targets" Condition="'$(RepoRoot)' != ''" />
   <Import Project="$(MSBuildThisFileDirectory)TestsRunningOutsideOfRepo.targets" Condition="'$(RepoRoot)' == ''" />
 
-  <ItemGroup>
-    <Compile Include="$(TestsSharedDataDir)EndPointWriterHook_cs" Link="EndPointWriterHook.cs" Condition="'$(IsAspireHost)' == 'true'" />
-
-    <Using Include="Aspire.Hosting.Lifecycle" Condition="'$(TestsRunningOutsideOfRepo)' == 'true' and '$(IsAspireHost)' == 'true'" />
+  <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true' and '$(IsAspireHost)' == 'true'">
+    <Compile Include="$(TestAssetsDir)EndPointWriterHook_cs" Link="EndPointWriterHook.cs" />
+    <Using Include="Aspire.Hosting.Lifecycle" />
   </ItemGroup>
 
 </Project>

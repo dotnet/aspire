@@ -1,10 +1,5 @@
 <Project>
   <!-- FIXME: we don't have IsAspireHost property available here yet! -->
   <Import Project="$(RepoRoot)src/Aspire.Hosting.AppHost/build/Aspire.Hosting.AppHost.props"
-          Condition="'$(TestsRunningOutsideOfRepo)' != 'true' and $(MSBuildProjectName.EndsWith('.AppHost'))" />
-          <!--Condition="'$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'" />-->
-
-  <PropertyGroup>
-    <TestsSharedDataDir Condition="'$(TestsSharedDataDir)' == '' and '$(RepoRoot)' != ''">$(RepoRoot)tests\Shared\WorkloadTesting\data\</TestsSharedDataDir>
-  </PropertyGroup>
+          Condition="'$(TestsRunningOutsideOfRepo)' != 'true' and $(MSBuildProjectName.Contains('AppHost'))" />
 </Project>
