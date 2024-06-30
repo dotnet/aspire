@@ -17,11 +17,11 @@ public class MongoDbTests : PlaygroundTestsBase, IClassFixture<MongoPlaygroundAp
         _testFixture = testFixture;
     }
 
-    [Fact]
-    public async Task Simple()
-    {
-        await Task.CompletedTask;
-    }
+    [Theory]
+    [InlineData("/health")]
+    [InlineData("/alive")]
+    public Task ApiServiceIsHealthy(string path)
+        => _testFixture.Projects["api"].WaitForHealthyStatusAsync("http", _testOutput, path, CancellationToken.None);
 
     [Fact]
     public async Task ResourcesShowUpOnDashboad()
@@ -36,8 +36,8 @@ public class MongoDbTests : PlaygroundTestsBase, IClassFixture<MongoPlaygroundAp
     private static List<ResourceRow> GetExpectedResources(AspireProject project)
     {
         _ = project;
-        List<ResourceRow> expectedResources = new()
-        {
+        List<ResourceRow> expectedResources =
+        [
             new ResourceRow(
                 Type: "Project",
                 Name: "api",
@@ -65,7 +65,7 @@ public class MongoDbTests : PlaygroundTestsBase, IClassFixture<MongoPlaygroundAp
                 State: "Running",
                 Source: null,
                 Endpoints: ["None"])
-        };
+        ];
 
         return expectedResources;
     }

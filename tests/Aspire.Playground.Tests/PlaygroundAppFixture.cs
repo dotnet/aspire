@@ -87,7 +87,7 @@ public class PlaygroundAppFixture : IAsyncLifetime
             _testOutput.WriteLine("");
         }
 
-        await Project.BuildAsync();
+        // await Project.BuildAsync();
 
         string extraArgs = "";
         // _resourcesToSkip = GetResourcesToSkip();

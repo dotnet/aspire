@@ -22,6 +22,7 @@
     <NonComponentReferenceForTests Include="Aspire.Hosting.MongoDB" IsAspireProjectResource="false" />
 
     <ProjectReference Include="..\Mongo.ApiService\Mongo.ApiService.csproj" />
+    <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" IsAspireProjectResource="false" />
   </ItemGroup>
 
 </Project>

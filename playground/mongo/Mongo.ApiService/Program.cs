@@ -27,6 +27,7 @@ app.MapGet("/", async (IMongoClient mongoClient) =>
 
     return items.ToListAsync();
 });
+app.MapDefaultEndpoints();
 
 app.Run();
 
