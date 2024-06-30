@@ -5,9 +5,15 @@ using Aspire.Hosting.Utils.Cache;
 
 namespace Aspire.Hosting.Valkey;
 
-internal sealed class ValkeyContainerImageTags() : CacheContainerImageTags(Registry, Image, Tag)
+internal sealed class ValkeyContainerImageTags : ICacheContainerImageTags
 {
     public const string Registry = "valkey";
     public const string Image = "valkey";
     public const string Tag = "7.2";
+
+    public string GetRegistry() => Registry;
+
+    public string GetImage() => Image;
+
+    public string GetTag() => Tag;
 }

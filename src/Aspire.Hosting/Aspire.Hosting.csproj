@@ -38,7 +38,7 @@
     <Compile Include="$(SharedDir)LaunchSettingsSerializerContext.cs" Link="LaunchSettingsSerializerContext.cs" />
     <Compile Include="$(SharedDir)SecretsStore.cs" Link="Utils\SecretsStore.cs" />
     <Compile Include="$(SharedDir)Cache\CacheBuilderExtensions.cs" Link="Utils\Cache\CacheBuilderExtensions.cs" />
-    <Compile Include="$(SharedDir)Cache\CacheContainerImageTags.cs" Link="Utils\Cache\CacheContainerImageTags.cs" />
+    <Compile Include="$(SharedDir)Cache\ICacheContainerImageTags.cs" Link="Utils\Cache\ICacheContainerImageTags.cs" />
     <Compile Include="$(SharedDir)Cache\CacheResource.cs" Link="Utils\Cache\CacheResource.cs" />
   </ItemGroup>
 

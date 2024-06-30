@@ -3,16 +3,15 @@ Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotification
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, string? targetState = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, System.Collections.Generic.IEnumerable<string!>! targetStates, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
 Aspire.Hosting.Utils.Cache.CacheBuilderExtensions
-Aspire.Hosting.Utils.Cache.CacheContainerImageTags
-Aspire.Hosting.Utils.Cache.CacheContainerImageTags.CacheContainerImageTags(string! registry, string! image, string! tag) -> void
-Aspire.Hosting.Utils.Cache.CacheContainerImageTags.GetImage() -> string!
-Aspire.Hosting.Utils.Cache.CacheContainerImageTags.GetRegistry() -> string!
-Aspire.Hosting.Utils.Cache.CacheContainerImageTags.GetTag() -> string!
 Aspire.Hosting.Utils.Cache.CacheResource
 Aspire.Hosting.Utils.Cache.CacheResource.CacheResource(string! name) -> void
 Aspire.Hosting.Utils.Cache.CacheResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
 Aspire.Hosting.Utils.Cache.CacheResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
-static Aspire.Hosting.Utils.Cache.CacheBuilderExtensions.AddCache<T>(this Aspire.Hosting.IDistributedApplicationBuilder! builder, T! cacheResource, Aspire.Hosting.Utils.Cache.CacheContainerImageTags! cacheContainerImageTags, int targetPort, int? port = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+Aspire.Hosting.Utils.Cache.ICacheContainerImageTags
+Aspire.Hosting.Utils.Cache.ICacheContainerImageTags.GetImage() -> string!
+Aspire.Hosting.Utils.Cache.ICacheContainerImageTags.GetRegistry() -> string!
+Aspire.Hosting.Utils.Cache.ICacheContainerImageTags.GetTag() -> string!
+static Aspire.Hosting.Utils.Cache.CacheBuilderExtensions.AddCache<T>(this Aspire.Hosting.IDistributedApplicationBuilder! builder, T! cacheResource, Aspire.Hosting.Utils.Cache.ICacheContainerImageTags! cacheContainerImageTags, int targetPort, int? port = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.Utils.Cache.CacheBuilderExtensions.WithDataBindMount<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! source, string! target, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.Utils.Cache.CacheBuilderExtensions.WithDataVolume<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! target, string? name = null, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.Utils.Cache.CacheBuilderExtensions.WithPersistence<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, System.TimeSpan? interval = null, long keysChangedThreshold = 1) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!

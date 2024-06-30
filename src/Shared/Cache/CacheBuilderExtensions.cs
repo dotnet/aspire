@@ -17,7 +17,7 @@ public static class CacheBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var cache = builder.AddCache("cache");
-    /// var api = builder.AddProject&lt;Projects.Api&gt;("api)
+    /// var api = builder.AddProject{Projects.Api}("api")
     ///                  .WithReference(cache);
     ///  
     /// builder.Build().Run(); 
@@ -30,7 +30,7 @@ public static class CacheBuilderExtensions
     /// builder.AddRedisClient("cache");
     ///
     /// var multiplexer = builder.Services.BuildServiceProvider()
-    ///                                   .GetRequiredService&lt;IConnectionMultiplexer&gt;();
+    ///                                   .GetRequiredService{IConnectionMultiplexer}();
     /// 
     /// var db = multiplexer.GetDatabase();
     /// db.HashSet("key", [new HashEntry("hash", "value")]);
@@ -45,7 +45,7 @@ public static class CacheBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> AddCache<T>(this IDistributedApplicationBuilder builder,
         T cacheResource,
-        CacheContainerImageTags cacheContainerImageTags,
+        ICacheContainerImageTags cacheContainerImageTags,
         int targetPort,
         int? port = null)
         where T : CacheResource
