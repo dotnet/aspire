@@ -23,7 +23,7 @@
   <ItemGroup>
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Redis\RedisContainerImageTags.cs" />
 
-    <None Include="data\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <!-- FIXME: move this to the workload testing targets -->
     <None Include="$(RepoRoot)eng\helix\runtests.*" CopyToOutputDirectory="PreserveNewest" />
 
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />

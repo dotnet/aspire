@@ -10,7 +10,6 @@
 
   <ItemGroup>
     <Compile Include="$(SharedDir)KnownResourceNames.cs" Link="KnownResourceNames.cs" />
-    <Compile Include="$(Root)tests\Aspire.Workload.Tests\data\EndPointWriterHook_cs" Link="EndPointWriterHook.cs" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
   </ItemGroup>
 
   <ItemGroup>

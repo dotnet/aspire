@@ -27,10 +27,14 @@
     <FileToArchive Include="$(RepoRoot)playground\**\*" DestinationPath="playground\%(RecursiveDir)%(FileName)%(Extension)" />
     <FileToArchive Include="$(RepoRoot)src\Shared\*.cs" DestinationPath="Shared-src\%(FileName)%(Extension)" />
 
+    <_TestAssetFile Include="$(RepoRoot)tests\WorkloadTesting\data\**\*" DestinationPath="testassets\%(RecursiveDir)%(FileName)%(Extension)" />
+    <FileToArchive Include="@(_TestAssetFile)" />
+
     <FileToArchive Include="..\Shared\TestsRunningOutsideOfRepo.*" DestinationPath="playground\%(FileName)%(Extension)" />
     <FileToArchive Include="..\Shared\nuget-for-hosting-testing.config" DestinationPath="nuget.config" />
     <FileToArchive Include="$(GeneratedPackagesVersionsPropsPath)" DestinationPath="playground\Directory.Packages.Versions.props" />
-    <FileToArchive Include="..\Shared\HostingTestingTests\Directory.Packages.Helix.props" DestinationPath="playground\%(FileName)%(Extension)" />
+    <!-- FIXME: import directly from testassets? -->
+    <FileToArchive Include="..\Shared\WorkloadTesting\data\Directory.Packages.Helix.props" DestinationPath="playground\%(FileName)%(Extension)" />
 
     <!--<None Include="" CopyToOutputDirectory="PreserveNewest" />-->
     <!--<None Include="$(RepoRoot)Directory.Packages.props" Link="testassets\testproject\Directory.Packages.repo.props" CopyToOutputDirectory="PreserveNewest" />-->
