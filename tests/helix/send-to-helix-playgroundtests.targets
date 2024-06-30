@@ -38,7 +38,7 @@
     <ItemGroup>
       <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" />
 
-      <HelixWorkItem Include="$(TestArchiveTestsDirForPlaygroundTests)\$(TestProjectName).zip">
+      <HelixWorkItem Include="$(TestProjectName)">
         <PayloadArchive>$(TestArchiveTestsDirForWorkloadTests)\$(TestProjectName).zip</PayloadArchive>
 
         <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
