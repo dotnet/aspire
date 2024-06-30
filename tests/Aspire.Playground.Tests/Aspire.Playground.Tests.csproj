@@ -22,6 +22,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting.MongoDB\MongoDBContainerImageTags.cs" />
+
     <FileToArchive Include="$(RepoRoot)playground\**\*" DestinationPath="playground\%(RecursiveDir)%(FileName)%(Extension)" />
     <FileToArchive Include="$(RepoRoot)src\Shared\*.cs" DestinationPath="Shared-src\%(FileName)%(Extension)" />
 

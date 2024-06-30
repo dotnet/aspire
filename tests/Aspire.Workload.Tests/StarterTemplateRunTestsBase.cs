@@ -141,5 +141,3 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
         return expectedResources;
     }
 }
-
-public sealed record ResourceRow(string Type, string Name, string State, string Source, string[] Endpoints);

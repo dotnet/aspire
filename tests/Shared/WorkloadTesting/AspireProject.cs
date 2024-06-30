@@ -103,7 +103,11 @@ public class AspireProject : IAsyncDisposable
         return project;
     }
 
-    public async Task StartAppHostAsync(string[]? extraArgs = default, Action<ProcessStartInfo>? configureProcess = null, bool noBuild = true, CancellationToken token = default)
+    public async Task StartAppHostAsync(string[]? extraArgs = default,
+                                        Action<ProcessStartInfo>? configureProcess = null,
+                                        bool noBuild = true,
+                                        bool expectEndpointsHook = true,
+                                        CancellationToken token = default)
     {
         if (IsRunning)
         {
@@ -208,7 +212,7 @@ public class AspireProject : IAsyncDisposable
         AppHostProcess.BeginOutputReadLine();
         AppHostProcess.BeginErrorReadLine();
 
-        var successfulStartupTask = Task.WhenAll(appRunning.Task, projectsParsed.Task);
+        var successfulStartupTask = Task.WhenAll(appRunning.Task, expectEndpointsHook ? projectsParsed.Task : Task.CompletedTask);
         var startupTimeoutTask = Task.Delay(TimeSpan.FromSeconds(AppStartupWaitTimeoutSecs), token);
 
         string outputMessage;

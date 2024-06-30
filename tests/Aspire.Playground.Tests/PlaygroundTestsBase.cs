@@ -5,7 +5,9 @@ using Microsoft.Playwright;
 // using Xunit;
 using Xunit.Abstractions;
 using Aspire.Workload.Tests;
-// using static Aspire.Workload.Tests.TestExtensions;
+using Xunit;
+using static Aspire.Workload.Tests.TestExtensions;
+using System.Text.RegularExpressions;
 
 namespace Aspire.Playground.Tests;
 
@@ -37,7 +39,8 @@ public class PlaygroundTestsBase
         => BuildEnvironment.HasPlaywrightSupport
                 ? Browser.Value.NewContextAsync(new BrowserNewContextOptions { IgnoreHTTPSErrors = true })
                 : throw new InvalidOperationException("Playwright is not available");
-#if false
+
+#if true
     protected Task<ResourceRow[]> CheckDashboardHasResourcesAsync(IPage dashboardPage, IEnumerable<ResourceRow> expectedResources, int timeoutSecs = 120)
         => CheckDashboardHasResourcesAsync(dashboardPage, expectedResources, _testOutput, timeoutSecs);
 
