@@ -23,6 +23,9 @@
     <_SupportDataStagingDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'support-data'))</_SupportDataStagingDir>
 
     <PrepareDependenciesDependsOn>_StageDotNetCoverageTool;_StageCreateDotNetDevCertScripts</PrepareDependenciesDependsOn>
+
+    <!-- Disable playwright tests on helix/linux. Issue: https://github.com/dotnet/aspire/issues/4623 -->
+    <!--<DisablePlaywrightTests Condition="'$(OS)' != 'Windows_NT'">true</DisablePlaywrightTests>-->
   </PropertyGroup>
 
   <PropertyGroup>
@@ -34,6 +37,9 @@
 
     <_TestNameEnvVar Condition="'$(OS)' != 'Windows_NT'">${TEST_NAME}</_TestNameEnvVar>
     <_TestNameEnvVar Condition="'$(OS)' == 'Windows_NT'">%TEST_NAME%</_TestNameEnvVar>
+
+    <_TestAssemblyRootDirEnvVar Condition="'$(OS)' != 'Windows_NT'">${HELIX_WORKITEM_ROOT}</_TestAssemblyRootDirEnvVar>
+    <_TestAssemblyRootDirEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_WORKITEM_ROOT%</_TestAssemblyRootDirEnvVar>
 
     <_CodeCoverageReportFileNameSuffixEnvVar Condition="'$(OS)' != 'Windows_NT'">${CODE_COV_FILE_SUFFIX}</_CodeCoverageReportFileNameSuffixEnvVar>
     <_CodeCoverageReportFileNameSuffixEnvVar Condition="'$(OS)' == 'Windows_NT'">%CODE_COV_FILE_SUFFIX%</_CodeCoverageReportFileNameSuffixEnvVar>
@@ -77,13 +83,11 @@
     <DotNetCliPackageType>sdk</DotNetCliPackageType>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(NeedsPlaywright)' == 'true'">
+  <ItemGroup Condition="'$(NeedsPlaywright)' == 'true' and '$(DisablePlaywrightTests)' != 'true'">
     <HelixCorrelationPayload Include="$(PlaywrightDependenciesDirectory)" Destination="playwright-deps" />
 
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="chmod +x $HELIX_WORKITEM_ROOT/.playwright/node/linux-x64/node" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="chmod +x $(_TestAssemblyRootDirEnvVar)/.playwright/node/linux-x64/node" />
 
-    <!-- Disable playwright tests on helix/linux. Issue: https://github.com/dotnet/aspire/issues/4623 -->
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export DISABLE_PLAYWRIGHT_TESTS=true" />
     <!--<HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="(sudo apt-get -o DPkg::Lock::Timeout=120 install -y libgbm1 libxkbcommon0 || (cat /var/lib/dkms/lttng-modules/2.13.8/build/make.log; exit 1)) || exit 1" />-->
 
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PLAYWRIGHT_BROWSERS_PATH=%HELIX_CORRELATION_PAYLOAD%\playwright-deps" />
@@ -118,6 +122,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <HelixPreCommand Condition="'$(DisablePlaywrightTests)' == 'true'" Include="$(_EnvVarSetKeyword) DISABLE_PLAYWRIGHT_TESTS=true" />
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="dotnet dev-certs https --trust" />
   </ItemGroup>
 

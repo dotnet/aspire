@@ -24,6 +24,7 @@
   <ItemGroup>
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.MongoDB\MongoDBContainerImageTags.cs" />
 
+    <!-- FIXME: if you don't change playground/ at all then it can be taken as a helix payload -->
     <FileToArchive Include="$(RepoRoot)playground\**\*" DestinationPath="playground\%(RecursiveDir)%(FileName)%(Extension)" />
     <FileToArchive Include="$(RepoRoot)src\Shared\*.cs" DestinationPath="Shared-src\%(FileName)%(Extension)" />
 
