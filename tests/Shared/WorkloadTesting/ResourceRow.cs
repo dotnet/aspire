@@ -3,4 +3,4 @@
 
 namespace Aspire.Workload.Tests;
 
-public sealed record ResourceRow(string Type, string Name, string State, string Source, string[] Endpoints);
+public sealed record ResourceRow(string Type, string Name, string State, string? Source, string[] Endpoints);

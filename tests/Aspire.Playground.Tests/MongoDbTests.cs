@@ -26,7 +26,6 @@ public class MongoDbTests : PlaygroundTestsBase, IClassFixture<MongoPlaygroundAp
     [Fact]
     public async Task ResourcesShowUpOnDashboad()
     {
-        _testOutput.WriteLine("*** ResourcesShowUpOnDashboad");
         await using var context = await CreateNewBrowserContextAsync();
         await CheckDashboardHasResourcesAsync(
             await _testFixture.Project!.OpenDashboardPageAsync(context),
@@ -58,17 +57,15 @@ public class MongoDbTests : PlaygroundTestsBase, IClassFixture<MongoPlaygroundAp
                 Name: "mongo-mongoexpress",
                 State: "Running",
                 Source: $"{MongoDBContainerImageTags.MongoExpressRegistry}/{MongoDBContainerImageTags.MongoExpressImage}:{MongoDBContainerImageTags.MongoExpressTag}",
-                Endpoints: ["http://localhost:\\d+"])
+                Endpoints: ["http://localhost:\\d+"]),
+
+            new ResourceRow(
+                Type: "Executable",
+                Name: "aspire-dashboard",
+                State: "Running",
+                Source: null,
+                Endpoints: ["None"])
         };
-        // if (hasRedisCache)
-        // {
-        //     expectedResources.Add(
-        //         new ResourceRow(Type: "Container",
-        //                         Name: "cache",
-        //                         State: "Running",
-        //                         Source: $"{RedisContainerImageTags.Registry}/{RedisContainerImageTags.Image}:{RedisContainerImageTags.Tag}",
-        //                         Endpoints: ["tcp://localhost:\\d+"]));
-        // }
 
         return expectedResources;
     }
