@@ -40,3 +40,19 @@ steps:
       summaryFileLocation: $(Build.SourcesDirectory)/merged.cobertura.xml
       pathToSources: $(Build.SourcesDirectory)
       reportDirectory: ./CoverageResultsHtml
+
+  - ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+    - pwsh: |
+          $(Build.SourcesDirectory)/eng/scripts/ValidateProjectCoverage.ps1 -CoberturaReportXml $(Build.SourcesDirectory)/merged.cobertura.xml
+      displayName: Check per-project coverage
+      continueOnError: 'true' # Don't fail builds during the grace period
+
+  - ${{ if and(eq(variables['System.TeamProject'], 'public'), eq(variables['Build.Reason'], 'PullRequest')) }}:
+    - task: GitHubComment@0
+      condition: always()
+      inputs:
+        gitHubConnection: dotnet-comment-bot-service-connection
+        repositoryName: '$(Build.Repository.Name)'
+        id: $(System.PullRequest.PullRequestNumber)
+      displayName: Report coverage to GitHub
+      continueOnError: 'true' # Avoid failing the build if the GitHub comment posting failed

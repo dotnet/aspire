@@ -452,12 +452,15 @@ public class WithEndpointTests
     }
 
     [Fact]
-    public async Task VerifyManifestProjectWithHttpEndpointDoesNotAllocatePort()
+    public async Task VerifyManifestProjectWithDefaultHttpEndpointsDoesNotAllocatePort()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         var project = builder.AddProject<TestProject>("proj")
-            .WithHttpEndpoint(name: "hp")
-            .WithHttpsEndpoint(name: "hps");
+            .WithHttpEndpoint(name: "hp")       // Won't get targetPort since it's the first http
+            .WithHttpEndpoint(name: "hp2")      // Will get a targetPort
+            .WithHttpsEndpoint(name: "hps")     // Won't get targetPort since it's the first https
+            .WithHttpsEndpoint(name: "hps2")   // Will get a targetPort
+            .WithEndpoint(scheme: "tcp", name: "tcp0");  // Will get a targetPort
 
         var manifest = await ManifestUtils.GetManifest(project.Resource);
 
@@ -471,8 +474,8 @@ public class WithEndpointTests
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
                 "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
-                "HTTP_PORTS": "{proj.bindings.hp.targetPort}",
-                "HTTPS_PORTS": "{proj.bindings.hps.targetPort}"
+                "HTTP_PORTS": "{proj.bindings.hp.targetPort};{proj.bindings.hp2.targetPort}",
+                "HTTPS_PORTS": "{proj.bindings.hps.targetPort};{proj.bindings.hps2.targetPort}"
               },
               "bindings": {
                 "hp": {
@@ -480,10 +483,28 @@ public class WithEndpointTests
                   "protocol": "tcp",
                   "transport": "http"
                 },
+                "hp2": {
+                  "scheme": "http",
+                  "protocol": "tcp",
+                  "transport": "http",
+                  "targetPort": 8000
+                },
                 "hps": {
                   "scheme": "https",
                   "protocol": "tcp",
                   "transport": "http"
+                },
+                "hps2": {
+                  "scheme": "https",
+                  "protocol": "tcp",
+                  "transport": "http",
+                  "targetPort": 8001
+                },
+                "tcp0": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "targetPort": 8002
                 }
               }
             }

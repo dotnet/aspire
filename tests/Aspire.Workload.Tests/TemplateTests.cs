@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Playwright;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -14,15 +13,19 @@ public class TemplateTests : WorkloadTestsBase
         : base(testOutput)
     {}
 
+    public static TheoryData<string, string> TestFrameworkTypeWithConfig()
+    {
+        var data = new TheoryData<string, string>();
+        foreach (var testType in TestFrameworkTypes)
+        {
+            data.Add("Debug", testType);
+            data.Add("Release", testType);
+        }
+        return data;
+    }
+
     [Theory]
-    [InlineData("Debug", "none")]
-    [InlineData("Debug", "mstest")]
-    [InlineData("Debug", "nunit")]
-    [InlineData("Debug", "xunit.net")]
-    [InlineData("Release", "none")]
-    [InlineData("Release", "mstest")]
-    [InlineData("Release", "nunit")]
-    [InlineData("Release", "xunit.net")]
+    [MemberData(nameof(TestFrameworkTypeWithConfig))]
     public async Task BuildAndRunStarterTemplateBuiltInTest(string config, string testType)
     {
         string id = GetNewProjectId(prefix: $"starter test.{config}-{testType.Replace(".", "_")}");
@@ -47,9 +50,12 @@ public class TemplateTests : WorkloadTestsBase
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
         await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
 
-        await using var context = await CreateNewBrowserContextAsync();
-        var page = await project.OpenDashboardPageAsync(context);
-        await CheckDashboardHasResourcesAsync(page, []);
+        if (BuildEnvironment.HasPlaywrightSupport)
+        {
+            await using var context = await CreateNewBrowserContextAsync();
+            var page = await project.OpenDashboardPageAsync(context);
+            await CheckDashboardHasResourcesAsync(page, []);
+        }
     }
 
     [Theory]
@@ -64,7 +70,7 @@ public class TemplateTests : WorkloadTestsBase
             _testOutput,
             buildEnvironment: BuildEnvironment.ForDefaultFramework);
 
-        await using var context = await CreateNewBrowserContextAsync();
+        await using var context = BuildEnvironment.HasPlaywrightSupport ? await CreateNewBrowserContextAsync() : null;
         await AssertStarterTemplateRunAsync(context, project, config, _testOutput);
     }
 
@@ -94,35 +100,11 @@ public class TemplateTests : WorkloadTestsBase
         testSpecificBuildEnvironment.EnvVars["ASPIRE_ALLOW_UNSECURED_TRANSPORT"] = "true";
         await project.StartAppHostAsync();
 
-        await using var context = await CreateNewBrowserContextAsync();
-        var page = await project.OpenDashboardPageAsync(context);
-        await CheckDashboardHasResourcesAsync(page, []).ConfigureAwait(false);
-    }
-
-    private static async Task AssertStarterTemplateRunAsync(IBrowserContext context, AspireProject project, string config, ITestOutputHelper _testOutput)
-    {
-        await project.StartAppHostAsync(extraArgs: [$"-c {config}"], noBuild: false);
-
-        var page = await project.OpenDashboardPageAsync(context);
-        ResourceRow[] resourceRows;
-        try
+        if (BuildEnvironment.HasPlaywrightSupport)
         {
-            resourceRows = await CheckDashboardHasResourcesAsync(
-                                    page,
-                                    StarterTemplateRunTestsBase<StarterTemplateFixture>.GetExpectedResources(project, hasRedisCache: false),
-                                    _testOutput).ConfigureAwait(false);
+            await using var context = await CreateNewBrowserContextAsync();
+            var page = await project.OpenDashboardPageAsync(context);
+            await CheckDashboardHasResourcesAsync(page, []).ConfigureAwait(false);
         }
-        catch
-        {
-            string screenshotPath = Path.Combine(project.LogPath, "dashboard-fail.png");
-            await page.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
-            _testOutput.WriteLine($"Dashboard screenshot saved to {screenshotPath}");
-            throw;
-        }
-
-        string url = resourceRows.First(r => r.Name == "webfrontend").Endpoints[0];
-        await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckWebFrontendWorksAsync(context, url, _testOutput, project.LogPath);
-        await project.StopAppHostAsync();
     }
-
 }

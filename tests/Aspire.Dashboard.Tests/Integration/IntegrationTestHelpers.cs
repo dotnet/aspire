@@ -22,15 +22,38 @@ public static class IntegrationTestHelpers
 {
     private static readonly X509Certificate2 s_testCertificate = TestCertificateLoader.GetTestCertificate();
 
+    public static ILoggerFactory CreateLoggerFactory(ITestOutputHelper testOutputHelper, ITestSink? testSink = null)
+    {
+        return LoggerFactory.Create(builder =>
+        {
+            builder.AddXunit(testOutputHelper, LogLevel.Trace, DateTimeOffset.UtcNow);
+            builder.SetMinimumLevel(LogLevel.Trace);
+            if (testSink != null)
+            {
+                builder.AddProvider(new TestLoggerProvider(testSink));
+            }
+        });
+    }
+
     public static DashboardWebApplication CreateDashboardWebApplication(
         ITestOutputHelper testOutputHelper,
         Action<Dictionary<string, string?>>? additionalConfiguration = null,
         ITestSink? testSink = null)
     {
+        var loggerFactory = CreateLoggerFactory(testOutputHelper, testSink);
+
+        return CreateDashboardWebApplication(loggerFactory, additionalConfiguration);
+    }
+
+    public static DashboardWebApplication CreateDashboardWebApplication(
+        ILoggerFactory loggerFactory,
+        Action<Dictionary<string, string?>>? additionalConfiguration = null)
+    {
         var initialData = new Dictionary<string, string?>
         {
             [DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "http://127.0.0.1:0",
-            [DashboardConfigNames.DashboardOtlpUrlName.ConfigKey] = "http://127.0.0.1:0",
+            [DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] = "http://127.0.0.1:0",
+            [DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://127.0.0.1:0",
             [DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey] = nameof(OtlpAuthMode.Unsecured),
             [DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = nameof(FrontendAuthMode.Unsecured),
             // Allow the requirement of HTTPS communication with the OpenIdConnect authority to be relaxed during tests.
@@ -60,12 +83,7 @@ public static class IntegrationTestHelpers
             }
             builder.Configuration.AddConfiguration(config);
 
-            builder.Logging.AddXunit(testOutputHelper);
-            builder.Logging.SetMinimumLevel(LogLevel.Trace);
-            if (testSink != null)
-            {
-                builder.Logging.AddProvider(new TestLoggerProvider(testSink));
-            }
+            builder.Services.AddSingleton(loggerFactory);
             builder.WebHost.ConfigureKestrel(serverOptions =>
             {
                 serverOptions.ConfigureHttpsDefaults(options =>
@@ -78,9 +96,49 @@ public static class IntegrationTestHelpers
         return dashboardWebApplication;
     }
 
+    public static HttpClient CreateHttpClient(
+        string address,
+        Action<X509Certificate2?>? validationCallback = null,
+        X509CertificateCollection? clientCertificates = null)
+    {
+        var handler = new SocketsHttpHandler
+        {
+            SslOptions =
+            {
+                RemoteCertificateValidationCallback = (message, cert, chain, errors) =>
+                {
+                    validationCallback?.Invoke((X509Certificate2)cert!);
+                    return true;
+                }
+            }
+        };
+        if (clientCertificates != null)
+        {
+            handler.SslOptions.ClientCertificates = clientCertificates;
+        }
+
+        return new HttpClient(handler) { BaseAddress = new Uri(address) };
+    }
+
     public static GrpcChannel CreateGrpcChannel(
         string address,
         ITestOutputHelper testOutputHelper,
+        Action<X509Certificate2?>? validationCallback = null,
+        int? retryCount = null,
+        X509CertificateCollection? clientCertificates = null)
+    {
+        var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder.AddXunit(testOutputHelper);
+            builder.SetMinimumLevel(LogLevel.Trace);
+        });
+
+        return CreateGrpcChannel(address, loggerFactory, validationCallback: validationCallback, retryCount: retryCount, clientCertificates: clientCertificates);
+    }
+
+    public static GrpcChannel CreateGrpcChannel(
+        string address,
+        ILoggerFactory loggerFactory,
         Action<X509Certificate2?>? validationCallback = null,
         int? retryCount = null,
         X509CertificateCollection? clientCertificates = null)
@@ -103,12 +161,6 @@ public static class IntegrationTestHelpers
 
             serviceConfig = new ServiceConfig { MethodConfigs = { defaultMethodConfig } };
         }
-
-        var loggerFactory = LoggerFactory.Create(builder =>
-        {
-            builder.AddXunit(testOutputHelper);
-            builder.SetMinimumLevel(LogLevel.Trace);
-        });
 
         var handler = new SocketsHttpHandler
         {

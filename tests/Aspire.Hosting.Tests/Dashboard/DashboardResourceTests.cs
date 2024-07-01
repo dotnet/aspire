@@ -337,11 +337,22 @@ public class DashboardResourceTests
 
         var app = builder.Build();
 
-        await app.ExecuteBeforeStartHooksAsync(default);
+        var resourceLoggerService = app.Services.GetRequiredService<ResourceLoggerService>();
+        var watchForLogSubs = Task.Run(async () =>
+        {
+            await foreach (var sub in resourceLoggerService.WatchAnySubscribersAsync())
+            {
+                if (sub.AnySubscribers)
+                {
+                    break;
+                }
+            }
+        });
+
+        await app.ExecuteBeforeStartHooksAsync(default).WaitAsync(TimeSpan.FromSeconds(15));
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
-        var resourceLoggerService = app.Services.GetRequiredService<ResourceLoggerService>();
 
         var dashboard = Assert.Single(model.Resources.OfType<ExecutableResource>());
 
@@ -350,6 +361,9 @@ public class DashboardResourceTests
 
         // Push a notification through to the dashboard resource.
         await resourceNotificationService.PublishUpdateAsync(dashboard, "aspire-dashboard-0", s => s with { State = "Running" });
+
+        // Wait for logs to be subscribed to
+        await watchForLogSubs.WaitAsync(TimeSpan.FromSeconds(15));
 
         // Push some logs through to the dashboard resource.
         var logger = resourceLoggerService.GetLogger("aspire-dashboard-0");
@@ -370,11 +384,12 @@ public class DashboardResourceTests
         Assert.NotNull(testLogger);
 
         // Get the first log message that was logged
-        var log = await testLogger.FirstLogTask.WaitAsync(TimeSpan.FromSeconds(30));
+        var log = await testLogger.FirstLogTask.WaitAsync(TimeSpan.FromSeconds(15));
 
         Assert.Equal("Test dashboard message", log.Message);
         Assert.Equal(logLevel, log.LogLevel);
 
+        await app.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(15));
     }
 
     [Fact]

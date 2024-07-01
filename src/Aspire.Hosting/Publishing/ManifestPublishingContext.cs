@@ -352,6 +352,16 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     {
         if (resource.TryGetEndpoints(out var endpoints))
         {
+            // This is used to determine if an endpoint should be treated as the Default endpoint.
+            // Endpoints can come from 3 different sources (in this order):
+            // 1. Kestrel configuration
+            // 2. Default endpoints added by the framework
+            // 3. Explicitly added endpoints
+            // But wherever they come from, we treat the first one as Default, for each scheme.
+            var httpSchemesEncountered = new HashSet<string>();
+
+            static bool IsHttpScheme(string scheme) => scheme is "http" or "https";
+
             Writer.WriteStartObject("bindings");
             foreach (var endpoint in endpoints)
             {
@@ -368,13 +378,20 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                     // Container resources get their default listening port from the exposed port.
                     (ContainerResource, _, null, int port) => port,
 
-                    // Project resources get their default listening port from the deployment tool
-                    // ideally we would default to a known port but we don't know it at this point
-                    (ProjectResource, var scheme, null, _) when scheme is "http" or "https" => null,
+                    // Check whether the project view this endpoint as Default (for its scheme).
+                    // If so, we don't specify the target port, as it will get one from the deployment tool.
+                    (ProjectResource project, string uriScheme, null, _) when IsHttpScheme(uriScheme) && !httpSchemesEncountered.Contains(uriScheme) => null,
 
                     // Allocate a dynamic port
                     _ => PortAllocator.AllocatePort()
                 };
+
+                // We only keep track of schemes for project resources, since we don't want
+                // a non-project scheme to affect what project endpoints are considered default.
+                if (resource is ProjectResource && IsHttpScheme(endpoint.UriScheme))
+                {
+                    httpSchemesEncountered.Add(endpoint.UriScheme);
+                }
 
                 int? exposedPort = (endpoint.UriScheme, endpoint.Port, targetPort) switch
                 {
