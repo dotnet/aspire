@@ -20,7 +20,7 @@ internal sealed class ElasticsearchHealthCheck : IHealthCheck
     public ElasticsearchHealthCheck(ElasticsearchOptions options)
     {
         Debug.Assert(options.Uri is not null || options.Client is not null || options.AuthenticateWithElasticCloud);
-        _options = Guard.ThrowIfNull(options);
+        _options = options ?? throw new ArgumentNullException(nameof(options));
     }
 
     /// <inheritdoc />

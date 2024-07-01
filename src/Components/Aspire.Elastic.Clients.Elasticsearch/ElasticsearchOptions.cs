@@ -39,10 +39,10 @@ internal sealed class ElasticsearchOptions
 
     public ElasticsearchClient? Client { get; internal set; }
 
-    public ElasticsearchOptions UseBasicAuthentication(string name, string password)
+    public ElasticsearchOptions UseBasicAuthentication(string username, string password)
     {
-        UserName = Guard.ThrowIfNull(name);
-        Password = Guard.ThrowIfNull(password);
+        UserName = username ?? throw new ArgumentNullException(nameof(username));
+        Password = password ?? throw new ArgumentNullException(nameof(password));
 
         CloudId = string.Empty;
         CloudApiKey = string.Empty;
@@ -56,7 +56,7 @@ internal sealed class ElasticsearchOptions
 
     public ElasticsearchOptions UseCertificate(X509Certificate certificate)
     {
-        Certificate = Guard.ThrowIfNull(certificate);
+        Certificate = certificate ?? throw new ArgumentNullException(nameof(certificate));
 
         UserName = string.Empty;
         Password = string.Empty;
@@ -71,7 +71,7 @@ internal sealed class ElasticsearchOptions
 
     public ElasticsearchOptions UseApiKey(string apiKey)
     {
-        ApiKey = Guard.ThrowIfNull(apiKey);
+        ApiKey = apiKey ?? throw new ArgumentNullException(nameof(apiKey));
 
         UserName = string.Empty;
         Password = string.Empty;
@@ -88,8 +88,8 @@ internal sealed class ElasticsearchOptions
 
     public ElasticsearchOptions UseElasticCloud(string cloudId, string cloudApiKey)
     {
-        CloudId = Guard.ThrowIfNull(cloudId);
-        CloudApiKey = Guard.ThrowIfNull(cloudApiKey);
+        CloudId = cloudId ?? throw new ArgumentNullException(nameof(cloudId));
+        CloudApiKey = cloudApiKey ?? throw new ArgumentNullException(nameof(cloudApiKey));
 
         UserName = string.Empty;
         Password = string.Empty;
@@ -103,7 +103,7 @@ internal sealed class ElasticsearchOptions
 
     public ElasticsearchOptions UseServer(string uri)
     {
-        Uri = Guard.ThrowIfNull(uri);
+        Uri = uri ?? throw new ArgumentNullException(nameof(uri));
 
         return this;
     }
