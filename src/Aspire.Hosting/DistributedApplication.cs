@@ -58,8 +58,6 @@ public class DistributedApplication : IHost, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(host);
 
         _host = host;
-        var context = _host.Services.GetRequiredService<DistributedApplicationExecutionContext>();
-        context.ServiceProvider = _host.Services;
     }
 
     /// <summary>
