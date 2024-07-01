@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using System.Text.RegularExpressions;
+using Amazon;
 using Amazon.CloudFormation;
 using Amazon.CloudFormation.Model;
 using Amazon.Runtime;
@@ -9,7 +11,7 @@ using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.AWS.CloudFormation;
-internal sealed class CloudFormationProvisioner(
+internal sealed partial class CloudFormationProvisioner(
     DistributedApplicationModel appModel,
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService)
@@ -43,7 +45,8 @@ internal sealed class CloudFormationProvisioner(
                 // projects IConfiguration.
                 cloudFormationResource.Outputs = stack!.Outputs;
 
-                await PublishCloudFormationUpdateStateAsync(cloudFormationResource, Constants.ResourceStateRunning, ConvertOutputToProperties(stack)).ConfigureAwait(false);
+                await PublishCloudFormationUpdateStateAsync(cloudFormationResource, Constants.ResourceStateRunning, ConvertOutputToProperties(stack),
+                    MapCloudFormationStackUrl(cfClient, stack.StackId)).ConfigureAwait(false);
 
                 cloudFormationResource.ProvisioningTaskCompletionSource?.TrySetResult();
             }
@@ -93,7 +96,10 @@ internal sealed class CloudFormationProvisioner(
                     logger.LogInformation("CloudFormation provisioning complete");
 
                     cloudFormationResource.Outputs = stack.Outputs;
-                    await PublishCloudFormationUpdateStateAsync(cloudFormationResource, Constants.ResourceStateRunning, ConvertOutputToProperties(stack, cloudFormationResource.TemplatePath)).ConfigureAwait(false);
+
+                    await PublishCloudFormationUpdateStateAsync(cloudFormationResource, Constants.ResourceStateRunning, ConvertOutputToProperties(stack, cloudFormationResource.TemplatePath),
+                        MapCloudFormationStackUrl(cfClient, stack.StackId)).ConfigureAwait(false);
+
                     cloudFormationResource.ProvisioningTaskCompletionSource?.TrySetResult();
                 }
                 else
@@ -113,7 +119,7 @@ internal sealed class CloudFormationProvisioner(
         }
     }
 
-    private async Task PublishCloudFormationUpdateStateAsync(CloudFormationResource resource, string status, ImmutableArray<ResourcePropertySnapshot>? properties = null)
+    private async Task PublishCloudFormationUpdateStateAsync(CloudFormationResource resource, string status, ImmutableArray<ResourcePropertySnapshot>? properties = null, ImmutableArray<UrlSnapshot>? urls = default)
     {
         if (properties == null)
         {
@@ -123,7 +129,8 @@ internal sealed class CloudFormationProvisioner(
         await notificationService.PublishUpdateAsync(resource, state => state with
         {
             State = status,
-            Properties = state.Properties.AddRange(properties)
+            Properties = state.Properties.AddRange(properties),
+            Urls = urls ?? []
         }).ConfigureAwait(false);
     }
 
@@ -175,6 +182,37 @@ internal sealed class CloudFormationProvisioner(
         catch (Exception e)
         {
             throw new AWSProvisioningException("Failed to construct AWS CloudFormation service client to provision AWS resources.", e);
+        }
+    }
+
+    [GeneratedRegex("^(us|eu|ap|sa|ca|me|af|il)-\\w+-\\d+$", RegexOptions.Singleline)]
+    private static partial Regex AwsRegionRegex();
+
+    internal static ImmutableArray<UrlSnapshot>? MapCloudFormationStackUrl(IAmazonCloudFormation client, string stackId)
+    {
+        try
+        {
+            var endpointUrl = client.DetermineServiceOperationEndpoint(new DescribeStacksRequest { StackName = stackId })?.URL;
+            if (endpointUrl == null || !endpointUrl.Contains(".amazonaws.", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            if (!Arn.TryParse(stackId, out var arn) || !AwsRegionRegex().IsMatch(arn.Region))
+            {
+                return null;
+            }
+
+            var url = $"https://console.aws.amazon.com/cloudformation/home?region={Uri.EscapeDataString(arn.Region)}#/stacks/resources?stackId={Uri.EscapeDataString(stackId)}";
+
+            return
+            [
+                new UrlSnapshot("aws-console", url, IsInternal: false)
+            ];
+        }
+        catch (Exception)
+        {
+            return null;
         }
     }
 }
