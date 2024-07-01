@@ -71,7 +71,7 @@ public class TraceTests
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationServiceId = applications[0].InstanceId,
+            ApplicationKey = applications[0].ApplicationKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10
@@ -143,7 +143,7 @@ public class TraceTests
 
         var traces1 = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationServiceId = applications[0].InstanceId,
+            ApplicationKey = applications[0].ApplicationKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10
@@ -186,7 +186,7 @@ public class TraceTests
 
         var traces2 = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationServiceId = applications[0].InstanceId,
+            ApplicationKey = applications[0].ApplicationKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10
@@ -242,7 +242,7 @@ public class TraceTests
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationServiceId = null,
+            ApplicationKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10
@@ -310,7 +310,7 @@ public class TraceTests
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationServiceId = null,
+            ApplicationKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10
@@ -367,7 +367,7 @@ public class TraceTests
 
         var traces1 = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationServiceId = null,
+            ApplicationKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10
@@ -382,7 +382,7 @@ public class TraceTests
 
         var traces2 = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationServiceId = null,
+            ApplicationKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10
@@ -449,7 +449,7 @@ public class TraceTests
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationServiceId = applications[0].InstanceId,
+            ApplicationKey = applications[0].ApplicationKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10
@@ -520,7 +520,7 @@ public class TraceTests
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationServiceId = applications[0].InstanceId,
+            ApplicationKey = applications[0].ApplicationKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10

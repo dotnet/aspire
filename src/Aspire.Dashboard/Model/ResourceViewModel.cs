@@ -56,6 +56,7 @@ public sealed class ResourceViewModel
     }
 }
 
+[DebuggerDisplay("CommandType = {CommandType}, DisplayName = {DisplayName}")]
 public sealed class CommandViewModel
 {
     public string CommandType { get; }
@@ -75,6 +76,7 @@ public sealed class CommandViewModel
     }
 }
 
+[DebuggerDisplay("Name = {Name}, Value = {Value}, FromSpec = {FromSpec}, IsValueMasked = {IsValueMasked}")]
 public sealed class EnvironmentVariableViewModel
 {
     public string Name { get; }
@@ -93,6 +95,7 @@ public sealed class EnvironmentVariableViewModel
     }
 }
 
+[DebuggerDisplay("Name = {Name}, Url = {Url}, IsInternal = {IsInternal}")]
 public sealed class UrlViewModel
 {
     public string Name { get; }

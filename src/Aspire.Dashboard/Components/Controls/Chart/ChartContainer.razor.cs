@@ -25,7 +25,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     private readonly InstrumentViewModel _instrumentViewModel = new InstrumentViewModel();
 
     [Parameter, EditorRequired]
-    public required string ApplicationId { get; set; }
+    public required ApplicationKey ApplicationKey { get; set; }
 
     [Parameter, EditorRequired]
     public required string MeterName { get; set; }
@@ -177,7 +177,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
         var instrument = TelemetryRepository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationServiceId = ApplicationId,
+            ApplicationKey = ApplicationKey,
             MeterName = MeterName,
             InstrumentName = InstrumentName,
             StartTime = startDate,
@@ -187,8 +187,8 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         if (instrument == null)
         {
             Logger.LogDebug(
-                "Unable to find instrument. ApplicationServiceId: {ApplicationServiceId}, MeterName: {MeterName}, InstrumentName: {InstrumentName}",
-                ApplicationId,
+                "Unable to find instrument. ApplicationKey: {ApplicationKey}, MeterName: {MeterName}, InstrumentName: {InstrumentName}",
+                ApplicationKey,
                 MeterName,
                 InstrumentName);
         }

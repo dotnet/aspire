@@ -201,10 +201,10 @@ public partial class TraceDetail : ComponentBase
                 _spanWaterfallViewModels = CreateSpanWaterfallViewModels(trace, new TraceDetailState(OutgoingPeerResolvers, _collapsedSpanIds));
                 _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
 
-                if (_tracesSubscription is null || _tracesSubscription.ApplicationId != trace.FirstSpan.Source.InstanceId)
+                if (_tracesSubscription is null || _tracesSubscription.ApplicationKey != trace.FirstSpan.Source.ApplicationKey)
                 {
                     _tracesSubscription?.Dispose();
-                    _tracesSubscription = TelemetryRepository.OnNewTraces(trace.FirstSpan.Source.InstanceId, SubscriptionType.Read, () => InvokeAsync(() =>
+                    _tracesSubscription = TelemetryRepository.OnNewTraces(trace.FirstSpan.Source.ApplicationKey, SubscriptionType.Read, () => InvokeAsync(() =>
                     {
                         UpdateDetailViewData();
                         StateHasChanged();

@@ -36,7 +36,7 @@ public partial class UnreadLogErrorsBadge
             return (null, 0);
         }
 
-        var application = TelemetryRepository.GetApplication(resource.Name);
+        var application = TelemetryRepository.GetApplicationByCompositeName(resource.Name);
         if (application is null)
         {
             return (null, 0);

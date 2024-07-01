@@ -50,7 +50,7 @@ public static class ApplicationsSelectHelpers
                 var app = replicas.Single();
                 selectViewModels.Add(new SelectViewModel<ResourceTypeDetails>
                 {
-                    Id = ResourceTypeDetails.CreateSingleton(app.InstanceId),
+                    Id = ResourceTypeDetails.CreateSingleton(app.InstanceId, applicationName),
                     Name = applicationName
                 });
 

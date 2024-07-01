@@ -100,7 +100,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     protected override async Task OnParametersSetAsync()
     {
         await this.InitializeViewModelAsync();
-        TracesViewModel.ApplicationServiceId = PageViewModel.SelectedApplication.Id?.InstanceId;
+        TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
         UpdateSubscription();
     }
 
@@ -120,8 +120,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     {
         viewModel.SelectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration);
         viewModel.SelectedApplication = _applications.GetApplication(Logger, ApplicationName, _selectApplication);
-        var selectedInstance = viewModel.SelectedApplication.Id?.InstanceId;
-        viewModel.Instruments = !string.IsNullOrEmpty(selectedInstance) ? TelemetryRepository.GetInstrumentsSummary(selectedInstance) : null;
+        var selectedInstance = viewModel.SelectedApplication.Id?.GetApplicationKey();
+        viewModel.Instruments = selectedInstance != null ? TelemetryRepository.GetInstrumentsSummary(selectedInstance.Value) : null;
 
         viewModel.SelectedMeter = null;
         viewModel.SelectedInstrument = null;
@@ -134,7 +134,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             {
                 viewModel.SelectedInstrument = TelemetryRepository.GetInstrument(new GetInstrumentRequest
                 {
-                    ApplicationServiceId = viewModel.SelectedApplication.Id?.InstanceId!,
+                    ApplicationKey = selectedInstance!.Value,
                     MeterName = MeterName,
                     InstrumentName = InstrumentName
                 });
@@ -232,17 +232,18 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     private void UpdateSubscription()
     {
-        var selectedApplication = PageViewModel.SelectedApplication.Id;
+        var selectedApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
+
         // Subscribe to updates.
-        if (_metricsSubscription is null || _metricsSubscription.ApplicationId != selectedApplication?.InstanceId)
+        if (_metricsSubscription is null || _metricsSubscription.ApplicationKey != selectedApplicationKey)
         {
             _metricsSubscription?.Dispose();
-            _metricsSubscription = TelemetryRepository.OnNewMetrics(selectedApplication?.InstanceId, SubscriptionType.Read, async () =>
+            _metricsSubscription = TelemetryRepository.OnNewMetrics(selectedApplicationKey, SubscriptionType.Read, async () =>
             {
-                if (!string.IsNullOrEmpty(selectedApplication?.InstanceId))
+                if (selectedApplicationKey != null)
                 {
                     // If there are more instruments than before then update the UI.
-                    var instruments = TelemetryRepository.GetInstrumentsSummary(selectedApplication.InstanceId);
+                    var instruments = TelemetryRepository.GetInstrumentsSummary(selectedApplicationKey.Value);
 
                     if (PageViewModel.Instruments is null || instruments.Count > PageViewModel.Instruments.Count)
                     {
