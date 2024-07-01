@@ -240,3 +240,11 @@ public sealed class MysqlPlaygroundFixture : PlaygroundAppFixture
     {
     }
 }
+
+public sealed class NatsPlaygroundFixture : PlaygroundAppFixture
+{
+    public NatsPlaygroundFixture(IMessageSink diagnosticMessageSink)
+        : base ("nats/Nats.AppHost", diagnosticMessageSink)
+    {
+    }
+}
