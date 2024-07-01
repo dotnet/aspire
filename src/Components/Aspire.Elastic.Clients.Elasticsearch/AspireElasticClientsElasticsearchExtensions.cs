@@ -10,6 +10,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.Extensions.Hosting;
 
+/// <summary>
+/// Extension methods for connecting Elasticsearch with Elastic:Clients:Elasticsearch client.
+/// </summary>
 public static class AspireElasticClientsElasticsearchExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:Elastic:Clients:Elasticsearch";
