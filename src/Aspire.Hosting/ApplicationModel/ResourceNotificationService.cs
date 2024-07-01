@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -11,13 +12,96 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A service that allows publishing and subscribing to changes in the state of a resource.
 /// </summary>
-public class ResourceNotificationService(ILogger<ResourceNotificationService> logger)
+public class ResourceNotificationService
 {
     // Resource state is keyed by the resource and the unique name of the resource. This could be the name of the resource, or a replica ID.
     private readonly ConcurrentDictionary<(IResource, string), ResourceNotificationState> _resourceNotificationStates = new();
-    private readonly ILogger<ResourceNotificationService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly ILogger<ResourceNotificationService> _logger;
+    private readonly CancellationToken _applicationStopping;
 
     private Action<ResourceEvent>? OnResourceUpdated { get; set; }
+
+    /// <summary>
+    /// Creates a new instance of <see cref="ResourceNotificationService"/>.
+    /// </summary>
+    /// <remarks>
+    /// Obsolete. Use the constructor that accepts an <see cref="ILogger{ResourceNotificationService}"/> and <see cref="IHostApplicationLifetime"/>.<br/>
+    /// This constructor will be removed in the next major version of Aspire.
+    /// </remarks>
+    /// <param name="logger">The logger.</param>
+    [Obsolete($"""
+        {nameof(ResourceNotificationService)} now requires an {nameof(IHostApplicationLifetime)}.
+        Use the constructor that accepts an {nameof(ILogger)}<{nameof(ResourceNotificationService)}> and {nameof(IHostApplicationLifetime)}.
+        This constructor will be removed in the next major version of Aspire.
+        """)]
+    public ResourceNotificationService(ILogger<ResourceNotificationService> logger)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    /// <summary>
+    /// Creates a new instance of <see cref="ResourceNotificationService"/>.
+    /// </summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="hostApplicationLifetime">The host application lifetime.</param>
+    public ResourceNotificationService(ILogger<ResourceNotificationService> logger, IHostApplicationLifetime hostApplicationLifetime)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _applicationStopping = hostApplicationLifetime?.ApplicationStopping ?? throw new ArgumentNullException(nameof(hostApplicationLifetime));
+    }
+
+    /// <summary>
+    /// Waits for a resource to reach the specified state. See <see cref="KnownResourceStates"/> for common states.
+    /// </summary>
+    /// <remarks>
+    /// This method returns a task that will complete when the resource reaches the specified target state. If the resource
+    /// is already in the target state, the method will return immediately.<br/>
+    /// If the resource doesn't reach one of the target states before <paramref name="cancellationToken"/> is signalled, this method
+    /// will throw <see cref="OperationCanceledException"/>.
+    /// </remarks>
+    /// <param name="resourceName">The name of the resouce.</param>
+    /// <param name="targetState"></param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/> </param>
+    /// <returns>A <see cref="Task"/> representing the wait operation.</returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
+                                                     Justification = "targetState(s) parameters are mutually exclusive.")]
+    public Task WaitForResourceAsync(string resourceName, string? targetState = null, CancellationToken cancellationToken = default)
+    {
+        string[] targetStates = !string.IsNullOrEmpty(targetState) ? [targetState] : [KnownResourceStates.Running];
+        return WaitForResourceAsync(resourceName, targetStates, cancellationToken);
+    }
+
+    /// <summary>
+    /// Waits for a resource to reach one of the specified states. See <see cref="KnownResourceStates"/> for common states.
+    /// </summary>
+    /// <remarks>
+    /// This method returns a task that will complete when the resource reaches one of the specified target states. If the resource
+    /// is already in the target state, the method will return immediately.<br/>
+    /// If the resource doesn't reach one of the target states before <paramref name="cancellationToken"/> is signalled, this method
+    /// will throw <see cref="OperationCanceledException"/>.
+    /// </remarks>
+    /// <param name="resourceName">The name of the resource.</param>
+    /// <param name="targetStates">The set of states to wait for the resource to transition to one of. See <see cref="KnownResourceStates"/> for common states.</param>
+    /// <param name="cancellationToken">A cancellation token that cancels the wait operation when signalled.</param>
+    /// <returns>A <see cref="Task{String}"/> representing the wait operation and which of the target states the resource reached.</returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
+                                                     Justification = "targetState(s) parameters are mutually exclusive.")]
+    public async Task<string> WaitForResourceAsync(string resourceName, IEnumerable<string> targetStates, CancellationToken cancellationToken = default)
+    {
+        using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_applicationStopping, cancellationToken);
+        var watchToken = watchCts.Token;
+        await foreach (var resourceEvent in WatchAsync(watchToken).ConfigureAwait(false))
+        {
+            if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName)
+                && resourceEvent.Snapshot.State?.Text is { Length: > 0 } statusText
+                && targetStates.Contains(statusText, StringComparers.ResourceState))
+            {
+                return statusText;
+            }
+        }
+
+        throw new OperationCanceledException($"The operation was cancelled before the resource reached one of the target states: [{string.Join(", ", targetStates)}]");
+    }
 
     /// <summary>
     /// Watch for changes to the state for all resources.
@@ -80,7 +164,15 @@ public class ResourceNotificationService(ILogger<ResourceNotificationService> lo
 
             if (_logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug("Resource {Resource}/{ResourceId} -> {State}", resource.Name, resourceId, newState.State);
+                var previousStateText = previousState?.State?.Text;
+                if (!string.IsNullOrEmpty(previousStateText))
+                {
+                    _logger.LogDebug("Resource {Resource}/{ResourceId} changed state: {PreviousState} -> {NewState}", resource.Name, resourceId, previousStateText, newState.State?.Text);
+                }
+                else
+                {
+                    _logger.LogDebug("Resource {Resource}/{ResourceId} changed state: {NewState}", resource.Name, resourceId, newState.State?.Text);
+                }
             }
 
             return Task.CompletedTask;

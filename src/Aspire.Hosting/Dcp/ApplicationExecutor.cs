@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Data;
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text.Json;
@@ -1418,6 +1419,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         var dcpContainerResource = (Container)cr.DcpResource;
         var modelContainerResource = cr.ModelResource;
 
+        await ApplyBuildArgumentsAsync(dcpContainerResource, modelContainerResource, cancellationToken).ConfigureAwait(false);
+
         var config = new Dictionary<string, object>();
 
         dcpContainerResource.Spec.Env = [];
@@ -1570,6 +1573,83 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
 
         await kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task ApplyBuildArgumentsAsync(Container dcpContainerResource, IResource modelContainerResource, CancellationToken cancellationToken)
+    {
+        if (modelContainerResource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault() is { } dockerfileBuildAnnotation)
+        {
+            var dcpBuildArgs = new List<EnvVar>();
+
+            foreach (var buildArgument in dockerfileBuildAnnotation.BuildArguments)
+            {
+                var valueString = buildArgument.Value switch
+                {
+                    string stringValue => stringValue,
+                    IValueProvider valueProvider => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
+                    bool boolValue => boolValue ? "true" : "false",
+                    _ => buildArgument.Value.ToString()
+                };
+
+                var dcpBuildArg = new EnvVar()
+                {
+                    Name = buildArgument.Key,
+                    Value = valueString
+                };
+
+                dcpBuildArgs.Add(dcpBuildArg);
+            }
+
+            dcpContainerResource.Spec.Build = new()
+            {
+                Context = dockerfileBuildAnnotation.ContextPath,
+                Dockerfile = dockerfileBuildAnnotation.DockerfilePath,
+                Stage = dockerfileBuildAnnotation.Stage,
+                Args = dcpBuildArgs
+            };
+
+            var dcpBuildSecrets = new List<BuildContextSecret>();
+
+            foreach (var buildSecret in dockerfileBuildAnnotation.BuildSecrets)
+            {
+                var valueString = buildSecret.Value switch
+                {
+                    FileInfo filePath => filePath.FullName,
+                    IValueProvider valueProvider => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
+                    _ => throw new InvalidOperationException("Build secret can only be a parameter or a file.")
+                };
+
+                if (buildSecret.Value is FileInfo)
+                {
+                    var dcpBuildSecret = new BuildContextSecret
+                    {
+                        Id = buildSecret.Key,
+                        Type = "file",
+                        Source = valueString
+                    };
+                    dcpBuildSecrets.Add(dcpBuildSecret);
+                }
+                else
+                {
+                    var dcpBuildSecret = new BuildContextSecret
+                    {
+                      Id = buildSecret.Key,
+                      Type = "env",
+                      Value = valueString
+                    };
+                    dcpBuildSecrets.Add(dcpBuildSecret);
+                }
+            }
+
+            dcpContainerResource.Spec.Build = new()
+            {
+                Context = dockerfileBuildAnnotation.ContextPath,
+                Dockerfile = dockerfileBuildAnnotation.DockerfilePath,
+                Stage = dockerfileBuildAnnotation.Stage,
+                Args = dcpBuildArgs,
+                Secrets = dcpBuildSecrets
+            };
+        }
     }
 
     private void AddServicesProducedInfo(IResource modelResource, IAnnotationHolder dcpResource, AppResource appResource)

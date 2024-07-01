@@ -1,6 +1,6 @@
 <Project>
-
   <Import Project="Sdk.props" Sdk="Microsoft.DotNet.Arcade.Sdk" />
+  <Import Project="$(RepositoryEngineeringDir)/apicompat/PublicApiAnalyzer.props" />
 
   <PropertyGroup>
     <Copyright>$(CopyrightNetFoundation)</Copyright>
@@ -24,6 +24,7 @@
     <StrongNameKeyId>Open</StrongNameKeyId>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UsePublicApiAnalyzers>true</UsePublicApiAnalyzers>
     <!-- Redirect test logs into a subfolder -->
     <TestResultsLogDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsLogDir)', 'TestLogs'))</TestResultsLogDir>
     <!-- We don't want to use the workload for AppHost projects in this repo -->
@@ -46,10 +47,6 @@
     <!-- TODO: Need to figure out we can automatically detect target framework here. This property
                is specified to support dashboard path metadata generation on the inner loop. -->
     <AspireDashboardDir>$(MSBuildThisFileDirectory)/artifacts/bin/Aspire.Dashboard/$(Configuration)/net8.0/</AspireDashboardDir>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <AddPublicApiAnalyzers>true</AddPublicApiAnalyzers>
   </PropertyGroup>
 
 </Project>

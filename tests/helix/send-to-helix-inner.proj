@@ -74,7 +74,8 @@
     <HelixCorrelationPayload Include="$(PlaywrightDependenciesDirectory)" Destination="playwright-deps" />
 
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="chmod +x $HELIX_WORKITEM_ROOT/.playwright/node/linux-x64/node" />
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="sudo apt-get install -y libgbm1 libxkbcommon0" />
+    <!-- wait for lock for 2mins -->
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="(sudo apt-get -o DPkg::Lock::Timeout=120 install -y libgbm1 libxkbcommon0 || (cat /var/lib/dkms/lttng-modules/2.13.8/build/make.log; exit 1)) || exit 1" />
 
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PLAYWRIGHT_BROWSERS_PATH=%HELIX_CORRELATION_PAYLOAD%\playwright-deps" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PLAYWRIGHT_BROWSERS_PATH=$HELIX_CORRELATION_PAYLOAD/playwright-deps" />

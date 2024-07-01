@@ -3,7 +3,6 @@
 
 using Microsoft.Extensions.Hosting;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Aspire.Hosting.Testing.Tests;
 
@@ -12,10 +11,6 @@ public class DistributedApplicationFixture<TEntryPoint> : DistributedApplication
     public DistributedApplicationFixture()
         : base(typeof(TEntryPoint), [])
     {
-        if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null)
-        {
-            throw new SkipException("These tests can only run in local environments.");
-        }
     }
 
     protected override void OnBuilderCreating(DistributedApplicationOptions applicationOptions, HostApplicationBuilderSettings hostOptions)

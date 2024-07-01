@@ -21,7 +21,6 @@
 
     <Compile Include="..\Aspire.Hosting.Tests\Utils\ArgumentEvaluator.cs" Link="Utils\ArgumentEvaluator.cs" />
     <Compile Include="..\Aspire.Hosting.Tests\Utils\EnvironmentVariableEvaluator.cs" Link="Utils\EnvironmentVariableEvaluator.cs" />
-    <Compile Include="..\Aspire.Hosting.Tests\Utils\FileUtil.cs" Link="Utils\FileUtil.cs" />
     <Compile Include="..\Aspire.Hosting.Tests\Utils\ManifestUtils.cs" Link="Utils\ManifestUtils.cs" />
     <Compile Include="..\Aspire.Hosting.Tests\Utils\TestDistributedApplicationBuilder.cs" Link="Utils\TestDistributedApplicationBuilder.cs" />
     <Compile Include="..\Aspire.Hosting.Tests\XunitAttributes.cs" Link="XunitAttributes.cs" />

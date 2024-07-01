@@ -65,7 +65,7 @@ internal sealed class DashboardClient : IDashboardClient
 
     private Task? _connection;
 
-    public DashboardClient(ILoggerFactory loggerFactory, IConfiguration configuration, IOptions<DashboardOptions> dashboardOptions)
+    public DashboardClient(ILoggerFactory loggerFactory, IConfiguration configuration, IOptions<DashboardOptions> dashboardOptions, Action<SocketsHttpHandler>? configureHttpHandler = null)
     {
         _loggerFactory = loggerFactory;
         _dashboardOptions = dashboardOptions.Value;
@@ -144,6 +144,8 @@ internal sealed class DashboardClient : IDashboardClient
                     RetryableStatusCodes = { StatusCode.Unavailable }
                 }
             };
+
+            configureHttpHandler?.Invoke(httpHandler);
 
             // https://learn.microsoft.com/aspnet/core/grpc/diagnostics#grpc-client-logging
 

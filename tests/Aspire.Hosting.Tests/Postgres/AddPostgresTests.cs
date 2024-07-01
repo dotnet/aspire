@@ -14,6 +14,26 @@ namespace Aspire.Hosting.Tests.Postgres;
 public class AddPostgresTests
 {
     [Fact]
+    public void AddPostgresAddsGeneratedPasswordParameterWithUserSecretsParameterDefaultInRunMode()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+
+        var pg = appBuilder.AddPostgres("pg");
+
+        Assert.IsType<UserSecretsParameterDefault>(pg.Resource.PasswordParameter.Default);
+    }
+
+    [Fact]
+    public void AddPostgresDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultInPublishMode()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var pg = appBuilder.AddPostgres("pg");
+
+        Assert.IsNotType<UserSecretsParameterDefault>(pg.Resource.PasswordParameter.Default);
+    }
+
+    [Fact]
     public async Task AddPostgresWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
