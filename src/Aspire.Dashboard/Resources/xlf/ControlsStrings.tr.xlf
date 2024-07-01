@@ -294,7 +294,7 @@
       </trans-unit>
       <trans-unit id="TraceDetailAttributesHeader">
         <source>Attributes</source>
-        <target state="new">Attributes</target>
+        <target state="translated">Öznitelikler</target>
         <note />
       </trans-unit>
       <trans-unit id="ViewAction">
