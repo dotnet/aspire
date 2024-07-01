@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +14,7 @@ namespace Aspire.Hosting.Redis.Tests;
 public class RedisFunctionalTests
 {
     [Fact]
+    [RequiresDocker]
     public async Task VerifyRedisResource()
     {
         var builder = TestDistributedApplicationBuilder.Create();
