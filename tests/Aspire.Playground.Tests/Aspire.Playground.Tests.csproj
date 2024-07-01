@@ -59,7 +59,6 @@
   <Target Name="_StageForHelix" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true'">
     <ItemGroup>
       <_OutDirFile Include="$(OutDir)\**\*" />
-      <!--<FileToArchive Include="$(OutDir)\**\*" DestinationPath="test\%(RecursiveDir)%(FileName)%(Extension)" />-->
     </ItemGroup>
     <Message Text="_StageForHelix: outdir: $(OutDir)" Importance="High" />
 
@@ -72,7 +71,7 @@
     </ItemGroup>
 
     <Copy SourceFiles="@(_OutDirFile)"
-          DestinationFiles="@(_OutDirFile -> '$(TestsArchiveSourceDir)test\%(RecursiveDir)\%(FileName)%(Extension)')"
+          DestinationFiles="@(_OutDirFile -> '$(TestsArchiveSourceDir)$(MSBuildProjectName)\%(RecursiveDir)\%(FileName)%(Extension)')"
           SkipUnchangedFiles="true" />
     <Copy SourceFiles="%(FileToArchive.Identity)"
           DestinationFiles="$(TestsArchiveSourceDir)%(FileToArchive.DestinationPath)"
