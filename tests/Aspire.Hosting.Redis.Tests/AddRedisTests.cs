@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -219,7 +220,7 @@ public class AddRedisTests
 
         var volumeAnnotation = redis.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
-        Assert.Equal("Aspire.Hosting.Redis.Tests-myRedis-data", volumeAnnotation.Source);
+        Assert.Equal("Aspire.Hosting.Tests-myRedis-data", volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
