@@ -3,10 +3,11 @@
 
 using Aspire.EndToEnd.Tests;
 using Aspire.Hosting.MongoDB;
-using Aspire.Playground.Tests;
 using Aspire.Workload.Tests;
 using Xunit;
 using Xunit.Abstractions;
+
+namespace Aspire.Playground.Tests;
 
 public class MySqlDbTests : PlaygroundTestsBase, IClassFixture<MysqlPlaygroundFixture>
 {
@@ -24,6 +25,7 @@ public class MySqlDbTests : PlaygroundTestsBase, IClassFixture<MysqlPlaygroundFi
         => _testFixture.Projects["apiservice"].WaitForHealthyStatusAsync("http", _testOutput, path, CancellationToken.None);
 
     [Fact]
+    // [ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(BuildEnvironment), nameof(BuildEnvironment.HasPlaywrightSupport))]
     public async Task ResourcesShowUpOnDashboad()
     {
         await using var context = await CreateNewBrowserContextAsync();

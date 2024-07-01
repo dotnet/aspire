@@ -3,10 +3,11 @@
 
 using Aspire.EndToEnd.Tests;
 using Aspire.Hosting.MongoDB;
-using Aspire.Playground.Tests;
 using Aspire.Workload.Tests;
 using Xunit;
 using Xunit.Abstractions;
+
+namespace Aspire.Playground.Tests;
 
 public class MongoDbTests : PlaygroundTestsBase, IClassFixture<MongoPlaygroundAppFixture>
 {

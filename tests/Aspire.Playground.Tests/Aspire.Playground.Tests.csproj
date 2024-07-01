@@ -18,6 +18,10 @@
     <!--<RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>-->
     <TestArchiveTestsDir>$(TestArchiveTestsDirForPlaygroundTests)</TestArchiveTestsDir>
     <TestsArchiveSourceDir>$(ArtifactsObjDir)staging-archive\$(MSBuildProjectName)\</TestsArchiveSourceDir>
+
+    <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(ArchiveTests)' == 'true'">true</ExtractTestClassNamesForHelix>
+    <ExtractTestClassNamesPrefix>Aspire.Playground.Tests</ExtractTestClassNamesPrefix>
+
     <IncludeTestPackages>true</IncludeTestPackages>
   </PropertyGroup>
 
