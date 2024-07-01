@@ -187,7 +187,7 @@ stages:
 
         preSteps:
           - checkout: self
-            fetchDepth: 1
+            fetchDepth: 0
             clean: true
 
         steps:

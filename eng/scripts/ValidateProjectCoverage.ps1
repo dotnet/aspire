@@ -192,9 +192,14 @@ $KudosMarkdown | Out-File coverage-report.md -Encoding ascii -Append
 # Set the AzDO variable used by GitHubComment@0 task
 [string]$markdown = Get-Content coverage-report.md -Raw
 if (![string]::IsNullOrWhiteSpace($markdown)) {
+    # Add link for the full git diff
+    $commonBase = $(git log -1 --decorate --oneline $(git rev-parse --format=%H "$(git rev-list --exclude-first-parent-only ^origin/main HEAD | select -last 1)^"))
+    $diffLink = "$($Env:SYSTEM_PULLREQUEST_SOURCEREPOSITORYURI)/compare/$commonBase...$($Env:SYSTEM_PULLREQUEST_SOURCECOMMITID)"
+    $markdown = "$markdown`n`nCode coverage generated for $diffLink"
+
     # Add link back to the Code Coverage board
-    $link = "$($env:SYSTEM_COLLECTIONURI)$env:SYSTEM_TEAMPROJECT/_build/results?buildId=$env:BUILD_BUILDID&view=codecoverage-tab"
-    $markdown = "$markdown`n`nFull code coverage report: $link"
+    $reportLink = "$($env:SYSTEM_COLLECTIONURI)$env:SYSTEM_TEAMPROJECT/_build/results?buildId=$env:BUILD_BUILDID&view=codecoverage-tab"
+    $markdown = "$markdown`nFull code coverage report $reportLink"
     Write-GitHubComment -message $markdown
 }
 
