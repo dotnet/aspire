@@ -449,8 +449,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     {
         IAsyncEnumerable<IReadOnlyList<(string, bool)>>? enumerable = resource switch
         {
-            Container c when c.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, resource),
-            Executable e when e.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, resource),
+            Container c when c.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, _dcpInfo?.Version, resource),
+            Executable e when e.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, _dcpInfo?.Version, resource),
             _ => null
         };
 

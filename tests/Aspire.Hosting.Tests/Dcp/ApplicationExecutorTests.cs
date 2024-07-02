@@ -326,7 +326,7 @@ public class ApplicationExecutorTests
             )
         ];
 
-        foreach(var tc in testcases)
+        foreach (var tc in testcases)
         {
             var builder = DistributedApplication.CreateBuilder();
 
@@ -448,7 +448,8 @@ public class ApplicationExecutorTests
             )
         ];
 
-        foreach (var tc in testcases) {
+        foreach (var tc in testcases)
+        {
             var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
             {
                 AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
@@ -708,6 +709,11 @@ public class ApplicationExecutorTests
 
             configuration = builder.Build();
         }
+
+        var dependencyCheckService = new TestDcpDependencyCheckService();
+        var serviceProvider = new System.ComponentModel.Design.ServiceContainer();
+        serviceProvider.AddService(typeof(IDcpDependencyCheckService), dependencyCheckService);
+
         return new ApplicationExecutor(
             NullLogger<ApplicationExecutor>.Instance,
             NullLogger<DistributedApplication>.Instance,
@@ -720,11 +726,14 @@ public class ApplicationExecutorTests
             {
                 DashboardPath = "./dashboard"
             }),
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
+            {
+                ServiceProvider = serviceProvider
+            }),
             new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime()),
             new ResourceLoggerService(),
-            new TestDcpDependencyCheckService()
-            );
+            dependencyCheckService
+        );
     }
 
     private sealed class TestHostApplicationLifetime : IHostApplicationLifetime
