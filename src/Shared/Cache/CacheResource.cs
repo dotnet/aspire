@@ -6,7 +6,7 @@ namespace Aspire.Hosting.Utils.Cache;
 /// A resource that represents a cache resource independent of the hosting model.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class CacheResource(string name) : ContainerResource(name), IResourceWithConnectionString
+public abstract class CacheResource(string name) : ContainerResource(name), IResourceWithConnectionString
 {
     internal const string PrimaryEndpointName = "tcp";
 

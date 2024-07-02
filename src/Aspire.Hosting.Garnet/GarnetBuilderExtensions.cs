@@ -52,9 +52,10 @@ public static class GarnetBuilderExtensions
         int? port = null)
     {
         var garnetResource = new GarnetResource(name);
-        var garnetContainerImageTags = new GarnetContainerImageTags();
         return builder.AddCache(garnetResource,
-            garnetContainerImageTags,
+            GarnetContainerImageTags.Registry,
+            GarnetContainerImageTags.Image,
+            GarnetContainerImageTags.Tag,
             6379,
             port);
     }

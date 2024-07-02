@@ -30,9 +30,10 @@ public static class RedisBuilderExtensions
         int? port = null)
     {
         var redisResource = new RedisResource(name);
-        var redisContainerImageTags = new RedisContainerImageTag();
         return builder.AddCache(redisResource,
-            redisContainerImageTags,
+            RedisContainerImageTags.Registry,
+            RedisContainerImageTags.Image,
+            RedisContainerImageTags.Tag,
             6379,
             port);
     }

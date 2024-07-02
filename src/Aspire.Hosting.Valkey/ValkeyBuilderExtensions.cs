@@ -52,9 +52,10 @@ public static class ValkeyBuilderExtensions
         int? port = null)
     {
         var valkeyResource = new ValkeyResource(name);
-        var valkeyContainerImageTags = new ValkeyContainerImageTags();
         return builder.AddCache(valkeyResource,
-            valkeyContainerImageTags,
+            ValkeyContainerImageTags.Registry,
+            ValkeyContainerImageTags.Image,
+            ValkeyContainerImageTags.Tag,
             6379,
             port);
     }

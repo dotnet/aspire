@@ -39,20 +39,24 @@ public static class CacheBuilderExtensions
     /// </example>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="cacheResource"></param>  //The name of the resource. This name will be used as the connection string name when referenced in a dependency.
-    /// <param name="cacheContainerImageTags"></param>
+    /// <param name="registry"></param>
+    /// <param name="image"></param>
+    /// <param name="tag"></param>
     /// <param name="targetPort"></param>
     /// <param name="port">The host port to bind the underlying container to.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> AddCache<T>(this IDistributedApplicationBuilder builder,
         T cacheResource,
-        ICacheContainerImageTags cacheContainerImageTags,
+        string registry,
+        string image,
+        string tag,
         int targetPort,
         int? port = null)
         where T : CacheResource
         => builder.AddResource(cacheResource)
             .WithEndpoint(port: port, targetPort: targetPort, name: CacheResource.PrimaryEndpointName)
-            .WithImage(cacheContainerImageTags.GetImage(), cacheContainerImageTags.GetTag())
-            .WithImageRegistry(cacheContainerImageTags.GetRegistry());
+            .WithImage(image, tag)
+            .WithImageRegistry(registry);
 
     /// <summary>
     /// Adds a named volume for the data folder to a Cache container resource and enables Cache persistence.
