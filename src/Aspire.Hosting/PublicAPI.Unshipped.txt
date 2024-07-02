@@ -9,6 +9,7 @@ Aspire.Hosting.DistributedApplicationExecutionContextOptions.DistributedApplicat
 Aspire.Hosting.DistributedApplicationExecutionContextOptions.Operation.get -> Aspire.Hosting.DistributedApplicationOperation
 Aspire.Hosting.DistributedApplicationExecutionContextOptions.ServiceProvider.get -> System.IServiceProvider?
 Aspire.Hosting.DistributedApplicationExecutionContextOptions.ServiceProvider.set -> void
+Aspire.Hosting.Utils.Cache.CacheBuilderExtensions
 Aspire.Hosting.Utils.Cache.CacheResource
 Aspire.Hosting.Utils.Cache.CacheResource.CacheResource(string! name) -> void
 Aspire.Hosting.Utils.Cache.CacheResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
