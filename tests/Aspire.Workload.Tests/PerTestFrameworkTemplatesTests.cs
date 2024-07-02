@@ -50,9 +50,12 @@ public abstract partial class PerTestFrameworkTemplatesTests : WorkloadTestsBase
             buildEnvironment: BuildEnvironment.ForDefaultFramework);
 
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]).ConfigureAwait(false);
-        await using (var context = await CreateNewBrowserContextAsync())
+        if (BuildEnvironment.HasPlaywrightSupport)
         {
-            await AssertBasicTemplateAsync(context).ConfigureAwait(false);
+            await using (var context = await CreateNewBrowserContextAsync())
+            {
+                await AssertBasicTemplateAsync(context).ConfigureAwait(false);
+            }
         }
 
         // Add test project

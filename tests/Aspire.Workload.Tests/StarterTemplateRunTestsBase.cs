@@ -22,6 +22,7 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(BuildEnvironment), nameof(BuildEnvironment.HasPlaywrightSupport))]
     public async Task ResourcesShowUpOnDashboad()
     {
         await using var context = await CreateNewBrowserContextAsync();
@@ -34,6 +35,7 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
     [Theory]
     [InlineData("http://")]
     [InlineData("https://")]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(BuildEnvironment), nameof(BuildEnvironment.HasPlaywrightSupport))]
     public async Task WebFrontendWorks(string urlPrefix)
     {
         await using var context = await CreateNewBrowserContextAsync();
