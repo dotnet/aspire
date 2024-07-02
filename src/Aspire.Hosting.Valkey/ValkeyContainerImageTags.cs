@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.Valkey;
 
-internal static class ValkeyContainerImageTags
+internal sealed class ValkeyContainerImageTags
 {
     public const string Registry = "valkey";
     public const string Image = "valkey";

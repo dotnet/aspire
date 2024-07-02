@@ -1,7 +1,5 @@
 #nullable enable
 Aspire.Hosting.ApplicationModel.ValkeyResource
-Aspire.Hosting.ApplicationModel.ValkeyResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
-Aspire.Hosting.ApplicationModel.ValkeyResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
 Aspire.Hosting.ApplicationModel.ValkeyResource.ValkeyResource(string! name) -> void
 Aspire.Hosting.ValkeyBuilderExtensions
 static Aspire.Hosting.ValkeyBuilderExtensions.AddValkey(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, int? port = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ValkeyResource!>!

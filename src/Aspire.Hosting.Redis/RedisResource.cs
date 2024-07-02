@@ -1,43 +1,16 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Utils.Cache;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
 /// A resource that represents a Redis resource independent of the hosting model.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class RedisResource(string name) : ContainerResource(name), IResourceWithConnectionString
+public class RedisResource(string name) : CacheResource(name)
 {
-    internal const string PrimaryEndpointName = "tcp";
-
-    private EndpointReference? _primaryEndpoint;
-
-    /// <summary>
-    /// Gets the primary endpoint for the Redis server.
-    /// </summary>
-    public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
-
-    private ReferenceExpression ConnectionString =>
-        ReferenceExpression.Create(
-            $"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
-
-    /// <summary>
-    /// Gets the connection string expression for the Redis server.
-    /// </summary>
-    public ReferenceExpression ConnectionStringExpression
-    {
-        get
-        {
-            if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
-            {
-                return connectionStringAnnotation.Resource.ConnectionStringExpression;
-            }
-
-            return ConnectionString;
-        }
-    }
-
     /// <summary>
     /// Gets the connection string for the Redis server.
     /// </summary>
@@ -50,6 +23,9 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
             return connectionStringAnnotation.Resource.GetConnectionStringAsync(cancellationToken);
         }
 
-        return ConnectionString.GetValueAsync(cancellationToken);
+        var referenceExpression = ReferenceExpression.Create(
+            $"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+
+        return referenceExpression.GetValueAsync(cancellationToken);
     }
 }

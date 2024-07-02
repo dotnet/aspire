@@ -1,7 +1,5 @@
 #nullable enable
 Aspire.Hosting.ApplicationModel.GarnetResource
-Aspire.Hosting.ApplicationModel.GarnetResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
-Aspire.Hosting.ApplicationModel.GarnetResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
 Aspire.Hosting.ApplicationModel.GarnetResource.GarnetResource(string! name) -> void
 Aspire.Hosting.GarnetBuilderExtensions
 static Aspire.Hosting.GarnetBuilderExtensions.AddGarnet(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, int? port = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.GarnetResource!>!

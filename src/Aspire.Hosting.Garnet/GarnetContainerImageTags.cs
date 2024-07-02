@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.Garnet;
 
-internal static class GarnetContainerImageTags
+internal sealed class GarnetContainerImageTags
 {
     public const string Registry = "ghcr.io";
     public const string Image = "microsoft/garnet";
