@@ -35,6 +35,11 @@
     <_TestAssetFile Include="$(RepoRoot)tests\WorkloadTesting\data\**\*" DestinationPath="testassets\%(RecursiveDir)%(FileName)%(Extension)" />
     <FileToArchive Include="@(_TestAssetFile)" />
 
+    <!-- helps to isolate the build -->
+    <FileToArchive Include="..\Shared\EmptyProject.proj" DestinationPath="Directory.Build.props" />
+    <FileToArchive Include="..\Shared\EmptyProject.proj" DestinationPath="Directory.Build.targets" />
+    <FileToArchive Include="..\Shared\EmptyProject.proj" DestinationPath="Directory.Packages.props" />
+
     <FileToArchive Include="..\Shared\TestsRunningOutsideOfRepo.*" DestinationPath="%(FileName)%(Extension)" />
     <FileToArchive Include="..\Shared\nuget-for-hosting-testing.config" DestinationPath="nuget.config" />
     <FileToArchive Include="$(GeneratedPackagesVersionsPropsPath)" DestinationPath="Directory.Packages.Versions.props" />
@@ -56,11 +61,11 @@
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
   </ItemGroup>
 
-  <Target Name="_StageForHelix" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true'">
+  <Target Name="StageForHelix" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true'">
     <ItemGroup>
       <_OutDirFile Include="$(OutDir)\**\*" />
     </ItemGroup>
-    <Message Text="_StageForHelix: outdir: $(OutDir)" Importance="High" />
+    <Message Text="StageForHelix: outdir: $(OutDir)" Importance="High" />
 
     <RemoveDir Directories="$(TestsArchiveSourceDir)" />
     <MakeDir Directories="$(TestsArchiveSourceDir)" />

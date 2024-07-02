@@ -76,7 +76,7 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="_GeneratePackagesProps" BeforeTargets="_StageForHelix">
+  <Target Name="_GeneratePackagesVersionsProps" BeforeTargets="StageForHelix">
     <!-- Duplicate all the @(PackageVersion) items with the evaluated versions -->
     <ItemGroup>
       <_PackageVersionEvaluated Include="@(PackageVersion -> '&lt;PackageVersion Include=&quot;%(Identity)&quot; Version=&quot;%(Version)&quot; /&gt;')" />
@@ -88,11 +88,6 @@
         Name="%(PropertyForHelixRun.Identity)"
         ConditionToUse__="%(PropertyForHelixRun.ConditionToUse__)" />
       <_PropertiesToPassEvaluated Include="@(_PropertiesToPass -> '&lt;%(Name)&gt;%(Identity)&lt;/%(Name)&gt;')" />
-
-      <!-- PackageVersion for the built packages -->
-      <_BuiltPackages Include="$(ArtifactsShippingPackagesDir)*.$(PackageVersion).nupkg" />
-      <_BuiltPackageNames Include="$([System.String]::Copy(%(_BuiltPackages.FileName)).Replace('.$(PackageVersion)', ''))" />
-      <_PackageVersionsForBuiltPackageNames Include="@(_BuiltPackageNames -> '&lt;PackageVersion Include=&quot;%(Identity)&quot; Version=&quot;$(PackageVersion)&quot; /&gt;')" />
     </ItemGroup>
     <PropertyGroup>
       <_HelixPropsContent>
@@ -113,11 +108,6 @@
             @(_PropertiesToPassEvaluated, '
             ')
         </PropertyGroup>
-
-        <ItemGroup Label="Built packages">
-            @(_PackageVersionsForBuiltPackageNames, '
-            ')
-        </ItemGroup>
       </Project>
           ]]>
       </_HelixPropsContent>

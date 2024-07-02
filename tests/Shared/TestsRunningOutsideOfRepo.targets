@@ -12,11 +12,19 @@
     <ProjectReference Include="@(_ConvertedProjectReference)" />
   </ItemGroup>
 
+  <!-- FIXME: add target to validate these, for example - ComponentReferenceForTests only for non-apphost etc -->
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
     <!-- TODO: this is only for non-apphost projects -->
+    <!-- this is NOT good though because some packages might hgave older versions, or preview ones, and user might want to test with a different version -->
+    <!--<PackageVersion Include="@(ComponentReferenceForTests)" Version="$(PackageVersion)" />-->
     <PackageReference Include="@(ComponentReferenceForTests)" />
-    <!--<PackageReference Include="@(HostingComponentReferenceForTests)" />-->
+
+    <!--<PackageVersion Include="@(NonComponentReferenceForTests)" Version="$(PackageVersion)" />-->
     <PackageReference Include="@(NonComponentReferenceForTests)" />
+
+    <!--<_PackageVersionDistinct Include="@(PackageVersion->Distinct())" />-->
+    <!--<PackageVersion Remove="@(PackageVersion)" />-->
+    <!--<PackageVersion Include="@(_PackageVersionDistinct)" />-->
   </ItemGroup>
 
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true' and '$(IncludeTestPackages)' == 'true'">
