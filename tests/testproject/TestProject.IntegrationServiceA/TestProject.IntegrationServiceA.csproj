@@ -28,6 +28,7 @@
     <ComponentReferenceForTests Include="Aspire.RabbitMQ.Client" />
     <ComponentReferenceForTests Include="Aspire.StackExchange.Redis" />
     <ComponentReferenceForTests Include="Aspire.Azure.Messaging.EventHubs" />
+    <ComponentReferenceForTests Include="Aspire.Elastic.Clients.Elasticsearch" />
   </ItemGroup>
 
   <ItemGroup>

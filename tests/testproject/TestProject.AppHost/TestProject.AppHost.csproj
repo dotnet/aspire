@@ -24,6 +24,7 @@
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Redis\Aspire.Hosting.Redis.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.SqlServer\Aspire.Hosting.SqlServer.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Valkey\Aspire.Hosting.Valkey.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Elasticsearch\Aspire.Hosting.Elasticsearch.csproj" IsAspireProjectResource="false" />
     
   </ItemGroup>
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
@@ -43,6 +44,7 @@
     <PackageReference Include="Aspire.Hosting.Redis" />
     <PackageReference Include="Aspire.Hosting.SqlServer" />
     <PackageReference Include="Aspire.Hosting.Valkey" />
+    <PackageReference Include="Aspire.Hosting.Elasticsearch"/>
   </ItemGroup>
 
   <ItemGroup>
