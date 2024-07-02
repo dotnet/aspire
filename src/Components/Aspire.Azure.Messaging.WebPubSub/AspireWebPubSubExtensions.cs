@@ -103,10 +103,8 @@ public static class AspireWebPubSubExtensions
             clientBuilder.ConfigureOptions(options => configuration.Bind(options));
 #pragma warning restore IDE0200
 
-
         protected override void BindSettingsToConfiguration(AzureMessagingWebPubSubSettings settings, IConfiguration config) =>
             config.Bind(settings);
-
 
         protected override TokenCredential? GetTokenCredential(AzureMessagingWebPubSubSettings settings)
             => settings.Credential;
@@ -121,8 +119,6 @@ public static class AspireWebPubSubExtensions
     private sealed class HealthCheck(WebPubSubServiceClient client) : IHealthCheck
     {
         private readonly WebPubSubServiceClient _client = client;
-
-
 
         public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
         {
