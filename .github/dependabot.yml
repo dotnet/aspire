@@ -53,6 +53,9 @@ updates:
       Grpc:
         patterns:
           - "Grpc.*"
+      Polly:
+        patterns:
+          - "Polly.*"
     labels:
       - "area-codeflow"
 
