@@ -102,7 +102,8 @@ public class AddKeycloakTests
               "type": "container.v0",
               "image": "{{KeycloakContainerImageTags.Registry}}/{{KeycloakContainerImageTags.Image}}:{{KeycloakContainerImageTags.Tag}}",
               "args": [
-                "start-dev"
+                "start-dev",
+                "--import-realm"
               ],
               "env": {
                 "KEYCLOAK_ADMIN": "admin",

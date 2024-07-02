@@ -7,7 +7,7 @@ builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
 
 builder.Services.AddAuthentication()
-                .AddKeycloakJwtBearer("keycloak", realm: "WeatherShop", configureJwtBearerOptions: options =>
+                .AddKeycloakJwtBearer("keycloak", realm: "WeatherShop", options =>
                 {
                     options.RequireHttpsMetadata = false;
                     options.Audience = "weather.api";
