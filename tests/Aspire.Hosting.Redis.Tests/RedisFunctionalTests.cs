@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Aspire.Hosting.Redis.Tests;
 
@@ -52,9 +53,9 @@ public class RedisFunctionalTests
 
     [Fact]
     [RequiresDocker]
-    public async Task AddDataVolumeShouldPersistStateBetweenUsages()
+    public async Task WithDataVolumeShouldPersistStateBetweenUsages()
     {
-        var volumeName = "myvolume";
+        var volumeName = "myvolume1";
 
         // Use a volume to do a snapshot save
 
@@ -66,9 +67,9 @@ public class RedisFunctionalTests
 
     [Fact]
     [RequiresDocker]
-    public async Task AddDataVolumeWithCustomPersistenceInterval()
+    public async Task WithDataVolumeWithCustomPersistenceInterval()
     {
-        var volumeName = "myvolume";
+        var volumeName = "myvolume2";
         var snapshotInterval = TimeSpan.FromSeconds(1);
 
         // Use a volume to do a snapshot save with a custom interval
@@ -81,7 +82,7 @@ public class RedisFunctionalTests
 
     [Fact]
     [RequiresDocker]
-    public async Task AddBindMountShouldPersistStateBetweenUsages()
+    public async Task WithDataBindMountShouldPersistStateBetweenUsages()
     {
         var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
@@ -109,7 +110,7 @@ public class RedisFunctionalTests
 
     [Fact]
     [RequiresDocker]
-    public async Task AddBindMountWithCustomPersistenceInterval()
+    public async Task WithDataBindMountWithCustomPersistenceInterval()
     {
         var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
 
@@ -135,6 +136,20 @@ public class RedisFunctionalTests
         {
             // Don't fail test if we can't clean the temporary folder
         }
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task PersistenceIsDisabledByDefault()
+    {
+        // Checks that without enabling Redis Persistence the tests fail
+
+        await Assert.ThrowsAsync<EqualException>(async () =>
+            await VerifyDataPersistence(
+                options => { },
+                redisClient => Task.CompletedTask
+                )
+            );
     }
 
     private static async Task VerifyDataPersistence(
