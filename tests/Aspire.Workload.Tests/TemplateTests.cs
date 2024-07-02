@@ -50,9 +50,12 @@ public class TemplateTests : WorkloadTestsBase
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
         await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
 
-        await using var context = await CreateNewBrowserContextAsync();
-        var page = await project.OpenDashboardPageAsync(context);
-        await CheckDashboardHasResourcesAsync(page, []);
+        if (BuildEnvironment.HasPlaywrightSupport)
+        {
+            await using var context = await CreateNewBrowserContextAsync();
+            var page = await project.OpenDashboardPageAsync(context);
+            await CheckDashboardHasResourcesAsync(page, []);
+        }
     }
 
     [Theory]
@@ -67,7 +70,7 @@ public class TemplateTests : WorkloadTestsBase
             _testOutput,
             buildEnvironment: BuildEnvironment.ForDefaultFramework);
 
-        await using var context = await CreateNewBrowserContextAsync();
+        await using var context = BuildEnvironment.HasPlaywrightSupport ? await CreateNewBrowserContextAsync() : null;
         await AssertStarterTemplateRunAsync(context, project, config, _testOutput);
     }
 
@@ -97,8 +100,11 @@ public class TemplateTests : WorkloadTestsBase
         testSpecificBuildEnvironment.EnvVars["ASPIRE_ALLOW_UNSECURED_TRANSPORT"] = "true";
         await project.StartAppHostAsync();
 
-        await using var context = await CreateNewBrowserContextAsync();
-        var page = await project.OpenDashboardPageAsync(context);
-        await CheckDashboardHasResourcesAsync(page, []).ConfigureAwait(false);
+        if (BuildEnvironment.HasPlaywrightSupport)
+        {
+            await using var context = await CreateNewBrowserContextAsync();
+            var page = await project.OpenDashboardPageAsync(context);
+            await CheckDashboardHasResourcesAsync(page, []).ConfigureAwait(false);
+        }
     }
 }

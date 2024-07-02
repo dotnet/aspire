@@ -3,12 +3,37 @@
 
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
 public class WithEnvironmentTests
 {
+    [Fact]
+    public async Task BuiltApplicationHasAccessToIServiceProviderViaEnvironmentCallbackContext()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var container = builder.AddContainer("container", "image")
+                               .WithEnvironment(context =>
+                               {
+                                   var sp = context.ExecutionContext.ServiceProvider;
+                                   context.EnvironmentVariables["SP_AVAILABLE"] = sp is not null ? "true" : "false";
+                               });
+
+        using var app = builder.Build();
+
+        var serviceProvider = app.Services.GetRequiredService<IServiceProvider>();
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            container.Resource,
+            serviceProvider: serviceProvider
+            );
+
+        Assert.Equal("true", config["SP_AVAILABLE"]);
+    }
+
     [Fact]
     public async Task EnvironmentReferencingEndpointPopulatesWithBindingUrl()
     {

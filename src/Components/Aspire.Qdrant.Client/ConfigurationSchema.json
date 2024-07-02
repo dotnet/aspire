@@ -8,6 +8,7 @@
       }
     }
   },
+  "type": "object",
   "properties": {
     "Aspire": {
       "type": "object",
@@ -34,6 +35,5 @@
         }
       }
     }
-  },
-  "type": "object"
+  }
 }

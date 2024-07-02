@@ -17,6 +17,8 @@ using Microsoft.Extensions.Options;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
+using Aspire.Components.Common.Tests;
+using Aspire.Hosting.Testing.Tests;
 
 namespace Aspire.Hosting.Tests;
 
@@ -136,7 +138,8 @@ public class DistributedApplicationTests
         Assert.Empty(lifecycleHookDescriptors.Where(sd => sd.ImplementationFactory == callback2));
     }
 
-    [LocalOnlyFact]
+    [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task AllocatedPortsAssignedAfterHookRuns()
     {
         using var testProgram = CreateTestProgram();
@@ -168,7 +171,8 @@ public class DistributedApplicationTests
         }
     }
 
-    [LocalOnlyFact]
+    [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task TestServicesWithMultipleReplicas()
     {
         var replicaCount = 3;
@@ -219,7 +223,9 @@ public class DistributedApplicationTests
         }
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerAppWorks()
     {
         using var testProgram = CreateTestProgram();
@@ -247,7 +253,9 @@ public class DistributedApplicationTests
         await app.StopAsync();
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task SpecifyingEnvPortInEndpointFlowsToEnv()
     {
         using var testProgram = CreateTestProgram(includeNodeApp: true, randomizePorts: false);
@@ -266,7 +274,7 @@ public class DistributedApplicationTests
 
         await app.StartAsync();
 
-        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromMinutes(1));
         var token = cts.Token;
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
@@ -302,7 +310,8 @@ public class DistributedApplicationTests
         }
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task StartAsync_DashboardAuthConfig_PassedToDashboardProcess()
     {
         var browserToken = "ThisIsATestToken";
@@ -344,7 +353,8 @@ public class DistributedApplicationTests
         }
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task StartAsync_UnsecuredAllowAnonymous_PassedToDashboardProcess()
     {
         var args = new string[] {
@@ -381,7 +391,9 @@ public class DistributedApplicationTests
         }
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithEntrypointWorks()
     {
         using var testProgram = CreateTestProgram();
@@ -396,7 +408,7 @@ public class DistributedApplicationTests
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
 
-        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromMinutes(1));
         var token = cts.Token;
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
@@ -411,7 +423,9 @@ public class DistributedApplicationTests
         await app.StopAsync();
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithBindMountWorksWithAbsolutePaths()
     {
         using var testProgram = CreateTestProgram();
@@ -427,7 +441,7 @@ public class DistributedApplicationTests
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
 
-        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromMinutes(1));
         var token = cts.Token;
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
@@ -443,7 +457,9 @@ public class DistributedApplicationTests
         await app.StopAsync();
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithBindMountWorksWithRelativePaths()
     {
         using var testProgram = CreateTestProgram();
@@ -458,7 +474,7 @@ public class DistributedApplicationTests
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
 
-        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromMinutes(1));
         var token = cts.Token;
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
@@ -475,7 +491,9 @@ public class DistributedApplicationTests
         await app.StopAsync();
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithVolumeWorksWithName()
     {
         using var testProgram = CreateTestProgram();
@@ -490,7 +508,7 @@ public class DistributedApplicationTests
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
 
-        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromMinutes(1));
         var token = cts.Token;
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
@@ -506,7 +524,9 @@ public class DistributedApplicationTests
         await app.StopAsync();
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task KubernetesHasResourceNameForContainersAndExes()
     {
         using var testProgram = CreateTestProgram(includeIntegrationServices: true, includeNodeApp: true);
@@ -518,7 +538,7 @@ public class DistributedApplicationTests
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
 
-        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromMinutes(1));
         var token = cts.Token;
 
         var expectedExeResources = new HashSet<string>()
@@ -574,7 +594,8 @@ public class DistributedApplicationTests
         }
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ReplicasAndProxylessEndpointThrows()
     {
         using var testProgram = CreateTestProgram();
@@ -591,7 +612,8 @@ public class DistributedApplicationTests
         Assert.Equal($"Resource 'servicea_{suffix}' uses multiple replicas and a proxy-less endpoint 'http'. These features do not work together.", ex.Message);
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessEndpointWithoutPortThrows()
     {
         using var testProgram = CreateTestProgram();
@@ -609,7 +631,8 @@ public class DistributedApplicationTests
         Assert.Equal($"Service 'servicea_{suffix}' needs to specify a port for endpoint 'http' since it isn't using a proxy.", ex.Message);
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessEndpointWorks()
     {
         using var testProgram = CreateTestProgram();
@@ -626,7 +649,7 @@ public class DistributedApplicationTests
         await using var app = testProgram.Build();
         await app.StartAsync();
 
-        var client = app.CreateHttpClient("servicea", "http");
+        var client = app.CreateHttpClientWithResilience("servicea", "http");
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
         var result = await client.GetStringAsync("pid", cts.Token);
@@ -640,7 +663,8 @@ public class DistributedApplicationTests
         });
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4599", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessAndProxiedEndpointBothWorkOnSameResource()
     {
         using var testProgram = CreateTestProgram();
@@ -704,7 +728,9 @@ public class DistributedApplicationTests
         }
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessContainerCanBeReferenced()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -752,7 +778,9 @@ public class DistributedApplicationTests
         await app.StopAsync();
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessContainerWithoutPortThrows()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -769,7 +797,9 @@ public class DistributedApplicationTests
         Assert.Equal($"The endpoint 'tcp' for container resource 'dummyRedis_{suffix}' must specify the TargetPort value", ex.Message);
     }
 
-    [LocalOnlyFact("docker")]
+    [Fact]
+    [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task AfterResourcesCreatedLifecycleHookWorks()
     {
         using var builder = TestDistributedApplicationBuilder.Create();

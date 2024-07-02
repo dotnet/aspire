@@ -5,6 +5,13 @@
       "type": "container.v0",
       "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}",
       "image": "docker.io/library/postgres:16.2",
+      "volumes": [
+        {
+          "name": "TestShop.AppHost-postgres-data",
+          "target": "/var/lib/postgresql/data",
+          "readOnly": false
+        }
+      ],
       "env": {
         "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
         "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
@@ -75,7 +82,7 @@
     },
     "messaging": {
       "type": "container.v0",
-      "connectionString": "amqp://guest:{rabbitmq-password.value}@{messaging.bindings.tcp.host}:{messaging.bindings.tcp.port}",
+      "connectionString": "amqp://guest:{messaging-password.value}@{messaging.bindings.tcp.host}:{messaging.bindings.tcp.port}",
       "image": "docker.io/library/rabbitmq:3.13-management",
       "volumes": [
         {
@@ -86,7 +93,7 @@
       ],
       "env": {
         "RABBITMQ_DEFAULT_USER": "guest",
-        "RABBITMQ_DEFAULT_PASS": "{rabbitmq-password.value}"
+        "RABBITMQ_DEFAULT_PASS": "{messaging-password.value}"
       },
       "bindings": {
         "tcp": {
@@ -233,9 +240,9 @@
         }
       }
     },
-    "rabbitmq-password": {
+    "messaging-password": {
       "type": "parameter.v0",
-      "value": "{rabbitmq-password.inputs.value}",
+      "value": "{messaging-password.inputs.value}",
       "inputs": {
         "value": {
           "type": "string",

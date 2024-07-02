@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
+  "resources": {
+    "kafka": {
+      "type": "container.v0",
+      "connectionString": "{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}",
+      "image": "docker.io/confluentinc/confluent-local:7.6.1",
+      "env": {
+        "KAFKA_LISTENERS": "PLAINTEXT://localhost:29092,CONTROLLER://localhost:29093,PLAINTEXT_HOST://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:9093",
+        "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT",
+        "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://{kafka.bindings.tcp.host}:29092,PLAINTEXT_HOST://{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port},PLAINTEXT_INTERNAL://{kafka.bindings.internal.host}:{kafka.bindings.internal.port}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 9092
+        },
+        "internal": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 9093
+        }
+      }
+    },
+    "producer": {
+      "type": "project.v0",
+      "path": "../Producer/Producer.csproj",
+      "args": [
+        "kafka"
+      ],
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ConnectionStrings__kafka": "{kafka.connectionString}"
+      }
+    },
+    "consumer": {
+      "type": "project.v0",
+      "path": "../Consumer/Consumer.csproj",
+      "args": [
+        "kafka"
+      ],
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ConnectionStrings__kafka": "{kafka.connectionString}"
+      }
+    },
+    "kafka2": {
+      "type": "container.v0",
+      "connectionString": "{kafka2.bindings.tcp.host}:{kafka2.bindings.tcp.port}",
+      "image": "docker.io/confluentinc/confluent-local:7.6.1",
+      "env": {
+        "KAFKA_LISTENERS": "PLAINTEXT://localhost:29092,CONTROLLER://localhost:29093,PLAINTEXT_HOST://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:9093",
+        "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT",
+        "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://{kafka2.bindings.tcp.host}:29092,PLAINTEXT_HOST://{kafka2.bindings.tcp.host}:{kafka2.bindings.tcp.port},PLAINTEXT_INTERNAL://{kafka2.bindings.internal.host}:{kafka2.bindings.internal.port}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 9092
+        },
+        "internal": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 9093
+        }
+      }
+    }
+  }
+}

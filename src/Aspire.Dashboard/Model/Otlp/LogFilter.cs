@@ -130,6 +130,11 @@ public class LogFilter
                     }
                     return input;
                 }
+            case nameof(OtlpLogEntry.Message):
+                {
+                    var func = ConditionToFuncString(Condition);
+                    return input.Where(x => func(x.Message, Value));
+                }
             default:
                 {
                     var func = ConditionToFuncString(Condition);

@@ -1,19 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Authentication;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
-using Grpc.Core;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
 
-namespace Aspire.Dashboard.Otlp.Grpc;
+namespace Aspire.Dashboard.Otlp;
 
-[Authorize(Policy = OtlpAuthorization.PolicyName)]
-[SkipStatusCodePages]
-public class OtlpMetricsService : MetricsService.MetricsServiceBase
+public sealed class OtlpMetricsService
 {
     private readonly ILogger<OtlpMetricsService> _logger;
     private readonly TelemetryRepository _telemetryRepository;
@@ -24,17 +18,19 @@ public class OtlpMetricsService : MetricsService.MetricsServiceBase
         _telemetryRepository = telemetryRepository;
     }
 
-    public override Task<ExportMetricsServiceResponse> Export(ExportMetricsServiceRequest request, ServerCallContext context)
+    public ExportMetricsServiceResponse Export(ExportMetricsServiceRequest request)
     {
         var addContext = new AddContext();
         _telemetryRepository.AddMetrics(addContext, request.ResourceMetrics);
 
-        return Task.FromResult(new ExportMetricsServiceResponse
+        _logger.LogDebug("Processed metrics export. Failure count: {FailureCount}", addContext.FailureCount);
+
+        return new ExportMetricsServiceResponse
         {
             PartialSuccess = new ExportMetricsPartialSuccess
             {
                 RejectedDataPoints = addContext.FailureCount
             }
-        });
+        };
     }
 }

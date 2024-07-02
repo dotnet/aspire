@@ -1,0 +1,6 @@
+#nullable enable
+Aspire.Hosting.Python.PythonProjectResource
+Aspire.Hosting.Python.PythonProjectResource.PythonProjectResource(string! name, string! executablePath, string! projectDirectory) -> void
+Aspire.Hosting.PythonProjectResourceBuilderExtensions
+static Aspire.Hosting.PythonProjectResourceBuilderExtensions.AddPythonProject(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! projectDirectory, string! scriptPath, params string![]! scriptArgs) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Python.PythonProjectResource!>!
+static Aspire.Hosting.PythonProjectResourceBuilderExtensions.AddPythonProject(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! projectDirectory, string! scriptPath, string! virtualEnvironmentPath, params string![]! scriptArgs) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Python.PythonProjectResource!>!

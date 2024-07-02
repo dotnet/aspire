@@ -89,7 +89,7 @@
       </trans-unit>
       <trans-unit id="UnknownStateLabel">
         <source>Unknown</source>
-        <target state="new">Unknown</target>
+        <target state="translated">不明</target>
         <note>This term is displayed in the "state" column of a grid, and reflects the case where we don't know what state a given resource is in.</note>
       </trans-unit>
       <trans-unit id="UnreadLogErrorsBadgeErrorLogs">

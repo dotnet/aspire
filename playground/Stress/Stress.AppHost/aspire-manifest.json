@@ -8,7 +8,8 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
-        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{stress-apiservice.bindings.http-5180.targetPort};{stress-apiservice.bindings.http-5181.targetPort};{stress-apiservice.bindings.http-5182.targetPort};{stress-apiservice.bindings.http-5183.targetPort};{stress-apiservice.bindings.http-5184.targetPort};{stress-apiservice.bindings.http-5185.targetPort};{stress-apiservice.bindings.http-5186.targetPort};{stress-apiservice.bindings.http-5187.targetPort};{stress-apiservice.bindings.http-5188.targetPort};{stress-apiservice.bindings.http-5189.targetPort};{stress-apiservice.bindings.http-5190.targetPort};{stress-apiservice.bindings.http-5191.targetPort};{stress-apiservice.bindings.http-5192.targetPort};{stress-apiservice.bindings.http-5193.targetPort};{stress-apiservice.bindings.http-5194.targetPort};{stress-apiservice.bindings.http-5195.targetPort};{stress-apiservice.bindings.http-5196.targetPort};{stress-apiservice.bindings.http-5197.targetPort};{stress-apiservice.bindings.http-5198.targetPort};{stress-apiservice.bindings.http-5199.targetPort};{stress-apiservice.bindings.http-5200.targetPort};{stress-apiservice.bindings.http-5201.targetPort};{stress-apiservice.bindings.http-5202.targetPort};{stress-apiservice.bindings.http-5203.targetPort};{stress-apiservice.bindings.http-5204.targetPort};{stress-apiservice.bindings.http-5205.targetPort};{stress-apiservice.bindings.http-5206.targetPort};{stress-apiservice.bindings.http-5207.targetPort};{stress-apiservice.bindings.http-5208.targetPort};{stress-apiservice.bindings.http-5209.targetPort}"
       },
       "bindings": {
         "http-5180": {
@@ -21,175 +22,204 @@
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5181
+          "port": 5181,
+          "targetPort": 8000
         },
         "http-5182": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5182
+          "port": 5182,
+          "targetPort": 8001
         },
         "http-5183": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5183
+          "port": 5183,
+          "targetPort": 8002
         },
         "http-5184": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5184
+          "port": 5184,
+          "targetPort": 8003
         },
         "http-5185": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5185
+          "port": 5185,
+          "targetPort": 8004
         },
         "http-5186": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5186
+          "port": 5186,
+          "targetPort": 8005
         },
         "http-5187": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5187
+          "port": 5187,
+          "targetPort": 8006
         },
         "http-5188": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5188
+          "port": 5188,
+          "targetPort": 8007
         },
         "http-5189": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5189
+          "port": 5189,
+          "targetPort": 8008
         },
         "http-5190": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5190
+          "port": 5190,
+          "targetPort": 8009
         },
         "http-5191": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5191
+          "port": 5191,
+          "targetPort": 8010
         },
         "http-5192": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5192
+          "port": 5192,
+          "targetPort": 8011
         },
         "http-5193": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5193
+          "port": 5193,
+          "targetPort": 8012
         },
         "http-5194": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5194
+          "port": 5194,
+          "targetPort": 8013
         },
         "http-5195": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5195
+          "port": 5195,
+          "targetPort": 8014
         },
         "http-5196": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5196
+          "port": 5196,
+          "targetPort": 8015
         },
         "http-5197": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5197
+          "port": 5197,
+          "targetPort": 8016
         },
         "http-5198": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5198
+          "port": 5198,
+          "targetPort": 8017
         },
         "http-5199": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5199
+          "port": 5199,
+          "targetPort": 8018
         },
         "http-5200": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5200
+          "port": 5200,
+          "targetPort": 8019
         },
         "http-5201": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5201
+          "port": 5201,
+          "targetPort": 8020
         },
         "http-5202": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5202
+          "port": 5202,
+          "targetPort": 8021
         },
         "http-5203": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5203
+          "port": 5203,
+          "targetPort": 8022
         },
         "http-5204": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5204
+          "port": 5204,
+          "targetPort": 8023
         },
         "http-5205": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5205
+          "port": 5205,
+          "targetPort": 8024
         },
         "http-5206": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5206
+          "port": 5206,
+          "targetPort": 8025
         },
         "http-5207": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5207
+          "port": 5207,
+          "targetPort": 8026
         },
         "http-5208": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5208
+          "port": 5208,
+          "targetPort": 8027
         },
         "http-5209": {
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http",
-          "port": 5209
+          "port": 5209,
+          "targetPort": 8028
         }
       }
     },

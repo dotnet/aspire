@@ -152,7 +152,7 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "https://localhost:1234";
         config[KnownConfigNames.ResourceServiceEndpointUrl] = string.Empty;
-        config[KnownConfigNames.DashboardOtlpEndpointUrl] = "https://localhost:1236";
+        config[KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "https://localhost:1236";
 
         var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
         var result = validator.Validate(null, options);
@@ -174,13 +174,13 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "https://localhost:1234";
         config[KnownConfigNames.ResourceServiceEndpointUrl] = "https://localhost:1235";
-        config[KnownConfigNames.DashboardOtlpEndpointUrl] = string.Empty;
+        config[KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = string.Empty;
 
         var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
         var result = validator.Validate(null, options);
         Assert.True(result.Failed);
         Assert.Equal(
-            $"AppHost does not have the {KnownConfigNames.DashboardOtlpEndpointUrl} setting defined.",
+            $"AppHost does not have the {KnownConfigNames.DashboardOtlpGrpcEndpointUrl} or {KnownConfigNames.DashboardOtlpHttpEndpointUrl} settings defined. At least one OTLP endpoint must be provided.",
             result.FailureMessage
             );
     }
@@ -197,7 +197,7 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "https://localhost:1234";
         config[KnownConfigNames.ResourceServiceEndpointUrl] = invalidUrl;
-        config[KnownConfigNames.DashboardOtlpEndpointUrl] = "https://localhost:1236";
+        config[KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "https://localhost:1236";
 
         var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
         var result = validator.Validate(null, options);
@@ -208,8 +208,10 @@ public class TransportOptionsValidatorTests
             );
     }
 
-    [Fact]
-    public void ValidationFailsWhenOtlpUrlMalformed()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardOtlpGrpcEndpointUrl)]
+    [InlineData(KnownConfigNames.DashboardOtlpHttpEndpointUrl)]
+    public void ValidationFailsWhenOtlpUrlMalformed(string otlpEndpointConfigName)
     {
         var distributedApplicationOptions = new DistributedApplicationOptions();
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
@@ -220,19 +222,21 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "https://localhost:1234";
         config[KnownConfigNames.ResourceServiceEndpointUrl] = "https://localhost:1235";
-        config[KnownConfigNames.DashboardOtlpEndpointUrl] = invalidUrl;
+        config[otlpEndpointConfigName] = invalidUrl;
 
         var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
         var result = validator.Validate(null, options);
         Assert.True(result.Failed);
         Assert.Equal(
-            $"The {KnownConfigNames.DashboardOtlpEndpointUrl} setting with a value of '{invalidUrl}' could not be parsed as a URI.",
+            $"The {otlpEndpointConfigName} setting with a value of '{invalidUrl}' could not be parsed as a URI.",
             result.FailureMessage
             );
     }
 
-    [Fact]
-    public void ValidationFailsWhenDashboardOtlpUrlIsHttp()
+    [Theory]
+    [InlineData(KnownConfigNames.DashboardOtlpGrpcEndpointUrl)]
+    [InlineData(KnownConfigNames.DashboardOtlpHttpEndpointUrl)]
+    public void ValidationFailsWhenDashboardOtlpUrlIsHttp(string otlpEndpointConfigName)
     {
         var distributedApplicationOptions = new DistributedApplicationOptions();
         var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
@@ -242,13 +246,13 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "https://localhost:1234";
         config[KnownConfigNames.ResourceServiceEndpointUrl] = "https://localhost:1235";
-        config[KnownConfigNames.DashboardOtlpEndpointUrl] = "http://localhost:1236";
+        config[otlpEndpointConfigName] = "http://localhost:1236";
 
         var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
         var result = validator.Validate(null, options);
         Assert.True(result.Failed);
         Assert.Equal(
-            $"The '{KnownConfigNames.DashboardOtlpEndpointUrl}' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.",
+            $"The '{otlpEndpointConfigName}' setting must be an https address unless the '{KnownConfigNames.AllowUnsecuredTransport}' environment variable is set to true. This configuration is commonly set in the launch profile. See https://aka.ms/dotnet/aspire/allowunsecuredtransport for more details.",
             result.FailureMessage
             );
     }
@@ -264,7 +268,7 @@ public class TransportOptionsValidatorTests
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "https://localhost:1234";
         config[KnownConfigNames.ResourceServiceEndpointUrl] = "http://localhost:1235";
-        config[KnownConfigNames.DashboardOtlpEndpointUrl] = "https://localhost:1236";
+        config[KnownConfigNames.DashboardOtlpGrpcEndpointUrl] = "https://localhost:1236";
 
         var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);
         var result = validator.Validate(null, options);
@@ -317,7 +321,7 @@ public class TransportOptionsValidatorTests
 
         var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
         config[KnownConfigNames.AspNetCoreUrls] = "https://localhost:1234";
-        config[KnownConfigNames.DashboardOtlpEndpointUrl] = "https://localhost:1235";
+        config[KnownConfigNames.DashboardOtlpHttpEndpointUrl] = "https://localhost:1235";
         config[KnownConfigNames.ResourceServiceEndpointUrl] = "https://localhost:1236";
 
         var validator = new TransportOptionsValidator(config, executionContext, distributedApplicationOptions);

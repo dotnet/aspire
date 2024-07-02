@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
 using System.Globalization;
+using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting.Tests.Dcp;
 
@@ -720,9 +721,21 @@ public class ApplicationExecutorTests
                 DashboardPath = "./dashboard"
             }),
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
-            new ResourceNotificationService(new NullLogger<ResourceNotificationService>()),
+            new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime()),
             new ResourceLoggerService(),
             new TestDcpDependencyCheckService()
             );
+    }
+
+    private sealed class TestHostApplicationLifetime : IHostApplicationLifetime
+    {
+        public CancellationToken ApplicationStarted { get; }
+        public CancellationToken ApplicationStopped { get; }
+        public CancellationToken ApplicationStopping { get; }
+
+        public void StopApplication()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

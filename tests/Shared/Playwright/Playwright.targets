@@ -1,0 +1,30 @@
+<Project>
+  <!--
+    Set $(InstallBrowsersForPlaywright) to 'true' to install browsers for Playwright.
+    @(BrowserForPlaywrightToInstall) is a list of browsers to install, defaulting to only `chromium`.
+  -->
+
+  <ItemGroup>
+    <BrowsersForPlaywrightToInstall Include="chromium" />
+    <Compile Include="$(MSBuildThisFileDirectory)*.cs" Link="Playwright" />
+
+    <PackageReference Include="Microsoft.Playwright" />
+  </ItemGroup>
+
+  <Target Name="ProvisionBrowsersForPlaywright" AfterTargets="Build" Condition="'$(InstallBrowsersForPlaywright)' == 'true' and @(BrowsersForPlaywrightToInstall->Count()) > 0">
+    <PropertyGroup>
+      <_MicrosoftPlaywrightDllPath>$(OutputPath)/Microsoft.Playwright.dll</_MicrosoftPlaywrightDllPath>
+    </PropertyGroup>
+
+    <Error Condition="!Exists('$(_MicrosoftPlaywrightDllPath)')"
+           Text="Could not find %24(_MicrosoftPlaywrightDllPath)=$(_MicrosoftPlaywrightDllPath). This expects the project to reference the Microsoft.Playwright nuget." />
+
+    <ItemGroup>
+      <_EnvVarsForPlaywrightInstall Include="PLAYWRIGHT_BROWSERS_PATH=$(PlaywrightDependenciesDirectory)" />
+      <_EnvVarsForPlaywrightInstall Condition="'$(ContinuousIntegrationBuild)' == 'true'" Include="PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=true" />
+    </ItemGroup>
+
+    <Exec Command="dotnet exec --runtimeconfig $(MSBuildThisFileDirectory)Microsoft.Playwright.runtimeconfig.json $(_MicrosoftPlaywrightDllPath) install @(BrowsersForPlaywrightToInstall, ' ')"
+          EnvironmentVariables="@(_EnvVarsForPlaywrightInstall)" />
+  </Target>
+</Project>

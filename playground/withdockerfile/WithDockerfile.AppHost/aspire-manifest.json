@@ -39,35 +39,6 @@
           }
         }
       }
-    },
-    "vanillaredis": {
-      "type": "container.v0",
-      "connectionString": "{vanillaredis.bindings.tcp.host}:{vanillaredis.bindings.tcp.port}",
-      "image": "docker.io/library/redis:7.2",
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "targetPort": 6379
-        }
-      }
-    },
-    "spicyredis": {
-      "type": "container.v1",
-      "connectionString": "{spicyredis.bindings.tcp.host}:{spicyredis.bindings.tcp.port}",
-      "build": {
-        "context": "spicyredis",
-        "dockerfile": "spicyredis/Dockerfile"
-      },
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "targetPort": 6380
-        }
-      }
     }
   }
 }

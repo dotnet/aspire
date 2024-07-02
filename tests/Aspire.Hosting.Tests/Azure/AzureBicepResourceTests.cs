@@ -2020,6 +2020,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 networkAcls: {
                   defaultAction: 'Allow'
                 }
+                minimumTlsVersion: 'TLS1_2'
               }
             }
 
@@ -2178,6 +2179,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 networkAcls: {
                   defaultAction: 'Allow'
                 }
+                minimumTlsVersion: 'TLS1_2'
               }
             }
 
