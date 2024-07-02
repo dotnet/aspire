@@ -5,6 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
@@ -58,11 +59,7 @@ public static class OtlpConfigurationExtensions
             }
 
             // Set the service name and instance id to the resource name and UID. Values are injected by DCP.
-            var dcpDependencyCheckService = context.ExecutionContext?.ServiceProvider?.GetService(typeof(IDcpDependencyCheckService)) as IDcpDependencyCheckService;
-            if (dcpDependencyCheckService is null)
-            {
-                throw new InvalidOperationException("DCP dependency check service is not available"); // Should never happen.
-            }
+            var dcpDependencyCheckService = context.ExecutionContext.ServiceProvider.GetRequiredService<IDcpDependencyCheckService>();
             var dcpInfo = await dcpDependencyCheckService.GetDcpInfoAsync(context.CancellationToken).ConfigureAwait(false);
             if (dcpInfo?.Version?.CompareTo(DcpVersion.MinimumVersionAspire_8_1) >= 0)
             {
