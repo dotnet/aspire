@@ -108,29 +108,26 @@ public static class RedisBuilderExtensions
                           .WithImageRegistry(RedisContainerImageTags.Registry)
                           .WithPassword(password.Resource);
         }
-        else
+        if (builder.ExecutionContext.IsPublishMode)
         {
-            if (builder.ExecutionContext.IsPublishMode)
-            {
-                var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
-                var redis = new RedisResource(name, passwordParameter);
+            var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
+            var redis = new RedisResource(name, passwordParameter);
 
-                return builder.AddResource(redis)
+            return builder.AddResource(redis)
+                      .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
+                      .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
+                      .WithImageRegistry(RedisContainerImageTags.Registry)
+                      .WithPassword(passwordParameter);
+        }
+        else if (builder.ExecutionContext.IsRunMode)
+        {
+            var redis = new RedisResource(name);
+            return builder.AddResource(redis)
                           .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
                           .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
-                          .WithImageRegistry(RedisContainerImageTags.Registry)
-                          .WithPassword(passwordParameter);
-            }
-            else if (builder.ExecutionContext.IsRunMode)
-            {
-                var redis = new RedisResource(name);
-                return builder.AddResource(redis)
-                              .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
-                              .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
-                              .WithImageRegistry(RedisContainerImageTags.Registry);
-            }
-            throw new InvalidOperationException($"{nameof(AddRedis)} is not supported in current {nameof(builder.ExecutionContext)}. {builder.ExecutionContext.Operation} Operation is not supported.");
+                          .WithImageRegistry(RedisContainerImageTags.Registry);
         }
+        throw new InvalidOperationException($"{nameof(AddRedis)} is not supported in current {nameof(builder.ExecutionContext)}. {builder.ExecutionContext.Operation} Operation is not supported.");
     }
 
     private static IResourceBuilder<RedisResource> WithPassword(this IResourceBuilder<RedisResource> builder, ParameterResource password)
