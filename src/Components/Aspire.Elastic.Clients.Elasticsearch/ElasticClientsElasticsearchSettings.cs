@@ -4,6 +4,9 @@
 //using Aspire;
 namespace Aspire.Elastic.Clients.Elasticsearch;
 
+/// <summary>
+/// Provides the client configuration settings for connecting to a Elasticsearch using Elastic.Clients.Elasticsearch.
+/// </summary>
 public sealed class ElasticClientsElasticsearchSettings
 {
     /// <summary>

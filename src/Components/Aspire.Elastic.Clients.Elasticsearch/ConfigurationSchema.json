@@ -8,6 +8,7 @@
       }
     }
   },
+  "type": "object",
   "properties": {
     "Aspire.Elastic.Clients.Elasticsearch": {
       "type": "object",
@@ -49,8 +50,8 @@
           "description": "Gets or sets a boolean value that indicates whether the connection to elastic cloud or not.",
           "default": false
         }
-      }
+      },
+      "description": "Provides the client configuration settings for connecting to a Elasticsearch using Elastic.Clients.Elasticsearch."
     }
-  },
-  "type": "object"
+  }
 }
