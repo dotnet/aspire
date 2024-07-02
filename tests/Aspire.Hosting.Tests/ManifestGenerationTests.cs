@@ -658,8 +658,12 @@ public class ManifestGenerationTests
                 },
                 "mongodb": {
                   "type": "container.v0",
-                  "connectionString": "mongodb://{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}",
+                  "connectionString": "mongodb://admin:{mongodb-password.value}@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}?authSource=admin\u0026authMechanism=SCRAM-SHA-256",
                   "image": "{{MongoDBContainerImageTags.Registry}}/{{MongoDBContainerImageTags.Image}}:{{MongoDBContainerImageTags.Tag}}",
+                  "env": {
+                    "MONGO_INITDB_ROOT_USERNAME": "admin",
+                    "MONGO_INITDB_ROOT_PASSWORD": "{mongodb-password.value}"
+                  },
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",
@@ -671,7 +675,7 @@ public class ManifestGenerationTests
                 },
                 "mymongodb": {
                   "type": "value.v0",
-                  "connectionString": "{mongodb.connectionString}/mymongodb"
+                  "connectionString": "mongodb://admin:{mongodb-password.value}@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}/mymongodb?authSource=admin\u0026authMechanism=SCRAM-SHA-256"
                 },
                 "oracledatabase": {
                   "type": "container.v0",
@@ -818,6 +822,22 @@ public class ManifestGenerationTests
                 "rabbitmq-password": {
                   "type": "parameter.v0",
                   "value": "{rabbitmq-password.inputs.value}",
+                  "inputs": {
+                    "value": {
+                      "type": "string",
+                      "secret": true,
+                      "default": {
+                        "generate": {
+                          "minLength": 22,
+                          "special": false
+                        }
+                      }
+                    }
+                  }
+                },
+                "mongodb-password": {
+                  "type": "parameter.v0",
+                  "value": "{mongodb-password.inputs.value}",
                   "inputs": {
                     "value": {
                       "type": "string",
