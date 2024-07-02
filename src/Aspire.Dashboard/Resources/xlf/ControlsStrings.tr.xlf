@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerGraphTab">
         <source>Graph</source>
-        <target state="translated">Graf</target>
+        <target state="translated">Graph</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerNoneSelected">
@@ -294,7 +294,7 @@
       </trans-unit>
       <trans-unit id="TraceDetailAttributesHeader">
         <source>Attributes</source>
-        <target state="new">Attributes</target>
+        <target state="translated">Öznitelikler</target>
         <note />
       </trans-unit>
       <trans-unit id="ViewAction">

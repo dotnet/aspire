@@ -98,7 +98,7 @@
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(MicrosoftExtensionsTimeProviderTestingVersion)" />
     <!-- external dependencies -->
     <PackageVersion Include="Confluent.Kafka" Version="2.4.0" />
-    <PackageVersion Include="Dapper" Version="2.1.37" />
+    <PackageVersion Include="Dapper" Version="2.1.44" />
     <PackageVersion Include="DnsClient" Version="1.7.0" />
     <PackageVersion Include="Google.Protobuf" Version="3.27.1" />
     <PackageVersion Include="Grpc.AspNetCore" Version="2.63.0" />
@@ -110,7 +110,7 @@
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.7.2" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.7.2" />
     <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1"/>
-    <PackageVersion Include="MongoDB.Driver" Version="2.25.0" />
+    <PackageVersion Include="MongoDB.Driver" Version="2.26.0" />
     <PackageVersion Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" Version="1.4.0" />
     <PackageVersion Include="MySqlConnector.DependencyInjection" Version="2.3.6" />
     <PackageVersion Include="MySqlConnector.Logging.Microsoft.Extensions.Logging" Version="2.1.0" />
@@ -123,7 +123,7 @@
     <PackageVersion Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
     <PackageVersion Include="Qdrant.Client" Version="1.9.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="[6.8.1,7.0.0)" />
-    <PackageVersion Include="StackExchange.Redis" Version="2.7.33" />
+    <PackageVersion Include="StackExchange.Redis" Version="2.8.0" />
     <PackageVersion Include="System.IO.Hashing" Version="8.0.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.1.0" />
     <!-- Open Telemetry -->
@@ -142,7 +142,7 @@
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Workloads" Version="8.0.0-beta.23564.4" />
     <PackageVersion Include="Microsoft.Signed.Wix" Version="$(MicrosoftSignedWixVersion)" />
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Installers" Version="8.0.0-beta.23564.4" />
-    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.24209.3" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.24324.3" />
     <!-- unit test dependencies -->
     <PackageVersion Include="bUnit" Version="1.28.9" />
     <PackageVersion Include="JsonSchema.Net" Version="7.0.4" />
