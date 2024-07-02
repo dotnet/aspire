@@ -84,6 +84,10 @@
                       "pattern": "^-?(\\d{1,7}|((\\d{1,7}[\\.:])?(([01]?\\d|2[0-3]):[0-5]?\\d|([01]?\\d|2[0-3]):[0-5]?\\d:[0-5]?\\d)(\\.\\d{1,7})?))$",
                       "description": "Controls how often the connection heartbeats. A heartbeat includes:\n- Evaluating if any messages have timed out\n- Evaluating connection status (checking for failures)\n- Sending a server message to keep the connection alive if needed"
                     },
+                    "HighIntegrity": {
+                      "type": "boolean",
+                      "description": "A Boolean value that specifies whether to use per-command validation of strict protocol validity.\nThis sends an additional command after EVERY command which incurs measurable overhead."
+                    },
                     "IncludeDetailInExceptions": {
                       "type": "boolean",
                       "description": "Should exceptions include identifiable details? (key names, additional .Data annotations)"
