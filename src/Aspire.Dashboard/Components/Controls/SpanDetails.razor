@@ -42,6 +42,21 @@
                               ValueSort="_valueSort"
                               HighlightText="@_filter" />
             </FluentAccordionItem>
+            <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsContextHeader)]" Expanded="true">
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
+                        @FilteredContextItems.Count()
+                    </FluentBadge>
+                </div>
+                <PropertyGrid TItem="SpanPropertyViewModel"
+                              Items="@FilteredContextItems"
+                              GridTemplateColumns="1fr 2fr"
+                              NameColumnValue="(vm) => vm.Name"
+                              ValueColumnValue="(vm) => vm.Value"
+                              NameSort="_nameSort"
+                              ValueSort="_valueSort"
+                              HighlightText="@_filter" />
+            </FluentAccordionItem>
             <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsResourceHeader)]" Expanded="true">
                 <div slot="end">
                     <FluentBadge Appearance="Appearance.Neutral" Circular="true">
