@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -57,8 +58,93 @@ public class RedisFunctionalTests
 
         // Use a volume to do a snapshot save
 
+        await VerifyDataPersistence(
+            options => options.WithDataVolume(volumeName),
+            async redisClient => await redisClient.GetServers().First().SaveAsync(SaveType.BackgroundSave)
+            );
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AddDataVolumeWithCustomPersistenceInterval()
+    {
+        var volumeName = "myvolume";
+        var snapshotInterval = TimeSpan.FromSeconds(1);
+
+        // Use a volume to do a snapshot save with a custom interval
+
+        await VerifyDataPersistence(
+            options => options.WithDataVolume(volumeName).WithPersistence(snapshotInterval),
+            async redisClient => await Task.Delay(snapshotInterval + TimeSpan.FromSeconds(1))
+            );
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AddBindMountShouldPersistStateBetweenUsages()
+    {
+        var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
+        if (!Directory.Exists(bindMountPath))
+        {
+            Directory.CreateDirectory(bindMountPath);
+        }
+
+        // Use a bind mount to do a snapshot save
+
+        await VerifyDataPersistence(
+            options => options.WithDataBindMount(bindMountPath),
+            async redisClient => await redisClient.GetServers().First().SaveAsync(SaveType.BackgroundSave)
+            );
+
+        try
+        {
+            File.Delete(bindMountPath);
+        }
+        catch
+        {
+            // Don't fail test if we can't clean the temporary folder
+        }
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AddBindMountWithCustomPersistenceInterval()
+    {
+        var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
+        if (!Directory.Exists(bindMountPath))
+        {
+            Directory.CreateDirectory(bindMountPath);
+        }
+
+        var snapshotInterval = TimeSpan.FromSeconds(1);
+
+        // Use a bind mount to do a snapshot save with a custom interval
+
+        await VerifyDataPersistence(
+            options => options.WithDataBindMount(bindMountPath).WithPersistence(snapshotInterval),
+            async redisClient => await Task.Delay(snapshotInterval + TimeSpan.FromSeconds(1))
+            );
+
+        try
+        {
+            File.Delete(bindMountPath);
+        }
+        catch
+        {
+            // Don't fail test if we can't clean the temporary folder
+        }
+    }
+
+    private static async Task VerifyDataPersistence(
+        Action<IResourceBuilder<RedisResource>> configureResource,
+        Func<IConnectionMultiplexer, Task> configureClient)
+    {
         var builder1 = TestDistributedApplicationBuilder.Create();
-        var redis1 = builder1.AddRedis("redis").WithDataVolume(volumeName);
+        var redis1 = builder1.AddRedis("redis");
+
+        configureResource?.Invoke(redis1);
 
         using (var app = builder1.Build())
         {
@@ -87,87 +173,13 @@ public class RedisFunctionalTests
                 // Force Redis to save the keys (snapshotting)
                 // c.f. https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/
 
-                await redisClient.GetServers().First().SaveAsync(SaveType.BackgroundSave);
+                await configureClient.Invoke(redisClient);
             }
         }
-
-        // Start a new instance with the same existing volume
 
         var builder2 = TestDistributedApplicationBuilder.Create();
-        var redis2 = builder2.AddRedis("redis").WithDataVolume(volumeName);
-
-        using (var app = builder2.Build())
-        {
-            await app.StartAsync();
-
-            var hb = Host.CreateApplicationBuilder();
-
-            hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                [$"ConnectionStrings:{redis2.Resource.Name}"] = await redis2.Resource.GetConnectionStringAsync()
-            });
-
-            hb.AddRedisClient(redis2.Resource.Name);
-
-            using (var host = hb.Build())
-            {
-                await host.StartAsync();
-
-                var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
-
-                var db = redisClient.GetDatabase();
-
-                var value = await db.StringGetAsync("key");
-
-                Assert.Equal("value", value);
-            }
-        }
-    }
-
-    [Fact]
-    [RequiresDocker]
-    public async Task AddDataVolumeWithCustomPersistenceInterval()
-    {
-        var volumeName = "myvolume";
-        var interval = TimeSpan.FromSeconds(1);
-
-        // Use a volume to do a snapshot save
-
-        var builder1 = TestDistributedApplicationBuilder.Create();
-        var redis1 = builder1.AddRedis("redis").WithDataVolume(volumeName).WithPersistence(interval);
-
-        using (var app = builder1.Build())
-        {
-            await app.StartAsync();
-
-            var hb = Host.CreateApplicationBuilder();
-
-            hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                [$"ConnectionStrings:{redis1.Resource.Name}"] = await redis1.Resource.GetConnectionStringAsync()
-            });
-
-            hb.AddRedisClient(redis1.Resource.Name);
-
-            using (var host = hb.Build())
-            {
-                await host.StartAsync();
-
-                var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
-
-                var db = redisClient.GetDatabase();
-
-                await db.StringSetAsync("key", "value");
-
-                // Wait 1 second more than the interval
-                await Task.Delay(interval + TimeSpan.FromSeconds(1));
-            }
-        }
-
-        // Start a new instance with the same existing volume
-
-        var builder2 = TestDistributedApplicationBuilder.Create();
-        var redis2 = builder2.AddRedis("redis").WithDataVolume(volumeName);
+        var redis2 = builder2.AddRedis("redis");
+        configureResource?.Invoke(redis2);
 
         using (var app = builder2.Build())
         {
