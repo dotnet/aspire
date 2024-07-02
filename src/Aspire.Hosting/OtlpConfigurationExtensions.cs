@@ -76,6 +76,8 @@ public static class OtlpConfigurationExtensions
 
                 // Configure trace sampler to send all traces to the dashboard.
                 context.EnvironmentVariables["OTEL_TRACES_SAMPLER"] = "always_on";
+                // Configure metrics to include exemplars.
+                context.EnvironmentVariables["OTEL_METRICS_EXEMPLAR_FILTER"] = "trace_based";
             }
         }));
 

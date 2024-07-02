@@ -19,7 +19,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     private List<SelectViewModel<TimeSpan>> _durations = null!;
     private static readonly TimeSpan s_defaultDuration = TimeSpan.FromMinutes(5);
 
-    private List<SelectViewModel<ResourceTypeDetails>> _applications = default!;
+    private List<OtlpApplication> _applications = default!;
+    private List<SelectViewModel<ResourceTypeDetails>> _applicationViewModels = default!;
     private Subscription? _applicationsSubscription;
     private Subscription? _metricsSubscription;
 
@@ -119,7 +120,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public void UpdateViewModelFromQuery(MetricsViewModel viewModel)
     {
         viewModel.SelectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration);
-        viewModel.SelectedApplication = _applications.GetApplication(Logger, ApplicationName, _selectApplication);
+        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _selectApplication);
         var selectedInstance = viewModel.SelectedApplication.Id?.InstanceId;
         viewModel.Instruments = !string.IsNullOrEmpty(selectedInstance) ? TelemetryRepository.GetInstrumentsSummary(selectedInstance) : null;
 
@@ -144,8 +145,9 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     private void UpdateApplications()
     {
-        _applications = ApplicationsSelectHelpers.CreateApplications(TelemetryRepository.GetApplications());
-        _applications.Insert(0, _selectApplication);
+        _applications = TelemetryRepository.GetApplications();
+        _applicationViewModels = ApplicationsSelectHelpers.CreateApplications(_applications);
+        _applicationViewModels.Insert(0, _selectApplication);
         UpdateSubscription();
     }
 

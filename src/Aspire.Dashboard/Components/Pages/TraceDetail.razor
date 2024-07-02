@@ -55,7 +55,7 @@
             <Summary>
                 <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" Class="trace-view-grid" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="SpanWaterfallViewModel" RowClass="@GetRowClass" GridTemplateColumns="4fr 12fr 85px">
                     <TemplateColumn Title="Name">
-                        <div class="col-long-content" title="@context.GetTooltip()" @onclick="() => OnShowPropertiesAsync(context, null)">
+                        <div class="col-long-content" title="@context.GetTooltip(_applications)" @onclick="() => OnShowPropertiesAsync(context, null)">
                             @{
                                 var isServerOrConsumer = context.Span.Kind == OtlpSpanKind.Server || context.Span.Kind == OtlpSpanKind.Consumer;
                                 // Indent the span name based on the depth of the span.
@@ -127,7 +127,7 @@
                                             @context.UninstrumentedPeer
                                         </span>
                                     }
-                                    <span class="span-row-name">@context.GetDisplaySummary()</span>
+                                    <span class="span-row-name">@SpanWaterfallViewModel.GetDisplaySummary(context.Span)</span>
                                 </span>
                             </span>
                         </div>
@@ -156,7 +156,7 @@
                                 <div class="span-container" style="grid-template-columns: @context.LeftOffset.ToString("F2", CultureInfo.InvariantCulture)% @context.Width.ToString("F2", CultureInfo.InvariantCulture)% min-content;">
                                     <div class="span-bar" style="grid-column: 2; background: @ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source));"></div>
                                     <div class="span-bar-label @(context.LabelIsRight ? "span-bar-label-right" : "span-bar-label-left")">
-                                        <span class="span-bar-label-detail">@GetResourceName(context.Span.Source): @context.GetDisplaySummary()</span>
+                                        <span class="span-bar-label-detail">@SpanWaterfallViewModel.GetTitle(context.Span, _applications)</span>
                                         <span>@DurationFormatter.FormatDuration(context.Span.Duration)</span>
                                     </div>
                                 </div>

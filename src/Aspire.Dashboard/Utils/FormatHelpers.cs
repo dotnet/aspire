@@ -119,8 +119,18 @@ internal static partial class FormatHelpers
         }
     }
 
-    public static string FormatNumberWithOptionalDecimalPlaces(double value, CultureInfo? provider = null)
+    public static string FormatNumberWithOptionalDecimalPlaces(double value, int maxDecimalPlaces, CultureInfo? provider = null)
     {
-        return value.ToString("##,0.######", provider ?? CultureInfo.CurrentCulture);
+        var formatString = maxDecimalPlaces switch
+        {
+            1 => "##,0.#",
+            2 => "##,0.##",
+            3 => "##,0.###",
+            4 => "##,0.####",
+            5 => "##,0.#####",
+            6 => "##,0.######",
+            _ => throw new ArgumentException("Unexpected value.", nameof(maxDecimalPlaces))
+        };
+        return value.ToString(formatString, provider ?? CultureInfo.CurrentCulture);
     }
 }

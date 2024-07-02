@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace Aspire.Dashboard.Otlp.Model.MetricValues;
 
-[DebuggerDisplay("Start = {Start}, End = {End}, Value = {Value}")]
+[DebuggerDisplay("Start = {Start}, End = {End}, Value = {Value}, Exemplars = {Exemplars.Count}")]
 public class MetricValue<T> : MetricValueBase where T : struct
 {
     public readonly T Value;
@@ -19,7 +19,12 @@ public class MetricValue<T> : MetricValueBase where T : struct
 
     protected override MetricValueBase Clone()
     {
-        return new MetricValue<T>(Value, Start, End);
+        var value = new MetricValue<T>(Value, Start, End);
+        if (HasExemplars)
+        {
+            value.Exemplars.AddRange(Exemplars);
+        }
+        return value;
     }
 
     internal override bool TryCompare(MetricValueBase obj, out int comparisonResult)

@@ -25,7 +25,7 @@ else
                        Label="@Loc[nameof(ControlsStrings.ChartContainerGraphTab)]"
                        Icon="@(new Icons.Regular.Size24.DataArea())">
                 <div class="metrics-chart-container metric-tab">
-                    <PlotlyChart InstrumentViewModel="_instrumentViewModel" Duration="Duration"/>
+                    <PlotlyChart InstrumentViewModel="_instrumentViewModel" Duration="Duration" Applications="Applications"/>
                     <ChartFilters InstrumentViewModel="_instrumentViewModel" Instrument="_instrument" ViewModel="_viewModel"/>
                 </div>
             </FluentTab>
@@ -34,7 +34,7 @@ else
                        Label="@Loc[nameof(ControlsStrings.ChartContainerTableTab)]"
                        Icon="@(new Icons.Regular.Size24.Table())">
                 <div class="metric-tab">
-                    <MetricTable InstrumentViewModel="_instrumentViewModel" Duration="Duration"/>
+                    <MetricTable InstrumentViewModel="_instrumentViewModel" Duration="Duration" Applications="Applications" />
                     <ChartFilters InstrumentViewModel="_instrumentViewModel" Instrument="_instrument" ViewModel="_viewModel"/>
                 </div>
             </FluentTab>
@@ -48,4 +48,7 @@ else
 
     [Parameter, EditorRequired]
     public required Func<Metrics.MetricViewKind, Task> OnViewChangedAsync { get; set; }
+
+    [Parameter]
+    public required List<OtlpApplication> Applications { get; set; }
 }
