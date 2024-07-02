@@ -120,7 +120,6 @@ public static class ResourceBuilderExtensions
             context.EnvironmentVariables[name] = parameter.Resource;
         });
 
-
     /// <summary>
     /// Adds an environment variable to the resource with the connection string from the referenced resource.
     /// </summary>
@@ -139,7 +138,6 @@ public static class ResourceBuilderExtensions
         {
             context.EnvironmentVariables[envVarName] = new ConnectionStringReference(resource.Resource, optional: false);
         });
-
 
     /// <summary>
     /// Adds the arguments to be passed to a container resource when the container is started.

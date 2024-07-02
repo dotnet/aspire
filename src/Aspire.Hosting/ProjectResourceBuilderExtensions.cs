@@ -167,7 +167,6 @@ public static class ProjectResourceBuilderExtensions
             options.LaunchProfileName = launchProfileName;
         });
 
-
     /// <summary>
     /// Adds a .NET project to the application model.
     /// </summary>
