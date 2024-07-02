@@ -9,15 +9,6 @@ Aspire.Hosting.DistributedApplicationExecutionContextOptions.DistributedApplicat
 Aspire.Hosting.DistributedApplicationExecutionContextOptions.Operation.get -> Aspire.Hosting.DistributedApplicationOperation
 Aspire.Hosting.DistributedApplicationExecutionContextOptions.ServiceProvider.get -> System.IServiceProvider?
 Aspire.Hosting.DistributedApplicationExecutionContextOptions.ServiceProvider.set -> void
-Aspire.Hosting.Utils.Cache.CacheBuilderExtensions
-Aspire.Hosting.Utils.Cache.CacheResource
-Aspire.Hosting.Utils.Cache.CacheResource.CacheResource(string! name) -> void
-Aspire.Hosting.Utils.Cache.CacheResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
-Aspire.Hosting.Utils.Cache.CacheResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
-static Aspire.Hosting.Utils.Cache.CacheBuilderExtensions.AddCache<T>(this Aspire.Hosting.IDistributedApplicationBuilder! builder, T! cacheResource, string! registry, string! image, string! tag, int targetPort, int? port = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
-static Aspire.Hosting.Utils.Cache.CacheBuilderExtensions.WithDataBindMount<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! source, string! target, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
-static Aspire.Hosting.Utils.Cache.CacheBuilderExtensions.WithDataVolume<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! target, string? name = null, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
-static Aspire.Hosting.Utils.Cache.CacheBuilderExtensions.WithPersistence<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, System.TimeSpan? interval = null, long keysChangedThreshold = 1) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Exited -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.FailedToStart -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Finished -> string!
