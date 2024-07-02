@@ -2,7 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Dcp.Model;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
@@ -27,7 +30,7 @@ public static class OtlpConfigurationExtensions
         // Configure OpenTelemetry in projects using environment variables.
         // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/configuration/sdk-environment-variables.md
 
-        resource.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
+        resource.Annotations.Add(new EnvironmentCallbackAnnotation(async context =>
         {
             if (context.ExecutionContext.IsPublishMode)
             {
@@ -56,8 +59,18 @@ public static class OtlpConfigurationExtensions
             }
 
             // Set the service name and instance id to the resource name and UID. Values are injected by DCP.
-            context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- .Name -}}";
-            context.EnvironmentVariables["OTEL_SERVICE_NAME"] = "{{- index .Annotations \"otel-service-name\" -}}";
+            var dcpDependencyCheckService = context.ExecutionContext.ServiceProvider.GetRequiredService<IDcpDependencyCheckService>();
+            var dcpInfo = await dcpDependencyCheckService.GetDcpInfoAsync(context.CancellationToken).ConfigureAwait(false);
+            if (dcpInfo?.Version?.CompareTo(DcpVersion.MinimumVersionAspire_8_1) >= 0)
+            {
+                context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- index .Annotations \"" + CustomResource.OtelServiceInstanceIdAnnotation + "\" -}}";
+            }
+            else
+            {
+                // Versions prior to Aspire 8.1 do not OTEL service instance ID annotation for replicated Executables.
+                context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- .Name -}}";
+            }
+            context.EnvironmentVariables["OTEL_SERVICE_NAME"] = "{{- index .Annotations \"" + CustomResource.OtelServiceNameAnnotation + "\" -}}";
 
             if (configuration["AppHost:OtlpApiKey"] is { } otlpApiKey)
             {
