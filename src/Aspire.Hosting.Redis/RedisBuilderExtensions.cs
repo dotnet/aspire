@@ -115,7 +115,7 @@ public static class RedisBuilderExtensions
     /// Use <see cref="WithPersistence(IResourceBuilder{RedisResource}, TimeSpan?, long)"/> to adjust Redis persistence configuration, e.g.:
     /// <code lang="csharp">
     /// var cache = builder.AddRedis("cache")
-    ///                    .WithDataBindMount()
+    ///                    .WithDataBindMount("myredisdata")
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
     /// </code>
     /// </remarks>
