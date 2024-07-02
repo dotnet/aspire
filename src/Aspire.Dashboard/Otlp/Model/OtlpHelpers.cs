@@ -61,15 +61,9 @@ public static class OtlpHelpers
         });
     }
 
-    public static string TruncateString(string value, int maxLength)
-    {
-        return value.Length > maxLength ? value[..maxLength] : value;
-    }
+    public static string TruncateString(string value, int maxLength) => value.Length > maxLength ? value[..maxLength] : value;
 
-    public static string ToHexString(this ByteString bytes)
-    {
-        return ToHexString(bytes.Memory);
-    }
+    public static string ToHexString(this ByteString bytes) => ToHexString(bytes.Memory);
 
     public static string GetString(this AnyValue value) =>
         value.ValueCase switch

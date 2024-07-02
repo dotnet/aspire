@@ -47,20 +47,14 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     private Func<EndpointInfo>? _otlpServiceGrpcEndPointAccessor;
     private Func<EndpointInfo>? _otlpServiceHttpEndPointAccessor;
 
-    public Func<EndpointInfo> FrontendEndPointAccessor
-    {
-        get => _frontendEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
-    }
+    public Func<EndpointInfo> FrontendEndPointAccessor =>
+        _frontendEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
 
-    public Func<EndpointInfo> OtlpServiceGrpcEndPointAccessor
-    {
-        get => _otlpServiceGrpcEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
-    }
+    public Func<EndpointInfo> OtlpServiceGrpcEndPointAccessor =>
+        _otlpServiceGrpcEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
 
-    public Func<EndpointInfo> OtlpServiceHttpEndPointAccessor
-    {
-        get => _otlpServiceHttpEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
-    }
+    public Func<EndpointInfo> OtlpServiceHttpEndPointAccessor =>
+        _otlpServiceHttpEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
 
     public IOptionsMonitor<DashboardOptions> DashboardOptionsMonitor => _dashboardOptionsMonitor;
 
@@ -317,10 +311,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
     }
 
-    private ILogger<DashboardWebApplication> GetLogger()
-    {
-        return _app.Services.GetRequiredService<ILoggerFactory>().CreateLogger<DashboardWebApplication>();
-    }
+    private ILogger<DashboardWebApplication> GetLogger() => _app.Services.GetRequiredService<ILoggerFactory>().CreateLogger<DashboardWebApplication>();
 
     private static void WriteValidationFailures(ILogger<DashboardWebApplication> logger, IReadOnlyList<string> validationFailures)
     {
@@ -688,10 +679,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         return _app.StopAsync(cancellationToken);
     }
 
-    public ValueTask DisposeAsync()
-    {
-        return _app.DisposeAsync();
-    }
+    public ValueTask DisposeAsync() => _app.DisposeAsync();
 
     private static bool IsHttpsOrNull(Uri? uri) => uri == null || string.Equals(uri.Scheme, "https", StringComparison.Ordinal);
 

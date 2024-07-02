@@ -7,16 +7,10 @@ using OpenTelemetry.Proto.Collector.Trace.V1;
 
 namespace Aspire.Dashboard.Otlp;
 
-public sealed class OtlpTraceService
+public sealed class OtlpTraceService(ILogger<OtlpTraceService> logger, TelemetryRepository telemetryRepository)
 {
-    private readonly ILogger<OtlpTraceService> _logger;
-    private readonly TelemetryRepository _telemetryRepository;
-
-    public OtlpTraceService(ILogger<OtlpTraceService> logger, TelemetryRepository telemetryRepository)
-    {
-        _logger = logger;
-        _telemetryRepository = telemetryRepository;
-    }
+    private readonly ILogger<OtlpTraceService> _logger = logger;
+    private readonly TelemetryRepository _telemetryRepository = telemetryRepository;
 
     public ExportTraceServiceResponse Export(ExportTraceServiceRequest request)
     {

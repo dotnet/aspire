@@ -8,10 +8,7 @@ namespace Aspire.Dashboard.Model;
 
 public sealed class BrowserLinkOutgoingPeerResolver : IOutgoingPeerResolver
 {
-    public IDisposable OnPeerChanges(Func<Task> callback)
-    {
-        return new NullSubscription();
-    }
+    public IDisposable OnPeerChanges(Func<Task> callback)=> new NullSubscription();
 
     private sealed class NullSubscription : IDisposable
     {

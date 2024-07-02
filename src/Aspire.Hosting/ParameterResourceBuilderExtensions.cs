@@ -22,10 +22,8 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
     /// <returns>Resource builder for the parameter.</returns>
     /// <exception cref="DistributedApplicationException"></exception>
-    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, bool secret = false)
-    {
-        return builder.AddParameter(name, parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault), secret: secret);
-    }
+    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, bool secret = false) =>
+        builder.AddParameter(name, parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault), secret: secret);
 
     private static string GetParameterValue(IConfiguration configuration, string name, ParameterDefault? parameterDefault)
     {

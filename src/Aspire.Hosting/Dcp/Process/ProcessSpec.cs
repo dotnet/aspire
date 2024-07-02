@@ -3,9 +3,9 @@
 
 namespace Aspire.Hosting.Dcp.Process;
 
-internal sealed class ProcessSpec
+internal sealed class ProcessSpec(string executablePath)
 {
-    public string ExecutablePath { get; }
+    public string ExecutablePath { get; } = executablePath;
     public string? WorkingDirectory { get; init; }
     public IDictionary<string, string> EnvironmentVariables { get; init; } = new Dictionary<string, string>();
     public bool InheritEnv { get; init; } = true;
@@ -16,9 +16,4 @@ internal sealed class ProcessSpec
     public Action<int>? OnStop { get; init; }
     public bool KillEntireProcessTree { get; init; } = true;
     public bool ThrowOnNonZeroReturnCode { get; init; } = true;
-
-    public ProcessSpec(string executablePath)
-    {
-        ExecutablePath = executablePath;
-    }
 }

@@ -41,10 +41,8 @@ internal sealed class ExecutableTemplate : IAnnotationHolder
         CustomResource.AnnotateAsObjectList(Annotations, annotationName, value);
     }
 
-    public bool TryGetAnnotationAsObjectList<TValue>(string annotationName, [NotNullWhen(true)] out List<TValue>? list)
-    {
-        return CustomResource.TryGetAnnotationAsObjectList(Annotations, annotationName, out list);
-    }
+    public bool TryGetAnnotationAsObjectList<TValue>(string annotationName, [NotNullWhen(true)] out List<TValue>? list) =>
+        CustomResource.TryGetAnnotationAsObjectList(Annotations, annotationName, out list);
 }
 
 internal sealed class ExecutableReplicaSetSpec

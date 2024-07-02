@@ -178,25 +178,17 @@ public sealed class TelemetryRepository
         }
     }
 
-    public Subscription OnNewApplications(Func<Task> callback)
-    {
-        return AddSubscription(nameof(OnNewApplications), string.Empty, SubscriptionType.Read, callback, _applicationSubscriptions);
-    }
+    public Subscription OnNewApplications(Func<Task> callback) =>
+        AddSubscription(nameof(OnNewApplications), string.Empty, SubscriptionType.Read, callback, _applicationSubscriptions);
 
-    public Subscription OnNewLogs(string? applicationId, SubscriptionType subscriptionType, Func<Task> callback)
-    {
-        return AddSubscription(nameof(OnNewLogs), applicationId, subscriptionType, callback, _logSubscriptions);
-    }
+    public Subscription OnNewLogs(string? applicationId, SubscriptionType subscriptionType, Func<Task> callback) =>
+        AddSubscription(nameof(OnNewLogs), applicationId, subscriptionType, callback, _logSubscriptions);
 
-    public Subscription OnNewMetrics(string? applicationId, SubscriptionType subscriptionType, Func<Task> callback)
-    {
-        return AddSubscription(nameof(OnNewMetrics), applicationId, subscriptionType, callback, _metricsSubscriptions);
-    }
+    public Subscription OnNewMetrics(string? applicationId, SubscriptionType subscriptionType, Func<Task> callback) =>
+        AddSubscription(nameof(OnNewMetrics), applicationId, subscriptionType, callback, _metricsSubscriptions);
 
-    public Subscription OnNewTraces(string? applicationId, SubscriptionType subscriptionType, Func<Task> callback)
-    {
-        return AddSubscription(nameof(OnNewTraces), applicationId, subscriptionType, callback, _tracesSubscriptions);
-    }
+    public Subscription OnNewTraces(string? applicationId, SubscriptionType subscriptionType, Func<Task> callback) =>
+        AddSubscription(nameof(OnNewTraces), applicationId, subscriptionType, callback, _tracesSubscriptions);
 
     private Subscription AddSubscription(string name, string? applicationId, SubscriptionType subscriptionType, Func<Task> callback, List<Subscription> subscriptions)
     {
@@ -511,9 +503,8 @@ public sealed class TelemetryRepository
         };
     }
 
-    internal static OtlpSpanKind ConvertSpanKind(SpanKind? kind)
-    {
-        return kind switch
+    internal static OtlpSpanKind ConvertSpanKind(SpanKind? kind) =>
+        kind switch
         {
             // Unspecified to Internal is intentional.
             // "Implementations MAY assume SpanKind to be INTERNAL when receiving UNSPECIFIED."
@@ -525,7 +516,6 @@ public sealed class TelemetryRepository
             SpanKind.Consumer => OtlpSpanKind.Consumer,
             _ => OtlpSpanKind.Unspecified
         };
-    }
 
     internal void AddTracesCore(AddContext context, OtlpApplication application, RepeatedField<ScopeSpans> scopeSpans)
     {

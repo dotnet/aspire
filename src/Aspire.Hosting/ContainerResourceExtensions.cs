@@ -31,8 +31,5 @@ public static class ContainerResourceExtensions
     /// </summary>
     /// <param name="resource">The resource to check.</param>
     /// <returns>true if the specified resource is a container resource; otherwise, false.</returns>
-    public static bool IsContainer(this IResource resource)
-    {
-        return resource.Annotations.OfType<ContainerImageAnnotation>().Any();
-    }
+    public static bool IsContainer(this IResource resource) => resource.Annotations.OfType<ContainerImageAnnotation>().Any();
 }

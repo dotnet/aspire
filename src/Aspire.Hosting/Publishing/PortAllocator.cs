@@ -22,8 +22,5 @@ internal sealed class PortAllocator(int startPort = 8000)
         }
     }
 
-    public void AddUsedPort(int port)
-    {
-        _usedPorts.Add(port);
-    }
+    public void AddUsedPort(int port) => _usedPorts.Add(port);
 }

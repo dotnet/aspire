@@ -11,18 +11,11 @@ using System.Web;
 
 namespace Aspire.Dashboard.Model;
 
-internal sealed class ValidateTokenMiddleware
+internal sealed class ValidateTokenMiddleware(RequestDelegate next, IOptionsMonitor<DashboardOptions> options, ILogger<ValidateTokenMiddleware> logger)
 {
-    private readonly RequestDelegate _next;
-    private readonly IOptionsMonitor<DashboardOptions> _options;
-    private readonly ILogger<ValidateTokenMiddleware> _logger;
-
-    public ValidateTokenMiddleware(RequestDelegate next, IOptionsMonitor<DashboardOptions> options, ILogger<ValidateTokenMiddleware> logger)
-    {
-        _next = next;
-        _options = options;
-        _logger = logger;
-    }
+    private readonly RequestDelegate _next = next;
+    private readonly IOptionsMonitor<DashboardOptions> _options = options;
+    private readonly ILogger<ValidateTokenMiddleware> _logger = logger;
 
     public async Task InvokeAsync(HttpContext context)
     {

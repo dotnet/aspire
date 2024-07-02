@@ -47,10 +47,8 @@ internal static class IConfigurationExtensions
     /// <param name="key">The configuration key.</param>
     /// <param name="defaultValue">A default value, for when the configuration value is unspecified or white space.</param>
     /// <returns></returns>
-    public static bool GetBool(this IConfiguration configuration, string key, bool defaultValue)
-    {
-        return configuration.GetBool(key) ?? defaultValue;
-    }
+    public static bool GetBool(this IConfiguration configuration, string key, bool defaultValue) =>
+        configuration.GetBool(key) ?? defaultValue;
 
     /// <summary>
     /// Parses a configuration value into a <see cref="Uri"/> object.

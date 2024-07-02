@@ -181,10 +181,7 @@ public class ResourceLoggerService
         /// <summary>
         /// Creates a new <see cref="ResourceLoggerState"/>.
         /// </summary>
-        public ResourceLoggerState()
-        {
-            _logger = new ResourceLogger(this);
-        }
+        public ResourceLoggerState() => _logger = new ResourceLogger(this);
 
         private Action<bool>? _onSubscribersChanged;
         public event Action<bool> OnSubscribersChanged
@@ -313,11 +310,9 @@ public class ResourceLoggerService
         /// <summary>
         /// Close the log stream for the resource. Future subscribers will not receive any updates and will complete immediately.
         /// </summary>
-        public void Complete()
-        {
+        public void Complete() =>
             // REVIEW: Do we clean up the backlog?
             _logStreamCts.Cancel();
-        }
 
         public void ClearBacklog()
         {

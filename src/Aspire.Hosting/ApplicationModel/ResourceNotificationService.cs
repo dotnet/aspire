@@ -34,10 +34,8 @@ public class ResourceNotificationService
         Use the constructor that accepts an {nameof(ILogger)}<{nameof(ResourceNotificationService)}> and {nameof(IHostApplicationLifetime)}.
         This constructor will be removed in the next major version of Aspire.
         """)]
-    public ResourceNotificationService(ILogger<ResourceNotificationService> logger)
-    {
+    public ResourceNotificationService(ILogger<ResourceNotificationService> logger) =>
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     /// <summary>
     /// Creates a new instance of <see cref="ResourceNotificationService"/>.
@@ -198,10 +196,8 @@ public class ResourceNotificationService
     /// </summary>
     /// <param name="resource">The resource to update</param>
     /// <param name="stateFactory">A factory that creates the new state based on the previous state.</param>
-    public Task PublishUpdateAsync(IResource resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
-    {
-        return PublishUpdateAsync(resource, resource.Name, stateFactory);
-    }
+    public Task PublishUpdateAsync(IResource resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory) =>
+        PublishUpdateAsync(resource, resource.Name, stateFactory);
 
     private static CustomResourceSnapshot GetCurrentSnapshot(IResource resource, ResourceNotificationState notificationState)
     {

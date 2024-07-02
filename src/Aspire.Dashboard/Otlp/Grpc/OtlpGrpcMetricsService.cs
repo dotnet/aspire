@@ -11,17 +11,10 @@ namespace Aspire.Dashboard.Otlp.Grpc;
 
 [Authorize(Policy = OtlpAuthorization.PolicyName)]
 [SkipStatusCodePages]
-public class OtlpGrpcMetricsService : MetricsService.MetricsServiceBase
+public class OtlpGrpcMetricsService(OtlpMetricsService metricsService) : MetricsService.MetricsServiceBase
 {
-    private readonly OtlpMetricsService _metricsService;
+    private readonly OtlpMetricsService _metricsService = metricsService;
 
-    public OtlpGrpcMetricsService(OtlpMetricsService metricsService)
-    {
-        _metricsService = metricsService;
-    }
-
-    public override Task<ExportMetricsServiceResponse> Export(ExportMetricsServiceRequest request, ServerCallContext context)
-    {
-        return Task.FromResult(_metricsService.Export(request));
-    }
+    public override Task<ExportMetricsServiceResponse> Export(ExportMetricsServiceRequest request, ServerCallContext context) =>
+        Task.FromResult(_metricsService.Export(request));
 }

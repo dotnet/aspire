@@ -20,23 +20,15 @@ public class ResourceTypeDetails
     public string? InstanceId { get; }
     public string? ReplicaSetName { get; }
 
-    public static ResourceTypeDetails CreateReplicaSet(string replicaSetName)
-    {
-        return new ResourceTypeDetails(OtlpApplicationType.ReplicaSet, instanceId: null, replicaSetName);
-    }
+    public static ResourceTypeDetails CreateReplicaSet(string replicaSetName) =>
+        new ResourceTypeDetails(OtlpApplicationType.ReplicaSet, instanceId: null, replicaSetName);
 
-    public static ResourceTypeDetails CreateSingleton(string instanceId)
-    {
-        return new ResourceTypeDetails(OtlpApplicationType.Singleton, instanceId, replicaSetName: null);
-    }
+    public static ResourceTypeDetails CreateSingleton(string instanceId) =>
+        new ResourceTypeDetails(OtlpApplicationType.Singleton, instanceId, replicaSetName: null);
 
-    public static ResourceTypeDetails CreateReplicaInstance(string instanceId, string replicaSetName)
-    {
-        return new ResourceTypeDetails(OtlpApplicationType.ReplicaInstance, instanceId, replicaSetName);
-    }
+    public static ResourceTypeDetails CreateReplicaInstance(string instanceId, string replicaSetName) =>
+        new ResourceTypeDetails(OtlpApplicationType.ReplicaInstance, instanceId, replicaSetName);
 
-    public override string ToString()
-    {
-        return $"Type = {Type}, InstanceId = {InstanceId}, ReplicaSetName = {ReplicaSetName}";
-    }
+    public override string ToString() =>
+        $"Type = {Type}, InstanceId = {InstanceId}, ReplicaSetName = {ReplicaSetName}";
 }

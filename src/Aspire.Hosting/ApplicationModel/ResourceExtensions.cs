@@ -60,10 +60,8 @@ public static class ResourceExtensions
     /// <param name="resource">The resource to get the environment variables from.</param>
     /// <param name="environmentVariables">The environment variables retrieved from the resource, if any.</param>
     /// <returns>True if the environment variables were successfully retrieved, false otherwise.</returns>
-    public static bool TryGetEnvironmentVariables(this IResource resource, [NotNullWhen(true)] out IEnumerable<EnvironmentCallbackAnnotation>? environmentVariables)
-    {
-        return TryGetAnnotationsOfType(resource, out environmentVariables);
-    }
+    public static bool TryGetEnvironmentVariables(this IResource resource, [NotNullWhen(true)] out IEnumerable<EnvironmentCallbackAnnotation>? environmentVariables) =>
+        TryGetAnnotationsOfType(resource, out environmentVariables);
 
     /// <summary>
     /// Attempts to get the container mounts for the specified resource.
@@ -71,10 +69,8 @@ public static class ResourceExtensions
     /// <param name="resource">The resource to get the volume mounts for.</param>
     /// <param name="volumeMounts">When this method returns, contains the volume mounts for the specified resource, if found; otherwise, <c>null</c>.</param>
     /// <returns><c>true</c> if the volume mounts were successfully retrieved; otherwise, <c>false</c>.</returns>
-    public static bool TryGetContainerMounts(this IResource resource, [NotNullWhen(true)] out IEnumerable<ContainerMountAnnotation>? volumeMounts)
-    {
-        return TryGetAnnotationsOfType<ContainerMountAnnotation>(resource, out volumeMounts);
-    }
+    public static bool TryGetContainerMounts(this IResource resource, [NotNullWhen(true)] out IEnumerable<ContainerMountAnnotation>? volumeMounts) =>
+        TryGetAnnotationsOfType<ContainerMountAnnotation>(resource, out volumeMounts);
 
     /// <summary>
     /// Attempts to retrieve the endpoints for the given resource.
@@ -82,10 +78,8 @@ public static class ResourceExtensions
     /// <param name="resource">The resource to retrieve the endpoints for.</param>
     /// <param name="endpoints">The endpoints for the given resource, if found.</param>
     /// <returns>True if the endpoints were found, false otherwise.</returns>
-    public static bool TryGetEndpoints(this IResource resource, [NotNullWhen(true)] out IEnumerable<EndpointAnnotation>? endpoints)
-    {
-        return TryGetAnnotationsOfType(resource, out endpoints);
-    }
+    public static bool TryGetEndpoints(this IResource resource, [NotNullWhen(true)] out IEnumerable<EndpointAnnotation>? endpoints) =>
+        TryGetAnnotationsOfType(resource, out endpoints);
 
     /// <summary>
     /// Gets the endpoints for the specified resource.
@@ -109,10 +103,8 @@ public static class ResourceExtensions
     /// <param name="endpointName">The name of the endpoint.</param>
     /// <returns>An <see cref="EndpointReference"/> object representing the endpoint reference 
     /// for the specified endpoint.</returns>
-    public static EndpointReference GetEndpoint(this IResourceWithEndpoints resource, string endpointName)
-    {
-        return new EndpointReference(resource, endpointName);
-    }
+    public static EndpointReference GetEndpoint(this IResourceWithEndpoints resource, string endpointName) =>
+        new EndpointReference(resource, endpointName);
 
     /// <summary>
     /// Attempts to get the container image name from the given resource.

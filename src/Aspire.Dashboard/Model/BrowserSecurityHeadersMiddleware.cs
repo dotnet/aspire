@@ -11,19 +11,11 @@ namespace Aspire.Dashboard.Model;
 /// - Referrer-Policy
 /// - X-Content-Type-Options
 /// </summary>
-internal sealed class BrowserSecurityHeadersMiddleware
+internal sealed class BrowserSecurityHeadersMiddleware(RequestDelegate next, IHostEnvironment environment)
 {
-    private readonly RequestDelegate _next;
-    private readonly string _cspContentHttp;
-    private readonly string _cspContentHttps;
-
-    public BrowserSecurityHeadersMiddleware(RequestDelegate next, IHostEnvironment environment)
-    {
-        _next = next;
-
-        _cspContentHttp = GenerateCspContent(environment, isHttps: false);
-        _cspContentHttps = GenerateCspContent(environment, isHttps: true);
-    }
+    private readonly RequestDelegate _next = next;
+    private readonly string _cspContentHttp = GenerateCspContent(environment, isHttps: false);
+    private readonly string _cspContentHttps = GenerateCspContent(environment, isHttps: true);
 
     private static string GenerateCspContent(IHostEnvironment environment, bool isHttps)
     {

@@ -15,13 +15,8 @@ public class OtlpGrpcTraceService : TraceService.TraceServiceBase
 {
     private readonly OtlpTraceService _traceService;
 
-    public OtlpGrpcTraceService(OtlpTraceService traceService)
-    {
-        _traceService = traceService;
-    }
+    public OtlpGrpcTraceService(OtlpTraceService traceService) => _traceService = traceService;
 
-    public override Task<ExportTraceServiceResponse> Export(ExportTraceServiceRequest request, ServerCallContext context)
-    {
-        return Task.FromResult(_traceService.Export(request));
-    }
+    public override Task<ExportTraceServiceResponse> Export(ExportTraceServiceRequest request, ServerCallContext context) =>
+        Task.FromResult(_traceService.Export(request));
 }

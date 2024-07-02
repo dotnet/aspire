@@ -59,10 +59,8 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         });
     }
 
-    public bool TryResolvePeerName(KeyValuePair<string, string>[] attributes, [NotNullWhen(true)] out string? name)
-    {
-        return TryResolvePeerNameCore(_resourceByName, attributes, out name);
-    }
+    public bool TryResolvePeerName(KeyValuePair<string, string>[] attributes, [NotNullWhen(true)] out string? name) =>
+        TryResolvePeerNameCore(_resourceByName, attributes, out name);
 
     internal static bool TryResolvePeerNameCore(IDictionary<string, ResourceViewModel> resources, KeyValuePair<string, string>[] attributes, out string? name)
     {

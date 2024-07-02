@@ -24,18 +24,12 @@ using Polly.Timeout;
 
 namespace Aspire.Hosting.Dcp;
 
-internal class AppResource
+internal class AppResource(IResource modelResource, CustomResource dcpResource)
 {
-    public IResource ModelResource { get; }
-    public CustomResource DcpResource { get; }
+    public IResource ModelResource { get; } = modelResource;
+    public CustomResource DcpResource { get; } = dcpResource;
     public virtual List<ServiceAppResource> ServicesProduced { get; } = [];
     public virtual List<ServiceAppResource> ServicesConsumed { get; } = [];
-
-    public AppResource(IResource modelResource, CustomResource dcpResource)
-    {
-        ModelResource = modelResource;
-        DcpResource = dcpResource;
-    }
 }
 
 internal sealed class ServiceAppResource : AppResource
@@ -43,19 +37,11 @@ internal sealed class ServiceAppResource : AppResource
     public Service Service => (Service)DcpResource;
     public EndpointAnnotation EndpointAnnotation { get; }
 
-    public override List<ServiceAppResource> ServicesProduced
-    {
-        get { throw new InvalidOperationException("Service resources do not produce any services"); }
-    }
-    public override List<ServiceAppResource> ServicesConsumed
-    {
-        get { throw new InvalidOperationException("Service resources do not consume any services"); }
-    }
+    public override List<ServiceAppResource> ServicesProduced => throw new InvalidOperationException("Service resources do not produce any services");
+    public override List<ServiceAppResource> ServicesConsumed => throw new InvalidOperationException("Service resources do not consume any services");
 
-    public ServiceAppResource(IResource modelResource, Service service, EndpointAnnotation sba) : base(modelResource, service)
-    {
+    public ServiceAppResource(IResource modelResource, Service service, EndpointAnnotation sba) : base(modelResource, service) =>
         EndpointAnnotation = sba;
-    }
 }
 
 internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,

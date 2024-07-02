@@ -5,14 +5,9 @@ using Aspire.Hosting.Dashboard;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed class HostDashboardEndpointProvider : IDashboardEndpointProvider
+internal sealed class HostDashboardEndpointProvider(DashboardServiceHost dashboardServiceHost) : IDashboardEndpointProvider
 {
-    private readonly DashboardServiceHost _dashboardServiceHost;
-
-    public HostDashboardEndpointProvider(DashboardServiceHost dashboardServiceHost)
-    {
-        _dashboardServiceHost = dashboardServiceHost;
-    }
+    private readonly DashboardServiceHost _dashboardServiceHost = dashboardServiceHost;
 
     public async Task<string> GetResourceServiceUriAsync(CancellationToken cancellationToken = default)
     {

@@ -8,17 +8,10 @@ using OpenTelemetry.Proto.Common.V1;
 namespace Aspire.Dashboard.Otlp.Model;
 
 [DebuggerDisplay("MeterName = {MeterName}")]
-public class OtlpMeter
+public class OtlpMeter(InstrumentationScope scope, TelemetryLimitOptions options)
 {
-    public string MeterName { get; init; }
-    public string Version { get; init; }
+    public string MeterName { get; init; } = scope.Name;
+    public string Version { get; init; } = scope.Version;
 
-    public ReadOnlyMemory<KeyValuePair<string, string>> Attributes { get; }
-
-    public OtlpMeter(InstrumentationScope scope, TelemetryLimitOptions options)
-    {
-        MeterName = scope.Name;
-        Version = scope.Version;
-        Attributes = scope.Attributes.ToKeyValuePairs(options);
-    }
+    public ReadOnlyMemory<KeyValuePair<string, string>> Attributes { get; } = scope.Attributes.ToKeyValuePairs(options);
 }

@@ -155,9 +155,7 @@ public class OtlpInstrument
     {
         public static readonly KeyValuePairComparer Instance = new();
 
-        public int Compare(KeyValuePair<string, string> x, KeyValuePair<string, string> y)
-        {
-            return string.Compare(x.Key, y.Key, StringComparison.Ordinal);
-        }
+        public int Compare(KeyValuePair<string, string> x, KeyValuePair<string, string> y) =>
+            string.Compare(x.Key, y.Key, StringComparison.Ordinal);
     }
 }

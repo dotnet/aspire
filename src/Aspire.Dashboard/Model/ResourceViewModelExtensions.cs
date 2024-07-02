@@ -9,15 +9,11 @@ namespace Aspire.Dashboard.Model;
 
 internal static class ResourceViewModelExtensions
 {
-    public static bool IsContainer(this ResourceViewModel resource)
-    {
-        return StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Container);
-    }
+    public static bool IsContainer(this ResourceViewModel resource) =>
+        StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Container);
 
-    public static bool IsProject(this ResourceViewModel resource)
-    {
-        return StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Project);
-    }
+    public static bool IsProject(this ResourceViewModel resource) =>
+        StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Project);
 
     public static bool IsExecutable(this ResourceViewModel resource, bool allowSubtypes)
     {
@@ -34,30 +30,20 @@ internal static class ResourceViewModelExtensions
         return false;
     }
 
-    public static bool TryGetExitCode(this ResourceViewModel resource, out int exitCode)
-    {
-        return resource.TryGetCustomDataInt(KnownProperties.Resource.ExitCode, out exitCode);
-    }
+    public static bool TryGetExitCode(this ResourceViewModel resource, out int exitCode) =>
+        resource.TryGetCustomDataInt(KnownProperties.Resource.ExitCode, out exitCode);
 
-    public static bool TryGetContainerImage(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? containerImage)
-    {
-        return resource.TryGetCustomDataString(KnownProperties.Container.Image, out containerImage);
-    }
+    public static bool TryGetContainerImage(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? containerImage) =>
+        resource.TryGetCustomDataString(KnownProperties.Container.Image, out containerImage);
 
-    public static bool TryGetProjectPath(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? projectPath)
-    {
-        return resource.TryGetCustomDataString(KnownProperties.Project.Path, out projectPath);
-    }
+    public static bool TryGetProjectPath(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? projectPath) =>
+        resource.TryGetCustomDataString(KnownProperties.Project.Path, out projectPath);
 
-    public static bool TryGetExecutablePath(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? executablePath)
-    {
-        return resource.TryGetCustomDataString(KnownProperties.Executable.Path, out executablePath);
-    }
+    public static bool TryGetExecutablePath(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? executablePath) =>
+        resource.TryGetCustomDataString(KnownProperties.Executable.Path, out executablePath);
 
-    public static bool TryGetExecutableArguments(this ResourceViewModel resource, out ImmutableArray<string> arguments)
-    {
-        return resource.TryGetCustomDataStringArray(KnownProperties.Executable.Args, out arguments);
-    }
+    public static bool TryGetExecutableArguments(this ResourceViewModel resource, out ImmutableArray<string> arguments) =>
+        resource.TryGetCustomDataStringArray(KnownProperties.Executable.Args, out arguments);
 
     private static bool TryGetCustomDataString(this ResourceViewModel resource, string key, [NotNullWhen(returnValue: true)] out string? s)
     {

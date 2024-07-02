@@ -11,17 +11,10 @@ namespace Aspire.Dashboard.Otlp.Grpc;
 
 [Authorize(Policy = OtlpAuthorization.PolicyName)]
 [SkipStatusCodePages]
-public class OtlpGrpcLogsService : LogsService.LogsServiceBase
+public class OtlpGrpcLogsService(OtlpLogsService logsService) : LogsService.LogsServiceBase
 {
-    private readonly OtlpLogsService _logsService;
+    private readonly OtlpLogsService _logsService = logsService;
 
-    public OtlpGrpcLogsService(OtlpLogsService logsService)
-    {
-        _logsService = logsService;
-    }
-
-    public override Task<ExportLogsServiceResponse> Export(ExportLogsServiceRequest request, ServerCallContext context)
-    {
-        return Task.FromResult(_logsService.Export(request));
-    }
+    public override Task<ExportLogsServiceResponse> Export(ExportLogsServiceRequest request, ServerCallContext context) =>
+        Task.FromResult(_logsService.Export(request));
 }

@@ -7,9 +7,8 @@ namespace Aspire.Hosting.Dashboard;
 
 internal static class ConsoleLogsConfigurationExtensions
 {
-    internal static IResourceBuilder<T> ConfigureConsoleLogs<T>(this IResourceBuilder<T> builder) where T : IResourceWithEnvironment
-    {
-        return builder.WithEnvironment((context) =>
+    internal static IResourceBuilder<T> ConfigureConsoleLogs<T>(this IResourceBuilder<T> builder) where T : IResourceWithEnvironment =>
+        builder.WithEnvironment((context) =>
         {
             if (context.ExecutionContext.IsPublishMode)
             {
@@ -22,5 +21,5 @@ internal static class ConsoleLogsConfigurationExtensions
             context.EnvironmentVariables["LOGGING__CONSOLE__FORMATTERNAME"] = "simple";
             context.EnvironmentVariables["LOGGING__CONSOLE__FORMATTEROPTIONS__TIMESTAMPFORMAT"] = $"{KnownFormats.ConsoleLogsTimestampFormat} ";
         });
-    }
+
 }

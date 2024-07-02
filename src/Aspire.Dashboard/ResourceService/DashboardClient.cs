@@ -391,12 +391,9 @@ internal sealed class DashboardClient : IDashboardClient
         }
     }
 
-    string IDashboardClient.ApplicationName
-    {
-        get => _applicationName
+    string IDashboardClient.ApplicationName => _applicationName
             ?? _dashboardOptions.ApplicationName
             ?? "Aspire";
-    }
 
     async Task<ResourceViewModelSubscription> IDashboardClient.SubscribeResourcesAsync(CancellationToken cancellationToken)
     {

@@ -101,19 +101,13 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         /// Appends a literal value to the expression.
         /// </summary>
         /// <param name="value">The literal string value to be appended to the interpolated string.</param>
-        public readonly void AppendLiteral(string value)
-        {
-            _builder.Append(value);
-        }
+        public readonly void AppendLiteral(string value) => _builder.Append(value);
 
         /// <summary>
         /// Appends a formatted value to the expression.
         /// </summary>
         /// <param name="value">The formatted string to be appended to the interpolated string.</param>
-        public readonly void AppendFormatted(string? value)
-        {
-            _builder.Append(value);
-        }
+        public readonly void AppendFormatted(string? value) => _builder.Append(value);
 
         /// <summary>
         /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
@@ -160,19 +154,13 @@ public class ReferenceExpressionBuilder
     /// Appends a literal value to the expression.
     /// </summary>
     /// <param name="value">The literal string value to be appended to the interpolated string.</param>
-    public void AppendLiteral(string value)
-    {
-        _builder.Append(value);
-    }
+    public void AppendLiteral(string value) => _builder.Append(value);
 
     /// <summary>
     /// Appends a formatted value to the expression.
     /// </summary>
     /// <param name="value">The formatted string to be appended to the interpolated string.</param>
-    public void AppendFormatted(string? value)
-    {
-        _builder.Append(value);
-    }
+    public void AppendFormatted(string? value) => _builder.Append(value);
 
     /// <summary>
     /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
@@ -210,28 +198,19 @@ public class ReferenceExpressionBuilder
         /// Appends a literal value to the expression.
         /// </summary>
         /// <param name="value">The literal string value to be appended to the interpolated string.</param>
-        public readonly void AppendLiteral(string value)
-        {
-            builder.AppendLiteral(value);
-        }
+        public readonly void AppendLiteral(string value) => builder.AppendLiteral(value);
 
         /// <summary>
         /// Appends a formatted value to the expression.
         /// </summary>
         /// <param name="value">The formatted string to be appended to the interpolated string.</param>
-        public readonly void AppendFormatted(string? value)
-        {
-            builder.AppendFormatted(value);
-        }
+        public readonly void AppendFormatted(string? value) => builder.AppendFormatted(value);
 
         /// <summary>
         /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
         /// </summary>
         /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
         /// <exception cref="InvalidOperationException"></exception>
-        public void AppendFormatted<T>(T valueProvider) where T : IValueProvider, IManifestExpressionProvider
-        {
-            builder.AppendFormatted(valueProvider);
-        }
+        public readonly void AppendFormatted<T>(T valueProvider) where T : IValueProvider, IManifestExpressionProvider => builder.AppendFormatted(valueProvider);
     }
 }

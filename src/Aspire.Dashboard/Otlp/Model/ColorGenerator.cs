@@ -62,20 +62,17 @@ public class ColorGenerator
         return (r, g, b);
     }
 
-    private int GetColorIndex(string key)
-    {
-        return _colorIndexByKey.GetOrAdd(key, k =>
-        {
-            // GetOrAdd is run outside of the lock.
-            // Use lazy to ensure that the index is only calculated once for an app.
-            return new Lazy<int>(() =>
-            {
-                var i = _currentIndex;
-                _currentIndex = ++_currentIndex % _colors.Count;
-                return i;
-            });
-        }).Value;
-    }
+    private int GetColorIndex(string key) => _colorIndexByKey.GetOrAdd(key, k =>
+                                                  {
+                                                      // GetOrAdd is run outside of the lock.
+                                                      // Use lazy to ensure that the index is only calculated once for an app.
+                                                      return new Lazy<int>(() =>
+                                                      {
+                                                          var i = _currentIndex;
+                                                          _currentIndex = ++_currentIndex % _colors.Count;
+                                                          return i;
+                                                      });
+                                                  }).Value;
 
     public string GetColorHexByKey(string key)
     {

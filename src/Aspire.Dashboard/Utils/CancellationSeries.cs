@@ -50,10 +50,7 @@ internal sealed class CancellationSeries
     /// at which point there's something to cancel.
     /// </remarks>
     /// <returns></returns>
-    public Task ClearAsync()
-    {
-        return Next(null);
-    }
+    public Task ClearAsync() => Next(null);
 
     private async Task Next(CancellationTokenSource? next)
     {

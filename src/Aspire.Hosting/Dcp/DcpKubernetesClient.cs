@@ -9,11 +9,8 @@ namespace Aspire.Hosting.Dcp;
 // We need to create a custom Kubernetes client to support reading arbitrary subresources from a Kubernetes resource as a stream.
 // k8s.Kubernetes does not support this operation natively, and required machinery (SendRequest() in particular) is protected.
 
-internal sealed class DcpKubernetesClient : k8s.Kubernetes
+internal sealed class DcpKubernetesClient(KubernetesClientConfiguration config, params DelegatingHandler[] handlers) : k8s.Kubernetes(config, handlers)
 {
-    public DcpKubernetesClient(KubernetesClientConfiguration config, params DelegatingHandler[] handlers) : base(config, handlers)
-    {
-    }
 
     /// <summary>
     /// Asynchronously reads a sub-resource from a Kubernetes resource as a stream.
@@ -83,20 +80,11 @@ internal sealed class DcpKubernetesClient : k8s.Kubernetes
     {
         private readonly List<string> _parameters = new List<string>();
 
-        public void Append(string key, int val)
-        {
-            _parameters.Add($"{key}={val}");
-        }
+        public void Append(string key, int val) => _parameters.Add($"{key}={val}");
 
-        public void Append(string key, bool? val)
-        {
-            _parameters.Add($"{key}={(val == true ? "true" : "false")}");
-        }
+        public void Append(string key, bool? val) => _parameters.Add($"{key}={(val == true ? "true" : "false")}");
 
-        public void Append(string key, string val)
-        {
-            _parameters.Add($"{key}={Uri.EscapeDataString(val)}");
-        }
+        public void Append(string key, string val) => _parameters.Add($"{key}={Uri.EscapeDataString(val)}");
 
         public override string ToString()
         {

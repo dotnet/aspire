@@ -12,19 +12,13 @@ public sealed class OtlpTraceCollection : KeyedCollection<ReadOnlyMemory<byte>, 
 
     }
 
-    protected override ReadOnlyMemory<byte> GetKeyForItem(OtlpTrace item)
-    {
-        return item.Key;
-    }
+    protected override ReadOnlyMemory<byte> GetKeyForItem(OtlpTrace item) => item.Key;
 
     private sealed class MemoryComparable : IEqualityComparer<ReadOnlyMemory<byte>>
     {
         public static readonly MemoryComparable Instance = new();
 
-        public bool Equals(ReadOnlyMemory<byte> x, ReadOnlyMemory<byte> y)
-        {
-            return x.Span.SequenceEqual(y.Span);
-        }
+        public bool Equals(ReadOnlyMemory<byte> x, ReadOnlyMemory<byte> y) => x.Span.SequenceEqual(y.Span);
 
         public int GetHashCode(ReadOnlyMemory<byte> obj)
         {

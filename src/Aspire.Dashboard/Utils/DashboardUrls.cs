@@ -13,10 +13,7 @@ internal static class DashboardUrls
     public const string StructuredLogsBasePath = "structuredlogs";
     public const string TracesBasePath = "traces";
 
-    public static string ResourcesUrl()
-    {
-        return "/";
-    }
+    public static string ResourcesUrl() => "/";
 
     public static string ConsoleLogsUrl(string? resource = null)
     {
@@ -96,10 +93,7 @@ internal static class DashboardUrls
         return url;
     }
 
-    public static string TraceDetailUrl(string traceId)
-    {
-        return $"/{TracesBasePath}/detail/{Uri.EscapeDataString(traceId)}";
-    }
+    public static string TraceDetailUrl(string traceId) => $"/{TracesBasePath}/detail/{Uri.EscapeDataString(traceId)}";
 
     public static string LoginUrl(string? returnUrl = null, string? token = null)
     {

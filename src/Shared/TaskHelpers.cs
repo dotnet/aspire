@@ -7,15 +7,10 @@ namespace Aspire.Dashboard.Utils;
 
 internal static class TaskHelpers
 {
-    public static Task WaitIgnoreCancelAsync(Task? task)
-    {
-        return WaitIgnoreCancelCoreAsync(task, logger: null, logMessage: null);
-    }
+    public static Task WaitIgnoreCancelAsync(Task? task) => WaitIgnoreCancelCoreAsync(task, logger: null, logMessage: null);
 
-    public static Task WaitIgnoreCancelAsync(Task? task, ILogger logger, string logMessage)
-    {
-        return WaitIgnoreCancelCoreAsync(task, logger, logMessage);
-    }
+    public static Task WaitIgnoreCancelAsync(Task? task, ILogger logger, string logMessage) =>
+        WaitIgnoreCancelCoreAsync(task, logger, logMessage);
 
     private static async Task WaitIgnoreCancelCoreAsync(Task? task, ILogger? logger = null, string? logMessage = null)
     {

@@ -31,29 +31,21 @@ partial class Resource
             Commands = GetCommands()
         };
 
-        ImmutableArray<EnvironmentVariableViewModel> GetEnvironment()
-        {
-            return Environment
+        ImmutableArray<EnvironmentVariableViewModel> GetEnvironment() => Environment
                 .Select(e => new EnvironmentVariableViewModel(e.Name, e.Value, e.IsFromSpec))
                 .ToImmutableArray();
-        }
 
-        ImmutableArray<UrlViewModel> GetUrls()
-        {
+        ImmutableArray<UrlViewModel> GetUrls() =>
             // Filter out bad urls
-            return (from u in Urls
-                    let parsedUri = Uri.TryCreate(u.FullUrl, UriKind.Absolute, out var uri) ? uri : null
-                    where parsedUri != null
-                    select new UrlViewModel(u.Name, parsedUri, u.IsInternal))
+            (from u in Urls
+             let parsedUri = Uri.TryCreate(u.FullUrl, UriKind.Absolute, out var uri) ? uri : null
+             where parsedUri != null
+             select new UrlViewModel(u.Name, parsedUri, u.IsInternal))
                     .ToImmutableArray();
-        }
 
-        ImmutableArray<CommandViewModel> GetCommands()
-        {
-            return Commands
+        ImmutableArray<CommandViewModel> GetCommands() => Commands
                 .Select(c => new CommandViewModel(c.CommandType, c.DisplayName, c.ConfirmationMessage, c.Parameter))
                 .ToImmutableArray();
-        }
 
         T ValidateNotNull<T>(T value, [CallerArgumentExpression(nameof(value))] string? expression = null) where T : class
         {
@@ -69,12 +61,9 @@ partial class Resource
 
 partial class ResourceCommandResponse
 {
-    public ResourceCommandResponseViewModel ToViewModel()
+    public ResourceCommandResponseViewModel ToViewModel() => new ResourceCommandResponseViewModel()
     {
-        return new ResourceCommandResponseViewModel()
-        {
-            ErrorMessage = ErrorMessage,
-            Kind = (Dashboard.Model.ResourceCommandResponseKind)Kind
-        };
-    }
+        ErrorMessage = ErrorMessage,
+        Kind = (Dashboard.Model.ResourceCommandResponseKind)Kind
+    };
 }

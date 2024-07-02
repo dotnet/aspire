@@ -13,8 +13,5 @@ public record HostUrl(string Url) : IValueProvider, IManifestExpressionProvider
     string IManifestExpressionProvider.ValueExpression => Url;
 
     // Returns the url
-    ValueTask<string?> IValueProvider.GetValueAsync(System.Threading.CancellationToken cancellationToken)
-    {
-        return new(Url);
-    }
+    ValueTask<string?> IValueProvider.GetValueAsync(System.Threading.CancellationToken cancellationToken) => new(Url);
 }

@@ -22,10 +22,9 @@ internal static class TokenGenerator
         return tokenHex;
     }
 
-    private static byte[] GenerateEntropyToken(int size)
-    {
+    private static byte[] GenerateEntropyToken(int size) =>
 #if NET6_0_OR_GREATER
-        return RandomNumberGenerator.GetBytes(size);
+        RandomNumberGenerator.GetBytes(size);
 #else
         using (var rng = new RNGCryptoServiceProvider()) 
         { 
@@ -34,5 +33,5 @@ internal static class TokenGenerator
             return token; 
         } 
 #endif
-    }
+
 }

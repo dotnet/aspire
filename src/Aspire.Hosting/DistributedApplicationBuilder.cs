@@ -77,10 +77,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     /// This constructor is public to allow for some testing around extensibility scenarios.
     /// </para>
     /// </remarks>
-    public DistributedApplicationBuilder(string[] args) : this(new DistributedApplicationOptions { Args = args })
-    {
+    public DistributedApplicationBuilder(string[] args) : this(new DistributedApplicationOptions { Args = args }) =>
         ArgumentNullException.ThrowIfNull(args);
-    }
 
     // This is here because in the constructor of DistributedApplicationBuilder we inject
     // DistributedApplicationExecutionContext. This is a class that is used to expose contextual
@@ -248,10 +246,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         }
     }
 
-    private static bool IsDashboardUnsecured(IConfiguration configuration)
-    {
-        return configuration.GetBool(KnownConfigNames.DashboardUnsecuredAllowAnonymous) ?? false;
-    }
+    private static bool IsDashboardUnsecured(IConfiguration configuration) =>
+        configuration.GetBool(KnownConfigNames.DashboardUnsecuredAllowAnonymous) ?? false;
 
     private void ConfigurePublishingOptions(DistributedApplicationOptions options)
     {

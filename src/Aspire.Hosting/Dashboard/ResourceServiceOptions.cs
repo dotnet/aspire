@@ -33,10 +33,8 @@ internal sealed class ResourceServiceOptions
         }
     }
 
-    internal byte[] GetApiKeyBytes()
-    {
-        return _apiKeyBytes ?? throw new InvalidOperationException($"AppHost:ResourceService:ApiKey is not specified in configuration.");
-    }
+    internal byte[] GetApiKeyBytes() =>
+        _apiKeyBytes ?? throw new InvalidOperationException($"AppHost:ResourceService:ApiKey is not specified in configuration.");
 }
 
 internal sealed class ValidateResourceServiceOptions : IValidateOptions<ResourceServiceOptions>

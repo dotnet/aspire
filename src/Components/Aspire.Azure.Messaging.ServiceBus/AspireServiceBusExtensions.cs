@@ -35,10 +35,8 @@ public static class AspireServiceBusExtensions
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<AzureMessagingServiceBusSettings>? configureSettings = null,
-        Action<IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions>>? configureClientBuilder = null)
-    {
-        new MessageBusComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
-    }
+        Action<IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions>>? configureClientBuilder = null)=>
+           new MessageBusComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
 
     /// <summary>
     /// Registers <see cref="ServiceBusClient"/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
@@ -66,9 +64,9 @@ public static class AspireServiceBusExtensions
     {
         protected override IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions> AddClient(
             AzureClientFactoryBuilder azureFactoryBuilder, AzureMessagingServiceBusSettings settings,
-            string connectionName, string configurationSectionName)
-        {
-            return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<ServiceBusClient, ServiceBusClientOptions>((options, cred) =>
+            string connectionName, string configurationSectionName)=>
+        
+            ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<ServiceBusClient, ServiceBusClientOptions>((options, cred) =>
             {
                 var connectionString = settings.ConnectionString;
                 if (string.IsNullOrEmpty(connectionString) && string.IsNullOrEmpty(settings.FullyQualifiedNamespace))
@@ -80,7 +78,6 @@ public static class AspireServiceBusExtensions
                     new ServiceBusClient(connectionString, options) :
                     new ServiceBusClient(settings.FullyQualifiedNamespace, cred, options);
             }, requiresCredential: false);
-        }
 
         protected override IHealthCheck CreateHealthCheck(ServiceBusClient client, AzureMessagingServiceBusSettings settings)
             => !string.IsNullOrEmpty(settings.HealthCheckQueueName)
@@ -97,17 +94,15 @@ public static class AspireServiceBusExtensions
                         Credential = settings.Credential
                     });
 
-        protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions> clientBuilder, IConfiguration configuration)
-        {
-#pragma warning disable IDE0200 // Remove unnecessary lambda expression - needed so the ConfigBinder Source Generator works
+        protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions> clientBuilder, IConfiguration configuration)=>
+            #pragma warning disable IDE0200 // Remove unnecessary lambda expression - needed so the ConfigBinder Source Generator works
             clientBuilder.ConfigureOptions(options => configuration.Bind(options));
-#pragma warning restore IDE0200
-        }
+            #pragma warning restore IDE0200
+        
 
-        protected override void BindSettingsToConfiguration(AzureMessagingServiceBusSettings settings, IConfiguration config)
-        {
+        protected override void BindSettingsToConfiguration(AzureMessagingServiceBusSettings settings, IConfiguration config)=>
             config.Bind(settings);
-        }
+        
 
         protected override bool GetHealthCheckEnabled(AzureMessagingServiceBusSettings settings)
             => !string.IsNullOrEmpty(settings.HealthCheckQueueName) || !string.IsNullOrEmpty(settings.HealthCheckTopicName);
