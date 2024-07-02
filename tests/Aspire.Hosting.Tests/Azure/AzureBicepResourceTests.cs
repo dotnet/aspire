@@ -2021,6 +2021,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                   defaultAction: 'Allow'
                 }
                 minimumTlsVersion: 'TLS1_2'
+                allowSharedKeyAccess: false
               }
             }
 
@@ -2180,6 +2181,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                   defaultAction: 'Allow'
                 }
                 minimumTlsVersion: 'TLS1_2'
+                allowSharedKeyAccess: false
               }
             }
 

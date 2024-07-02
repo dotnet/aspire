@@ -60,6 +60,10 @@ public static class AzureStorageExtensions
             // with the pending deprecation of TLS 1.0 and 1.1.
             storageAccount.AssignProperty(p => p.MinimumTlsVersion, "'TLS1_2'");
 
+            // Disable shared key access to the storage account as managed identity is configured
+            // to access the storage account by default.
+            storageAccount.AssignProperty(p => p.AllowSharedKeyAccess, "false");
+
             var blobService = new BlobService(construct);
 
             var blobRole = storageAccount.AssignRole(RoleDefinition.StorageBlobDataContributor);
