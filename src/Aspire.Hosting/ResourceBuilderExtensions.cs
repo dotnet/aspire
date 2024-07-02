@@ -22,10 +22,8 @@ public static class ResourceBuilderExtensions
     /// <param name="name">The name of the environment variable.</param>
     /// <param name="value">The value of the environment variable.</param>
     /// <returns>A resource configured with the specified environment variable.</returns>
-    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, string? value) where T : IResourceWithEnvironment
-    {
-        return builder.WithAnnotation(new EnvironmentAnnotation(name, value ?? string.Empty));
-    }
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, string? value) where T : IResourceWithEnvironment =>
+        builder.WithAnnotation(new EnvironmentAnnotation(name, value ?? string.Empty));
 
     /// <summary>
     /// Adds an environment variable to the resource.
@@ -71,10 +69,8 @@ public static class ResourceBuilderExtensions
     /// <param name="name">The name of the environment variable.</param>
     /// <param name="callback">A callback that allows for deferred execution of a specific environment variable. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>A resource configured with the specified environment variable.</returns>
-    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, Func<string> callback) where T : IResourceWithEnvironment
-    {
-        return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, callback));
-    }
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, Func<string> callback) where T : IResourceWithEnvironment =>
+        builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, callback));
 
     /// <summary>
     /// Allows for the population of environment variables on a resource.
@@ -83,10 +79,8 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback that allows for deferred execution for computing many environment variables. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>A resource configured with the environment variable callback.</returns>
-    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, Action<EnvironmentCallbackContext> callback) where T : IResourceWithEnvironment
-    {
-        return builder.WithAnnotation(new EnvironmentCallbackAnnotation(callback));
-    }
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, Action<EnvironmentCallbackContext> callback) where T : IResourceWithEnvironment =>
+        builder.WithAnnotation(new EnvironmentCallbackAnnotation(callback));
 
     /// <summary>
     /// Allows for the population of environment variables on a resource.
@@ -95,10 +89,8 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback that allows for deferred execution for computing many environment variables. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>A resource configured with the environment variable callback.</returns>
-    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, Func<EnvironmentCallbackContext, Task> callback) where T : IResourceWithEnvironment
-    {
-        return builder.WithAnnotation(new EnvironmentCallbackAnnotation(callback));
-    }
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, Func<EnvironmentCallbackContext, Task> callback) where T : IResourceWithEnvironment =>
+        builder.WithAnnotation(new EnvironmentCallbackAnnotation(callback));
 
     /// <summary>
     /// Adds an environment variable to the resource with the endpoint for <paramref name="endpointReference"/>.
@@ -108,13 +100,11 @@ public static class ResourceBuilderExtensions
     /// <param name="name">The name of the environment variable.</param>
     /// <param name="endpointReference">The endpoint from which to extract the url.</param>
     /// <returns>A resource configured with the environment variable callback.</returns>
-    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, EndpointReference endpointReference) where T : IResourceWithEnvironment
-    {
-        return builder.WithEnvironment(context =>
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, EndpointReference endpointReference) where T : IResourceWithEnvironment =>
+        builder.WithEnvironment(context =>
         {
             context.EnvironmentVariables[name] = endpointReference;
         });
-    }
 
     /// <summary>
     /// Adds an environment variable to the resource with the value from <paramref name="parameter"/>.
@@ -124,13 +114,12 @@ public static class ResourceBuilderExtensions
     /// <param name="name">Name of environment variable</param>
     /// <param name="parameter">Resource builder for the parameter resource.</param>
     /// <returns>A resource configured with the environment variable callback.</returns>
-    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> parameter) where T : IResourceWithEnvironment
-    {
-        return builder.WithEnvironment(context =>
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> parameter) where T : IResourceWithEnvironment =>
+         builder.WithEnvironment(context =>
         {
             context.EnvironmentVariables[name] = parameter.Resource;
         });
-    }
+
 
     /// <summary>
     /// Adds an environment variable to the resource with the connection string from the referenced resource.
@@ -144,13 +133,13 @@ public static class ResourceBuilderExtensions
         this IResourceBuilder<T> builder,
         string envVarName,
         IResourceBuilder<IResourceWithConnectionString> resource)
-        where T : IResourceWithEnvironment
-    {
-        return builder.WithEnvironment(context =>
+        where T : IResourceWithEnvironment =>
+
+        builder.WithEnvironment(context =>
         {
             context.EnvironmentVariables[envVarName] = new ConnectionStringReference(resource.Resource, optional: false);
         });
-    }
+
 
     /// <summary>
     /// Adds the arguments to be passed to a container resource when the container is started.
@@ -159,10 +148,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="args">The arguments to be passed to the container when it is started.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : IResourceWithArgs
-    {
-        return builder.WithArgs(context => context.Args.AddRange(args));
-    }
+    public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : IResourceWithArgs => builder.WithArgs(context => context.Args.AddRange(args));
 
     /// <summary>
     /// Adds a callback to be executed with a list of command-line arguments when a container resource is started.
@@ -171,14 +157,13 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback that allows for deferred execution for computing arguments. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, Action<CommandLineArgsCallbackContext> callback) where T : IResourceWithArgs
-    {
-        return builder.WithArgs(context =>
+    public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, Action<CommandLineArgsCallbackContext> callback) where T : IResourceWithArgs=>
+        builder.WithArgs(context =>
         {
             callback(context);
             return Task.CompletedTask;
         });
-    }
+    
 
     /// <summary>
     /// Adds a callback to be executed with a list of command-line arguments when a container resource is started.

@@ -14,16 +14,22 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
+internal sealed class DcpHostService(
+    ILoggerFactory loggerFactory,
+    IOptions<DcpOptions> dcpOptions,
+    DistributedApplicationExecutionContext executionContext,
+    ApplicationExecutor appExecutor,
+    IDcpDependencyCheckService dependencyCheckService,
+    Locations locations) : IHostedLifecycleService, IAsyncDisposable
 {
     private const int LoggingSocketConnectionBacklog = 3;
-    private readonly ApplicationExecutor _appExecutor;
-    private readonly ILoggerFactory _loggerFactory;
-    private readonly ILogger _logger;
-    private readonly DcpOptions _dcpOptions;
-    private readonly DistributedApplicationExecutionContext _executionContext;
-    private readonly IDcpDependencyCheckService _dependencyCheckService;
-    private readonly Locations _locations;
+    private readonly ApplicationExecutor _appExecutor = appExecutor;
+    private readonly ILoggerFactory _loggerFactory = loggerFactory;
+    private readonly ILogger _logger = loggerFactory.CreateLogger<DcpHostService>();
+    private readonly DcpOptions _dcpOptions = dcpOptions.Value;
+    private readonly DistributedApplicationExecutionContext _executionContext = executionContext;
+    private readonly IDcpDependencyCheckService _dependencyCheckService = dependencyCheckService;
+    private readonly Locations _locations = locations;
     private readonly CancellationTokenSource _shutdownCts = new();
     private Task? _logProcessorTask;
     private IAsyncDisposable? _dcpRunDisposable;
@@ -36,23 +42,6 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         "ASPNETCORE_ENVIRONMENT",
         "DOTNET_ENVIRONMENT"
     };
-
-    public DcpHostService(
-        ILoggerFactory loggerFactory,
-        IOptions<DcpOptions> dcpOptions,
-        DistributedApplicationExecutionContext executionContext,
-        ApplicationExecutor appExecutor,
-        IDcpDependencyCheckService dependencyCheckService,
-        Locations locations)
-    {
-        _loggerFactory = loggerFactory;
-        _logger = loggerFactory.CreateLogger<DcpHostService>();
-        _dcpOptions = dcpOptions.Value;
-        _executionContext = executionContext;
-        _appExecutor = appExecutor;
-        _dependencyCheckService = dependencyCheckService;
-        _locations = locations;
-    }
 
     private bool IsSupported => !_executionContext.IsPublishMode;
 
@@ -354,13 +343,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         return Task.CompletedTask;
     }
 
-    public Task StoppedAsync(CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
-    }
+    public Task StoppedAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-    public Task StoppingAsync(CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
-    }
+    public Task StoppingAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }

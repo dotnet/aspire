@@ -52,10 +52,8 @@ internal abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMet
         AnnotateAsObjectList<TValue>(Metadata.Annotations, annotationName, value);
     }
 
-    public bool TryGetAnnotationAsObjectList<TValue>(string annotationName, [NotNullWhen(true)] out List<TValue>? list)
-    {
-        return TryGetAnnotationAsObjectList<TValue>(Metadata.Annotations, annotationName, out list);
-    }
+    public bool TryGetAnnotationAsObjectList<TValue>(string annotationName, [NotNullWhen(true)] out List<TValue>? list) =>
+        TryGetAnnotationAsObjectList<TValue>(Metadata.Annotations, annotationName, out list);
 
     internal static bool TryGetAnnotationAsObjectList<TValue>(IDictionary<string, string>? annotations, string annotationName, [NotNullWhen(true)] out List<TValue>? list)
     {
@@ -196,10 +194,7 @@ internal sealed class ServiceProducerAnnotation
         return true;
     }
 
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(ServiceName, Address, Port);
-    }
+    public override int GetHashCode() => HashCode.Combine(ServiceName, Address, Port);
 }
 
 internal sealed record NamespacedName(string Name, string? Namespace);

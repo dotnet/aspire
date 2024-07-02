@@ -77,10 +77,7 @@ internal sealed class DashboardServiceData : IAsyncDisposable
         _cts.Dispose();
     }
 
-    internal ResourceSnapshotSubscription SubscribeResources()
-    {
-        return _resourcePublisher.Subscribe();
-    }
+    internal ResourceSnapshotSubscription SubscribeResources() => _resourcePublisher.Subscribe();
 
     internal IAsyncEnumerable<IReadOnlyList<LogLine>>? SubscribeConsoleLogs(string resourceName)
     {

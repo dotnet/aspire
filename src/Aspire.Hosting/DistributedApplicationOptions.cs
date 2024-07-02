@@ -93,13 +93,8 @@ public sealed class DistributedApplicationOptions
         return appHostAssembly;
     }
 
-    private string? ResolveConfiguration()
-    {
-        return Assembly?.GetCustomAttribute<AssemblyConfigurationAttribute>()?.Configuration;
-    }
+    private string? ResolveConfiguration() => Assembly?.GetCustomAttribute<AssemblyConfigurationAttribute>()?.Configuration;
 
-    private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)
-    {
-        return assemblyMetadata?.FirstOrDefault(m => string.Equals(m.Key, key, StringComparison.OrdinalIgnoreCase))?.Value;
-    }
+    private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key) =>
+        assemblyMetadata?.FirstOrDefault(m => string.Equals(m.Key, key, StringComparison.OrdinalIgnoreCase))?.Value;
 }

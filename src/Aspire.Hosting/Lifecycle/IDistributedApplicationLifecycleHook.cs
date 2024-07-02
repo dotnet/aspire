@@ -16,10 +16,7 @@ public interface IDistributedApplicationLifecycleHook
     /// <param name="appModel">The distributed application model.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
-    {
-        return Task.CompletedTask;
-    }
+    Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     /// <summary>
     /// Executes after the orchestrator allocates endpoints for resources in the application model.
@@ -27,10 +24,7 @@ public interface IDistributedApplicationLifecycleHook
     /// <param name="appModel">The distributed application model.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
-    {
-        return Task.CompletedTask;
-    }
+    Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     /// <summary>
     /// Executes after the orchestrator has created the resources in the application model.
@@ -41,8 +35,5 @@ public interface IDistributedApplicationLifecycleHook
     /// <param name="appModel">The <see cref="DistributedApplicationModel"/> for the distributed application.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    Task AfterResourcesCreatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
-    {
-        return Task.CompletedTask;
-    }
+    Task AfterResourcesCreatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default) => Task.CompletedTask;
 }

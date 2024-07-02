@@ -3,12 +3,7 @@
 
 namespace Aspire.Hosting.Dcp.Process;
 
-internal sealed class ProcessResult
+internal sealed class ProcessResult(int exitCode)
 {
-    public ProcessResult(int exitCode)
-    {
-        ExitCode = exitCode;
-    }
-
-    public int ExitCode { get; }
+    public int ExitCode { get; } = exitCode;
 }

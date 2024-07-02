@@ -15,8 +15,6 @@ public static class ExecutableResourceExtensions
     /// </summary>
     /// <param name="model">The distributed application model to retrieve executable resources from.</param>
     /// <returns>An enumerable collection of executable resources.</returns>
-    public static IEnumerable<ExecutableResource> GetExecutableResources(this DistributedApplicationModel model)
-    {
-        return model.Resources.OfType<ExecutableResource>();
-    }
+    public static IEnumerable<ExecutableResource> GetExecutableResources(this DistributedApplicationModel model) =>
+        model.Resources.OfType<ExecutableResource>();
 }

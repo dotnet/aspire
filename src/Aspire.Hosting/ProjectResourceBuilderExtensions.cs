@@ -58,10 +58,8 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name) where TProject : IProjectMetadata, new()
-    {
-        return builder.AddProject<TProject>(name, _ => { });
-    }
+    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name) where TProject : IProjectMetadata, new() =>
+        builder.AddProject<TProject>(name, _ => { });
 
     /// <summary>
     /// Adds a .NET project to the application model. 
@@ -88,10 +86,8 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath)
-    {
-        return builder.AddProject(name, projectPath, _ => { });
-    }
+    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath) =>
+        builder.AddProject(name, projectPath, _ => { });
 
     /// <summary>
     /// Adds a .NET project to the application model. By default, this will exist in a Projects namespace. e.g. Projects.MyProject.
@@ -131,14 +127,12 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name, string? launchProfileName) where TProject : IProjectMetadata, new()
-    {
-        return builder.AddProject<TProject>(name, options =>
-        {
-            options.ExcludeLaunchProfile = launchProfileName is null;
-            options.LaunchProfileName = launchProfileName;
-        });
-    }
+    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name, string? launchProfileName) where TProject : IProjectMetadata, new() =>
+        builder.AddProject<TProject>(name, options =>
+                                                                                                                                                                                                               {
+                                                                                                                                                                                                                   options.ExcludeLaunchProfile = launchProfileName is null;
+                                                                                                                                                                                                                   options.LaunchProfileName = launchProfileName;
+                                                                                                                                                                                                               });
 
     /// <summary>
     /// Adds a .NET project to the application model.
@@ -166,14 +160,13 @@ public static class ProjectResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath, string? launchProfileName)
-    {
-        return builder.AddProject(name, projectPath, options =>
+    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath, string? launchProfileName) =>
+        builder.AddProject(name, projectPath, options =>
         {
             options.ExcludeLaunchProfile = launchProfileName is null;
             options.LaunchProfileName = launchProfileName;
         });
-    }
+
 
     /// <summary>
     /// Adds a .NET project to the application model.
@@ -335,7 +328,8 @@ public static class ProjectResourceBuilderExtensions
 
         // Helper to change the transport to http2 if needed
         var isHttp2ConfiguredInKestrelEndpointDefaults = config["Kestrel:EndpointDefaults:Protocols"] == nameof(HttpProtocols.Http2);
-        var adjustTransport = (EndpointAnnotation e, string? bindingLevelProtocols = null) => {
+        var adjustTransport = (EndpointAnnotation e, string? bindingLevelProtocols = null) =>
+        {
             if (bindingLevelProtocols != null)
             {
                 // If the Kestrel endpoint has an explicit protocol, use that and ignore any EndpointDefaults

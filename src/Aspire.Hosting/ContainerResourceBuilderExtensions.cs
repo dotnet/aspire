@@ -18,10 +18,8 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="image">The container image name. The tag is assumed to be "latest".</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
-    public static IResourceBuilder<ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, string name, string image)
-    {
-        return builder.AddContainer(name, image, "latest");
-    }
+    public static IResourceBuilder<ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, string name, string image) =>
+        builder.AddContainer(name, image, "latest");
 
     /// <summary>
     /// Adds a container resource to the application.
@@ -181,10 +179,8 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">Builder for the container resource.</param>
     /// <param name="args">The arguments to be passed to the container runtime run command when the container resource is started.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithContainerRuntimeArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : ContainerResource
-    {
-        return builder.WithContainerRuntimeArgs(context => context.Args.AddRange(args));
-    }
+    public static IResourceBuilder<T> WithContainerRuntimeArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : ContainerResource =>
+        builder.WithContainerRuntimeArgs(context => context.Args.AddRange(args));
 
     /// <summary>
     /// Adds a callback to be executed with a list of arguments to add to the container runtime run command when a container resource is started.
@@ -197,13 +193,11 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="callback">A callback that allows for deferred execution for computing arguments. This runs after resources have been allocation by the orchestrator and allows access to other resources to resolve computed data, e.g. connection strings, ports.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithContainerRuntimeArgs<T>(this IResourceBuilder<T> builder, Action<ContainerRuntimeArgsCallbackContext> callback) where T : ContainerResource
-    {
-        return builder.WithContainerRuntimeArgs(context =>
+          => builder.WithContainerRuntimeArgs(context =>
         {
             callback(context);
             return Task.CompletedTask;
         });
-    }
 
     /// <summary>
     /// Adds a callback to be executed with a list of arguments to add to the container runtime run command when a container resource is started.
@@ -221,20 +215,16 @@ public static class ContainerResourceBuilderExtensions
         return builder.WithAnnotation(annotation);
     }
 
-    private static IResourceBuilder<T> ThrowResourceIsNotContainer<T>(IResourceBuilder<T> builder) where T : ContainerResource
-    {
+    private static IResourceBuilder<T> ThrowResourceIsNotContainer<T>(IResourceBuilder<T> builder) where T : ContainerResource =>
         throw new InvalidOperationException($"The resource '{builder.Resource.Name}' does not have a container image specified. Use WithImage to specify the container image and tag.");
-    }
 
     /// <summary>
     /// Changes the resource to be published as a container in the manifest.
     /// </summary>
     /// <param name="builder">Resource builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> PublishAsContainer<T>(this IResourceBuilder<T> builder) where T : ContainerResource
-    {
-        return builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
-    }
+    public static IResourceBuilder<T> PublishAsContainer<T>(this IResourceBuilder<T> builder) where T : ContainerResource =>
+        builder.WithManifestPublishingCallback(context => context.WriteContainerAsync(builder.Resource));
 
     /// <summary>
     /// Causes .NET Aspire to build the specified container image from a Dockerfile.
@@ -328,11 +318,9 @@ public static class ContainerResourceBuilderExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, string name, string contextPath, string? dockerfilePath = null, string? stage = null)
-    {
-        return builder.AddContainer(name, "placeholder") // Image name will be replaced by WithDockerfile.
+    public static IResourceBuilder<ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, string name, string contextPath, string? dockerfilePath = null, string? stage = null) =>
+        builder.AddContainer(name, "placeholder") // Image name will be replaced by WithDockerfile.
                       .WithDockerfile(contextPath, dockerfilePath, stage);
-    }
 
     /// <summary>
     /// Adds a build argument when the container is build from a Dockerfile.

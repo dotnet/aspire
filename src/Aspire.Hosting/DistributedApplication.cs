@@ -229,10 +229,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// on how to use .NET Aspire APIs for functional an integrating testing.
     /// </para>
     /// </remarks>
-    public virtual void Dispose()
-    {
-        _host.Dispose();
-    }
+    public virtual void Dispose() => _host.Dispose();
 
     /// <summary>
     /// Asynchronously disposes the distributed application by disposing the <see cref="IHost"/>.
@@ -261,10 +258,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// on how to use .NET Aspire APIs for functional an integrating testing.
     /// </para>
     /// </remarks>
-    public virtual ValueTask DisposeAsync()
-    {
-        return ((IAsyncDisposable)_host).DisposeAsync();
-    }
+    public virtual ValueTask DisposeAsync() => ((IAsyncDisposable)_host).DisposeAsync();
 
     /// <inheritdoc cref="IHost.StartAsync" />
     public virtual async Task StartAsync(CancellationToken cancellationToken = default)
@@ -274,10 +268,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     }
 
     /// <inheritdoc cref="IHost.StopAsync" />
-    public virtual async Task StopAsync(CancellationToken cancellationToken = default)
-    {
-        await _host.StopAsync(cancellationToken).ConfigureAwait(false);
-    }
+    public virtual async Task StopAsync(CancellationToken cancellationToken = default) => await _host.StopAsync(cancellationToken).ConfigureAwait(false);
 
     /// <summary>
     /// Runs an application and returns a Task that only completes when the token is triggered or shutdown is
@@ -333,10 +324,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// in refer to <see cref="DistributedApplicationExecutionContext" />.
     /// </para>
     /// </remarks>
-    public void Run()
-    {
-        RunAsync().Wait();
-    }
+    public void Run() => RunAsync().Wait();
 
     // Internal for testing
     internal async Task ExecuteBeforeStartHooksAsync(CancellationToken cancellationToken)
