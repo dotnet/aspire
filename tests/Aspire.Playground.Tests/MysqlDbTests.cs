@@ -25,7 +25,7 @@ public class MySqlDbTests : PlaygroundTestsBase, IClassFixture<MysqlPlaygroundFi
         => _testFixture.Projects["apiservice"].WaitForHealthyStatusAsync("http", _testOutput, path, CancellationToken.None);
 
     [Fact]
-    // [ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(BuildEnvironment), nameof(BuildEnvironment.HasPlaywrightSupport))]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]k
     public async Task ResourcesShowUpOnDashboad()
     {
         await using var context = await CreateNewBrowserContextAsync();
