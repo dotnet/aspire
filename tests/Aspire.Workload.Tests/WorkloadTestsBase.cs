@@ -139,8 +139,11 @@ public class WorkloadTestsBase
 
                 AssertEqual(expectedEndpoints.Length, matchingEndpoints, $"Expected number of endpoints for {resourceName}");
 
-                // Check 'Source' column
-                AssertEqual(expectedRow.Source, await cellLocs[4].InnerTextAsync(), $"Source for {resourceName}");
+                if (expectedRow.Source is not null)
+                {
+                    // Check 'Source' column
+                    AssertEqual(expectedRow.Source, await cellLocs[4].InnerTextAsync(), $"Source for {resourceName}");
+                }
 
                 foundRows.Add(expectedRow with { Endpoints = endpointsFound });
                 foundNames.Add(resourceName);

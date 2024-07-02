@@ -16,6 +16,7 @@
     <HelixPreCommand Include="$(_EnvVarSetKeyword) TEST_NAME=$(TestProjectName)" />
     <!-- xunit diagnostic output doesn't show up on windows, so use SHOW_BUILD_OUTPUT=true -->
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="$(_EnvVarSetKeyword) SHOW_BUILD_OUTPUT=true" />
+
     <HelixPreCommand Include="$(_CleanupProcessesCommand)" />
 
     <HelixPostCommand Include="$(_CleanupProcessesCommand)" />

@@ -32,17 +32,19 @@ public sealed class ProjectInfo
     {
         var allocatedEndpoint = Endpoints.Single(e => e.Name == bindingName);
         var url = $"{allocatedEndpoint.Uri}{path}";
+        System.Console.WriteLine($"HttpGetStringAsync: {url}");
 
         return Client.GetStringAsync(url, cancellationToken);
     }
 
-    public async Task WaitForHealthyStatusAsync(string bindingName, ITestOutputHelper testOutput, CancellationToken cancellationToken = default)
+    public async Task WaitForHealthyStatusAsync(string bindingName, ITestOutputHelper testOutput, string path = "/health", CancellationToken cancellationToken = default)
     {
         while (true)
         {
             try
             {
-                var status = await HttpGetStringAsync(bindingName, "/health", cancellationToken);
+                var status = await HttpGetStringAsync(bindingName, path, cancellationToken);
+                System.Console.WriteLine($"{path} returned {status}");
                 if (status == "Healthy")
                 {
                     return;

@@ -6,6 +6,17 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+
+    <!--<RunTestsOnHelix>true</RunTestsOnHelix>-->
+    <SkipTests>true</SkipTests>
+    <TestUsingWorkloads>true</TestUsingWorkloads>
+    <InstallWorkloadForTesting>true</InstallWorkloadForTesting>
+    <TestArchiveTestsDir>$(TestArchiveTestsDirForHostingTestingTests)</TestArchiveTestsDir>
+
+    <_TestsArchiveStagingDir>$(ArtifactsObjDir)$(MSBuildProjectName)-helix\</_TestsArchiveStagingDir>
+    <TestsArchiveSourceDir>$(_TestsArchiveStagingDir)</TestsArchiveSourceDir>
+    <SupportsRunningTestsOutsideOfRepo>true</SupportsRunningTestsOutsideOfRepo>
+    <IncludeTestPackages>true</IncludeTestPackages>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,18 +24,43 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
+    <!-- KnownConfigNames.cs is copied locally for outside-of-repo builds -->
+    <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
+    <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\..\src\Aspire.Hosting.Testing\Aspire.Hosting.Testing.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\Aspire.Hosting.Tests\Aspire.Hosting.Tests.csproj" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
     <ProjectReference Include="..\TestingAppHost1\TestingAppHost1.AppHost\TestingAppHost1.AppHost.csproj" />
-  </ItemGroup>
+    <HostingTestingTestsSupportProject Condition="'$(ArchiveTests)' == 'true'" Include="..\TestingAppHost1" />
 
-  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
   </ItemGroup>
+
+  <Target Name="_PrepareForArchiveTests" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true'">
+    <ItemGroup>
+      <_SourceFile Include="$(MSBuildProjectDirectory)\**\*" DestinationRelativeDir="$(MSBuildProjectName)" />
+      <_SourceFile Include="$(RunSettingsFilePath)" DestinationRelativeDir="$(MSBuildProjectName)" />
+      <_SourceFile Include="$(SharedDir)KnownConfigNames.cs" DestinationRelativeDir="$(MSBuildProjectName)" />
+      <_SourceFile Include="%(HostingTestingTestsSupportProject.FullPath)\**\*" DestinationRelativeDir="%(HostingTestingTestsSupportProject.FileName)" Condition="'%(HostingTestingTestsSupportProject.Identity)' != ''" />
+
+      <_SourceFile Include="$(RepoRoot)eng\Versions.props" DestinationRelativeDir="eng" />
+      <_SourceFile Include="$(RepoRoot)tests\Shared\TestsRunningOutsideOfRepo.targets" DestinationRelativeDir="Shared" />
+      <!--<_SourceFile Include="$(RepoRoot)Directory.Packages.props" DestinationRelativeDir="Directory.Packages.repo.props" />-->
+    </ItemGroup>
+
+    <RemoveDir Directories="$(_TestsArchiveStagingDir)" />
+    <MakeDir Directories="$(_TestsArchiveStagingDir)" />
+
+    <Copy SourceFiles="@(_SourceFile)" DestinationFiles="@(_SourceFile -> '$(_TestsArchiveStagingDir)%(DestinationRelativeDir)\%(RecursiveDir)%(FileName)%(Extension)')" />
+    <Copy SourceFiles="$(RepoRoot)Directory.Packages.props" DestinationFiles="$(_TestsArchiveStagingDir)Directory.Packages.repo.props" />
+    <Copy SourceFiles="..\Shared\nuget-for-hosting-testing.config" DestinationFiles="$(_TestsArchiveStagingDir)nuget.config" />
+  </Target>
+
 
 </Project>

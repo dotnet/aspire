@@ -13,11 +13,11 @@
     <Compile Include="$(SharedDir)KnownResourceNames.cs" Link="KnownResourceNames.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure.WebPubSub\Aspire.Hosting.Azure.WebPubSub.csproj" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.Azure" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.Azure.WebPubSub" IsAspireProjectResource="false" />
 
+    <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
     <ProjectReference Include="..\WebPubSubWeb\WebPubSubWeb.csproj" />
   </ItemGroup>
 

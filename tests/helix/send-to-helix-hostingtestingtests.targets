@@ -1,0 +1,37 @@
+<Project>
+
+  <PropertyGroup>
+    <WorkItemArchiveWildCard>$(TestArchiveTestsDirForHostingTestingTests)**/*.zip</WorkItemArchiveWildCard>
+    <BuildHelixWorkItemsDependsOn>$(BuildHelixWorkItemsDependsOn);BuildHelixWorkItemsForHostingTestingTests</BuildHelixWorkItemsDependsOn>
+    <NeedsWorkload>true</NeedsWorkload>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) PackageVersion=8.1.0-ci" />
+    <!--<HelixPreCommand Include="$(_EnvVarSetKeyword) NetCurrent=net8.0" />-->
+    <!--<HelixPreCommand Include="$(_EnvVarSetKeyword) TestsRunningOutsideOfRepo=true" />-->
+  </ItemGroup>
+
+  <Target Name="BuildHelixWorkItemsForHostingTestingTests">
+    <PropertyGroup>
+      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
+      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
+
+      <HelixPreCommands>$(HelixPreCommands);@(HelixPreCommand)</HelixPreCommands>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" />
+
+      <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
+        <PayloadArchive>%(Identity)</PayloadArchive>
+        <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <Command>cd %(FileName) %3B $(_TestRunCommand)</Command>
+        <Timeout>$(_workItemTimeout)</Timeout>
+
+        <!-- Download results file so coverage files can be extracted -->
+        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
+      </HelixWorkItem>
+    </ItemGroup>
+  </Target>
+</Project>

@@ -14,8 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Microsoft.Data.SqlClient\Aspire.Microsoft.Data.SqlClient.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.MySqlConnector\Aspire.MySqlConnector.csproj" />
+    <ComponentReferenceForTests Include="Aspire.Microsoft.Data.SqlClient" />
+    <ComponentReferenceForTests Include="Aspire.MySqlConnector" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
 
