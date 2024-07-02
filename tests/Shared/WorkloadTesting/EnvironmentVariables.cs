@@ -17,5 +17,4 @@ public static class EnvironmentVariables
     public static readonly string? TestAssetsPath            = Environment.GetEnvironmentVariable("TEST_ASSETS_PATH");
     public static readonly string? TestScenario              = Environment.GetEnvironmentVariable("TEST_SCENARIO");
     public static readonly string? BrowserPath               = Environment.GetEnvironmentVariable(PlaywrightProvider.BrowserPathEnvironmentVariableName);
-    public static readonly bool    DisablePlaywrightTests    = Environment.GetEnvironmentVariable("DISABLE_PLAYWRIGHT_TESTS") is "true";
 }
