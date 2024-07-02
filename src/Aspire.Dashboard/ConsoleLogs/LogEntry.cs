@@ -6,7 +6,7 @@ using System.Diagnostics;
 namespace Aspire.Dashboard.Model;
 
 [DebuggerDisplay("Timestamp = {(Timestamp ?? ParentTimestamp),nq}, Content = {Content}")]
-internal sealed partial class LogEntry
+public sealed class LogEntry
 {
     public string? Content { get; set; }
     public DateTimeOffset? Timestamp { get; set; }
@@ -19,7 +19,7 @@ internal sealed partial class LogEntry
     public int LineNumber { get; set; }
 }
 
-internal enum LogEntryType
+public enum LogEntryType
 {
     Default,
     Error

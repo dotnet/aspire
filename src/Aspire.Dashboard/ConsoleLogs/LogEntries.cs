@@ -6,7 +6,7 @@ using Aspire.Dashboard.Model;
 
 namespace Aspire.Dashboard.ConsoleLogs;
 
-internal sealed class LogEntries
+public sealed class LogEntries
 {
     private readonly List<LogEntry> _logEntries = new();
 
