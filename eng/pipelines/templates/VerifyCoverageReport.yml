@@ -18,15 +18,18 @@ steps:
       itemPattern: '*.cobertura.xml'
       targetPath: $(Build.SourcesDirectory)/Linux_CodeCoverageResults
 
+  - script: mkdir $(Build.SourcesDirectory)/merged
+    displayName: Create merged folder for merged.cobertura.xml
+
   # Merge the downloaded files (Windows_cobertura.xml and Linux_cobertura.xml) as one (merged.cobertura.xml)
   - script: $(Build.SourcesDirectory)/.dotnet/dotnet dotnet-coverage merge
             $(Build.SourcesDirectory)/**/*.cobertura.xml
             --output-format cobertura
-            --output $(Build.SourcesDirectory)/merged.cobertura.xml
+            --output $(Build.SourcesDirectory)/merged/merged.cobertura.xml
     displayName: Merge code coverage reports
 
   - script: $(Build.SourcesDirectory)/.dotnet/dotnet reportgenerator
-            -reports:$(Build.SourcesDirectory)/merged.cobertura.xml
+            -reports:$(Build.SourcesDirectory)/merged/merged.cobertura.xml
             -targetdir:./CoverageResultsHtml
             -reporttypes:HtmlInline_AzurePipelines
     displayName: Generate code coverage report
@@ -37,17 +40,25 @@ steps:
       DISABLE_COVERAGE_AUTOGENERATE: 'true'
     inputs:
       codeCoverageTool: cobertura
-      summaryFileLocation: $(Build.SourcesDirectory)/merged.cobertura.xml
+      summaryFileLocation: $(Build.SourcesDirectory)/merged/merged.cobertura.xml
       pathToSources: $(Build.SourcesDirectory)
       reportDirectory: ./CoverageResultsHtml
 
   - ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
     - pwsh: |
-          $(Build.SourcesDirectory)/eng/scripts/ValidateProjectCoverage.ps1 -CoberturaReportXml $(Build.SourcesDirectory)/merged.cobertura.xml
+          $(Build.SourcesDirectory)/eng/scripts/ValidateProjectCoverage.ps1 -CoberturaReportXml $(Build.SourcesDirectory)/merged/merged.cobertura.xml
       displayName: Check per-project coverage
       continueOnError: 'true' # Don't fail builds during the grace period
 
   - ${{ if and(eq(variables['System.TeamProject'], 'public'), eq(variables['Build.Reason'], 'PullRequest')) }}:
+    - task: PublishPipelineArtifact@1
+      displayName: Publish merged code coverage results
+      condition: always()
+      inputs:
+        targetPath: '$(Build.SourcesDirectory)/merged'
+        artifactName: 'MergedCodeCoverageResults'
+        publishLocation: 'pipeline'
+
     - task: GitHubComment@0
       condition: always()
       inputs:
