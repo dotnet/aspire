@@ -38,9 +38,9 @@
     <DefineConstants Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">TESTS_RUNNING_OUTSIDE_OF_REPO;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
 
-  <Import Project="$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets"
-          Condition="'$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'" />
-  <Import Project="$(RepoRoot)src\Aspire.Hosting.Sdk\SDK\Sdk.targets"
-          Condition="'$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'" />
+  <ImportGroup Condition="'$(RepoRoot)' != 'null' and '$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'">
+    <Import Project="$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets" Condition="Exists('$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets')" />
+    <Import Project="$(RepoRoot)src\Aspire.Hosting.Sdk\SDK\Sdk.targets" Condition="Exists('$(RepoRoot)src\Aspire.Hosting.Sdk\SDK\Sdk.targets')" />
+  </ImportGroup>
 
 </Project>

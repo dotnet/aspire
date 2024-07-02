@@ -1,5 +1,6 @@
 <Project>
   <!-- FIXME: we don't have IsAspireHost property available here yet! -->
-  <Import Project="$(RepoRoot)src/Aspire.Hosting.AppHost/build/Aspire.Hosting.AppHost.props"
-          Condition="'$(TestsRunningOutsideOfRepo)' != 'true' and $(MSBuildProjectName.Contains('AppHost'))" />
+  <ImportGroup Condition="'$(RepoRoot)' != 'null' and '$(TestsRunningOutsideOfRepo)' != 'true' and $(MSBuildProjectName.Contains('AppHost'))">
+    <Import Project="$(RepoRoot)src/Aspire.Hosting.AppHost/build/Aspire.Hosting.AppHost.props" Condition="Exists('$(RepoRoot)src/Aspire.Hosting.AppHost/build/Aspire.Hosting.AppHost.props')" />
+  </ImportGroup>
 </Project>
