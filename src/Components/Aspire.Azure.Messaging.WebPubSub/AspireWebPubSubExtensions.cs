@@ -34,10 +34,8 @@ public static class AspireWebPubSubExtensions
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<AzureMessagingWebPubSubSettings>? configureSettings = null,
-        Action<IAzureClientBuilder<WebPubSubServiceClient, WebPubSubServiceClientOptions>>? configureClientBuilder = null)
-    {
-        new WebPubSubComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
-    }
+        Action<IAzureClientBuilder<WebPubSubServiceClient, WebPubSubServiceClientOptions>>? configureClientBuilder = null) =>
+           new WebPubSubComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
 
     /// <summary>
     /// Registers <see cref="WebPubSubServiceClient"/> as a singleton for given <paramref name="connectionName"/> and <paramref name="serviceKey"/> in the services provided by the <paramref name="builder"/>.
@@ -74,9 +72,8 @@ public static class AspireWebPubSubExtensions
     private sealed class WebPubSubComponent : AzureComponent<AzureMessagingWebPubSubSettings, WebPubSubServiceClient, WebPubSubServiceClientOptions>
     {
         protected override IAzureClientBuilder<WebPubSubServiceClient, WebPubSubServiceClientOptions> AddClient
-            (AzureClientFactoryBuilder azureFactoryBuilder, AzureMessagingWebPubSubSettings settings, string connectionName, string configurationSectionName)
-        {
-            return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<WebPubSubServiceClient, WebPubSubServiceClientOptions>((options, cred) =>
+            (AzureClientFactoryBuilder azureFactoryBuilder, AzureMessagingWebPubSubSettings settings, string connectionName, string configurationSectionName) =>
+             ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<WebPubSubServiceClient, WebPubSubServiceClientOptions>((options, cred) =>
             {
                 var connectionString = settings.ConnectionString;
                 if (string.IsNullOrEmpty(connectionString) && settings.Endpoint == null)
@@ -97,22 +94,19 @@ public static class AspireWebPubSubExtensions
                     new WebPubSubServiceClient(connectionString, hubName, options) :
                     new WebPubSubServiceClient(settings.Endpoint!, hubName, cred, options);
             }, requiresCredential: false);
-        }
 
         protected override IHealthCheck CreateHealthCheck(WebPubSubServiceClient client, AzureMessagingWebPubSubSettings settings)
             => new HealthCheck(client);
 
-        protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<WebPubSubServiceClient, WebPubSubServiceClientOptions> clientBuilder, IConfiguration configuration)
-        {
+        protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<WebPubSubServiceClient, WebPubSubServiceClientOptions> clientBuilder, IConfiguration configuration) =>
 #pragma warning disable IDE0200 // Remove unnecessary lambda expression - needed so the ConfigBinder Source Generator works
             clientBuilder.ConfigureOptions(options => configuration.Bind(options));
 #pragma warning restore IDE0200
-        }
 
-        protected override void BindSettingsToConfiguration(AzureMessagingWebPubSubSettings settings, IConfiguration config)
-        {
+
+        protected override void BindSettingsToConfiguration(AzureMessagingWebPubSubSettings settings, IConfiguration config) =>
             config.Bind(settings);
-        }
+
 
         protected override TokenCredential? GetTokenCredential(AzureMessagingWebPubSubSettings settings)
             => settings.Credential;
@@ -124,14 +118,11 @@ public static class AspireWebPubSubExtensions
             => !settings.DisableHealthChecks;
     }
 
-    private sealed class HealthCheck : IHealthCheck
+    private sealed class HealthCheck(WebPubSubServiceClient client) : IHealthCheck
     {
-        private readonly WebPubSubServiceClient _client;
+        private readonly WebPubSubServiceClient _client = client;
 
-        public HealthCheck(WebPubSubServiceClient client)
-        {
-            _client = client;
-        }
+
 
         public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
         {

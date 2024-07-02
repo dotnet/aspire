@@ -14,22 +14,18 @@ internal sealed class PartitionReceiverClientComponent()
     : EventHubsComponent<AzureMessagingEventHubsPartitionReceiverSettings, PartitionReceiver, PartitionReceiverOptions>
 {
     // cannot be in base class as source generator chokes on generic placeholders
-    protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<PartitionReceiver, PartitionReceiverOptions> clientBuilder, IConfiguration configuration)
-    {
+    protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<PartitionReceiver, PartitionReceiverOptions> clientBuilder, IConfiguration configuration) =>
 #pragma warning disable IDE0200 // Remove unnecessary lambda expression - needed so the ConfigBinder Source Generator works
         clientBuilder.ConfigureOptions(options => configuration.Bind(options));
 #pragma warning restore IDE0200
-    }
 
-    protected override void BindSettingsToConfiguration(AzureMessagingEventHubsPartitionReceiverSettings settings, IConfiguration config)
-    {
+    protected override void BindSettingsToConfiguration(AzureMessagingEventHubsPartitionReceiverSettings settings, IConfiguration config) =>
         config.Bind(settings);
-    }
+
     protected override IAzureClientBuilder<PartitionReceiver, PartitionReceiverOptions> AddClient(
         AzureClientFactoryBuilder azureFactoryBuilder, AzureMessagingEventHubsPartitionReceiverSettings settings,
-        string connectionName, string configurationSectionName)
-    {
-        return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<PartitionReceiver, PartitionReceiverOptions>((options, cred) =>
+        string connectionName, string configurationSectionName) =>
+        ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<PartitionReceiver, PartitionReceiverOptions>((options, cred) =>
         {
             EnsureConnectionStringOrNamespaceProvided(settings, connectionName, configurationSectionName);
 
@@ -54,5 +50,4 @@ internal sealed class PartitionReceiverClientComponent()
             return receiver;
 
         }, requiresCredential: false);
-    }
 }

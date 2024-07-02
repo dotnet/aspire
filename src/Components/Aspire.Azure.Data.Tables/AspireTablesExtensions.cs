@@ -36,9 +36,7 @@ public static class AspireTablesExtensions
         string connectionName,
         Action<AzureDataTablesSettings>? configureSettings = null,
         Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>>? configureClientBuilder = null)
-    {
-        new TableServiceComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
-    }
+            => new TableServiceComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
 
     /// <summary>
     /// Registers <see cref="TableServiceClient"/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
@@ -83,17 +81,13 @@ public static class AspireTablesExtensions
             }, requiresCredential: false);
         }
 
-        protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<TableServiceClient, TableClientOptions> clientBuilder, IConfiguration configuration)
-        {
+        protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<TableServiceClient, TableClientOptions> clientBuilder, IConfiguration configuration) =>
 #pragma warning disable IDE0200 // Remove unnecessary lambda expression - needed so the ConfigBinder Source Generator works
             clientBuilder.ConfigureOptions(options => configuration.Bind(options));
 #pragma warning restore IDE0200
-        }
 
-        protected override void BindSettingsToConfiguration(AzureDataTablesSettings settings, IConfiguration configuration)
-        {
+        protected override void BindSettingsToConfiguration(AzureDataTablesSettings settings, IConfiguration configuration) =>
             configuration.Bind(settings);
-        }
 
         protected override IHealthCheck CreateHealthCheck(TableServiceClient client, AzureDataTablesSettings settings)
             => new AzureTableServiceHealthCheck(client, new AzureTableServiceHealthCheckOptions());

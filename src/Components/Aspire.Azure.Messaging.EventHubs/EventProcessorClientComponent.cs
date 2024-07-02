@@ -19,24 +19,18 @@ internal sealed class EventProcessorClientComponent()
     // cannot be in base class as source generator chokes on generic placeholders
     protected override void BindClientOptionsToConfiguration(
         IAzureClientBuilder<EventProcessorClient, EventProcessorClientOptions> clientBuilder,
-        IConfiguration configuration)
-    {
+        IConfiguration configuration) =>
 #pragma warning disable IDE0200 // Remove unnecessary lambda expression - needed so the ConfigBinder Source Generator works
-        clientBuilder.ConfigureOptions(options => configuration.Bind(options));
+            clientBuilder.ConfigureOptions(options => configuration.Bind(options));
 #pragma warning restore IDE0200
-    }
 
     protected override void BindSettingsToConfiguration(AzureMessagingEventHubsProcessorSettings settings,
-        IConfiguration config)
-    {
-        config.Bind(settings);
-    }
+        IConfiguration config) => config.Bind(settings);
 
     protected override IAzureClientBuilder<EventProcessorClient, EventProcessorClientOptions> AddClient(
         AzureClientFactoryBuilder azureFactoryBuilder, AzureMessagingEventHubsProcessorSettings settings,
-        string connectionName, string configurationSectionName)
-    {
-        return azureFactoryBuilder.AddClient<EventProcessorClient, EventProcessorClientOptions>(
+        string connectionName, string configurationSectionName) =>
+               azureFactoryBuilder.AddClient<EventProcessorClient, EventProcessorClientOptions>(
             (options, cred, provider) =>
             {
                 EnsureConnectionStringOrNamespaceProvided(settings, connectionName, configurationSectionName);
@@ -71,7 +65,6 @@ internal sealed class EventProcessorClientComponent()
                         settings.EventHubName, cred, options);
                 }
             });
-    }
 
     private static BlobContainerClient GetBlobContainerClient(
         AzureMessagingEventHubsProcessorSettings settings, IServiceProvider provider, string configurationSectionName)
