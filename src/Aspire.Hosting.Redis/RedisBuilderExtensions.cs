@@ -133,11 +133,11 @@ public static class RedisBuilderExtensions
     private static IResourceBuilder<RedisResource> WithPassword(this IResourceBuilder<RedisResource> builder, ParameterResource password)
     {
         return builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
-         {
-             context.Args.Add("--requirepass");
-             context.Args.Add(password);
-             return Task.CompletedTask;
-         }), ResourceAnnotationMutationBehavior.Replace);
+        {
+            context.Args.Add("--requirepass");
+            context.Args.Add(password);
+            return Task.CompletedTask;
+        }), ResourceAnnotationMutationBehavior.Replace);
     }
 
     /// <summary>
