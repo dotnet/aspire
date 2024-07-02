@@ -8,4 +8,7 @@ internal static class GarnetContainerImageTags
     public const string Registry = "ghcr.io";
     public const string Image = "microsoft/garnet";
     public const string Tag = "1.0";
+    public const string RedisCommanderRegistry = "docker.io";
+    public const string RedisCommanderImage = "rediscommander/redis-commander";
+    public const string RedisCommanderTag = "latest";
 }
