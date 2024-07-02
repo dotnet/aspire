@@ -81,9 +81,14 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
     });
 }
 
-if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
+if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos) || !resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
 {
     builder.AddAzureCosmosClient("cosmos");
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
+{
+    builder.AddCosmosDbContext<EFCoreCosmosDbContext>("cosmos", "cosmos");
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
@@ -183,6 +188,11 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
 if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
 {
     app.MapCosmosApi();
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
+{
+    app.MapEFCoreCosmosApi();
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))

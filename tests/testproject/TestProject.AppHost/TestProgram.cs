@@ -142,7 +142,7 @@ public class TestProgram : IDisposable
                 var kafka = AppBuilder.AddKafka("kafka");
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(kafka);
             }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
+            if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos) || !resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
             {
                 var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(cosmos);

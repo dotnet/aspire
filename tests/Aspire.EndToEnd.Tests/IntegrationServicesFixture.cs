@@ -106,7 +106,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
         string component = resource switch
         {
-            TestResourceNames.cosmos => "cosmos",
+            TestResourceNames.cosmos or TestResourceNames.efcosmos => "cosmos",
             TestResourceNames.eventhubs => "eventhubs",
             TestResourceNames.garnet => "garnet",
             TestResourceNames.kafka => "kafka",
@@ -149,7 +149,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         TestResourceNames resourcesToInclude = TestScenario switch
         {
             "oracle" => TestResourceNames.oracledatabase,
-            "cosmos" => TestResourceNames.cosmos,
+            "cosmos" => TestResourceNames.cosmos | TestResourceNames.efcosmos,
             "eventhubs" => TestResourceNames.eventhubs,
             "basicservices" => TestResourceNames.kafka
                               | TestResourceNames.mongodb
