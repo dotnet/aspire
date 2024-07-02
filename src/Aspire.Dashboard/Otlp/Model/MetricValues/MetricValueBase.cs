@@ -18,10 +18,7 @@ public abstract class MetricValueBase
         End = end;
     }
 
-    internal static MetricValueBase Clone(MetricValueBase item)
-    {
-        return item.Clone();
-    }
+    internal static MetricValueBase Clone(MetricValueBase item) => item.Clone();
 
     internal abstract bool TryCompare(MetricValueBase other, out int comparisonResult);
 

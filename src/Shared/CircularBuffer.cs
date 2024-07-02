@@ -244,10 +244,7 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    private int InternalIndex(int index)
-    {
-        return (_start + index) % _buffer.Count;
-    }
+    private int InternalIndex(int index) => (_start + index) % _buffer.Count;
 
     private void Increment(ref int index)
     {

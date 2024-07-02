@@ -7,23 +7,14 @@ using OpenTelemetry.Proto.Collector.Metrics.V1;
 
 namespace Aspire.Dashboard.Otlp;
 
-public sealed class OtlpMetricsService
+public sealed class OtlpMetricsService(ILogger<OtlpMetricsService> logger, TelemetryRepository telemetryRepository)
 {
-    private readonly ILogger<OtlpMetricsService> _logger;
-    private readonly TelemetryRepository _telemetryRepository;
-
-    public OtlpMetricsService(ILogger<OtlpMetricsService> logger, TelemetryRepository telemetryRepository)
-    {
-        _logger = logger;
-        _telemetryRepository = telemetryRepository;
-    }
-
     public ExportMetricsServiceResponse Export(ExportMetricsServiceRequest request)
     {
         var addContext = new AddContext();
-        _telemetryRepository.AddMetrics(addContext, request.ResourceMetrics);
+        telemetryRepository.AddMetrics(addContext, request.ResourceMetrics);
 
-        _logger.LogDebug("Processed metrics export. Failure count: {FailureCount}", addContext.FailureCount);
+        logger.LogDebug("Processed metrics export. Failure count: {FailureCount}", addContext.FailureCount);
 
         return new ExportMetricsServiceResponse
         {

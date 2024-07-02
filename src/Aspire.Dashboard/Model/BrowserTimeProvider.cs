@@ -10,20 +10,12 @@ namespace Aspire.Dashboard.Model;
 /// - BrowserTimeProvider must be scoped to the user's session.
 /// - The built-in TimeProvider registration must be singleton for the system time (used by auth).
 /// </summary>
-public class BrowserTimeProvider : TimeProvider
+public class BrowserTimeProvider(ILoggerFactory loggerFactory) : TimeProvider
 {
-    private readonly ILogger _logger;
+    private readonly ILogger _logger = loggerFactory.CreateLogger(typeof(BrowserTimeProvider));
     private TimeZoneInfo? _browserLocalTimeZone;
 
-    public BrowserTimeProvider(ILoggerFactory loggerFactory)
-    {
-        _logger = loggerFactory.CreateLogger(typeof(BrowserTimeProvider));
-    }
-
-    public override TimeZoneInfo LocalTimeZone
-    {
-        get => _browserLocalTimeZone ?? base.LocalTimeZone;
-    }
+    public override TimeZoneInfo LocalTimeZone => _browserLocalTimeZone ?? base.LocalTimeZone;
 
     public void SetBrowserTimeZone(string timeZone)
     {

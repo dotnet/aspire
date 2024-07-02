@@ -123,16 +123,13 @@ public class OtlpApplication
         }
     }
 
-    private static OtlpInstrumentType MapMetricType(Metric.DataOneofCase data)
+    private static OtlpInstrumentType MapMetricType(Metric.DataOneofCase data) => data switch
     {
-        return data switch
-        {
-            Metric.DataOneofCase.Gauge => OtlpInstrumentType.Gauge,
-            Metric.DataOneofCase.Sum => OtlpInstrumentType.Sum,
-            Metric.DataOneofCase.Histogram => OtlpInstrumentType.Histogram,
-            _ => OtlpInstrumentType.Unsupported
-        };
-    }
+        Metric.DataOneofCase.Gauge => OtlpInstrumentType.Gauge,
+        Metric.DataOneofCase.Sum => OtlpInstrumentType.Sum,
+        Metric.DataOneofCase.Histogram => OtlpInstrumentType.Histogram,
+        _ => OtlpInstrumentType.Unsupported
+    };
 
     private OtlpMeter GetMeter(InstrumentationScope scope)
     {

@@ -12,15 +12,9 @@ public sealed class ShortcutManager(ILoggerFactory loggerFactory) : IDisposable
     private readonly ConcurrentDictionary<IGlobalKeydownListener, IGlobalKeydownListener> _keydownListenerComponents = [];
     private readonly ILogger<ShortcutManager> _logger = loggerFactory.CreateLogger<ShortcutManager>();
 
-    public void AddGlobalKeydownListener(IGlobalKeydownListener listener)
-    {
-        _keydownListenerComponents[listener] = listener;
-    }
+    public void AddGlobalKeydownListener(IGlobalKeydownListener listener) => _keydownListenerComponents[listener] = listener;
 
-    public void RemoveGlobalKeydownListener(IGlobalKeydownListener listener)
-    {
-        _keydownListenerComponents.Remove(listener, out _);
-    }
+    public void RemoveGlobalKeydownListener(IGlobalKeydownListener listener) => _keydownListenerComponents.Remove(listener, out _);
 
     [JSInvokable]
     public Task OnGlobalKeyDown(AspireKeyboardShortcut shortcut)
@@ -33,8 +27,5 @@ public sealed class ShortcutManager(ILoggerFactory loggerFactory) : IDisposable
         return Task.WhenAll(componentsSubscribedToShortcut.Select(component => component.OnPageKeyDownAsync(shortcut)));
     }
 
-    public void Dispose()
-    {
-        _keydownListenerComponents.Clear();
-    }
+    public void Dispose() => _keydownListenerComponents.Clear();
 }

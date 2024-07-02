@@ -7,9 +7,9 @@ using Aspire.Dashboard.Otlp.Storage;
 
 namespace Aspire.Dashboard.Model;
 
-public class StructuredLogsViewModel
+public class StructuredLogsViewModel(TelemetryRepository telemetryRepository)
 {
-    private readonly TelemetryRepository _telemetryRepository;
+    private readonly TelemetryRepository _telemetryRepository = telemetryRepository;
     private readonly List<LogFilter> _filters = new();
 
     private PagedResult<OtlpLogEntry>? _logs;
@@ -18,11 +18,6 @@ public class StructuredLogsViewModel
     private int _logsStartIndex;
     private int? _logsCount;
     private LogLevel? _logLevel;
-
-    public StructuredLogsViewModel(TelemetryRepository telemetryRepository)
-    {
-        _telemetryRepository = telemetryRepository;
-    }
 
     public string? ApplicationServiceId { get => _applicationServiceId; set => SetValue(ref _applicationServiceId, value); }
     public string FilterText { get => _filterText; set => SetValue(ref _filterText, value); }
@@ -97,8 +92,5 @@ public class StructuredLogsViewModel
         return logs;
     }
 
-    public void ClearData()
-    {
-        _logs = null;
-    }
+    public void ClearData() => _logs = null;
 }

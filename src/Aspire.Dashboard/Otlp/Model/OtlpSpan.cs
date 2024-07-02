@@ -9,7 +9,7 @@ namespace Aspire.Dashboard.Otlp.Model;
 /// Represents a Span within an Operation (Trace)
 /// </summary>
 [DebuggerDisplay("{DebuggerToString(),nq}")]
-public class OtlpSpan
+public class OtlpSpan(OtlpApplication application, OtlpTrace trace)
 {
     public const string PeerServiceAttributeKey = "peer.service";
     public const string UrlFullAttributeKey = "url.full";
@@ -20,8 +20,8 @@ public class OtlpSpan
     public const string SpanKindAttributeKey = "span.kind";
 
     public string TraceId => Trace.TraceId;
-    public OtlpTrace Trace { get; }
-    public OtlpApplication Source { get; }
+    public OtlpTrace Trace { get; } = trace;
+    public OtlpApplication Source { get; } = application;
 
     public required string SpanId { get; init; }
     public required string? ParentSpanId { get; init; }
@@ -42,15 +42,8 @@ public class OtlpSpan
     public IEnumerable<OtlpSpan> GetChildSpans() => Trace.Spans.Where(s => s.ParentSpanId == SpanId);
     public OtlpSpan? GetParentSpan() => string.IsNullOrEmpty(ParentSpanId) ? null : Trace.Spans.Where(s => s.SpanId == ParentSpanId).FirstOrDefault();
 
-    public OtlpSpan(OtlpApplication application, OtlpTrace trace)
-    {
-        Source = application;
-        Trace = trace;
-    }
-
-    public static OtlpSpan Clone(OtlpSpan item, OtlpTrace trace)
-    {
-        return new OtlpSpan(item.Source, trace)
+    public static OtlpSpan Clone(OtlpSpan item, OtlpTrace trace) =>
+        new OtlpSpan(item.Source, trace)
         {
             SpanId = item.SpanId,
             ParentSpanId = item.ParentSpanId,
@@ -64,7 +57,6 @@ public class OtlpSpan
             Attributes = item.Attributes,
             Events = item.Events
         };
-    }
 
     public Dictionary<string, string> AllProperties()
     {
@@ -93,8 +85,6 @@ public class OtlpSpan
         return props;
     }
 
-    private string DebuggerToString()
-    {
-        return $@"SpanId = {SpanId}, StartTime = {StartTime.ToLocalTime():h:mm:ss.fff tt}, ParentSpanId = {ParentSpanId}, TraceId = {Trace.TraceId}";
-    }
+    private string DebuggerToString() =>
+        $@"SpanId = {SpanId}, StartTime = {StartTime.ToLocalTime():h:mm:ss.fff tt}, ParentSpanId = {ParentSpanId}, TraceId = {Trace.TraceId}";
 }

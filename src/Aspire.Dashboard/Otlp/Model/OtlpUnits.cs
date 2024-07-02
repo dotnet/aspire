@@ -99,9 +99,8 @@ public static class OtlpUnits
     // OTLP metrics use the c/s notation as specified at https://ucum.org/ucum.html
     // (See also https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/metrics/semantic_conventions/README.md#instrument-units)
     // OpenMetrics specification for units: https://github.com/OpenObservability/OpenMetrics/blob/main/specification/OpenMetrics.md#units-and-base-units
-    public static string MapUnit(ReadOnlySpan<char> unit)
-    {
-        return unit switch
+    public static string MapUnit(ReadOnlySpan<char> unit) =>
+        unit switch
         {
             // Time
             "d" => "days",
@@ -144,13 +143,11 @@ public static class OtlpUnits
             "$" => "dollars",
             _ => unit.ToString(),
         };
-    }
 
     // The map that translates the "per" unit
     // Example: s => per second (singular)
-    public static string MapPerUnit(ReadOnlySpan<char> perUnit)
-    {
-        return perUnit switch
+    public static string MapPerUnit(ReadOnlySpan<char> perUnit) =>
+        perUnit switch
         {
             "s" => "second",
             "m" => "minute",
@@ -161,5 +158,4 @@ public static class OtlpUnits
             "y" => "year",
             _ => perUnit.ToString(),
         };
-    }
 }

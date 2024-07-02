@@ -6,14 +6,14 @@ using System.Diagnostics;
 namespace Aspire.Dashboard.Otlp.Model;
 
 [DebuggerDisplay("{DebuggerToString(),nq}")]
-public class OtlpTrace
+public class OtlpTrace(ReadOnlyMemory<byte> traceId, OtlpScope traceScope)
 {
     private OtlpSpan? _rootSpan;
 
-    public ReadOnlyMemory<byte> Key { get; }
-    public string TraceId { get; }
+    public ReadOnlyMemory<byte> Key { get; } = traceId;
+    public string TraceId { get; } = OtlpHelpers.ToHexString(traceId);
 
-    public string FullName { get; private set; }
+    public string FullName { get; private set; } = string.Empty;
     public OtlpSpan FirstSpan => Spans[0]; // There should always be at least one span in a trace.
     public OtlpSpan? RootSpan => _rootSpan;
     public TimeSpan Duration
@@ -35,7 +35,7 @@ public class OtlpTrace
 
     public List<OtlpSpan> Spans { get; } = new List<OtlpSpan>();
 
-    public OtlpScope TraceScope { get; }
+    public OtlpScope TraceScope { get; } = traceScope;
 
     public int CalculateDepth(OtlpSpan span)
     {
@@ -93,14 +93,6 @@ public class OtlpTrace
         }
     }
 
-    public OtlpTrace(ReadOnlyMemory<byte> traceId, OtlpScope traceScope)
-    {
-        Key = traceId;
-        TraceId = OtlpHelpers.ToHexString(traceId);
-        TraceScope = traceScope;
-        FullName = string.Empty;
-    }
-
     public static OtlpTrace Clone(OtlpTrace trace)
     {
         var newTrace = new OtlpTrace(trace.Key, trace.TraceScope);
@@ -112,18 +104,13 @@ public class OtlpTrace
         return newTrace;
     }
 
-    private string DebuggerToString()
-    {
-        return $@"TraceId = ""{TraceId}"", Spans = {Spans.Count}, StartDate = {FirstSpan.StartTime.ToLocalTime():yyyy:MM:dd}, StartTime = {FirstSpan.StartTime.ToLocalTime():h:mm:ss.fff tt}, Duration = {Duration}";
-    }
+    private string DebuggerToString() =>
+        $@"TraceId = ""{TraceId}"", Spans = {Spans.Count}, StartDate = {FirstSpan.StartTime.ToLocalTime():yyyy:MM:dd}, StartTime = {FirstSpan.StartTime.ToLocalTime():h:mm:ss.fff tt}, Duration = {Duration}";
 
     private sealed class SpanStartDateComparer : IComparer<OtlpSpan>
     {
         public static readonly SpanStartDateComparer Instance = new SpanStartDateComparer();
 
-        public int Compare(OtlpSpan? x, OtlpSpan? y)
-        {
-            return x!.StartTime.CompareTo(y!.StartTime);
-        }
+        public int Compare(OtlpSpan? x, OtlpSpan? y) => x!.StartTime.CompareTo(y!.StartTime);
     }
 }

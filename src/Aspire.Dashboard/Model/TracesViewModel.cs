@@ -6,20 +6,15 @@ using Aspire.Dashboard.Otlp.Storage;
 
 namespace Aspire.Dashboard.Model;
 
-public class TracesViewModel
+public class TracesViewModel(TelemetryRepository telemetryRepository)
 {
-    private readonly TelemetryRepository _telemetryRepository;
+    private readonly TelemetryRepository _telemetryRepository = telemetryRepository;
 
     private PagedResult<OtlpTrace>? _traces;
     private string? _applicationServiceId;
     private string _filterText = string.Empty;
     private int _startIndex;
     private int? _count;
-
-    public TracesViewModel(TelemetryRepository telemetryRepository)
-    {
-        _telemetryRepository = telemetryRepository;
-    }
 
     public string? ApplicationServiceId { get => _applicationServiceId; set => SetValue(ref _applicationServiceId, value); }
     public string FilterText { get => _filterText; set => SetValue(ref _filterText, value); }
@@ -58,9 +53,6 @@ public class TracesViewModel
         return traces;
     }
 
-    public void ClearData()
-    {
-        _traces = null;
-    }
+    public void ClearData() => _traces = null;
 }
 

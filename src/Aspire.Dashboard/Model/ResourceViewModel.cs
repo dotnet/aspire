@@ -26,11 +26,9 @@ public sealed class ResourceViewModel
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
     public KnownResourceState? KnownState { get; init; }
 
-    internal bool MatchesFilter(string filter)
-    {
+    internal bool MatchesFilter(string filter) =>
         // TODO let ResourceType define the additional data values we include in searches
-        return Name.Contains(filter, StringComparisons.UserTextSearch);
-    }
+        Name.Contains(filter, StringComparisons.UserTextSearch);
 
     public static string GetResourceName(ResourceViewModel resource, ConcurrentDictionary<string, ResourceViewModel> allResources)
     {
