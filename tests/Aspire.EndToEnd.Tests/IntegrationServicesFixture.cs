@@ -107,18 +107,18 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         string component = resource switch
         {
             TestResourceNames.cosmos => "cosmos",
+            TestResourceNames.eventhubs => "eventhubs",
+            TestResourceNames.garnet => "garnet",
             TestResourceNames.kafka => "kafka",
+            TestResourceNames.milvus => "milvus",
             TestResourceNames.mongodb => "mongodb",
             TestResourceNames.mysql or TestResourceNames.efmysql => "mysql",
             TestResourceNames.oracledatabase => "oracledatabase",
             TestResourceNames.postgres or TestResourceNames.efnpgsql => "postgres",
             TestResourceNames.rabbitmq => "rabbitmq",
             TestResourceNames.redis => "redis",
-            TestResourceNames.garnet => "garnet",
+            TestResourceNames.sqlserver or TestResourceNames.efsqlserver => "sqlserver",
             TestResourceNames.valkey => "valkey",
-            TestResourceNames.sqlserver => "sqlserver",
-            TestResourceNames.milvus => "milvus",
-            TestResourceNames.eventhubs => "eventhubs",
             _ => throw new ArgumentException($"Unknown resource: {resource}")
         };
 

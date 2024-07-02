@@ -13,6 +13,10 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.sqlserver))
 {
     builder.AddSqlServerClient("tempdb");
 }
+if (!resourcesToSkip.HasFlag(TestResourceNames.efsqlserver))
+{
+    builder.AddSqlServerDbContext<EFCoreSqlServerDbContext>("tempdb");
+}
 if (!resourcesToSkip.HasFlag(TestResourceNames.mysql) || !resourcesToSkip.HasFlag(TestResourceNames.efmysql))
 {
     builder.AddMySqlDataSource("mysqldb", settings =>
@@ -154,6 +158,11 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 if (!resourcesToSkip.HasFlag(TestResourceNames.sqlserver))
 {
     app.MapSqlServerApi();
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.efsqlserver))
+{
+    app.MapEFCoreSqlServerApi();
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.rabbitmq))
