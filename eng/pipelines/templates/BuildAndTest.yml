@@ -50,6 +50,9 @@ steps:
               "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog $(_OfficialBuildIdArgs)"
       env:
         DOCKER_BUILDKIT: 1
+        # Disable on Linux - https://github.com/dotnet/aspire/issues/4623
+        DISABLE_PLAYWRIGHT_TESTS: ${{ ne(parameters.isWindows, 'true') }}
+
       displayName: Run non-helix tests
 
     - script: ${{ parameters.buildScript }}
