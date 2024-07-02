@@ -98,7 +98,6 @@ public static class RedisBuilderExtensions
         int? port = null,
         IResourceBuilder<ParameterResource>? password = null)
     {
-
         if (password?.Resource is not null)
         {
 
