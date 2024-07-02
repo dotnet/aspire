@@ -69,6 +69,37 @@ public class AddKeycloakTests
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithRealmImportAddsBindMountAnnotation(bool? isReadOnly)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(tempDirectory);
+
+        var resourceName = "keycloak";
+        var keycloak = builder.AddKeycloak(resourceName);
+
+        if (isReadOnly.HasValue)
+        {
+            keycloak.WithRealmImport(tempDirectory, isReadOnly: isReadOnly.Value);
+        }
+        else
+        {
+            keycloak.WithRealmImport(tempDirectory);
+        }
+
+        var containerAnnotation = keycloak.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        Assert.Equal(tempDirectory, containerAnnotation.Source);
+        Assert.Equal("/opt/keycloak/data/import", containerAnnotation.Target);
+        Assert.Equal(ContainerMountType.BindMount, containerAnnotation.Type);
+        Assert.Equal(isReadOnly ?? false, containerAnnotation.IsReadOnly);
+    }
+
     [Fact]
     public void AddAddKeycloakAddsGeneratedPasswordParameterWithUserSecretsParameterDefaultInRunMode()
     {

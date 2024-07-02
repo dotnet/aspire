@@ -22,8 +22,6 @@ public sealed class KeycloakResource : ContainerResource, IResourceWithServiceDi
         AdminPasswordParameter = adminPassword;
     }
 
-    private EndpointReference? _primaryEndpoint;
-
     /// <summary>
     /// Gets the parameter that contains the Keycloak admin.
     /// </summary>
@@ -38,9 +36,4 @@ public sealed class KeycloakResource : ContainerResource, IResourceWithServiceDi
     /// Gets the parameter that contains the Keycloak admin password.
     /// </summary>
     public ParameterResource AdminPasswordParameter { get; }
-
-    /// <summary>
-    /// Gets the primary endpoint for the Keycloak server.
-    /// </summary>
-    public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 }
