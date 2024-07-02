@@ -100,7 +100,6 @@ public static class RedisBuilderExtensions
     {
         if (password?.Resource is not null)
         {
-
             var redis = new RedisResource(name, password.Resource);
             return builder.AddResource(redis)
                           .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)

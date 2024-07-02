@@ -69,7 +69,7 @@ public class AddRedisTests
     }
 
     [Fact]
-    public void RedisCreatesConnectionString()
+    public void RedisCreatesConnectionStringWithPassword()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         var password = "p@ssw0rd1";
@@ -85,8 +85,9 @@ public class AddRedisTests
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
         Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port},password={pass.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
+
     [Fact]
-    public async Task RedisCreatesConnectionStringWithPassword()
+    public async Task RedisCreatesConnectionStringWithoutPassword()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddRedis("myRedis")
@@ -394,6 +395,7 @@ public class AddRedisTests
         Assert.True(redis.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsAnnotations));
         Assert.NotNull(argsAnnotations.SingleOrDefault());
     }
+
     [Fact]
     public async Task AddRedisContainerWithPasswordAnnotationMetadata()
     {
