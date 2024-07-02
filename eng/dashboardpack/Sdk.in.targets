@@ -2,7 +2,7 @@
 
   <!-- *** BEGIN *** -->
 
-  <PropertyGroup>
+  <PropertyGroup Condition="'$(NETCoreSdkRuntimeIdentifier)' == '@PlatformRuntime@'">
     <AspireDashboardDir Condition=" '$(AspireDashboardDir)' == '' ">$([MSBuild]::NormalizeDirectory($(MSBuildThisFileDirectory), '..', 'tools'))</AspireDashboardDir>
     <AspireDashboardDir>$([MSBuild]::EnsureTrailingSlash('$(AspireDashboardDir)'))</AspireDashboardDir>
     <AspireDashboardPath Condition=" '$(AspireDashboardPath)' == '' ">$([MSBuild]::NormalizePath($(AspireDashboardDir), 'Aspire.Dashboard'))</AspireDashboardPath>
@@ -10,7 +10,7 @@
     <AspireDashboardPath Condition="$([MSBuild]::IsOsPlatform('OSX')) and !$(AspireDashboardPath.EndsWith('.dll'))">$(AspireDashboardPath).dll</AspireDashboardPath>
   </PropertyGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(NETCoreSdkRuntimeIdentifier)' == '@PlatformRuntime@'">
     <ProjectCapability Include="AspireDashboard" />
   </ItemGroup>
 
