@@ -1,5 +1,5 @@
 ﻿{
-  "author": "Майкрософт",
+  "author": "Microsoft",
   "name": "Тестовый проект .NET Aspire (MSTest)",
   "description": "Проект, содержащий тесты интеграции MSTest проекта .NET Aspire AppHost.",
   "symbols/Framework/description": "Целевая платформа для проекта.",
