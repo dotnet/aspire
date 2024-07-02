@@ -459,7 +459,8 @@ public class WithEndpointTests
             .WithHttpEndpoint(name: "hp")       // Won't get targetPort since it's the first http
             .WithHttpEndpoint(name: "hp2")      // Will get a targetPort
             .WithHttpsEndpoint(name: "hps")     // Won't get targetPort since it's the first https
-            .WithHttpsEndpoint(name: "hps2");   // Will get a targetPort
+            .WithHttpsEndpoint(name: "hps2")   // Will get a targetPort
+            .WithEndpoint(scheme: "tcp", name: "tcp0");  // Will get a targetPort
 
         var manifest = await ManifestUtils.GetManifest(project.Resource);
 
@@ -498,6 +499,12 @@ public class WithEndpointTests
                   "protocol": "tcp",
                   "transport": "http",
                   "targetPort": 8001
+                },
+                "tcp0": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "targetPort": 8002
                 }
               }
             }
