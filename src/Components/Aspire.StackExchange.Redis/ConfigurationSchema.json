@@ -87,7 +87,7 @@
                     },
                     "HighIntegrity": {
                       "type": "boolean",
-                      "description": "A Boolean value that specifies whether to use per-command validation of strict protocol validity.\nThis sends an additional command after EVERY command which incurs measurable overhead."
+                      "description": "A Boolean value that specifies whether to use per-command validation of strict protocol validity. This sends an additional command after EVERY command which incurs measurable overhead."
                     },
                     "IncludeDetailInExceptions": {
                       "type": "boolean",
