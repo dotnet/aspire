@@ -1,6 +1,6 @@
 # Aspire.Keycloak library
 
-Add JwtBearer and OpenId Connect authentication to the project via a [Keycloak](https://www.keycloak.org).
+Adds JwtBearer and OpenId Connect authentication to the project via a [Keycloak](https://www.keycloak.org).
 
 ## Getting started
 
@@ -25,13 +25,13 @@ In the _Program.cs_ file of your ASP.NET Core API project, call the `AddKeycloak
 
 ```csharp
 builder.Services.AddAuthentication()
-                .AddKeycloakJwtBearer("keycloak", realm: "WeatherShop", configureJwtBearerOptions: options =>
+                .AddKeycloakJwtBearer("keycloak", realm: "WeatherShop", options =>
                 {
                     options.Audience = "weather.api";
                 });
 ```
 
-You can set many other options via the `Action<JwtBearerOptions> configureJwtBearerOptions` delegate.
+You can set many other options via the `Action<JwtBearerOptions> configureOptions` delegate.
 
 ## OpenId Connect authentication usage example
 
@@ -42,8 +42,7 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
                 .AddKeycloakOpenIdConnect(
                     "keycloak", 
                     realm: "WeatherShop", 
-                    openIdConnectScheme: OpenIdConnectDefaults.AuthenticationScheme, 
-                    configureOpenIdConnectOptions: options =>
+                    options =>
                     {
                         options.ClientId = "WeatherWeb";
                         options.ResponseType = OpenIdConnectResponseType.Code;
@@ -51,7 +50,7 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
                     });
 ```
 
-You can set many other options via the `Action<OpenIdConnectOptions>? configureOpenIdConnectOptions` delegate.
+You can set many other options via the `Action<OpenIdConnectOptions>? configureOptions` delegate.
 
 ## AppHost extensions
 
@@ -87,11 +86,13 @@ builder.Services.AddAuthentication()
 And in the _Program.cs_ file of `Keycloak.Web`, the Keycloak connection can be consumed using:
 
 ```csharp
-builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
+var oidcScheme = OpenIdConnectDefaults.AuthenticationScheme;
+
+builder.Services.AddAuthentication(oidcScheme)
                 .AddKeycloakOpenIdConnect(
                     "keycloak", 
                     realm: "WeatherShop", 
-                    openIdConnectScheme: OpenIdConnectDefaults.AuthenticationScheme);
+                    oidcScheme);
 ```
 
 ## Additional documentation

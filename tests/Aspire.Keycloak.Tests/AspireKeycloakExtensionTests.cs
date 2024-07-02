@@ -18,11 +18,11 @@ public class AspireKeycloakExtensionTests()
     public void AddKeycloakJwtBearer_SetsJwtBearerAuthority()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
-        
+
         var realm = "myrealm";
 
         builder.Services.AddAuthentication()
-                        .AddKeycloakJwtBearer(DefaultKeyName, realm, configureJwtBearerOptions: options =>
+                        .AddKeycloakJwtBearer(DefaultKeyName, realm, options =>
                         {
                             options.RequireHttpsMetadata = false;
                         });
@@ -39,11 +39,11 @@ public class AspireKeycloakExtensionTests()
     public void AddKeycloakOpenIdConnect_SetsOpenIdConnectAuthority()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
-        
+
         var realm = "myrealm";
 
         builder.Services.AddAuthentication()
-                        .AddKeycloakOpenIdConnect(DefaultKeyName, realm, configureOpenIdConnectOptions: options =>
+                        .AddKeycloakOpenIdConnect(DefaultKeyName, realm, options =>
                         {
                             options.ClientId = "myclient";
                             options.RequireHttpsMetadata = false;

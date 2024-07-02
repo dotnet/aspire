@@ -1,7 +1,8 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var keycloak = builder.AddKeycloak("keycloak")
-                      .WithDataVolume();
+                      .WithDataVolume()
+                      .WithRealmImport("../realms");
 
 var apiService = builder.AddProject<Projects.Keycloak_ApiService>("apiservice")
                         .WithReference(keycloak);

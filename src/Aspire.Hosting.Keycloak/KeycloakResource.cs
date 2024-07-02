@@ -18,7 +18,7 @@ public sealed class KeycloakResource : ContainerResource, IResourceWithServiceDi
     {
         ArgumentNullException.ThrowIfNull(adminPassword);
 
-        AdminParameter = admin;
+        AdminUserNameParameter = admin;
         AdminPasswordParameter = adminPassword;
     }
 
@@ -27,11 +27,11 @@ public sealed class KeycloakResource : ContainerResource, IResourceWithServiceDi
     /// <summary>
     /// Gets the parameter that contains the Keycloak admin.
     /// </summary>
-    public ParameterResource? AdminParameter { get; }
+    public ParameterResource? AdminUserNameParameter { get; }
 
     internal ReferenceExpression AdminReference =>
-        AdminParameter is not null ?
-            ReferenceExpression.Create($"{AdminParameter}") :
+        AdminUserNameParameter is not null ?
+            ReferenceExpression.Create($"{AdminUserNameParameter}") :
             ReferenceExpression.Create($"{DefaultAdmin}");
 
     /// <summary>
