@@ -66,6 +66,78 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Get the environment variables from the given resource.
+    /// </summary>
+    /// <remarks>
+    /// This method is useful when you want to make sure the environment variables are added properly to resources, mostly in test situations.
+    /// This method has asynchronous behavior when <paramref name = "applicationOperation" /> is <see cref="DistributedApplicationOperation.Run"/>
+    /// and environment variables were provided from <see cref="IValueProvider"/> otherwise it will be synchronous.
+    /// </remarks>
+    /// <param name="resource">The resource to get the environment variables from.</param>
+    /// <param name="applicationOperation">The context in which the AppHost is being executed.</param>
+    /// <returns>The environment variables retrieved from the resource.</returns>
+    /// <example>
+    /// <code>
+    /// using var builder = TestDistributedApplicationBuilder.Create();
+    ///
+    /// builder.AddMongoDB("mongo")
+    ///      .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000, containerHost))
+    ///      .WithMongoExpress();
+    ///
+    ///   var env = await mongoExpress.GetEnvironmentVariableValuesAsync();
+    ///
+    ///   Assert.Collection(env,
+    ///       e =>
+    ///           {
+    ///               Assert.Equal("ME_CONFIG_MONGODB_URL", e.Key);
+    ///               Assert.Equal($"mongodb://{containerHost}:3000/?directConnection=true", e.Value);
+    ///           },
+    ///           e =>
+    ///           {
+    ///               Assert.Equal("ME_CONFIG_BASICAUTH", e.Key);
+    ///               Assert.Equal("false", e.Value);
+    ///           });
+    /// </code>
+    /// </example>
+
+    public static async ValueTask<IReadOnlyDictionary<string, string>> GetEnvironmentVariableValuesAsync(this IResourceWithEnvironment resource,
+            DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
+    {
+        var environmentVariables = new Dictionary<string, string>();
+
+        if (resource.TryGetEnvironmentVariables(out var callbacks))
+        {
+            var config = new Dictionary<string, object>();
+            var executionContext = new DistributedApplicationExecutionContext(applicationOperation);
+            var context = new EnvironmentCallbackContext(executionContext, config);
+
+            foreach (var callback in callbacks)
+            {
+                await callback.Callback(context).ConfigureAwait(false);
+            }
+
+            foreach (var (key, expr) in config)
+            {
+                var value = (applicationOperation, expr) switch
+                {
+                    (_, string s) => s,
+                    (DistributedApplicationOperation.Run, IValueProvider provider) => await provider.GetValueAsync().ConfigureAwait(false),
+                    (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => provider.ValueExpression,
+                    (_, null) => null,
+                    _ => throw new InvalidOperationException($"Unsupported expression type: {expr.GetType()}")
+                };
+
+                if (value is not null)
+                {
+                    environmentVariables[key] = value;
+                }
+            }
+        }
+
+        return environmentVariables;
+    }
+
+    /// <summary>
     /// Attempts to get the container mounts for the specified resource.
     /// </summary>
     /// <param name="resource">The resource to get the volume mounts for.</param>
