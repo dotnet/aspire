@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-// using Aspire.EndToEnd.Tests;
 using Aspire.Hosting.MongoDB;
 using Aspire.Workload.Tests;
 using Xunit;
@@ -9,11 +8,11 @@ using Xunit.Abstractions;
 
 namespace Aspire.Playground.Tests;
 
-public class NatsTests : PlaygroundTestsBase, IClassFixture<MysqlPlaygroundFixture>
+public class DaprTests : PlaygroundTestsBase, IClassFixture<DaprPlaygroundFixture>
 {
-    private readonly MysqlPlaygroundFixture _testFixture;
+    private readonly MongoPlaygroundAppFixture _testFixture;
 
-    public NatsTests(MysqlPlaygroundFixture testFixture, ITestOutputHelper testOutput) : base(testOutput)
+    public DaprTests(MongoPlaygroundAppFixture testFixture, ITestOutputHelper testOutput) : base(testOutput)
     {
         _testFixture = testFixture;
     }

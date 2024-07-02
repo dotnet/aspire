@@ -47,9 +47,7 @@
     <ProjectReference Include="..\..\src\Components\Aspire.MySqlConnector\Aspire.MySqlConnector.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Components\Aspire.Npgsql\Aspire.Npgsql.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Components\Aspire.Oracle.EntityFrameworkCore\Aspire.Oracle.EntityFrameworkCore.csproj" IsAspireProjectResource="false" />
-    
 
-    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
 
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
 

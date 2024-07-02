@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.EndToEnd.Tests;
 using Aspire.Hosting.MongoDB;
 using Aspire.Workload.Tests;
 using Xunit;
@@ -25,7 +24,7 @@ public class MySqlDbTests : PlaygroundTestsBase, IClassFixture<MysqlPlaygroundFi
         => _testFixture.Projects["apiservice"].WaitForHealthyStatusAsync("http", _testOutput, path, CancellationToken.None);
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]k
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
     public async Task ResourcesShowUpOnDashboad()
     {
         await using var context = await CreateNewBrowserContextAsync();

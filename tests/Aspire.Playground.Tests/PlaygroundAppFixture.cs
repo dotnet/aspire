@@ -5,7 +5,7 @@ using Xunit;
 using Xunit.Abstractions;
 using Aspire.Workload.Tests;
 
-namespace Aspire.EndToEnd.Tests;
+namespace Aspire.Playground.Tests;
 
 public class PlaygroundAppFixture : IAsyncLifetime
 {
@@ -245,6 +245,22 @@ public sealed class NatsPlaygroundFixture : PlaygroundAppFixture
 {
     public NatsPlaygroundFixture(IMessageSink diagnosticMessageSink)
         : base ("nats/Nats.AppHost", diagnosticMessageSink)
+    {
+    }
+}
+
+public sealed class DaprPlaygroundFixture : PlaygroundAppFixture
+{
+    public DaprPlaygroundFixture(IMessageSink diagnosticMessageSink)
+        : base ("dapr/AppHost", diagnosticMessageSink)
+    {
+    }
+}
+
+public sealed class QdrantPlaygroundFixture : PlaygroundAppFixture
+{
+    public QdrantPlaygroundFixture(IMessageSink diagnosticMessageSink)
+        : base ("Qdrant/Qdrant.AppHost", diagnosticMessageSink)
     {
     }
 }
