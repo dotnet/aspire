@@ -9,7 +9,7 @@ updates:
     registries:
       - public-nuget
     schedule:
-      interval: daily
+      interval: weekly
       time: "07:00"
       timezone: "America/Los_Angeles"
     open-pull-requests-limit: 15
