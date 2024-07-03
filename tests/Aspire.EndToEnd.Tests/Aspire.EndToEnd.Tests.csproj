@@ -32,7 +32,6 @@
     <None Include="$(TestsSharedDir)EmptyProject.proj" Link="testassets\Directory.Build.props" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(TestsSharedDir)EmptyProject.proj" Link="testassets\Directory.Build.targets" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(TestsSharedDir)OutOfRepo\*" Link="testassets\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(TestsSharedDir)TestsRunningOutsideOfRepo.*" Link="testassets\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <None Include="$(GeneratedPackagesVersionsPropsPath)" Link="testassets\Directory.Packages.Versions.props" CopyToOutputDirectory="PreserveNewest" />
 
