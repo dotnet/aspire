@@ -78,25 +78,25 @@ public static class ResourceExtensions
     /// <returns>The environment variables retrieved from the resource.</returns>
     /// <example>
     /// <code>
-    /// using var builder = TestDistributedApplicationBuilder.Create();
+    /// using var builder = await DistributedApplicationTestingBuilder.CreateAsync&lt;SampleShop_AppHost&gt;();
     ///
     /// builder.AddMongoDB("mongo")
-    ///      .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000, containerHost))
-    ///      .WithMongoExpress();
+    ///     .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000, containerHost))
+    ///     .WithMongoExpress();
     ///
-    ///   var env = await mongoExpress.GetEnvironmentVariableValuesAsync();
+    /// var env = await mongoExpress.GetEnvironmentVariableValuesAsync();
     ///
-    ///   Assert.Collection(env,
-    ///       e =>
-    ///           {
-    ///               Assert.Equal("ME_CONFIG_MONGODB_URL", e.Key);
-    ///               Assert.Equal($"mongodb://{containerHost}:3000/?directConnection=true", e.Value);
-    ///           },
-    ///           e =>
-    ///           {
-    ///               Assert.Equal("ME_CONFIG_BASICAUTH", e.Key);
-    ///               Assert.Equal("false", e.Value);
-    ///           });
+    /// Assert.Collection(env,
+    ///     e =>
+    ///         {
+    ///             Assert.Equal("ME_CONFIG_MONGODB_URL", e.Key);
+    ///             Assert.Equal($"mongodb://{containerHost}:3000/?directConnection=true", e.Value);
+    ///         },
+    ///         e =>
+    ///         {
+    ///             Assert.Equal("ME_CONFIG_BASICAUTH", e.Key);
+    ///             Assert.Equal("false", e.Value);
+    ///         });
     /// </code>
     /// </example>
 
