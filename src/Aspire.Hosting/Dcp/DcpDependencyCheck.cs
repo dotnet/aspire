@@ -123,7 +123,10 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
             {
                 if (processDisposable != null)
                 {
-                    await processDisposable.DisposeAsync().ConfigureAwait(false);
+                    try
+                    {
+                        await processDisposable.DisposeAsync().ConfigureAwait(false);
+                    } catch { } // Dispose (dcp info process termination) is best effort.
                 }
             }
         }
