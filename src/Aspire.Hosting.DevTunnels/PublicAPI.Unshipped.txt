@@ -1,0 +1,14 @@
+#nullable enable
+Aspire.Hosting.DevTunnelBuilderExtensions
+Aspire.Hosting.DevTunnelOptions
+Aspire.Hosting.DevTunnelOptions.AllowAnonymous.get -> bool
+Aspire.Hosting.DevTunnelOptions.AllowAnonymous.set -> void
+Aspire.Hosting.DevTunnelOptions.DevTunnelId.get -> string!
+Aspire.Hosting.DevTunnelOptions.DevTunnelId.set -> void
+Aspire.Hosting.DevTunnelOptions.DevTunnelOptions(string! defaultDevTunnelId) -> void
+Aspire.Hosting.DevTunnels.DevTunnelToolException
+Aspire.Hosting.DevTunnels.DevTunnelToolException.Command.get -> string?
+Aspire.Hosting.DevTunnels.DevTunnelToolException.DevTunnelToolException(string! message, string? command = null, string? stdout = null, string? stderr = null) -> void
+Aspire.Hosting.DevTunnels.DevTunnelToolException.Stderr.get -> string?
+Aspire.Hosting.DevTunnels.DevTunnelToolException.Stdout.get -> string?
+static Aspire.Hosting.DevTunnelBuilderExtensions.WithDevTunnel<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! endpointName, System.Action<Aspire.Hosting.DevTunnelOptions!>? configureOptions = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
