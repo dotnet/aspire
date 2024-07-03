@@ -53,7 +53,7 @@
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "port": 8000
+          "targetPort": 8000
         },
         "orleans-gateway": {
           "scheme": "tcp",

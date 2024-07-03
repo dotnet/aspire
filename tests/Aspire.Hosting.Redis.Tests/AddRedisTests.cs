@@ -171,7 +171,7 @@ public class AddRedisTests
 
         var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Equal($"myredis1:{containerHost}:5001:0", config["REDIS_HOSTS"]);
     }
@@ -196,7 +196,7 @@ public class AddRedisTests
 
         var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Equal($"myredis1:{containerHost}:5001:0,myredis2:host2:5002:0", config["REDIS_HOSTS"]);
     }

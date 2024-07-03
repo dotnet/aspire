@@ -162,17 +162,31 @@ public class ResourceNotificationService
 
             OnResourceUpdated?.Invoke(new ResourceEvent(resource, resourceId, newState));
 
-            if (_logger.IsEnabled(LogLevel.Debug))
+            if (_logger.IsEnabled(LogLevel.Debug) && newState.State?.Text is { Length: > 0 } newStateText && !string.IsNullOrWhiteSpace(newStateText))
             {
                 var previousStateText = previousState?.State?.Text;
-                if (!string.IsNullOrEmpty(previousStateText))
+                if (!string.IsNullOrWhiteSpace(previousStateText) && !string.Equals(previousStateText, newStateText, StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogDebug("Resource {Resource}/{ResourceId} changed state: {PreviousState} -> {NewState}", resource.Name, resourceId, previousStateText, newState.State?.Text);
+                    // The state text has changed from the previous state
+                    _logger.LogDebug("Resource {Resource}/{ResourceId} changed state: {PreviousState} -> {NewState}", resource.Name, resourceId, previousStateText, newStateText);
                 }
-                else
+                else if (string.IsNullOrWhiteSpace(previousStateText))
                 {
-                    _logger.LogDebug("Resource {Resource}/{ResourceId} changed state: {NewState}", resource.Name, resourceId, newState.State?.Text);
+                    // There was no previous state text so just log the new state
+                    _logger.LogDebug("Resource {Resource}/{ResourceId} changed state: {NewState}", resource.Name, resourceId, newStateText);
                 }
+            }
+
+            if (_logger.IsEnabled(LogLevel.Trace))
+            {
+                _logger.LogTrace("Resource {Resource}/{ResourceId} update published: " +
+                    "ResourceType = {ResourceType}, CreationTimeStamp = {CreationTimeStamp:s}, State = {{ Text = {StateText}, Style = {StateStyle} }}, " +
+                    "ExitCode = {ExitCode}, EnvironmentVariables = {{ {EnvironmentVariables} }}, Urls = {{ {Urls} }}, " +
+                    "Properties = {{ {Properties} }}",
+                    resource.Name, resourceId,
+                    newState.ResourceType, newState.CreationTimeStamp, newState.State?.Text, newState.State?.Style,
+                    newState.ExitCode, string.Join(", ", newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")), string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
+                    string.Join(", ", newState.Properties.Select(p => $"{p.Name} = {p.Value}")));
             }
 
             return Task.CompletedTask;
