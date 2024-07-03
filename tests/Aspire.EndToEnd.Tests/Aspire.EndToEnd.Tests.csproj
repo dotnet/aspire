@@ -20,13 +20,21 @@
     <TestArchiveTestsDir>$(TestArchiveTestsDirForEndToEndTests)</TestArchiveTestsDir>
   </PropertyGroup>
 
+  <!-- testassets can be the staging directory -->
   <ItemGroup>
     <Compile Include="..\testproject\Common\TestResourceNames.cs" />
 
     <None Include="..\testproject\**\*" Link="testassets\testproject\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\.editorconfig" Link="testassets\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Condition="'$(InstallWorkloadForTesting)' == 'true'" Include="$(PatchedNuGetConfigPath)" Link="testassets\testproject\nuget.config" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)Directory.Packages.props" Link="testassets\testproject\Directory.Packages.repo.props" CopyToOutputDirectory="PreserveNewest" />
+
+    <None Condition="'$(InstallWorkloadForTesting)' == 'true'" Include="$(TestsSharedDir)nuget-for-hosting-testing.config" Link="testassets\nuget.config" CopyToOutputDirectory="PreserveNewest" />
+
+    <None Include="$(TestsSharedDir)EmptyProject.proj" Link="testassets\Directory.Build.props" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedDir)EmptyProject.proj" Link="testassets\Directory.Build.targets" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedDir)OutOfRepo\*" Link="testassets\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedDir)TestsRunningOutsideOfRepo.*" Link="testassets\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+
+    <None Include="$(GeneratedPackagesVersionsPropsPath)" Link="testassets\Directory.Packages.Versions.props" CopyToOutputDirectory="PreserveNewest" />
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />

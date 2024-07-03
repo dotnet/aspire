@@ -3,6 +3,5 @@
     <IsTestSupportProject>true</IsTestSupportProject>
   </PropertyGroup>
 
-  <Import Project="Directory.Build.Helix.props" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'" />
-  <Import Project="..\Directory.Build.props" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 </Project>

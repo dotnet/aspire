@@ -1,6 +1,8 @@
 <Project>
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
 
+  <Import Project="$(TestsSharedDir)TestsRunningOutsideOfRepo.targets" />
+
   <PropertyGroup>
     <!-- forward the settings file path to RunTests target in arcade -->
     <VSTestRunSettingsFile Condition="'$(VSTestRunSettingsFile)' == ''">$(RunSettingsFilePath)</VSTestRunSettingsFile>
@@ -29,6 +31,6 @@
                   Overwrite="true" />
   </Target>
 
-  <Import Project="Shared\Aspire.Workload.Testing.targets" Condition="'$(IsWorkloadTestProject)' == 'true'" />
+  <Import Project="$(TestsSharedDir)\Aspire.Workload.Testing.targets" Condition="'$(IsWorkloadTestProject)' == 'true'" />
   <!--<Import Project="Shared\TestsRunningOutsideOfRepo.targets" Condition="'$(SupportsRunningTestsOutsideOfRepo)' == 'true'" />-->
 </Project>
