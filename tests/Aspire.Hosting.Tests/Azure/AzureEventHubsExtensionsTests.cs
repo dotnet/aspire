@@ -2,20 +2,21 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.Azure.EventHubs;
 using Xunit;
 
 namespace Aspire.Hosting.Tests.Azure;
 
-public class AzureResourceExtensionsTests
+public class AzureEventHubsExtensionsTests
 {
     [Theory]
     [InlineData(null)]
     [InlineData(true)]
     [InlineData(false)]
-    public void AzureStorageUseEmulatorCallbackWithWithDataBindMountResultsInBindMountAnnotationWithDefaultPath(bool? isReadOnly)
+    public void AzureEventHubsUseEmulatorCallbackWithWithDataBindMountResultsInBindMountAnnotationWithDefaultPath(bool? isReadOnly)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
+        var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
         {
             if (isReadOnly.HasValue)
             {
@@ -27,8 +28,9 @@ public class AzureResourceExtensionsTests
             }
         });
 
-        var volumeAnnotation = storage.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
-        Assert.Equal(Path.Combine(builder.AppHostDirectory, ".azurite", "storage"), volumeAnnotation.Source);
+        // Ignoring the annotation created for the custom Config.json file
+        var volumeAnnotation = eventHubs.Resource.Annotations.OfType<ContainerMountAnnotation>().Where(a => !a.Target.Contains("Config.json")).Single();
+        Assert.Equal(Path.Combine(builder.AppHostDirectory, ".eventhubs", "eh"), volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
@@ -38,10 +40,10 @@ public class AzureResourceExtensionsTests
     [InlineData(null)]
     [InlineData(true)]
     [InlineData(false)]
-    public void AzureStorageUseEmulatorCallbackWithWithDataBindMountResultsInBindMountAnnotation(bool? isReadOnly)
+    public void AzureEventHubsUseEmulatorCallbackWithWithDataBindMountResultsInBindMountAnnotation(bool? isReadOnly)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
+        var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
         {
             if (isReadOnly.HasValue)
             {
@@ -53,7 +55,8 @@ public class AzureResourceExtensionsTests
             }
         });
 
-        var volumeAnnotation = storage.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        // Ignoring the annotation created for the custom Config.json file
+        var volumeAnnotation = eventHubs.Resource.Annotations.OfType<ContainerMountAnnotation>().Where(a => !a.Target.Contains("Config.json")).Single();
         Assert.Equal(Path.Combine(builder.AppHostDirectory, "mydata"), volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
@@ -64,10 +67,10 @@ public class AzureResourceExtensionsTests
     [InlineData(null)]
     [InlineData(true)]
     [InlineData(false)]
-    public void AzureStorageUseEmulatorCallbackWithWithDataVolumeResultsInVolumeAnnotationWithDefaultName(bool? isReadOnly)
+    public void AzureEventHubsUseEmulatorCallbackWithWithDataVolumeResultsInVolumeAnnotationWithDefaultName(bool? isReadOnly)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
+        var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
         {
             if (isReadOnly.HasValue)
             {
@@ -79,8 +82,8 @@ public class AzureResourceExtensionsTests
             }
         });
 
-        var volumeAnnotation = storage.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
-        Assert.Equal("Aspire.Hosting.Tests-storage-data", volumeAnnotation.Source);
+        var volumeAnnotation = eventHubs.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        Assert.Equal("Aspire.Hosting.Tests-eh-data", volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
@@ -90,10 +93,10 @@ public class AzureResourceExtensionsTests
     [InlineData(null)]
     [InlineData(true)]
     [InlineData(false)]
-    public void AzureStorageUseEmulatorCallbackWithWithDataVolumeResultsInVolumeAnnotation(bool? isReadOnly)
+    public void AzureEventHubsUseEmulatorCallbackWithWithDataVolumeResultsInVolumeAnnotation(bool? isReadOnly)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
+        var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
         {
             if (isReadOnly.HasValue)
             {
@@ -105,71 +108,53 @@ public class AzureResourceExtensionsTests
             }
         });
 
-        var volumeAnnotation = storage.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        var volumeAnnotation = eventHubs.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
         Assert.Equal("mydata", volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
     }
 
-    [Fact]
-    public void AzureStorageUserEmulatorUseBlobQueueTablePortMethodsMutateEndpoints()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var storage = builder.AddAzureStorage("storage").RunAsEmulator(configureContainer: builder =>
-        {
-            builder.WithBlobPort(9001);
-            builder.WithQueuePort(9002);
-            builder.WithTablePort(9003);
-        });
-
-        Assert.Collection(
-            storage.Resource.Annotations.OfType<EndpointAnnotation>(),
-            e => Assert.Equal(9001, e.Port),
-            e => Assert.Equal(9002, e.Port),
-            e => Assert.Equal(9003, e.Port));
-    }
-
     [Theory]
     [InlineData(null)]
     [InlineData(8081)]
     [InlineData(9007)]
-    public void AddAzureCosmosDBWithEmulatorGetsExpectedPort(int? port = null)
+    public void AzureEventHubsWithEmulatorGetsExpectedPort(int? port = null)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-
-        var cosmos = builder.AddAzureCosmosDB("cosmos");
-
-        cosmos.RunAsEmulator(container =>
+        var eventHubs = builder.AddAzureEventHubs("eventhubs").RunAsEmulator(configureContainer: builder =>
         {
-            container.WithGatewayPort(port);
+            builder.WithGatewayPort(port);
         });
 
-        var endpointAnnotation = cosmos.Resource.Annotations.OfType<EndpointAnnotation>().FirstOrDefault();
-        Assert.NotNull(endpointAnnotation);
-
-        var actualPort = endpointAnnotation.Port;
-        Assert.Equal(port, actualPort);
+        Assert.Collection(
+            eventHubs.Resource.Annotations.OfType<EndpointAnnotation>(),
+            e => Assert.Equal(port, e.Port)
+            );
     }
 
     [Theory]
+    [InlineData(null)]
     [InlineData("2.3.97-preview")]
     [InlineData("1.0.7")]
-    public void AddAzureCosmosDBWithEmulatorGetsExpectedImageTag(string imageTag)
+    public void AzureEventHubsWithEmulatorGetsExpectedImageTag(string imageTag)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
+        var eventHubs = builder.AddAzureEventHubs("eventhubs");
 
-        var cosmos = builder.AddAzureCosmosDB("cosmos");
-
-        cosmos.RunAsEmulator(container =>
+        eventHubs.RunAsEmulator(container =>
         {
-            container.WithImageTag(imageTag);
+            if (!string.IsNullOrEmpty(imageTag))
+            {
+                container.WithImageTag(imageTag);
+            }
         });
 
-        var containerImageAnnotation = cosmos.Resource.Annotations.OfType<ContainerImageAnnotation>().FirstOrDefault();
+        var containerImageAnnotation = eventHubs.Resource.Annotations.OfType<ContainerImageAnnotation>().FirstOrDefault();
         Assert.NotNull(containerImageAnnotation);
 
-        var actualTag = containerImageAnnotation.Tag;
-        Assert.Equal(imageTag ?? "latest", actualTag);
+        Assert.Equal(imageTag ?? EventHubsEmulatorContainerImageTags.Tag, containerImageAnnotation.Tag);
+        Assert.Equal(EventHubsEmulatorContainerImageTags.Registry, containerImageAnnotation.Registry);
+        Assert.Equal(EventHubsEmulatorContainerImageTags.Image, containerImageAnnotation.Image);
     }
 }

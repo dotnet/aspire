@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.EventHubs;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.EventHubs;
 
@@ -185,6 +186,16 @@ public static class AzureEventHubsExtensions
     /// <returns>A builder for the <see cref="AzureEventHubsEmulatorResource"/>.</returns>
     public static IResourceBuilder<AzureEventHubsEmulatorResource> WithDataBindMount(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string? path = null, bool isReadOnly = false)
         => builder.WithBindMount(path ?? $".eventhubs/{builder.Resource.Name}", "/data", isReadOnly);
+
+    /// <summary>
+    /// Adds a named volume for the data folder to an Azure Event Hubs emulator resource.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="AzureEventHubsEmulatorResource"/>.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
+    /// <returns>A builder for the <see cref="AzureEventHubsEmulatorResource"/>.</returns>
+    public static IResourceBuilder<AzureEventHubsEmulatorResource> WithDataVolume(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string? name = null, bool isReadOnly = false)
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data", isReadOnly);
 
     /// <summary>
     /// Configures the gateway port for the Azure Event Hubs emulator.
