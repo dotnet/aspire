@@ -58,7 +58,7 @@ public class AddOracleTests
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Collection(config,
             env =>
@@ -98,7 +98,7 @@ public class AddOracleTests
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Collection(config,
             env =>
@@ -181,7 +181,7 @@ public class AddOracleTests
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Collection(config,
             env =>
