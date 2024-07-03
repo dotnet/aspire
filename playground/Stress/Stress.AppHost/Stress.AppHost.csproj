@@ -13,8 +13,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
     <ProjectReference Include="..\Stress.ApiService\Stress.ApiService.csproj" />
     <ProjectReference Include="..\Stress.TelemetryService\Stress.TelemetryService.csproj" />
   </ItemGroup>

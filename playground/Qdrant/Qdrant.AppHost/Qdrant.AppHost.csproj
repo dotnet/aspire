@@ -14,9 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Qdrant\Aspire.Hosting.Qdrant.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.Qdrant" IsAspireProjectResource="false" />
     <ProjectReference Include="..\Qdrant.ApiService\Qdrant.ApiService.csproj" />
   </ItemGroup>
 

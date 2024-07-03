@@ -1,5 +1,8 @@
 <Project>
-  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
+
+  <Import Project="$(RepoRoot)tests\Shared\TestsRunningOutsideOfRepo.props" Condition="'$(RepoRoot)' != ''" />
+  <Import Project="$(MSBuildThisFileDirectory)..\TestsRunningOutsideOfRepo.props" Condition="'$(RepoRoot)' == ''" />
 
   <PropertyGroup>
     <!--
@@ -13,6 +16,10 @@
 
   <PropertyGroup>
     <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
+
+    <!--<TestsArchiveRootDir Condition="'$(TestsArchiveRootDir)' != ''">$([MSBuild]::NormalizeDirectory($(TestsArchiveRootDir)))</TestsArchiveRootDir>-->
+    <!-- FIXME: can this be replaced with just rr==null? -->
+    <!--<TestsSharedDataDir Condition="'$(RepoRoot)' == '' and '$(TestsRunningOutsideOfRepo)' == 'true' and '$(TestsArchiveRootDir)' != ''">$(TestsArchiveRootDir)test\testassets\</TestsSharedDataDir>-->
   </PropertyGroup>
 
   <!-- Enable Azure ActivitySources so Azure Components participate in tracing. -->
