@@ -4,6 +4,9 @@
  <ItemGroup>
    <Compile Include="$(MSBuildThisFileDirectory)*.cs" Link="WorkloadTestingCommon" />
 
+   <_DataFile Include="$(MSBuildThisFileDirectory)data\**\*" Link="testassets\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+   <None Include="@(_DataFile)" />
+
    <!-- needed for the RequiresDocker attribute, and discoverer -->
    <ProjectReference Include="$(RepoRoot)tests\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
  </ItemGroup>
