@@ -1,0 +1,88 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(NetCurrent)</TargetFramework>
+
+    <!-- no docker support on helix/windows yet -->
+    <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
+    <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
+
+    <!-- no docker support on helix/windows yet -->
+    <TestUsingWorkloads Condition="! ('$(ContinuousIntegrationBuild)' == 'true' and '$(OS)' == 'Windows_NT')">true</TestUsingWorkloads>
+    <InstallWorkloadForTesting>$(TestUsingWorkloads)</InstallWorkloadForTesting>
+
+    <TestsRunningOutsideOfRepo Condition="'$(TestsRunningOutsideOfRepo)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</TestsRunningOutsideOfRepo>
+    <!--<DefineConstants Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">TESTS_RUNNING_OUTSIDE_OF_REPO;$(DefineConstants)</DefineConstants>-->
+
+    <!--<XunitRunnerJson>xunit.runner.json</XunitRunnerJson>-->
+    <!--<RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>-->
+    <TestArchiveTestsDir>$(TestArchiveTestsDirForPlaygroundTests)</TestArchiveTestsDir>
+    <TestsArchiveSourceDir>$(ArtifactsObjDir)staging-archive\$(MSBuildProjectName)\</TestsArchiveSourceDir>
+
+    <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(ArchiveTests)' == 'true'">true</ExtractTestClassNamesForHelix>
+    <ExtractTestClassNamesPrefix>Aspire.Playground.Tests</ExtractTestClassNamesPrefix>
+
+    <IncludeTestPackages>true</IncludeTestPackages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting.MongoDB\MongoDBContainerImageTags.cs" />
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Qdrant\QdrantContainerImageTags.cs" />
+
+    <!-- FIXME: if you don't change playground/ at all then it can be taken as a helix payload -->
+    <FileToArchive Include="$(RepoRoot)playground\**\*" DestinationPath="playground\%(RecursiveDir)%(FileName)%(Extension)" />
+    <FileToArchive Include="$(RepoRoot)src\Shared\**\*" DestinationPath="Shared-src\%(RecursiveDir)%(FileName)%(Extension)" />
+
+    <_TestAssetFile Include="$(RepoRoot)tests\WorkloadTesting\data\**\*" DestinationPath="testassets\%(RecursiveDir)%(FileName)%(Extension)" />
+    <FileToArchive Include="@(_TestAssetFile)" />
+
+    <!-- helps to isolate the build -->
+    <FileToArchive Include="..\Shared\EmptyProject.proj" DestinationPath="Directory.Build.props" />
+    <FileToArchive Include="..\Shared\EmptyProject.proj" DestinationPath="Directory.Build.targets" />
+    <FileToArchive Include="..\Shared\EmptyProject.proj" DestinationPath="Directory.Packages.props" />
+
+    <FileToArchive Include="..\Shared\TestsRunningOutsideOfRepo.*" DestinationPath="%(FileName)%(Extension)" />
+    <FileToArchive Include="..\Shared\nuget-for-hosting-testing.config" DestinationPath="nuget.config" />
+    <FileToArchive Include="$(GeneratedPackagesVersionsPropsPath)" DestinationPath="Directory.Packages.Versions.props" />
+    <FileToArchive Include="..\Shared\WorkloadTesting\data\Directory.Packages.Helix.props" DestinationPath="%(FileName)%(Extension)" />
+
+    <!--<None Include="" CopyToOutputDirectory="PreserveNewest" />-->
+    <!--<None Include="$(RepoRoot)Directory.Packages.props" Link="testassets\testproject\Directory.Packages.repo.props" CopyToOutputDirectory="PreserveNewest" />-->
+
+    <!--<PackageReference Include="Microsoft.Extensions.Http.Resilience" />-->
+    <!--<PackageReference Include="Microsoft.DotNet.XUnitExtensions" />-->
+
+    <PropertyForHelixRun Include="XunitPackageVersion" />
+    <PropertyForHelixRun Include="XunitRunnerVisualStudioPackageVersion" />
+    <PropertyForHelixRun Include="XunitPackageVersion" />
+    <PropertyForHelixRun Include="MSTestTestAdapterPackageVersion" />
+    <PropertyForHelixRun Include="MicrosoftNETTestSdkPackageVersion" />
+
+    <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
+  </ItemGroup>
+
+  <Target Name="StageForHelix" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true'">
+    <ItemGroup>
+      <_OutDirFile Include="$(OutDir)\**\*" />
+    </ItemGroup>
+    <Message Text="StageForHelix: outdir: $(OutDir)" Importance="High" />
+
+    <RemoveDir Directories="$(TestsArchiveSourceDir)" />
+    <MakeDir Directories="$(TestsArchiveSourceDir)" />
+
+    <ItemGroup>
+      <!-- default to just the filename -->
+      <FileToArchive DestinationPath="%(FileName)%(Extension)" Condition="'%(FileToArchive.DestinationPath)' == ''" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_OutDirFile)"
+          DestinationFiles="@(_OutDirFile -> '$(TestsArchiveSourceDir)$(MSBuildProjectName)\%(RecursiveDir)\%(FileName)%(Extension)')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="%(FileToArchive.Identity)"
+          DestinationFiles="$(TestsArchiveSourceDir)%(FileToArchive.DestinationPath)"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" />
+</Project>

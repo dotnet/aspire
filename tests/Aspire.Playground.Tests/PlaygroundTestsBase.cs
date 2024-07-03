@@ -1,22 +1,24 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.RegularExpressions;
 using Microsoft.Playwright;
-using Xunit;
+// using Xunit;
 using Xunit.Abstractions;
+using Aspire.Workload.Tests;
+using Xunit;
 using static Aspire.Workload.Tests.TestExtensions;
+using System.Text.RegularExpressions;
 
-namespace Aspire.Workload.Tests;
+namespace Aspire.Playground.Tests;
 
-public class WorkloadTestsBase
+public class PlaygroundTestsBase
 {
     private static Lazy<IBrowser> Browser => new(CreateBrowser);
     protected readonly TestOutputWrapper _testOutput;
 
-    public static readonly string[] TestFrameworkTypes = ["none", "mstest", "nunit", "xunit.net"];
+    // public static readonly string[] TestFrameworkTypes = ["none", "mstest", "nunit", "xunit.net"];
 
-    public WorkloadTestsBase(ITestOutputHelper testOutput)
+    public PlaygroundTestsBase(ITestOutputHelper testOutput)
         => _testOutput = new TestOutputWrapper(testOutput);
 
     private static IBrowser CreateBrowser()
@@ -38,6 +40,7 @@ public class WorkloadTestsBase
                 ? Browser.Value.NewContextAsync(new BrowserNewContextOptions { IgnoreHTTPSErrors = true })
                 : throw new InvalidOperationException("Playwright is not available");
 
+#if true
     protected Task<ResourceRow[]> CheckDashboardHasResourcesAsync(IPage dashboardPage, IEnumerable<ResourceRow> expectedResources, int timeoutSecs = 120)
         => CheckDashboardHasResourcesAsync(dashboardPage, expectedResources, _testOutput, timeoutSecs);
 
@@ -139,6 +142,7 @@ public class WorkloadTestsBase
 
                 AssertEqual(expectedEndpoints.Length, matchingEndpoints, $"Expected number of endpoints for {resourceName}");
 
+                // ignore Source if null
                 if (expectedRow.Source is not null)
                 {
                     // Check 'Source' column
@@ -157,85 +161,9 @@ public class WorkloadTestsBase
 
         return foundRows.ToArray();
     }
+#endif
 
     // Don't fixup the prefix so it can have characters meant for testing, like spaces
     public static string GetNewProjectId(string? prefix = null)
         => (prefix is null ? "" : $"{prefix}_") + Path.GetRandomFileName();
-
-    public static IEnumerable<string> GetProjectNamesForTest()
-    {
-        if (!OperatingSystem.IsWindows())
-        {
-            // ActiveIssue for windows: https://github.com/dotnet/aspire/issues/4555
-            yield return "aspire_龦唉丂荳_㐁ᠭ_ᠤསྲིདخەلꌠ_1ᥕ";
-        }
-
-        // ActiveIssue: https://github.com/dotnet/aspire/issues/4550
-        // yield return "aspire  sta-rter.test"; // Issue: two spaces
-
-        yield return "aspire_starter.1period then.34letters";
-        yield return "aspire-starter & with.1";
-
-        // ActiveIssue: https://github.com/dotnet/aspnetcore/issues/56277
-        // yield return "aspire_😀";
-
-        // basic case
-        yield return "aspire";
-    }
-
-    public static async Task AssertStarterTemplateRunAsync(IBrowserContext? context, AspireProject project, string config, ITestOutputHelper _testOutput)
-    {
-        await project.StartAppHostAsync(extraArgs: [$"-c {config}"], noBuild: false);
-
-        if (context is not null)
-        {
-            var page = await project.OpenDashboardPageAsync(context);
-            ResourceRow[] resourceRows;
-            try
-            {
-                resourceRows = await CheckDashboardHasResourcesAsync(
-                                        page,
-                                        StarterTemplateRunTestsBase<StarterTemplateFixture>.GetExpectedResources(project, hasRedisCache: false),
-                                        _testOutput).ConfigureAwait(false);
-            }
-            catch
-            {
-                string screenshotPath = Path.Combine(project.LogPath, "dashboard-fail.png");
-                await page.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
-                _testOutput.WriteLine($"Dashboard screenshot saved to {screenshotPath}");
-                throw;
-            }
-
-            string url = resourceRows.First(r => r.Name == "webfrontend").Endpoints[0];
-            await StarterTemplateRunTestsBase<StarterTemplateFixture>.CheckWebFrontendWorksAsync(context, url, _testOutput, project.LogPath);
-        }
-        else
-        {
-            _testOutput.WriteLine($"Skipping playwright part of the test");
-        }
-
-        await project.StopAppHostAsync();
-    }
-
-    public static async Task<CommandResult?> AssertTestProjectRunAsync(string testProjectDirectory, string testType, ITestOutputHelper testOutput, string config = "Debug", int testRunTimeoutSecs = 3 * 60)
-    {
-        if (testType == "none")
-        {
-            Assert.False(Directory.Exists(testProjectDirectory), "Expected no tests project to be created");
-            return null;
-        }
-        else
-        {
-            Assert.True(Directory.Exists(testProjectDirectory), $"Expected tests project at {testProjectDirectory}");
-            using var cmd = new DotNetCommand(testOutput, label: $"test-{testType}")
-                                    .WithWorkingDirectory(testProjectDirectory)
-                                    .WithTimeout(TimeSpan.FromSeconds(testRunTimeoutSecs));
-
-            var res = (await cmd.ExecuteAsync($"test -c {config}"))
-                                .EnsureSuccessful();
-
-            Assert.Matches("Passed! * - Failed: *0, Passed: *1, Skipped: *0, Total: *1", res.Output);
-            return res;
-        }
-    }
 }

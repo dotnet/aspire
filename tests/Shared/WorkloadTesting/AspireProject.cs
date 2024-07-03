@@ -27,7 +27,7 @@ public class AspireProject : IAsyncDisposable
     public string Id { get; init; }
     public string RootDir { get; init; }
     public string LogPath { get; init; }
-    public string AppHostProjectDirectory => Path.Combine(RootDir, $"{Id}.AppHost");
+    public string AppHostProjectDirectory { get; init; }
     public string ServiceDefaultsProjectPath => Path.Combine(RootDir, $"{Id}.ServiceDefaults");
     public string TestsProjectDirectory => Path.Combine(RootDir, $"{Id}.Tests");
     public string? DashboardUrl { get; private set; }
@@ -38,13 +38,14 @@ public class AspireProject : IAsyncDisposable
     private readonly ITestOutputHelper _testOutput;
     private readonly BuildEnvironment _buildEnv;
 
-    public AspireProject(string id, string baseDir, ITestOutputHelper testOutput, BuildEnvironment buildEnv)
+    public AspireProject(string id, string baseDir, ITestOutputHelper testOutput, BuildEnvironment buildEnv, string? relativeAppHostProjectDir = null)
     {
         Id = id;
         RootDir = baseDir;
         _testOutput = testOutput;
         _buildEnv = buildEnv;
         LogPath = Path.Combine(_buildEnv.LogRootPath, Id);
+        AppHostProjectDirectory = relativeAppHostProjectDir ?? Path.Combine(RootDir, $"{Id}.AppHost");
     }
 
     protected void InitPaths()
@@ -102,7 +103,11 @@ public class AspireProject : IAsyncDisposable
         return project;
     }
 
-    public async Task StartAppHostAsync(string[]? extraArgs = default, Action<ProcessStartInfo>? configureProcess = null, bool noBuild = true, CancellationToken token = default)
+    public async Task StartAppHostAsync(string[]? extraArgs = default,
+                                        Action<ProcessStartInfo>? configureProcess = null,
+                                        bool noBuild = true,
+                                        bool expectEndpointsHook = true,
+                                        CancellationToken token = default)
     {
         if (IsRunning)
         {
@@ -207,7 +212,7 @@ public class AspireProject : IAsyncDisposable
         AppHostProcess.BeginOutputReadLine();
         AppHostProcess.BeginErrorReadLine();
 
-        var successfulStartupTask = Task.WhenAll(appRunning.Task, projectsParsed.Task);
+        var successfulStartupTask = Task.WhenAll(appRunning.Task, expectEndpointsHook ? projectsParsed.Task : Task.CompletedTask);
         var startupTimeoutTask = Task.Delay(TimeSpan.FromSeconds(AppStartupWaitTimeoutSecs), token);
 
         string outputMessage;
@@ -264,7 +269,7 @@ public class AspireProject : IAsyncDisposable
     public async Task BuildAsync(string[]? extraBuildArgs = default, CancellationToken token = default)
     {
         using var restoreCmd = new DotNetCommand(_testOutput, buildEnv: _buildEnv, label: "restore")
-                                    .WithWorkingDirectory(Path.Combine(RootDir, $"{Id}.AppHost"));
+                                    .WithWorkingDirectory(AppHostProjectDirectory);
         var res = await restoreCmd.ExecuteAsync($"restore \"-bl:{Path.Combine(LogPath!, $"{Id}-restore.binlog")}\" /p:TreatWarningsAsErrors=true");
         res.EnsureSuccessful();
 
@@ -274,7 +279,7 @@ public class AspireProject : IAsyncDisposable
             buildArgs += " " + string.Join(" ", extraBuildArgs);
         }
         using var buildCmd = new DotNetCommand(_testOutput, buildEnv: _buildEnv, label: "build")
-                                        .WithWorkingDirectory(Path.Combine(RootDir, $"{Id}.AppHost"));
+                                        .WithWorkingDirectory(AppHostProjectDirectory);
         res = await buildCmd.ExecuteAsync(buildArgs);
         res.EnsureSuccessful();
     }

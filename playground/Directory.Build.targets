@@ -1,9 +1,7 @@
 <Project>
-  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
 
-  <Import Project="$(RepoRoot)tests\Shared\TestsRunningOutsideOfRepo.targets" Condition="'$(RepoRoot)' != ''" />
-  <!-- FIXME: um maybe a $(MSBuildTargetsDir)? -->
-  <Import Project="$(MSBuildThisFileDirectory)..\TestsRunningOutsideOfRepo.targets" Condition="'$(RepoRoot)' == ''" />
+  <Import Project="$(TestsSharedOutOfRepoDir)TestsRunningOutsideOfRepo.targets" />
 
   <PropertyGroup Condition="'$(BuildForTest)' == 'true'">
     <DefineConstants>BUILD_FOR_TEST;$(DefineConstants)</DefineConstants>
