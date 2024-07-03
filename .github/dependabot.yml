@@ -9,7 +9,8 @@ updates:
     registries:
       - public-nuget
     schedule:
-      interval: daily
+      day: monday
+      interval: weekly
       time: "07:00"
       timezone: "America/Los_Angeles"
     open-pull-requests-limit: 15
@@ -35,6 +36,7 @@ updates:
       AWS:
         patterns:
           - "AWS.*"
+          - "AWSSDK.*"
           - "OpenTelemetry.*.AWS"
       MicrosoftExtensions:
         patterns:

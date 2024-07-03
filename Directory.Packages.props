@@ -9,10 +9,10 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- AWS SDK for .NET dependencies -->
-    <PackageVersion Include="AWSSDK.CloudFormation" Version="3.7.308.15" />
-    <PackageVersion Include="AWSSDK.SQS" Version="3.7.301.23" />
-    <PackageVersion Include="AWSSDK.SimpleNotificationService" Version="3.7.301.58" />
-    <PackageVersion Include="AWSSDK.Core" Version="3.7.304.20" />
+    <PackageVersion Include="AWSSDK.CloudFormation" Version="3.7.308.18" />
+    <PackageVersion Include="AWSSDK.SQS" Version="3.7.301.26" />
+    <PackageVersion Include="AWSSDK.SimpleNotificationService" Version="3.7.301.61" />
+    <PackageVersion Include="AWSSDK.Core" Version="3.7.304.23" />
     <PackageVersion Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.301" />
     <PackageVersion Include="AWS.Messaging" Version="0.9.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AWS" Version="1.1.0-beta.4" />
@@ -104,7 +104,7 @@
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.7.2" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.7.2" />
     <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1"/>
-    <PackageVersion Include="MongoDB.Driver" Version="2.26.0" />
+    <PackageVersion Include="MongoDB.Driver" Version="2.27.0" />
     <PackageVersion Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" Version="1.4.0" />
     <PackageVersion Include="MySqlConnector.DependencyInjection" Version="2.3.6" />
     <PackageVersion Include="MySqlConnector.Logging.Microsoft.Extensions.Logging" Version="2.1.0" />
@@ -144,7 +144,7 @@
     <PackageVersion Include="Microsoft.DotNet.XUnitExtensions" Version="$(MicrosoftDotNetXUnitExtensionsPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="$(MicrosoftExtensionsDiagnosticsTestingPackageVersion)" />
     <PackageVersion Include="Microsoft.NET.Runtime.WorkloadTesting.Internal" Version="$(MicrosoftNETRuntimeWorkloadTestingInternalVersion)" />
-    <PackageVersion Include="Microsoft.Playwright" Version="1.44.0" />
+    <PackageVersion Include="Microsoft.Playwright" Version="1.45.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageVersion Include="Testcontainers.MongoDb" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.MsSql" Version="$(TestcontainersPackageVersion)" />
