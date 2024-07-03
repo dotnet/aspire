@@ -1,0 +1,46 @@
+<Project>
+  <!-- FIXME: Expand description -->
+  <!-- This is for projects that want to use a TestsRunningOutsideOfRepo mode
+       which uses `PackageReference` for running outside, and `ProjectReference`
+       when running in the repo. -->
+  <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">
+    <!-- FIXME: naming for the items -->
+    <_ConvertedProjectReference Include="@(ComponentReferenceForTests -> '$(RepoRoot)src\Components\%(Identity)\%(Identity).csproj')" />
+    <_ConvertedProjectReference Include="@(NonComponentReferenceForTests -> '$(RepoRoot)src\%(Identity)\%(Identity).csproj')" />
+
+    <!--<_ConvertedProjectReference Update="@(_ConvertedProjectReference)" IsAspireProjectResource="false" Condition="'$(IsAspireHost)' == 'true'" />-->
+    <ProjectReference Include="@(_ConvertedProjectReference)" />
+  </ItemGroup>
+
+  <!-- FIXME: add target to validate these, for example - ComponentReferenceForTests only for non-apphost etc -->
+  <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
+    <!-- TODO: this is only for non-apphost projects -->
+    <!-- this is NOT good though because some packages might hgave older versions, or preview ones, and user might want to test with a different version -->
+    <!--<PackageVersion Include="@(ComponentReferenceForTests)" Version="$(PackageVersion)" />-->
+    <PackageReference Include="@(ComponentReferenceForTests)" />
+
+    <!--<PackageVersion Include="@(NonComponentReferenceForTests)" Version="$(PackageVersion)" />-->
+    <PackageReference Include="@(NonComponentReferenceForTests)" />
+
+    <!--<_PackageVersionDistinct Include="@(PackageVersion->Distinct())" />-->
+    <!--<PackageVersion Remove="@(PackageVersion)" />-->
+    <!--<PackageVersion Include="@(_PackageVersionDistinct)" />-->
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true' and '$(IncludeTestPackages)' == 'true'">
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.assert" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <DefineConstants Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">TESTS_RUNNING_OUTSIDE_OF_REPO;$(DefineConstants)</DefineConstants>
+  </PropertyGroup>
+
+  <ImportGroup Condition="'$(RepoRoot)' != 'null' and '$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'">
+    <Import Project="$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets" Condition="Exists('$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets')" />
+    <Import Project="$(RepoRoot)src\Aspire.Hosting.Sdk\SDK\Sdk.targets" Condition="Exists('$(RepoRoot)src\Aspire.Hosting.Sdk\SDK\Sdk.targets')" />
+  </ImportGroup>
+
+</Project>
