@@ -35,6 +35,7 @@ updates:
       AWS:
         patterns:
           - "AWS.*"
+          - "AWSSDK.*"
           - "OpenTelemetry.*.AWS"
       MicrosoftExtensions:
         patterns:
