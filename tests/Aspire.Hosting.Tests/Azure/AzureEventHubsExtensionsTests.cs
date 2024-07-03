@@ -19,7 +19,7 @@ public class AzureEventHubsExtensionsTests
         });
 
         // Ignoring the annotation created for the custom Config.json file
-        var volumeAnnotation = eventHubs.Resource.Annotations.OfType<ContainerMountAnnotation>().Where(a => !a.Target.Contains("Config.json")).Single();
+        var volumeAnnotation = eventHubs.Resource.Annotations.OfType<ContainerMountAnnotation>().Single(a => !a.Target.Contains("Config.json"));
         Assert.Equal(Path.Combine(builder.AppHostDirectory, ".eventhubs", "eh"), volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
@@ -36,7 +36,7 @@ public class AzureEventHubsExtensionsTests
         });
 
         // Ignoring the annotation created for the custom Config.json file
-        var volumeAnnotation = eventHubs.Resource.Annotations.OfType<ContainerMountAnnotation>().Where(a => !a.Target.Contains("Config.json")).Single();
+        var volumeAnnotation = eventHubs.Resource.Annotations.OfType<ContainerMountAnnotation>().Single(a => !a.Target.Contains("Config.json"));
         Assert.Equal(Path.Combine(builder.AppHostDirectory, "mydata"), volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
@@ -53,7 +53,7 @@ public class AzureEventHubsExtensionsTests
         });
 
         // Ignoring the annotation created for the custom Config.json file
-        var volumeAnnotation = eventHubs.Resource.Annotations.OfType<ContainerMountAnnotation>().Where(a => !a.Target.Contains("Config.json")).Single();
+        var volumeAnnotation = eventHubs.Resource.Annotations.OfType<ContainerMountAnnotation>().Single(a => !a.Target.Contains("Config.json"));
         Assert.Equal("Aspire.Hosting.Tests-eh-data", volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
@@ -70,7 +70,7 @@ public class AzureEventHubsExtensionsTests
         });
 
         // Ignoring the annotation created for the custom Config.json file
-        var volumeAnnotation = eventHubs.Resource.Annotations.OfType<ContainerMountAnnotation>().Where(a => !a.Target.Contains("Config.json")).Single();
+        var volumeAnnotation = eventHubs.Resource.Annotations.OfType<ContainerMountAnnotation>().Single(a => !a.Target.Contains("Config.json"));
         Assert.Equal("mydata", volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
