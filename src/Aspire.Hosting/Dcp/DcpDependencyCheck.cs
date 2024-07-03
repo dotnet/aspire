@@ -87,10 +87,10 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
                 if (processResult.ExitCode != 0)
                 {
                     throw new DistributedApplicationException(string.Format(
-                    CultureInfo.InvariantCulture,
-                    Resources.DcpDependencyCheckFailedMessage,
-                    $"'dcp info{arguments}' returned exit code {processResult.ExitCode}. {errorStringBuilder.ToString()} {outputStringBuilder.ToString()}"
-                ));
+                        CultureInfo.InvariantCulture,
+                        Resources.DcpDependencyCheckFailedMessage,
+                        $"'dcp {arguments}' returned exit code {processResult.ExitCode}. {errorStringBuilder.ToString()}{Environment.NewLine}{outputStringBuilder.ToString()}"
+                    ));
                 }
 
                 // Parse the output as JSON
@@ -116,7 +116,7 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
                 throw new DistributedApplicationException(string.Format(
                     CultureInfo.InvariantCulture,
                     Resources.DcpDependencyCheckFailedMessage,
-                    $"{ex.Message} {errorStringBuilder.ToString()} {outputStringBuilder.ToString()}"
+                    $"{ex.Message} {errorStringBuilder.ToString()}{Environment.NewLine}{outputStringBuilder.ToString()}"
                 ));
             }
             finally
