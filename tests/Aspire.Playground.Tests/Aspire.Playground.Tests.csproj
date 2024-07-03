@@ -22,7 +22,7 @@
     <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(ArchiveTests)' == 'true'">true</ExtractTestClassNamesForHelix>
     <ExtractTestClassNamesPrefix>Aspire.Playground.Tests</ExtractTestClassNamesPrefix>
 
-    <IncludeTestPackages>true</IncludeTestPackages>
+    <!--<IncludeTestPackages>true</IncludeTestPackages>-->
   </PropertyGroup>
 
   <ItemGroup>
