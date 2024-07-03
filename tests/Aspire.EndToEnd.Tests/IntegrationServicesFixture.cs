@@ -162,6 +162,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                               | TestResourceNames.mysql
                               | TestResourceNames.efmysql
                               | TestResourceNames.sqlserver
+                              | TestResourceNames.efsqlserver
                               | TestResourceNames.milvus,
             "" or null => TestResourceNames.All,
             _ => throw new ArgumentException($"Unknown test scenario '{TestScenario}'")
