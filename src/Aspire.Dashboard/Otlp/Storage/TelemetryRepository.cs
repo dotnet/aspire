@@ -56,7 +56,7 @@ public sealed class TelemetryRepository
         {
             applications.Add(kvp.Value);
         }
-        applications.Sort((a, b) => string.Compare(a.ApplicationName, b.ApplicationName, StringComparisons.ResourceName));
+        applications.Sort((a, b) => a.ApplicationKey.CompareTo(b.ApplicationKey));
         return applications;
     }
 
