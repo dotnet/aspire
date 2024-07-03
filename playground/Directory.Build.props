@@ -1,7 +1,8 @@
 <Project>
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
-  <Import Project="$(TestsSharedOutOfRepoDir)TestsRunningOutsideOfRepo.props" />
+  <!-- when in-repo then use this. for out-of-repo a parent DBprops does the import -->
+  <Import Project="$(TestsSharedOutOfRepoDir)TestsRunningOutsideOfRepo.props" Condition="'$(RepoRoot)' != ''" />
 
   <PropertyGroup>
     <!--
