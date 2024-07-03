@@ -57,8 +57,6 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
 
             try
             {
-                
-
                 var arguments = "info";
                 if (!string.IsNullOrEmpty(containerRuntime))
                 {
