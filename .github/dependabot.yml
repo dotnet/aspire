@@ -32,6 +32,10 @@ updates:
         patterns:
           - "Microsoft.AspNetCore.*"
           - "Microsoft.Extensions.Features"
+      AWS:
+        patterns:
+          - "AWS.*"
+          - "OpenTelemetry.*.AWS"
       MicrosoftExtensions:
         patterns:
           - "Microsoft.Extensions.*"
@@ -53,6 +57,9 @@ updates:
       Grpc:
         patterns:
           - "Grpc.*"
+      Polly:
+        patterns:
+          - "Polly.*"
     labels:
       - "area-codeflow"
 
