@@ -12,6 +12,7 @@ using Microsoft.Extensions.Options;
 using Xunit;
 using System.Globalization;
 using Microsoft.Extensions.Hosting;
+using Aspire.Hosting.Tests.Utils;
 
 namespace Aspire.Hosting.Tests.Dcp;
 
@@ -710,10 +711,6 @@ public class ApplicationExecutorTests
             configuration = builder.Build();
         }
 
-        var dependencyCheckService = new TestDcpDependencyCheckService();
-        var serviceProvider = new System.ComponentModel.Design.ServiceContainer();
-        serviceProvider.AddService(typeof(IDcpDependencyCheckService), dependencyCheckService);
-
         return new ApplicationExecutor(
             NullLogger<ApplicationExecutor>.Instance,
             NullLogger<DistributedApplication>.Instance,
@@ -728,11 +725,11 @@ public class ApplicationExecutorTests
             }),
             new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
             {
-                ServiceProvider = serviceProvider
+                ServiceProvider = TestServiceProvider.Instance
             }),
             new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime()),
             new ResourceLoggerService(),
-            dependencyCheckService
+            new TestDcpDependencyCheckService()
         );
     }
 

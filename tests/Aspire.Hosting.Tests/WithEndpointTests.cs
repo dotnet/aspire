@@ -211,7 +211,7 @@ public class WithEndpointTests
 
         var resource = Assert.Single(exeResources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Equal("foo", resource.Name);
         var endpoints = resource.Annotations.OfType<EndpointAnnotation>().ToArray();
