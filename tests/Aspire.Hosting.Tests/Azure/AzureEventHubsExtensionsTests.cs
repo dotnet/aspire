@@ -9,23 +9,13 @@ namespace Aspire.Hosting.Tests.Azure;
 
 public class AzureEventHubsExtensionsTests
 {
-    [Theory]
-    [InlineData(null)]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AzureEventHubsUseEmulatorCallbackWithWithDataBindMountResultsInBindMountAnnotationWithDefaultPath(bool? isReadOnly)
+    [Fact]
+    public void AzureEventHubsUseEmulatorCallbackWithWithDataBindMountResultsInBindMountAnnotationWithDefaultPath()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
         {
-            if (isReadOnly.HasValue)
-            {
-                builder.WithDataBindMount(isReadOnly: isReadOnly.Value);
-            }
-            else
-            {
-                builder.WithDataBindMount();
-            }
+            builder.WithDataBindMount();
         });
 
         // Ignoring the annotation created for the custom Config.json file
@@ -33,26 +23,16 @@ public class AzureEventHubsExtensionsTests
         Assert.Equal(Path.Combine(builder.AppHostDirectory, ".eventhubs", "eh"), volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
-        Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
+        Assert.False(volumeAnnotation.IsReadOnly);
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AzureEventHubsUseEmulatorCallbackWithWithDataBindMountResultsInBindMountAnnotation(bool? isReadOnly)
+    [Fact]
+    public void AzureEventHubsUseEmulatorCallbackWithWithDataBindMountResultsInBindMountAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
         {
-            if (isReadOnly.HasValue)
-            {
-                builder.WithDataBindMount("mydata", isReadOnly: isReadOnly.Value);
-            }
-            else
-            {
-                builder.WithDataBindMount("mydata");
-            }
+               builder.WithDataBindMount("mydata");
         });
 
         // Ignoring the annotation created for the custom Config.json file
@@ -60,59 +40,41 @@ public class AzureEventHubsExtensionsTests
         Assert.Equal(Path.Combine(builder.AppHostDirectory, "mydata"), volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
-        Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
+        Assert.False(volumeAnnotation.IsReadOnly);
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AzureEventHubsUseEmulatorCallbackWithWithDataVolumeResultsInVolumeAnnotationWithDefaultName(bool? isReadOnly)
+    [Fact]
+    public void AzureEventHubsUseEmulatorCallbackWithWithDataVolumeResultsInVolumeAnnotationWithDefaultName()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
         {
-            if (isReadOnly.HasValue)
-            {
-                builder.WithDataVolume(isReadOnly: isReadOnly.Value);
-            }
-            else
-            {
-                builder.WithDataVolume();
-            }
+            builder.WithDataVolume();
         });
 
-        var volumeAnnotation = eventHubs.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        // Ignoring the annotation created for the custom Config.json file
+        var volumeAnnotation = eventHubs.Resource.Annotations.OfType<ContainerMountAnnotation>().Where(a => !a.Target.Contains("Config.json")).Single();
         Assert.Equal("Aspire.Hosting.Tests-eh-data", volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
-        Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
+        Assert.False(volumeAnnotation.IsReadOnly);
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AzureEventHubsUseEmulatorCallbackWithWithDataVolumeResultsInVolumeAnnotation(bool? isReadOnly)
+    [Fact]
+    public void AzureEventHubsUseEmulatorCallbackWithWithDataVolumeResultsInVolumeAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var eventHubs = builder.AddAzureEventHubs("eh").RunAsEmulator(configureContainer: builder =>
         {
-            if (isReadOnly.HasValue)
-            {
-                builder.WithDataVolume("mydata", isReadOnly: isReadOnly.Value);
-            }
-            else
-            {
-                builder.WithDataVolume("mydata");
-            }
+            builder.WithDataVolume("mydata");
         });
 
-        var volumeAnnotation = eventHubs.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+        // Ignoring the annotation created for the custom Config.json file
+        var volumeAnnotation = eventHubs.Resource.Annotations.OfType<ContainerMountAnnotation>().Where(a => !a.Target.Contains("Config.json")).Single();
         Assert.Equal("mydata", volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
-        Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
+        Assert.False(volumeAnnotation.IsReadOnly);
     }
 
     [Theory]

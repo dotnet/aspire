@@ -181,21 +181,40 @@ public static class AzureEventHubsExtensions
     /// Adds a bind mount for the data folder to an Azure Event Hubs emulator resource.
     /// </summary>
     /// <param name="builder">The builder for the <see cref="AzureEventHubsEmulatorResource"/>.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>A builder for the <see cref="AzureEventHubsEmulatorResource"/>.</returns>
+    [Obsolete("This method is obsolete and will be removed in a future version. Use the overload without the isReadOnly parameter.")]
+    public static IResourceBuilder<AzureEventHubsEmulatorResource> WithDataBindMount(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, bool isReadOnly)
+        => builder.WithDataBindMount(path: null, isReadOnly);
+
+    /// <summary>
+    /// Adds a bind mount for the data folder to an Azure Event Hubs emulator resource.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="AzureEventHubsEmulatorResource"/>.</param>
     /// <param name="path">Relative path to the AppHost where emulator storage is persisted between runs. Defaults to the path '.eventhubs/{builder.Resource.Name}'</param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>A builder for the <see cref="AzureEventHubsEmulatorResource"/>.</returns>
-    public static IResourceBuilder<AzureEventHubsEmulatorResource> WithDataBindMount(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string? path = null, bool isReadOnly = false)
+    [Obsolete("This method is obsolete and will be removed in a future version. Use the overload without the isReadOnly parameter.")]
+    public static IResourceBuilder<AzureEventHubsEmulatorResource> WithDataBindMount(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string? path, bool isReadOnly)
         => builder.WithBindMount(path ?? $".eventhubs/{builder.Resource.Name}", "/data", isReadOnly);
+
+    /// <summary>
+    /// Adds a bind mount for the data folder to an Azure Event Hubs emulator resource.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="AzureEventHubsEmulatorResource"/>.</param>
+    /// <param name="path">Relative path to the AppHost where emulator storage is persisted between runs. Defaults to the path '.eventhubs/{builder.Resource.Name}'</param>
+    /// <returns>A builder for the <see cref="AzureEventHubsEmulatorResource"/>.</returns>
+    public static IResourceBuilder<AzureEventHubsEmulatorResource> WithDataBindMount(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string? path = null)
+        => builder.WithBindMount(path ?? $".eventhubs/{builder.Resource.Name}", "/data", isReadOnly: false);
 
     /// <summary>
     /// Adds a named volume for the data folder to an Azure Event Hubs emulator resource.
     /// </summary>
     /// <param name="builder">The builder for the <see cref="AzureEventHubsEmulatorResource"/>.</param>
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
-    /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>A builder for the <see cref="AzureEventHubsEmulatorResource"/>.</returns>
-    public static IResourceBuilder<AzureEventHubsEmulatorResource> WithDataVolume(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data", isReadOnly);
+    public static IResourceBuilder<AzureEventHubsEmulatorResource> WithDataVolume(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string? name = null)
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data", isReadOnly: false);
 
     /// <summary>
     /// Configures the gateway port for the Azure Event Hubs emulator.
