@@ -9,6 +9,7 @@ updates:
     registries:
       - public-nuget
     schedule:
+      day: monday
       interval: weekly
       time: "07:00"
       timezone: "America/Los_Angeles"
