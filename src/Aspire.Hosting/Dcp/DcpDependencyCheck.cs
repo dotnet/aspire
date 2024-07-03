@@ -52,10 +52,12 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
 
             IAsyncDisposable? processDisposable = null;
             Task<ProcessResult> task;
+            var outputStringBuilder = new StringBuilder();
+            var errorStringBuilder = new StringBuilder();
 
             try
             {
-                var outputStringBuilder = new StringBuilder();
+                
 
                 var arguments = "info";
                 if (!string.IsNullOrEmpty(containerRuntime))
@@ -63,23 +65,34 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
                     arguments += $" --container-runtime {containerRuntime}";
                 }
 
-                // Run `dcp version`
                 var processSpec = new ProcessSpec(dcpPath)
                 {
                     Arguments = arguments,
                     OnOutputData = s => outputStringBuilder.Append(s),
+                    OnErrorData = s => errorStringBuilder.Append(s),
+                    ThrowOnNonZeroReturnCode = false
                 };
 
                 (task, processDisposable) = ProcessUtil.Run(processSpec);
+                ProcessResult processResult;
 
                 // Disable timeout if DependencyCheckTimeout is set to zero or a negative value
                 if (_dcpOptions.DependencyCheckTimeout > 0)
                 {
-                    await task.WaitAsync(TimeSpan.FromSeconds(_dcpOptions.DependencyCheckTimeout), cancellationToken).ConfigureAwait(false);
+                    processResult = await task.WaitAsync(TimeSpan.FromSeconds(_dcpOptions.DependencyCheckTimeout), cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
-                    await task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                    processResult = await task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                }
+
+                if (processResult.ExitCode != 0)
+                {
+                    throw new DistributedApplicationException(string.Format(
+                    CultureInfo.InvariantCulture,
+                    Resources.DcpDependencyCheckFailedMessage,
+                    $"'dcp info{arguments}' returned exit code {processResult.ExitCode}. {errorStringBuilder.ToString()} {outputStringBuilder.ToString()}"
+                ));
                 }
 
                 // Parse the output as JSON
@@ -105,7 +118,7 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
                 throw new DistributedApplicationException(string.Format(
                     CultureInfo.InvariantCulture,
                     Resources.DcpDependencyCheckFailedMessage,
-                    ex.ToString()
+                    $"{ex.Message} {errorStringBuilder.ToString()} {outputStringBuilder.ToString()}"
                 ));
             }
             finally
