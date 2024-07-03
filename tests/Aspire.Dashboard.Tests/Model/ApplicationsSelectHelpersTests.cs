@@ -20,13 +20,11 @@ public sealed class ApplicationsSelectHelpersTests
     public void GetApplication_SameNameAsReplica_GetInstance()
     {
         // Arrange
-        var apps = new Dictionary<string, OtlpApplication>();
-
         var appVMs = ApplicationsSelectHelpers.CreateApplications(new List<OtlpApplication>
         {
-            CreateOtlpApplication(apps, name: "app", instanceId: "app"),
-            CreateOtlpApplication(apps, name: "app", instanceId: "app-abc"),
-            CreateOtlpApplication(apps, name: "singleton", instanceId: "singleton-abc")
+            CreateOtlpApplication(name: "app", instanceId: "app"),
+            CreateOtlpApplication(name: "app", instanceId: "app-abc"),
+            CreateOtlpApplication(name: "singleton", instanceId: "singleton-abc")
         });
 
         Assert.Collection(appVMs,
@@ -67,12 +65,10 @@ public sealed class ApplicationsSelectHelpersTests
     public void GetApplication_NameDifferentByCase_Merge()
     {
         // Arrange
-        var apps = new Dictionary<string, OtlpApplication>();
-
         var appVMs = ApplicationsSelectHelpers.CreateApplications(new List<OtlpApplication>
         {
-            CreateOtlpApplication(apps, name: "app", instanceId: "app"),
-            CreateOtlpApplication(apps, name: "APP", instanceId: "app-abc")
+            CreateOtlpApplication(name: "app", instanceId: "app"),
+            CreateOtlpApplication(name: "APP", instanceId: "app-abc")
         });
 
         Assert.Collection(appVMs,
