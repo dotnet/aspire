@@ -20,13 +20,11 @@ public sealed class ApplicationsSelectHelpersTests
     public void GetApplication_SameNameAsReplica_GetInstance()
     {
         // Arrange
-        var apps = new Dictionary<string, OtlpApplication>();
-
         var appVMs = ApplicationsSelectHelpers.CreateApplications(new List<OtlpApplication>
         {
-            CreateOtlpApplication(apps, name: "app", instanceId: "app"),
-            CreateOtlpApplication(apps, name: "app", instanceId: "app-abc"),
-            CreateOtlpApplication(apps, name: "singleton", instanceId: "singleton-abc")
+            CreateOtlpApplication(name: "app", instanceId: "app"),
+            CreateOtlpApplication(name: "app", instanceId: "app-abc"),
+            CreateOtlpApplication(name: "singleton", instanceId: "singleton-abc")
         });
 
         Assert.Collection(appVMs,
@@ -67,12 +65,10 @@ public sealed class ApplicationsSelectHelpersTests
     public void GetApplication_NameDifferentByCase_Merge()
     {
         // Arrange
-        var apps = new Dictionary<string, OtlpApplication>();
-
         var appVMs = ApplicationsSelectHelpers.CreateApplications(new List<OtlpApplication>
         {
-            CreateOtlpApplication(apps, name: "app", instanceId: "app"),
-            CreateOtlpApplication(apps, name: "APP", instanceId: "app-abc")
+            CreateOtlpApplication(name: "app", instanceId: "app"),
+            CreateOtlpApplication(name: "APP", instanceId: "app-abc")
         });
 
         Assert.Collection(appVMs,
@@ -115,8 +111,8 @@ public sealed class ApplicationsSelectHelpersTests
 
         var appVMs = new List<SelectViewModel<ResourceTypeDetails>>
         {
-            new SelectViewModel<ResourceTypeDetails>() { Name = "test", Id = ResourceTypeDetails.CreateSingleton("test-abc") },
-            new SelectViewModel<ResourceTypeDetails>() { Name = "test", Id = ResourceTypeDetails.CreateSingleton("test-def") }
+            new SelectViewModel<ResourceTypeDetails>() { Name = "test", Id = ResourceTypeDetails.CreateSingleton("test-abc", "test") },
+            new SelectViewModel<ResourceTypeDetails>() { Name = "test", Id = ResourceTypeDetails.CreateSingleton("test-def", "test") }
         };
 
         var testSink = new TestSink();
@@ -131,15 +127,18 @@ public sealed class ApplicationsSelectHelpersTests
         Assert.Single(testSink.Writes);
     }
 
-    private static OtlpApplication CreateOtlpApplication(Dictionary<string, OtlpApplication> apps, string name, string instanceId)
+    private static OtlpApplication CreateOtlpApplication(string name, string instanceId)
     {
-        return new OtlpApplication(new Resource
+        var resource = new Resource
         {
             Attributes =
                 {
                     new KeyValue { Key = "service.name", Value = new AnyValue { StringValue = name } },
                     new KeyValue { Key = "service.instance.id", Value = new AnyValue { StringValue = instanceId } }
                 }
-        }, apps, NullLogger.Instance, new TelemetryLimitOptions());
+        };
+        var applicationKey = OtlpHelpers.GetApplicationKey(resource);
+
+        return new OtlpApplication(applicationKey.Name, applicationKey.InstanceId, resource, NullLogger.Instance, new TelemetryLimitOptions());
     }
 }

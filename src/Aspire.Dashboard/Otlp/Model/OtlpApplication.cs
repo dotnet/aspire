@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
@@ -15,9 +16,12 @@ public class OtlpApplication
 {
     public const string SERVICE_NAME = "service.name";
     public const string SERVICE_INSTANCE_ID = "service.instance.id";
+    public const string PROCESS_EXECUTABLE_NAME = "process.executable.name";
 
     public string ApplicationName { get; }
     public string InstanceId { get; }
+
+    public ApplicationKey ApplicationKey => new ApplicationKey(ApplicationName, InstanceId);
 
     private readonly ReaderWriterLockSlim _metricsLock = new();
     private readonly Dictionary<string, OtlpMeter> _meters = new();
@@ -28,7 +32,7 @@ public class OtlpApplication
 
     public KeyValuePair<string, string>[] Properties { get; }
 
-    public OtlpApplication(Resource resource, IReadOnlyDictionary<string, OtlpApplication> applications, ILogger logger, TelemetryLimitOptions options)
+    public OtlpApplication(string name, string instanceId, Resource resource, ILogger logger, TelemetryLimitOptions options)
     {
         var properties = new List<KeyValuePair<string, string>>();
         foreach (var attribute in resource.Attributes)
@@ -36,10 +40,8 @@ public class OtlpApplication
             switch (attribute.Key)
             {
                 case SERVICE_NAME:
-                    ApplicationName = attribute.Value.GetString();
-                    break;
                 case SERVICE_INSTANCE_ID:
-                    InstanceId = attribute.Value.GetString();
+                    // Values passed in via ctor and set to members. Don't add to properties collection.
                     break;
                 default:
                     properties.Add(new KeyValuePair<string, string>(attribute.Key, attribute.Value.GetString()));
@@ -48,18 +50,10 @@ public class OtlpApplication
             }
         }
         Properties = properties.ToArray();
-        if (string.IsNullOrEmpty(ApplicationName))
-        {
-            ApplicationName = "Unknown";
-        }
-        if (string.IsNullOrEmpty(InstanceId))
-        {
-            //
-            // NOTE: The service.instance.id value is a recommended attribute, but not required.
-            //       See: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/resource/semantic_conventions/README.md#service-experimental
-            //
-            InstanceId = ApplicationName;
-        }
+
+        ApplicationName = name;
+        InstanceId = instanceId;
+
         _logger = logger;
         _options = options;
     }

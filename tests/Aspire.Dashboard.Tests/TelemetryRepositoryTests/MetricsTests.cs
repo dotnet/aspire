@@ -64,7 +64,7 @@ public class MetricsTests
                 Assert.Equal("TestId", app.InstanceId);
             });
 
-        var instruments = repository.GetInstrumentsSummary(applications[0].InstanceId);
+        var instruments = repository.GetInstrumentsSummary(applications[0].ApplicationKey);
         Assert.Collection(instruments,
             instrument =>
             {
@@ -145,7 +145,7 @@ public class MetricsTests
 
         var instrument = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationServiceId = applications[0].InstanceId,
+            ApplicationKey = applications[0].ApplicationKey,
             InstrumentName = "test",
             MeterName = "test-meter",
             StartTime = DateTime.MinValue,
@@ -262,7 +262,7 @@ public class MetricsTests
 
         var instrument = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationServiceId = applications[0].InstanceId,
+            ApplicationKey = applications[0].ApplicationKey,
             InstrumentName = "test",
             MeterName = "test-meter",
             StartTime = s_testTime.AddMinutes(1),
@@ -339,7 +339,7 @@ public class MetricsTests
 
         var instrument = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationServiceId = applications[0].InstanceId,
+            ApplicationKey = applications[0].ApplicationKey,
             InstrumentName = "test",
             MeterName = "test-meter",
             StartTime = DateTime.MinValue,

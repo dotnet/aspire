@@ -27,7 +27,7 @@ public sealed class TelemetryRepository
     private readonly List<Subscription> _metricsSubscriptions = new();
     private readonly List<Subscription> _tracesSubscriptions = new();
 
-    private readonly ConcurrentDictionary<string, OtlpApplication> _applications = new();
+    private readonly ConcurrentDictionary<ApplicationKey, OtlpApplication> _applications = new();
 
     private readonly ReaderWriterLockSlim _logsLock = new();
     private readonly Dictionary<string, OtlpScope> _logScopes = new();
@@ -56,13 +56,26 @@ public sealed class TelemetryRepository
         {
             applications.Add(kvp.Value);
         }
-        applications.Sort((a, b) => string.Compare(a.ApplicationName, b.ApplicationName, StringComparison.OrdinalIgnoreCase));
+        applications.Sort((a, b) => string.Compare(a.ApplicationName, b.ApplicationName, StringComparisons.ResourceName));
         return applications;
     }
 
-    public OtlpApplication? GetApplication(string instanceId)
+    public OtlpApplication? GetApplicationByCompositeName(string compositeName)
     {
-        _applications.TryGetValue(instanceId, out var application);
+        foreach (var kvp in _applications)
+        {
+            if (kvp.Key.EqualsCompositeName(compositeName))
+            {
+                return kvp.Value;
+            }
+        }
+
+        return null;
+    }
+
+    public OtlpApplication? GetApplication(ApplicationKey key)
+    {
+        _applications.TryGetValue(key, out var application);
         return application;
     }
 
@@ -80,40 +93,13 @@ public sealed class TelemetryRepository
         }
     }
 
-    public int GetUnviewedErrorLogsCount(string? instanceId)
-    {
-        _logsLock.EnterReadLock();
-
-        try
-        {
-            if (string.IsNullOrEmpty(instanceId))
-            {
-                return _applicationUnviewedErrorLogs.Sum(kvp => kvp.Value);
-            }
-            var application = GetApplications().FirstOrDefault(a => a.InstanceId == instanceId);
-            if (application is not null)
-            {
-                _applicationUnviewedErrorLogs.TryGetValue(application, out var count);
-                return count;
-            }
-            else
-            {
-                return 0;
-            }
-        }
-        finally
-        {
-            _logsLock.ExitReadLock();
-        }
-    }
-
-    internal void MarkViewedErrorLogs(string? instanceId)
+    internal void MarkViewedErrorLogs(ApplicationKey? key)
     {
         _logsLock.EnterWriteLock();
 
         try
         {
-            if (string.IsNullOrEmpty(instanceId))
+            if (key == null)
             {
                 // Mark all logs as viewed.
                 if (_applicationUnviewedErrorLogs.Count > 0)
@@ -123,7 +109,7 @@ public sealed class TelemetryRepository
                 }
                 return;
             }
-            var application = GetApplication(instanceId);
+            var application = GetApplication(key.Value);
             if (application is not null)
             {
                 // Mark one application logs as viewed.
@@ -144,20 +130,16 @@ public sealed class TelemetryRepository
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        var serviceInstanceId = resource.GetServiceId();
-        if (serviceInstanceId is null)
-        {
-            throw new InvalidOperationException($"Resource does not have a '{OtlpApplication.SERVICE_INSTANCE_ID}' attribute.");
-        }
+        var key = resource.GetApplicationKey();
 
         // Fast path.
-        if (_applications.TryGetValue(serviceInstanceId, out var application))
+        if (_applications.TryGetValue(key, out var application))
         {
             return application;
         }
 
         // Slower get or add path.
-        (application, var isNew) = GetOrAddApplication(serviceInstanceId, resource);
+        (application, var isNew) = GetOrAddApplication(key, resource);
         if (isNew)
         {
             RaiseSubscriptionChanged(_applicationSubscriptions);
@@ -165,14 +147,14 @@ public sealed class TelemetryRepository
 
         return application;
 
-        (OtlpApplication, bool) GetOrAddApplication(string serviceId, Resource resource)
+        (OtlpApplication, bool) GetOrAddApplication(ApplicationKey key, Resource resource)
         {
             // This GetOrAdd allocates a closure, so we avoid it if possible.
             var newApplication = false;
-            var application = _applications.GetOrAdd(serviceId, _ =>
+            var application = _applications.GetOrAdd(key, _ =>
             {
                 newApplication = true;
-                return new OtlpApplication(resource, _applications, _logger, _dashboardOptions.TelemetryLimits);
+                return new OtlpApplication(key.Name, key.InstanceId, resource, _logger, _dashboardOptions.TelemetryLimits);
             });
             return (application, newApplication);
         }
@@ -180,28 +162,28 @@ public sealed class TelemetryRepository
 
     public Subscription OnNewApplications(Func<Task> callback)
     {
-        return AddSubscription(nameof(OnNewApplications), string.Empty, SubscriptionType.Read, callback, _applicationSubscriptions);
+        return AddSubscription(nameof(OnNewApplications), null, SubscriptionType.Read, callback, _applicationSubscriptions);
     }
 
-    public Subscription OnNewLogs(string? applicationId, SubscriptionType subscriptionType, Func<Task> callback)
+    public Subscription OnNewLogs(ApplicationKey? applicationKey, SubscriptionType subscriptionType, Func<Task> callback)
     {
-        return AddSubscription(nameof(OnNewLogs), applicationId, subscriptionType, callback, _logSubscriptions);
+        return AddSubscription(nameof(OnNewLogs), applicationKey, subscriptionType, callback, _logSubscriptions);
     }
 
-    public Subscription OnNewMetrics(string? applicationId, SubscriptionType subscriptionType, Func<Task> callback)
+    public Subscription OnNewMetrics(ApplicationKey? applicationKey, SubscriptionType subscriptionType, Func<Task> callback)
     {
-        return AddSubscription(nameof(OnNewMetrics), applicationId, subscriptionType, callback, _metricsSubscriptions);
+        return AddSubscription(nameof(OnNewMetrics), applicationKey, subscriptionType, callback, _metricsSubscriptions);
     }
 
-    public Subscription OnNewTraces(string? applicationId, SubscriptionType subscriptionType, Func<Task> callback)
+    public Subscription OnNewTraces(ApplicationKey? applicationKey, SubscriptionType subscriptionType, Func<Task> callback)
     {
-        return AddSubscription(nameof(OnNewTraces), applicationId, subscriptionType, callback, _tracesSubscriptions);
+        return AddSubscription(nameof(OnNewTraces), applicationKey, subscriptionType, callback, _tracesSubscriptions);
     }
 
-    private Subscription AddSubscription(string name, string? applicationId, SubscriptionType subscriptionType, Func<Task> callback, List<Subscription> subscriptions)
+    private Subscription AddSubscription(string name, ApplicationKey? applicationKey, SubscriptionType subscriptionType, Func<Task> callback, List<Subscription> subscriptions)
     {
         Subscription? subscription = null;
-        subscription = new Subscription(name, applicationId, subscriptionType, callback, () =>
+        subscription = new Subscription(name, applicationKey, subscriptionType, callback, () =>
         {
             lock (_lock)
             {
@@ -306,7 +288,7 @@ public sealed class TelemetryRepository
                         // Notifying the user there are errors and then immediately clearing the notification is confusing.
                         if (logEntry.Severity >= LogLevel.Error)
                         {
-                            if (!_logSubscriptions.Any(s => s.SubscriptionType == SubscriptionType.Read && (s.ApplicationId == application.InstanceId || s.ApplicationId == null)))
+                            if (!_logSubscriptions.Any(s => s.SubscriptionType == SubscriptionType.Read && (s.ApplicationKey == application.ApplicationKey || s.ApplicationKey == null)))
                             {
                                 if (_applicationUnviewedErrorLogs.TryGetValue(application, out var count))
                                 {
@@ -341,7 +323,7 @@ public sealed class TelemetryRepository
     public PagedResult<OtlpLogEntry> GetLogs(GetLogsContext context)
     {
         OtlpApplication? application = null;
-        if (context.ApplicationServiceId != null && !_applications.TryGetValue(context.ApplicationServiceId, out application))
+        if (context.ApplicationKey != null && !_applications.TryGetValue(context.ApplicationKey.Value, out application))
         {
             return PagedResult<OtlpLogEntry>.Empty;
         }
@@ -369,16 +351,16 @@ public sealed class TelemetryRepository
         }
     }
 
-    public List<string> GetLogPropertyKeys(string? applicationServiceId)
+    public List<string> GetLogPropertyKeys(ApplicationKey? applicationKey)
     {
         _logsLock.EnterReadLock();
 
         try
         {
             var applicationKeys = _logPropertyKeys.AsEnumerable();
-            if (applicationServiceId != null)
+            if (applicationKey != null)
             {
-                applicationKeys = applicationKeys.Where(keys => keys.Application.InstanceId == applicationServiceId);
+                applicationKeys = applicationKeys.Where(keys => keys.Application.ApplicationKey == applicationKey);
             }
 
             var keys = applicationKeys.Select(keys => keys.PropertyKey).Distinct();
@@ -397,9 +379,9 @@ public sealed class TelemetryRepository
         try
         {
             var results = _traces.AsEnumerable();
-            if (context.ApplicationServiceId != null)
+            if (context.ApplicationKey != null)
             {
-                results = results.Where(t => HasApplication(t, context.ApplicationServiceId));
+                results = results.Where(t => HasApplication(t, context.ApplicationKey.Value));
             }
             if (!string.IsNullOrWhiteSpace(context.FilterText))
             {
@@ -444,11 +426,11 @@ public sealed class TelemetryRepository
         }
     }
 
-    private static bool HasApplication(OtlpTrace t, string applicationServiceId)
+    private static bool HasApplication(OtlpTrace t, ApplicationKey applicationKey)
     {
         foreach (var span in t.Spans)
         {
-            if (span.Source.InstanceId == applicationServiceId)
+            if (span.Source.ApplicationKey == applicationKey)
             {
                 return true;
             }
@@ -725,9 +707,9 @@ public sealed class TelemetryRepository
         return newSpan;
     }
 
-    public List<OtlpInstrument> GetInstrumentsSummary(string applicationServiceId)
+    public List<OtlpInstrument> GetInstrumentsSummary(ApplicationKey key)
     {
-        if (!_applications.TryGetValue(applicationServiceId, out var application))
+        if (!_applications.TryGetValue(key, out var application))
         {
             return new List<OtlpInstrument>();
         }
@@ -737,7 +719,7 @@ public sealed class TelemetryRepository
 
     public OtlpInstrument? GetInstrument(GetInstrumentRequest request)
     {
-        if (!_applications.TryGetValue(request.ApplicationServiceId, out var application))
+        if (!_applications.TryGetValue(request.ApplicationKey, out var application))
         {
             return null;
         }
