@@ -13,10 +13,6 @@ builder.AddQdrantClient("qdrant");
 
 var app = builder.Build();
 
-#if BUILD_FOR_TEST
-app.MapDefaultEndpoints();
-#endif
-
 // Configure the HTTP request pipeline.
 app.UseExceptionHandler();
 
