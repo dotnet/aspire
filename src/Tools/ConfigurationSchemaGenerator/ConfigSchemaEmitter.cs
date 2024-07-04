@@ -20,6 +20,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
 {
     internal const string RootPathPrefix = "--empty--";
     private static readonly string[] s_lineBreaks = ["\r\n", "\r", "\n"];
+    private static readonly JsonNodeOptions s_ignoreCaseNodeOptions = new() { PropertyNameCaseInsensitive = true };
 
     private static readonly JsonSerializerOptions s_serializerOptions = new()
     {
@@ -55,12 +56,12 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             return;
         }
 
-        var propertiesNode = new JsonObject();
+        var propertiesNode = new JsonObject(s_ignoreCaseNodeOptions);
         for (var i = 0; i < categories.Count; i++)
         {
-            var catObj = new JsonObject();
-            catObj["$ref"] = "#/definitions/logLevelThreshold";
-            propertiesNode.Add(categories[i], catObj);
+            var categoryNode = new JsonObject();
+            categoryNode["$ref"] = "#/definitions/logLevelThreshold";
+            propertiesNode[categories[i]] = categoryNode;
         }
 
         parent["definitions"] = new JsonObject
@@ -119,7 +120,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         var ownsProperties = false;
         if (currentNode["properties"] is not JsonObject propertiesNode)
         {
-            propertiesNode = new JsonObject();
+            propertiesNode = new JsonObject(s_ignoreCaseNodeOptions);
             currentNode["properties"] = propertiesNode;
             ownsProperties = true;
         }
@@ -458,18 +459,15 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             .Trim('\n');
     }
 
-    private void GenerateDescriptionForType(JsonObject? currentNode, TypeSpec type)
+    private void GenerateDescriptionForType(JsonObject currentNode, TypeSpec type)
     {
-        if (currentNode is not null && currentNode["description"] is null)
+        var typeSymbol = _compilation.GetBestTypeByMetadataName(type.FullName);
+        if (typeSymbol is not null)
         {
-            var typeSymbol = _compilation.GetBestTypeByMetadataName(type.FullName);
-            if (typeSymbol is not null)
+            var docComment = GetDocComment(typeSymbol);
+            if (!string.IsNullOrEmpty(docComment))
             {
-                var docComment = GetDocComment(typeSymbol);
-                if (!string.IsNullOrEmpty(docComment))
-                {
-                    GenerateDescriptionFromDocComment(currentNode, docComment);
-                }
+                GenerateDescriptionFromDocComment(currentNode, docComment);
             }
         }
     }

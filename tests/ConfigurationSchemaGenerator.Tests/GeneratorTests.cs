@@ -999,6 +999,143 @@ public partial class GeneratorTests
     }
 
     [Fact]
+    public void MergesPropertiesAtConfigPathWithDifferentCasing()
+    {
+        var source =
+            """
+            [assembly: Aspire.ConfigurationSchema("One:Two:Three", typeof(TestSettings1))]
+            [assembly: Aspire.ConfigurationSchema("ONE:two:THREE", typeof(TestSettings2))]
+
+            public record TestSettings1
+            {
+                /// <summary>1</summary>
+                public string? TestProperty1 { get; set; }
+            }
+
+            public record TestSettings2
+            {
+                /// <summary>2</summary>
+                public int? TestProperty2 { get; set; }
+            }
+            """;
+
+        var schema = GenerateSchemaFromCode(source, []);
+
+        AssertIsJson(schema,
+            """
+            {
+              "type": "object",
+              "properties": {
+                "One": {
+                  "type": "object",
+                  "properties": {
+                    "Two": {
+                      "type": "object",
+                      "properties": {
+                        "Three": {
+                          "type": "object",
+                          "properties": {
+                            "TestProperty1": {
+                              "type": "string",
+                              "description": "1"
+                            },
+                            "TestProperty2": {
+                              "type": "integer",
+                              "description": "2"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """);
+    }
+
+    [Fact]
+    public void MergesTypesWithDifferentCasing()
+    {
+        var source =
+            """
+            [assembly: Aspire.ConfigurationSchema("TestComponent", typeof(testSETTINGS))]
+            [assembly: Aspire.ConfigurationSchema("TestComponent", typeof(TestSettings))]
+
+            /// <summary>Initial documentation.</summary>
+            public class testSETTINGS
+            {
+                public int TestProperty1 { get; set; }
+            }
+
+            /// <summary>Replaced documentation.</summary>
+            public class TestSettings
+            {
+                public bool TestProperty2 { get; set; }
+            }
+            """;
+
+        var schema = GenerateSchemaFromCode(source, []);
+
+        AssertIsJson(schema,
+            """
+            {
+              "type": "object",
+              "properties": {
+                "TestComponent": {
+                  "type": "object",
+                  "properties": {
+                    "TestProperty1": {
+                      "type": "integer"
+                    },
+                    "TestProperty2": {
+                      "type": "boolean"
+                    }
+                  },
+                  "description": "Replaced documentation."
+                }
+              }
+            }
+            """);
+    }
+
+    [Fact]
+    public void OverwritesPropertyWithDifferentCasing()
+    {
+        var source =
+            """
+            [assembly: Aspire.ConfigurationSchema("TestComponent", typeof(TestSettings))]
+
+            public class TestSettings
+            {
+                /// <summary>Discarded documentation.</summary>
+                public int testPROPERTY { get; set; }
+                
+                public string? TestProperty { get; set; }
+            }
+            """;
+
+        var schema = GenerateSchemaFromCode(source, []);
+
+        AssertIsJson(schema,
+            """
+            {
+              "type": "object",
+              "properties": {
+                "TestComponent": {
+                  "type": "object",
+                  "properties": {
+                    "TestProperty": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+            """);
+    }
+
+    [Fact]
     public void PreservesExistingTypeWhenConfigPathSkipped()
     {
         var source =
@@ -1291,6 +1428,35 @@ public partial class GeneratorTests
                     },
                     "UnknownDefault": {
                       "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+            """);
+    }
+
+    [Fact]
+    public void OverwritesLogCategoriesWithDifferentCasing()
+    {
+        var source =
+            """
+            [assembly: Aspire.LoggingCategories("ONE", "one.TWO.three", "One.Two.Three")]
+            """;
+
+        var schema = GenerateSchemaFromCode(source, []);
+
+        AssertIsJson(schema,
+            """
+            {
+              "definitions": {
+                "logLevel": {
+                  "properties": {
+                    "ONE": {
+                      "$ref": "#/definitions/logLevelThreshold"
+                    },
+                    "One.Two.Three": {
+                      "$ref": "#/definitions/logLevelThreshold"
                     }
                   }
                 }
