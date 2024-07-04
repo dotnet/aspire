@@ -83,15 +83,13 @@ public static class AspireElasticClientsElasticsearchExtensions
 
         configureClientSettings?.Invoke(elasticsearchClientSettings);
 
-        var elasticsearchClient = new ElasticsearchClient(elasticsearchClientSettings);
-
         if (serviceKey is null)
         {
-            builder.Services.AddSingleton<ElasticsearchClient>(elasticsearchClient);
+            builder.Services.AddSingleton<ElasticsearchClient>(sp => new ElasticsearchClient(elasticsearchClientSettings));
         }
         else
         {
-            builder.Services.AddKeyedSingleton<ElasticsearchClient>(serviceKey, elasticsearchClient);
+            builder.Services.AddKeyedSingleton<ElasticsearchClient>(serviceKey, (sp, key) => new ElasticsearchClient(elasticsearchClientSettings));
         }
 
         if (!settings.DisableTracing)
@@ -109,7 +107,9 @@ public static class AspireElasticClientsElasticsearchExtensions
                 healthCheckName,
                 hcBuilder =>
                 hcBuilder.AddElasticsearch(
-                    clientFactory: (sp) => elasticsearchClient,
+                    clientFactory: (sp) => serviceKey is null ?
+                    sp.GetRequiredService<ElasticsearchClient>() :
+                    sp.GetRequiredKeyedService<ElasticsearchClient>(serviceKey),
                     healthCheckName,
                     null,
                     null,
