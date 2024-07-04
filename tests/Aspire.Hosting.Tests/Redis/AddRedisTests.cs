@@ -287,7 +287,7 @@ public class AddRedisTests
     [Theory]
     [InlineData("host.docker.internal")]
     [InlineData("host.containers.internal")]
-    public async Task SingleRedisInstanceProducesCorrectRedisHostsVariable(string containerHost)
+    public async Task SingleRedisInstanceWithoutPasswordProducesCorrectRedisHostsVariableInRunMode(string containerHost)
     {
         var builder = DistributedApplication.CreateBuilder();
         var redis = builder.AddRedis("myredis1").WithRedisCommander();
@@ -305,6 +305,33 @@ public class AddRedisTests
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander);
 
         Assert.Equal($"myredis1:{containerHost}:5001:0", config["REDIS_HOSTS"]);
+    }
+
+    [Theory]
+    [InlineData("host.docker.internal")]
+    [InlineData("host.containers.internal")]
+    public async Task SingleRedisInstanceWithPasswordProducesCorrectRedisHostsVariableInRunMode(string containerHost)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var password = "p@ssw0rd1";
+        builder.Configuration["Parameters:pass"] = password;
+
+        var pass = builder.AddParameter("pass");
+        var redis = builder.AddRedis("myredis1", password: pass).WithRedisCommander();
+        using var app = builder.Build();
+
+        // Add fake allocated endpoints.
+        redis.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var hook = new RedisCommanderConfigWriterHook();
+        await hook.AfterEndpointsAllocatedAsync(model, CancellationToken.None);
+
+        var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander);
+
+        Assert.Equal($"myredis1:{containerHost}:5001:0:{password}", config["REDIS_HOSTS"]);
     }
 
     [Theory]
