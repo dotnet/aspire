@@ -143,7 +143,7 @@
            Text="Could not find dotnet-coverage tool. %24(_DotNetCoverageToolDir)=$(_DotNetCoverageToolDir)" />
 
     <PropertyGroup>
-      <HelixPreCommands>$(HelixPreCommands);@(HelixPreCommand, ' $(_ShellCommandSeparator) ')</HelixPreCommands>
+      <HelixPreCommands>$(HelixPreCommands);@(HelixPreCommand)</HelixPreCommands>
       <HelixPostCommands>$(HelixPostCommands);@(HelixPostCommand)</HelixPostCommands>
     </PropertyGroup>
 
