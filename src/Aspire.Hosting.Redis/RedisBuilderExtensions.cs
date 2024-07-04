@@ -56,7 +56,7 @@ public static class RedisBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port to bind the underlying container to.</param>
-    /// <param name="password">The parameter used to provide the password for the Redis resource. If <see langword="null"/> resource will be not password protected.</param>
+    /// <param name="password">The parameter used to provide the password for the Redis resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <example>
     /// Use in application host
@@ -126,7 +126,7 @@ public static class RedisBuilderExtensions
                           .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
                           .WithImageRegistry(RedisContainerImageTags.Registry);
         }
-        throw new InvalidOperationException($"{nameof(AddRedis)} is not supported in current {nameof(builder.ExecutionContext)}. {builder.ExecutionContext.Operation} Operation is not supported.");
+        throw new NotSupportedException($"{nameof(AddRedis)} is not supported in current {nameof(builder.ExecutionContext)}. {builder.ExecutionContext.Operation} Operation is not supported.");
     }
 
     private static IResourceBuilder<RedisResource> WithPassword(this IResourceBuilder<RedisResource> builder, ParameterResource password)

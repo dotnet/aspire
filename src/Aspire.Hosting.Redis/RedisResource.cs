@@ -37,14 +37,12 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     /// <summary>
     /// Gets the parameter that contains the Redis server username.
     /// </summary>
-
     private ReferenceExpression ConnectionString =>
-        PasswordParameter is null ?
-        ReferenceExpression.Create(
-            $"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}") :
-        ReferenceExpression.Create(
-            $"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)},password={PasswordParameter}")
-        ;
+        PasswordParameter is null
+            ? ReferenceExpression.Create(
+                $"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}")
+            : ReferenceExpression.Create(
+                $"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)},password={PasswordParameter}");
 
     /// <summary>
     /// Gets the connection string expression for the Redis server.
