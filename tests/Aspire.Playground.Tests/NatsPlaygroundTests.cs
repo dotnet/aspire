@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 // using Aspire.EndToEnd.Tests;
-using Aspire.Hosting.MongoDB;
+using Aspire.Hosting.Nats;
 using Aspire.Workload.Tests;
 using Xunit;
 using Xunit.Abstractions;
@@ -44,29 +44,22 @@ public class NatsTests : PlaygroundTestsBase, IClassFixture<NatsPlaygroundAppFix
                 Type: "Project",
                 Name: "api",
                 State: "Running",
-                Source: "Mongo.ApiService.csproj",
-                Endpoints: ["http://localhost:\\d+"]),
+                Source: "Nats.ApiService.csproj",
+                Endpoints: ["http://localhost:\\d+", "https://localhost:\\d+"]),
 
             new ResourceRow(
                 Type: "Container",
-                Name: "mongo",
+                Name: "nats",
                 State: "Running",
-                Source: $"{MongoDBContainerImageTags.Registry}/{MongoDBContainerImageTags.Image}:{MongoDBContainerImageTags.Tag}",
+                Source: $"{NatsContainerImageTags.Registry}/{NatsContainerImageTags.Image}:{NatsContainerImageTags.Tag}",
                 Endpoints: ["tcp://localhost:\\d+"]),
 
             new ResourceRow(
-                Type: "Container",
-                Name: "mongo-mongoexpress",
+                Type: "Project",
+                Name: "backend",
                 State: "Running",
-                Source: $"{MongoDBContainerImageTags.MongoExpressRegistry}/{MongoDBContainerImageTags.MongoExpressImage}:{MongoDBContainerImageTags.MongoExpressTag}",
-                Endpoints: ["http://localhost:\\d+"]),
-
-            new ResourceRow(
-                Type: "Executable",
-                Name: "aspire-dashboard",
-                State: "Running",
-                Source: null,
-                Endpoints: ["None"])
+                Source: "Nats.Backend.csproj",
+                Endpoints: ["http://localhost:\\d+", "https://localhost:\\d+"]),
         ];
 
         return expectedResources;
