@@ -7,6 +7,7 @@ using Elastic.Clients.Elasticsearch;
 using Elastic.Transport;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -103,18 +104,15 @@ public static class AspireElasticClientsElasticsearchExtensions
         {
             var healthCheckName = serviceKey is null ? "Elastic.Clients.Elasticsearch" : $"Elastic.Clients.Elasticsearch_{connectionName}";
 
-            builder.TryAddHealthCheck(
+            builder.TryAddHealthCheck(new HealthCheckRegistration(
                 healthCheckName,
-                hcBuilder =>
-                hcBuilder.AddElasticsearch(
-                    clientFactory: (sp) => serviceKey is null ?
+                sp => new ElasticsearchHealthCheck(serviceKey is null ?
                     sp.GetRequiredService<ElasticsearchClient>() :
-                    sp.GetRequiredKeyedService<ElasticsearchClient>(serviceKey),
-                    healthCheckName,
-                    null,
-                    null,
-                      settings.HealthCheckTimeout > 0 ? TimeSpan.FromMilliseconds(settings.HealthCheckTimeout.Value) : null
-                    ));
+                    sp.GetRequiredKeyedService<ElasticsearchClient>(serviceKey)),
+                failureStatus: null,
+                tags: null,
+                timeout: settings.HealthCheckTimeout > 0 ? TimeSpan.FromMilliseconds(settings.HealthCheckTimeout.Value) : null
+                ));
         }
     }
 
