@@ -23,7 +23,7 @@ public class BuildEnvironment
     public DirectoryInfo?                   RepoRoot                      { get; init; }
 
     public const TestTargetFramework        DefaultTargetFramework = TestTargetFramework.Net80;
-    public static readonly string           TestDataPath = Path.Combine(AppContext.BaseDirectory, "data");
+    public static readonly string           TestDataPath = Path.Combine(AppContext.BaseDirectory, "testassets");
     public static readonly string           TestRootPath = Path.Combine(Path.GetTempPath(), "testroot");
 
     public static bool IsRunningOnHelix => Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is not null;
