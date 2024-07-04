@@ -22,7 +22,7 @@ public class NatsTests : PlaygroundTestsBase, IClassFixture<NatsPlaygroundAppFix
     [InlineData("/health")]
     [InlineData("/alive")]
     public Task ApiServiceIsHealthy(string path)
-        => _testFixture.Projects["apiservice"].WaitForHealthyStatusAsync("http", _testOutput, path, CancellationToken.None);
+        => _testFixture.Projects["api"].WaitForHealthyStatusAsync("http", _testOutput, path, CancellationToken.None);
 
     [Fact]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
