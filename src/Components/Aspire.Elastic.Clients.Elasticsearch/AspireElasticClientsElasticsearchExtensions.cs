@@ -26,7 +26,7 @@ public static class AspireElasticClientsElasticsearchExtensions
     /// <param name="configureClientSettings">An optional delegate that can be used for customizing ElasticsearchClientSettings.</param>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="ElasticClientsElasticsearchSettings.ConnectionString"/> is not provided.</exception>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="ElasticClientsElasticsearchSettings.Cloud"/> is not provided and <see cref="ElasticClientsElasticsearchSettings.UseCloud" /> is true .</exception>
-    public static void AddElasticClientsElasticsearch(
+    public static void AddElasticsearchClient(
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<ElasticClientsElasticsearchSettings>? configureSettings = null,
@@ -42,11 +42,11 @@ public static class AspireElasticClientsElasticsearchExtensions
     /// <param name="configureClientSettings">An optional delegate that can be used for customizing ElasticsearchClientSettings.</param>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="ElasticClientsElasticsearchSettings.ConnectionString"/> is not provided.</exception>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="ElasticClientsElasticsearchSettings.Cloud"/> is not provided and <see cref="ElasticClientsElasticsearchSettings.UseCloud" /> is true .</exception>
-    public static void AddKeyedElasticClientsElasticsearch(
-      this IHostApplicationBuilder builder,
-      string name,
-      Action<ElasticClientsElasticsearchSettings>? configureSettings = null,
-      Action<ElasticsearchClientSettings>? configureClientSettings = null)
+    public static void AddKeyedElasticsearchClient(
+        this IHostApplicationBuilder builder,
+        string name,
+        Action<ElasticClientsElasticsearchSettings>? configureSettings = null,
+        Action<ElasticsearchClientSettings>? configureClientSettings = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
         builder.AddElasticClientsElasticsearch(
