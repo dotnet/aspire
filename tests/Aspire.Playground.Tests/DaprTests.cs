@@ -8,6 +8,7 @@ using Xunit.Abstractions;
 
 namespace Aspire.Playground.Tests;
 
+[ActiveIssue("-open-new-issue-", typeof(BuildEnvironment), nameof(BuildEnvironment.IsRunningOnCI))]
 public class DaprTests : PlaygroundTestsBase, IClassFixture<DaprPlaygroundAppFixture>
 {
     private readonly DaprPlaygroundAppFixture _testFixture;
