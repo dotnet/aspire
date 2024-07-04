@@ -45,7 +45,7 @@
     <FileToArchive Include="$(GeneratedPackagesVersionsPropsPath)" DestinationPath="Directory.Packages.Versions.props" />
 
     <!--<FileToArchive Include="..\Shared\OutOfRepo\TestsRunningOutsideOfRepo.*" DestinationPath="%(FileName)%(Extension)" />-->
-    <FileToArchive Include="..\Shared\nuget-for-hosting-testing.config" DestinationPath="nuget.config" />
+    <FileToArchive Include="..\Shared\nuget-with-package-source-mapping.config" DestinationPath="nuget.config" />
     <FileToArchive Include="..\Shared\WorkloadTesting\data\Directory.Packages.Helix.props" DestinationPath="%(FileName)%(Extension)" />
 
     <!--<None Include="" CopyToOutputDirectory="PreserveNewest" />-->
