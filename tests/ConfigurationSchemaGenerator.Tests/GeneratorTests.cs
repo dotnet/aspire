@@ -49,6 +49,8 @@ public partial class GeneratorTests
         MetadataReference.CreateFromFile(typeof(HttpContent).Assembly.Location)
     ];
 
+    private static readonly JsonSerializerOptions s_testSerializerOptions = new() { WriteIndented = true };
+
     [Theory]
     [InlineData("abc\n  def", "abc def")]
     [InlineData("\n  def", "def")]
@@ -1320,9 +1322,8 @@ public partial class GeneratorTests
         var actualJson = JsonNode.Parse(actual)!;
         var expectedJson = JsonNode.Parse(expected)!;
 
-        var serializerOptions = new JsonSerializerOptions { WriteIndented = true };
-        var expectedText = expectedJson.ToJsonString(serializerOptions);
-        var actualText = actualJson.ToJsonString(serializerOptions);
+        var expectedText = expectedJson.ToJsonString(s_testSerializerOptions);
+        var actualText = actualJson.ToJsonString(s_testSerializerOptions);
 
         Assert.Equal(expectedText, actualText);
     }
