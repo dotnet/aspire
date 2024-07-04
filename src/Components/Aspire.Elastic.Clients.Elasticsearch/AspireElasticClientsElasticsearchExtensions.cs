@@ -79,8 +79,6 @@ public static class AspireElasticClientsElasticsearchExtensions
 
         configureSettings?.Invoke(settings);
 
-        var optionsName = serviceKey is null ? Options.Options.DefaultName : connectionName;
-
         var elasticsearchClientSettings = CreateElasticsearchClientSettings(settings, connectionName, configurationSectionName);
 
         configureClientSettings?.Invoke(elasticsearchClientSettings);

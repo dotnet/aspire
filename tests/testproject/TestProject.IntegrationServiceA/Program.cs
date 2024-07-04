@@ -102,7 +102,7 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.milvus))
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.elasticsearch))
 {
-    builder.AddElasticClientsElasticsearch("elasticsearch");
+    builder.AddElasticsearchClient("elasticsearch");
 }
 
 // Ensure healthChecks are added. Some components like Cosmos

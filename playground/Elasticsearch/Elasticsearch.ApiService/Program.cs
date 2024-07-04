@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddElasticClientsElasticsearch("elasticsearch");
+builder.AddElasticsearchClient("elasticsearch");
 
 var app = builder.Build();
 

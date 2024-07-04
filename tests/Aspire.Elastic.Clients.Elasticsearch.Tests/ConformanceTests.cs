@@ -47,11 +47,11 @@ public class ConformanceTests : ConformanceTests<ElasticsearchClient, ElasticCli
     {
         if (key is null)
         {
-            builder.AddElasticClientsElasticsearch("elasticsearch", configure);
+            builder.AddElasticsearchClient("elasticsearch", configure);
         }
         else
         {
-            builder.AddKeyedElasticClientsElasticsearch(key, configure);
+            builder.AddKeyedElasticsearchClient(key, configure);
         }
     }
 

@@ -30,7 +30,7 @@ public class AspireElasticClientExtensionsTest : IClassFixture<ElasticsearchCont
     {
         var builder = CreateBuilder(DefaultConnectionString);
 
-        builder.AddKeyedElasticClientsElasticsearch(DefaultConnectionName, settings =>
+        builder.AddKeyedElasticsearchClient(DefaultConnectionName, settings =>
         {
             settings.DisableHealthChecks = true;
         });
@@ -49,7 +49,7 @@ public class AspireElasticClientExtensionsTest : IClassFixture<ElasticsearchCont
     {
         var builder = CreateBuilder(DefaultConnectionString);
 
-        builder.AddElasticClientsElasticsearch(DefaultConnectionName, settings =>
+        builder.AddElasticsearchClient(DefaultConnectionName, settings =>
         {
             settings.DisableHealthChecks = false;
             settings.HealthCheckTimeout = 1;
@@ -74,7 +74,7 @@ public class AspireElasticClientExtensionsTest : IClassFixture<ElasticsearchCont
 
         var builder = CreateBuilder(DefaultConnectionString);
 
-        builder.AddKeyedElasticClientsElasticsearch(key, settings =>
+        builder.AddKeyedElasticsearchClient(key, settings =>
         {
             settings.DisableHealthChecks = false;
             settings.HealthCheckTimeout = 1;
@@ -97,7 +97,7 @@ public class AspireElasticClientExtensionsTest : IClassFixture<ElasticsearchCont
     {
         var builder = CreateBuilder(DefaultConnectionString);
 
-        builder.AddElasticClientsElasticsearch(DefaultConnectionName, settings =>
+        builder.AddElasticsearchClient(DefaultConnectionName, settings =>
         {
             settings.DisableHealthChecks = true;
         });
@@ -119,9 +119,9 @@ public class AspireElasticClientExtensionsTest : IClassFixture<ElasticsearchCont
             new KeyValuePair<string, string?>("ConnectionStrings:elasticsearch3", "http://elastic:password@localhost1:19532"),
         ]);
 
-        builder.AddElasticClientsElasticsearch("elasticsearch1");
-        builder.AddKeyedElasticClientsElasticsearch("elasticsearch2");
-        builder.AddKeyedElasticClientsElasticsearch("elasticsearch3");
+        builder.AddElasticsearchClient("elasticsearch1");
+        builder.AddKeyedElasticsearchClient("elasticsearch2");
+        builder.AddKeyedElasticsearchClient("elasticsearch3");
 
         using var host = builder.Build();
 
