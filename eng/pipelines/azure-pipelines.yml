@@ -122,7 +122,7 @@ extends:
           enablePublishBuildAssets: true
           enableTelemetry: true
           enableSourceBuild: true
-          enableSourceIndex: false
+          enableSourceIndex: true
           publishAssetsImmediately: true
           # Publish build logs
           enablePublishBuildArtifacts: true

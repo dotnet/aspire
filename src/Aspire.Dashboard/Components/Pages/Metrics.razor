@@ -51,7 +51,7 @@
                         @if (PageViewModel.SelectedApplication.Id?.InstanceId != null && PageViewModel.SelectedMeter != null && PageViewModel.SelectedInstrument != null)
                         {
                             <ChartContainer
-                                ApplicationId="@(PageViewModel.SelectedApplication.Id.InstanceId)"
+                                ApplicationKey="@(PageViewModel.SelectedApplication.Id.GetApplicationKey())"
                                 MeterName="@(PageViewModel.SelectedMeter.MeterName)"
                                 InstrumentName="@(PageViewModel.SelectedInstrument.Name)"
                                 Duration="PageViewModel.SelectedDuration.Id"
