@@ -87,6 +87,24 @@ public class AddRedisTests
     }
 
     [Fact]
+    public void RedisCreatesConnectionStringWithPasswordAndPort()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var password = "p@ssw0rd1";
+        appBuilder.Configuration["Parameters:pass"] = password;
+
+        var pass = appBuilder.AddParameter("pass");
+        appBuilder.AddRedis("myRedis", port: 3000, password: pass).PublishAsContainer();
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
+        Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port},password={pass.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
     public async Task RedisCreatesConnectionStringWithoutPassword()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
@@ -104,7 +122,7 @@ public class AddRedisTests
     }
 
     [Fact]
-    public async Task VerifyManifest()
+    public async Task VerifyWithoutPasswordManifestInRunMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("redis");
@@ -130,7 +148,7 @@ public class AddRedisTests
     }
 
     [Fact]
-    public async Task VerifyWithPasswordManifest()
+    public async Task VerifyWithPasswordManifestInRunMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -149,6 +167,67 @@ public class AddRedisTests
               "args": [
                 "--requirepass",
                 "{pass.value}"
+              ],
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "targetPort": 6379
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task VerifyWithPasswordValueNotProvidedManifestInRunMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var pass = builder.AddParameter("pass");
+        var redis = builder.AddRedis("redis", password: pass);
+        var manifest = await ManifestUtils.GetManifest(redis.Resource);
+
+        var expectedManifest = $$"""
+            {
+              "type": "container.v0",
+              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={pass.value}",
+              "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+              "args": [
+                "--requirepass",
+                "{pass.value}"
+              ],
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "targetPort": 6379
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task VerifyWithPasswordManifestInPublishMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var redis = builder.AddRedis("redis");
+        var manifest = await ManifestUtils.GetManifest(redis.Resource);
+
+        var expectedManifest = $$"""
+            {
+              "type": "container.v0",
+              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value}",
+              "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+              "args": [
+                "--requirepass",
+                "{redis-password.value}"
               ],
               "bindings": {
                 "tcp": {
