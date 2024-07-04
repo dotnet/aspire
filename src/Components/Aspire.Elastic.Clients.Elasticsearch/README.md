@@ -19,10 +19,10 @@ dotnet add package Aspire.Elastic.Clients.Elasticsearch
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddElasticClientsElasticsearch` extension method to register a `ElasticsearchClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddElasticsearchClient` extension method to register a `ElasticsearchClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
-builder.AddElasticClientsElasticsearch("elasticsearch");
+builder.AddElasticsearchClient("elasticsearch");
 ```
 
 ## Configuration
@@ -31,10 +31,10 @@ The .NET Aspire Elasticsearch Client component provides multiple options to conf
 
 ### Use a connection string
 
-When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddElasticClientsElasticsearch()`:
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddElasticsearchClient()`:
 
 ```csharp
-builder.AddElasticClientsElasticsearch("elasticsearch");
+builder.AddElasticsearchClient("elasticsearch");
 ```
 
 And then the connection string will be retrieved from the `ConnectionStrings` configuration section:
@@ -70,7 +70,7 @@ The .NET Aspire Elasticsearch Client component supports [Microsoft.Extensions.Co
 Also you can pass the `Action<ElasticClientsElasticsearchSettings> configureSettings` delegate to set up some or all the options inline, for example to set the API key from code:
 
 ```csharp
-builder.AddElasticClientsElasticsearch("elasticsearch", settings => settings.ConnectionString = "http://elastic:password@localhost:27011");
+builder.AddElasticsearchClient("elasticsearch", settings => settings.ConnectionString = "http://elastic:password@localhost:27011");
 ```
 
 ## AppHost extensions
@@ -93,7 +93,7 @@ var myService = builder.AddProject<Projects.MyService>()
 The `WithReference` method configures a connection in the `MyService` project named `elasticsearch`. In the _Program.cs_ file of `MyService`, the Elasticsearch connection can be consumed using:
 
 ```csharp
-builder.AddElasticClientsElasticsearch("elasticsearch");
+builder.AddElasticsearchClient("elasticsearch");
 ```
 
 ### Use a ```CloudId``` and an ```ApiKey``` with configuration providers
@@ -101,12 +101,12 @@ builder.AddElasticClientsElasticsearch("elasticsearch");
 When using [Elastic Cloud](https://www.elastic.co/cloud) ,
 you can provide the ```CloudId``` and ```ApiKey``` in ```Aspire:Elastic:Clients:Elasticsearch:Cloud``` section
 and set ```Aspire:Elastic:Clients:Elasticsearch:UseCloud``` key to ```true```
-when calling `builder.AddElasticClientsElasticsearch()`.
+when calling `builder.AddElasticsearchClient()`.
 Example appsettings.json that configures the options:
 
 
 ```csharp
-builder.AddElasticClientsElasticsearch("elasticsearch");
+builder.AddElasticsearchClient("elasticsearch");
 ```
 
 ```json
@@ -128,7 +128,7 @@ builder.AddElasticClientsElasticsearch("elasticsearch");
 ### Use a ```CloudId``` and an ```ApiKey``` with inline delegates
 
 ```csharp
-builder.AddElasticClientsElasticsearch("elasticsearch",
+builder.AddElasticsearchClient("elasticsearch",
 settings => {
     settings.UseCloud = true;
     settings.Cloud.CloudId = "Valid CloudId";

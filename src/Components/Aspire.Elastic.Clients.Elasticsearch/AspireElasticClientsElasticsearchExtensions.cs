@@ -32,7 +32,7 @@ public static class AspireElasticClientsElasticsearchExtensions
         string connectionName,
         Action<ElasticClientsElasticsearchSettings>? configureSettings = null,
         Action<ElasticsearchClientSettings>? configureClientSettings = null
-        ) => builder.AddElasticClientsElasticsearch(DefaultConfigSectionName, configureSettings, configureClientSettings, connectionName, null);
+        ) => builder.AddElasticsearchClient(DefaultConfigSectionName, configureSettings, configureClientSettings, connectionName, null);
 
     /// <summary>
     /// Registers <see cref="ElasticsearchClient"/> instance for connecting to Elasticsearch with Elastic.Clients.Elasticsearch client.
@@ -50,7 +50,7 @@ public static class AspireElasticClientsElasticsearchExtensions
         Action<ElasticsearchClientSettings>? configureClientSettings = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
-        builder.AddElasticClientsElasticsearch(
+        builder.AddElasticsearchClient(
             $"{DefaultConfigSectionName}:{name}",
             configureSettings,
             configureClientSettings,
@@ -58,7 +58,7 @@ public static class AspireElasticClientsElasticsearchExtensions
             serviceKey: name);
     }
 
-    private static void AddElasticClientsElasticsearch(
+    private static void AddElasticsearchClient(
         this IHostApplicationBuilder builder,
         string configurationSectionName,
         Action<ElasticClientsElasticsearchSettings>? configureSettings,
