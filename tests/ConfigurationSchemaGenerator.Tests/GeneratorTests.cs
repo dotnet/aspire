@@ -1465,6 +1465,93 @@ public partial class GeneratorTests
             """);
     }
 
+    [Fact]
+    public void GeneratesSchemaForNamedOptionsOnAsterisk()
+    {
+        var source =
+            """
+            [assembly: Aspire.ConfigurationSchema("Certificates:*", typeof(CertificateSettings))]
+            
+            public class CertificateSettings
+            {
+                /// <summary>
+                /// The private key of the certificate, in base64 format.
+                /// </summary>
+                public string? PrivateKey { get; set; }
+            }
+            """;
+
+        var schema = GenerateSchemaFromCode(source, []);
+
+        AssertIsJson(schema,
+            """
+            {
+              "type": "object",
+              "properties": {
+                "Certificates": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "PrivateKey": {
+                        "type": "string",
+                        "description": "The private key of the certificate, in base64 format."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """);
+    }
+
+    [Fact]
+    public void CanGenerateSchemaForNamedOptionsWithDefaultOptions()
+    {
+        var source =
+            """
+            [assembly: Aspire.ConfigurationSchema("Certificates", typeof(CertificateSettings))]
+            [assembly: Aspire.ConfigurationSchema("Certificates:*", typeof(CertificateSettings))]
+
+            public class CertificateSettings
+            {
+                /// <summary>
+                /// The private key of the certificate, in base64 format.
+                /// </summary>
+                public string? PrivateKey { get; set; }
+            }
+            """;
+
+        var schema = GenerateSchemaFromCode(source, []);
+
+        AssertIsJson(schema,
+            """
+            {
+              "type": "object",
+              "properties": {
+                "Certificates": {
+                  "type": "object",
+                  "properties": {
+                    "PrivateKey": {
+                      "type": "string",
+                      "description": "The private key of the certificate, in base64 format."
+                    }
+                  },
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "PrivateKey": {
+                        "type": "string",
+                        "description": "The private key of the certificate, in base64 format."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """);
+    }
+
     private static string GenerateSchemaFromCode(string sourceText, IEnumerable<MetadataReference> references)
     {
         var sourceSyntaxTree = SyntaxFactory.ParseSyntaxTree(SourceText.From(sourceText));

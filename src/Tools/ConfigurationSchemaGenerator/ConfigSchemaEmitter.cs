@@ -106,6 +106,8 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         }
 
         var pathSegment = pathSegments.Dequeue();
+        var isAsterisk = pathSegment == "*";
+        var propertiesName = isAsterisk ? "additionalProperties" : "properties";
 
         // While descending into the node tree, a container node is created or an existing one is reused, which is then passed to the subtree generator.
         // Each generator is responsible for reverting to the original state of its children and return false, in case there's nothing to generate.
@@ -118,19 +120,26 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         currentNode["type"] = "object";
 
         var ownsProperties = false;
-        if (currentNode["properties"] is not JsonObject propertiesNode)
+        if (currentNode[propertiesName] is not JsonObject propertiesNode)
         {
             propertiesNode = new JsonObject(s_ignoreCaseNodeOptions);
-            currentNode["properties"] = propertiesNode;
+            currentNode[propertiesName] = propertiesNode;
             ownsProperties = true;
         }
 
         var ownsPathSegment = false;
         if (propertiesNode[pathSegment] is not JsonObject pathSegmentNode)
         {
-            pathSegmentNode = new JsonObject();
-            propertiesNode[pathSegment] = pathSegmentNode;
-            ownsPathSegment = true;
+            if (isAsterisk)
+            {
+                pathSegmentNode = propertiesNode;
+            }
+            else
+            {
+                pathSegmentNode = new JsonObject();
+                propertiesNode[pathSegment] = pathSegmentNode;
+                ownsPathSegment = true;
+            }
         }
 
         var hasGenerated = GeneratePathSegment(pathSegmentNode, type, pathSegments);
@@ -140,7 +149,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
 
             if (ownsProperties)
             {
-                currentNode.Remove("properties");
+                currentNode.Remove(propertiesName);
             }
             else if (ownsPathSegment)
             {
