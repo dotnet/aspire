@@ -831,7 +831,7 @@ public partial class GeneratorTests
     }
 
     [Fact]
-    public void ShouldAllowEmptyComponentPath()
+    public void ShouldAllowEmptyConfigPath()
     {
         var source =
             """
@@ -868,7 +868,7 @@ public partial class GeneratorTests
     }
 
     [Fact]
-    public void ShouldAllowNestedComponentPath()
+    public void ShouldAllowNestedConfigPath()
     {
         var source =
             """
@@ -920,7 +920,7 @@ public partial class GeneratorTests
     }
 
     [Fact]
-    public void ShouldAllowSimpleTypeInComponentPath()
+    public void ShouldAllowSimpleTypeInConfigPath()
     {
         var source =
             """
@@ -953,7 +953,7 @@ public partial class GeneratorTests
     }
 
     [Fact]
-    public void MergesPropertiesAtSamePath()
+    public void MergesPropertiesAtSameConfigPath()
     {
         var source =
             """
@@ -999,7 +999,7 @@ public partial class GeneratorTests
     }
 
     [Fact]
-    public void PreservesExistingComponentTypeWhenSkipped()
+    public void PreservesExistingTypeWhenConfigPathSkipped()
     {
         var source =
             """
