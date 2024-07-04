@@ -4,8 +4,6 @@
   <PropertyGroup>
     <!--<TestsSharedOutOfRepoDir Condition="'$(TestsSharedOutOfRepoDir)' == '' and '$(RepoRoot)' != ''">$(RepoRoot)tests\Shared\OutOfRepo\</TestsSharedOutOfRepoDir>-->
     <!--<TestsSharedOutOfRepoDir Condition="'$(TestsSharedOutOfRepoDir)' == '' and '$(RepoRoot)' == ''">$(MSBuildThisFileDirectory)..\</TestsSharedOutOfRepoDir>-->
-    <TestsSharedDir>$([MSBuild]::NormalizeDirectory($(MSBuildThisFileDirectory), 'tests', 'Shared'))</TestsSharedDir>
-    <TestsSharedOutOfRepoDir>$([MSBuild]::NormalizeDirectory($(TestsSharedDir), 'OutOfRepo'))</TestsSharedOutOfRepoDir>
   </PropertyGroup>
 
   <Import Project="$(TestsSharedOutOfRepoDir)TestsRunningOutsideOfRepo.props" />
