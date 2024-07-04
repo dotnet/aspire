@@ -3,8 +3,19 @@
 
 namespace Aspire.Dashboard.Otlp.Storage;
 
-public readonly record struct ApplicationKey(string Name, string InstanceId)
+public readonly record struct ApplicationKey(string Name, string InstanceId) : IComparable<ApplicationKey>
 {
+    public int CompareTo(ApplicationKey other)
+    {
+        var c = string.Compare(Name, other.Name, StringComparisons.ResourceName);
+        if (c != 0)
+        {
+            return c;
+        }
+
+        return string.Compare(InstanceId, other.InstanceId, StringComparisons.ResourceName);
+    }
+
     public bool EqualsCompositeName(string name)
     {
         if (name == null)
