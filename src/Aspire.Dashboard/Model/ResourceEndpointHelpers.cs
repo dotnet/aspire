@@ -29,7 +29,13 @@ internal static class ResourceEndpointHelpers
             }
         }
 
-        return endpoints;
+        // Make sure that endpoints have a consistent ordering. Show https first, then everything else.
+        var orderedEndpoints = endpoints
+            .OrderByDescending(e => e.Url?.StartsWith("https") == true)
+            .ThenBy(e => e.Name)
+            .ToList();
+
+        return orderedEndpoints;
     }
 }
 
