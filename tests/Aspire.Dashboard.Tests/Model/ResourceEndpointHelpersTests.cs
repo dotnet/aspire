@@ -174,15 +174,17 @@ public sealed class ResourceEndpointHelpersTests
         var endpoints = GetEndpoints(CreateResource([
             new("a", new("http://localhost:8080"), isInternal: false),
             new("C", new("http://localhost:8080"), isInternal: false),
-            new("B", new("http://localhost:8080"), isInternal: false),
+            new("D", new("tcp://localhost:8080"), isInternal: false),
+            new("B", new("tcp://localhost:8080"), isInternal: false),
             new("Z", new("https://localhost:8080"), isInternal: false)
         ]));
 
         Assert.Collection(endpoints,
             e => Assert.Equal("Z", e.Name),
             e => Assert.Equal("a", e.Name),
+            e => Assert.Equal("C", e.Name),
             e => Assert.Equal("B", e.Name),
-            e => Assert.Equal("C", e.Name));
+            e => Assert.Equal("D", e.Name));
     }
 
     private static ResourceViewModel CreateResource(ImmutableArray<UrlViewModel> urls)
