@@ -32,7 +32,7 @@ internal static class ResourceEndpointHelpers
         // Make sure that endpoints have a consistent ordering. Show https first, then everything else.
         var orderedEndpoints = endpoints
             .OrderByDescending(e => e.Url?.StartsWith("https") == true)
-            .ThenBy(e => e.Name)
+            .ThenBy(e => e.Name, StringComparers.EndpointAnnotationName)
             .ToList();
 
         return orderedEndpoints;
