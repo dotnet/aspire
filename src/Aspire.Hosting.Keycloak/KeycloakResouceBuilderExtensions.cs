@@ -80,7 +80,6 @@ public static class KeycloakResouceBuilderExtensions
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
-    /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// The volume is mounted at /opt/keycloak/data in the container.
@@ -91,8 +90,8 @@ public static class KeycloakResouceBuilderExtensions
     ///                       .WithDataVolume();
     /// </code>
     /// </example>
-    public static IResourceBuilder<KeycloakResource> WithDataVolume(this IResourceBuilder<KeycloakResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/opt/keycloak/data", isReadOnly);
+    public static IResourceBuilder<KeycloakResource> WithDataVolume(this IResourceBuilder<KeycloakResource> builder, string? name = null)
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/opt/keycloak/data", false);
 
     /// <summary>
     /// Adds a realm import to a Keycloak container resource.

@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <MinCodeCoverage>10</MinCodeCoverage>
+    <MinCodeCoverage>80</MinCodeCoverage>
   </PropertyGroup>    
 
   <ItemGroup>

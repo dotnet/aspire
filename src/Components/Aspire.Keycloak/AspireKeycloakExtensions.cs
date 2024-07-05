@@ -175,9 +175,9 @@ public static class AspireKeycloakExtensions
     }
 
     private static string GetAuthorityUri(
-        string connectionName,
+        string serviceName,
         string realm)
     {
-        return $"https+http://{connectionName}/realms/{realm}";
+        return $"https+http://{serviceName}/realms/{realm}";
     }
 }

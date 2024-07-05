@@ -41,32 +41,21 @@ public class AddKeycloakTests
         Assert.Equal(KeycloakContainerImageTags.Registry, containerAnnotation.Registry);
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void WithDataVolumeAddsVolumeAnnotation(bool? isReadOnly)
+    [Fact]
+    public void WithDataVolumeAddsVolumeAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var resourceName = "keycloak";
-        var keycloak = builder.AddKeycloak(resourceName);
-
-        if (isReadOnly.HasValue)
-        {
-            keycloak.WithDataVolume(isReadOnly: isReadOnly.Value);
-        }
-        else
-        {
-            keycloak.WithDataVolume();
-        }
+        var keycloak = builder.AddKeycloak(resourceName)
+                              .WithDataVolume();
 
         var volumeAnnotation = keycloak.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
         Assert.Equal($"Aspire.Hosting.Tests-{resourceName}-data", volumeAnnotation.Source);
         Assert.Equal("/opt/keycloak/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
-        Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
+        Assert.False(volumeAnnotation.IsReadOnly);
     }
 
     [Theory]

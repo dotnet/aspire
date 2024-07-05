@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <MinCodeCoverage>10</MinCodeCoverage>
+    <MinCodeCoverage>80</MinCodeCoverage>
   </PropertyGroup>      
 
   <ItemGroup>
@@ -20,8 +20,6 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect"  />  
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
   </ItemGroup>
   
 </Project>
