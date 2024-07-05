@@ -44,6 +44,9 @@ internal sealed class CDKLifecycleHook(DistributedApplicationExecutionContext ex
 
             var cloudAssembly = cdkResource.App.Synth();
 
+            // By default, CDK put the deployments artifacts in the OS temp folder which is way off the folder where the
+            // solution exists. Copying the output to the cdk.out folder, like the CDK CLI is doing keeps the artifacts
+            // closer. In the feature we can make this configurable.
             var outputDirectory = executionContext.IsPublishMode ? Path.Combine(Environment.CurrentDirectory, "cdk.out") : cloudAssembly.Directory;
             if (executionContext.IsPublishMode)
             {
@@ -57,7 +60,7 @@ internal sealed class CDKLifecycleHook(DistributedApplicationExecutionContext ex
                             ?? throw new InvalidOperationException($"Stack '{stackResource.StackName}' not found in synthesized cloud assembly.");
 
                 // Annotate the resource with information for writing the manifest and provisioning.
-                stackResource.Annotations.Add(new CloudFormationTemplatePathAnnotation(Path.Combine(outputDirectory, stack.TemplateFile)));
+                stackResource.Annotations.Add(new CloudFormationTemplatePathAnnotation(Path.Combine(outputDirectory, stackArtifact.TemplateFile)));
                 stackResource.Annotations.Add(new StackArtifactResourceAnnotation(stackArtifact));
             }
         }
