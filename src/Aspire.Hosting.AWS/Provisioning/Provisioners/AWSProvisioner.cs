@@ -16,18 +16,22 @@ internal sealed class AWSProvisioner(
 {
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
+        // Skip when publishing, this is intended for provisioning only.
         if (executionContext.IsPublishMode)
         {
             return;
         }
 
+        // Lookup for IAWSResource, if there aren't any, we can skip
         var awsResources = appModel.Resources.OfType<IAWSResource>().ToList();
         if (awsResources.Count == 0)
         {
             return;
         }
 
-        // parent -> children lookup
+        // Create a lookup for all resources implementing IResourceWithParent and have IAWSResource as parent in the tree.
+        // Typical childeren that are listed here are ICDKResource, IStackResource with IConstructResource as children.
+        // This is important for state reporting so that a stack and it child resources are handled.
         var parentChildLookup = appModel.Resources.OfType<IResourceWithParent>()
             .Select(x => (Child: x, Root: x.Parent.TrySelectParentResource<IAWSResource>()))
             .Where(x => x.Root is not null)
@@ -52,11 +56,12 @@ internal sealed class AWSProvisioner(
     {
         foreach (var resource in awsResources)
         {
+            // Resolve a provisioner for the IAWSResource
             var provisioner = SelectProvisioner(resource);
 
             var resourceLogger = loggerService.GetLogger(resource);
 
-            if (provisioner is null)
+            if (provisioner is null) // Skip when no provisioner is found
             {
                 resource.ProvisioningTaskCompletionSource?.TrySetResult();
 
@@ -68,8 +73,10 @@ internal sealed class AWSProvisioner(
 
                 try
                 {
+                    // Provision resources
                     await provisioner.GetOrCreateResourceAsync(resource, cancellationToken).ConfigureAwait(false);
 
+                    // Mark resources as running
                     await UpdateStateAsync(resource, parentChildLookup, s => s with
                     {
                         State = new ResourceStateSnapshot("Running", KnownResourceStateStyles.Success)
@@ -80,11 +87,12 @@ internal sealed class AWSProvisioner(
                 {
                     resourceLogger.LogError(ex, "Error provisioning {ResourceName}", resource.Name);
 
+                    // Mark resources as failed
                     await UpdateStateAsync(resource, parentChildLookup, s => s with
                     {
                         State = new ResourceStateSnapshot("Failed to Provision", KnownResourceStateStyles.Error)
                     }).ConfigureAwait(false);
-                    resource.ProvisioningTaskCompletionSource?.TrySetException(new InvalidOperationException($"Unable to resolve references from {resource.Name}"));
+                    resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
                 }
             }
         }
@@ -94,7 +102,7 @@ internal sealed class AWSProvisioner(
     {
         var type = resource.GetType();
 
-        while (type is not null)
+        while (type is not null) // Loop through all the base types to find a resource that as a provisioner
         {
             var provisioner = serviceProvider.GetKeyedService<IAWSResourceProvisioner>(type);
 
@@ -111,6 +119,7 @@ internal sealed class AWSProvisioner(
 
     private async Task UpdateStateAsync(IAWSResource resource, ILookup<IAWSResource?, IResourceWithParent> parentChildLookup, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
     {
+        // Update the state of the IAWSRsource and all it's children
         await notificationService.PublishUpdateAsync(resource, stateFactory).ConfigureAwait(false);
         foreach (var child in parentChildLookup[resource])
         {

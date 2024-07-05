@@ -25,7 +25,7 @@ internal sealed class CDKLifecycleHook(DistributedApplicationExecutionContext ex
         var cdkResources = appModel.Resources.OfType<ICDKResource>();
         foreach (var cdkResource in cdkResources)
         {
-            // Apply construct modifier annotations
+            // Apply construct modifier annotations as some constructs needs te be altered after the fact, like adding outputs.
             var constructResources = parentChildLookup[cdkResource].OfType<IResourceWithConstruct>();
             foreach (var constructResource in constructResources)
             {
@@ -53,11 +53,12 @@ internal sealed class CDKLifecycleHook(DistributedApplicationExecutionContext ex
             var stackResources = parentChildLookup[cdkResource].OfType<IStackResource>().Concat([cdkResource]);
             foreach (var stackResource in stackResources)
             {
-                var stack = cloudAssembly.Stacks.FirstOrDefault(stack => stack.StackName == stackResource.StackName)
+                var stackArtifact = cloudAssembly.Stacks.FirstOrDefault(stack => stack.StackName == stackResource.StackName)
                             ?? throw new InvalidOperationException($"Stack '{stackResource.StackName}' not found in synthesized cloud assembly.");
 
+                // Annotate the resource with information for writing the manifest and provisioning.
                 stackResource.Annotations.Add(new CloudFormationTemplatePathAnnotation(Path.Combine(outputDirectory, stack.TemplateFile)));
-                stackResource.Annotations.Add(new StackArtifactResourceAnnotation(stack));
+                stackResource.Annotations.Add(new StackArtifactResourceAnnotation(stackArtifact));
             }
         }
 

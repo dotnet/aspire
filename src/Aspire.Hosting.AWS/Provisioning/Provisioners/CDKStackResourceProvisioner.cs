@@ -25,6 +25,8 @@ internal sealed class CDKStackResourceProvisioner<T>(
 
     private static Task ProvisionCDKStackAssetsAsync(T resource, ILogger logger)
     {
+        // Currently CDK Stack Assets like S3 and Container images are not supported. When a stack contains those assets
+        // we stop provisioning as it can introduce unwanted issues.
         var artifact = resource.Annotations.OfType<StackArtifactResourceAnnotation>().Single().StackArtifact;
         if (artifact.Dependencies
             .OfType<AssetManifestArtifact>()
