@@ -54,9 +54,6 @@ public partial class Traces
     [Inject]
     public required ILogger<Traces> Logger { get; init; }
 
-    //[Inject]
-    //public required IStringLocalizer<Dashboard.Resources.Traces> Loc { get; init; }
-
     private string GetNameTooltip(OtlpTrace trace)
     {
         var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesFullName)], trace.FullName);
