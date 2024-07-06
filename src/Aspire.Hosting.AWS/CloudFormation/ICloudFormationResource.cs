@@ -18,6 +18,11 @@ public interface ICloudFormationResource : IAWSResource
     IAmazonCloudFormation? CloudFormationClient { get; set; }
 
     /// <summary>
+    /// The name of the Amazon CloudFormation stack
+    /// </summary>
+    string StackName { get; }
+
+    /// <summary>
     /// The output parameters of the CloudFormation stack.
     /// </summary>
     List<Output>? Outputs { get; }

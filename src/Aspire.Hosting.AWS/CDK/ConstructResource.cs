@@ -8,20 +8,23 @@ using Constructs;
 
 namespace Aspire.Hosting.AWS.CDK;
 
+/// <inheritdoc cref="Aspire.Hosting.AWS.CDK.IConstructResource" />
 internal class ConstructResource(string name, IConstruct construct, IResourceWithConstruct parent) : Resource(name), IConstructResource
 {
+    /// <inheritdoc/>
     public IConstruct Construct { get; } = construct;
 
+    /// <inheritdoc/>
     public IResourceWithConstruct Parent { get; } = parent;
-
-    public IStackResource Stack => Parent as IStackResource ?? this.Parent.SelectParentResource<IStackResource>();
 
     internal void WriteToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "aws.cdk.construct.v0");
         context.Writer.TryWriteString("construct-name", Name);
 
-        context.Writer.TryWriteString("stack-unique-id", Construct.StackUniqueId());
+        var stack = Parent as IStackResource ?? this.Parent.SelectParentResource<IStackResource>();
+        context.Writer.TryWriteString("stack-name", stack.StackName);
+        context.Writer.TryWriteString("stack-unique-id", Construct.GetStackUniqueId());
 
         context.Writer.WritePropertyName("references");
         context.Writer.WriteStartArray();
@@ -32,12 +35,14 @@ internal class ConstructResource(string name, IConstruct construct, IResourceWit
         {
             context.Writer.WriteStartObject();
             context.Writer.WriteString("target-resource", constructResource.TargetResource);
+            context.Writer.WriteString("output-name", constructResource.OutputName);
             context.Writer.WriteEndObject();
         }
         context.Writer.WriteEndArray();
     }
 }
 
+/// <inheritdoc cref="Aspire.Hosting.AWS.CDK.ConstructResource" />
 internal sealed class ConstructResource<T>(string name, T construct, IResourceWithConstruct parent) : ConstructResource(name, construct, parent), IConstructResource<T>
     where T : IConstruct
 {

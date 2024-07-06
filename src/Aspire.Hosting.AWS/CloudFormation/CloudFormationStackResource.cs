@@ -3,6 +3,6 @@
 
 namespace Aspire.Hosting.AWS.CloudFormation;
 
-/// <inheritdoc/>
-internal sealed class CloudFormationStackResource(string name)
-    : CloudFormationResource(name), ICloudFormationStackResource;
+/// <inheritdoc cref="Aspire.Hosting.AWS.CloudFormation.ICloudFormationStackResource" />
+internal sealed class CloudFormationStackResource(string name, string stackName)
+    : CloudFormationResource(name, stackName), ICloudFormationStackResource;

@@ -21,9 +21,8 @@ internal static class AWSProvisionerExtensions
     /// </summary>
     public static IDistributedApplicationBuilder AddAWSProvisioning(this IDistributedApplicationBuilder builder)
     {
-        builder.Services.TryAddLifecycleHook<AWSProvisioner>();
-        builder.AddAWSProvisioner<CDKResource, CDKStackResourceProvisioner<CDKResource>>();
-        builder.AddAWSProvisioner<StackResource, CDKStackResourceProvisioner<StackResource>>();;
+        builder.Services.TryAddLifecycleHook<AWSLifecycleHook>();
+        builder.AddAWSProvisioner<StackResource, CDKStackResourceProvisioner>();;
         builder.AddAWSProvisioner<CloudFormationStackResource, CloudFormationStackResourceProvisioner>();
         builder.AddAWSProvisioner<CloudFormationTemplateResource, CloudFormationTemplateResourceProvisioner>();
         return builder;

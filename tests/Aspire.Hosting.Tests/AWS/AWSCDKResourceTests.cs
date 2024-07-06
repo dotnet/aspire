@@ -20,11 +20,11 @@ public class AWSCDKResourceTests
             .WithRegion(RegionEndpoint.EUWest1)
             .WithProfile("test-profile");
 
-        var resource = builder.AddAWSCDK("CDK")
+        var resource = builder.AddAWSCDKStack("Stack")
             .WithReference(awsSdkConfig)
             .Resource;
 
-        Assert.Equal("CDK", resource.Name);
+        Assert.Equal("Stack", resource.Name);
         Assert.NotNull(resource.AWSSDKConfig);
         Assert.Equal(RegionEndpoint.EUWest1, resource.AWSSDKConfig.Region);
         Assert.Equal("test-profile", resource.AWSSDKConfig.Profile);
@@ -39,11 +39,14 @@ public class AWSCDKResourceTests
             .WithRegion(RegionEndpoint.EUWest1)
             .WithProfile("test-profile");
 
-        var cdk = builder.AddAWSCDK("CDK")
+        var cdk = builder
+            .AddAWSCDKStack("Stack")
             .WithReference(awsSdkConfig);
-        var resource = cdk.AddStack("Stack").Resource;
+        var resource = builder
+            .AddAWSCDKStack("Other")
+            .WithReference(awsSdkConfig).Resource;
 
-        Assert.Equal("Stack", resource.Name);
+        Assert.Equal("Other", resource.Name);
         Assert.NotNull(resource.AWSSDKConfig);
         Assert.Equal(RegionEndpoint.EUWest1, resource.AWSSDKConfig.Region);
         Assert.Equal("test-profile", resource.AWSSDKConfig.Profile);
@@ -61,19 +64,19 @@ public class AWSCDKResourceTests
             .WithRegion(RegionEndpoint.EUWest2)
             .WithProfile("other-test-profile");
 
-        var cdk = builder.AddAWSCDK("CDK")
+        var cdk = builder.AddAWSCDKStack("Stack")
             .WithReference(awsSdkConfig);
         var cdkResource = cdk.Resource;
-        var stackResource = cdk.AddStack("Stack").WithReference(awsSdkStackConfig).Resource;
+        var stackResource = builder.AddAWSCDKStack("Other").WithReference(awsSdkStackConfig).Resource;
 
         // Assert Stack resource
-        Assert.Equal("Stack", stackResource.Name);
+        Assert.Equal("Other", stackResource.Name);
         Assert.NotNull(stackResource.AWSSDKConfig);
         Assert.Equal(RegionEndpoint.EUWest2, stackResource.AWSSDKConfig.Region);
         Assert.Equal("other-test-profile", stackResource.AWSSDKConfig.Profile);
 
         // Assert CDK resource
-        Assert.Equal("CDK", cdkResource.Name);
+        Assert.Equal("Stack", cdkResource.Name);
         Assert.NotNull(cdkResource.AWSSDKConfig);
         Assert.Equal(RegionEndpoint.EUWest1, cdkResource.AWSSDKConfig.Region);
         Assert.Equal("test-profile", cdkResource.AWSSDKConfig.Profile);
@@ -84,8 +87,8 @@ public class AWSCDKResourceTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var cdk = builder.AddAWSCDK("CDK");
-        var resource = cdk.AddConstruct("Construct", scope => new Construct(scope, "construct")).Resource;
+        var cdk = builder.AddAWSCDKStack("Stack");
+        var resource = cdk.AddConstruct("Construct", scope => new Construct(scope, "Construct")).Resource;
 
         Assert.Equal("Construct", resource.Name);
         Assert.Equal(cdk.Resource, resource.Parent);
@@ -96,26 +99,27 @@ public class AWSCDKResourceTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var cdk = builder.AddAWSCDK("cdk");
-        var resourceBuilder = cdk.AddConstruct("construct", scope => new Bucket(scope, "bucket"));
+        var cdk = builder.AddAWSCDKStack("Stack");
+        var resourceBuilder = cdk.AddConstruct("Construct", scope => new Bucket(scope, "Bucket"));
 
-        builder.AddProject<Projects.ServiceA>("serviceA")
+        builder.AddProject<Projects.ServiceA>("ServiceA")
             .WithReference(resourceBuilder, bucket => bucket.BucketName, "BucketName");
 
         var resource = cdk.Resource;
         Assert.NotNull(resource);
 
-        var expectedManifest = """
-       {
-         "type": "aws.cloudformation.stack.v0",
-         "stack-name": "Aspire-cdk",
-         "references": [
-           {
-             "target-resource": "serviceA"
-           }
-         ]
-       }
-       """;
+        const string expectedManifest = """
+                                        {
+                                          "type": "aws.cloudformation.template.v0",
+                                          "stack-name": "Aspire-Stack",
+                                          "template-path": "cdk.out/Aspire-Stack.template.json",
+                                          "references": [
+                                            {
+                                              "target-resource": "ServiceA"
+                                            }
+                                          ]
+                                        }
+                                        """;
 
         var manifest = await ManifestUtils.GetManifest(resource);
         Assert.Equal(expectedManifest, manifest.ToString());
@@ -126,31 +130,32 @@ public class AWSCDKResourceTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var cdk = builder.AddAWSCDK("CDK");
-        var resourceBuilder = cdk.AddConstruct("Construct", scope => new Bucket(scope, "bucket"));
+        var cdk = builder.AddAWSCDKStack("Stack");
+        var resourceBuilder = cdk.AddConstruct("Construct", scope => new Bucket(scope, "Bucket"));
 
-        builder.AddProject<Projects.ServiceA>("serviceA")
+        builder.AddProject<Projects.ServiceA>("ServiceA")
             .WithReference(resourceBuilder, bucket => bucket.BucketName, "BucketName");
 
         var resource = resourceBuilder.Resource;
         Assert.NotNull(resource);
 
-        var expectedManifest = """
-       {
-         "type": "aws.cdk.construct.v0",
-         "construct-name": "Construct",
-         "stack-unique-id": "bucket071C9492",
-         "references": [
-           {
-             "parent-resource": "CDK"
-           },
-           {
-             "target-resource": "serviceA",
-             "output-name": "BucketName"
-           }
-         ]
-       }
-       """;
+        const string expectedManifest = """
+                                        {
+                                          "type": "aws.cdk.construct.v0",
+                                          "construct-name": "Construct",
+                                          "stack-name": "Aspire-Stack",
+                                          "stack-unique-id": "Bucket14E6E604",
+                                          "references": [
+                                            {
+                                              "parent-resource": "Stack"
+                                            },
+                                            {
+                                              "target-resource": "ServiceA",
+                                              "output-name": "BucketName"
+                                            }
+                                          ]
+                                        }
+                                        """;
 
         var manifest = await ManifestUtils.GetManifest(resource);
         Assert.Equal(expectedManifest, manifest.ToString());

@@ -1,34 +1,30 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.ApplicationModel;
+using Amazon.CDK;
 using Aspire.Hosting.AWS.CloudFormation;
 using Constructs;
 using Stack = Amazon.CDK.Stack;
 
 namespace Aspire.Hosting.AWS.CDK;
 
-internal class StackResource(string name, Stack stack, IResourceWithConstruct parentConstruct) : CloudFormationResource(name), IStackResource, IResourceWithParent<IResourceWithConstruct>
+/// <inheritdoc cref="Aspire.Hosting.AWS.CDK.IStackResource" />
+internal class StackResource(string name, Stack stack) : CloudFormationTemplateResource(name, stack.StackName, stack.GetTemplatePath()), IStackResource
 {
+    /// <inheritdoc/>
     public Stack Stack { get; } = stack;
 
-    public string StackName => Stack.StackName;
-
+    /// <inheritdoc/>
     public IConstruct Construct => Stack;
 
-    public IResourceWithConstruct Parent { get; } = parentConstruct;
-
-    private IAWSSDKConfig? _awsSdkConfig;
-    IAWSSDKConfig? IAWSResource.AWSSDKConfig
-    {
-        get => _awsSdkConfig ?? this.Parent.SelectParentResource<ICloudFormationResource>().AWSSDKConfig;
-        set => _awsSdkConfig = value;
-    }
-
-    protected override string GetStackName() => StackName;
+    /// <summary>
+    /// The AWS CDK App the stack belongs to. This is needed for building the AWS CDK app tree.
+    /// </summary>
+    public App App => (App)Stack.Node.Root;
 }
 
-internal sealed class StackResource<T>(string name, T stack, IResourceWithConstruct parentConstruct) : StackResource(name, stack, parentConstruct), IStackResource<T>
+/// <inheritdoc cref="Aspire.Hosting.AWS.CDK.StackResource" />
+internal sealed class StackResource<T>(string name, T stack) : StackResource(name, stack), IStackResource<T>
     where T : Stack
 {
     public new T Stack { get; } = stack;

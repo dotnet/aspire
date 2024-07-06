@@ -7,24 +7,24 @@ using Aspire.Hosting.Utils;
 namespace Aspire.Hosting.AWS.CloudFormation;
 
 /// <inheritdoc cref="Aspire.Hosting.AWS.CloudFormation.ICloudFormationTemplateResource" />
-internal sealed class CloudFormationTemplateResource(string name, string templatePath) : CloudFormationResource(name), ICloudFormationTemplateResource, ICloudFormationTemplateProvider
+internal class CloudFormationTemplateResource(string name, string stackName, string templatePath) : CloudFormationResource(name, stackName), ICloudFormationTemplateResource
 {
-    public IDictionary<string, string> CloudFormationParameters { get; } = new Dictionary<string, string>();
-
     /// <inheritdoc/>
     public string TemplatePath { get; } = templatePath;
 
-    /// <inheritdoc cref="ICloudFormationTemplateResource.RoleArn" />
+    /// <inheritdoc/>
     public string? RoleArn { get; set; }
 
-    /// <inheritdoc cref="ICloudFormationTemplateResource.StackPollingInterval" />
+    /// <inheritdoc/>
     public int StackPollingInterval { get; set; } = 3;
 
-    /// <inheritdoc cref="ICloudFormationTemplateResource.DisableDiffCheck" />
+    /// <inheritdoc/>
     public bool DisableDiffCheck { get; set; }
 
-    /// <inheritdoc cref="ICloudFormationTemplateResource.DisabledCapabilities" />
+    /// <inheritdoc/>
     public IList<string> DisabledCapabilities { get; } = [];
+
+    public IDictionary<string, string> CloudFormationParameters { get; } = new Dictionary<string, string>();
 
     /// <inheritdoc/>
     public ICloudFormationTemplateResource AddParameter(string parameterName, string parameterValue)
@@ -36,7 +36,7 @@ internal sealed class CloudFormationTemplateResource(string name, string templat
     internal override void WriteToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "aws.cloudformation.template.v0");
-        context.Writer.TryWriteString("stack-name", Name);
+        context.Writer.TryWriteString("stack-name", StackName);
         context.Writer.TryWriteString("template-path", context.GetManifestRelativePath(TemplatePath));
 
         context.Writer.WritePropertyName("references");
@@ -49,9 +49,4 @@ internal sealed class CloudFormationTemplateResource(string name, string templat
         }
         context.Writer.WriteEndArray();
     }
-
-    string ICloudFormationTemplateProvider.StackName => Name;
-
-    Task<string> ICloudFormationTemplateProvider.GetCloudFormationTemplate(CancellationToken cancellationToken)
-        => File.ReadAllTextAsync(TemplatePath, cancellationToken);
 }

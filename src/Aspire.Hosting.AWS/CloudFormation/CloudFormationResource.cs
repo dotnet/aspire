@@ -9,9 +9,11 @@ using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.AWS.CloudFormation;
 
-/// <inheritdoc/>
-internal abstract class CloudFormationResource(string name) : Resource(name), ICloudFormationResource
+/// <inheritdoc cref="Aspire.Hosting.AWS.CloudFormation.ICloudFormationResource" />
+internal abstract class CloudFormationResource(string name, string stackName) : Resource(name), ICloudFormationResource
 {
+    public string StackName { get; } = stackName;
+
     /// <inheritdoc/>
     public IAWSSDKConfig? AWSSDKConfig { get; set; }
 
@@ -24,17 +26,10 @@ internal abstract class CloudFormationResource(string name) : Resource(name), IC
     /// <inheritdoc/>
     public TaskCompletionSource? ProvisioningTaskCompletionSource { get; set; }
 
-    protected virtual string GetStackName() => Name;
-
     internal virtual void WriteToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "aws.cloudformation.stack.v0");
-        context.Writer.TryWriteString("stack-name", GetStackName());
-        var templatePathAnnotation = Annotations.OfType<CloudFormationTemplatePathAnnotation>().FirstOrDefault();
-        if (templatePathAnnotation != null)
-        {
-            context.Writer.TryWriteString("template-path", context.GetManifestRelativePath(templatePathAnnotation.TemplatePath));
-        }
+        context.Writer.TryWriteString("stack-name", StackName);
 
         context.Writer.WritePropertyName("references");
         context.Writer.WriteStartArray();

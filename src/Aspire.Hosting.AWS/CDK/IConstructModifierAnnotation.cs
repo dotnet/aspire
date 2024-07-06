@@ -11,6 +11,9 @@ namespace Aspire.Hosting.AWS.CDK;
 /// that it requires. This interface is implemented on resource annotations like <see cref="ConstructOutputAnnotation{T}"/>
 /// to add additional outputs referencing construct.
 /// </summary>
+/// <remarks>
+/// This interface is internal and is intended for use by the AWS CDK framework only.
+/// </remarks>
 internal interface IConstructModifierAnnotation : IResourceAnnotation
 {
     /// <summary>

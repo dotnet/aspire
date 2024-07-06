@@ -2,40 +2,97 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.AWS.CDK;
+using Aspire.Hosting.AWS.Provisioning;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.AWS.Provisioning;
+namespace Aspire.Hosting.AWS;
 
-internal sealed class AWSProvisioner(
+internal sealed class AWSLifecycleHook(
     DistributedApplicationExecutionContext executionContext,
     IServiceProvider serviceProvider,
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService) : IDistributedApplicationLifecycleHook
 {
-    public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    {
+        var awsResources = appModel.Resources.OfType<IAWSResource>().ToList();
+        if (awsResources.Count == 0) // Skip when no AWS resources are found
+        {
+            return Task.CompletedTask;
+        }
+
+        // Create a lookup for all resources implementing IResourceWithParent and have IAWSResource as parent in the tree.
+        // Typical children that are listed here are IStackResource with IConstructResource as children.
+        // This is important for state reporting so that a stack and it child resources are handled.
+        var parentChildLookup = appModel.Resources.OfType<IResourceWithParent>()
+            .Select(x => (Child: x, Root: x.Parent.TrySelectParentResource<IAWSResource>()))
+            .Where(x => x.Root is not null)
+            .ToLookup(x => x.Root, x => x.Child);
+
+        // Synthesize AWS CDK resources before provisioning or writing the manifest
+        SynthesizeAWSCDKResources(awsResources, parentChildLookup);
+
+        // Provisioning resources is fully async, so we can just fire and forget
+        _ = Task.Run(() => ProvisionAWSResourcesAsync(awsResources, parentChildLookup, cancellationToken), cancellationToken);
+        return Task.CompletedTask;
+    }
+
+    private static void SynthesizeAWSCDKResources(IList<IAWSResource> awsResources, ILookup<IAWSResource?, IResourceWithParent> parentChildLookup)
+    {
+        // Only look at StackResources
+        var stackResources = awsResources.OfType<StackResource>().ToList();
+        foreach (var stackResource in stackResources)
+        {
+            // Apply construct modifier annotations as some constructs needs te be altered after the fact, like adding outputs.
+            var constructResources = parentChildLookup[stackResource].OfType<IResourceWithConstruct>();
+            foreach (var constructResource in constructResources.Concat([stackResource]))
+            {
+                // Find Construct Modifier Annotations
+                if (!constructResource.TryGetAnnotationsOfType<IConstructModifierAnnotation>(out var modifiers))
+                {
+                    continue;
+                }
+
+                // Modify stack
+                foreach (var modifier in modifiers)
+                {
+                    modifier.ChangeConstruct(constructResource.Construct);
+                }
+            }
+        }
+
+        // Create a lookup for stack resources and their AWS CDK app
+        var appLookup = stackResources
+            .Select(r => (Child: r, r.App))
+            .ToLookup(r => r.App, r => r.Child);
+
+        foreach (var app in appLookup)
+        {
+            // Synthesize AWS CDK app
+            var cloudAssembly = app.Key.Synth();
+            // Attach the stack artifact to the stack resources for provisioning
+            foreach (var stackResource in app)
+            {
+                var stackArtifact = cloudAssembly.Stacks.FirstOrDefault(stack => stack.StackName == stackResource.StackName)
+                                    ?? throw new InvalidOperationException($"Stack '{stackResource.StackName}' not found in synthesized cloud assembly.");
+                // Annotate the resource with information for writing the manifest and provisioning.
+                stackResource.Annotations.Add(new StackArtifactResourceAnnotation(stackArtifact));
+            }
+        }
+    }
+
+    #region Provisioning
+
+    private async Task ProvisionAWSResourcesAsync(IList<IAWSResource> awsResources, ILookup<IAWSResource?, IResourceWithParent> parentChildLookup, CancellationToken cancellationToken)
     {
         // Skip when publishing, this is intended for provisioning only.
         if (executionContext.IsPublishMode)
         {
             return;
         }
-
-        // Lookup for IAWSResource, if there aren't any, we can skip
-        var awsResources = appModel.Resources.OfType<IAWSResource>().ToList();
-        if (awsResources.Count == 0)
-        {
-            return;
-        }
-
-        // Create a lookup for all resources implementing IResourceWithParent and have IAWSResource as parent in the tree.
-        // Typical childeren that are listed here are ICDKResource, IStackResource with IConstructResource as children.
-        // This is important for state reporting so that a stack and it child resources are handled.
-        var parentChildLookup = appModel.Resources.OfType<IResourceWithParent>()
-            .Select(x => (Child: x, Root: x.Parent.TrySelectParentResource<IAWSResource>()))
-            .Where(x => x.Root is not null)
-            .ToLookup(x => x.Root, x => x.Child);
 
         // Mark all resources as starting
         foreach (var r in awsResources)
@@ -48,15 +105,9 @@ internal sealed class AWSProvisioner(
             }).ConfigureAwait(false);
         }
 
-        // This is fully async, so we can just fire and forget
-        _ = Task.Run(() => ProvisionAWSResourcesAsync(awsResources, parentChildLookup, cancellationToken), cancellationToken);
-    }
-
-    private async Task ProvisionAWSResourcesAsync(IList<IAWSResource> awsResources, ILookup<IAWSResource?, IResourceWithParent> parentChildLookup, CancellationToken cancellationToken)
-    {
         foreach (var resource in awsResources)
         {
-            // Resolve a provisioner for the IAWSResource
+            // Resolve a provisioner for the AWS Resource
             var provisioner = SelectProvisioner(resource);
 
             var resourceLogger = loggerService.GetLogger(resource);
@@ -101,19 +152,15 @@ internal sealed class AWSProvisioner(
     private IAWSResourceProvisioner? SelectProvisioner(IAWSResource resource)
     {
         var type = resource.GetType();
-
         while (type is not null) // Loop through all the base types to find a resource that as a provisioner
         {
             var provisioner = serviceProvider.GetKeyedService<IAWSResourceProvisioner>(type);
-
             if (provisioner is not null)
             {
                 return provisioner;
             }
-
             type = type.BaseType;
         }
-
         return null;
     }
 
@@ -126,4 +173,6 @@ internal sealed class AWSProvisioner(
             await notificationService.PublishUpdateAsync(child, stateFactory).ConfigureAwait(false);
         }
     }
+
+    #endregion
 }

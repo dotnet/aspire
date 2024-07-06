@@ -5,7 +5,6 @@ using System.Reflection;
 using System.Text;
 using Amazon.Runtime;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.AWS.Provisioning;
 
 namespace Aspire.Hosting.AWS;
 internal static class SdkUtilities
@@ -18,7 +17,7 @@ internal static class SdkUtilities
         if (s_userAgentHeader == null)
         {
             var builder = new StringBuilder("lib/aspire.hosting.aws");
-            var attribute = typeof(AWSProvisioner).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+            var attribute = typeof(AWSLifecycleHook).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
             if (attribute != null)
             {
                 builder.Append('#');

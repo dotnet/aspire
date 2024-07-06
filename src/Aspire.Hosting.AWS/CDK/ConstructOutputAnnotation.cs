@@ -24,7 +24,7 @@ internal sealed class ConstructOutputAnnotation<T>(string name, ConstructOutputD
         // Add a CloudFormation output on the stack referencing the construct and the resolved value.
         _ = new CfnOutput(stack, OutputName, new CfnOutputProps
         {
-            Key = $"{construct.StackUniqueId()}{OutputName}",
+            Key = $"{construct.GetStackUniqueId()}{OutputName}",
             Value = output((T)construct)
         });
     }

@@ -9,8 +9,6 @@ using Amazon.CloudFormation.Model;
 using Amazon.Runtime;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS.CloudFormation;
-using Aspire.Hosting.AWS.Provisioning.Provisioners;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.AWS.Provisioning;
 
@@ -20,47 +18,6 @@ internal abstract partial class CloudFormationResourceProvisioner<T>(ResourceLog
     protected ResourceLoggerService LoggerService => loggerService;
 
     protected ResourceNotificationService NotificationService => notificationService;
-
-    protected async Task ProvisionCloudFormationTemplateAsync(T resource, CancellationToken cancellationToken)
-    {
-        var logger = loggerService.GetLogger(resource);
-
-        using var cfClient = GetCloudFormationClient(resource);
-
-        var context = await CreateCloudFormationExecutionContextAsync(resource, cancellationToken).ConfigureAwait(false);
-        var executor = new CloudFormationStackExecutor(cfClient, context, logger);
-        var stack = await executor.ExecuteTemplateAsync(cancellationToken).ConfigureAwait(false);
-
-        if (stack != null)
-        {
-            logger.LogInformation("CloudFormation stack has {Count} output parameters", stack.Outputs.Count);
-            if (logger.IsEnabled(LogLevel.Information))
-            {
-                foreach (var output in stack.Outputs)
-                {
-                    logger.LogInformation("Output Name: {Name}, Value {Value}", output.OutputKey, output.OutputValue);
-                }
-            }
-
-            logger.LogInformation("CloudFormation provisioning complete");
-
-            if (resource is CloudFormationResource cloudformationResource)
-            {
-                cloudformationResource.Outputs = stack.Outputs;
-            }
-            var templatePath = (resource as ICloudFormationTemplateResource)?.TemplatePath ?? resource.Annotations.OfType<CloudFormationTemplatePathAnnotation>().FirstOrDefault()?.TemplatePath;
-            await PublishCloudFormationUpdatePropertiesAsync(resource, ConvertOutputToProperties(stack, templatePath), MapCloudFormationStackUrl(cfClient, stack.StackId)).ConfigureAwait(false);
-        }
-        else
-        {
-            logger.LogError("CloudFormation provisioning failed");
-
-            throw new AWSProvisioningException("Failed to apply CloudFormation template");
-        }
-    }
-
-    protected virtual Task<CloudFormationStackExecutionContext> CreateCloudFormationExecutionContextAsync(T resource, CancellationToken cancellationToken)
-        => throw new NotImplementedException();
 
     protected async Task PublishCloudFormationUpdatePropertiesAsync(T resource, ImmutableArray<ResourcePropertySnapshot>? properties = null, ImmutableArray<UrlSnapshot>? urls = default)
     {
