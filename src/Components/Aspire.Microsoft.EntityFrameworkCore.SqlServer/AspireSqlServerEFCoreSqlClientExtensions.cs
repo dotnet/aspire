@@ -15,7 +15,7 @@ using OpenTelemetry.Trace;
 namespace Microsoft.Extensions.Hosting;
 
 /// <summary>
-/// Extension methods for configuring EntityFrameworkCore DbContext to Azure SQL, MS SQL server 
+/// Extension methods for configuring EntityFrameworkCore DbContext to Azure SQL, MS SQL server
 /// </summary>
 public static class AspireSqlServerEFCoreSqlClientExtensions
 {
@@ -40,6 +40,27 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
         Action<MicrosoftEntityFrameworkCoreSqlServerSettings>? configureSettings = null,
         Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
     {
+        builder.AddSqlServerDbContext<TContext>(connectionName, configureSettings, configureDbContextOptions != null ? (_, optionsBuilder) => configureDbContextOptions(optionsBuilder) : null);
+    }
+
+    /// <summary>
+    /// Registers the given <see cref="DbContext" /> as a service in the services provided by the <paramref name="builder"/>.
+    /// Enables db context pooling, retries, health check, logging and telemetry for the <see cref="DbContext" />.
+    /// </summary>
+    /// <typeparam name="TContext">The <see cref="DbContext" /> that needs to be registered.</typeparam>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureDbContextOptions">An optional delegate to configure the <see cref="DbContextOptions"/> for the context.</param>
+    /// <remarks>Reads the configuration from "Aspire:Microsoft:EntityFrameworkCore:SqlServer:{typeof(TContext).Name}" config section, or "Aspire:Microsoft:EntityFrameworkCore:SqlServer" if former does not exist.</remarks>
+    /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="MicrosoftEntityFrameworkCoreSqlServerSettings.ConnectionString"/> is not provided.</exception>
+    public static void AddSqlServerDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<MicrosoftEntityFrameworkCoreSqlServerSettings>? configureSettings,
+        Action<IServiceProvider, DbContextOptionsBuilder>? configureDbContextOptions) where TContext : DbContext
+    {
         ArgumentNullException.ThrowIfNull(builder);
 
         builder.EnsureDbContextNotRegistered<TContext>();
@@ -60,7 +81,7 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
 
         ConfigureInstrumentation<TContext>(builder, settings);
 
-        void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
+        void ConfigureDbContext(IServiceProvider serviceProvider, DbContextOptionsBuilder dbContextOptionsBuilder)
         {
             // We don't register logger factory, because there is no need to:
             // https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
@@ -82,7 +103,7 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
                 }
             });
 
-            configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
+            configureDbContextOptions?.Invoke(serviceProvider, dbContextOptionsBuilder);
         }
     }
 
