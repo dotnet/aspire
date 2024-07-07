@@ -43,6 +43,9 @@ public partial class Traces
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; set; }
 
+    [Inject]
+    public required ILogger<Traces> Logger { get; init; }
+
     private string GetNameTooltip(OtlpTrace trace)
     {
         var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesFullName)], trace.FullName);
@@ -97,8 +100,8 @@ public partial class Traces
 
     protected override void OnParametersSet()
     {
-        _selectedApplication = _applicationViewModels.GetApplication(ApplicationName, _allApplication);
-        TracesViewModel.ApplicationServiceId = _selectedApplication.Id?.InstanceId;
+        _selectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
+        TracesViewModel.ApplicationKey = _selectedApplication.Id?.GetApplicationKey();
         UpdateSubscription();
     }
 
@@ -120,11 +123,13 @@ public partial class Traces
 
     private void UpdateSubscription()
     {
+        var selectedApplicationKey = _selectedApplication.Id?.GetApplicationKey();
+
         // Subscribe to updates.
-        if (_tracesSubscription is null || _tracesSubscription.ApplicationId != _selectedApplication.Id?.InstanceId)
+        if (_tracesSubscription is null || _tracesSubscription.ApplicationKey != selectedApplicationKey)
         {
             _tracesSubscription?.Dispose();
-            _tracesSubscription = TelemetryRepository.OnNewTraces(_selectedApplication.Id?.InstanceId, SubscriptionType.Read, async () =>
+            _tracesSubscription = TelemetryRepository.OnNewTraces(selectedApplicationKey, SubscriptionType.Read, async () =>
             {
                 TracesViewModel.ClearData();
                 await InvokeAsync(StateHasChanged);

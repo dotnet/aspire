@@ -6,14 +6,22 @@ namespace Aspire.Hosting.Tests.Utils;
 public static class EnvironmentVariableEvaluator
 {
     public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariablesAsync(IResource resource,
-        DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
+        DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run, IServiceProvider? serviceProvider = null)
     {
         var environmentVariables = new Dictionary<string, string>();
 
         if (resource.TryGetEnvironmentVariables(out var callbacks))
         {
             var config = new Dictionary<string, object>();
-            var executionContext = new DistributedApplicationExecutionContext(applicationOperation);
+            var executionContext = serviceProvider switch
+            {
+                { } => new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation)
+                {
+                    ServiceProvider = serviceProvider
+                }),
+                _ => new DistributedApplicationExecutionContext(applicationOperation)
+            };
+
             var context = new EnvironmentCallbackContext(executionContext, config);
 
             foreach (var callback in callbacks)

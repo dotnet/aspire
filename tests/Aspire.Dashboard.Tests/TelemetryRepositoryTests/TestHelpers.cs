@@ -22,10 +22,16 @@ internal static class TestHelpers
 {
     public static void AssertId(string expected, string actual)
     {
-        var bytes = Convert.FromHexString(actual);
-        var resolvedActual = Encoding.UTF8.GetString(bytes);
+        var resolvedActual = GetStringId(actual);
 
         Assert.Equal(expected, resolvedActual);
+    }
+
+    public static string GetStringId(string hexString)
+    {
+        var bytes = Convert.FromHexString(hexString);
+        var resolved = Encoding.UTF8.GetString(bytes);
+        return resolved;
     }
 
     public static string GetHexId(string text)
@@ -194,6 +200,7 @@ internal static class TestHelpers
         int? maxAttributeCount = null,
         int? maxAttributeLength = null,
         int? maxSpanEventCount = null,
+        int? maxTraceCount = null,
         TimeSpan? subscriptionMinExecuteInterval = null)
     {
         var options = new TelemetryLimitOptions();
@@ -212,6 +219,10 @@ internal static class TestHelpers
         if (maxSpanEventCount != null)
         {
             options.MaxSpanEventCount = maxSpanEventCount.Value;
+        }
+        if (maxTraceCount != null)
+        {
+            options.MaxTraceCount = maxTraceCount.Value;
         }
 
         var repository = new TelemetryRepository(NullLoggerFactory.Instance, Options.Create(new DashboardOptions { TelemetryLimits = options }));

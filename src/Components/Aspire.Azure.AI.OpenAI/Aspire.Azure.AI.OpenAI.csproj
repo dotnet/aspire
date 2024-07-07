@@ -13,6 +13,10 @@
     <PackageValidationBaselineVersion>8.0.1-preview.8.24267.1</PackageValidationBaselineVersion>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <MinCodeCoverage>70</MinCodeCoverage>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Include="..\Common\AzureComponent.cs" Link="AzureComponent.cs" />
     <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />

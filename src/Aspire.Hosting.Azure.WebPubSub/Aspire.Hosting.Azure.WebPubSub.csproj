@@ -10,6 +10,10 @@
     <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <MinCodeCoverage>96</MinCodeCoverage>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Remove="PublicAPI.Shipped.txt" />
     <None Remove="PublicAPI.Unshipped.txt" />

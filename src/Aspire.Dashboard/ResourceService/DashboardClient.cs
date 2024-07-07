@@ -65,7 +65,7 @@ internal sealed class DashboardClient : IDashboardClient
 
     private Task? _connection;
 
-    public DashboardClient(ILoggerFactory loggerFactory, IConfiguration configuration, IOptions<DashboardOptions> dashboardOptions)
+    public DashboardClient(ILoggerFactory loggerFactory, IConfiguration configuration, IOptions<DashboardOptions> dashboardOptions, Action<SocketsHttpHandler>? configureHttpHandler = null)
     {
         _loggerFactory = loggerFactory;
         _dashboardOptions = dashboardOptions.Value;
@@ -144,6 +144,8 @@ internal sealed class DashboardClient : IDashboardClient
                     RetryableStatusCodes = { StatusCode.Unavailable }
                 }
             };
+
+            configureHttpHandler?.Invoke(httpHandler);
 
             // https://learn.microsoft.com/aspnet/core/grpc/diagnostics#grpc-client-logging
 
@@ -227,9 +229,17 @@ internal sealed class DashboardClient : IDashboardClient
 
         async Task ConnectAndWatchResourcesAsync(CancellationToken cancellationToken)
         {
-            await ConnectAsync().ConfigureAwait(false);
+            try
+            {
+                await ConnectAsync().ConfigureAwait(false);
 
-            await WatchResourcesWithRecoveryAsync().ConfigureAwait(false);
+                await WatchResourcesWithRecoveryAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading data from the resource service.");
+                throw;
+            }
 
             async Task ConnectAsync()
             {
