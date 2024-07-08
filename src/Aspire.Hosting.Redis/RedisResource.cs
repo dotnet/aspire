@@ -15,7 +15,7 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     /// </summary>
     /// <param name="name">The name of the resource.</param>
     /// <param name="password">A parameter that contains the Redis server password.</param>
-    public RedisResource(string name, ParameterResource? password) : this(name)
+    public RedisResource(string name, ParameterResource password) : this(name)
     {
         PasswordParameter = password;
     }

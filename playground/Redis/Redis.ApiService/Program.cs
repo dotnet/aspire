@@ -12,17 +12,18 @@ var app = builder.Build();
 
 app.MapGet("/ping", async (IConnectionMultiplexer connection) =>
 {
-   return await connection.GetDatabase().PingAsync();
+    return await connection.GetDatabase().PingAsync();
 });
 
 app.MapGet("/set", async (IConnectionMultiplexer connection) =>
 {
-    return await connection.GetDatabase().StringSetAsync("Key",$"{DateTime.Now}");
+    return await connection.GetDatabase().StringSetAsync("Key", $"{DateTime.Now}");
 });
 
 app.MapGet("/get", async (IConnectionMultiplexer connection) =>
 {
-    return await connection.GetDatabase().StringGetAsync("Key");
+    var redisValue = await connection.GetDatabase().StringGetAsync("Key");
+    return redisValue.HasValue ? redisValue.ToString() : "(null)";
 });
 
 app.Run();
