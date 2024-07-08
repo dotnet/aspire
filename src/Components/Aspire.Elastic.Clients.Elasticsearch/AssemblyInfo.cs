@@ -5,5 +5,3 @@ using Aspire;
 using Aspire.Elastic.Clients.Elasticsearch;
 
 [assembly: ConfigurationSchema("Aspire:Elastic:Clients:Elasticsearch", typeof(ElasticClientsElasticsearchSettings))]
-
-[assembly: LoggingCategories("Elastic.Clients.Elasticsearch")]

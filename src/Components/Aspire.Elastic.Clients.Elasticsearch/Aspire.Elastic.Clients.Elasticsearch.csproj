@@ -5,6 +5,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentCommonPackageTags) Elasticsearch</PackageTags>
     <Description>A Elasticsearch client that integrates with Aspire, including health checks, logging, and telemetry.</Description>
+    <!-- Disable package validation as this package hasn't shipped yet. -->
     <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 

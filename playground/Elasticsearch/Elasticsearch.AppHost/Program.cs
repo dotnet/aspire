@@ -1,15 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Projects;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 var elasticsearch = builder.AddElasticsearch("elasticsearch")
-    .WithDataVolume("data");
+    .WithDataVolume();
 
-builder.AddProject<Elasticsearch_ApiService>("elasticsearch-apiservice")
-.WithReference(elasticsearch);
+builder.AddProject<Projects.Elasticsearch_ApiService>("elasticsearch-apiservice")
+    .WithReference(elasticsearch);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

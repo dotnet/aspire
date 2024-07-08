@@ -1,13 +1,4 @@
 {
-  "definitions": {
-    "logLevel": {
-      "properties": {
-        "Elastic.Clients.Elasticsearch": {
-          "$ref": "#/definitions/logLevelThreshold"
-        }
-      }
-    }
-  },
   "type": "object",
   "properties": {
     "Aspire": {
@@ -27,11 +18,11 @@
                       "properties": {
                         "ApiKey": {
                           "type": "string",
-                          "description": "Gets or sets a string value that indicates the ApiKey to connecting elastic cloud."
+                          "description": "Gets or sets a string value that indicates the ApiKey to use when connecting to elastic cloud."
                         },
                         "CloudId": {
                           "type": "string",
-                          "description": "Gets or sets a string value that indicates the CloudId to connecting elastic cloud."
+                          "description": "Gets or sets a string value that indicates the CloudId to use when connecting to elastic cloud."
                         }
                       },
                       "description": "Gets or sets cloud connection setting that indicates the connection to elastic cloud."

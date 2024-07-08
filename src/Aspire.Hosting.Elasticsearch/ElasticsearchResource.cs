@@ -8,11 +8,10 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public class ElasticsearchResource : ContainerResource, IResourceWithConnectionString
 {
-
     /// <summary>
     /// Gets the Elasticsearch container superuser name.
     /// </summary>
-    public const string UserName = "elastic";
+    private const string UserName = "elastic";
 
     //this endpoint is used for all API calls over HTTP.
     //This includes search and aggregations, monitoring and anything else that uses a HTTP request.
@@ -35,12 +34,12 @@ public class ElasticsearchResource : ContainerResource, IResourceWithConnectionS
     private EndpointReference? _internalEndpoint;
 
     /// <summary>
-    /// Gets the primary endpoint for the Elasticsearch.This endpoint is used for all API calls over HTTP.
+    /// Gets the primary endpoint for the Elasticsearch. This endpoint is used for all API calls over HTTP.
     /// </summary>
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
     /// <summary>
-    /// Gets the internal endpoint for the Elasticsearch.This endpoit used for communications between nodes in a cluster
+    /// Gets the internal endpoint for the Elasticsearch. This endpoint used for communications between nodes in a cluster
     /// </summary>
     public EndpointReference InternalEndpoint => _internalEndpoint ??= new(this, InternalEndpointName);
 

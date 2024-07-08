@@ -73,7 +73,6 @@
     <PackageVersion Include="AspNetCore.HealthChecks.Rabbitmq" Version="8.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="8.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="8.0.2" />
-    <PackageVersion Include="AspNetCore.HealthChecks.Elasticsearch" Version="8.0.1" />
     <!-- efcore dependencies -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Cosmos" Version="$(MicrosoftEntityFrameworkCoreCosmosPackageVersion)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(MicrosoftEntityFrameworkCoreSqlServerPackageVersion)" />
@@ -95,6 +94,7 @@
     <PackageVersion Include="Confluent.Kafka" Version="2.4.0" />
     <PackageVersion Include="Dapper" Version="2.1.37" />
     <PackageVersion Include="DnsClient" Version="1.7.0" />
+    <PackageVersion Include="Elastic.Clients.Elasticsearch" Version="8.14.4" />
     <PackageVersion Include="Google.Protobuf" Version="3.27.1" />
     <PackageVersion Include="Grpc.AspNetCore" Version="2.63.0" />
     <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.63.0" />
@@ -121,7 +121,6 @@
     <PackageVersion Include="StackExchange.Redis" Version="2.7.33" />
     <PackageVersion Include="System.IO.Hashing" Version="8.0.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.1.0" />
-    <PackageVersion Include="Elastic.Clients.Elasticsearch" Version="8.14.0" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.3" />
     <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.9.0" />

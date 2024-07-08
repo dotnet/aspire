@@ -148,7 +148,7 @@ public class AddElasticsearchTests
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<ElasticsearchResource>()) as IResourceWithConnectionString;
         var connectionString = await connectionStringResource.GetConnectionStringAsync();
 
-        Assert.Equal($"http://{ElasticsearchResource.UserName}:{elasticsearch.Resource.PasswordParameter.Value}@localhost:27020", connectionString);
+        Assert.Equal($"http://elastic:{elasticsearch.Resource.PasswordParameter.Value}@localhost:27020", connectionString);
         Assert.Equal("http://elastic:{elasticsearch-password.value}@{elasticsearch.bindings.http.host}:{elasticsearch.bindings.http.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 

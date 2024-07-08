@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-//using Aspire;
 namespace Aspire.Elastic.Clients.Elasticsearch;
 
 /// <summary>
@@ -42,7 +41,7 @@ public sealed class ElasticClientsElasticsearchSettings
     /// The default value is <see langword="false"/>.
     /// </value>
     /// <remarks>
-    /// Set value <see langword="true"/> when you want use elastic cloud and provide api key and elasticId in  <see cref="ElasticClientsElasticsearchSettings.Cloud"/>
+    /// Set value <see langword="true"/> when you want to use elastic cloud and provide api key and elasticId in <see cref="ElasticClientsElasticsearchSettings.Cloud"/>.
     /// </remarks>
     public bool UseCloud { get; set; }
 
