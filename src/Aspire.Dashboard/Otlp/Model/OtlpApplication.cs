@@ -192,7 +192,21 @@ public class OtlpApplication
                 count++;
                 if (count >= 2)
                 {
-                    return $"{item.ApplicationName}-{app.InstanceId}";
+                    var instanceId = app.InstanceId;
+
+                    // Convert long GUID into a shorter, more human friendly format.
+                    // Before: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
+                    // After:  aaaaaaaa
+                    if (Guid.TryParse(instanceId, out var guid))
+                    {
+                        Span<char> chars = stackalloc char[32];
+                        var result = guid.TryFormat(chars, charsWritten: out _, format: "N");
+                        Debug.Assert(result, "Guid.TryFormat not successful.");
+
+                        instanceId = chars.Slice(0, 8).ToString();
+                    }
+
+                    return $"{item.ApplicationName}-{instanceId}";
                 }
             }
         }

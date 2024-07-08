@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -32,7 +31,7 @@ public sealed class ResourceViewModel
         return Name.Contains(filter, StringComparisons.UserTextSearch);
     }
 
-    public static string GetResourceName(ResourceViewModel resource, ConcurrentDictionary<string, ResourceViewModel> allResources)
+    public static string GetResourceName(ResourceViewModel resource, IDictionary<string, ResourceViewModel> allResources)
     {
         var count = 0;
         foreach (var (_, item) in allResources)

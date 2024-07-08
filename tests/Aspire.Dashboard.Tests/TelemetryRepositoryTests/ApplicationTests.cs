@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
@@ -11,55 +12,14 @@ namespace Aspire.Dashboard.Tests.TelemetryRepositoryTests;
 
 public class ApplicationTests
 {
-    private static readonly DateTime s_testTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
     [Fact]
     public void GetApplicationByCompositeName()
     {
         // Arrange
         var repository = CreateRepository();
 
-        var addContext = new AddContext();
-        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
-        {
-            new ResourceSpans
-            {
-                Resource = CreateResource(name: "app2"),
-                ScopeSpans =
-                {
-                    new ScopeSpans
-                    {
-                        Scope = CreateScope(),
-                        Spans =
-                        {
-                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10)),
-                            CreateSpan(traceId: "1", spanId: "1-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1")
-                        }
-                    }
-                }
-            }
-        });
-        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
-        {
-            new ResourceSpans
-            {
-                Resource = CreateResource(name: "app1"),
-                ScopeSpans =
-                {
-                    new ScopeSpans
-                    {
-                        Scope = CreateScope(),
-                        Spans =
-                        {
-                            CreateSpan(traceId: "2", spanId: "2-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10)),
-                            CreateSpan(traceId: "2", spanId: "2-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "2-1")
-                        }
-                    }
-                }
-            }
-        });
-
-        Assert.Equal(0, addContext.FailureCount);
+        AddResource(repository, "app2");
+        AddResource(repository, "app1");
 
         // Act 1
         var applications = repository.GetApplications();
@@ -92,5 +52,73 @@ public class ApplicationTests
         Assert.Equal(applications[1], app2);
 
         Assert.Null(notFound);
+    }
+
+    [Fact]
+    public void GetApplications_Order()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        AddResource(repository, "app2");
+        AddResource(repository, "app1", instanceId: "def");
+        AddResource(repository, "app1", instanceId: "abc");
+
+        // Act
+        var applications = repository.GetApplications();
+
+        // Assert
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("app1", app.ApplicationName);
+                Assert.Equal("abc", app.InstanceId);
+            },
+            app =>
+            {
+                Assert.Equal("app1", app.ApplicationName);
+                Assert.Equal("def", app.InstanceId);
+            },
+            app =>
+            {
+                Assert.Equal("app2", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+            });
+    }
+
+    [Fact]
+    public void GetResourceName_GuidInstanceId_Shorten()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        var guid1 = "19572b19-d1c0-4a51-98b4-fcc2658f73d3";
+        var guid2 = "f66e2b1e-f420-4a22-a067-8dd2f6fcda86";
+
+        AddResource(repository, "app1", guid1);
+        AddResource(repository, "app1", guid2);
+
+        // Act
+        var applications = repository.GetApplications();
+
+        var instance1Name = OtlpApplication.GetResourceName(applications[0], applications);
+        var instance2Name = OtlpApplication.GetResourceName(applications[1], applications);
+
+        // Assert
+        Assert.Equal("app1-19572b19", instance1Name);
+        Assert.Equal("app1-f66e2b1e", instance2Name);
+    }
+
+    private static void AddResource(TelemetryRepository repository, string name, string? instanceId = null)
+    {
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: name, instanceId: instanceId)
+            }
+        });
+
+        Assert.Equal(0, addContext.FailureCount);
     }
 }
