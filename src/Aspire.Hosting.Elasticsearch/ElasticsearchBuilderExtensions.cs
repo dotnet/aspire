@@ -27,7 +27,7 @@ public static class ElasticsearchBuilderExtensions
     /// <param name="password">The parameter used to provide the superuser password for the elasticsearch. If <see langword="null"/> a random password will be generated.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <example>
-    /// Use in application host
+    /// Add an Elasticsearch container to the application model and reference it in a .NET project.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
@@ -68,10 +68,10 @@ public static class ElasticsearchBuilderExtensions
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
-    /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <example>
-    /// Use in application host
+    /// Add an Elasticsearch container to the application model and reference it in a .NET project. Additionally, in this
+    /// example a data volume is added to the container to allow data to be persisted across container restarts.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
@@ -83,18 +83,18 @@ public static class ElasticsearchBuilderExtensions
     /// builder.Build().Run(); 
     /// </code>
     /// </example>
-    public static IResourceBuilder<ElasticsearchResource> WithDataVolume(this IResourceBuilder<ElasticsearchResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/usr/share/elasticsearch/data", isReadOnly);
+    public static IResourceBuilder<ElasticsearchResource> WithDataVolume(this IResourceBuilder<ElasticsearchResource> builder, string? name = null)
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/usr/share/elasticsearch/data");
 
     /// <summary>
     /// Adds a bind mount for the data folder to a Elasticseach container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>
-    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <example>
-    /// Use in application host
+    /// Add an Elasticsearch container to the application model and reference it in a .NET project. Additionally, in this
+    /// example a bind mount is added to the container to allow data to be persisted across container restarts.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
@@ -106,7 +106,7 @@ public static class ElasticsearchBuilderExtensions
     /// builder.Build().Run(); 
     /// </code>
     /// </example>
-    public static IResourceBuilder<ElasticsearchResource> WithDataBindMount(this IResourceBuilder<ElasticsearchResource> builder, string source, bool isReadOnly = false)
-        => builder.WithBindMount(source, "/usr/share/elasticsearch/data", isReadOnly);
+    public static IResourceBuilder<ElasticsearchResource> WithDataBindMount(this IResourceBuilder<ElasticsearchResource> builder, string source)
+        => builder.WithBindMount(source, "/usr/share/elasticsearch/data");
 
 }
