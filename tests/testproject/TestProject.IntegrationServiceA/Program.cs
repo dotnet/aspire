@@ -13,6 +13,10 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.sqlserver))
 {
     builder.AddSqlServerClient("tempdb");
 }
+if (!resourcesToSkip.HasFlag(TestResourceNames.efsqlserver))
+{
+    builder.AddSqlServerDbContext<EFCoreSqlServerDbContext>("tempdb");
+}
 if (!resourcesToSkip.HasFlag(TestResourceNames.mysql) || !resourcesToSkip.HasFlag(TestResourceNames.efmysql))
 {
     builder.AddMySqlDataSource("mysqldb", settings =>
@@ -77,9 +81,14 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
     });
 }
 
-if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
+if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos) || !resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
 {
     builder.AddAzureCosmosClient("cosmos");
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
+{
+    builder.AddCosmosDbContext<EFCoreCosmosDbContext>("cosmos", "cosmos");
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
@@ -161,6 +170,11 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.sqlserver))
     app.MapSqlServerApi();
 }
 
+if (!resourcesToSkip.HasFlag(TestResourceNames.efsqlserver))
+{
+    app.MapEFCoreSqlServerApi();
+}
+
 if (!resourcesToSkip.HasFlag(TestResourceNames.rabbitmq))
 {
     app.MapRabbitMQApi();
@@ -179,6 +193,11 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
 if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
 {
     app.MapCosmosApi();
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
+{
+    app.MapEFCoreCosmosApi();
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))

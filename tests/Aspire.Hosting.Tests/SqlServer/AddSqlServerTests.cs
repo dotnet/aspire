@@ -59,7 +59,7 @@ public class AddSqlServerTests
         Assert.Equal(SqlServerContainerImageTags.Image, containerAnnotation.Image);
         Assert.Equal(SqlServerContainerImageTags.Registry, containerAnnotation.Registry);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Collection(config,
             env =>

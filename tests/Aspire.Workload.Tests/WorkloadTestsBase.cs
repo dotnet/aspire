@@ -34,7 +34,7 @@ public class WorkloadTestsBase
     }
 
     public static Task<IBrowserContext> CreateNewBrowserContextAsync()
-        => BuildEnvironment.HasPlaywrightSupport
+        => PlaywrightProvider.HasPlaywrightSupport
                 ? Browser.Value.NewContextAsync(new BrowserNewContextOptions { IgnoreHTTPSErrors = true })
                 : throw new InvalidOperationException("Playwright is not available");
 

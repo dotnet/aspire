@@ -82,6 +82,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         ArgumentNullException.ThrowIfNull(args);
     }
 
+    // This is here because in the constructor of DistributedApplicationBuilder we inject
+    // DistributedApplicationExecutionContext. This is a class that is used to expose contextual
+    // values in various callbacks and is a central location to access useful services like IServiceProvider.
+    private readonly DistributedApplicationExecutionContextOptions _executionContextOptions;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
     /// </summary>
@@ -136,11 +141,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             ["AppHost:Directory"] = AppHostDirectory
         });
 
-        ExecutionContext = _innerBuilder.Configuration["Publishing:Publisher"] switch
+        _executionContextOptions = _innerBuilder.Configuration["Publishing:Publisher"] switch
         {
-            "manifest" => new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish),
-            _ => new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
+            "manifest" => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish),
+            _ => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
         };
+
+        ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
 
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
@@ -278,6 +285,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             }
 
             var application = new DistributedApplication(_innerBuilder.Build());
+
+            _executionContextOptions.ServiceProvider = application.Services.GetRequiredService<IServiceProvider>();
+
             LogAppBuilt(application);
             return application;
         }

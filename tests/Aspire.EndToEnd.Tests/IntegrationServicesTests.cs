@@ -4,9 +4,9 @@
 using System.Runtime.InteropServices;
 using Xunit;
 using Xunit.Abstractions;
-using Xunit.Sdk;
 using Aspire.TestProject;
 using Aspire.Workload.Tests;
+using Microsoft.DotNet.XUnitExtensions;
 
 namespace Aspire.EndToEnd.Tests;
 
@@ -33,6 +33,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [InlineData(TestResourceNames.garnet)]
     [InlineData(TestResourceNames.valkey)]
     [InlineData(TestResourceNames.sqlserver)]
+    [InlineData(TestResourceNames.efsqlserver)]
     [InlineData(TestResourceNames.milvus)]
     [InlineData(TestResourceNames.elasticsearch)]
     public Task VerifyComponentWorks(TestResourceNames resourceName)
@@ -64,16 +65,18 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     public Task VerifyOracleComponentWorks()
         => VerifyComponentWorks(TestResourceNames.oracledatabase);
 
-    [ConditionalFact]
+    [ConditionalTheory]
     [Trait("scenario", "cosmos")]
-    public Task VerifyCosmosComponentWorks()
+    [InlineData(TestResourceNames.cosmos)]
+    [InlineData(TestResourceNames.efcosmos)]
+    public Task VerifyCosmosComponentWorks(TestResourceNames resourceName)
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
         {
-            throw new SkipException($"Skipping 'cosmos' test because the emulator isn't supported on macOS ARM64.");
+            throw new SkipTestException($"Skipping 'cosmos' test because the emulator isn't supported on macOS ARM64.");
         }
 
-        return VerifyComponentWorks(TestResourceNames.cosmos);
+        return VerifyComponentWorks(resourceName);
     }
 
     [Fact]

@@ -86,7 +86,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         // The workaround is to put the count inside a control and explicitly update and refresh the control.
         _totalItemsFooter.SetTotalItemCount(logs.TotalItemCount);
 
-        TelemetryRepository.MarkViewedErrorLogs(ViewModel.ApplicationServiceId);
+        TelemetryRepository.MarkViewedErrorLogs(ViewModel.ApplicationKey);
 
         return ValueTask.FromResult(GridItemsProviderResult.From(logs.Items, logs.TotalItemCount));
     }
@@ -162,10 +162,10 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private void UpdateSubscription()
     {
         // Subscribe to updates.
-        if (_logsSubscription is null || _logsSubscription.ApplicationId != PageViewModel.SelectedApplication.Id?.InstanceId)
+        if (_logsSubscription is null || _logsSubscription.ApplicationKey != PageViewModel.SelectedApplication.Id?.GetApplicationKey())
         {
             _logsSubscription?.Dispose();
-            _logsSubscription = TelemetryRepository.OnNewLogs(PageViewModel.SelectedApplication.Id?.InstanceId, SubscriptionType.Read, async () =>
+            _logsSubscription = TelemetryRepository.OnNewLogs(PageViewModel.SelectedApplication.Id?.GetApplicationKey(), SubscriptionType.Read, async () =>
             {
                 ViewModel.ClearData();
                 await InvokeAsync(StateHasChanged);
@@ -206,7 +206,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     private async Task OpenFilterAsync(LogFilter? entry)
     {
-        var logPropertyKeys = TelemetryRepository.GetLogPropertyKeys(PageViewModel.SelectedApplication.Id?.InstanceId);
+        var logPropertyKeys = TelemetryRepository.GetLogPropertyKeys(PageViewModel.SelectedApplication.Id?.GetApplicationKey());
 
         var title = entry is not null ? Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEditFilter)] : Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter)];
         var parameters = new DialogParameters
@@ -336,7 +336,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     public void UpdateViewModelFromQuery(StructuredLogsPageViewModel viewModel)
     {
         PageViewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
-        ViewModel.ApplicationServiceId = PageViewModel.SelectedApplication.Id?.InstanceId;
+        ViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
 
         if (LogLevelText is not null && Enum.TryParse<LogLevel>(LogLevelText, ignoreCase: true, out var logLevel))
         {
