@@ -3,8 +3,8 @@
 
 @if (DisplayedEndpoints.Count > 0)
 {
-    <div style="display: grid; grid-template-columns: minmax(0px, max-content) minmax(min-content, auto)">
-        <div style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+    <div class="endpoint-container">
+        <div class="endpoint-first">
             @WriteEndpoint(DisplayedEndpoints[0])
             @if (DisplayedEndpoints.Count > 1)
             {
