@@ -566,7 +566,8 @@ public static class ProjectResourceBuilderExtensions
     public static IResourceBuilder<ProjectResource> WithEndpointsInEnvironment(
         this IResourceBuilder<ProjectResource> builder, Func<EndpointAnnotation, bool> filter)
     {
-        builder.Resource.AddEnvironmentInjectionFilter(filter);
+        builder.Resource.Annotations.Add(new EnvironmentInjectionFilterAnnotation(filter));
+
         return builder;
     }
 
