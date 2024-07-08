@@ -13,6 +13,7 @@ using LogEntryList = IReadOnlyList<(string Content, bool IsErrorMessage)>;
 internal sealed class ResourceLogSource<TResource>(
     ILogger logger,
     IKubernetesService kubernetesService,
+    Version? dcpVersion,
     TResource resource) :
     IAsyncEnumerable<LogEntryList>
     where TResource : CustomResource
@@ -35,7 +36,7 @@ internal sealed class ResourceLogSource<TResource>(
 
         var timestamps = resource is Container; // Timestamps are available only for Containers as of Aspire P5.
 
-        if (resource is Container)
+        if (resource is Container && dcpVersion?.CompareTo(DcpVersion.MinimumVersionAspire_8_1) >= 0)
         {
             var startupStderrStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStartupStdErr, follow: true, timestamps: timestamps, cancellationToken).ConfigureAwait(false);
             var startupStdoutStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStartupStdOut, follow: true, timestamps: timestamps, cancellationToken).ConfigureAwait(false);

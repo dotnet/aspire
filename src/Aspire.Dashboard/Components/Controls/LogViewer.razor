@@ -8,7 +8,7 @@
 
 <div class="log-overflow continuous-scroll-overflow">
     <div class="log-container" id="logContainer">
-        <Virtualize Items="_logEntries" ItemSize="20" OverscanCount="100">
+        <Virtualize Items="_logEntries.GetEntries()" ItemSize="20" OverscanCount="100" TItem="LogEntry">
             <div class="line-row-container">
                 <div class="line-row">
                     <span class="line-area" role="log">

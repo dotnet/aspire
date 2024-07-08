@@ -191,13 +191,15 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             }
         }
 
-        _resources = builder.ToImmutable();
+        builder.Sort((r1, r2) => StringComparers.ResourceName.Compare(r1.Name, r2.Name));
+
+        _resources = builder.ToImmutableList();
 
         SelectViewModel<ResourceTypeDetails> ToOption(ResourceViewModel resource, bool isReplica, string applicationName)
         {
             var id = isReplica
                 ? ResourceTypeDetails.CreateReplicaInstance(resource.Name, applicationName)
-                : ResourceTypeDetails.CreateSingleton(resource.Name);
+                : ResourceTypeDetails.CreateSingleton(resource.Name, applicationName);
 
             return new SelectViewModel<ResourceTypeDetails>
             {

@@ -95,7 +95,7 @@ public class DashboardResourceTests
 
         Assert.Same(container.Resource, dashboard);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Collection(config,
             e =>
@@ -195,7 +195,7 @@ public class DashboardResourceTests
 
         var dashboard = Assert.Single(model.Resources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Equal("BrowserToken", config.Single(e => e.Key == DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName).Value);
         Assert.Equal("TestBrowserToken!", config.Single(e => e.Key == DashboardConfigNames.DashboardFrontendBrowserTokenName.EnvVarName).Value);
@@ -228,7 +228,7 @@ public class DashboardResourceTests
 
         var dashboard = Assert.Single(model.Resources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Equal("Unsecured", config.Single(e => e.Key == DashboardConfigNames.DashboardFrontendAuthModeName.EnvVarName).Value);
         Assert.Equal("Unsecured", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName).Value);
@@ -258,7 +258,7 @@ public class DashboardResourceTests
 
         var dashboard = Assert.Single(model.Resources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Equal("http://localhost:5000", config.Single(e => e.Key == DashboardConfigNames.ResourceServiceUrlName.EnvVarName).Value);
     }
