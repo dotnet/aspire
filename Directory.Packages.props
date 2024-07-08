@@ -93,7 +93,7 @@
     <!-- external dependencies -->
     <PackageVersion Include="Confluent.Kafka" Version="2.4.0" />
     <PackageVersion Include="Dapper" Version="2.1.44" />
-    <PackageVersion Include="DnsClient" Version="1.7.0" />
+    <PackageVersion Include="DnsClient" Version="1.8.0" />
     <PackageVersion Include="Elastic.Clients.Elasticsearch" Version="8.14.4" />
     <PackageVersion Include="Google.Protobuf" Version="3.27.1" />
     <PackageVersion Include="Grpc.AspNetCore" Version="2.63.0" />
@@ -140,7 +140,7 @@
     <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.24324.3" />
     <!-- unit test dependencies -->
     <PackageVersion Include="bUnit" Version="1.28.9" />
-    <PackageVersion Include="JsonSchema.Net" Version="7.1.1" />
+    <PackageVersion Include="JsonSchema.Net" Version="7.1.2" />
     <PackageVersion Include="Microsoft.DotNet.RemoteExecutor" Version="$(MicrosoftDotNetRemoteExecutorPackageVersion)" />
     <PackageVersion Include="Microsoft.DotNet.XUnitExtensions" Version="$(MicrosoftDotNetXUnitExtensionsPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="$(MicrosoftExtensionsDiagnosticsTestingPackageVersion)" />
