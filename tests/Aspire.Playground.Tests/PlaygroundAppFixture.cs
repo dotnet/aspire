@@ -9,13 +9,15 @@ namespace Aspire.Playground.Tests;
 
 public class PlaygroundAppFixture : IAsyncLifetime
 {
+#pragma warning disable CS0649
+#pragma warning disable CA1802
 #if TESTS_RUNNING_OUTSIDE_OF_REPO
-    private const bool TestsRunningOutsideOfRepo = true;
+    private static readonly bool s_testsRunningOutsideOfRepo = true;
 #else
-    private const bool TestsRunningOutsideOfRepo = false;
+    private static readonly bool s_testsRunningOutsideOfRepo;
 #endif
-
-    // private static readonly bool s_testsRunningOutsideOfRepo = Environment.GetEnvironmentVariable("TESTS_RUNNING_OUTSIDE_OF_REPO") is "true";
+#pragma warning restore CS0649
+#pragma warning restore CA1802
 
     public static string? TestScenario { get; } = EnvironmentVariables.TestScenario;
     public string PlaygroundAppsPath { get; set; }
@@ -26,11 +28,9 @@ public class PlaygroundAppFixture : IAsyncLifetime
     // private TestResourceNames _resourcesToSkip;
     private readonly IMessageSink _diagnosticMessageSink;
     private readonly TestOutputWrapper _testOutput;
-    private readonly bool _testsRunningOutsideOfRepo;
     private AspireProject? _project;
 
     public BuildEnvironment BuildEnvironment { get; init; }
-    // public ProjectInfo IntegrationServiceA => Projects["integrationservicea"];
     public AspireProject Project => _project ?? throw new InvalidOperationException("Project is not initialized");
 
     public PlaygroundAppFixture(string relativeAppHostProjectDir, IMessageSink diagnosticMessageSink)
@@ -39,29 +39,14 @@ public class PlaygroundAppFixture : IAsyncLifetime
         _diagnosticMessageSink = diagnosticMessageSink;
         _testOutput = new TestOutputWrapper(messageSink: _diagnosticMessageSink);
 
-        // var repoRoot = TestUtils.FindRepoRoot();
-        // _testsRunningOutsideOfRepo = repoRoot is null;
-        _testsRunningOutsideOfRepo = TestsRunningOutsideOfRepo;
-        BuildEnvironment = new(useSystemDotNet: !_testsRunningOutsideOfRepo);
-        if (_testsRunningOutsideOfRepo)
+        BuildEnvironment = new(useSystemDotNet: !s_testsRunningOutsideOfRepo);
+        if (s_testsRunningOutsideOfRepo)
         {
             if (!BuildEnvironment.HasWorkloadFromArtifacts)
             {
                 throw new InvalidOperationException("Expected to have sdk+workload from artifacts when running tests outside of the repo");
             }
 
-            // if (EnvironmentVariables.PlaygroundAppsPath is null)
-            // {
-            //     PlaygroundAppsPath = Path.Combine(AppContext.BaseDirectory, "archive", "playground");
-            //     if (!Directory.Exists(PlaygroundAppsPath))
-            //     {
-            //         throw new InvalidOperationException($"Expected to have the PLAYGROUND_APPS_PATH environment variable set when running tests outside of the repo, or to find the playground apps in the default location in {PlaygroundAppsPath}");
-            //     }
-            // }
-            // else
-            // {
-            //     PlaygroundAppsPath = EnvironmentVariables.PlaygroundAppsPath;
-            // }
             PlaygroundAppsPath = Path.Combine(BuildEnvironment.TestAssetsPath, "playground");
             if (!Directory.Exists(PlaygroundAppsPath))
             {
@@ -83,13 +68,7 @@ public class PlaygroundAppFixture : IAsyncLifetime
                 throw new InvalidOperationException("These tests should be run from inside the repo when using `TestsRunningOutsideOfRepo=false`");
             }
 
-            // BuildEnvironment.TestAssetsPath = Path.Combine(BuildEnvironment.RepoRoot.FullName, "tests-xy");
-            // if (!Directory.Exists(BuildEnvironment.TestAssetsPath))
-            // {
-            //     throw new ArgumentException($"Cannot find TestAssetsPath={BuildEnvironment.TestAssetsPath}");
-            // }
             PlaygroundAppsPath = Path.Combine(BuildEnvironment.RepoRoot.FullName, "playground");
-            // PlaygroundAppsPath = Path.Combine(AppContext.BaseDirectory, "archive", "playground");
             if (!Directory.Exists(PlaygroundAppsPath))
             {
                 throw new ArgumentException($"Cannot find PlaygroundAppsPath={PlaygroundAppsPath}");
@@ -111,11 +90,11 @@ public class PlaygroundAppFixture : IAsyncLifetime
                                      _testOutput,
                                      BuildEnvironment,
                                      relativeAppHostProjectDir: pgProjectDir);
-        if (_testsRunningOutsideOfRepo)
+        if (s_testsRunningOutsideOfRepo)
         {
             _testOutput.WriteLine("");
             _testOutput.WriteLine($"****************************************");
-            _testOutput.WriteLine($"   Running EndToEnd tests outside-of-repo");
+            _testOutput.WriteLine($"   Running Playground tests outside-of-repo");
             _testOutput.WriteLine($"   Playground project: {Project.AppHostProjectDirectory}");
             _testOutput.WriteLine($"****************************************");
             _testOutput.WriteLine("");
@@ -123,51 +102,13 @@ public class PlaygroundAppFixture : IAsyncLifetime
 
         await Project.BuildAsync();
 
-        string extraArgs = "";
-        // _resourcesToSkip = GetResourcesToSkip();
-        // if (_resourcesToSkip != TestResourceNames.None && _resourcesToSkip.ToCSVString() is string skipArg)
-        // {
-        //     extraArgs += $"--skip-resources {skipArg}";
-        // }
-        await Project.StartAppHostAsync([extraArgs]);
+        await Project.StartAppHostAsync();
 
         foreach (var project in Projects.Values)
         {
             project.Client = AspireProject.Client.Value;
         }
     }
-
-    // public Task DumpComponentLogsAsync(TestResourceNames resource, ITestOutputHelper? testOutputArg = null)
-    // {
-    //     if (resource == TestResourceNames.None)
-    //     {
-    //         return Task.CompletedTask;
-    //     }
-    //     if (resource == TestResourceNames.All || !Enum.IsDefined<TestResourceNames>(resource))
-    //     {
-    //         throw new ArgumentException($"Only one resource is supported at a time. resource: {resource}");
-    //     }
-
-    //     string component = resource switch
-    //     {
-    //         TestResourceNames.cosmos => "cosmos",
-    //         TestResourceNames.kafka => "kafka",
-    //         TestResourceNames.mongodb => "mongodb",
-    //         TestResourceNames.mysql or TestResourceNames.efmysql => "mysql",
-    //         TestResourceNames.oracledatabase => "oracledatabase",
-    //         TestResourceNames.postgres or TestResourceNames.efnpgsql => "postgres",
-    //         TestResourceNames.rabbitmq => "rabbitmq",
-    //         TestResourceNames.redis => "redis",
-    //         TestResourceNames.garnet => "garnet",
-    //         TestResourceNames.valkey => "valkey",
-    //         TestResourceNames.sqlserver => "sqlserver",
-    //         TestResourceNames.milvus => "milvus",
-    //         TestResourceNames.eventhubs => "eventhubs",
-    //         _ => throw new ArgumentException($"Unknown resource: {resource}")
-    //     };
-
-    //     return Project.DumpComponentLogsAsync(component, testOutputArg);
-    // }
 
     public async Task DisposeAsync()
     {
