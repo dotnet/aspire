@@ -30,8 +30,7 @@
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Qdrant\QdrantContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Nats\NatsContainerImageTags.cs" />
 
-    <_TestAssetFile Include="$(RepoRoot)tests\WorkloadTesting\data\**\*" Link="testassets\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="@(_TestAssetFile)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)tests\WorkloadTesting\data\**\*" Link="testassets" CopyToOutputDirectory="PreserveNewest" />
 
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
@@ -42,15 +41,15 @@
     <None Include="$(RepoRoot)src\Shared\**\*" Link="testassets\Shared-src\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <!-- helps to isolate the build -->
-    <None Include="..\Shared\EmptyProject.proj" Link="testassets\Directory.Build.props" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\Shared\EmptyProject.proj" Link="testassets\Directory.Build.targets" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedDir)EmptyProject.proj" Link="testassets\Directory.Build.props" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedDir)EmptyProject.proj" Link="testassets\Directory.Build.targets" CopyToOutputDirectory="PreserveNewest" />
 
     <None Include="$(TestsSharedRepoTestingDir)\*" Link="testassets\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <None Include="$(GeneratedPackagesVersionsPropsPath)" Link="testassets\Directory.Packages.Versions.props" CopyToOutputDirectory="PreserveNewest" />
 
-    <None Include="..\Shared\nuget-with-package-source-mapping.config" Link="testassets\nuget.config" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\Shared\WorkloadTesting\data\Directory.Packages.Helix.props" Link="testassets\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedDir)nuget-with-package-source-mapping.config" Link="testassets\nuget.config" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedDir)WorkloadTesting\data\Directory.Packages.Helix.props" Link="testassets\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <!-- FIXME: are these really needed? - um .. for test projects where the sdk would add the references! -->
     <PropertyForHelixRun Include="XunitPackageVersion" />
@@ -59,28 +58,6 @@
     <PropertyForHelixRun Include="MSTestTestAdapterPackageVersion" />
     <PropertyForHelixRun Include="MicrosoftNETTestSdkPackageVersion" />
   </ItemGroup>
-
-  <!--<Target Name="StageForHelix" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true'">-->
-    <!--<ItemGroup>-->
-      <!--<_OutDirFile Include="$(OutDir)\**\*" />-->
-    <!--</ItemGroup>-->
-    <!--<Message Text="StageForHelix: outdir: $(OutDir)" Importance="High" />-->
-
-    <!--<RemoveDir Directories="$(TestsArchiveSourceDir)" />-->
-    <!--<MakeDir Directories="$(TestsArchiveSourceDir)" />-->
-
-    <!--<ItemGroup>-->
-      <!--[> default to just the filename <]-->
-      <!--<FileToArchive DestinationPath="%(FileName)%(Extension)" Condition="'%(FileToArchive.DestinationPath)' == ''" />-->
-    <!--</ItemGroup>-->
-
-    <!--<Copy SourceFiles="@(_OutDirFile)"-->
-          <!--DestinationFiles="@(_OutDirFile -> '$(TestsArchiveSourceDir)$(MSBuildProjectName)\%(RecursiveDir)\%(FileName)%(Extension)')"-->
-          <!--SkipUnchangedFiles="true" />-->
-    <!--<Copy SourceFiles="%(FileToArchive.Identity)"-->
-          <!--DestinationFiles="$(TestsArchiveSourceDir)%(FileToArchive.DestinationPath)"-->
-          <!--SkipUnchangedFiles="true" />-->
-  <!--</Target>-->
 
   <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" />
 </Project>
