@@ -51,7 +51,7 @@ public class RedisFunctionalTests
         Assert.Equal("value", value);
     }
 
-    [Fact(Skip = "Debugging")]
+    [Fact]
     [RequiresDocker]
     public async Task WithDataVolumeShouldPersistStateBetweenUsages()
     {
@@ -65,7 +65,7 @@ public class RedisFunctionalTests
             );
     }
 
-    [Fact(Skip = "Debugging")]
+    [Fact]
     [RequiresDocker]
     public async Task WithDataVolumeWithCustomPersistenceInterval()
     {
@@ -108,7 +108,7 @@ public class RedisFunctionalTests
         }
     }
 
-    [Fact(Skip = "Debugging")]
+    [Fact]
     [RequiresDocker]
     public async Task WithDataBindMountWithCustomPersistenceInterval()
     {
@@ -138,7 +138,7 @@ public class RedisFunctionalTests
         }
     }
 
-    [Fact(Skip = "Debugging")]
+    [Fact]
     [RequiresDocker]
     public async Task PersistenceIsDisabledByDefault()
     {
