@@ -106,19 +106,19 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
         string component = resource switch
         {
-            TestResourceNames.cosmos => "cosmos",
+            TestResourceNames.cosmos or TestResourceNames.efcosmos => "cosmos",
+            TestResourceNames.eventhubs => "eventhubs",
+            TestResourceNames.garnet => "garnet",
             TestResourceNames.kafka => "kafka",
+            TestResourceNames.milvus => "milvus",
             TestResourceNames.mongodb => "mongodb",
             TestResourceNames.mysql or TestResourceNames.efmysql => "mysql",
             TestResourceNames.oracledatabase => "oracledatabase",
             TestResourceNames.postgres or TestResourceNames.efnpgsql => "postgres",
             TestResourceNames.rabbitmq => "rabbitmq",
             TestResourceNames.redis => "redis",
-            TestResourceNames.garnet => "garnet",
+            TestResourceNames.sqlserver or TestResourceNames.efsqlserver => "sqlserver",
             TestResourceNames.valkey => "valkey",
-            TestResourceNames.sqlserver => "sqlserver",
-            TestResourceNames.milvus => "milvus",
-            TestResourceNames.eventhubs => "eventhubs",
             _ => throw new ArgumentException($"Unknown resource: {resource}")
         };
 
@@ -149,7 +149,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         TestResourceNames resourcesToInclude = TestScenario switch
         {
             "oracle" => TestResourceNames.oracledatabase,
-            "cosmos" => TestResourceNames.cosmos,
+            "cosmos" => TestResourceNames.cosmos | TestResourceNames.efcosmos,
             "eventhubs" => TestResourceNames.eventhubs,
             "basicservices" => TestResourceNames.kafka
                               | TestResourceNames.mongodb
@@ -162,6 +162,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                               | TestResourceNames.mysql
                               | TestResourceNames.efmysql
                               | TestResourceNames.sqlserver
+                              | TestResourceNames.efsqlserver
                               | TestResourceNames.milvus,
             "" or null => TestResourceNames.All,
             _ => throw new ArgumentException($"Unknown test scenario '{TestScenario}'")

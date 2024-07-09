@@ -7,7 +7,7 @@ namespace Aspire.Dashboard.Otlp.Storage;
 
 public sealed class GetLogsContext
 {
-    public required string? ApplicationServiceId { get; init; }
+    public required ApplicationKey? ApplicationKey { get; init; }
     public required int StartIndex { get; init; }
     public required int? Count { get; init; }
     public required List<LogFilter> Filters { get; init; }

@@ -64,7 +64,7 @@ public class AddQdrantTests
         Assert.Equal("http2", endpoint.Transport);
         Assert.Equal("http", endpoint.UriScheme);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Collection(config,
             env =>
@@ -137,7 +137,7 @@ public class AddQdrantTests
         Assert.Equal("http2", endpoint.Transport);
         Assert.Equal("http", endpoint.UriScheme);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Collection(config,
             env =>
@@ -181,7 +181,7 @@ public class AddQdrantTests
             .WithReference(qdrant);
 
         // Call environment variable callbacks.
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectA.Resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectA.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(2, servicesKeysCount);
@@ -193,7 +193,7 @@ public class AddQdrantTests
             .WithReference(qdrant);
 
         // Call environment variable callbacks.
-        var containerConfig = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(container1.Resource);
+        var containerConfig = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(container1.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         var containerServicesKeysCount = containerConfig.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(2, containerServicesKeysCount);
