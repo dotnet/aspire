@@ -87,10 +87,10 @@
       <!-- Emit all properties named in @(PropertyForHelixRun).
            doing this separately so the property value can be extracted from the name -->
       <_PropertiesToPass
-        Include="$(%(PropertyForHelixRun.Identity))"
-        Name="%(PropertyForHelixRun.Identity)"
+        Include="%(PropertyForHelixRun.Identity)"
+        Name="$(%(PropertyForHelixRun.Identity))"
         ConditionToUse__="%(PropertyForHelixRun.ConditionToUse__)" />
-      <_PropertiesToPassEvaluated Include="@(_PropertiesToPass -> '&lt;%(Name)&gt;%(Identity)&lt;/%(Name)&gt;')" />
+      <_PropertiesToPassEvaluated Include="@(_PropertiesToPass -> '&lt;%(Identity)&gt;%(Name)&lt;/%(Identity)&gt;')" />
     </ItemGroup>
 
     <PropertyGroup>
