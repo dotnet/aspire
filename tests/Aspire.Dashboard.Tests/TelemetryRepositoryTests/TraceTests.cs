@@ -71,7 +71,7 @@ public class TraceTests
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationServiceId = applications[0].InstanceId,
+            ApplicationKey = applications[0].ApplicationKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10
@@ -83,6 +83,83 @@ public class TraceTests
                 AssertId("1-1", trace.FirstSpan.SpanId);
                 AssertId("1-1", trace.RootSpan!.SpanId);
                 Assert.Equal(2, trace.Spans.Count);
+            });
+    }
+
+    [Fact]
+    public void AddTraces_Scope_Multiple()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope("scope1"),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10)),
+                        }
+                    }
+                }
+            }
+        });
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope("scope2"),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1")
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var applications = repository.GetApplications();
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+            });
+
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = applications[0].ApplicationKey,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10
+        });
+        Assert.Collection(traces.PagedResult.Items,
+            trace =>
+            {
+                AssertId("1", trace.TraceId);
+                AssertId("1-1", trace.FirstSpan.SpanId);
+                AssertId("1-1", trace.RootSpan!.SpanId);
+                Assert.Equal(2, trace.Spans.Count);
+
+                Assert.Collection(trace.Spans,
+                    span => Assert.Equal("scope1", span.Scope.ScopeName),
+                    span => Assert.Equal("scope2", span.Scope.ScopeName));
             });
     }
 
@@ -143,7 +220,7 @@ public class TraceTests
 
         var traces1 = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationServiceId = applications[0].InstanceId,
+            ApplicationKey = applications[0].ApplicationKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10
@@ -154,14 +231,12 @@ public class TraceTests
                 AssertId("2", trace.TraceId);
                 AssertId("2-1", trace.FirstSpan.SpanId);
                 AssertId("2-1", trace.RootSpan!.SpanId);
-                Assert.Equal("", trace.TraceScope.ScopeName);
             },
             trace =>
             {
                 AssertId("1", trace.TraceId);
                 AssertId("1-2", trace.FirstSpan.SpanId);
                 Assert.Null(trace.RootSpan);
-                Assert.Equal("", trace.TraceScope.ScopeName);
             });
 
         var addContext3 = new AddContext();
@@ -186,7 +261,7 @@ public class TraceTests
 
         var traces2 = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationServiceId = applications[0].InstanceId,
+            ApplicationKey = applications[0].ApplicationKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10
@@ -196,17 +271,15 @@ public class TraceTests
             {
                 AssertId("1", trace.TraceId);
                 AssertId("1-1", trace.FirstSpan.SpanId);
-                AssertId("", trace.FirstSpan.ScopeName);
+                Assert.Equal("", trace.FirstSpan.Scope.ScopeName);
                 AssertId("1-1", trace.RootSpan!.SpanId);
-                Assert.Equal("", trace.TraceScope.ScopeName);
             },
             trace =>
             {
                 AssertId("2", trace.TraceId);
                 AssertId("2-1", trace.FirstSpan.SpanId);
-                AssertId("", trace.FirstSpan.ScopeName);
+                Assert.Equal("", trace.FirstSpan.Scope.ScopeName);
                 AssertId("2-1", trace.RootSpan!.SpanId);
-                Assert.Equal("", trace.TraceScope.ScopeName);
             });
     }
 
@@ -242,7 +315,7 @@ public class TraceTests
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationServiceId = null,
+            ApplicationKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10
@@ -310,7 +383,7 @@ public class TraceTests
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationServiceId = null,
+            ApplicationKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10
@@ -367,7 +440,7 @@ public class TraceTests
 
         var traces1 = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationServiceId = null,
+            ApplicationKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10
@@ -382,7 +455,7 @@ public class TraceTests
 
         var traces2 = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationServiceId = null,
+            ApplicationKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10
@@ -449,7 +522,7 @@ public class TraceTests
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationServiceId = applications[0].InstanceId,
+            ApplicationKey = applications[0].ApplicationKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10
@@ -520,7 +593,7 @@ public class TraceTests
 
         var traces = repository.GetTraces(new GetTracesRequest
         {
-            ApplicationServiceId = applications[0].InstanceId,
+            ApplicationKey = applications[0].ApplicationKey,
             FilterText = string.Empty,
             StartIndex = 0,
             Count = 10
