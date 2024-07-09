@@ -44,7 +44,6 @@ public static class ElasticsearchBuilderExtensions
         IResourceBuilder<ParameterResource>? password = null,
         int? port = null)
     {
-
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 
         var elasticsearch = new ElasticsearchResource(name, passwordParameter);
@@ -60,7 +59,6 @@ public static class ElasticsearchBuilderExtensions
              {
                  context.EnvironmentVariables["ELASTIC_PASSWORD"] = elasticsearch.PasswordParameter;
              });
-
     }
 
     /// <summary>

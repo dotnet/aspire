@@ -35,7 +35,7 @@ public sealed class ElasticClientsElasticsearchSettings
     public int? HealthCheckTimeout { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the connection to elastic cloud or not.
+    /// Gets or sets a boolean value that indicates whether the connection should use the elastic cloud or not.
     /// </summary>
     /// <value>
     /// The default value is <see langword="false"/>.

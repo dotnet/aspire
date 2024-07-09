@@ -13,9 +13,9 @@ public class ElasticsearchResource : ContainerResource, IResourceWithConnectionS
     /// </summary>
     private const string UserName = "elastic";
 
-    //this endpoint is used for all API calls over HTTP.
-    //This includes search and aggregations, monitoring and anything else that uses a HTTP request.
-    //All client libraries will use this port to talk to Elasticsearch
+    // this endpoint is used for all API calls over HTTP.
+    // This includes search and aggregations, monitoring and anything else that uses a HTTP request.
+    // All client libraries will use this port to talk to Elasticsearch
     internal const string PrimaryEndpointName = "http";
 
     //this endpoint is a custom binary protocol used for communications between nodes in a cluster.

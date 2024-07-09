@@ -104,7 +104,6 @@ and set ```Aspire:Elastic:Clients:Elasticsearch:UseCloud``` key to ```true```
 when calling `builder.AddElasticsearchClient()`.
 Example appsettings.json that configures the options:
 
-
 ```csharp
 builder.AddElasticsearchClient("elasticsearch");
 ```
@@ -133,7 +132,6 @@ settings => {
     settings.UseCloud = true;
     settings.Cloud.CloudId = "Valid CloudId";
     settings.Cloud.ApiKey = "Valid ApiKey";
-
 });
 ```
 

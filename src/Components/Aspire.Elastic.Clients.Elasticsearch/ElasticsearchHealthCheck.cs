@@ -7,6 +7,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 // TODO: Use health check from AspNetCore.Diagnostics.HealthChecks once following PR released:
 // https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks/pull/2244
 namespace Aspire.Elastic.Clients.Elasticsearch;
+
 internal sealed class ElasticsearchHealthCheck : IHealthCheck
 {
     private readonly ElasticsearchClient _elasticsearchClient;

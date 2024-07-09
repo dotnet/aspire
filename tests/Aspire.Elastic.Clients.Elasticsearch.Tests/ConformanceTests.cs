@@ -38,8 +38,8 @@ public class ConformanceTests : ConformanceTests<ElasticsearchClient, ElasticCli
 
         configuration.AddInMemoryCollection(
             [
-            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:Elastic:Clients:Elasticsearch", key, "ConnectionString"),connectionString),
-            new KeyValuePair<string, string?>($"ConnectionStrings:{key}",connectionString)
+                new KeyValuePair<string, string?>(CreateConfigKey("Aspire:Elastic:Clients:Elasticsearch", key, "ConnectionString"), connectionString),
+                new KeyValuePair<string, string?>($"ConnectionStrings:{key}", connectionString)
             ]);
     }
 

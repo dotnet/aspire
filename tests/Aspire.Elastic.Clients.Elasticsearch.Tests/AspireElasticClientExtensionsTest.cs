@@ -13,7 +13,6 @@ namespace Aspire.Elastic.Clients.Elasticsearch.Tests;
 
 public class AspireElasticClientExtensionsTest : IClassFixture<ElasticsearchContainerFixture>
 {
-
     private const string DefaultConnectionName = "elasticsearch";
 
     private readonly ElasticsearchContainerFixture _containerFixture;
@@ -22,7 +21,9 @@ public class AspireElasticClientExtensionsTest : IClassFixture<ElasticsearchCont
     {
         _containerFixture = containerFixture;
     }
-    private string DefaultConnectionString => _containerFixture.GetConnectionString();
+    
+    private string DefaultConnectionString =>
+            RequiresDockerAttribute.IsSupported ? _containerFixture.GetConnectionString() : "http://elastic:password@localhost:27011";
 
     [Fact]
     [RequiresDocker]
@@ -126,8 +127,8 @@ public class AspireElasticClientExtensionsTest : IClassFixture<ElasticsearchCont
         using var host = builder.Build();
 
         var client1 = host.Services.GetRequiredService<ElasticsearchClient>();
-        var client2 = host.Services.GetRequiredKeyedService<ElasticsearchClient>("milvus2");
-        var client3 = host.Services.GetRequiredKeyedService<ElasticsearchClient>("milvus3");
+        var client2 = host.Services.GetRequiredKeyedService<ElasticsearchClient>("elasticsearch2");
+        var client3 = host.Services.GetRequiredKeyedService<ElasticsearchClient>("elasticsearch3");
 
         Assert.NotSame(client1, client2);
         Assert.NotSame(client1, client3);

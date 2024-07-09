@@ -32,7 +32,7 @@ public static class AspireElasticClientsElasticsearchExtensions
         string connectionName,
         Action<ElasticClientsElasticsearchSettings>? configureSettings = null,
         Action<ElasticsearchClientSettings>? configureClientSettings = null
-        ) => builder.AddElasticsearchClient(DefaultConfigSectionName, configureSettings, configureClientSettings, connectionName, null);
+        ) => builder.AddElasticsearchClient(DefaultConfigSectionName, configureSettings, configureClientSettings, connectionName, serviceKey: null);
 
     /// <summary>
     /// Registers <see cref="ElasticsearchClient"/> instance for connecting to Elasticsearch with Elastic.Clients.Elasticsearch client.
