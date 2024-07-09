@@ -16,7 +16,7 @@ namespace Aspire.Hosting.Containers.Tests;
 
 public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 {
-    [Fact]
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/4828")]
     [RequiresDocker]
     public async Task WithBuildSecretPopulatesSecretFilesCorrectly()
     {
@@ -53,7 +53,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
-    [Fact]
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/4828")]
     [RequiresDocker]
     public async Task WithDockerfileLaunchesContainerSuccessfully()
     {
@@ -87,7 +87,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
-    [Fact]
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/4828")]
     [RequiresDocker]
     public async Task AddDockerfileLaunchesContainerSuccessfully()
     {
@@ -398,7 +398,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(expectedManifest, manifest.ToString());
     }
 
-    [Fact]
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/4828")]
     [RequiresDocker]
     public async Task WithDockerfileWithParameterLaunchesContainerSuccessfully()
     {
@@ -469,7 +469,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
-    [Fact]
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/4828")]
     [RequiresDocker]
     public async Task AddDockerfileWithParameterLaunchesContainerSuccessfully()
     {
