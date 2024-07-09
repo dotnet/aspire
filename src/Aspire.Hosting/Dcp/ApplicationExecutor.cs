@@ -104,7 +104,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private readonly Channel<LogInformationEntry> _logInformationChannel = Channel.CreateUnbounded<LogInformationEntry>(
         new UnboundedChannelOptions { SingleReader = true });
 
-    private string DefaultContainerHostName => configuration["AppHost:ContainerHostname"] ?? _dcpInfo?.Containers?.ContainerHostName ?? "host.docker.internal";
+    private string DefaultContainerHostName => configuration["AppHost:ContainerHostname"] ?? "host.aspire.internal";
 
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
@@ -1485,11 +1485,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
         }
 
+        dcpContainerResource.Spec.RunArgs ??= [];
+
         // Apply optional extra arguments to the container run command.
         if (modelContainerResource.TryGetAnnotationsOfType<ContainerRuntimeArgsCallbackAnnotation>(out var runArgsCallback))
         {
-            dcpContainerResource.Spec.RunArgs ??= [];
-
             var args = new List<object>();
 
             var containerRunArgsContext = new ContainerRuntimeArgsCallbackContext(args, cancellationToken);
@@ -1515,6 +1515,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
             }
         }
+
+        dcpContainerResource.Spec.RunArgs.Add("--add-host=host.aspire.internal:host-gateway");
 
         var failedToApplyArgs = false;
         if (modelContainerResource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallback))
