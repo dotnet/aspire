@@ -83,6 +83,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
 #endif
 
+        // Don't log routine dashboard HTTP request info or static file access
+        builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning);
+        builder.Logging.AddFilter("Microsoft.AspNetCore.Routing.EndpointMiddleware", LogLevel.Warning);
+        builder.Logging.AddFilter("Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware", LogLevel.Warning);
+
         // Allow for a user specified JSON config file on disk. Throw an error if the specified file doesn't exist.
         if (builder.Configuration[DashboardConfigNames.DashboardConfigFilePathName.ConfigKey] is { Length: > 0 } configFilePath)
         {
