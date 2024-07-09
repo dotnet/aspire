@@ -33,7 +33,7 @@ public class ProjectResourceTests
         var serviceMetadata = Assert.Single(resource.Annotations.OfType<IProjectMetadata>());
         Assert.IsType<TestProject>(serviceMetadata);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Collection(config,
             env =>
@@ -74,7 +74,7 @@ public class ProjectResourceTests
             env =>
             {
                 Assert.Equal("OTEL_RESOURCE_ATTRIBUTES", env.Key);
-                Assert.Equal("service.instance.id={{- .Name -}}", env.Value);
+                Assert.Equal("service.instance.id={{- index .Annotations \"otel-service-instance-id\" -}}", env.Value);
             },
             env =>
             {
@@ -144,7 +144,7 @@ public class ProjectResourceTests
         var resource = Assert.Single(projectResources);
         Assert.Equal("projectName", resource.Name);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         if (hasHeader)
         {
@@ -273,7 +273,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Publish);
 
         Assert.False(config.ContainsKey("ASPNETCORE_URLS"));
         Assert.False(config.ContainsKey("ASPNETCORE_HTTPS_PORT"));
@@ -309,7 +309,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Equal("http://localhost:p0;https://localhost:p1", config["ASPNETCORE_URLS"]);
         Assert.Equal("5001", config["ASPNETCORE_HTTPS_PORT"]);
@@ -331,7 +331,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.False(config.ContainsKey("ASPNETCORE_URLS"));
         Assert.False(config.ContainsKey("ASPNETCORE_HTTPS_PORT"));
@@ -356,7 +356,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Equal("http://localhost:p0", config["ASPNETCORE_URLS"]);
         Assert.False(config.ContainsKey("ASPNETCORE_HTTPS_PORT"));
@@ -413,7 +413,8 @@ public class ProjectResourceTests
               "env": {
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-                "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory"{{fordwardedHeadersEnvVar}}
+                "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory"{{fordwardedHeadersEnvVar}},
+                "HTTP_PORTS": "{projectName.bindings.http.targetPort}"
               },
               "bindings": {
                 "http": {
@@ -463,7 +464,8 @@ public class ProjectResourceTests
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
                 "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
-                "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true"
+                "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+                "HTTP_PORTS": "{projectName.bindings.http.targetPort}"
               },
               "bindings": {
                 "http": {

@@ -38,6 +38,16 @@ Aspire.Azure.Messaging.EventHubs:
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
+Aspire.Azure.Messaging.WebPubSub:
+- Log categories:
+  - "Azure.Core"
+  - "Azure.Identity"
+  - "Azure.Messaging.WebPubSub"
+- Activity source names:
+  - "Azure.Messaging.WebPubSub.*"
+- Metric names:
+  - none (currently not supported by the Azure SDK)
+
 Aspire.Azure.Search.Documents:
 - Log categories:
   - "Azure.Core"

@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Aspire.Dashboard.Components.Controls;
+using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -168,10 +169,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     private void UpdateResourcesList()
     {
         var builder = ImmutableList.CreateBuilder<SelectViewModel<ResourceTypeDetails>>();
-        builder.Add(_noSelection);
 
         foreach (var resourceGroupsByApplicationName in _resourceByName
-            .Where(r => r.Value.State != ResourceStates.HiddenState)
+            .Where(r => !r.Value.IsHiddenState())
             .OrderBy(c => c.Value.Name)
             .GroupBy(r => r.Value.DisplayName, r => r.Value))
         {
@@ -190,13 +190,16 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             }
         }
 
-        _resources = builder.ToImmutable();
+        builder.Sort((r1, r2) => StringComparers.ResourceName.Compare(r1.Name, r2.Name));
+
+        builder.Insert(0, _noSelection);
+        _resources = builder.ToImmutableList();
 
         SelectViewModel<ResourceTypeDetails> ToOption(ResourceViewModel resource, bool isReplica, string applicationName)
         {
             var id = isReplica
                 ? ResourceTypeDetails.CreateReplicaInstance(resource.Name, applicationName)
-                : ResourceTypeDetails.CreateSingleton(resource.Name);
+                : ResourceTypeDetails.CreateSingleton(resource.Name, applicationName);
 
             return new SelectViewModel<ResourceTypeDetails>
             {
@@ -208,12 +211,17 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             {
                 var resourceName = ResourceViewModel.GetResourceName(resource, _resourceByName);
 
-                return resource.State switch
+                if (resource.HasNoState())
                 {
-                    null or { Length: 0 } => $"{resourceName} ({Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)]})",
-                    ResourceStates.RunningState => resourceName,
-                    _ => $"{resourceName} ({resource.State})"
-                };
+                    return $"{resourceName} ({Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)]})";
+                }
+
+                if (resource.IsRunningState())
+                {
+                    return resourceName;
+                }
+
+                return $"{resourceName} ({resource.State})";
             }
         }
     }

@@ -7,16 +7,6 @@
         <target state="translated">Přidat filtr</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsAllApplications">
-        <source>(All)</source>
-        <target state="translated">(Vše)</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="StructuredLogsAllTypes">
-        <source>All</source>
-        <target state="translated">Vše</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsEditFilter">
         <source>Edit filter</source>
         <target state="translated">Upravit filtr</target>

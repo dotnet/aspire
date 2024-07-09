@@ -65,7 +65,7 @@ public class TestProgram : IDisposable
         {
             // Relative to this project so that it doesn't changed based on
             // where this code is referenced from.
-            var path = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\nodeapp");
+            var path = Path.Combine(Projects.TestProject_AppHost.ProjectPath, "..", "nodeapp");
             var scriptPath = Path.Combine(path, "app.js");
 
             NodeAppBuilder = AppBuilder.AddNodeApp("nodeapp", scriptPath)
@@ -80,7 +80,7 @@ public class TestProgram : IDisposable
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea");
             IntegrationServiceABuilder = IntegrationServiceABuilder.WithEnvironment("SKIP_RESOURCES", string.Join(',', resourcesToSkip));
 
-            if (!resourcesToSkip.HasFlag(TestResourceNames.sqlserver))
+            if (!resourcesToSkip.HasFlag(TestResourceNames.sqlserver) || !resourcesToSkip.HasFlag(TestResourceNames.efsqlserver))
             {
                 var sqlserverDbName = "tempdb";
                 var sqlserver = AppBuilder.AddSqlServer("sqlserver")
@@ -142,7 +142,7 @@ public class TestProgram : IDisposable
                 var kafka = AppBuilder.AddKafka("kafka");
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(kafka);
             }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
+            if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos) || !resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
             {
                 var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(cosmos);

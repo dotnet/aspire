@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -53,7 +54,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         _visibleResourceTypes = new(StringComparers.ResourceType);
     }
 
-    private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter)) && resource.State != ResourceStates.HiddenState;
+    private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter)) && !resource.IsHiddenState();
 
     protected Task OnResourceTypeVisibilityChangedAsync(string resourceType, bool isVisible)
     {
@@ -241,7 +242,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         var count = 0;
         foreach (var (_, item) in _resourceByName)
         {
-            if (item.State == ResourceStates.HiddenState)
+            if (item.IsHiddenState())
             {
                 continue;
             }
