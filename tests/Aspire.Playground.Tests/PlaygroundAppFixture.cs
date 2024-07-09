@@ -9,11 +9,11 @@ namespace Aspire.Playground.Tests;
 
 public class PlaygroundAppFixture : IAsyncLifetime
 {
-// #if TESTS_RUNNING_OUTSIDE_OF_REPO
-//     private static bool TestsRunningOutsideOfRepo = true;
-// #else
-//     private static bool TestsRunningOutsideOfRepo;
-// #endif
+#if TESTS_RUNNING_OUTSIDE_OF_REPO
+    private const bool TestsRunningOutsideOfRepo = true;
+#else
+    private const bool TestsRunningOutsideOfRepo = false;
+#endif
 
     // private static readonly bool s_testsRunningOutsideOfRepo = Environment.GetEnvironmentVariable("TESTS_RUNNING_OUTSIDE_OF_REPO") is "true";
 
@@ -39,8 +39,9 @@ public class PlaygroundAppFixture : IAsyncLifetime
         _diagnosticMessageSink = diagnosticMessageSink;
         _testOutput = new TestOutputWrapper(messageSink: _diagnosticMessageSink);
 
-        var repoRoot = TestUtils.FindRepoRoot();
-        _testsRunningOutsideOfRepo = repoRoot is null;
+        // var repoRoot = TestUtils.FindRepoRoot();
+        // _testsRunningOutsideOfRepo = repoRoot is null;
+        _testsRunningOutsideOfRepo = TestsRunningOutsideOfRepo;
         BuildEnvironment = new(useSystemDotNet: !_testsRunningOutsideOfRepo);
         if (_testsRunningOutsideOfRepo)
         {
@@ -49,14 +50,22 @@ public class PlaygroundAppFixture : IAsyncLifetime
                 throw new InvalidOperationException("Expected to have sdk+workload from artifacts when running tests outside of the repo");
             }
 
-            if (EnvironmentVariables.PlaygroundAppsPath is null)
-            {
-                throw new InvalidOperationException("Expected to have the PLAYGROUND_APPS_PATH environment variable set when running tests outside of the repo");
-            }
-            PlaygroundAppsPath = EnvironmentVariables.PlaygroundAppsPath;
+            // if (EnvironmentVariables.PlaygroundAppsPath is null)
+            // {
+            //     PlaygroundAppsPath = Path.Combine(AppContext.BaseDirectory, "archive", "playground");
+            //     if (!Directory.Exists(PlaygroundAppsPath))
+            //     {
+            //         throw new InvalidOperationException($"Expected to have the PLAYGROUND_APPS_PATH environment variable set when running tests outside of the repo, or to find the playground apps in the default location in {PlaygroundAppsPath}");
+            //     }
+            // }
+            // else
+            // {
+            //     PlaygroundAppsPath = EnvironmentVariables.PlaygroundAppsPath;
+            // }
+            PlaygroundAppsPath = Path.Combine(BuildEnvironment.TestAssetsPath, "playground");
             if (!Directory.Exists(PlaygroundAppsPath))
             {
-                throw new ArgumentException($"Cannot find PlaygroundAppsPath={PlaygroundAppsPath}");
+                throw new ArgumentException($"Cannot find PlaygroundAppsPath={PlaygroundAppsPath} under testassets {BuildEnvironment.TestAssetsPath}");
             }
 
             BuildEnvironment.EnvVars["TestsRunningOutsideOfRepo"] = "true";
@@ -64,7 +73,7 @@ public class PlaygroundAppFixture : IAsyncLifetime
             BuildEnvironment.EnvVars["TestAssetsDir"] = BuildEnvironment.TestAssetsPath + "/";
 
             // maps to src/Shared
-            BuildEnvironment.EnvVars["SharedDir"] = Path.GetFullPath(Path.Combine(PlaygroundAppsPath, "..", "Shared-src")) + "/";
+            BuildEnvironment.EnvVars["SharedDir"] = Path.GetFullPath(Path.Combine(BuildEnvironment.TestAssetsPath, "Shared-src")) + "/";
         }
         else
         {
@@ -74,12 +83,13 @@ public class PlaygroundAppFixture : IAsyncLifetime
                 throw new InvalidOperationException("These tests should be run from inside the repo when using `TestsRunningOutsideOfRepo=false`");
             }
 
-            BuildEnvironment.TestAssetsPath = Path.Combine(BuildEnvironment.RepoRoot.FullName, "tests");
-            if (!Directory.Exists(BuildEnvironment.TestAssetsPath))
-            {
-                throw new ArgumentException($"Cannot find TestAssetsPath={BuildEnvironment.TestAssetsPath}");
-            }
+            // BuildEnvironment.TestAssetsPath = Path.Combine(BuildEnvironment.RepoRoot.FullName, "tests-xy");
+            // if (!Directory.Exists(BuildEnvironment.TestAssetsPath))
+            // {
+            //     throw new ArgumentException($"Cannot find TestAssetsPath={BuildEnvironment.TestAssetsPath}");
+            // }
             PlaygroundAppsPath = Path.Combine(BuildEnvironment.RepoRoot.FullName, "playground");
+            // PlaygroundAppsPath = Path.Combine(AppContext.BaseDirectory, "archive", "playground");
             if (!Directory.Exists(PlaygroundAppsPath))
             {
                 throw new ArgumentException($"Cannot find PlaygroundAppsPath={PlaygroundAppsPath}");
