@@ -54,14 +54,10 @@ public static class RedisBuilderExtensions
             containerName ??= $"{builder.Resource.Name}-commander";
 
             var resource = new RedisCommanderResource(containerName);
-            var resourceBuilder = builder.ApplicationBuilder.AddResource(resource)
-                                      .WithImage(RedisContainerImageTags.RedisCommanderImage, RedisContainerImageTags.RedisCommanderTag)
-                                      .WithImageRegistry(RedisContainerImageTags.RedisCommanderRegistry)
-                                      .WithHttpEndpoint(targetPort: 8081, name: "http")
-                                      .ExcludeFromManifest();
+            var resourceBuilder = RedisCommander.WithRedisCommander(builder, resource);
 
             configureContainer?.Invoke(resourceBuilder);
-
+            
             return builder;
         }
     }
@@ -72,13 +68,9 @@ public static class RedisBuilderExtensions
     /// <param name="builder">The resource builder for Redis Commander.</param>
     /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
     /// <returns>The resource builder for PGAdmin.</returns>
-    public static IResourceBuilder<RedisCommanderResource> WithHostPort(this IResourceBuilder<RedisCommanderResource> builder, int? port)
-    {
-        return builder.WithEndpoint("http", endpoint =>
-        {
-            endpoint.Port = port;
-        });
-    }
+    public static IResourceBuilder<RedisCommanderResource> WithHostPort(
+        this IResourceBuilder<RedisCommanderResource> builder, int? port)
+        => RedisCommander.WithHostPort(builder, port);
 
     /// <summary>
     /// Adds a named volume for the data folder to a Redis container resource and enables Redis persistence.

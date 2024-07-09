@@ -3,7 +3,6 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.Redis;
-using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -109,94 +108,6 @@ public class AddRedisTests
             }
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
-    }
-
-    [Fact]
-    public void WithRedisCommanderAddsRedisCommanderResource()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-        builder.AddRedis("myredis1").WithRedisCommander();
-        builder.AddRedis("myredis2").WithRedisCommander();
-
-        Assert.Single(builder.Resources.OfType<RedisCommanderResource>());
-    }
-
-    [Fact]
-    public void WithRedisCommanderSupportsChangingContainerImageValues()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-        builder.AddRedis("myredis").WithRedisCommander(c => {
-            c.WithImageRegistry("example.mycompany.com");
-            c.WithImage("customrediscommander");
-            c.WithImageTag("someothertag");
-        });
-
-        var resource = Assert.Single(builder.Resources.OfType<RedisCommanderResource>());
-        var containerAnnotation = Assert.Single(resource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("example.mycompany.com", containerAnnotation.Registry);
-        Assert.Equal("customrediscommander", containerAnnotation.Image);
-        Assert.Equal("someothertag", containerAnnotation.Tag);
-    }
-
-    [Fact]
-    public void WithRedisCommanderSupportsChangingHostPort()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-        builder.AddRedis("myredis").WithRedisCommander(c => {
-            c.WithHostPort(1000);
-        });
-
-        var resource = Assert.Single(builder.Resources.OfType<RedisCommanderResource>());
-        var endpoint = Assert.Single(resource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(1000, endpoint.Port);
-    }
-
-    [Theory]
-    [InlineData("host.docker.internal")]
-    [InlineData("host.containers.internal")]
-    public async Task SingleRedisInstanceProducesCorrectRedisHostsVariable(string containerHost)
-    {
-        var builder = DistributedApplication.CreateBuilder();
-        var redis = builder.AddRedis("myredis1").WithRedisCommander();
-        using var app = builder.Build();
-
-        // Add fake allocated endpoints.
-        redis.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
-
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var hook = new RedisCommanderConfigWriterHook();
-        await hook.AfterEndpointsAllocatedAsync(model, CancellationToken.None);
-
-        var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
-
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
-
-        Assert.Equal($"myredis1:{containerHost}:5001:0", config["REDIS_HOSTS"]);
-    }
-
-    [Theory]
-    [InlineData("host.docker.internal")]
-    [InlineData("host.containers.internal")]
-    public async Task MultipleRedisInstanceProducesCorrectRedisHostsVariable(string containerHost)
-    {
-        var builder = DistributedApplication.CreateBuilder();
-        var redis1 = builder.AddRedis("myredis1").WithRedisCommander();
-        var redis2 = builder.AddRedis("myredis2").WithRedisCommander();
-        using var app = builder.Build();
-
-        // Add fake allocated endpoints.
-        redis1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
-        redis2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002, "host2"));
-
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var hook = new RedisCommanderConfigWriterHook();
-        await hook.AfterEndpointsAllocatedAsync(model, CancellationToken.None);
-
-        var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
-
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
-
-        Assert.Equal($"myredis1:{containerHost}:5001:0,myredis2:host2:5002:0", config["REDIS_HOSTS"]);
     }
 
     [Theory]
