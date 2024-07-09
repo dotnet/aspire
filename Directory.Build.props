@@ -8,7 +8,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <SharedDir>$(MSBuildThisFileDirectory)/src/Shared/</SharedDir>
     <TestsSharedDir>$([MSBuild]::NormalizeDirectory($(MSBuildThisFileDirectory), 'tests', 'Shared'))</TestsSharedDir>
-    <TestsSharedOutOfRepoDir>$([MSBuild]::NormalizeDirectory($(TestsSharedDir), 'OutOfRepo'))</TestsSharedOutOfRepoDir>
+    <TestsSharedRepoTestingDir>$([MSBuild]::NormalizeDirectory($(TestsSharedDir), 'RepoTesting'))</TestsSharedRepoTestingDir>
     <VendoringDir>$(MSBuildThisFileDirectory)/src/Vendoring/</VendoringDir>
     <!-- Capture PackageIconFullPath into DefaultDotnetIconFullPath before we overwrite PackageIconFullPath. -->
     <!-- DefaultDotnetIconFullPath is only needed for the ServiceDisovery packages. The property can be removed when these libraries move. See https://github.com/dotnet/aspire/issues/170 -->

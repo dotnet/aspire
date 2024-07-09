@@ -1,12 +1,7 @@
 <Project>
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
-  <PropertyGroup>
-    <!--<TestsSharedOutOfRepoDir Condition="'$(TestsSharedOutOfRepoDir)' == '' and '$(RepoRoot)' != ''">$(RepoRoot)tests\Shared\OutOfRepo\</TestsSharedOutOfRepoDir>-->
-    <!--<TestsSharedOutOfRepoDir Condition="'$(TestsSharedOutOfRepoDir)' == '' and '$(RepoRoot)' == ''">$(MSBuildThisFileDirectory)..\</TestsSharedOutOfRepoDir>-->
-  </PropertyGroup>
-
-  <Import Project="$(TestsSharedOutOfRepoDir)TestsRunningOutsideOfRepo.props" />
+  <Import Project="$(TestsSharedRepoTestingDir)Aspire.Testing.Repo.props" />
 
   <PropertyGroup>
     <!-- Set RunSettingsFilePath property which is read by VSTest. -->

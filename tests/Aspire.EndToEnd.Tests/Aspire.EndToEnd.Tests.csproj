@@ -11,10 +11,6 @@
     <TestUsingWorkloads Condition="! ('$(ContinuousIntegrationBuild)' == 'true' and '$(OS)' == 'Windows_NT')">true</TestUsingWorkloads>
     <InstallWorkloadForTesting>$(TestUsingWorkloads)</InstallWorkloadForTesting>
 
-    <TestsRunningOutsideOfRepo Condition="'$(TestsRunningOutsideOfRepo)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</TestsRunningOutsideOfRepo>
-    <!-- FIXME: can this be removed? -->
-    <DefineConstants Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">TESTS_RUNNING_OUTSIDE_OF_REPO;$(DefineConstants)</DefineConstants>
-
     <XunitRunnerJson>xunit.runner.json</XunitRunnerJson>
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
     <TestArchiveTestsDir>$(TestArchiveTestsDirForEndToEndTests)</TestArchiveTestsDir>
@@ -31,7 +27,7 @@
 
     <None Include="$(TestsSharedDir)EmptyProject.proj" Link="testassets\Directory.Build.props" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(TestsSharedDir)EmptyProject.proj" Link="testassets\Directory.Build.targets" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(TestsSharedDir)OutOfRepo\*" Link="testassets\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedRepoTestingDir)\*" Link="testassets\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <None Include="$(GeneratedPackagesVersionsPropsPath)" Link="testassets\Directory.Packages.Versions.props" CopyToOutputDirectory="PreserveNewest" />
 
