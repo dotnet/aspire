@@ -47,7 +47,7 @@
                     },
                     "UseCloud": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the connection to elastic cloud or not.",
+                      "description": "Gets or sets a boolean value that indicates whether the connection should use the elastic cloud or not.",
                       "default": false
                     }
                   },

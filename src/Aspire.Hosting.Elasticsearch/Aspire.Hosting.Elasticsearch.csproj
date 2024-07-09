@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Aspire.Hosting.Elasticsearch.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
   </ItemGroup>
   
   <ItemGroup>
