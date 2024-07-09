@@ -1,15 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Keycloak;
 using Aspire.Hosting.Utils;
 using System.Net.Sockets;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.Tests.Keycloak;
+namespace Aspire.Hosting.Keycloak.Tests;
 
-public class AddKeycloakTests
+public class KeycloakResourceBuilderTests
 {
     [Fact]
     public void AddKeycloakWithDefaultsAddsAnnotationMetadata()
@@ -55,6 +55,21 @@ public class AddKeycloakTests
         Assert.Equal($"Aspire.Hosting.Tests-{resourceName}-data", volumeAnnotation.Source);
         Assert.Equal("/opt/keycloak/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
+        Assert.False(volumeAnnotation.IsReadOnly);
+    }
+
+    [Fact]
+    public void WithDataBindMountAddsMountAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var keycloak = builder.AddKeycloak("keycloak")
+                              .WithDataBindMount("mydata");
+
+        var volumeAnnotation = keycloak.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        Assert.Equal(Path.Combine(builder.AppHostDirectory, "mydata"), volumeAnnotation.Source);
+        Assert.Equal("/opt/keycloak/data", volumeAnnotation.Target);
+        Assert.Equal(ContainerMountType.BindMount, volumeAnnotation.Type);
         Assert.False(volumeAnnotation.IsReadOnly);
     }
 

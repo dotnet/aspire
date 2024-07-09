@@ -69,9 +69,9 @@ var apiService = builder.AddProject<Projects.Keycloak_ApiService>("apiservice")
                         .WithReference(keycloak);
 
 builder.AddProject<Projects.Keycloak_Web>("webfrontend")
-    .WithExternalHttpEndpoints()
-    .WithReference(keycloak)
-    .WithReference(apiService);
+       .WithExternalHttpEndpoints()
+       .WithReference(keycloak)
+       .WithReference(apiService);
 ```
 
 The `WithReference` method configures a connection in the `Keycloak.ApiService` and `Keycloak.Web` projects named `keycloak`.

@@ -31,6 +31,7 @@ public static class KeycloakResouceBuilderExtensions
     /// The default tag is 24.0. The container exposes port 8080 by default.
     /// </remarks>
     /// <example>
+    /// Use in application host
     /// <code lang="csharp">
     /// var keycloak = builder.AddKeycloak("keycloak");
     ///
@@ -85,6 +86,7 @@ public static class KeycloakResouceBuilderExtensions
     /// The volume is mounted at /opt/keycloak/data in the container.
     /// </remarks>
     /// <example>
+    /// Use a data volume
     /// <code lang="csharp">
     /// var keycloak = builder.AddKeycloak("keycloak")
     ///                       .WithDataVolume();
@@ -92,6 +94,25 @@ public static class KeycloakResouceBuilderExtensions
     /// </example>
     public static IResourceBuilder<KeycloakResource> WithDataVolume(this IResourceBuilder<KeycloakResource> builder, string? name = null)
         => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/opt/keycloak/data", false);
+
+    /// <summary>
+    /// Adds a bind mount for the data folder to a Keycloak container resource.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// The source directory is mounted at /opt/keycloak/data in the container.
+    /// </remarks>
+    /// <example>
+    /// Use a bind mount
+    /// <code lang="csharp">
+    /// var keycloak = builder.AddKeycloak("keycloak")
+    ///                       .WithDataBindMount("mydata");
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<KeycloakResource> WithDataBindMount(this IResourceBuilder<KeycloakResource> builder, string source)
+        => builder.WithBindMount(source, "/opt/keycloak/data", false);
 
     /// <summary>
     /// Adds a realm import to a Keycloak container resource.
@@ -104,6 +125,7 @@ public static class KeycloakResouceBuilderExtensions
     /// The realm import files are mounted at /opt/keycloak/data/import in the container.
     /// </remarks>
     /// <example>
+    /// Import the realms from a directory
     /// <code lang="csharp">
     /// var keycloak = builder.AddKeycloak("keycloak")
     ///                       .WithRealmImport("../realms");
