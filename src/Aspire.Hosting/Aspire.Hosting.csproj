@@ -68,7 +68,6 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.Containers.Tests" />
-    <InternalsVisibleTo Include="Aspire.Hosting.Redis.Tests" />
   </ItemGroup>
 
 </Project>

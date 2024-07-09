@@ -74,8 +74,4 @@
     </Content>
   </ItemGroup>
 
-  <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Redis.Tests" />
-  </ItemGroup>
-
 </Project>

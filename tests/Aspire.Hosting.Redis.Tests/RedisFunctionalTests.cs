@@ -80,7 +80,7 @@ public class RedisFunctionalTests
             );
     }
 
-    [Fact(Skip = "Debugging")]
+    [Fact]
     [RequiresDocker]
     public async Task WithDataBindMountShouldPersistStateBetweenUsages()
     {
