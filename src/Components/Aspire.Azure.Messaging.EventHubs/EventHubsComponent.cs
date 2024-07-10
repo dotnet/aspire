@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using Aspire.Azure.Common;
 using Aspire.Azure.Messaging.EventHubs;
 using Azure.Core;
+using Azure.Identity;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
 using HealthChecks.Azure.Messaging.EventHubs;
@@ -23,22 +24,18 @@ internal abstract class EventHubsComponent<TSettings, TClient, TClientOptions> :
 
     protected override IHealthCheck CreateHealthCheck(TClient client, TSettings settings)
     {
-        // if this is a producer client, reuse the instance.
-        if (client is EventHubProducerClient producer)
-        {
-            return new AzureEventHubHealthCheck(producer);
-        }
+        // HealthChecks.Azure.Messaging.EventHubs currently only supports EventHubProducerClient.
+        // https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks/issues/2258 tracks supporting other client types.
 
-        // else create one
-        var probeOptions = new EventHubProducerClientOptions
+        var producerClientOptions = new EventHubProducerClientOptions
         {
             Identifier = $"AspireEventHubHealthCheck-{settings.EventHubName}",
         };
-        var probe = !string.IsNullOrEmpty(settings.ConnectionString) ?
-            new EventHubProducerClient(settings.ConnectionString, probeOptions) :
-            new EventHubProducerClient(settings.FullyQualifiedNamespace, settings.EventHubName, settings.Credential, probeOptions);
+        var producerClient = !string.IsNullOrEmpty(settings.ConnectionString) ?
+            new EventHubProducerClient(settings.ConnectionString, producerClientOptions) :
+            new EventHubProducerClient(settings.FullyQualifiedNamespace, settings.EventHubName, settings.Credential ?? new DefaultAzureCredential(), producerClientOptions);
 
-        return new AzureEventHubHealthCheck(probe);
+        return new AzureEventHubHealthCheck(producerClient);
     }
 
     protected override bool GetHealthCheckEnabled(TSettings settings)
