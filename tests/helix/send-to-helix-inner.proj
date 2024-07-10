@@ -159,7 +159,7 @@
       <HelixPreCommand Include="$(_EnvVarSetKeyword) ASPIRE_DASHBOARD_PATH=$(_SdkForWorkloadTestingPathEnvValue)/packs/$(_DashboardPathInWorkloadPackRelativeDir)" />
 
       <!--<HelixPreCommand Include="$(_EnvVarSetKeyword) ASPIRE_PROJECT_ROOT=$(_HelixCorrelationPayloadEnvVar)/TestingAppHost1" />-->
-      <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="$(_EnvVarSetKeyword) ASPIRE_PROJECT_ROOT=$(HELIX_WORKITEM_ROOT)/testassets/" />
+      <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="$(_EnvVarSetKeyword) ASPIRE_PROJECT_ROOT=$HELIX_WORKITEM_ROOT/testassets/" />
       <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="$(_EnvVarSetKeyword) ASPIRE_PROJECT_ROOT=%HELIX_WORKITEM_ROOT%\testassets" />
     </ItemGroup>
 

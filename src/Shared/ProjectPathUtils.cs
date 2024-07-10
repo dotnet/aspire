@@ -7,15 +7,12 @@ internal static class ProjectPathUtils
 {
     public static string? FindMatchingProjectPath(string? root, string? originalProjectPath, string label = "")
     {
-        if (string.IsNullOrEmpty(root) || string.IsNullOrEmpty(originalProjectPath))
+        if (string.IsNullOrEmpty(root) || !Directory.Exists(root) || string.IsNullOrEmpty(originalProjectPath) || File.Exists(originalProjectPath))
         {
+            Console.WriteLine($"[{label}] root: {root}, originalProjectPath: {originalProjectPath}");
             return originalProjectPath;
         }
 
-        if (File.Exists(originalProjectPath))
-        {
-            return originalProjectPath;
-        }
         // Console.WriteLine($"root: {root}");
         Console.WriteLine($">> [{label}] originalProjectPath: {originalProjectPath}");
 
