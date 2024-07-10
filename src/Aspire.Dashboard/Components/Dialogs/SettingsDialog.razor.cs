@@ -17,7 +17,7 @@ public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
     private IDisposable? _themeChangedSubscription;
 
     [Inject]
-    public required IJSRuntime JS { get; init; }
+    public required IJSRuntime JS { get; set; }
 
     [Inject]
     public required ThemeManager ThemeManager { get; init; }

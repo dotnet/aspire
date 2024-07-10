@@ -24,10 +24,10 @@ public partial class Login : IAsyncDisposable
     public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
-    public required IJSRuntime JS { get; init; }
+    public required IJSRuntime JS { get; set; }
 
     [Inject]
-    public required ILogger<Login> Logger { get; init; }
+    public required ILogger<Login> Logger { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery]

@@ -24,7 +24,7 @@ public partial class FilterDialog
     public FilterDialogViewModel Content { get; set; } = default!;
 
     [Inject]
-    public required TelemetryRepository TelemetryRepository { get; init; }
+    public required TelemetryRepository TelemetryRepository { get; set; }
 
     private LogDialogFormModel _formModel = default!;
     private List<SelectViewModel<string>> _parameters = default!;
