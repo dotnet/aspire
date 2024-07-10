@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
 
+   <IsTestProject>true</IsTestProject>
     <!-- no docker support on helix/windows yet -->
     <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
@@ -22,6 +23,8 @@
     <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(ArchiveTests)' == 'true'">true</ExtractTestClassNamesForHelix>
     <ExtractTestClassNamesPrefix>Aspire.Playground.Tests</ExtractTestClassNamesPrefix>
 
+    <PlaygroundSourceDir>$(RepoRoot)\playground\</PlaygroundSourceDir>
+
     <!--<IncludeTestPackages>true</IncludeTestPackages>-->
   </PropertyGroup>
 
@@ -32,8 +35,18 @@
 
     <None Include="$(RepoRoot)tests\WorkloadTesting\data\**\*" Link="testassets" CopyToOutputDirectory="PreserveNewest" />
 
+    <NonComponentReferenceForTests Include="Aspire.Hosting.Testing" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.Azure" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.NodeJs" />
+
+    <ProjectReference Include="$(PlaygroundSourceDir)**\*.AppHost\*AppHost.csproj" />
+
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
+
+    <Using Include="Aspire.Hosting.Testing" />
+    <Using Include="Xunit" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(ArchiveTests)' == 'true' or '$(TestsRunningOutsideOfRepo)' == 'true'">

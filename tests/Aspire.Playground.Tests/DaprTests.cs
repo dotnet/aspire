@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.MongoDB;
 using Aspire.Workload.Tests;
-using Xunit;
 using Xunit.Abstractions;
 
 namespace Aspire.Playground.Tests;

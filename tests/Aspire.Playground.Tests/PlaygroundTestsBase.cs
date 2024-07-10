@@ -5,7 +5,6 @@ using Microsoft.Playwright;
 // using Xunit;
 using Xunit.Abstractions;
 using Aspire.Workload.Tests;
-using Xunit;
 using static Aspire.Workload.Tests.TestExtensions;
 using System.Text.RegularExpressions;
 

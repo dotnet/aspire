@@ -7,7 +7,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Extensions.Logging.Testing;
 
-public class XunitLoggerProvider : ILoggerProvider
+public sealed class XunitLoggerProvider : ILoggerProvider
 {
     private readonly ITestOutputHelper _output;
     private readonly LogLevel _minLevel;
