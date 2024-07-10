@@ -45,6 +45,9 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
         return new TestDistributedApplicationBuilder(configureOptions);
     }
 
+    public static TestDistributedApplicationBuilder CreateWithTestContainerRegistry() =>
+        Create(o => o.ContainerRegistryOverride = "netaspireci.azurecr.io");
+
     private TestDistributedApplicationBuilder(Action<DistributedApplicationOptions> configureOptions)
     {
         var appAssembly = typeof(TestDistributedApplicationBuilder).Assembly;
