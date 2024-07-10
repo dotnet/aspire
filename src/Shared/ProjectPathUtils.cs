@@ -34,6 +34,7 @@ internal static class ProjectPathUtils
             // prepend the parent name to the relativeParentPath
             relativeParentPath = relativeParentPath.Length == 0 ? parentName : Path.Combine(parentName, relativeParentPath);
 
+            // FIXME: check if this should this be done at the end of the block?
             relativeTargetPath = Path.GetDirectoryName(relativeTargetPath)!;
             Console.WriteLine($"\t%% [{label}] relativePathToTry: {relativeParentPath}");
             if (relativeParentPath == null)
@@ -47,7 +48,7 @@ internal static class ProjectPathUtils
             if (File.Exists(projectPathToTry))
             {
                 Console.WriteLine($"\t\t%% [{label}] Using root: {s_aspireProjectRootEnvVar} => returning {projectPathToTry}");
-                break;
+                return projectPathToTry;
             }
         }
 
