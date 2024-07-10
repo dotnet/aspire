@@ -20,7 +20,7 @@ public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
     public required IJSRuntime JS { get; set; }
 
     [Inject]
-    public required ThemeManager ThemeManager { get; init; }
+    public required ThemeManager ThemeManager { get; set; }
 
     protected override void OnInitialized()
     {
