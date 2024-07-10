@@ -37,10 +37,21 @@
     }
     else
     {
-        <FluentToolbar Orientation="Orientation.Horizontal" Style="@($"grid-area: page-header; {HeaderStyle}")">
-            @PageTitleSection
-            @MobilePageTitleToolbarSection
-        </FluentToolbar>
+        <div style="grid-area: page-header">
+            <FluentToolbar Orientation="Orientation.Horizontal" Style="@HeaderStyle">
+                @PageTitleSection
+
+                @if (!AddNewlineOnToolbar)
+                {
+                    @MobilePageTitleToolbarSection
+                }
+            </FluentToolbar>
+
+            @if (AddNewlineOnToolbar)
+            {
+                <div style="padding: calc(var(--design-unit) * 2.5px)">@MobilePageTitleToolbarSection</div>
+            }
+        </div>
 
         <div style="@GetMobileMainStyle()">@MainSection</div>
 
