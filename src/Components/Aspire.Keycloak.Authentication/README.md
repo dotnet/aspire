@@ -63,7 +63,7 @@ dotnet add package Aspire.Hosting.Keycloak
 Then, in the _Program.cs_ file of `AppHost`, register a Keycloak server and consume the connection using the following methods:
 
 ```csharp
-var keycloak = builder.AddKeycloak("keycloak");
+var keycloak = builder.AddKeycloak("keycloak", 8080);
 
 var apiService = builder.AddProject<Projects.Keycloak_ApiService>("apiservice")
                         .WithReference(keycloak);
@@ -73,6 +73,8 @@ builder.AddProject<Projects.Keycloak_Web>("webfrontend")
        .WithReference(keycloak)
        .WithReference(apiService);
 ```
+
+**Recommendation:** For local development use a stable port for the Keycloak resource (8080 in the example above). It can be any port, but it should be stable to avoid issues with browser cookies that will persist OIDC tokens (which include the authority URL, with port) beyond the lifetime of the AppHost.
 
 The `WithReference` method configures a connection in the `Keycloak.ApiService` and `Keycloak.Web` projects named `keycloak`.
 

@@ -518,7 +518,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Python.Tests
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Valkey.Tests", "tests\Aspire.Hosting.Valkey.Tests\Aspire.Hosting.Valkey.Tests.csproj", "{1C16DC2D-3B79-4081-AC1E-F3F965C61216}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Keycloak", "src\Components\Aspire.Keycloak\Aspire.Keycloak.csproj", "{C87D9F7D-300A-4880-A7E1-835772749912}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Keycloak.Authentication", "src\Components\Aspire.Keycloak.Authentication\Aspire.Keycloak.Authentication.csproj", "{C87D9F7D-300A-4880-A7E1-835772749912}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Keycloak", "src\Aspire.Hosting.Keycloak\Aspire.Hosting.Keycloak.csproj", "{1F8D77E1-AF1B-4CCA-A2CB-12AB40282B40}"
 EndProject
@@ -530,7 +530,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Keycloak.Web", "playground\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Keycloak.AppHost", "playground\keycloak\Keycloak.AppHost\Keycloak.AppHost.csproj", "{C556D61C-7E11-43EC-9098-C8D170FEA905}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Keycloak.Tests", "tests\Aspire.Keycloak.Tests\Aspire.Keycloak.Tests.csproj", "{597838E1-150B-42A9-A542-CE2A6481ABC4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Keycloak.Authentication.Tests", "tests\Aspire.Keycloak.Authentication.Tests\Aspire.Keycloak.Authentication.Tests.csproj", "{597838E1-150B-42A9-A542-CE2A6481ABC4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Keycloak.Tests", "tests\Aspire.Hosting.Keycloak.Tests\Aspire.Hosting.Keycloak.Tests.csproj", "{5867BAF2-FEF0-4661-BFDE-9ADCDC2921CD}"
 EndProject

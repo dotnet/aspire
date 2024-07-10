@@ -10,7 +10,7 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Provides extension methods for adding Keycloak resources to an <see cref="IDistributedApplicationBuilder"/>.
 /// </summary>
-public static class KeycloakResouceBuilderExtensions
+public static class KeycloakResourceBuilderExtensions
 {
     private const string AdminEnvVarName = "KEYCLOAK_ADMIN";
     private const string AdminPasswordEnvVarName = "KEYCLOAK_ADMIN_PASSWORD";

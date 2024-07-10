@@ -8,7 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Xunit;
 
-namespace Aspire.Keycloak.Tests;
+namespace Aspire.Keycloak.Authentication.Tests;
 
 public class AspireKeycloakExtensionTests()
 {
