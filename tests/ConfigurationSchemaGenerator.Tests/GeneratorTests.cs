@@ -999,7 +999,7 @@ public partial class GeneratorTests
     }
 
     [Fact]
-    public void MergesPropertiesAtConfigPathWithDifferentCasing()
+    public void LastUsedCasingOfConfigPathWins()
     {
         var source =
             """
@@ -1058,7 +1058,7 @@ public partial class GeneratorTests
     }
 
     [Fact]
-    public void MergesTypesWithDifferentCasing()
+    public void LastUsedTypeDocumentationWins()
     {
         var source =
             """
@@ -1103,7 +1103,7 @@ public partial class GeneratorTests
     }
 
     [Fact]
-    public void OverwritesPropertyWithDifferentCasing()
+    public void LastUsedCasingOfPropertyWins()
     {
         var source =
             """
@@ -1440,7 +1440,7 @@ public partial class GeneratorTests
     }
 
     [Fact]
-    public void OverwritesLogCategoriesWithDifferentCasing()
+    public void LastUsedCasingOfLogCategoryWins()
     {
         var source =
             """
