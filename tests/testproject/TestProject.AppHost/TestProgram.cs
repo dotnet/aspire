@@ -46,6 +46,8 @@ public class TestProgram : IDisposable
             DisableDashboard = disableDashboard,
             AssemblyName = assemblyName,
             AllowUnsecuredTransport = allowUnsecuredTransport,
+            // do this override ProjectDirectory being set to Aspire.Hosting.Tests
+            ProjectDirectory = Path.GetDirectoryName(Projects.TestProject_AppHost.ProjectPath)
         });
 
         builder.Configuration["DcpPublisher:DeleteResourcesOnShutdown"] = "true";
@@ -54,8 +56,8 @@ public class TestProgram : IDisposable
 
         AppBuilder = builder;
 
-        System.Console.WriteLine($"** TestProgram: ASPIRE_PROJECT_ROOT: {Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT")}");
-        System.Console.WriteLine($"** TestProgram: TestProject_AppHost.ProjectPath: {Projects.TestProject_AppHost.ProjectPath}");
+        // System.Console.WriteLine($"** TestProgram: ASPIRE_PROJECT_ROOT: {Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT")}");
+        // System.Console.WriteLine($"** TestProgram: TestProject_AppHost.ProjectPath: {Projects.TestProject_AppHost.ProjectPath}");
         var serviceAPath = Path.Combine(Path.GetDirectoryName(Projects.TestProject_AppHost.ProjectPath)!, @"..\TestProject.ServiceA\TestProject.ServiceA.csproj");
 
         ServiceABuilder = AppBuilder.AddProject("servicea", serviceAPath, launchProfileName: "http");

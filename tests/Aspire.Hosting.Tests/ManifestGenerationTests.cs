@@ -419,7 +419,7 @@ public class ManifestGenerationTests
               "resources": {
                 "servicea": {
                   "type": "project.v0",
-                  "path": "testproject/TestProject.ServiceA/TestProject.ServiceA.csproj",
+                  "path": "TestProject.ServiceA/TestProject.ServiceA.csproj",
                   "env": {
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
@@ -442,7 +442,7 @@ public class ManifestGenerationTests
                 },
                 "serviceb": {
                   "type": "project.v0",
-                  "path": "testproject/TestProject.ServiceB/TestProject.ServiceB.csproj",
+                  "path": "TestProject.ServiceB/TestProject.ServiceB.csproj",
                   "env": {
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
@@ -465,7 +465,7 @@ public class ManifestGenerationTests
                 },
                 "servicec": {
                   "type": "project.v0",
-                  "path": "testproject/TestProject.ServiceC/TestProject.ServiceC.csproj",
+                  "path": "TestProject.ServiceC/TestProject.ServiceC.csproj",
                   "env": {
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
@@ -490,7 +490,7 @@ public class ManifestGenerationTests
                 },
                 "workera": {
                   "type": "project.v0",
-                  "path": "testproject/TestProject.WorkerA/TestProject.WorkerA.csproj",
+                  "path": "TestProject.WorkerA/TestProject.WorkerA.csproj",
                   "env": {
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
@@ -499,7 +499,7 @@ public class ManifestGenerationTests
                 },
                 "integrationservicea": {
                   "type": "project.v0",
-                  "path": "testproject/TestProject.IntegrationServiceA/TestProject.IntegrationServiceA.csproj",
+                  "path": "TestProject.IntegrationServiceA/TestProject.IntegrationServiceA.csproj",
                   "env": {
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
                     "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
