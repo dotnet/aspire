@@ -128,7 +128,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             StateHasChanged();
         }));
 
-        return Task.CompletedTask;
+        throw new InvalidOperationException("Error!");
     }
 
     protected override async Task OnParametersSetAsync()
