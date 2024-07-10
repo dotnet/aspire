@@ -103,16 +103,14 @@ namespace Projects%3B
 #nullable enable
 ]]>$(AspireGeneratedClassesVisibility)<![CDATA[ class ]]>%(ClassName)<![CDATA[ : global::Aspire.Hosting.IProjectMetadata
 {
-    //private static string? _fixedupProjectPath%3B
+    private static string? _fixedupProjectPath%3B
     public string ProjectPath
     {
         get
         {
-          Console.WriteLine($"** ProjectPath targets for ]]>%(ClassName)<![CDATA[")%3B
             string originalProjectPath = """]]>%(ProjectPath)<![CDATA["""%3B
-            //_fixedupProjectPath ??= FindMatchingProjectPath(Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT"), originalProjectPath, "_CSharpWriteProjectMetadataSources")!%3B
-            return FindMatchingProjectPath(Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT"), originalProjectPath, "_CSharpWriteProjectMetadataSources")!%3B
-            //return _fixedupProjectPath%3B
+            _fixedupProjectPath ??= FindMatchingProjectPath(Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT"), originalProjectPath, "_CSharpWriteProjectMetadataSources-]]>%(ClassName)<![CDATA[")!%3B
+            return _fixedupProjectPath%3B
 
             $(_FindMatchingProjectPathMethodCode)
         }
@@ -158,16 +156,15 @@ namespace Projects%3B
 #nullable enable
 ]]>$(AspireGeneratedClassesVisibility)<![CDATA[ class ]]>%(ClassName)<![CDATA[
 {
-    //private static string? _fixedupProjectPath%3B
+    private static string? _fixedupProjectPath%3B
     private ]]>%(ClassName)<![CDATA[() { }
     public static string ProjectPath
   {
       get
       {
-          Console.WriteLine($"** ProjectPath targets for ]]>%(ClassName)<![CDATA[")%3B
           string originalProjectPath = """]]>%(ProjectPath)<![CDATA["""%3B
-          return FindMatchingProjectPath(Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT"), originalProjectPath, "_CSharpWriteHostProjectMetadataSources")!%3B
-          //return _fixedupProjectPath%3B
+          _fixedupProjectPath ??= FindMatchingProjectPath(Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT"), originalProjectPath, "_CSharpWriteHostProjectMetadataSources-]]>%(ClassName)<![CDATA[")!%3B
+          return _fixedupProjectPath%3B
 
           $(_FindMatchingProjectPathMethodCode)
       }

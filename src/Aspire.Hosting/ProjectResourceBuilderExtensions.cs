@@ -254,7 +254,7 @@ public static class ProjectResourceBuilderExtensions
 
         var project = new ProjectResource(name);
 
-        System.Console.WriteLine($"** AddProject projectPath: {projectPath}, and apphostdir: {builder.AppHostDirectory}");
+        // System.Console.WriteLine($"** AddProject projectPath: {projectPath}, and apphostdir: {builder.AppHostDirectory}");
         projectPath = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectPath));
 
         return builder.AddResource(project)
