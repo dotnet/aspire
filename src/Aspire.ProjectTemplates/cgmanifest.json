@@ -60,15 +60,6 @@
             "component": {
                 "type": "nuget",
                 "nuget": {
-                    "name": "Microsoft.Extensions.ServiceDiscovery",
-                    "version": "8.6.0"
-                }
-            }
-        },
-        {
-            "component": {
-                "type": "nuget",
-                "nuget": {
                     "name": "Microsoft.NET.Test.Sdk",
                     "version": "17.10.0"
                 }
