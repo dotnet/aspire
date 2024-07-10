@@ -32,7 +32,7 @@ internal sealed class ProjectMetadata(string projectPath) : IProjectMetadata
     {
         get
         {
-            _fixedupProjectPath ??= ProjectPathUtils.FindMatchingProjectPath(Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT"), _originalProjectPath, "ProjectMetadata")!;
+            _fixedupProjectPath ??= ProjectPathUtils.FindMatchingProjectPath(_originalProjectPath, "ProjectMetadata")!;
             return _fixedupProjectPath!;
         }
     }

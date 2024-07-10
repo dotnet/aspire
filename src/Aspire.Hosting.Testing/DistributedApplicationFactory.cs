@@ -190,7 +190,7 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
 
         static string? GetProjectPath(string? _originalProjectPath)
         {
-            return ProjectPathUtils.FindMatchingProjectPath(Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT"), _originalProjectPath, nameof(DistributedApplicationFactory));
+            return ProjectPathUtils.FindMatchingProjectPath(_originalProjectPath, nameof(DistributedApplicationFactory));
         }
     }
 

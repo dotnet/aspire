@@ -73,7 +73,7 @@ public sealed class DistributedApplicationOptions
 
         static string? GetProjectPath(string? _originalProjectPath)
         {
-            return ProjectPathUtils.FindMatchingProjectPath(Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT"), _originalProjectPath, nameof(DistributedApplicationOptions))!;
+            return ProjectPathUtils.FindMatchingProjectPath(_originalProjectPath, nameof(DistributedApplicationOptions))!;
         }
     }
 

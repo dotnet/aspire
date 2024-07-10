@@ -5,15 +5,16 @@ namespace Aspire.Common.Internal;
 
 internal static class ProjectPathUtils
 {
-    public static string? FindMatchingProjectPath(string? root, string? originalProjectPath, string label = "")
+    private static readonly string? s_aspireProjectRootEnvVar = Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT");
+    public static string? FindMatchingProjectPath(string? originalProjectPath, string label = "")
     {
-        if (string.IsNullOrEmpty(root) || !Directory.Exists(root) || string.IsNullOrEmpty(originalProjectPath) || File.Exists(originalProjectPath))
+        if (string.IsNullOrEmpty(s_aspireProjectRootEnvVar) || !Directory.Exists(s_aspireProjectRootEnvVar) || string.IsNullOrEmpty(originalProjectPath) || File.Exists(originalProjectPath))
         {
-            Console.WriteLine($"[{label}] root: {root}, originalProjectPath: {originalProjectPath}");
+            Console.WriteLine($"[{label}] root: {s_aspireProjectRootEnvVar}, originalProjectPath: {originalProjectPath}");
             return originalProjectPath;
         }
 
-        // Console.WriteLine($"root: {root}");
+        // Console.WriteLine($"s_aspireProjectRootEnvVar: {root}");
         Console.WriteLine($">> [{label}] originalProjectPath: {originalProjectPath}");
 
         string filename = Path.GetFileName(originalProjectPath);
@@ -40,12 +41,12 @@ internal static class ProjectPathUtils
                 break;
             }
 
-            string projectPathToTry = Path.Combine(root, relativeParentPath, filename);
+            string projectPathToTry = Path.Combine(s_aspireProjectRootEnvVar, relativeParentPath, filename);
             Console.WriteLine($"\t%% [{label}] projectPathToTry: {projectPathToTry}");
 
             if (File.Exists(projectPathToTry))
             {
-                Console.WriteLine($"\t\t%% [{label}] Using root: {root} => returning {projectPathToTry}");
+                Console.WriteLine($"\t\t%% [{label}] Using root: {s_aspireProjectRootEnvVar} => returning {projectPathToTry}");
                 break;
             }
         }
