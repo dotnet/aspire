@@ -12,6 +12,10 @@ internal static class ProjectPathUtils
             return originalProjectPath;
         }
 
+        if (File.Exists(originalProjectPath))
+        {
+            return originalProjectPath;
+        }
         // Console.WriteLine($"root: {root}");
         Console.WriteLine($">> [{label}] originalProjectPath: {originalProjectPath}");
 

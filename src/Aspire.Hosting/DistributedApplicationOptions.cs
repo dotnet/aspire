@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
+using Aspire.Common.Internal;
 
 namespace Aspire.Hosting;
 
@@ -67,23 +68,12 @@ public sealed class DistributedApplicationOptions
     private string? ResolveProjectDirectory()
     {
         var assemblyMetadata = Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
-        return GetProjectPath(GetMetadataValue(assemblyMetadata, "AppHostProjectPath"));
+        string? projectPath = GetProjectPath(GetMetadataValue(assemblyMetadata, "AppHostProjectPath"));
+        return projectPath != null ? Path.GetDirectoryName(projectPath) : null;
 
         static string? GetProjectPath(string? _originalProjectPath)
         {
-            if (_originalProjectPath is null)
-            {
-                return null;
-            }
-
-            string? root = Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT");
-            if (string.IsNullOrEmpty(root))
-            {
-                return _originalProjectPath;
-            }
-            string projectPath = Path.Combine(root, Path.GetFileName(Path.GetDirectoryName(_originalProjectPath)!), Path.GetFileName(_originalProjectPath));
-            System.Console.WriteLine($"ResolveProjectPath: Using root: {root}, and returning {projectPath}");
-            return projectPath;
+            return ProjectPathUtils.FindMatchingProjectPath(Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT"), _originalProjectPath, nameof(DistributedApplicationOptions))!;
         }
     }
 

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Common.Internal;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Configuration;
 
@@ -26,18 +27,13 @@ public interface IProjectMetadata : IResourceAnnotation
 internal sealed class ProjectMetadata(string projectPath) : IProjectMetadata
 {
     private readonly string _originalProjectPath = projectPath;
+    private string? _fixedupProjectPath;
     public string ProjectPath
     {
         get
         {
-            string? root = Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT");
-            if (string.IsNullOrEmpty(root))
-            {
-                return _originalProjectPath;
-            }
-            string projectPath = Path.Combine(root, Path.GetFileName(Path.GetDirectoryName(_originalProjectPath)!), Path.GetFileName(_originalProjectPath));
-            System.Console.WriteLine($"Using root: {root}, and returning {projectPath}");
-            return projectPath;
+            _fixedupProjectPath ??= ProjectPathUtils.FindMatchingProjectPath(Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT"), _originalProjectPath, "ProjectMetadata")!;
+            return _fixedupProjectPath!;
         }
     }
 }

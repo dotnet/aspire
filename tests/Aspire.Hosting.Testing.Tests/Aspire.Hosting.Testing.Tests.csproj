@@ -29,4 +29,7 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(ArchiveTests)' == 'true'">
+    <None Include="..\TestingAppHost1\**\*" Link="testassets\TestingAppHost1\%(RecursiveDir)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

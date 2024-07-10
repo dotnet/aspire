@@ -54,7 +54,9 @@ public class TestProgram : IDisposable
 
         AppBuilder = builder;
 
-        var serviceAPath = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\TestProject.ServiceA\TestProject.ServiceA.csproj");
+        System.Console.WriteLine($"** TestProgram: ASPIRE_PROJECT_ROOT: {Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT")}");
+        System.Console.WriteLine($"** TestProgram: TestProject_AppHost.ProjectPath: {Projects.TestProject_AppHost.ProjectPath}");
+        var serviceAPath = Path.Combine(Path.GetDirectoryName(Projects.TestProject_AppHost.ProjectPath)!, @"..\TestProject.ServiceA\TestProject.ServiceA.csproj");
 
         ServiceABuilder = AppBuilder.AddProject("servicea", serviceAPath, launchProfileName: "http");
         ServiceBBuilder = AppBuilder.AddProject<Projects.ServiceB>("serviceb", launchProfileName: "http");
@@ -65,7 +67,7 @@ public class TestProgram : IDisposable
         {
             // Relative to this project so that it doesn't changed based on
             // where this code is referenced from.
-            var path = Path.Combine(Projects.TestProject_AppHost.ProjectPath, "..", "nodeapp");
+            var path = Path.Combine(Path.GetDirectoryName(Projects.TestProject_AppHost.ProjectPath)!, "..", "nodeapp");
             var scriptPath = Path.Combine(path, "app.js");
 
             NodeAppBuilder = AppBuilder.AddNodeApp("nodeapp", scriptPath)
