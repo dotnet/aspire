@@ -128,6 +128,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         }
 
         var ownsPathSegment = false;
+        string? backupCasingOfPathSegmentName = null;
         if (propertiesNode[pathSegment] is not JsonObject pathSegmentNode)
         {
             if (isAsterisk)
@@ -139,6 +140,21 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
                 pathSegmentNode = new JsonObject();
                 propertiesNode[pathSegment] = pathSegmentNode;
                 ownsPathSegment = true;
+            }
+        }
+        else
+        {
+            backupCasingOfPathSegmentName = propertiesNode[pathSegment].GetPropertyName();
+
+            if (backupCasingOfPathSegmentName != pathSegment)
+            {
+                // Re-add existing node, so the new casing of pathSegment is used.
+                propertiesNode.Remove(pathSegment);
+                propertiesNode[pathSegment] = pathSegmentNode;
+            }
+            else
+            {
+                backupCasingOfPathSegmentName = null;
             }
         }
 
@@ -154,6 +170,13 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             else if (ownsPathSegment)
             {
                 propertiesNode.Remove(pathSegment);
+            }
+            else if (backupCasingOfPathSegmentName != null)
+            {
+                // Revert casing change of pathSegment.
+                var existingValue = propertiesNode[pathSegment];
+                propertiesNode.Remove(pathSegment);
+                propertiesNode[backupCasingOfPathSegmentName] = existingValue;
             }
         }
 

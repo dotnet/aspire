@@ -1003,8 +1003,9 @@ public partial class GeneratorTests
     {
         var source =
             """
-            [assembly: Aspire.ConfigurationSchema("One:Two:Three", typeof(TestSettings1))]
-            [assembly: Aspire.ConfigurationSchema("ONE:two:THREE", typeof(TestSettings2))]
+            [assembly: Aspire.ConfigurationSchema("ONE:two:THREE", typeof(TestSettings1))]
+            [assembly: Aspire.ConfigurationSchema("One:Two:Three", typeof(TestSettings2))]
+            [assembly: Aspire.ConfigurationSchema("one:TWO:three", typeof(Empty))]
 
             public record TestSettings1
             {
@@ -1017,6 +1018,8 @@ public partial class GeneratorTests
                 /// <summary>2</summary>
                 public int? TestProperty2 { get; set; }
             }
+            
+            public record Empty;
             """;
 
         var schema = GenerateSchemaFromCode(source, []);
