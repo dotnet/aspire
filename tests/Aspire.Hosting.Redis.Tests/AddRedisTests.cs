@@ -2,13 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using Aspire.Hosting.Redis;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace Aspire.Hosting.Tests.Redis;
+namespace Aspire.Hosting.Redis.Tests;
 
 public class AddRedisTests
 {
@@ -125,7 +125,8 @@ public class AddRedisTests
     public void WithRedisCommanderSupportsChangingContainerImageValues()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.AddRedis("myredis").WithRedisCommander(c => {
+        builder.AddRedis("myredis").WithRedisCommander(c =>
+        {
             c.WithImageRegistry("example.mycompany.com");
             c.WithImage("customrediscommander");
             c.WithImageTag("someothertag");
@@ -142,7 +143,8 @@ public class AddRedisTests
     public void WithRedisCommanderSupportsChangingHostPort()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.AddRedis("myredis").WithRedisCommander(c => {
+        builder.AddRedis("myredis").WithRedisCommander(c =>
+        {
             c.WithHostPort(1000);
         });
 
@@ -169,7 +171,10 @@ public class AddRedisTests
 
         var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            commander,
+            DistributedApplicationOperation.Run,
+            TestServiceProvider.Instance);
 
         Assert.Equal($"myredis1:{containerHost}:5001:0", config["REDIS_HOSTS"]);
     }
@@ -194,7 +199,10 @@ public class AddRedisTests
 
         var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            commander,
+            DistributedApplicationOperation.Run,
+            TestServiceProvider.Instance);
 
         Assert.Equal($"myredis1:{containerHost}:5001:0,myredis2:host2:5002:0", config["REDIS_HOSTS"]);
     }

@@ -53,7 +53,6 @@
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
-    <PackageReference Include="Newtonsoft.Json.Schema" />
 
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Garnet\GarnetContainerImageTags.cs" />
@@ -63,6 +62,7 @@
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.MongoDB\MongoDBContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Oracle\OracleContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.RabbitMQ\RabbitMQContainerImageTags.cs" />
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Redis\RedisContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Qdrant\QdrantContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.SqlServer\SqlServerContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Valkey\ValkeyContainerImageTags.cs" />

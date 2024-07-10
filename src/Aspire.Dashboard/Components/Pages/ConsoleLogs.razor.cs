@@ -183,7 +183,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     private void UpdateResourcesList()
     {
         var builder = ImmutableList.CreateBuilder<SelectViewModel<ResourceTypeDetails>>();
-        builder.Add(_noSelection);
 
         foreach (var resourceGroupsByApplicationName in _resourceByName
             .Where(r => !r.Value.IsHiddenState())
@@ -205,13 +204,16 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             }
         }
 
-        _resources = builder.ToImmutable();
+        builder.Sort((r1, r2) => StringComparers.ResourceName.Compare(r1.Name, r2.Name));
+
+        builder.Insert(0, _noSelection);
+        _resources = builder.ToImmutableList();
 
         SelectViewModel<ResourceTypeDetails> ToOption(ResourceViewModel resource, bool isReplica, string applicationName)
         {
             var id = isReplica
                 ? ResourceTypeDetails.CreateReplicaInstance(resource.Name, applicationName)
-                : ResourceTypeDetails.CreateSingleton(resource.Name);
+                : ResourceTypeDetails.CreateSingleton(resource.Name, applicationName);
 
             return new SelectViewModel<ResourceTypeDetails>
             {

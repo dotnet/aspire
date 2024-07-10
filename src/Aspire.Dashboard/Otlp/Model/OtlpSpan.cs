@@ -35,22 +35,22 @@ public class OtlpSpan
     public required KeyValuePair<string, string>[] Attributes { get; init; }
     public required List<OtlpSpanEvent> Events { get; init; }
 
-    public string ScopeName => Trace.TraceScope.ScopeName;
-    public string ScopeSource => Source.ApplicationName;
+    public OtlpScope Scope { get; }
     public TimeSpan Duration => EndTime - StartTime;
 
     public IEnumerable<OtlpSpan> GetChildSpans() => Trace.Spans.Where(s => s.ParentSpanId == SpanId);
     public OtlpSpan? GetParentSpan() => string.IsNullOrEmpty(ParentSpanId) ? null : Trace.Spans.Where(s => s.SpanId == ParentSpanId).FirstOrDefault();
 
-    public OtlpSpan(OtlpApplication application, OtlpTrace trace)
+    public OtlpSpan(OtlpApplication application, OtlpTrace trace, OtlpScope scope)
     {
         Source = application;
         Trace = trace;
+        Scope = scope;
     }
 
     public static OtlpSpan Clone(OtlpSpan item, OtlpTrace trace)
     {
-        return new OtlpSpan(item.Source, trace)
+        return new OtlpSpan(item.Source, trace, item.Scope)
         {
             SpanId = item.SpanId,
             ParentSpanId = item.ParentSpanId,

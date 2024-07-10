@@ -229,9 +229,21 @@ internal sealed class DashboardClient : IDashboardClient
 
         async Task ConnectAndWatchResourcesAsync(CancellationToken cancellationToken)
         {
-            await ConnectAsync().ConfigureAwait(false);
+            try
+            {
+                await ConnectAsync().ConfigureAwait(false);
 
-            await WatchResourcesWithRecoveryAsync().ConfigureAwait(false);
+                await WatchResourcesWithRecoveryAsync().ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // Ignore. This is likely caused by the dashboard client being disposed. We don't want to log.
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading data from the resource service.");
+                throw;
+            }
 
             async Task ConnectAsync()
             {

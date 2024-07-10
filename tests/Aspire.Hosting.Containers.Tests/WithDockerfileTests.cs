@@ -822,28 +822,33 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
     private const string DefaultMessage = "aspire!";
 
     private const string HelloWorldDockerfile = $$"""
-        FROM mcr.microsoft.com/k8se/quickstart:latest AS builder
+        FROM mcr.microsoft.com/cbl-mariner/base/nginx:1.22 AS builder
         ARG MESSAGE=aspire!
-        RUN echo !!!CACHEBUSTER!!! > /app/static/cachebuster.txt
-        RUN echo ${MESSAGE} > /app/static/aspire.html
+        RUN mkdir -p /usr/share/nginx/html
+        RUN echo !!!CACHEBUSTER!!! > /usr/share/nginx/html/cachebuster.txt
+        RUN echo ${MESSAGE} > /usr/share/nginx/html/aspire.html
 
-        FROM mcr.microsoft.com/k8se/quickstart:latest AS runner
+        FROM mcr.microsoft.com/cbl-mariner/base/nginx:1.22 AS runner
         ARG MESSAGE
-        COPY --from=builder /app/static/cachebuster.txt /app/static
-        COPY --from=builder /app/static/aspire.html /app/static
+        RUN mkdir -p /usr/share/nginx/html
+        COPY --from=builder /usr/share/nginx/html/cachebuster.txt /usr/share/nginx/html
+        COPY --from=builder /usr/share/nginx/html/aspire.html /usr/share/nginx/html
         """;
 
     private const string HelloWorldDockerfileWithSecrets = $$"""
-        FROM mcr.microsoft.com/k8se/quickstart:latest AS builder
+        FROM mcr.microsoft.com/cbl-mariner/base/nginx:1.22 AS builder
         ARG MESSAGE=aspire!
-        RUN echo !!!CACHEBUSTER!!! > /app/static/cachebuster.txt
-        RUN echo ${MESSAGE} > /app/static/aspire.html
+        RUN mkdir -p /usr/share/nginx/html
+        RUN echo !!!CACHEBUSTER!!! > /usr/share/nginx/html/cachebuster.txt
+        RUN echo ${MESSAGE} > /usr/share/nginx/html/aspire.html
 
-        FROM mcr.microsoft.com/k8se/quickstart:latest AS runner
+        FROM mcr.microsoft.com/cbl-mariner/base/nginx:1.22 AS runner
         ARG MESSAGE
-        COPY --from=builder /app/static/cachebuster.txt /app/static
-        COPY --from=builder /app/static/aspire.html /app/static
-        RUN --mount=type=secret,id=FILE_SECRET cp /run/secrets/FILE_SECRET /app/static/FILE_SECRET.txt
-        RUN --mount=type=secret,id=ENV_SECRET cp /run/secrets/ENV_SECRET /app/static/ENV_SECRET.txt
+        RUN mkdir -p /usr/share/nginx/html
+        COPY --from=builder /usr/share/nginx/html/cachebuster.txt /usr/share/nginx/html
+        COPY --from=builder /usr/share/nginx/html/aspire.html /usr/share/nginx/html
+        RUN --mount=type=secret,id=FILE_SECRET cp /run/secrets/FILE_SECRET /usr/share/nginx/html/FILE_SECRET.txt
+        RUN --mount=type=secret,id=ENV_SECRET cp /run/secrets/ENV_SECRET /usr/share/nginx/html/ENV_SECRET.txt
+        RUN chmod -R 777 /usr/share/nginx/html
         """;
 }

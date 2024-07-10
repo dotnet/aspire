@@ -5,14 +5,14 @@
   <Import Project="eng/Versions.props" Condition="'$(MajorVersion)' == '' and Exists('eng/Versions.props')" />
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <TestcontainersPackageVersion>3.8.0</TestcontainersPackageVersion>
+    <TestcontainersPackageVersion>3.9.0</TestcontainersPackageVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- AWS SDK for .NET dependencies -->
-    <PackageVersion Include="AWSSDK.CloudFormation" Version="3.7.308.9" />
-    <PackageVersion Include="AWSSDK.SQS" Version="3.7.301.17" />
-    <PackageVersion Include="AWSSDK.SimpleNotificationService" Version="3.7.301.52" />
-    <PackageVersion Include="AWSSDK.Core" Version="3.7.304.14" />
+    <PackageVersion Include="AWSSDK.CloudFormation" Version="3.7.308.18" />
+    <PackageVersion Include="AWSSDK.SQS" Version="3.7.301.26" />
+    <PackageVersion Include="AWSSDK.SimpleNotificationService" Version="3.7.301.61" />
+    <PackageVersion Include="AWSSDK.Core" Version="3.7.304.23" />
     <PackageVersion Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.301" />
     <PackageVersion Include="AWS.Messaging" Version="0.9.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AWS" Version="1.1.0-beta.4" />
@@ -92,8 +92,8 @@
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(MicrosoftExtensionsTimeProviderTestingVersion)" />
     <!-- external dependencies -->
     <PackageVersion Include="Confluent.Kafka" Version="2.4.0" />
-    <PackageVersion Include="Dapper" Version="2.1.37" />
-    <PackageVersion Include="DnsClient" Version="1.7.0" />
+    <PackageVersion Include="Dapper" Version="2.1.44" />
+    <PackageVersion Include="DnsClient" Version="1.8.0" />
     <PackageVersion Include="Google.Protobuf" Version="3.27.1" />
     <PackageVersion Include="Grpc.AspNetCore" Version="2.63.0" />
     <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.63.0" />
@@ -101,23 +101,23 @@
     <PackageVersion Include="Humanizer.Core" Version="2.14.1" />
     <PackageVersion Include="KubernetesClient" Version="14.0.2" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="5.2.1" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.8.1" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.8.0" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.7.2" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.7.2" />
     <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1"/>
-    <PackageVersion Include="MongoDB.Driver" Version="2.25.0" />
+    <PackageVersion Include="MongoDB.Driver" Version="2.27.0" />
     <PackageVersion Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" Version="1.4.0" />
     <PackageVersion Include="MySqlConnector.DependencyInjection" Version="2.3.6" />
     <PackageVersion Include="MySqlConnector.Logging.Microsoft.Extensions.Logging" Version="2.1.0" />
-    <PackageVersion Include="NATS.Net" Version="2.2.3" />
+    <PackageVersion Include="NATS.Net" Version="2.3.0" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.3" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
     <PackageVersion Include="Oracle.EntityFrameworkCore" Version="8.23.40" />
-    <PackageVersion Include="Polly.Core" Version="8.4.0" />
-    <PackageVersion Include="Polly.Extensions" Version="8.4.0" />
+    <PackageVersion Include="Polly.Core" Version="8.4.1" />
+    <PackageVersion Include="Polly.Extensions" Version="8.4.1" />
     <PackageVersion Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
-    <PackageVersion Include="Qdrant.Client" Version="1.9.0" />
+    <PackageVersion Include="Qdrant.Client" Version="1.10.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="[6.8.1,7.0.0)" />
-    <PackageVersion Include="StackExchange.Redis" Version="2.7.33" />
+    <PackageVersion Include="StackExchange.Redis" Version="2.8.0" />
     <PackageVersion Include="System.IO.Hashing" Version="8.0.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.1.0" />
     <!-- Open Telemetry -->
@@ -125,7 +125,7 @@
     <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.9.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.9.0" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.9.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.8.0-beta.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.9.0-beta.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.9.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.9.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.9.0" />
@@ -136,15 +136,15 @@
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Workloads" Version="8.0.0-beta.23564.4" />
     <PackageVersion Include="Microsoft.Signed.Wix" Version="$(MicrosoftSignedWixVersion)" />
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Installers" Version="8.0.0-beta.23564.4" />
-    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.24209.3" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.24324.3" />
     <!-- unit test dependencies -->
     <PackageVersion Include="bUnit" Version="1.28.9" />
-    <PackageVersion Include="JsonSchema.Net" Version="7.0.4" />
+    <PackageVersion Include="JsonSchema.Net" Version="7.1.2" />
     <PackageVersion Include="Microsoft.DotNet.RemoteExecutor" Version="$(MicrosoftDotNetRemoteExecutorPackageVersion)" />
     <PackageVersion Include="Microsoft.DotNet.XUnitExtensions" Version="$(MicrosoftDotNetXUnitExtensionsPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="$(MicrosoftExtensionsDiagnosticsTestingPackageVersion)" />
     <PackageVersion Include="Microsoft.NET.Runtime.WorkloadTesting.Internal" Version="$(MicrosoftNETRuntimeWorkloadTestingInternalVersion)" />
-    <PackageVersion Include="Microsoft.Playwright" Version="1.44.0" />
+    <PackageVersion Include="Microsoft.Playwright" Version="1.45.0" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageVersion Include="Testcontainers.MongoDb" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.MsSql" Version="$(TestcontainersPackageVersion)" />
@@ -164,6 +164,5 @@
     <PackageVersion Include="Microsoft.Orleans.Sdk" Version="8.1.0" />
     <!-- Pinned version for Component Governance - Remove when root dependencies are updated -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageVersion Include="Newtonsoft.Json.Schema" Version="4.0.1" />
   </ItemGroup>
 </Project>
