@@ -93,7 +93,8 @@ public partial class MobileNavMenu : ComponentBase
 
     private static Regex GetNonIndexPageRegex(string pageRelativeBasePath)
     {
-        return new Regex($"^({pageRelativeBasePath}|{pageRelativeBasePath}/.+)$");
+        pageRelativeBasePath = Regex.Escape(pageRelativeBasePath);
+        return new Regex($"^({pageRelativeBasePath}|{pageRelativeBasePath}/.+)$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
     }
 }
 

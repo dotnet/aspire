@@ -7,7 +7,7 @@ namespace Aspire.Dashboard.Model;
 
 public class LogViewerViewModel
 {
-    public LogEntries LogEntries { get; }= new();
+    public LogEntries LogEntries { get; } = new();
     public string? ResourceName { get; set; }
 
 }

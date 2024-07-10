@@ -8,9 +8,11 @@ namespace Aspire.Dashboard.Components.Resize;
 
 public class BrowserDimensionWatcher : ComponentBase
 {
-    [Parameter] public ViewportInformation? ViewportInformation { get; set; }
+    [Parameter]
+    public ViewportInformation? ViewportInformation { get; set; }
 
-    [Parameter] public EventCallback<ViewportInformation?> ViewportInformationChanged { get; set; }
+    [Parameter]
+    public EventCallback<ViewportInformation?> ViewportInformationChanged { get; set; }
 
     [Inject] public required IJSRuntime JS { get; init; }
 

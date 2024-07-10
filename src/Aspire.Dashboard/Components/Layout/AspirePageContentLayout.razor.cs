@@ -13,23 +13,38 @@ public partial class AspirePageContentLayout : ComponentBase
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 
-    [Parameter] public required RenderFragment PageTitleSection { get; set; }
+    [Parameter]
+    public required RenderFragment PageTitleSection { get; set; }
 
-    [Parameter] public RenderFragment? MobilePageTitleToolbarSection { get; set; }
+    [Parameter]
+    public RenderFragment? MobilePageTitleToolbarSection { get; set; }
 
-    [Parameter] public RenderFragment? ToolbarSection { get; set; }
-    [Parameter] public bool AddNewlineOnToolbar { get; set; }
+    [Parameter]
+    public RenderFragment? ToolbarSection { get; set; }
 
-    [Parameter] public RenderFragment? MainSection { get; set; }
+    [Parameter]
+    public bool AddNewlineOnToolbar { get; set; }
 
-    [Parameter] public RenderFragment? FooterSection { get; set; }
-    [Parameter] public bool ShouldShowFooter { get; set; } = true;
-    [Parameter] public string? MobileToolbarButtonText { get; set; }
+    [Parameter]
+    public RenderFragment? MainSection { get; set; }
 
-    [Parameter] public string? HeaderStyle { get; set; }
-    [Parameter] public string? MainContentStyle { get; set; }
+    [Parameter]
+    public RenderFragment? FooterSection { get; set; }
 
-    [Parameter] public bool IsSummaryDetailsViewOpen { get; set; }
+    [Parameter]
+    public bool ShouldShowFooter { get; set; } = true;
+
+    [Parameter]
+    public string? MobileToolbarButtonText { get; set; }
+
+    [Parameter]
+    public string? HeaderStyle { get; set; }
+
+    [Parameter]
+    public string? MainContentStyle { get; set; }
+
+    [Parameter]
+    public bool IsSummaryDetailsViewOpen { get; set; }
 
     [Inject]
     public required IDialogService DialogService { get; init; }
@@ -41,7 +56,7 @@ public partial class AspirePageContentLayout : ComponentBase
 
     public bool IsToolbarPanelOpen => _toolbarPanel is not null;
 
-    public List<Func<Task>> DialogCloseListeners { get; } = new();
+    public Dictionary<string, Func<Task>> DialogCloseListeners { get; } = new();
 
     protected override async Task OnParametersSetAsync()
     {
@@ -95,10 +110,12 @@ public partial class AspirePageContentLayout : ComponentBase
 
     private async Task InvokeListeners()
     {
-        foreach (var dialogCloseListener in DialogCloseListeners)
+        foreach (var dialogCloseListener in DialogCloseListeners.Values)
         {
             await dialogCloseListener.Invoke();
         }
+
+        DialogCloseListeners.Clear();
     }
 
     public record MobileToolbar(RenderFragment ToolbarSection, string MobileToolbarButtonText);
