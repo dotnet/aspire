@@ -103,7 +103,7 @@ public static class ValkeyBuilderExtensions
     /// Use <see cref="WithPersistence(IResourceBuilder{ValkeyResource}, TimeSpan?, long)"/> to adjust Valkey persistence configuration, e.g.:
     /// <code lang="csharp">
     /// var valkey = builder.AddValkey("valkey")
-    ///                    .WithDataBindMount()
+    ///                    .WithDataBindMount("mydata")
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
     /// </code>
     /// </example>

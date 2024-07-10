@@ -199,6 +199,10 @@ public class BuildEnvironment
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Error deleting '{TestRootPath}'.", ex);
+            }
         }
     }
 

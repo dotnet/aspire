@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.Testing" Version="!!REPLACE_WITH_LATEST_VERSION!!" />
-    <PackageReference Include="MSTest" Version="3.1.1" />
+    <PackageReference Include="MSTest" Version="3.4.3" />
   </ItemGroup>
 
   <ItemGroup>
