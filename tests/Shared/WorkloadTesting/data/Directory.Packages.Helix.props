@@ -79,11 +79,15 @@
   </ItemGroup>
 
   <ItemGroup Label="For tests">
-    <PackageVersion Include="xunit" Version="$(XunitPackageVersion)" />
-    <PackageVersion Include="xunit.assert" Version="$(XunitPackageVersion)" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="$(XunitRunnerVisualStudioPackageVersion)" />
-    <PackageVersion Include="xunit.runner.console" Version="$(XunitPackageVersion)" />
-    <PackageVersion Include="mstest.testadapter" Version="$(MSTestTestAdapterPackageVersion)" />
+    <PackageVersion Include="xunit" Version="$(XunitVersion)" />
+    <PackageVersion Include="xunit.core" Version="$(XunitVersion)" />
+    <PackageVersion Include="xunit.analyzers" Version="$(XunitAnalyzersVersion)" />
+    <PackageVersion Include="xunit.assert" Version="$(XunitVersion)" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="$(XunitRunnerVisualStudioVersion)" />
+    <PackageVersion Include="xunit.runner.console" Version="$(XunitVersion)" />
+
+    <PackageVersion Include="mstest.testadapter" Version="$(MSTestTestAdapterVersion)" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftNETTestSdkPackageVersion)" />
+    <PackageVersion Include="Microsoft.DotNet.XUnitAssert" Version="$(MicrosoftDotNetXUnitAssertVersion)" />
   </ItemGroup>
 </Project>

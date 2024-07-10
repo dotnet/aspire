@@ -6,10 +6,11 @@ using System.Text.Json;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
+using SamplesIntegrationTests;
 using SamplesIntegrationTests.Infrastructure;
 using Xunit.Abstractions;
 
-namespace SamplesIntegrationTests;
+namespace Aspire.Playground.Tests;
 
 public class AppHostTests(ITestOutputHelper testOutput)
 {
@@ -133,11 +134,7 @@ public class AppHostTests(ITestOutputHelper testOutput)
         new TheoryData<TestEndpoints>()
         {
             new TestEndpoints("Mongo.AppHost", new() {
-                { "catalogdbmanager", ["/alive", "/health"] },
-                { "catalogservice", ["/alive", "/health"] },
-                // Can't send non-gRPC requests over non-TLS connection to the BasketService unless client is manually configured to use HTTP/2
-                //{ "basketservice", ["/alive", "/health"] },
-                { "frontend", ["/alive", "/health", "/"] }
+                { "api", ["/alive", "/health"] },
             }),
         };
 

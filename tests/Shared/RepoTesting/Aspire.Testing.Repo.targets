@@ -17,10 +17,23 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true' and '$(IncludeTestPackages)' == 'true'">
+    <!-- FIXME: compare with the set added by arcade -->
     <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.core" />
+    <PackageReference Include="xunit.analyzers" />
     <PackageReference Include="xunit.assert" />
     <PackageReference Include="xunit.runner.visualstudio" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <!-- <PackageReference Include="Microsoft.NET.Test.Sdk" /> -->
+    <PackageReference Include="Microsoft.DotNet.XUnitAssert" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PropertyForHelixRun Include="XunitVersion" />
+    <PropertyForHelixRun Include="XunitAnalyzersVersion" />
+    <PropertyForHelixRun Include="XunitRunnerVisualStudioVersion" />
+    <PropertyForHelixRun Include="MSTestTestAdapterVersion" />
+    <PropertyForHelixRun Include="MicrosoftNETTestSdkVersion" />
+    <PropertyForHelixRun Include="MicrosoftDotNetXUnitAssertVersion" />
   </ItemGroup>
 
   <PropertyGroup>

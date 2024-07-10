@@ -3,14 +3,14 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
 
-   <IsTestProject>true</IsTestProject>
+    <IsTestProject>true</IsTestProject>
     <!-- no docker support on helix/windows yet -->
     <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
 
     <!-- no docker support on helix/windows yet -->
-    <TestUsingWorkloads Condition="! ('$(ContinuousIntegrationBuild)' == 'true' and '$(OS)' == 'Windows_NT')">true</TestUsingWorkloads>
-    <InstallWorkloadForTesting>$(TestUsingWorkloads)</InstallWorkloadForTesting>
+    <!-- <TestUsingWorkloads Condition="! ('$(ContinuousIntegrationBuild)' == 'true' and '$(OS)' == 'Windows_NT')">true</TestUsingWorkloads> -->
+    <!-- <InstallWorkloadForTesting>$(TestUsingWorkloads)</InstallWorkloadForTesting> -->
 
     <TestsRunningOutsideOfRepo Condition="'$(TestsRunningOutsideOfRepo)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</TestsRunningOutsideOfRepo>
     <!--<DefineConstants Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">TESTS_RUNNING_OUTSIDE_OF_REPO;$(DefineConstants)</DefineConstants>-->
@@ -20,27 +20,30 @@
     <TestArchiveTestsDir>$(TestArchiveTestsDirForPlaygroundTests)</TestArchiveTestsDir>
     <!--<TestsArchiveSourceDir>$(ArtifactsObjDir)staging-archive\$(MSBuildProjectName)\</TestsArchiveSourceDir>-->
 
-    <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(ArchiveTests)' == 'true'">true</ExtractTestClassNamesForHelix>
-    <ExtractTestClassNamesPrefix>Aspire.Playground.Tests</ExtractTestClassNamesPrefix>
+    <!-- <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(ArchiveTests)' == 'true'">true</ExtractTestClassNamesForHelix> -->
+    <!-- <ExtractTestClassNamesPrefix>Aspire.Playground.Tests</ExtractTestClassNamesPrefix> -->
 
-    <PlaygroundSourceDir>$(RepoRoot)\playground\</PlaygroundSourceDir>
+    <PlaygroundSourceDir Condition="'$(PlaygroundSourceDir)' == '' and '$(TestsRunningOutsideOfRepo)' != 'true'">$(RepoRoot)\playground\</PlaygroundSourceDir>
+    <PlaygroundSourceDir Condition="'$(PlaygroundSourceDir)' == '' and '$(TestsRunningOutsideOfRepo)' == 'true'">..\playground\</PlaygroundSourceDir>
+    <SharedDir Condition="'$(SharedDir)' == '' and '$(TestsRunningOutsideOfRepo)' == 'true'">..\Shared-src\</SharedDir>
 
-    <!--<IncludeTestPackages>true</IncludeTestPackages>-->
+    <IncludeTestPackages>true</IncludeTestPackages>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting.MongoDB\MongoDBContainerImageTags.cs" />
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Qdrant\QdrantContainerImageTags.cs" />
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Nats\NatsContainerImageTags.cs" />
+    <!-- <Compile Include="$(RepoRoot)src\Aspire.Hosting.MongoDB\MongoDBContainerImageTags.cs" /> -->
+    <!-- <Compile Include="$(RepoRoot)src\Aspire.Hosting.Qdrant\QdrantContainerImageTags.cs" /> -->
+    <!-- <Compile Include="$(RepoRoot)src\Aspire.Hosting.Nats\NatsContainerImageTags.cs" /> -->
 
-    <None Include="$(RepoRoot)tests\WorkloadTesting\data\**\*" Link="testassets" CopyToOutputDirectory="PreserveNewest" />
+    <!-- <None Include="$(RepoRoot)tests\Shared\**\*" Link="testassets\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" /> -->
 
     <NonComponentReferenceForTests Include="Aspire.Hosting.Testing" />
     <NonComponentReferenceForTests Include="Aspire.Hosting.Azure" />
     <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" />
     <NonComponentReferenceForTests Include="Aspire.Hosting.NodeJs" />
 
-    <ProjectReference Include="$(PlaygroundSourceDir)**\*.AppHost\*AppHost.csproj" />
+    <!-- <ProjectReference Include="$(PlaygroundSourceDir)**\*.AppHost\*AppHost.csproj" /> -->
+    <ProjectReference Include="$(PlaygroundSourceDir)mongo\Mongo.AppHost\Mongo.AppHost.csproj" />
 
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
@@ -49,8 +52,9 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(ArchiveTests)' == 'true' or '$(TestsRunningOutsideOfRepo)' == 'true'">
+  <ItemGroup Condition="'$(ArchiveTests)' == 'true'">
     <None Include="$(RepoRoot)playground\**\*" Link="testassets\playground\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(MSBuildProjectDirectory)\**\*" Link="testassets\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)src\Shared\**\*" Link="testassets\Shared-src\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <!-- helps to isolate the build -->
@@ -65,12 +69,8 @@
     <None Include="$(TestsSharedDir)WorkloadTesting\data\Directory.Packages.Helix.props" Link="testassets\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <!-- FIXME: are these really needed? - um .. for test projects where the sdk would add the references! -->
-    <PropertyForHelixRun Include="XunitPackageVersion" />
-    <PropertyForHelixRun Include="XunitRunnerVisualStudioPackageVersion" />
-    <PropertyForHelixRun Include="XunitPackageVersion" />
-    <PropertyForHelixRun Include="MSTestTestAdapterPackageVersion" />
-    <PropertyForHelixRun Include="MicrosoftNETTestSdkPackageVersion" />
+    <PropertyForHelixRun Include="NetCurrent" />
   </ItemGroup>
 
-  <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" />
+  <!-- <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" /> -->
 </Project>
