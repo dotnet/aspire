@@ -128,7 +128,7 @@ internal class ConfigureDefaultDcpOptions(
             Console.WriteLine ($"Using dcpDir: {dcpDir}");
             if (!string.IsNullOrEmpty(dcpDir))
             {
-                options.CliPath = Path.Combine(dcpDir, "dcp");
+                options.CliPath = Path.Combine(dcpDir, "dcp") + (OperatingSystem.IsWindows() ? ".exe" : "");
                 options.ExtensionsPath = Path.Combine(dcpDir, "ext");
                 options.BinPath = Path.Combine(options.ExtensionsPath, "bin");
             }
