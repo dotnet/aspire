@@ -4,17 +4,17 @@
   <!-- when in-repo then use this. for out-of-repo a parent DBprops does the import -->
   <Import Project="$(TestsSharedRepoTestingDir)Aspire.Testing.Repo.targets" Condition="'$(RepoRoot)' != ''" />
 
-  <PropertyGroup Condition="'$(BuildForTest)' == 'true'">
-    <DefineConstants>BUILD_FOR_TEST;$(DefineConstants)</DefineConstants>
-    <TestAssetsDir Condition="'$(TestAssetsDir)' == '' and '$(RepoRoot)' != ''">$(TestsSharedDir)WorkloadTesting\data\</TestAssetsDir>
-  </PropertyGroup>
+  <!--<PropertyGroup Condition="'$(BuildForTest)' == 'true'">-->
+    <!--<DefineConstants>BUILD_FOR_TEST;$(DefineConstants)</DefineConstants>-->
+    <!--<TestAssetsDir Condition="'$(TestAssetsDir)' == '' and '$(RepoRoot)' != ''">$(TestsSharedDir)WorkloadTesting\data\</TestAssetsDir>-->
+  <!--</PropertyGroup>-->
 
-  <ItemGroup Condition="'$(BuildForTest)' == 'true'">
-    <Compile Include="$(TestAssetsDir)EndPointWriterHook_cs" Link="EndPointWriterHook.cs" Condition="'$(IsAspireHost)' == 'true'"/>
-  </ItemGroup>
+  <!--<ItemGroup Condition="'$(BuildForTest)' == 'true'">-->
+    <!--<Compile Include="$(TestAssetsDir)EndPointWriterHook_cs" Link="EndPointWriterHook.cs" Condition="'$(IsAspireHost)' == 'true'"/>-->
+  <!--</ItemGroup>-->
 
-  <ItemGroup Condition="'$(BuildForTest)' == 'true' and '$(IsAspireHost)' == 'true'">
-    <Using Include="Aspire.Hosting.Lifecycle" />
-  </ItemGroup>
+  <!--<ItemGroup Condition="'$(BuildForTest)' == 'true' and '$(IsAspireHost)' == 'true'">-->
+    <!--<Using Include="Aspire.Hosting.Lifecycle" />-->
+  <!--</ItemGroup>-->
 
 </Project>
