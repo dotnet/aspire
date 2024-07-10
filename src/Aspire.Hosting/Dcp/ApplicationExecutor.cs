@@ -1036,23 +1036,29 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             else
             {
                 exeSpec.ExecutionType = ExecutionType.Process;
-                if (configuration.GetBool("DOTNET_WATCH") is not true)
+                if (project.TryGetLastAnnotation<DotnetWatchAnnotation>(out var dwa))
                 {
-                    exeSpec.Args = [
+                    exeSpec.Args =
+                    [
+                        "watch",
+                        "--non-interactive",
+                        "--project",
+                        projectMetadata.ProjectPath
+                    ];
+
+                    if (dwa.EnableHotReload)
+                    {
+                        exeSpec.Args.Add("--no-hot-reload");
+                    }
+                }
+                else
+                {
+                    exeSpec.Args =
+                    [
                         "run",
                         "--no-build",
                         "--project",
                         projectMetadata.ProjectPath,
-                    ];
-                }
-                else
-                {
-                    exeSpec.Args = [
-                        "watch",
-                        "--non-interactive",
-                        "--no-hot-reload",
-                        "--project",
-                        projectMetadata.ProjectPath
                     ];
                 }
 

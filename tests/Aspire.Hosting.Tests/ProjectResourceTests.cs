@@ -192,6 +192,25 @@ public class ProjectResourceTests
     }
 
     [Fact]
+    public void DotnetWatchConfigurationAddsAnnotationToProject()
+    {
+        var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Run);
+
+        appBuilder.Configuration["DOTNET_WATCH"] = "1";
+
+        appBuilder.AddProject<Projects.ServiceA>("projectName");
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        Assert.Contains(resource.Annotations, a => a is DotnetWatchAnnotation { EnableHotReload: false });
+    }
+
+    [Fact]
     public void WithLaunchProfile_ApplicationUrlTrailingSemiColon_Ignore()
     {
         var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Run);
