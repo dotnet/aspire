@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using System.Text.Json;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
