@@ -170,6 +170,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddScoped<BrowserTimeProvider>();
 
         builder.Services.AddScoped<LogViewerViewModel>();
+        builder.Services.AddScoped<CurrentChartViewModel>();
 
         builder.Services.AddScoped<DimensionManager>();
 

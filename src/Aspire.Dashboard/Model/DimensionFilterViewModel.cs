@@ -6,11 +6,6 @@ using Aspire.Dashboard.Extensions;
 
 namespace Aspire.Dashboard.Model;
 
-public class CounterChartViewModel
-{
-    public List<DimensionFilterViewModel> DimensionFilters { get; } = new();
-}
-
 [DebuggerDisplay("{DebuggerToString(),nq}")]
 public class DimensionFilterViewModel
 {

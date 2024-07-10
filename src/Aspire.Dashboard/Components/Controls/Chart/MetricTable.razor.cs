@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using Aspire.Dashboard.Components.Controls.Chart;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
@@ -20,7 +21,6 @@ public partial class MetricTable : ChartBase
 
     private OtlpInstrument? _instrument;
     private bool _showCount;
-    private bool _onlyShowValueChanges = true;
     private DateTimeOffset? _lastUpdate;
 
     private readonly CancellationTokenSource _waitTaskCancellationTokenSource = new();
@@ -29,6 +29,9 @@ public partial class MetricTable : ChartBase
 
     [Inject]
     public required IJSRuntime JS { get; init; }
+
+    [Inject]
+    public required CurrentChartViewModel ChartViewModel { get; init; }
 
     protected override async Task OnChartUpdated(List<ChartTrace> traces, List<DateTimeOffset> xValues, bool tickUpdate, DateTimeOffset inProgressDataTime)
     {
@@ -113,7 +116,7 @@ public partial class MetricTable : ChartBase
                     continue;
                 }
 
-                if (_onlyShowValueChanges && valueDiffs.All(diff => DoubleEquals(diff, 0)))
+                if (ChartViewModel.OnlyShowValueChangesInTable && valueDiffs.All(diff => DoubleEquals(diff, 0)))
                 {
                     continue;
                 }
@@ -147,7 +150,7 @@ public partial class MetricTable : ChartBase
                     continue;
                 }
 
-                if (_onlyShowValueChanges && DoubleEquals(valueDiff, 0d))
+                if (ChartViewModel.OnlyShowValueChangesInTable && DoubleEquals(valueDiff, 0d))
                 {
                     continue;
                 }
