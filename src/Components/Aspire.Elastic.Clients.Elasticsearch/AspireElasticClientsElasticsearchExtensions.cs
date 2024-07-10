@@ -25,8 +25,7 @@ public static class AspireElasticClientsElasticsearchExtensions
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientSettings">An optional delegate that can be used for customizing ElasticsearchClientSettings.</param>
-    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="ElasticClientsElasticsearchSettings.ConnectionString"/> is not provided.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="ElasticClientsElasticsearchSettings.Cloud"/> is not provided and <see cref="ElasticClientsElasticsearchSettings.UseCloud" /> is true .</exception>
+    /// <exception cref="InvalidOperationException">If required ConnectionString is not provided in configuration section</exception>
     public static void AddElasticsearchClient(
         this IHostApplicationBuilder builder,
         string connectionName,
@@ -41,8 +40,7 @@ public static class AspireElasticClientsElasticsearchExtensions
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientSettings">An optional delegate that can be used for customizing ElasticsearchClientSettings.</param>
-    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="ElasticClientsElasticsearchSettings.ConnectionString"/> is not provided.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="ElasticClientsElasticsearchSettings.Cloud"/> is not provided and <see cref="ElasticClientsElasticsearchSettings.UseCloud" /> is true .</exception>
+    /// <exception cref="InvalidOperationException">If required ConnectionString is not provided in configuration section</exception>
     public static void AddKeyedElasticsearchClient(
         this IHostApplicationBuilder builder,
         string name,
@@ -75,22 +73,18 @@ public static class AspireElasticClientsElasticsearchExtensions
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
-            settings.ConnectionString = connectionString;
+            settings.ParseConnectionString(connectionString);
         }
 
         configureSettings?.Invoke(settings);
 
-        var elasticsearchClientSettings = CreateElasticsearchClientSettings(settings, connectionName, configurationSectionName);
-
-        configureClientSettings?.Invoke(elasticsearchClientSettings);
-
         if (serviceKey is null)
         {
-            builder.Services.AddSingleton<ElasticsearchClient>(sp => new ElasticsearchClient(elasticsearchClientSettings));
+            builder.Services.AddSingleton<ElasticsearchClient>(CreateElasticsearchClient);
         }
         else
         {
-            builder.Services.AddKeyedSingleton<ElasticsearchClient>(serviceKey, (sp, key) => new ElasticsearchClient(elasticsearchClientSettings));
+            builder.Services.AddKeyedSingleton<ElasticsearchClient>(serviceKey, (sp, key) => CreateElasticsearchClient(sp));
         }
 
         if (!settings.DisableTracing)
@@ -114,6 +108,15 @@ public static class AspireElasticClientsElasticsearchExtensions
                 timeout: settings.HealthCheckTimeout > 0 ? TimeSpan.FromMilliseconds(settings.HealthCheckTimeout.Value) : null
                 ));
         }
+
+        ElasticsearchClient CreateElasticsearchClient(IServiceProvider serviceProvider)
+        {
+            var elasticsearchClientSettings = CreateElasticsearchClientSettings(settings, connectionName, configurationSectionName);
+
+            configureClientSettings?.Invoke(elasticsearchClientSettings);
+
+            return new ElasticsearchClient(elasticsearchClientSettings);
+        }
     }
 
     private static ElasticsearchClientSettings CreateElasticsearchClientSettings(
@@ -121,29 +124,18 @@ public static class AspireElasticClientsElasticsearchExtensions
         string connectionName,
         string configurationSectionName)
     {
-        if (settings.UseCloud)
+        if (settings.Endpoint is not null)
         {
-            if (settings.Cloud is null)
-            {
-                throw new InvalidOperationException($"No Cloud specified. Ensure a valid cloudId and api key was provided in '{configurationSectionName}:Cloud' configuration key.");
-            }
-            if (settings.Cloud.CloudId is null)
-            {
-                throw new InvalidOperationException($"No CloudId specified. Ensure a valid cloudId provided in '{configurationSectionName}:Cloud:CloudId' configuration key.");
-            }
-            if (settings.Cloud.ApiKey is null)
-            {
-                throw new InvalidOperationException($"No ApiKey specified. Ensure a valid api key provided in '{configurationSectionName}:Cloud:ApiKey' configuration key.");
-            }
-            return new(settings.Cloud.CloudId, new ApiKey(settings.Cloud.ApiKey));
+            return new ElasticsearchClientSettings(settings.Endpoint);
         }
-        else
+        else if (settings.CloudId is not null && settings.ApiKey is not null)
         {
-            if (settings.ConnectionString is null)
-            {
-                throw new InvalidOperationException($"No ConnectionString specified. Ensure a valid connection string was provided in 'ConnectionStrings:{connectionName}' or for the '{configurationSectionName}:ConnectionString' configuration key.");
-            }
-            return new(new Uri(settings.ConnectionString));
+            return new(settings.CloudId, new ApiKey(settings.ApiKey));
         }
+
+        throw new InvalidOperationException(
+                      $"A ElasticsearchClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or either " +
+                      $"{nameof(settings.Endpoint)} must be provided " +
+                      $"in the '{configurationSectionName}' configuration section.");
     }
 }

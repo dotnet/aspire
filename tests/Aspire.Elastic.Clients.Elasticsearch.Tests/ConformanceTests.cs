@@ -38,8 +38,8 @@ public class ConformanceTests : ConformanceTests<ElasticsearchClient, ElasticCli
 
         configuration.AddInMemoryCollection(
             [
-                new KeyValuePair<string, string?>(CreateConfigKey("Aspire:Elastic:Clients:Elasticsearch", key, "ConnectionString"), connectionString),
-                new KeyValuePair<string, string?>($"ConnectionStrings:{key}", connectionString)
+                new KeyValuePair<string, string?>(CreateConfigKey("Aspire:Elastic:Clients:Elasticsearch", key, "Endpoint"), connectionString),
+                new KeyValuePair<string, string?>($"ConnectionStrings:{key}", $"Endpoint={connectionString}")
             ]);
     }
 
@@ -54,6 +54,29 @@ public class ConformanceTests : ConformanceTests<ElasticsearchClient, ElasticCli
             builder.AddKeyedElasticsearchClient(key, configure);
         }
     }
+
+    protected override string ValidJsonConfig => """
+                                                 {
+                                                   "Aspire": {
+                                                     "Elastic": {
+                                                       "Clients": {
+                                                         "Elasticsearch": {
+                                                           "Endpoint": "http://localhost:6334",
+                                                           "DisableHealthChecks": true,
+                                                           "DisableTracing": false,
+                                                           "DisableMetrics": false
+                                                         }
+                                                       }
+                                                     }
+                                                   }
+                                                 }
+                                                 """;
+
+    protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
+      {
+            ("""{"Aspire": { "Elastic":{ "Clients": { "Elasticsearch": { "Endpoint": 0 }}}}}""", "Value is \"integer\" but should be \"string\""),
+            ("""{"Aspire": { "Elastic":{ "Clients": { "Elasticsearch": { "Endpoint": "hello" }}}}}""", "Value does not match format \"uri\"")
+        };
 
     protected override void SetHealthCheck(ElasticClientsElasticsearchSettings options, bool enabled)
     {

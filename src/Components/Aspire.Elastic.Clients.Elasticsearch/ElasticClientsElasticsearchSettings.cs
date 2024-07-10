@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Data.Common;
+
 namespace Aspire.Elastic.Clients.Elasticsearch;
 
 /// <summary>
@@ -8,10 +10,10 @@ namespace Aspire.Elastic.Clients.Elasticsearch;
 /// </summary>
 public sealed class ElasticClientsElasticsearchSettings
 {
-    /// <summary>
-    /// Gets or sets the comma-delimited configuration string used to connect to the Elasticsearch.
-    /// </summary>
-    public string? ConnectionString { get; set; }
+
+    private const string ConnectionStringEndpoint = "Endpoint";
+    private const string ConnectionStringApiKey = "ApiKey";
+    private const string ConnectionStringCloudId = "CloudId";
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the Elasticsearch health check is disabled or not.
@@ -35,18 +37,47 @@ public sealed class ElasticClientsElasticsearchSettings
     public int? HealthCheckTimeout { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the connection should use the elastic cloud or not.
+    /// The endpoint URI string of the Elasticsearch to connect to.
     /// </summary>
-    /// <value>
-    /// The default value is <see langword="false"/>.
-    /// </value>
-    /// <remarks>
-    /// Set value <see langword="true"/> when you want to use elastic cloud and provide api key and elasticId in <see cref="ElasticClientsElasticsearchSettings.Cloud"/>.
-    /// </remarks>
-    public bool UseCloud { get; set; }
+    public Uri? Endpoint { get; set; }
 
     /// <summary>
-    /// Gets or sets cloud connection setting that indicates the connection to elastic cloud.
+    /// The API Key of the Elastic Cloud to connect to.
     /// </summary>
-    public ElasticClientsElasticsearchCloudSettings? Cloud { get; set; }
+    public string? ApiKey { get; set; }
+
+    /// <summary>
+    /// The CloudId of the Elastic Cloud to connect to.
+    /// </summary>
+    public string? CloudId { get; set; }
+
+    internal void ParseConnectionString(string? connectionString)
+    {
+        if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+        {
+            Endpoint = uri;
+        }
+        else
+        {
+            var connectionBuilder = new DbConnectionStringBuilder
+            {
+                ConnectionString = connectionString
+            };
+
+            if (connectionBuilder.ContainsKey(ConnectionStringEndpoint) && Uri.TryCreate(connectionBuilder[ConnectionStringEndpoint].ToString(), UriKind.Absolute, out var serviceUri))
+            {
+                Endpoint = serviceUri;
+            }
+
+            if (connectionBuilder.ContainsKey(ConnectionStringApiKey))
+            {
+                ApiKey = connectionBuilder[ConnectionStringApiKey].ToString();
+            }
+
+            if (connectionBuilder.ContainsKey(ConnectionStringCloudId))
+            {
+                CloudId = connectionBuilder[ConnectionStringCloudId].ToString();
+            }
+        }
+    }
 }

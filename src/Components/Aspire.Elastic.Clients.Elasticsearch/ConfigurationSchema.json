@@ -13,23 +13,13 @@
                 "Elasticsearch": {
                   "type": "object",
                   "properties": {
-                    "Cloud": {
-                      "type": "object",
-                      "properties": {
-                        "ApiKey": {
-                          "type": "string",
-                          "description": "Gets or sets a string value that indicates the ApiKey to use when connecting to elastic cloud."
-                        },
-                        "CloudId": {
-                          "type": "string",
-                          "description": "Gets or sets a string value that indicates the CloudId to use when connecting to elastic cloud."
-                        }
-                      },
-                      "description": "Gets or sets cloud connection setting that indicates the connection to elastic cloud."
-                    },
-                    "ConnectionString": {
+                    "ApiKey": {
                       "type": "string",
-                      "description": "Gets or sets the comma-delimited configuration string used to connect to the Elasticsearch."
+                      "description": "The API Key of the Elastic Cloud to connect to."
+                    },
+                    "CloudId": {
+                      "type": "string",
+                      "description": "The CloudId of the Elastic Cloud to connect to."
                     },
                     "DisableHealthChecks": {
                       "type": "boolean",
@@ -41,14 +31,14 @@
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
                       "default": false
                     },
+                    "Endpoint": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "The endpoint URI string of the Elasticsearch to connect to."
+                    },
                     "HealthCheckTimeout": {
                       "type": "integer",
                       "description": "Gets or sets a integer value that indicates the Elasticsearch health check timeout in milliseconds."
-                    },
-                    "UseCloud": {
-                      "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the connection should use the elastic cloud or not.",
-                      "default": false
                     }
                   },
                   "description": "Provides the client configuration settings for connecting to a Elasticsearch using Elastic.Clients.Elasticsearch."

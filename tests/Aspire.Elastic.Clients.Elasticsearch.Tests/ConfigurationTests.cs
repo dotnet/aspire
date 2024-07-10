@@ -8,8 +8,8 @@ namespace Aspire.Elastic.Clients.Elasticsearch.Tests;
 public class ConfigurationTests
 {
     [Fact]
-    public void ConnectionStringIsNullByDefault() =>
-        Assert.Null(new ElasticClientsElasticsearchSettings().ConnectionString);
+    public void EndpointIsNullByDefault() =>
+        Assert.Null(new ElasticClientsElasticsearchSettings().Endpoint);
 
     [Fact]
     public void HealthChecksEnabledByDefault() =>
