@@ -38,6 +38,16 @@ Aspire.Azure.Messaging.EventHubs:
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
+Aspire.Azure.Messaging.WebPubSub:
+- Log categories:
+  - "Azure.Core"
+  - "Azure.Identity"
+  - "Azure.Messaging.WebPubSub"
+- Activity source names:
+  - "Azure.Messaging.WebPubSub.*"
+- Metric names:
+  - none (currently not supported by the Azure SDK)
+
 Aspire.Azure.Search.Documents:
 - Log categories:
   - "Azure.Core"
@@ -151,6 +161,14 @@ Aspire.Microsoft.EntityFrameworkCore.SqlServer:
   - "OpenTelemetry.Instrumentation.SqlClient"
 - Metric names:
   - none
+
+Aspire.Milvus.Client:
+- Log categories:
+  "Milvus.Client"
+- Activity source names:
+  - none (not currently supported by Milvus.Client library) 
+- Metric names:
+  - none (currently not supported by Milvus.Client library)
 
 Aspire.MySqlConnector:
 - Log categories:

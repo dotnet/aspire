@@ -16,7 +16,7 @@ public static class RabbitMQBuilderExtensions
     /// Adds a RabbitMQ container to the application model.
     /// </summary>
     /// <remarks>
-    /// The default image and tag are "rabbitmq" and "3".
+    /// The default image and tag are "rabbitmq" and "3.13".
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -81,6 +81,20 @@ public static class RabbitMQBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Thrown when the current container image and tag do not match the defaults for <see cref="RabbitMQServerResource"/>.</exception>
     public static IResourceBuilder<RabbitMQServerResource> WithManagementPlugin(this IResourceBuilder<RabbitMQServerResource> builder)
+        => builder.WithManagementPlugin(port: null);
+
+    /// <inheritdoc cref="WithManagementPlugin(IResourceBuilder{RabbitMQServerResource})" />
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="port">The host port that can be used to access the management UI page when running locally.</param>
+    /// <example>
+    /// Use <see cref="WithManagementPlugin(IResourceBuilder{RabbitMQServerResource}, int?)"/> to specify a port to access the RabbitMQ management UI page.
+    /// <code>
+    /// var rabbitmq = builder.AddRabbitMQ("rabbitmq")
+    ///                       .WithDataVolume()
+    ///                       .WithManagementPlugin(port: 15672);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<RabbitMQServerResource> WithManagementPlugin(this IResourceBuilder<RabbitMQServerResource> builder, int? port)
     {
         var handled = false;
         var containerAnnotations = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().ToList();
@@ -128,7 +142,7 @@ public static class RabbitMQBuilderExtensions
 
         if (handled)
         {
-            builder.WithHttpEndpoint(targetPort: 15672, name: RabbitMQServerResource.ManagementEndpointName);
+            builder.WithHttpEndpoint(port: port, targetPort: 15672, name: RabbitMQServerResource.ManagementEndpointName);
             return builder;
         }
 
@@ -166,7 +180,7 @@ public static class RabbitMQBuilderExtensions
         for (var i = 1; i < tag.Length; i++)
         {
             var c = tag[i];
-            
+
             if (!(char.IsAsciiDigit(c) || c == '.') // Interim chars must be digits or a period
                 || !lastCharIsDigit && c == '.') // '.' can only follow a digit
             {

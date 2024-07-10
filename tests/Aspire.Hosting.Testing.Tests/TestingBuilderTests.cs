@@ -2,15 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Http.Json;
-using Aspire.Hosting.Tests.Helpers;
+using Aspire.Components.Common.Tests;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Xunit;
 
 namespace Aspire.Hosting.Testing.Tests;
 
 public class TestingBuilderTests
 {
-    [LocalOnlyTheory]
+    [Theory]
+    [RequiresDocker]
     [InlineData(false)]
     [InlineData(true)]
     public async Task HasEndPoints(bool genericEntryPoint)
@@ -32,7 +35,8 @@ public class TestingBuilderTests
         Assert.True(pgConnectionString.Length > 0);
     }
 
-    [LocalOnlyTheory]
+    [Theory]
+    [RequiresDocker]
     [InlineData(false)]
     [InlineData(true)]
     public async Task CanGetResources(bool genericEntryPoint)
@@ -49,7 +53,8 @@ public class TestingBuilderTests
         Assert.Contains(appModel.GetProjectResources(), p => p.Name == "myworker1");
     }
 
-    [LocalOnlyTheory]
+    [Theory]
+    [RequiresDocker]
     [InlineData(false)]
     [InlineData(true)]
     public async Task HttpClientGetTest(bool genericEntryPoint)
@@ -60,13 +65,14 @@ public class TestingBuilderTests
         await using var app = await appHost.BuildAsync();
         await app.StartAsync();
 
-        var httpClient = app.CreateHttpClient("mywebapp1");
+        var httpClient = app.CreateHttpClientWithResilience("mywebapp1");
         var result1 = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
         Assert.NotNull(result1);
         Assert.True(result1.Length > 0);
     }
 
-    [LocalOnlyTheory]
+    [Theory]
+    [RequiresDocker]
     [InlineData(false)]
     [InlineData(true)]
     public async Task GetHttpClientBeforeStart(bool genericEntryPoint)
@@ -78,8 +84,46 @@ public class TestingBuilderTests
         Assert.Throws<InvalidOperationException>(() => app.CreateHttpClient("mywebapp1"));
     }
 
+    [Theory]
+    [RequiresDocker]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SetsCorrectContentRoot(bool genericEntryPoint)
+    {
+        var appHost = await (genericEntryPoint
+            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
+            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
+        await using var app = await appHost.BuildAsync();
+        await app.StartAsync();
+        var hostEnvironment = app.Services.GetRequiredService<IHostEnvironment>();
+        Assert.Contains("TestingAppHost1", hostEnvironment.ContentRootPath);
+    }
+
+    [Theory]
+    [RequiresDocker]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SelectsFirstLaunchProfile(bool genericEntryPoint)
+    {
+        var appHost = await (genericEntryPoint
+            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>()
+            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost)));
+        await using var app = await appHost.BuildAsync();
+        await app.StartAsync();
+        var config = app.Services.GetRequiredService<IConfiguration>();
+        var profileName = config["AppHost:DefaultLaunchProfileName"];
+        Assert.Equal("https", profileName);
+
+        // Explicitly get the HTTPS endpoint - this is only available on the "https" launch profile.
+        var httpClient = app.CreateHttpClient("mywebapp1", "https");
+        var result = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
+        Assert.NotNull(result);
+        Assert.True(result.Length > 0);
+    }
+
     // Tests that DistributedApplicationTestingBuilder throws exceptions at the right times when the app crashes.
-    [LocalOnlyTheory]
+    [Theory]
+    [RequiresDocker]
     [InlineData(true, "before-build")]
     [InlineData(true, "after-build")]
     [InlineData(true, "after-start")]

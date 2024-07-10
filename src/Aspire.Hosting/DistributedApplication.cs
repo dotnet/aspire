@@ -35,7 +35,7 @@ namespace Aspire.Hosting;
 /// <example>
 /// The following example shows creating a PostgreSQL server resource with a database and referencing that
 /// database in a .NET project.
-/// <code lang="C#">
+/// <code lang="csharp">
 /// var builder = DistributedApplication.CreateBuilder(args);
 /// var inventoryDatabase = builder.AddPostgres("mypostgres").AddDatabase("inventory");
 /// builder.AddProject&lt;Projects.InventoryService&gt;()
@@ -74,7 +74,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <example>
     /// The following example is creating a Postgres server resource with a database and referencing that
     /// database in a .NET project.
-    /// <code>
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder();
     /// var inventoryDatabase = builder.AddPostgres("mypostgres").AddDatabase("inventory");
     /// builder.AddProject&lt;Projects.InventoryService&gt;()
@@ -106,7 +106,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <example>
     /// The following example shows creating a Postgres server resource with a database and referencing that
     /// database in a .NET project.
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     /// var inventoryDatabase = builder.AddPostgres("mypostgres").AddDatabase("inventory");
     /// builder.AddProject&lt;Projects.InventoryService&gt;()
@@ -117,7 +117,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </example>
     /// <example>
     /// The following example is equivalent to the previous example except that it does not use top-level statements.
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// public class Program
     /// {
     ///     public static void Main(string[] args)
@@ -164,7 +164,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </remarks>
     /// <example>
     /// Override the container registry used by the distributed application.
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// var options = new DistributedApplicationOptions
     /// {
     ///     Args = args; // Important for deployment tools

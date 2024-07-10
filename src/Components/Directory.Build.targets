@@ -1,6 +1,5 @@
 <Project>
-
-  <Import Project="..\..\Directory.Build.targets" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
 
   <!--
   Logic for including the ConfigurationSchema.json file and corresponding
@@ -115,7 +114,7 @@
     </PropertyGroup>
 
     <Error Condition="'$(CurrentConfigurationSchemaFileContent)' != '$(GeneratedConfigurationSchemaFileContent)'"
-           Text="ConfigurationSchema.json is out of date. Run 'dotnet build --no-incremental /p:UpdateConfigurationSchema=true' to update it." />
+           Text="ConfigurationSchema.json is out of date for $(MSBuildProjectFile). Run 'dotnet build --no-incremental /p:UpdateConfigurationSchema=true' to update it." />
   </Target>
 
 </Project>

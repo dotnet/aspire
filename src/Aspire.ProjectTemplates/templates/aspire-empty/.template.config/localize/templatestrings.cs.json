@@ -1,6 +1,6 @@
 ﻿{
   "author": "Microsoft",
-  "name": "Aplikace .NET Aspire",
+  "name": "Prázdná aplikace .NET Aspire",
   "description": "Šablona projektu pro vytvoření prázdné aplikace .NET Aspire.",
   "symbols/Framework/description": "Cílová architektura pro projekt",
   "symbols/Framework/choices/net8.0/description": "Cílový net8.0",

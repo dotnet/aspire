@@ -4,7 +4,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Properties;
 
@@ -29,7 +28,7 @@ internal static class LaunchProfileExtensions
         return projectMetadata.GetLaunchSettings();
     }
 
-    internal static LaunchProfile? GetEffectiveLaunchProfile(this ProjectResource projectResource, bool throwIfNotFound = false)
+    internal static NamedLaunchProfile? GetEffectiveLaunchProfile(this ProjectResource projectResource, bool throwIfNotFound = false)
     {
         string? launchProfileName = projectResource.SelectLaunchProfileName();
         if (string.IsNullOrEmpty(launchProfileName))
@@ -49,7 +48,8 @@ internal static class LaunchProfileExtensions
             var message = string.Format(CultureInfo.InvariantCulture, Resources.LaunchSettingsFileDoesNotContainProfileExceptionMessage, launchProfileName);
             throw new DistributedApplicationException(message);
         }
-        return found == true ? launchProfile : null;
+
+        return launchProfile is not null ? new (launchProfileName, launchProfile) : default;
     }
 
     private static LaunchSettings? GetLaunchSettings(this IProjectMetadata projectMetadata)
@@ -87,7 +87,7 @@ internal static class LaunchProfileExtensions
     private static readonly LaunchProfileSelector[] s_launchProfileSelectors =
     [
         TrySelectLaunchProfileFromAnnotation,
-        TrySelectLaunchProfileFromEnvironment,
+        TrySelectLaunchProfileFromDefaultAnnotation,
         TrySelectLaunchProfileByOrder
     ];
 
@@ -105,16 +105,15 @@ internal static class LaunchProfileExtensions
         return true;
     }
 
-    private static bool TrySelectLaunchProfileFromEnvironment(ProjectResource projectResource, [NotNullWhen(true)] out string? launchProfileName)
+    private static bool TrySelectLaunchProfileFromDefaultAnnotation(ProjectResource projectResource, [NotNullWhen(true)] out string? launchProfileName)
     {
-        var launchProfileEnvironmentVariable = Environment.GetEnvironmentVariable("DOTNET_LAUNCH_PROFILE");
-
-        if (launchProfileEnvironmentVariable is null)
+        if (!projectResource.TryGetLastAnnotation<DefaultLaunchProfileAnnotation>(out var launchProfileAnnotation))
         {
             launchProfileName = null;
             return false;
         }
 
+        var appHostDefaultLaunchProfileName = launchProfileAnnotation.LaunchProfileName;
         var launchSettings = GetLaunchSettings(projectResource);
         if (launchSettings == null)
         {
@@ -122,14 +121,14 @@ internal static class LaunchProfileExtensions
             return false;
         }
 
-        if (!launchSettings.Profiles.TryGetValue(launchProfileEnvironmentVariable, out var launchProfile))
+        if (!launchSettings.Profiles.TryGetValue(appHostDefaultLaunchProfileName, out var launchProfile) || launchProfile is null)
         {
             launchProfileName = null;
             return false;
         }
 
-        launchProfileName = launchProfileEnvironmentVariable;
-        return launchProfile != null;
+        launchProfileName = appHostDefaultLaunchProfileName;
+        return true;
     }
 
     private static bool TrySelectLaunchProfileFromAnnotation(ProjectResource projectResource, [NotNullWhen(true)] out string? launchProfileName)
@@ -166,11 +165,6 @@ internal static class LaunchProfileExtensions
     }
 }
 
+internal sealed record class NamedLaunchProfile(string Name, LaunchProfile LaunchProfile);
+
 internal delegate bool LaunchProfileSelector(ProjectResource project, out string? launchProfile);
-
-[JsonSerializable(typeof(LaunchSettings))]
-[JsonSourceGenerationOptions(ReadCommentHandling = JsonCommentHandling.Skip)]
-internal sealed partial class LaunchSettingsSerializerContext : JsonSerializerContext
-{
-
-}

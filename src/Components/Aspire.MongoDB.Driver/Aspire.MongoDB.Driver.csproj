@@ -9,6 +9,10 @@
     <NoWarn>$(NoWarn);CS8002</NoWarn> <!-- MongoDB packages are not signed -->
   </PropertyGroup>
 
+  <PropertyGroup>
+    <MinCodeCoverage>86</MinCodeCoverage>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
     <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />

@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.EventHubs;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.EventHubs;
 
@@ -111,7 +112,7 @@ public static class AzureEventHubsExtensions
     /// <example>
     /// The following example creates an Azure Event Hubs resource that runs locally is an emulator and referencing that
     /// resource in a .NET project.
-    /// <code lang="C#">
+    /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var eventHub = builder.AddAzureEventHubs("eventhubns")
@@ -181,10 +182,18 @@ public static class AzureEventHubsExtensions
     /// </summary>
     /// <param name="builder">The builder for the <see cref="AzureEventHubsEmulatorResource"/>.</param>
     /// <param name="path">Relative path to the AppHost where emulator storage is persisted between runs. Defaults to the path '.eventhubs/{builder.Resource.Name}'</param>
-    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>A builder for the <see cref="AzureEventHubsEmulatorResource"/>.</returns>
-    public static IResourceBuilder<AzureEventHubsEmulatorResource> WithDataBindMount(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string? path = null, bool isReadOnly = false)
-        => builder.WithBindMount(path ?? $".eventhubs/{builder.Resource.Name}", "/data", isReadOnly);
+    public static IResourceBuilder<AzureEventHubsEmulatorResource> WithDataBindMount(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string? path = null)
+        => builder.WithBindMount(path ?? $".eventhubs/{builder.Resource.Name}", "/data", isReadOnly: false);
+
+    /// <summary>
+    /// Adds a named volume for the data folder to an Azure Event Hubs emulator resource.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="AzureEventHubsEmulatorResource"/>.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
+    /// <returns>A builder for the <see cref="AzureEventHubsEmulatorResource"/>.</returns>
+    public static IResourceBuilder<AzureEventHubsEmulatorResource> WithDataVolume(this IResourceBuilder<AzureEventHubsEmulatorResource> builder, string? name = null)
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data", isReadOnly: false);
 
     /// <summary>
     /// Configures the gateway port for the Azure Event Hubs emulator.
