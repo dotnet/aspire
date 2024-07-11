@@ -3,9 +3,13 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var db = builder.AddMongoDB("mongo")
-    .WithMongoExpress(c => c.WithHostPort(3022))
-    .PublishAsContainer();
+var db = builder.AddMongoDB("mongo");
+
+#if !BUILD_FOR_TEST
+db.WithMongoExpress(c => c.WithHostPort(3022));
+#endif
+
+db.PublishAsContainer();
 
 builder.AddProject<Projects.Mongo_ApiService>("api")
        .WithExternalHttpEndpoints()
