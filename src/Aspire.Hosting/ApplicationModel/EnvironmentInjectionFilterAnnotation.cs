@@ -6,7 +6,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Annotation that holds a filter that determines if environment variables should be injected for a given endpoint.
 /// </summary>
-internal class EnvironmentInjectionFilterAnnotation(Func<EndpointAnnotation, bool> filter) : IResourceAnnotation
+internal class EndpointEnvironmentInjectionFilterAnnotation(Func<EndpointAnnotation, bool> filter) : IResourceAnnotation
 {
     public Func<EndpointAnnotation, bool> Filter { get; } = filter;
 }

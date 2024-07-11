@@ -29,7 +29,7 @@ public class ProjectResource(string name) : Resource(name), IResourceWithEnviron
         }
 
         // If any filter rejects the endpoint, skip it
-        return !Annotations.OfType<EnvironmentInjectionFilterAnnotation>()
+        return !Annotations.OfType<EndpointEnvironmentInjectionFilterAnnotation>()
                            .Select(a => a.Filter)
                            .Any(f => !f(endpoint));
     }
