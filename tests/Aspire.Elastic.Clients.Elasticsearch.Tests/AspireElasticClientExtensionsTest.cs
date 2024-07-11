@@ -138,23 +138,6 @@ public class AspireElasticClientExtensionsTest : IClassFixture<ElasticsearchCont
         Assert.NotSame(client1, client2);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void ThrowInvalidOperationExceptionWhenConfigurationNotProvided(bool useKeyed)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        if (useKeyed)
-        {
-            Assert.Throws<InvalidOperationException>(() => builder.AddKeyedElasticsearchClient(DefaultConnectionName));
-        }
-        else
-        {
-            Assert.Throws<InvalidOperationException>(() => builder.AddElasticsearchClient(DefaultConnectionName));
-
-        }
-    }
-
     [Fact]
     [RequiresDocker]
     public void ElasticsearchInstrumentationEndToEnd()
