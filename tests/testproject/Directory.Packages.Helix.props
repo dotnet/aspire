@@ -23,6 +23,7 @@
     <PackageVersion Include="Aspire.Hosting.Azure.SignalR" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.Sql" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Elasticsearch" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Garnet" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Kafka" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Milvus" Version="$(PackageVersion)" />
