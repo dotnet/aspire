@@ -26,7 +26,7 @@
     <PlaygroundSourceDir Condition="'$(PlaygroundSourceDir)' == ''">..\playground\</PlaygroundSourceDir>
 
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
-    <IncludeTestPackages>true</IncludeTestPackages>
+    <IncludeTestPackages Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">true</IncludeTestPackages>
   </PropertyGroup>
 
   <ItemGroup>
