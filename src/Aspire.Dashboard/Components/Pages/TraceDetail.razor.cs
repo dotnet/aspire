@@ -27,16 +27,16 @@ public partial class TraceDetail : ComponentBase
     public required string TraceId { get; set; }
 
     [Inject]
-    public required TelemetryRepository TelemetryRepository { get; set; }
+    public required TelemetryRepository TelemetryRepository { get; init; }
 
     [Inject]
-    public required IEnumerable<IOutgoingPeerResolver> OutgoingPeerResolvers { get; set; }
+    public required IEnumerable<IOutgoingPeerResolver> OutgoingPeerResolvers { get; init; }
 
     [Inject]
-    public required BrowserTimeProvider TimeProvider { get; set; }
+    public required BrowserTimeProvider TimeProvider { get; init; }
 
     [Inject]
-    public required IJSRuntime JS { get; set; }
+    public required IJSRuntime JS { get; init; }
 
     protected override void OnInitialized()
     {

@@ -47,16 +47,16 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public string? ViewKindName { get; set; }
 
     [Inject]
-    public required NavigationManager NavigationManager { get; set; }
+    public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
-    public required ProtectedSessionStorage SessionStorage { get; set; }
+    public required ProtectedSessionStorage SessionStorage { get; init; }
 
     [Inject]
-    public required TelemetryRepository TelemetryRepository { get; set; }
+    public required TelemetryRepository TelemetryRepository { get; init; }
 
     [Inject]
-    public required TracesViewModel TracesViewModel { get; set; }
+    public required TracesViewModel TracesViewModel { get; init; }
 
     [Inject]
     public required ILogger<Metrics> Logger { get; init; }

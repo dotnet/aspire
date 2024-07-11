@@ -10,6 +10,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 public class TestProgram : IDisposable
 {
+    private const string AspireTestContainerRegistry = "netaspireci.azurecr.io";
+
     private TestProgram(
         string[] args,
         string assemblyName,
@@ -91,13 +93,15 @@ public class TestProgram : IDisposable
             {
                 var mysqlDbName = "mysqldb";
                 var mysql = AppBuilder.AddMySql("mysql")
+                    .WithImageRegistry(AspireTestContainerRegistry)
                     .WithEnvironment("MYSQL_DATABASE", mysqlDbName)
                     .AddDatabase(mysqlDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(mysql);
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
             {
-                var redis = AppBuilder.AddRedis("redis");
+                var redis = AppBuilder.AddRedis("redis")
+                    .WithImageRegistry(AspireTestContainerRegistry);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(redis);
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
@@ -107,26 +111,30 @@ public class TestProgram : IDisposable
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.valkey))
             {
-                var valkey = AppBuilder.AddValkey("valkey");
+                var valkey = AppBuilder.AddValkey("valkey")
+                    .WithImageRegistry(AspireTestContainerRegistry);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(valkey);
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
             {
                 var postgresDbName = "postgresdb";
                 var postgres = AppBuilder.AddPostgres("postgres")
+                    .WithImageRegistry(AspireTestContainerRegistry)
                     .WithEnvironment("POSTGRES_DB", postgresDbName)
                     .AddDatabase(postgresDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(postgres);
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.rabbitmq))
             {
-                var rabbitmq = AppBuilder.AddRabbitMQ("rabbitmq");
+                var rabbitmq = AppBuilder.AddRabbitMQ("rabbitmq")
+                    .WithImageRegistry(AspireTestContainerRegistry);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(rabbitmq);
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
             {
                 var mongoDbName = "mymongodb";
                 var mongodb = AppBuilder.AddMongoDB("mongodb")
+                    .WithImageRegistry(AspireTestContainerRegistry)
                     .AddDatabase(mongoDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(mongodb);
             }
@@ -139,7 +147,8 @@ public class TestProgram : IDisposable
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
             {
-                var kafka = AppBuilder.AddKafka("kafka");
+                var kafka = AppBuilder.AddKafka("kafka")
+                    .WithImageRegistry(AspireTestContainerRegistry);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(kafka);
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos) || !resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
@@ -159,7 +168,8 @@ public class TestProgram : IDisposable
 
                 var milvusApiKey = builder.AddParameter("milvusApiKey");
 
-                var milvus = AppBuilder.AddMilvus("milvus", milvusApiKey);
+                var milvus = AppBuilder.AddMilvus("milvus", milvusApiKey)
+                    .WithImageRegistry(AspireTestContainerRegistry);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(milvus);
             }
         }
