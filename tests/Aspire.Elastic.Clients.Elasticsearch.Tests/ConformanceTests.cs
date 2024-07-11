@@ -4,6 +4,7 @@
 using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
 using Elastic.Clients.Elasticsearch;
+using Elastic.Transport;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -45,13 +46,16 @@ public class ConformanceTests : ConformanceTests<ElasticsearchClient, ElasticCli
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<ElasticClientsElasticsearchSettings>? configure = null, string? key = null)
     {
+        //The Testcontainers module creates a container that listens to requests over HTTPS.
+        //To communicate with the Elasticsearch instance, developers must create a ElasticsearchClientSettings instance and set the ServerCertificateValidationCallback delegate to CertificateValidations.AllowAll.
+        //Failing to do so will result in a communication failure as the .NET will reject the certificate coming from the container.
         if (key is null)
         {
-            builder.AddElasticsearchClient("elasticsearch", configure);
+            builder.AddElasticsearchClient("elasticsearch", configureSettings: configure, configureClientSettings : (c)=> c.ServerCertificateValidationCallback(CertificateValidations.AllowAll));
         }
         else
         {
-            builder.AddKeyedElasticsearchClient(key, configure);
+            builder.AddKeyedElasticsearchClient(key, configureSettings: configure, configureClientSettings: (c) => c.ServerCertificateValidationCallback(CertificateValidations.AllowAll));
         }
     }
 
