@@ -11,6 +11,7 @@
     <TestUsingWorkloads Condition="! ('$(ContinuousIntegrationBuild)' == 'true' and '$(OS)' == 'Windows_NT')">true</TestUsingWorkloads>
     <InstallWorkloadForTesting>$(TestUsingWorkloads)</InstallWorkloadForTesting>
 
+    <SupportsRunningOutsideOfRepo>true</SupportsRunningOutsideOfRepo>
     <TestsRunningOutsideOfRepo Condition="'$(TestsRunningOutsideOfRepo)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</TestsRunningOutsideOfRepo>
     <XunitRunnerJson>xunit.runner.json</XunitRunnerJson>
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
