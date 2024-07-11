@@ -87,7 +87,7 @@
     <PackageVersion Include="xunit.runner.console" Version="$(XunitVersion)" />
 
     <PackageVersion Include="mstest.testadapter" Version="$(MSTestTestAdapterVersion)" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftNETTestSdkPackageVersion)" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftNETTestSdkVersion)" />
     <PackageVersion Include="Microsoft.DotNet.XUnitAssert" Version="$(MicrosoftDotNetXUnitAssertVersion)" />
   </ItemGroup>
 </Project>
