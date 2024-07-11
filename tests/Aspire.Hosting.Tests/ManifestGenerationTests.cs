@@ -104,8 +104,12 @@ public class ManifestGenerationTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
+              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value}",
               "image": "myprivateregistry.company.com/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+              "args": [
+                "--requirepass",
+                "{redis-password.value}"
+              ],
               "bindings": {
                 "tcp": {
                   "scheme": "tcp",
@@ -270,7 +274,7 @@ public class ManifestGenerationTests
 
         var container = resources.GetProperty("rediscontainer");
         Assert.Equal("container.v0", container.GetProperty("type").GetString());
-        Assert.Equal("{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port}", container.GetProperty("connectionString").GetString());
+        Assert.Equal("{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port},password={rediscontainer-password.value}", container.GetProperty("connectionString").GetString());
     }
     
     [Fact]
@@ -578,8 +582,12 @@ public class ManifestGenerationTests
                 },
                 "redis": {
                   "type": "container.v0",
-                  "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
+                  "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value}",
                   "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+                  "args": [
+                    "--requirepass",
+                    "{redis-password.value}"
+                  ],
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",
@@ -788,6 +796,21 @@ public class ManifestGenerationTests
                 "mysql-password": {
                   "type": "parameter.v0",
                   "value": "{mysql-password.inputs.value}",
+                  "inputs": {
+                    "value": {
+                      "type": "string",
+                      "secret": true,
+                      "default": {
+                        "generate": {
+                          "minLength": 22
+                        }
+                      }
+                    }
+                  }
+                },
+                "redis-password": {
+                  "type": "parameter.v0",
+                  "value": "{redis-password.inputs.value}",
                   "inputs": {
                     "value": {
                       "type": "string",
