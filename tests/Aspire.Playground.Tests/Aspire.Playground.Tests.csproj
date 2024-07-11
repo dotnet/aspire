@@ -23,20 +23,13 @@
     <!-- <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(ArchiveTests)' == 'true'">true</ExtractTestClassNamesForHelix> -->
     <!-- <ExtractTestClassNamesPrefix>Aspire.Playground.Tests</ExtractTestClassNamesPrefix> -->
 
-    <PlaygroundSourceDir Condition="'$(PlaygroundSourceDir)' == '' and '$(TestsRunningOutsideOfRepo)' != 'true'">$(RepoRoot)\playground\</PlaygroundSourceDir>
-    <PlaygroundSourceDir Condition="'$(PlaygroundSourceDir)' == '' and '$(TestsRunningOutsideOfRepo)' == 'true'">..\playground\</PlaygroundSourceDir>
-    <SharedDir Condition="'$(SharedDir)' == '' and '$(TestsRunningOutsideOfRepo)' == 'true'">..\Shared-src\</SharedDir>
+    <PlaygroundSourceDir Condition="'$(PlaygroundSourceDir)' == ''">..\playground\</PlaygroundSourceDir>
 
+    <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
     <IncludeTestPackages>true</IncludeTestPackages>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- <Compile Include="$(RepoRoot)src\Aspire.Hosting.MongoDB\MongoDBContainerImageTags.cs" /> -->
-    <!-- <Compile Include="$(RepoRoot)src\Aspire.Hosting.Qdrant\QdrantContainerImageTags.cs" /> -->
-    <!-- <Compile Include="$(RepoRoot)src\Aspire.Hosting.Nats\NatsContainerImageTags.cs" /> -->
-
-    <!-- <None Include="$(RepoRoot)tests\Shared\**\*" Link="testassets\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" /> -->
-
     <NonComponentReferenceForTests Include="Aspire.Hosting.Testing" />
     <NonComponentReferenceForTests Include="Aspire.Hosting.Azure" />
     <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" />
@@ -53,24 +46,29 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(ArchiveTests)' == 'true'">
-    <None Include="$(RepoRoot)playground\**\*" Link="testassets\playground\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(MSBuildProjectDirectory)\**\*" Link="testassets\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)src\Shared\**\*" Link="testassets\Shared-src\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)playground\**\*" Link="staging-for-archive\playground\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(MSBuildProjectDirectory)\**\*" Link="staging-for-archive\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)src\Shared\**\*" Link="staging-for-archive\src\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <!-- helps to isolate the build -->
-    <None Include="$(TestsSharedDir)EmptyProject.proj" Link="testassets\Directory.Build.props" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(TestsSharedDir)EmptyProject.proj" Link="testassets\Directory.Build.targets" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedDir)EmptyProject.proj" Link="staging-for-archive\Directory.Build.props" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedDir)EmptyProject.proj" Link="staging-for-archive\Directory.Build.targets" CopyToOutputDirectory="PreserveNewest" />
 
-    <None Include="$(TestsSharedRepoTestingDir)\*" Link="testassets\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedRepoTestingDir)\*" Link="staging-for-archive\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
-    <None Include="$(GeneratedPackagesVersionsPropsPath)" Link="testassets\Directory.Packages.Versions.props" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(GeneratedPackagesVersionsPropsPath)" Link="staging-for-archive\Directory.Packages.Versions.props" CopyToOutputDirectory="PreserveNewest" />
 
-    <None Include="$(TestsSharedDir)nuget-with-package-source-mapping.config" Link="testassets\nuget.config" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(TestsSharedDir)WorkloadTesting\data\Directory.Packages.Helix.props" Link="testassets\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedDir)nuget-with-package-source-mapping.config" Link="staging-for-archive\nuget.config" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedDir)WorkloadTesting\data\Directory.Packages.Helix.props" Link="staging-for-archive\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
-    <!-- FIXME: are these really needed? - um .. for test projects where the sdk would add the references! -->
+    <!-- FIXME: rename to PropertyForOutsideOfRepoRun ? -->
     <PropertyForHelixRun Include="NetCurrent" />
   </ItemGroup>
 
-  <!-- <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" /> -->
+  <Target Name="_UpdateArchiveSourcePath" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true'">
+    <PropertyGroup>
+      <TestsArchiveSourceDir>$(OutDir)staging-for-archive\</TestsArchiveSourceDir>
+    </PropertyGroup>
+  </Target>
+
 </Project>
