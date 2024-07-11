@@ -95,6 +95,8 @@ extends:
   template: v1/1ES.Official.PipelineTemplate.yml@1ESPipelineTemplates
   parameters:
     sdl:
+      policheck:
+        enabled: true
       eslint:
         enabled: false
         justificationForDisabling: 'see https://portal.microsofticm.com/imp/v3/incidents/incident/482258316/summary'
