@@ -46,10 +46,11 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(ArchiveTests)' == 'true'">
-    <None Include="$(RepoRoot)playground\**\*" Link="staging-for-archive\playground\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  <IitemGroup Condition="'$(ArchiveTests)' == 'true'">
+    <!-- remove this comment: project-specific -->
     <None Include="$(MSBuildProjectDirectory)\**\*" Link="staging-for-archive\tests\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)src\Shared\**\*" Link="staging-for-archive\src\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)playground\**\*" Link="staging-for-archive\playground\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <!-- helps to isolate the build -->
     <None Include="$(TestsSharedDir)EmptyProject.proj" Link="staging-for-archive\Directory.Build.props" CopyToOutputDirectory="PreserveNewest" />
