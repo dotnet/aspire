@@ -4,6 +4,10 @@
        which uses `PackageReference` for running outside, and `ProjectReference`
        when running in the repo. -->
 
+  <PropertyGroup>
+    <GeneratedPackagesVersionsPropsPath>$(IntermediateOutputPath)Directory.Packages.Versions.props</GeneratedPackagesVersionsPropsPath>
+  </PropertyGroup>
+
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">
     <ProjectReference Include="@(ComponentReferenceForTests -> '$(RepoRoot)src\Components\%(Identity)\%(Identity).csproj')" />
     <ProjectReference Include="@(NonComponentReferenceForTests -> '$(RepoRoot)src\%(Identity)\%(Identity).csproj')" />
