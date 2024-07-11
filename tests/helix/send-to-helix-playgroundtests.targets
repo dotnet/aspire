@@ -55,6 +55,9 @@
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_PlaygroundTestRunCommandArguments, ' ')</_TestRunCommand>
 
       <_TestRunCommand>dotnet build -bl:$(_HelixLogsPath)/build.binlog $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
+
+      <_SetPathEnvVar Condition="'$(OS)' != 'Windows_NT'">export PATH=${SDK_FOR_WORKLOAD_TESTING_PATH}:$PATH</_SetPathEnvVar>
+      <_SetPathEnvVar Condition="'$(OS)' == 'Windows_NT'">set PATH=%SDK_FOR_WORKLOAD_TESTING_PATH%%3B%PATH%</_SetPathEnvVar>
     </PropertyGroup>
 
     <ReadLinesFromFile File="$(TestArchiveDir)$(TestProjectName).tests.list">
@@ -73,6 +76,7 @@
 
         <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=-%(TestNameSuffix)&quot;</PreCommands>
+        <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;$(_SetPathEnvVar)&quot;</PreCommands>
 
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) set &quot;TEST_ARGS=--filter category^^!=failing^&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) export &quot;TEST_ARGS=--filter category!=failing&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
