@@ -39,6 +39,50 @@
     <DefineConstants Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">TESTS_RUNNING_OUTSIDE_OF_REPO;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
 
+  <!-- generate before the build so the project can use this in a <None ..> item -->
+  <Target Name="_GeneratePackagesVersionsProps" BeforeTargets="BeforeBuild" Condition="'$(SupportsRunningOutsideOfRepo)' == 'true'">
+    <!-- FIXME: what should the condition be? Introduce a "supports tests running.. ? -->
+      <!--Condition="'$(ArchiveTests)' == 'true' or '$(TestsRunningOutsideOfRepo)' == 'true'" -->
+    <!-- Duplicate all the @(PackageVersion) items with the evaluated versions -->
+    <ItemGroup>
+      <_PackageVersionEvaluated Include="@(PackageVersion -> '&lt;PackageVersion Include=&quot;%(Identity)&quot; Version=&quot;%(Version)&quot; /&gt;')" />
+
+      <!-- Emit all properties named in @(PropertyForHelixRun).
+           doing this separately so the property value can be extracted from the name -->
+      <_PropertiesToPass
+        Include="%(PropertyForHelixRun.Identity)"
+        Name="$(%(PropertyForHelixRun.Identity))"
+        ConditionToUse__="%(PropertyForHelixRun.ConditionToUse__)" />
+      <_PropertiesToPassEvaluated Include="@(_PropertiesToPass -> '&lt;%(Identity)&gt;%(Name)&lt;/%(Identity)&gt;')" />
+    </ItemGroup>
+
+    <PropertyGroup>
+      <_HelixPropsContent>
+        <![CDATA[
+      <Project>
+        <PropertyGroup>
+          <PackageVersion>$(PackageVersion)</PackageVersion>
+
+          <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+        </PropertyGroup>
+
+        <ItemGroup>
+            @(_PackageVersionEvaluated, '
+            ')
+        </ItemGroup>
+
+        <PropertyGroup Label="From PropertyForHelixRun">
+            @(_PropertiesToPassEvaluated, '
+            ')
+        </PropertyGroup>
+      </Project>
+          ]]>
+      </_HelixPropsContent>
+    </PropertyGroup>
+
+    <WriteLinesToFile Lines="$(_HelixPropsContent)" File="$(GeneratedPackagesVersionsPropsPath)" Overwrite="true" />
+  </Target>
+
   <ImportGroup Condition="'$(RepoRoot)' != 'null' and '$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'">
     <Import Project="$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets" Condition="Exists('$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets')" />
     <Import Project="$(RepoRoot)src\Aspire.Hosting.Sdk\SDK\Sdk.targets" Condition="Exists('$(RepoRoot)src\Aspire.Hosting.Sdk\SDK\Sdk.targets')" />
