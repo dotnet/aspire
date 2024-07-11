@@ -97,6 +97,7 @@ extends:
     sdl:
       policheck:
         enabled: true
+        exclusionsFile: $(Build.SourcesDirectory)\.config\PoliCheckExclusions.xml
       eslint:
         enabled: false
         justificationForDisabling: 'see https://portal.microsofticm.com/imp/v3/incidents/incident/482258316/summary'
