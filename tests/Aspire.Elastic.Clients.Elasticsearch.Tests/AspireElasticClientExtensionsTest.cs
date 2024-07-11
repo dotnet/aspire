@@ -154,8 +154,8 @@ public class AspireElasticClientExtensionsTest : IClassFixture<ElasticsearchCont
             using var host = builder.Build();
             host.Start();
 
-            var nats = host.Services.GetRequiredService<ElasticsearchClient>();
-            await nats.PingAsync();
+            var elasticsearchClient = host.Services.GetRequiredService<ElasticsearchClient>();
+            await elasticsearchClient.PingAsync();
 
             var activityList = await notifier.TakeAsync(1, TimeSpan.FromSeconds(10));
             Assert.Single(activityList);
