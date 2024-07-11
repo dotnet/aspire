@@ -38,6 +38,9 @@ configuration:
         - not:
             isActivitySender:
               user: github-actions
+        - not:
+            isActivitySender:
+              user: dependabot
       then:
       - addLabel:
           label: community-contribution

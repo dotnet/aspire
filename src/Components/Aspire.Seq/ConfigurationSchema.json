@@ -8,6 +8,7 @@
       }
     }
   },
+  "type": "object",
   "properties": {
     "Aspire": {
       "type": "object",
@@ -47,7 +48,8 @@
                 },
                 "Endpoint": {
                   "type": "string",
-                  "format": "uri"
+                  "format": "uri",
+                  "description": "Gets or sets the target to which the exporter is going to send telemetry."
                 },
                 "ExportProcessorType": {
                   "enum": [
@@ -57,23 +59,26 @@
                   "description": "Gets or sets the export processor type to be used with the OpenTelemetry Protocol Exporter. The default value is 'OpenTelemetry.ExportProcessorType.Batch'."
                 },
                 "Headers": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Gets or sets optional headers for the connection."
                 },
                 "Protocol": {
                   "enum": [
                     "Grpc",
                     "HttpProtobuf"
-                  ]
+                  ],
+                  "description": "Gets or sets the the OTLP transport protocol."
                 },
                 "TimeoutMilliseconds": {
-                  "type": "integer"
+                  "type": "integer",
+                  "description": "Gets or sets the max waiting time (in milliseconds) for the backend to process each batch. Default value: 10000."
                 }
               },
               "description": "Gets OTLP exporter options for logs."
             },
             "ServerUrl": {
               "type": "string",
-              "description": "Gets or sets the base URL of the Seq server (including protocol and port). E.g. \"https://example.seq.com:6789. Overrides endpoints set on Logs and Traces .\""
+              "description": "Gets or sets the base URL of the Seq server (including protocol and port). E.g. \"https://example.seq.com:6789. Overrides endpoints set on Logs and Traces.\""
             },
             "Traces": {
               "type": "object",
@@ -98,7 +103,8 @@
                 },
                 "Endpoint": {
                   "type": "string",
-                  "format": "uri"
+                  "format": "uri",
+                  "description": "Gets or sets the target to which the exporter is going to send telemetry."
                 },
                 "ExportProcessorType": {
                   "enum": [
@@ -108,16 +114,19 @@
                   "description": "Gets or sets the export processor type to be used with the OpenTelemetry Protocol Exporter. The default value is 'OpenTelemetry.ExportProcessorType.Batch'."
                 },
                 "Headers": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Gets or sets optional headers for the connection."
                 },
                 "Protocol": {
                   "enum": [
                     "Grpc",
                     "HttpProtobuf"
-                  ]
+                  ],
+                  "description": "Gets or sets the the OTLP transport protocol."
                 },
                 "TimeoutMilliseconds": {
-                  "type": "integer"
+                  "type": "integer",
+                  "description": "Gets or sets the max waiting time (in milliseconds) for the backend to process each batch. Default value: 10000."
                 }
               },
               "description": "Gets OTLP exporter options for traces."
@@ -127,6 +136,5 @@
         }
       }
     }
-  },
-  "type": "object"
+  }
 }
