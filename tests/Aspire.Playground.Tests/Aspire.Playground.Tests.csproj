@@ -23,7 +23,7 @@
     <!-- <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(ArchiveTests)' == 'true'">true</ExtractTestClassNamesForHelix> -->
     <!-- <ExtractTestClassNamesPrefix>Aspire.Playground.Tests</ExtractTestClassNamesPrefix> -->
 
-    <PlaygroundSourceDir Condition="'$(PlaygroundSourceDir)' == ''">..\playground\</PlaygroundSourceDir>
+    <PlaygroundSourceDir Condition="'$(PlaygroundSourceDir)' == ''">$(MSBuildThisFileDirectory)..\..\playground\</PlaygroundSourceDir>
 
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
     <IncludeTestPackages Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">true</IncludeTestPackages>
@@ -47,7 +47,7 @@
 
   <ItemGroup Condition="'$(ArchiveTests)' == 'true'">
     <None Include="$(RepoRoot)playground\**\*" Link="staging-for-archive\playground\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(MSBuildProjectDirectory)\**\*" Link="staging-for-archive\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(MSBuildProjectDirectory)\**\*" Link="staging-for-archive\tests\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)src\Shared\**\*" Link="staging-for-archive\src\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <!-- helps to isolate the build -->
