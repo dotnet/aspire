@@ -8,18 +8,9 @@
     <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
 
-    <!-- no docker support on helix/windows yet -->
-    <!-- <TestUsingWorkloads Condition="! ('$(ContinuousIntegrationBuild)' == 'true' and '$(OS)' == 'Windows_NT')">true</TestUsingWorkloads> -->
-    <!-- <InstallWorkloadForTesting>$(TestUsingWorkloads)</InstallWorkloadForTesting> -->
-
-    <!--<TestsRunningOutsideOfRepo Condition="'$(TestsRunningOutsideOfRepo)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</TestsRunningOutsideOfRepo>-->
-    <!--<DefineConstants Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">TESTS_RUNNING_OUTSIDE_OF_REPO;$(DefineConstants)</DefineConstants>-->
-
-    <!--<XunitRunnerJson>xunit.runner.json</XunitRunnerJson>-->
-    <!--<RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>-->
     <TestArchiveTestsDir>$(TestArchiveTestsDirForPlaygroundTests)</TestArchiveTestsDir>
-    <!--<TestsArchiveSourceDir>$(ArtifactsObjDir)staging-archive\$(MSBuildProjectName)\</TestsArchiveSourceDir>-->
 
+    <!-- FIXME: reduce to one property? -->
     <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(ArchiveTests)' == 'true'">true</ExtractTestClassNamesForHelix>
     <ExtractTestClassNamesPrefix>Aspire.Playground.Tests</ExtractTestClassNamesPrefix>
 
@@ -36,8 +27,38 @@
     <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" />
     <NonComponentReferenceForTests Include="Aspire.Hosting.NodeJs" />
 
-    <!-- <ProjectReference Include="$(PlaygroundSourceDir)**\*.AppHost\*AppHost.csproj" /> -->
-    <ProjectReference Include="$(PlaygroundSourceDir)mongo\Mongo.AppHost\Mongo.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)AspireEventHub/EventHubs.AppHost/EventHubs.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)AzureStorageEndToEnd/AzureStorageEndToEnd.AppHost/AzureStorageEndToEnd.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)CosmosEndToEnd/CosmosEndToEnd.AppHost/CosmosEndToEnd.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)CustomResources/CustomResources.AppHost/CustomResources.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)DatabaseMigration/DatabaseMigration.AppHost/DatabaseMigration.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)ParameterEndToEnd/ParameterEndToEnd.AppHost/ParameterEndToEnd.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)PostgresEndToEnd/PostgresEndToEnd.AppHost/PostgresEndToEnd.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)ProxylessEndToEnd/ProxylessEndToEnd.AppHost/ProxylessEndToEnd.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)Qdrant/Qdrant.AppHost/Qdrant.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)SqlServerEndToEnd/SqlServerEndToEnd.AppHost/SqlServerEndToEnd.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)Stress/Stress.AppHost/Stress.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)TestShop/AppHost/AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)dapr/AppHost/DaprAppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)kafka/KafkaBasic.AppHost/KafkaBasic.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)milvus/MilvusPlayground.AppHost/MilvusPlayground.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)mongo/Mongo.AppHost/Mongo.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)mysql/MySqlDb.AppHost/MySqlDb.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)nats/Nats.AppHost/Nats.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)orleans/OrleansAppHost/OrleansAppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)python/Python.AppHost/Python.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)seq/Seq.AppHost/Seq.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)signalr/SignalRAppHost/SignalRAppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)webpubsub/WebPubSubAppHost/WebPubSubAppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)withdockerfile/WithDockerfile.AppHost/WithDockerfile.AppHost.csproj" />
+
+    <!-- Needs azure, aws subscription
+      <ProjectReference Include="$(PlaygroundSourceDir)AWS/AWS.AppHost/AWS.AppHost.csproj" />
+      <ProjectReference Include="$(PlaygroundSourceDir)AzureSearchEndToEnd/AzureSearch.AppHost/AzureSearch.AppHost.csproj" />
+      <ProjectReference Include="$(PlaygroundSourceDir)OpenAIEndToEnd/OpenAIEndToEnd.AppHost/OpenAIEndToEnd.AppHost.csproj" />
+      <ProjectReference Include="$(PlaygroundSourceDir)bicep/BicepSample.AppHost/BicepSample.AppHost.csproj" />
+      <ProjectReference Include="$(PlaygroundSourceDir)cdk/CdkSample.AppHost/CdkSample.AppHost.csproj" />
+    -->
 
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
@@ -46,7 +67,7 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
-  <IitemGroup Condition="'$(ArchiveTests)' == 'true'">
+  <ItemGroup Condition="'$(ArchiveTests)' == 'true'">
     <!-- remove this comment: project-specific -->
     <None Include="$(MSBuildProjectDirectory)\**\*" Link="staging-for-archive\tests\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)src\Shared\**\*" Link="staging-for-archive\src\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
