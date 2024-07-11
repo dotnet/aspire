@@ -67,7 +67,7 @@ public abstract class ChartBase : ComponentBase
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (InstrumentViewModel.Instrument is null || InstrumentViewModel.MatchedDimensions is null)
+        if (InstrumentViewModel.Instrument is null || InstrumentViewModel.MatchedDimensions is null || !ReadyForData())
         {
             return;
         }
@@ -521,4 +521,6 @@ public abstract class ChartBase : ComponentBase
     }
 
     protected abstract Task OnChartUpdated(List<ChartTrace> traces, List<DateTimeOffset> xValues, List<ChartExemplar> exemplars, bool tickUpdate, DateTimeOffset inProgressDataTime);
+
+    protected virtual bool ReadyForData() => true;
 }
