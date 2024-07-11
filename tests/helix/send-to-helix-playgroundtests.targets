@@ -18,10 +18,15 @@
 
   <ItemGroup>
     <HelixPreCommand Include="$(_EnvVarSetKeyword) TEST_NAME=$(TestProjectName)" />
-    <HelixPreCommand Include="$(_EnvVarSetKeyword) SHOW_BUILD_OUTPUT=true" />
+    <!--<HelixPreCommand Include="$(_EnvVarSetKeyword) SHOW_BUILD_OUTPUT=true" />-->
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) BuildForTest=true" />
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) TestsRunningOutsideOfRepo=true" />
 
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PLAYGROUND_APPS_PATH=%HELIX_WORKITEM_ROOT%\playground" />
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PLAYGROUND_APPS_PATH=$HELIX_WORKITEM_ROOT\playground" />
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set SharedDir=%HELIX_WORKITEM_ROOT%\testassets\Shared-src\" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export SharedDir=$HELIX_WORKITEM_ROOT/testassets/Shared-src/" />
+
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set NUGET_PACKAGES=%HELIX_WORKITEM_ROOT%\nuget-cache\" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export NUGET_PACKAGES=$HELIX_WORKITEM_ROOT/nuget-cache/" />
 
     <HelixPreCommand Include="$(_CleanupProcessesCommand)" />
 
@@ -30,13 +35,25 @@
 
   <Target Name="BuildHelixWorkItemsForPlaygroundTests">
     <ItemGroup>
-      <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="${TEST_ARGS}" />
-      <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="%TEST_ARGS%" />
+      <_PlaygroundTestRunCommandArguments Include="dotnet build -bl:$(_HelixLogsPath)/build.binlog $(_ShellCommandSeparator)" />
+      <_PlaygroundTestRunCommandArguments Include="dotnet test" />
+      <_PlaygroundTestRunCommandArguments Include="--results-directory $(_HelixLogsPath)" />
+      <_PlaygroundTestRunCommandArguments Include="--blame-hang" />
+      <_PlaygroundTestRunCommandArguments Include="--blame-hang-dump-type" />
+      <_PlaygroundTestRunCommandArguments Include="full" />
+      <_PlaygroundTestRunCommandArguments Include="--blame-hang-timeout" />
+      <_PlaygroundTestRunCommandArguments Include="10m" />
+      <_PlaygroundTestRunCommandArguments Include="--blame-crash" />
+      <_PlaygroundTestRunCommandArguments Include="--blame-crash-dump-type" />
+      <_PlaygroundTestRunCommandArguments Include="full" />
+
+      <_PlaygroundTestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="${TEST_ARGS}" />
+      <_PlaygroundTestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="%TEST_ARGS%" />
     </ItemGroup>
 
     <PropertyGroup>
-      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
-      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
+      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_PlaygroundTestRunCommandArguments, ' ')&quot;</_TestRunCommand>
+      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_PlaygroundTestRunCommandArguments, ' ')</_TestRunCommand>
     </PropertyGroup>
 
     <ReadLinesFromFile File="$(TestArchiveDir)$(TestProjectName).tests.list">
@@ -59,7 +76,7 @@
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) set &quot;TEST_ARGS=--filter category^^!=failing^&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) export &quot;TEST_ARGS=--filter category!=failing&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
 
-        <Command>cd $(TestProjectName) %3B $(_TestRunCommand)</Command>
+        <Command>cd testassets/$(TestProjectName) %3B $(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
