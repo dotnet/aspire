@@ -316,8 +316,16 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         },
         loggerFactory);
 
-        // TODO: We should log the state as well.
-        logger.Log(logMessage.LogLevel, logMessage.EventId, logMessage.Message, null, (s, _) => s);
+        if (logger.IsEnabled(logMessage.LogLevel))
+        {
+            // TODO: We should log the state as well.
+            logger.Log(
+                logMessage.LogLevel,
+                logMessage.EventId,
+                logMessage.Message,
+                null,
+                (s, _) => (logMessage.Exception is { } e) ? s + Environment.NewLine + e : s);
+        }
     }
 }
 
@@ -329,6 +337,7 @@ internal sealed class DashboardLogMessage
     public LogLevel LogLevel { get; set; }
     public string Category { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
+    public string? Exception { get; set; }
     public JsonObject? State { get; set; }
 }
 
