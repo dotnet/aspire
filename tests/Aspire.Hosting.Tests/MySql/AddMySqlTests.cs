@@ -60,7 +60,7 @@ public class AddMySqlTests
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Collection(config,
             env =>
@@ -100,7 +100,7 @@ public class AddMySqlTests
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Collection(config,
             env =>
@@ -248,7 +248,7 @@ public class AddMySqlTests
 
         var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(myAdmin);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(myAdmin, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Equal($"{containerHost}:5001", config["PMA_HOST"]);
         Assert.NotNull(config["PMA_USER"]);
