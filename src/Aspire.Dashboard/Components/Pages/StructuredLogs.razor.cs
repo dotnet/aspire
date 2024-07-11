@@ -37,22 +37,22 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     public string? ApplicationName { get; set; }
 
     [Inject]
-    public required TelemetryRepository TelemetryRepository { get; set; }
+    public required TelemetryRepository TelemetryRepository { get; init; }
 
     [Inject]
-    public required StructuredLogsViewModel ViewModel { get; set; }
+    public required StructuredLogsViewModel ViewModel { get; init; }
 
     [Inject]
-    public required IDialogService DialogService { get; set; }
+    public required IDialogService DialogService { get; init; }
 
     [Inject]
-    public required ProtectedSessionStorage SessionStorage { get; set; }
+    public required ProtectedSessionStorage SessionStorage { get; init; }
 
     [Inject]
-    public required NavigationManager NavigationManager { get; set; }
+    public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
-    public required BrowserTimeProvider TimeProvider { get; set; }
+    public required BrowserTimeProvider TimeProvider { get; init; }
 
     [Inject]
     public required ILogger<Traces> Logger { get; init; }

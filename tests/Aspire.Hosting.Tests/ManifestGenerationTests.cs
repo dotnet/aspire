@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Garnet;
 using Aspire.Hosting.MongoDB;
 using Aspire.Hosting.MySql;
@@ -97,23 +98,14 @@ public class ManifestGenerationTests
             ContainerRegistryOverride = "myprivateregistry.company.com"
         });
 
-        var redis = builder.AddRedis("redis");
+        var redis = builder.AddContainer("redis", "redis");
         builder.Build().Run();
 
         var redisManifest = await ManifestUtils.GetManifest(redis.Resource);
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
-              "image": "myprivateregistry.company.com/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
-              "bindings": {
-                "tcp": {
-                  "scheme": "tcp",
-                  "protocol": "tcp",
-                  "transport": "tcp",
-                  "targetPort": 6379
-                }
-              }
+              "image": "myprivateregistry.company.com/redis:latest"
             }
             """;
         Assert.Equal(expectedManifest, redisManifest.ToString());
@@ -558,7 +550,7 @@ public class ManifestGenerationTests
                 "mysql": {
                   "type": "container.v0",
                   "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql-password.value}",
-                  "image": "{{MySqlContainerImageTags.Registry}}/{{MySqlContainerImageTags.Image}}:{{MySqlContainerImageTags.Tag}}",
+                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{MySqlContainerImageTags.Image}}:{{MySqlContainerImageTags.Tag}}",
                   "env": {
                     "MYSQL_ROOT_PASSWORD": "{mysql-password.value}",
                     "MYSQL_DATABASE": "mysqldb"
@@ -579,7 +571,7 @@ public class ManifestGenerationTests
                 "redis": {
                   "type": "container.v0",
                   "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
-                  "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",
@@ -605,7 +597,7 @@ public class ManifestGenerationTests
                 "valkey": {
                   "type": "container.v0",
                   "connectionString": "{valkey.bindings.tcp.host}:{valkey.bindings.tcp.port}",
-                  "image": "{{ValkeyContainerImageTags.Registry}}/{{ValkeyContainerImageTags.Image}}:{{ValkeyContainerImageTags.Tag}}",
+                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{ValkeyContainerImageTags.Image}}:{{ValkeyContainerImageTags.Tag}}",
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",
@@ -618,7 +610,7 @@ public class ManifestGenerationTests
                 "postgres": {
                   "type": "container.v0",
                   "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}",
-                  "image": "{{PostgresContainerImageTags.Registry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
+                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{PostgresContainerImageTags.Image}}:{{PostgresContainerImageTags.Tag}}",
                   "env": {
                     "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
                     "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
@@ -642,7 +634,7 @@ public class ManifestGenerationTests
                 "rabbitmq": {
                   "type": "container.v0",
                   "connectionString": "amqp://guest:{rabbitmq-password.value}@{rabbitmq.bindings.tcp.host}:{rabbitmq.bindings.tcp.port}",
-                  "image": "{{RabbitMQContainerImageTags.Registry}}/{{RabbitMQContainerImageTags.Image}}:{{RabbitMQContainerImageTags.Tag}}",
+                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{RabbitMQContainerImageTags.Image}}:{{RabbitMQContainerImageTags.Tag}}",
                   "env": {
                     "RABBITMQ_DEFAULT_USER": "guest",
                     "RABBITMQ_DEFAULT_PASS": "{rabbitmq-password.value}"
@@ -659,7 +651,7 @@ public class ManifestGenerationTests
                 "mongodb": {
                   "type": "container.v0",
                   "connectionString": "mongodb://{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}",
-                  "image": "{{MongoDBContainerImageTags.Registry}}/{{MongoDBContainerImageTags.Image}}:{{MongoDBContainerImageTags.Tag}}",
+                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{MongoDBContainerImageTags.Image}}:{{MongoDBContainerImageTags.Tag}}",
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",
@@ -696,7 +688,7 @@ public class ManifestGenerationTests
                 "kafka": {
                   "type": "container.v0",
                   "connectionString": "{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}",
-                  "image": "{{KafkaContainerImageTags.Registry}}/{{KafkaContainerImageTags.Image}}:{{KafkaContainerImageTags.Tag}}",
+                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{KafkaContainerImageTags.Image}}:{{KafkaContainerImageTags.Tag}}",
                   "env": {
                     "KAFKA_LISTENERS": "PLAINTEXT://localhost:29092,CONTROLLER://localhost:29093,PLAINTEXT_HOST://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:9093",
                     "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT",
@@ -746,7 +738,7 @@ public class ManifestGenerationTests
                 "milvus": {
                   "type": "container.v0",
                   "connectionString": "Endpoint={milvus.bindings.grpc.url};Key={milvusApiKey.value}",
-                  "image": "docker.io/milvusdb/milvus:2.3-latest",
+                  "image": "{{TestConstants.AspireTestContainerRegistry}}/milvusdb/milvus:2.3-latest",
                   "args": [
                     "milvus",
                     "run",

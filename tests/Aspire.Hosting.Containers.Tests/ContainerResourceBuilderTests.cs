@@ -54,8 +54,8 @@ public class ContainerResourceBuilderTests
     public void WithImageTagMutatesImageTag()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        var redis = builder.AddContainer("redis", "redis").WithImageTag("foo");
-        Assert.Equal("foo", redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().Tag);
+        var redis = builder.AddContainer("redis", "redis").WithImageTag("7.1");
+        Assert.Equal("7.1", redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single().Tag);
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public class ContainerResourceBuilderTests
         using var builder = TestDistributedApplicationBuilder.Create();
         var container = builder.AddResource(new TestContainerResource("testcontainer"));
 
-        var exception = Assert.Throws<InvalidOperationException>(() => container.WithImageTag("foo"));
+        var exception = Assert.Throws<InvalidOperationException>(() => container.WithImageTag("7.1"));
         Assert.Equal("The resource 'testcontainer' does not have a container image specified. Use WithImage to specify the container image and tag.", exception.Message);
     }
 
