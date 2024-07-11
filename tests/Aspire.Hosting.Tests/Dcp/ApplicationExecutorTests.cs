@@ -353,6 +353,9 @@ public class ApplicationExecutorTests
 
         builder.AddProject<Projects.ServiceA>("ServiceA")
             .WithEndpoint(name: "NoPortNoTargetPort", env: "NO_PORT_NO_TARGET_PORT", isProxied: true)
+            .WithHttpEndpoint(name: "hp1", port: 5001)
+            .WithHttpEndpoint(name: "dontinjectme", port: 5002)
+            .WithEndpointsInEnvironment(e => e.Name != "dontinjectme")
             .WithReplicas(3);
 
         var kubernetesService = new TestKubernetesService();
@@ -376,6 +379,10 @@ public class ApplicationExecutorTests
         var envVarVal = ers.Spec.Template.Spec.Env?.Single(v => v.Name == "NO_PORT_NO_TARGET_PORT").Value;
         Assert.False(string.IsNullOrWhiteSpace(envVarVal));
         Assert.Contains("""portForServing "ServiceA-NoPortNoTargetPort" """, envVarVal);
+
+        // ASPNETCORE_URLS should not include dontinjectme, as it was excluded using WithEndpointsInEnvironment
+        var aspnetCoreUrls = ers.Spec.Template.Spec.Env?.Single(v => v.Name == "ASPNETCORE_URLS").Value;
+        Assert.Equal("http://localhost:{{- portForServing \"ServiceA-http\" -}};http://localhost:{{- portForServing \"ServiceA-hp1\" -}}", aspnetCoreUrls);
     }
 
     [Fact]

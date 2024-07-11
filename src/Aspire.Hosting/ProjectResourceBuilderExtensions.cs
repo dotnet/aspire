@@ -358,7 +358,6 @@ public static class ProjectResourceBuilderExtensions
             {
                 builder.WithEndpoint(schemeAsEndpointName ?? endpoint.EndpointName, e =>
                 {
-
                     if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
                     {
                         // In Publish mode, we could not set the Port because it needs to be the standard
@@ -557,6 +556,21 @@ public static class ProjectResourceBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Set a filter that determines if environment variables are injected for a given endpoint.
+    /// By default, all endpoints are included (if this method is not called).
+    /// </summary>
+    /// <param name="builder">The project resource builder.</param>
+    /// <param name="filter">The filter callback that returns true if and only if the endpoint should be included.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<ProjectResource> WithEndpointsInEnvironment(
+        this IResourceBuilder<ProjectResource> builder, Func<EndpointAnnotation, bool> filter)
+    {
+        builder.Resource.Annotations.Add(new EndpointEnvironmentInjectionFilterAnnotation(filter));
+
+        return builder;
+    }
+
     private static IConfiguration GetConfiguration(ProjectResource projectResource)
     {
         var projectMetadata = projectResource.GetProjectMetadata();
@@ -578,9 +592,6 @@ public static class ProjectResourceBuilderExtensions
         return configBuilder.Build();
     }
 
-    static bool IsValidAspNetCoreUrl(EndpointAnnotation e) =>
-        e.UriScheme is "http" or "https" && e.TargetPortEnvironmentVariable is null;
-
     private static void SetAspNetCoreUrls(this IResourceBuilder<ProjectResource> builder)
     {
         builder.WithEnvironment(context =>
@@ -597,7 +608,7 @@ public static class ProjectResourceBuilderExtensions
             var first = true;
 
             // Turn http and https endpoints into a single ASPNETCORE_URLS environment variable.
-            foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)))
+            foreach (var e in builder.Resource.GetEndpoints().Where(builder.Resource.ShouldInjectEndpointEnvironment))
             {
                 if (!first)
                 {
@@ -646,7 +657,7 @@ public static class ProjectResourceBuilderExtensions
         var firstPort = true;
 
         // Turn endpoint ports into a single environment variable
-        foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)))
+        foreach (var e in builder.Resource.GetEndpoints().Where(builder.Resource.ShouldInjectEndpointEnvironment))
         {
             // Skip the default https endpoint because the container likely won't be set up to listen on https (e.g. ACA case)
             if (e.EndpointAnnotation.UriScheme == scheme && e.EndpointAnnotation != builder.Resource.DefaultHttpsEndpoint)
@@ -677,7 +688,7 @@ public static class ProjectResourceBuilderExtensions
             // don't come from Kestrel. This is because having Kestrel endpoints overrides everything
             if (builder.Resource.HasKestrelEndpoints)
             {
-                foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)))
+                foreach (var e in builder.Resource.GetEndpoints().Where(builder.Resource.ShouldInjectEndpointEnvironment))
                 {
                     // Skip the default https endpoint because the container likely won't be set up to listen on https (e.g. ACA case)
                     if (e.EndpointAnnotation == builder.Resource.DefaultHttpsEndpoint)
