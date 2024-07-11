@@ -35,7 +35,6 @@
 
   <Target Name="BuildHelixWorkItemsForPlaygroundTests">
     <ItemGroup>
-      <_PlaygroundTestRunCommandArguments Include="dotnet build -bl:$(_HelixLogsPath)/build.binlog $(_ShellCommandSeparator)" />
       <_PlaygroundTestRunCommandArguments Include="dotnet test" />
       <_PlaygroundTestRunCommandArguments Include="--results-directory $(_HelixLogsPath)" />
       <_PlaygroundTestRunCommandArguments Include="--blame-hang" />
@@ -54,6 +53,8 @@
     <PropertyGroup>
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_PlaygroundTestRunCommandArguments, ' ')&quot;</_TestRunCommand>
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_PlaygroundTestRunCommandArguments, ' ')</_TestRunCommand>
+
+      <_TestRunCommand>dotnet build -bl:$(_HelixLogsPath)/build.binlog $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
     </PropertyGroup>
 
     <ReadLinesFromFile File="$(TestArchiveDir)$(TestProjectName).tests.list">
