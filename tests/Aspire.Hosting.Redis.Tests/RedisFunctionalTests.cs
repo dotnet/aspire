@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -291,6 +292,38 @@ public class RedisFunctionalTests
 
             await app.StopAsync();
         }
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task WithRedisCommanderShouldWorkWithPassword()
+    {
+        var builder = CreateDistributedApplicationBuilder();
+
+        var password = "p@ssw0rd1";
+        builder.Configuration["Parameters:pass"] = password;
+        var passwordParameter = builder.AddParameter("pass");
+
+        builder.AddRedis("redis", password: passwordParameter)
+           .WithRedisCommander();
+
+        builder.Services.AddHttpClient();
+        using var app = builder.Build();
+
+        await app.StartAsync();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var redisCommander = Assert.Single(appModel.Resources.OfType<RedisCommanderResource>());
+
+        var endpoint = redisCommander.GetEndpoint("http");
+        var redisCommanderUrl = endpoint.Url;
+        Assert.NotNull(redisCommanderUrl);
+
+        var clientFactory = app.Services.GetRequiredService<IHttpClientFactory>();
+        var client = clientFactory.CreateClient();
+
+        var httpResponse = await client.GetAsync(redisCommanderUrl!);
+        httpResponse.EnsureSuccessStatusCode();
     }
 
     private static TestDistributedApplicationBuilder CreateDistributedApplicationBuilder() =>
