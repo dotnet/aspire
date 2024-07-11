@@ -1046,7 +1046,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                         projectMetadata.ProjectPath
                     ];
 
-                    if (dwa.EnableHotReload)
+                    if (!dwa.EnableHotReload)
                     {
                         exeSpec.Args.Add("--no-hot-reload");
                     }
