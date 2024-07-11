@@ -15,16 +15,16 @@ namespace Aspire.Dashboard.Components.Controls;
 public partial class UserProfile : ComponentBase
 {
     [Inject]
-    public required IOptionsMonitor<DashboardOptions> DashboardOptions { get; set; }
+    public required IOptionsMonitor<DashboardOptions> DashboardOptions { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<Login> Loc { get; init; }
+
+    [Inject]
+    public required ILogger<UserProfile> Logger { get; init; }
 
     [CascadingParameter]
     public required Task<AuthenticationState> AuthenticationState { get; set; }
-
-    [Inject]
-    public required IStringLocalizer<Login> Loc { get; set; }
-
-    [Inject]
-    public required ILogger<UserProfile> Logger { get; set; }
 
     [Parameter]
     public string ButtonSize { get; set; } = "24px";
