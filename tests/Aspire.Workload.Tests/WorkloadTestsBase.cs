@@ -105,25 +105,23 @@ public class WorkloadTestsBase
                 int matchingEndpoints = 0;
                 var expectedEndpoints = expectedRow.Endpoints;
 
-                string[] endpointsFound =
+                var endpointsFound =
                     (await rowLoc.Locator("//div[@class='fluent-overflow-item']").AllAsync())
                         .Select(async e => await e.InnerTextAsync())
                         .Select(t => t.Result.Trim(','))
-                        .ToArray();
-                // FIXME: this could still return "+2"
-                if (endpointsFound.Length == 0)
-                {
-                    var cellText = await cellLocs[5].InnerTextAsync();
-                    endpointsFound = cellText.Trim().Split(',', StringSplitOptions.RemoveEmptyEntries);
-                }
-                if (expectedEndpoints.Length != endpointsFound.Length)
+                        .ToList();
+
+                var firstEndpoint = await rowLoc.Locator("//div[@class='endpoint-first']").InnerTextAsync();
+                endpointsFound.Insert(0, firstEndpoint.Trim().Trim(','));
+
+                if (expectedEndpoints.Length != endpointsFound.Count)
                 {
                     // _testOutput.WriteLine($"For resource '{resourceName}, found ")
                     // _testOutput.WriteLine($"-- expected: {expectedEndpoints.Length} found: {endpointsFound.Length}, expected: {string.Join(',', expectedEndpoints)} found: {string.Join(',', endpointsFound)} for {resourceName}");
                     continue;
                 }
 
-                AssertEqual(expectedEndpoints.Length, endpointsFound.Length, $"#endpoints for {resourceName}");
+                AssertEqual(expectedEndpoints.Length, endpointsFound.Count, $"#endpoints for {resourceName}");
 
                 // endpointsFound: ["foo", "https://localhost:7589/weatherforecast"]
                 foreach (var endpointFound in endpointsFound)
@@ -145,7 +143,7 @@ public class WorkloadTestsBase
                     AssertEqual(expectedRow.Source, await cellLocs[4].InnerTextAsync(), $"Source for {resourceName}");
                 }
 
-                foundRows.Add(expectedRow with { Endpoints = endpointsFound });
+                foundRows.Add(expectedRow with { Endpoints = endpointsFound.ToArray() });
                 foundNames.Add(resourceName);
             }
         }
