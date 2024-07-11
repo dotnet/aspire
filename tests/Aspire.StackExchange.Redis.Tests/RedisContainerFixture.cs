@@ -34,7 +34,7 @@ public sealed class RedisContainerFixture : IAsyncLifetime
     public static async Task<RedisContainer> CreateContainerAsync()
     {
         var container = new RedisBuilder()
-            .WithImage($"netaspireci.azurecr.io/{RedisContainerImageTags.Image}:{RedisContainerImageTags.Tag}")
+            .WithImage($"{TestConstants.AspireTestContainerRegistry}/{RedisContainerImageTags.Image}:{RedisContainerImageTags.Tag}")
             .Build();
         await container.StartAsync();
 
