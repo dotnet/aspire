@@ -508,6 +508,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Hosting", "Hosting", "{830A
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Redis.Tests", "tests\Aspire.Hosting.Redis.Tests\Aspire.Hosting.Redis.Tests.csproj", "{1BC02557-B78B-48CE-9D3C-488A6B7672F4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Garnet.Tests", "tests\Aspire.Hosting.Garnet.Tests\Aspire.Hosting.Garnet.Tests.csproj", "{CAA4A93F-6BEB-42EB-8680-C1CF72928023}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1326,6 +1328,10 @@ Global
 		{1BC02557-B78B-48CE-9D3C-488A6B7672F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1BC02557-B78B-48CE-9D3C-488A6B7672F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1BC02557-B78B-48CE-9D3C-488A6B7672F4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CAA4A93F-6BEB-42EB-8680-C1CF72928023}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CAA4A93F-6BEB-42EB-8680-C1CF72928023}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CAA4A93F-6BEB-42EB-8680-C1CF72928023}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CAA4A93F-6BEB-42EB-8680-C1CF72928023}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1569,6 +1575,7 @@ Global
 		{C424395C-1235-41A4-BF55-07880A04368C} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{830A89EC-4029-4753-B25A-068BAE37DEC7} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{1BC02557-B78B-48CE-9D3C-488A6B7672F4} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
+		{CAA4A93F-6BEB-42EB-8680-C1CF72928023} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
