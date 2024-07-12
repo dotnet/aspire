@@ -168,9 +168,7 @@ public static class AspireOracleEFCoreExtensions
         {
             builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
             {
-                //Sets the OTel semantic convention attributes until Oracle.ManagedDataAccess.OpenTelemetry does by default
-                var options = settings.InstrumentationOptions ?? (o => o.EnableConnectionLevelAttributes = true);
-                tracerProviderBuilder.AddOracleDataProviderInstrumentation(options);
+                tracerProviderBuilder.AddOracleDataProviderInstrumentation(settings.InstrumentationOptions);
             });
         }
 

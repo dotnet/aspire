@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using OpenTelemetry.Trace;
+using Oracle.ManagedDataAccess.OpenTelemetry;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -148,7 +149,11 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
         RegisterComponent(builder, options => SetTracing(options, true));
 
         List<Activity> exportedActivities = new();
-        builder.Services.AddOpenTelemetry().WithTracing(builder => builder.AddInMemoryExporter(exportedActivities));
+        builder.Services.AddOpenTelemetry().WithTracing(builder =>
+        {
+            builder.AddInMemoryExporter(exportedActivities);
+            builder.AddOracleDataProviderInstrumentation(o => o.EnableConnectionLevelAttributes = true);
+        });
 
         using (IHost host = builder.Build())
         {
