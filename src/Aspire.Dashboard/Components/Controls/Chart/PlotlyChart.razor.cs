@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Globalization;
 using System.Web;
 using Aspire.Dashboard.Components.Controls.Chart;
@@ -16,7 +17,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components;
 
-public partial class PlotlyChart : ChartBase, IDisposable
+public partial class PlotlyChart : ChartBase, IAsyncDisposable
 {
     [Inject]
     public required IJSRuntime JS { get; init; }
@@ -28,6 +29,7 @@ public partial class PlotlyChart : ChartBase, IDisposable
     public required IDialogService DialogService { get; init; }
 
     private DotNetObjectReference<ChartInterop>? _chartInteropReference;
+    private IJSObjectReference? _jsModule;
 
     private string FormatTooltip(string title, double yValue, DateTimeOffset xValue)
     {
@@ -45,6 +47,8 @@ public partial class PlotlyChart : ChartBase, IDisposable
 
     protected override async Task OnChartUpdated(List<ChartTrace> traces, List<DateTimeOffset> xValues, List<ChartExemplar> exemplars, bool tickUpdate, DateTimeOffset inProgressDataTime)
     {
+        Debug.Assert(_jsModule != null, "The module should be initialized before chart data is sent to control.");
+
         var traceDtos = traces.Select(t => new PlotlyTrace
         {
             Name = t.Name,
@@ -71,7 +75,7 @@ public partial class PlotlyChart : ChartBase, IDisposable
             _chartInteropReference?.Dispose();
             _chartInteropReference = DotNetObjectReference.Create(new ChartInterop(this));
 
-            await JS.InvokeVoidAsync("initializeChart",
+            await _jsModule.InvokeVoidAsync("initializeChart",
                 "plotly-chart-container",
                 traceDtos,
                 exemplarTraceDto,
@@ -82,7 +86,7 @@ public partial class PlotlyChart : ChartBase, IDisposable
         }
         else
         {
-            await JS.InvokeVoidAsync("updateChart",
+            await _jsModule.InvokeVoidAsync("updateChart",
                 "plotly-chart-container",
                 traceDtos,
                 exemplarTraceDto,
@@ -154,13 +158,28 @@ public partial class PlotlyChart : ChartBase, IDisposable
         return exemplarTraceDto;
     }
 
-    public void Dispose()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/app-metrics.js");
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    // The first data is used to initialize the chart. The module needs to be ready first.
+    protected override bool ReadyForData() => _jsModule != null;
+
+    public async ValueTask DisposeAsync()
     {
         if (_chartInteropReference != null)
         {
             _chartInteropReference.Value.Dispose();
             _chartInteropReference.Dispose();
         }
+
+        await JSInteropHelpers.SafeDisposeAsync(_jsModule);
     }
 
     /// <summary>
