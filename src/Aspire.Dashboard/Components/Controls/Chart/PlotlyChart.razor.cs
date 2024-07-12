@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Globalization;
 using System.Web;
 using Aspire.Dashboard.Components.Controls.Chart;
@@ -46,10 +47,7 @@ public partial class PlotlyChart : ChartBase, IAsyncDisposable
 
     protected override async Task OnChartUpdated(List<ChartTrace> traces, List<DateTimeOffset> xValues, List<ChartExemplar> exemplars, bool tickUpdate, DateTimeOffset inProgressDataTime)
     {
-        if (_jsModule == null)
-        {
-            return;
-        }
+        Debug.Assert(_jsModule != null, "The module should be initialized before chart data is sent to control.");
 
         var traceDtos = traces.Select(t => new PlotlyTrace
         {

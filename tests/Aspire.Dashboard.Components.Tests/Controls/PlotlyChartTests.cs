@@ -25,6 +25,8 @@ public class PlotlyChartTests : TestContext
     public void Render_NoInstrument_NoPlotlyInvocations()
     {
         // Arrange
+        JSInterop.SetupModule("/js/app-metrics.js");
+
         Services.AddLocalization();
         Services.AddSingleton<IInstrumentUnitResolver, TestInstrumentUnitResolver>();
         Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
@@ -42,14 +44,20 @@ public class PlotlyChartTests : TestContext
         // Assert
         cut.MarkupMatches(ContainerHtml);
 
-        Assert.Empty(JSInterop.Invocations);
+        Assert.Collection(JSInterop.Invocations,
+            i =>
+            {
+                Assert.Equal("import", i.Identifier);
+                Assert.Equal("/js/app-metrics.js", i.Arguments[0]);
+            });
     }
 
     [Fact]
     public async Task Render_HasInstrument_InitializeChartInvocation()
     {
         // Arrange
-        JSInterop.SetupVoid("initializeChart", _ => true);
+        var module = JSInterop.SetupModule("/js/app-metrics.js");
+        module.SetupVoid("initializeChart", _ => true);
 
         Services.AddLocalization();
         Services.AddSingleton<IInstrumentUnitResolver, TestInstrumentUnitResolver>();
@@ -95,14 +103,22 @@ public class PlotlyChartTests : TestContext
         // Assert
         cut.MarkupMatches(ContainerHtml);
 
-        var result = Assert.Single(JSInterop.Invocations);
-        Assert.Equal("initializeChart", result.Identifier);
-        Assert.Equal("plotly-chart-container", result.Arguments[0]);
-        Assert.Collection((IEnumerable<PlotlyTrace>)result.Arguments[1]!, trace =>
-        {
-            Assert.Equal("Unit-&lt;b&gt;Bold&lt;/b&gt;", trace.Name);
-            Assert.Equal("<b>Name-&lt;b&gt;Bold&lt;/b&gt;</b><br />Unit-&lt;b&gt;Bold&lt;/b&gt;: 1<br />Time: 12:59:57 AM", trace.Tooltips[0]);
-        });
+        Assert.Collection(JSInterop.Invocations,
+            i =>
+            {
+                Assert.Equal("import", i.Identifier);
+                Assert.Equal("/js/app-metrics.js", i.Arguments[0]);
+            },
+            i =>
+            {
+                Assert.Equal("initializeChart", i.Identifier);
+                Assert.Equal("plotly-chart-container", i.Arguments[0]);
+                Assert.Collection((IEnumerable<PlotlyTrace>)i.Arguments[1]!, trace =>
+                {
+                    Assert.Equal("Unit-&lt;b&gt;Bold&lt;/b&gt;", trace.Name);
+                    Assert.Equal("<b>Name-&lt;b&gt;Bold&lt;/b&gt;</b><br />Unit-&lt;b&gt;Bold&lt;/b&gt;: 1<br />Time: 12:59:57 AM", trace.Tooltips[0]);
+                });
+            });
     }
 
     private sealed class TestInstrumentUnitResolver : IInstrumentUnitResolver
