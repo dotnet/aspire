@@ -1,6 +1,6 @@
 import './plotly-2.32.0.min.js'
 
-export function initializeChart(id, traces, xValues, rangeStartTime, rangeEndTime, serverLocale) {
+export function initializeChart(id, traces, exemplarTrace, rangeStartTime, rangeEndTime, serverLocale, chartInterop) {
     registerLocale(serverLocale);
 
     var chartContainerDiv = document.getElementById(id);
@@ -92,7 +92,7 @@ export function initializeChart(id, traces, xValues, rangeStartTime, rangeEndTim
 
     // We only want a pointer cursor when the mouse is hovering over an exemplar point.
     // Set the drag layer cursor back to the default and then use plotly_hover/ploty_unhover events to set to pointer.
-    dragLayer = document.getElementsByClassName('nsewdrag')[0];
+    var dragLayer = document.getElementsByClassName('nsewdrag')[0];
     dragLayer.style.cursor = 'default';
 
     // Use mousedown instead of plotly_click event because plotly_click has issues with updating charts.
@@ -123,7 +123,7 @@ export function initializeChart(id, traces, xValues, rangeStartTime, rangeEndTim
     });
 }
 
-export function updateChart(id, traces, xValues, rangeStartTime, rangeEndTime) {
+export function updateChart(id, traces, exemplarTrace, rangeStartTime, rangeEndTime) {
     var chartContainerDiv = document.getElementById(id);
     var chartDiv = chartContainerDiv.firstChild;
 
@@ -203,4 +203,39 @@ function fixTraceLineRendering(chartDiv) {
             }
         }
     }
+}
+
+function registerLocale(serverLocale) {
+    // Register the locale for Plotly.js. This is to enable localization of time format shown by the charts.
+    // Changing plotly.js time formatting is better than supplying values from the server which is very difficult to do correctly.
+
+    // Right now necessary changes are to:
+    // -Update AM/PM
+    // -Update time format to 12/24 hour.
+    var locale = {
+        moduleType: 'locale',
+        name: 'en',
+        dictionary: {
+            'Click to enter Colorscale title': 'Click to enter Colourscale title'
+        },
+        format: {
+            days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+            shortDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+            months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+            shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            periods: serverLocale.periods,
+            dateTime: '%a %b %e %X %Y',
+            date: '%d/%m/%Y',
+            time: serverLocale.time,
+            decimal: '.',
+            thousands: ',',
+            grouping: [3],
+            currency: ['$', ''],
+            year: '%Y',
+            month: '%b %Y',
+            dayMonth: '%b %-d',
+            dayMonthYear: '%b %-d, %Y'
+        }
+    };
+    Plotly.register(locale);
 }
