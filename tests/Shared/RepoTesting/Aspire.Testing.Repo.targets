@@ -6,7 +6,9 @@
 
   <PropertyGroup>
     <GeneratedPackagesVersionsPropsPath>$(IntermediateOutputPath)Directory.Packages.Versions.props</GeneratedPackagesVersionsPropsPath>
+    <RelativeStagingDir Condition="'$(RelativeStagingDir)' == '' and '$(SupportsRunningOutsideOfRepo)' == 'true'">staging-for-archive\</RelativeStagingDir>
     <RelativeStagingDir>$([MSBuild]::EnsureTrailingSlash('$(RelativeStagingDir)'))</RelativeStagingDir>
+    <TestArchiveTestsDir Condition="'$(TestArchiveTestsDir)' == '' and '$(SupportsRunningOutsideOfRepo)' == 'true'">$(TestArchiveTestsDirForPlaygroundTests)</TestArchiveTestsDir>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">

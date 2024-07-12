@@ -11,8 +11,7 @@
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
     <IncludeTestPackages Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">true</IncludeTestPackages>
 
-    <RelativeStagingDir>staging-for-archive\</RelativeStagingDir>
-    <TestArchiveTestsDir>$(TestArchiveTestsDirForPlaygroundTests)</TestArchiveTestsDir>
+    <IsHostingTestingProject>true</IsHostingTestingProject>
     <SupportsRunningOutsideOfRepo>true</SupportsRunningOutsideOfRepo>
 
     <!-- for running out of repo -->

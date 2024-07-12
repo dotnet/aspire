@@ -8,8 +8,8 @@
     <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
 
-    <RelativeStagingDir>staging-for-archive\</RelativeStagingDir>
-    <TestArchiveTestsDir>$(TestArchiveTestsDirForPlaygroundTests)</TestArchiveTestsDir>
+    <IsHostingTestingProject>true</IsHostingTestingProject>
+    <SupportsRunningOutsideOfRepo>true</SupportsRunningOutsideOfRepo>
 
     <!-- FIXME: reduce to one property? -->
     <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(ArchiveTests)' == 'true'">true</ExtractTestClassNamesForHelix>
@@ -19,7 +19,6 @@
 
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
     <IncludeTestPackages Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">true</IncludeTestPackages>
-    <SupportsRunningOutsideOfRepo>true</SupportsRunningOutsideOfRepo>
   </PropertyGroup>
 
   <ItemGroup>
