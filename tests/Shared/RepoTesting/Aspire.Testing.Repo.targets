@@ -9,7 +9,8 @@
 
     <IncludeTestPackages Condition="'$(IncludeTestPackages)' == '' and ('$(IsTestProject)' == 'true' or '$(IsTestSupportProject)' == 'true')">true</IncludeTestPackages>
     <GeneratedPackagesVersionsPropsPath>$(IntermediateOutputPath)Directory.Packages.Versions.props</GeneratedPackagesVersionsPropsPath>
-    <RelativeStagingDir Condition="'$(RelativeStagingDir)' == '' and '$(SupportsRunningOutsideOfRepo)' == 'true'">staging-for-archive\</RelativeStagingDir>
+    <!-- FIXME: probably can be supporting*==true -->
+    <RelativeStagingDir Condition="'$(RelativeStagingDir)' == '' and '$(SupportsRunningOutsideOfRepo)' == 'true' and '$(IsHostingTestingProject)' == 'true'">staging-for-archive\</RelativeStagingDir>
     <RelativeStagingDir>$([MSBuild]::EnsureTrailingSlash('$(RelativeStagingDir)'))</RelativeStagingDir>
     <TestArchiveTestsDir Condition="'$(TestArchiveTestsDir)' == '' and '$(SupportsRunningOutsideOfRepo)' == 'true'">$(TestArchiveTestsDirForPlaygroundTests)</TestArchiveTestsDir>
   </PropertyGroup>
@@ -50,7 +51,7 @@
     <None Include="$(TestsSharedDir)WorkloadTesting\data\Directory.Packages.Helix.props" Link="$(RelativeStagingDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <!-- FIXME: should this be in the test project?? -->
-    <None Include="$(TestsSharedDir)\**\*" Link="staging-for-archive\tests\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedDir)\**\*" Link="$(RelativeStagingDir)tests\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(SupportsRunningOutsideOfRepo)' == 'true'">

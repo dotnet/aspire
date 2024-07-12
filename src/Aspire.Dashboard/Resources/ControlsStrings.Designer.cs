@@ -286,6 +286,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Exemplars.
+        /// </summary>
+        public static string MetricTableExemplarsColumnHeader {
+            get {
+                return ResourceManager.GetString("MetricTableExemplarsColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to No metrics data found.
         /// </summary>
         public static string MetricTableNoMetricsFound {
@@ -349,6 +358,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to View exemplars.
+        /// </summary>
+        public static string MetricTableViewExemplarsLabel {
+            get {
+                return ResourceManager.GetString("MetricTableViewExemplarsLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Name.
         /// </summary>
         public static string NameColumnHeader {
@@ -367,11 +385,38 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Exemplars.
+        /// </summary>
+        public static string PlotlyChartExemplars {
+            get {
+                return ResourceManager.GetString("PlotlyChartExemplars", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Length.
         /// </summary>
         public static string PlotlyChartLength {
             get {
                 return ResourceManager.GetString("PlotlyChartLength", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Time.
+        /// </summary>
+        public static string PlotlyChartTime {
+            get {
+                return ResourceManager.GetString("PlotlyChartTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Trace.
+        /// </summary>
+        public static string PlotlyChartTrace {
+            get {
+                return ResourceManager.GetString("PlotlyChartTrace", resourceCulture);
             }
         }
         

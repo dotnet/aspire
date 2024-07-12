@@ -11,6 +11,10 @@
     <TestUsingWorkloads Condition="! ('$(ContinuousIntegrationBuild)' == 'true' and '$(OS)' == 'Windows_NT')">true</TestUsingWorkloads>
     <InstallWorkloadForTesting>$(TestUsingWorkloads)</InstallWorkloadForTesting>
 
+    <!-- FIXME: make this property specific to hosting.testing -->
+    <RelativeStagingDir>\</RelativeStagingDir>
+    <RootDirForTestsRunningOutOfRepo>testassets\testproject\</RootDirForTestsRunningOutOfRepo>
+
     <IncludeTestPackages>false</IncludeTestPackages>
     <SupportsRunningOutsideOfRepo>true</SupportsRunningOutsideOfRepo>
     <TestsRunningOutsideOfRepo Condition="'$(TestsRunningOutsideOfRepo)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</TestsRunningOutsideOfRepo>
@@ -26,22 +30,16 @@
     <None Include="..\testproject\**\*" Link="testassets\testproject\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\.editorconfig" Link="testassets\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
-    <None Condition="'$(InstallWorkloadForTesting)' == 'true'" Include="$(TestsSharedDir)nuget-with-package-source-mapping.config" Link="testassets\nuget.config" CopyToOutputDirectory="PreserveNewest" />
-
-    <None Include="$(TestsSharedDir)EmptyProject.proj" Link="testassets\Directory.Build.props" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(TestsSharedDir)EmptyProject.proj" Link="testassets\Directory.Build.targets" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(TestsSharedRepoTestingDir)\*" Link="testassets\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-
-    <None Include="$(GeneratedPackagesVersionsPropsPath)" Link="testassets\Directory.Packages.Versions.props" CopyToOutputDirectory="PreserveNewest" />
+    <!--<None Condition="'$(InstallWorkloadForTesting)' == 'true'" Include="$(TestsSharedDir)nuget-with-package-source-mapping.config" Link="testassets\nuget.config" CopyToOutputDirectory="PreserveNewest" />-->
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
 
-    <PropertyForHelixRun Include="XunitPackageVersion" />
-    <PropertyForHelixRun Include="XunitRunnerVisualStudioPackageVersion" />
-    <PropertyForHelixRun Include="XunitPackageVersion" />
-    <PropertyForHelixRun Include="MSTestTestAdapterPackageVersion" />
-    <PropertyForHelixRun Include="MicrosoftNETTestSdkPackageVersion" />
+    <!--<PropertyForHelixRun Include="XunitPackageVersion" />-->
+    <!--<PropertyForHelixRun Include="XunitRunnerVisualStudioPackageVersion" />-->
+    <!--<PropertyForHelixRun Include="XunitPackageVersion" />-->
+    <!--<PropertyForHelixRun Include="MSTestTestAdapterPackageVersion" />-->
+    <!--<PropertyForHelixRun Include="MicrosoftNETTestSdkPackageVersion" />-->
   </ItemGroup>
 
   <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" />
