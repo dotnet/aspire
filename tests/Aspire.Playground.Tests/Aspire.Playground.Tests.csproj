@@ -8,6 +8,7 @@
     <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
 
+    <RelativeStagingDir>staging-for-archive\</RelativeStagingDir>
     <TestArchiveTestsDir>$(TestArchiveTestsDirForPlaygroundTests)</TestArchiveTestsDir>
 
     <!-- FIXME: reduce to one property? -->

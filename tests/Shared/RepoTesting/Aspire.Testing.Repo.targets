@@ -6,7 +6,6 @@
 
   <PropertyGroup>
     <GeneratedPackagesVersionsPropsPath>$(IntermediateOutputPath)Directory.Packages.Versions.props</GeneratedPackagesVersionsPropsPath>
-    <RelativeStagingDir Condition="'$(RelativeStagingDir)' == ''">staging-for-archive\</RelativeStagingDir>
     <RelativeStagingDir>$([MSBuild]::EnsureTrailingSlash('$(RelativeStagingDir)'))</RelativeStagingDir>
   </PropertyGroup>
 
@@ -22,7 +21,7 @@
     <PackageReference Include="@(NonComponentReferenceForTests)" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true' and '$(IncludeTestPackages)' == 'true'">
+  <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true' and ('$(IsTestProject)' == 'true' or '$(IsTestSupportProject)' == 'true')">
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.core" />
     <PackageReference Include="xunit.analyzers" />
