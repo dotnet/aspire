@@ -5,7 +5,8 @@
     <NeedsWorkload>true</NeedsWorkload>
     <NeedsPlaywright>true</NeedsPlaywright>
 
-    <TestArchiveDir>$(TestArchiveTestsDirForPlaygroundTests)</TestArchiveDir>
+    <WorkItemArchiveWildCard>$(TestArchiveTestsDirForPlaygroundTests)**/*.zip</WorkItemArchiveWildCard>
+    <!--<TestArchiveDir>$(TestArchiveTestsDirForPlaygroundTests)</TestArchiveDir>-->
     <TestProjectName>Aspire.Playground.Tests</TestProjectName>
 
     <_CleanupProcessesCommand Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; get-ciminstance win32_process | where-object ExecutablePath -Match 'dotnet-latest|dcp.exe|dcpctrl.exe' | foreach-object { echo $_.ProcessId $_.ExecutablePath %3B stop-process -id $_.ProcessId -force -ErrorAction SilentlyContinue }"</_CleanupProcessesCommand>
@@ -17,7 +18,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <HelixPreCommand Include="$(_EnvVarSetKeyword) TEST_NAME=$(TestProjectName)" />
+    <!--<HelixPreCommand Include="$(_EnvVarSetKeyword) TEST_NAME=$(TestProjectName)" />-->
     <!--<HelixPreCommand Include="$(_EnvVarSetKeyword) SHOW_BUILD_OUTPUT=true" />-->
     <HelixPreCommand Include="$(_EnvVarSetKeyword) BuildForTest=true" />
     <HelixPreCommand Include="$(_EnvVarSetKeyword) TestsRunningOutsideOfRepo=true" />
@@ -60,32 +61,26 @@
       <_SetPathEnvVar Condition="'$(OS)' == 'Windows_NT'">PATH=%SDK_FOR_WORKLOAD_TESTING_PATH%%3B%PATH%</_SetPathEnvVar>
     </PropertyGroup>
 
-    <ReadLinesFromFile File="$(TestArchiveDir)$(TestProjectName).tests.list">
-      <Output TaskParameter="Lines" ItemName="_TestsClassNames" />
-    </ReadLinesFromFile>
+    <!--<ReadLinesFromFile File="$(TestArchiveDir)$(TestProjectName).tests.list">-->
+      <!--<Output TaskParameter="Lines" ItemName="_TestsClassNames" />-->
+    <!--</ReadLinesFromFile>-->
 
-    <Error Condition="@(_TestsClassNames->Count()) == 0"
-           Text="No test class names found" />
+    <!--<Error Condition="@(_TestsClassNames->Count()) == 0"-->
+           <!--Text="No test class names found" />-->
 
     <ItemGroup>
-      <!-- PreCommands="" needed for batching below -->
-      <_TestsClassNames TestNameSuffix="$([System.String]::Copy('%(Identity)').Replace('Aspire.Playground.Tests.', ''))" PreCommands="" />
+      <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" />
 
-      <HelixWorkItem Include="@(_TestsClassNames)">
-        <PayloadArchive>$(TestArchiveDir)\$(TestProjectName).zip</PayloadArchive>
+      <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
+        <PayloadArchive>%(Identity)</PayloadArchive>
 
-        <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
-        <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=-%(TestNameSuffix)&quot;</PreCommands>
-        <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;$(_SetPathEnvVar)&quot;</PreCommands>
+        <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;$(_SetPathEnvVar)&quot;</PreCommands>
 
-        <PreCommands Condition="'$(OS)' == 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) set &quot;TEST_ARGS=--filter category^^!=failing^&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
-        <PreCommands Condition="'$(OS)' != 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) export &quot;TEST_ARGS=--filter category!=failing&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
-
-        <Command>cd tests/$(TestProjectName) %3B $(_TestRunCommand)</Command>
+        <Command>cd tests/%(FileName) %3B $(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
-        <DownloadFilesFromResults>logs/$(TestProjectName)-%(TestNameSuffix).cobertura.xml</DownloadFilesFromResults>
+        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
       </HelixWorkItem>
     </ItemGroup>
   </Target>

@@ -10,6 +10,8 @@
     <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
     <IncludeTestPackages Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">true</IncludeTestPackages>
+
+    <TestArchiveTestsDir>$(TestArchiveTestsDirForPlaygroundTests)</TestArchiveTestsDir>
     <SupportsRunningOutsideOfRepo>true</SupportsRunningOutsideOfRepo>
 
     <!-- for running out of repo -->
