@@ -5,6 +5,8 @@
        when running in the repo. -->
 
   <PropertyGroup>
+    <SupportsRunningOutsideOfRepo Condition="'$(SupportsRunningOutsideOfRepo)' == '' and '$(IsHostingTestingProject)' == 'true'">true</SupportsRunningOutsideOfRepo>
+
     <GeneratedPackagesVersionsPropsPath>$(IntermediateOutputPath)Directory.Packages.Versions.props</GeneratedPackagesVersionsPropsPath>
     <RelativeStagingDir Condition="'$(RelativeStagingDir)' == '' and '$(SupportsRunningOutsideOfRepo)' == 'true'">staging-for-archive\</RelativeStagingDir>
     <RelativeStagingDir>$([MSBuild]::EnsureTrailingSlash('$(RelativeStagingDir)'))</RelativeStagingDir>
@@ -50,7 +52,7 @@
     <None Include="$(TestsSharedDir)\**\*" Link="staging-for-archive\tests\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(SupportsRunningOutsideOfRepo)' == 'true'">
     <PropertyForHelixRun Include="NetCurrent" />
     <PropertyForHelixRun Include="XunitVersion" />
     <PropertyForHelixRun Include="XunitAnalyzersVersion" />
@@ -61,6 +63,7 @@
   </ItemGroup>
 
   <PropertyGroup>
+    <!-- this is for the main test project itself -->
     <DefineConstants Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">TESTS_RUNNING_OUTSIDE_OF_REPO;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
 

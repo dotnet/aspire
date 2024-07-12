@@ -9,10 +9,8 @@
 
     <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
-    <IncludeTestPackages Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">true</IncludeTestPackages>
 
     <IsHostingTestingProject>true</IsHostingTestingProject>
-    <SupportsRunningOutsideOfRepo>true</SupportsRunningOutsideOfRepo>
 
     <!-- for running out of repo -->
     <TestsSharedDir Condition="'$(TestsSharedDir)' == ''">$(MSBuildThisFileDirectory)..\Shared\</TestsSharedDir>

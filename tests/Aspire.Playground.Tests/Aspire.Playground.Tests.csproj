@@ -9,7 +9,6 @@
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
 
     <IsHostingTestingProject>true</IsHostingTestingProject>
-    <SupportsRunningOutsideOfRepo>true</SupportsRunningOutsideOfRepo>
 
     <!-- FIXME: reduce to one property? -->
     <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(ArchiveTests)' == 'true'">true</ExtractTestClassNamesForHelix>
@@ -18,7 +17,6 @@
     <PlaygroundSourceDir Condition="'$(PlaygroundSourceDir)' == ''">$(MSBuildThisFileDirectory)..\..\playground\</PlaygroundSourceDir>
 
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
-    <IncludeTestPackages Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">true</IncludeTestPackages>
   </PropertyGroup>
 
   <ItemGroup>
