@@ -122,9 +122,20 @@ public class AppHostTests(ITestOutputHelper testOutput)
     {
         var appHostAssemblies = GetSamplesAppHostAssemblyPaths();
         var theoryData = new TheoryData<string>();
-        foreach (var asm in appHostAssemblies.Select(p => Path.GetRelativePath(AppContext.BaseDirectory, p)))
+        string? appHostNameFilter = Environment.GetEnvironmentVariable("TEST_PLAYGROUND_APPHOST_FILTER");
+        foreach (var asm in appHostAssemblies)
         {
-            theoryData.Add(asm);
+            if (!string.IsNullOrEmpty(appHostNameFilter) && !asm.Contains(appHostNameFilter, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            theoryData.Add(Path.GetRelativePath(AppContext.BaseDirectory, asm));
+        }
+
+        if (!theoryData.Any() && !string.IsNullOrEmpty(appHostNameFilter))
+        {
+            throw new InvalidOperationException($"No app host assemblies found matching filter '{appHostNameFilter}'");
         }
 
         return theoryData;
