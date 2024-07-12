@@ -96,7 +96,7 @@ public static class GarnetBuilderExtensions
     /// Use <see cref="WithPersistence(IResourceBuilder{GarnetResource}, TimeSpan?, long)"/> to adjust Garnet persistence configuration, e.g.:
     /// <code lang="csharp">
     /// var garnet = builder.AddGarnet("garnet")
-    ///                    .WithDataBindMount()
+    ///                    .WithDataBindMount("mydata")
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
     /// </code>
     /// </example>

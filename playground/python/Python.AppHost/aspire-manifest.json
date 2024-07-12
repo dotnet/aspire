@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
+  "resources": {
+    "script-only": {
+      "type": "dockerfile.v0",
+      "path": "../script_only/Dockerfile",
+      "context": "../script_only"
+    },
+    "instrumented-script": {
+      "type": "dockerfile.v0",
+      "path": "../instrumented_script/Dockerfile",
+      "context": "../instrumented_script",
+      "env": {
+        "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED": "true"
+      }
+    }
+  }
+}

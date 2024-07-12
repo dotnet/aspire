@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
+  "resources": {
+    "wps1": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{wps1.outputs.endpoint}",
+      "path": "wps1.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": ""
+      }
+    },
+    "webfrontend": {
+      "type": "project.v0",
+      "path": "../WebPubSubWeb/WebPubSubWeb.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{webfrontend.bindings.http.targetPort}",
+        "ConnectionStrings__wps1": "{wps1.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http",
+          "external": true
+        }
+      }
+    }
+  }
+}

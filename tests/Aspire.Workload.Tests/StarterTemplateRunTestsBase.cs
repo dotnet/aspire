@@ -22,7 +22,7 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
     }
 
     [Fact]
-    public async Task ResourcesShowUpOnDashboad()
+    public async Task ResourcesShowUpOnDashboard()
     {
         await using var context = await CreateNewBrowserContextAsync();
         await CheckDashboardHasResourcesAsync(

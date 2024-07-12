@@ -2,10 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.InteropServices;
+using System.Text;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Storage;
+using Google.Protobuf;
 using Google.Protobuf.Collections;
+using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using Xunit;
 using static Aspire.Dashboard.Tests.TelemetryRepositoryTests.TestHelpers;
@@ -64,7 +67,7 @@ public class MetricsTests
                 Assert.Equal("TestId", app.InstanceId);
             });
 
-        var instruments = repository.GetInstrumentsSummary(applications[0].InstanceId);
+        var instruments = repository.GetInstrumentsSummary(applications[0].ApplicationKey);
         Assert.Collection(instruments,
             instrument =>
             {
@@ -145,7 +148,7 @@ public class MetricsTests
 
         var instrument = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationServiceId = applications[0].InstanceId,
+            ApplicationKey = applications[0].ApplicationKey,
             InstrumentName = "test",
             MeterName = "test-meter",
             StartTime = DateTime.MinValue,
@@ -238,7 +241,7 @@ public class MetricsTests
                         Scope = CreateScope(name: "test-meter"),
                         Metrics =
                         {
-                            CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(1)),
+                            CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(1), exemplars: new List<Exemplar> { CreateExemplar(startTime: s_testTime.AddMinutes(1), value: 2, attributes: [KeyValuePair.Create("key1", "value1")]) }),
                             CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(2)),
                             CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(1), attributes: [KeyValuePair.Create("key1", "value1")]),
                             CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(1), attributes: [KeyValuePair.Create("key1", "value2")]),
@@ -262,7 +265,7 @@ public class MetricsTests
 
         var instrument = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationServiceId = applications[0].InstanceId,
+            ApplicationKey = applications[0].ApplicationKey,
             InstrumentName = "test",
             MeterName = "test-meter",
             StartTime = s_testTime.AddMinutes(1),
@@ -279,7 +282,7 @@ public class MetricsTests
             e =>
             {
                 Assert.Equal("key1", e.Key);
-                Assert.Equal(new [] { "", "value1", "value2" }, e.Value);
+                Assert.Equal(new[] { "", "value1", "value2" }, e.Value);
             },
             e =>
             {
@@ -290,9 +293,36 @@ public class MetricsTests
         Assert.Equal(4, instrument.Dimensions.Count);
 
         AssertDimensionValues(instrument.Dimensions, Array.Empty<KeyValuePair<string, string>>(), valueCount: 1);
+        var dimension = instrument.Dimensions[Array.Empty<KeyValuePair<string, string>>()];
+        var exemplar = Assert.Single(dimension.Values[0].Exemplars);
+
+        Assert.Equal("key1", exemplar.Attributes[0].Key);
+        Assert.Equal("value1", exemplar.Attributes[0].Value);
+
         AssertDimensionValues(instrument.Dimensions, new KeyValuePair<string, string>[] { KeyValuePair.Create("key1", "value1") }, valueCount: 1);
         AssertDimensionValues(instrument.Dimensions, new KeyValuePair<string, string>[] { KeyValuePair.Create("key1", "value2") }, valueCount: 1);
         AssertDimensionValues(instrument.Dimensions, new KeyValuePair<string, string>[] { KeyValuePair.Create("key1", "value1"), KeyValuePair.Create("key2", "value1") }, valueCount: 1);
+    }
+
+    private static Exemplar CreateExemplar(DateTime startTime, double value, IEnumerable<KeyValuePair<string, string>>? attributes = null)
+    {
+        var exemplar = new Exemplar
+        {
+            TimeUnixNano = DateTimeToUnixNanoseconds(startTime),
+            AsDouble = value,
+            SpanId = ByteString.CopyFrom(Encoding.UTF8.GetBytes("span-id")),
+            TraceId = ByteString.CopyFrom(Encoding.UTF8.GetBytes("trace-id"))
+        };
+
+        if (attributes != null)
+        {
+            foreach (var attribute in attributes)
+            {
+                exemplar.FilteredAttributes.Add(new KeyValue { Key = attribute.Key, Value = new AnyValue { StringValue = attribute.Value } });
+            }
+        }
+
+        return exemplar;
     }
 
     [Fact]
@@ -339,7 +369,7 @@ public class MetricsTests
 
         var instrument = repository.GetInstrument(new GetInstrumentRequest
         {
-            ApplicationServiceId = applications[0].InstanceId,
+            ApplicationKey = applications[0].ApplicationKey,
             InstrumentName = "test",
             MeterName = "test-meter",
             StartTime = DateTime.MinValue,

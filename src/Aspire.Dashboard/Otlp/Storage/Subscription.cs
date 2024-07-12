@@ -16,14 +16,14 @@ public sealed class Subscription : IDisposable
 
     private DateTime? _lastExecute;
 
-    public string? ApplicationId { get; }
+    public ApplicationKey? ApplicationKey { get; }
     public SubscriptionType SubscriptionType { get; }
     public string Name { get; }
 
-    public Subscription(string name, string? applicationId, SubscriptionType subscriptionType, Func<Task> callback, Action unsubscribe, ExecutionContext? executionContext, TelemetryRepository telemetryRepository)
+    public Subscription(string name, ApplicationKey? applicationKey, SubscriptionType subscriptionType, Func<Task> callback, Action unsubscribe, ExecutionContext? executionContext, TelemetryRepository telemetryRepository)
     {
         Name = name;
-        ApplicationId = applicationId;
+        ApplicationKey = applicationKey;
         SubscriptionType = subscriptionType;
         _callback = callback;
         _unsubscribe = unsubscribe;

@@ -32,16 +32,16 @@ public partial class Traces
     public string? ApplicationName { get; set; }
 
     [Inject]
-    public required TelemetryRepository TelemetryRepository { get; set; }
+    public required TelemetryRepository TelemetryRepository { get; init; }
 
     [Inject]
-    public required TracesViewModel TracesViewModel { get; set; }
+    public required TracesViewModel TracesViewModel { get; init; }
 
     [Inject]
-    public required IDialogService DialogService { get; set; }
+    public required IDialogService DialogService { get; init; }
 
     [Inject]
-    public required BrowserTimeProvider TimeProvider { get; set; }
+    public required BrowserTimeProvider TimeProvider { get; init; }
 
     [Inject]
     public required ILogger<Traces> Logger { get; init; }
@@ -101,7 +101,7 @@ public partial class Traces
     protected override void OnParametersSet()
     {
         _selectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
-        TracesViewModel.ApplicationServiceId = _selectedApplication.Id?.InstanceId;
+        TracesViewModel.ApplicationKey = _selectedApplication.Id?.GetApplicationKey();
         UpdateSubscription();
     }
 
@@ -123,11 +123,13 @@ public partial class Traces
 
     private void UpdateSubscription()
     {
+        var selectedApplicationKey = _selectedApplication.Id?.GetApplicationKey();
+
         // Subscribe to updates.
-        if (_tracesSubscription is null || _tracesSubscription.ApplicationId != _selectedApplication.Id?.InstanceId)
+        if (_tracesSubscription is null || _tracesSubscription.ApplicationKey != selectedApplicationKey)
         {
             _tracesSubscription?.Dispose();
-            _tracesSubscription = TelemetryRepository.OnNewTraces(_selectedApplication.Id?.InstanceId, SubscriptionType.Read, async () =>
+            _tracesSubscription = TelemetryRepository.OnNewTraces(selectedApplicationKey, SubscriptionType.Read, async () =>
             {
                 TracesViewModel.ClearData();
                 await InvokeAsync(StateHasChanged);
