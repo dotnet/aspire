@@ -26,7 +26,7 @@
     <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" />
     <NonComponentReferenceForTests Include="Aspire.Hosting.NodeJs" />
 
-    <ProjectReference Include="$(PlaygroundSourceDir)AspireEventHub/EventHubs.AppHost/EventHubs.AppHost.csproj" />
+    <!--<ProjectReference Include="$(PlaygroundSourceDir)AspireEventHub/EventHubs.AppHost/EventHubs.AppHost.csproj" />-->
     <ProjectReference Include="$(PlaygroundSourceDir)AzureStorageEndToEnd/AzureStorageEndToEnd.AppHost/AzureStorageEndToEnd.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)DatabaseMigration/DatabaseMigration.AppHost/DatabaseMigration.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)ParameterEndToEnd/ParameterEndToEnd.AppHost/ParameterEndToEnd.AppHost.csproj" />
