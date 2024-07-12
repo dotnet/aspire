@@ -6,10 +6,21 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+
+    <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
+    <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
+    <IncludeTestPackages Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">true</IncludeTestPackages>
+    <SupportsRunningOutsideOfRepo>true</SupportsRunningOutsideOfRepo>
+
+    <!-- for running out of repo -->
+    <TestsSharedDir Condition="'$(TestsSharedDir)' == ''">$(MSBuildThisFileDirectory)..\Shared\</TestsSharedDir>
+    <SharedDir Condition="'$(SharedDir)' == ''">$(MSBuildThisFileDirectory)..\..\src\Shared\</SharedDir>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectCapability Include="Aspire" />
+    <Using Include="Aspire.Hosting.Testing" />
+    <Using Include="Xunit" />
   </ItemGroup>
 
   <ItemGroup>
@@ -17,9 +28,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\..\src\Aspire.Hosting.Testing\Aspire.Hosting.Testing.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\Aspire.Hosting.Tests\Aspire.Hosting.Tests.csproj" />
+    <Compile Include="$(TestsSharedDir)Logging/XunitLoggerProvider.cs" />
+
+    <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
+    <NonComponentReferenceForTests Include="Aspire.Hosting.Testing" IsAspireProjectResource="false" />
+
+    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
     <ProjectReference Include="..\TestingAppHost1\TestingAppHost1.AppHost\TestingAppHost1.AppHost.csproj" />
   </ItemGroup>
 
@@ -27,4 +41,19 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(ArchiveTests)' == 'true'">
+    <!-- <None Include="$(RepoRoot)playground\**\*" Link="staging-for-archive\playground\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" /> -->
+    <None Include="$(MSBuildProjectDirectory)\**\*" Link="staging-for-archive\tests\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Aspire.Components.Common.Tests\**\*" Link="staging-for-archive\tests\Aspire.Components.Common.Tests\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+
+    <None Include="..\TestingAppHost1\**\*" Link="staging-for-archive\tests\TestingAppHost1\%(RecursiveDir)%(FileName)%(Extension)" />
+
+    <None Include="$(RepoRoot)src\Shared\**\*" Link="staging-for-archive\src\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="_UpdateArchiveSourcePath" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true'">
+    <PropertyGroup>
+      <TestsArchiveSourceDir>$(OutDir)staging-for-archive\</TestsArchiveSourceDir>
+    </PropertyGroup>
+  </Target>
 </Project>

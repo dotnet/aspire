@@ -6,6 +6,8 @@
 
   <PropertyGroup>
     <GeneratedPackagesVersionsPropsPath>$(IntermediateOutputPath)Directory.Packages.Versions.props</GeneratedPackagesVersionsPropsPath>
+    <RelativeStagingDir Condition="'$(RelativeStagingDir)' == ''">$(RelativeStagingDir)</RelativeStagingDir>
+    <RelativeStagingDir>$([MSBuild]::EnsureTrailingSlash('$(RelativeStagingDir)'))</RelativeStagingDir>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">
@@ -30,7 +32,24 @@
     <PackageReference Include="Microsoft.DotNet.XUnitAssert" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(ArchiveTests)' == 'true'">
+    <!-- helps to isolate the build -->
+    <None Include="$(TestsSharedDir)EmptyProject.proj" Link="$(RelativeStagingDir)Directory.Build.props" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedDir)EmptyProject.proj" Link="$(RelativeStagingDir)Directory.Build.targets" CopyToOutputDirectory="PreserveNewest" />
+
+    <!--<None Include="$(TestsSharedRepoTestingDir)\*" Link="$(RelativeStagingDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />-->
+    <None Include="$(TestsSharedDir)\**\*" Link="staging-for-archive\tests\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+
+    <None Include="$(GeneratedPackagesVersionsPropsPath)" Link="$(RelativeStagingDir)Directory.Packages.Versions.props" CopyToOutputDirectory="PreserveNewest" />
+
+    <None Include="$(TestsSharedDir)nuget-with-package-source-mapping.config" Link="$(RelativeStagingDir)nuget.config" CopyToOutputDirectory="PreserveNewest" />
+
+    <!-- FIXME: move this file to out-of-repo? -->
+    <None Include="$(TestsSharedDir)WorkloadTesting\data\Directory.Packages.Helix.props" Link="$(RelativeStagingDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
+    <PropertyForHelixRun Include="NetCurrent" />
     <PropertyForHelixRun Include="XunitVersion" />
     <PropertyForHelixRun Include="XunitAnalyzersVersion" />
     <PropertyForHelixRun Include="XunitRunnerVisualStudioVersion" />
@@ -42,6 +61,12 @@
   <PropertyGroup>
     <DefineConstants Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">TESTS_RUNNING_OUTSIDE_OF_REPO;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
+
+  <Target Name="_UpdateArchiveSourcePath" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true'">
+    <PropertyGroup>
+      <TestsArchiveSourceDir>$(OutDir)$(RelativeStagingDir)</TestsArchiveSourceDir>
+    </PropertyGroup>
+  </Target>
 
   <ImportGroup Condition="'$(RepoRoot)' != 'null' and '$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'">
     <Import Project="$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets" Condition="Exists('$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets')" />

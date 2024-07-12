@@ -69,34 +69,12 @@
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
 
     <Using Include="Aspire.Hosting.Testing" />
-    <Using Include="Xunit" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(ArchiveTests)' == 'true'">
-    <!-- remove this comment: project-specific -->
-    <None Include="$(MSBuildProjectDirectory)\**\*" Link="staging-for-archive\tests\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)src\Shared\**\*" Link="staging-for-archive\src\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)playground\**\*" Link="staging-for-archive\playground\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-
-    <!-- helps to isolate the build -->
-    <None Include="$(TestsSharedDir)EmptyProject.proj" Link="staging-for-archive\Directory.Build.props" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(TestsSharedDir)EmptyProject.proj" Link="staging-for-archive\Directory.Build.targets" CopyToOutputDirectory="PreserveNewest" />
-
-    <None Include="$(TestsSharedRepoTestingDir)\*" Link="staging-for-archive\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-
-    <None Include="$(GeneratedPackagesVersionsPropsPath)" Link="staging-for-archive\Directory.Packages.Versions.props" CopyToOutputDirectory="PreserveNewest" />
-
-    <None Include="$(TestsSharedDir)nuget-with-package-source-mapping.config" Link="staging-for-archive\nuget.config" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(TestsSharedDir)WorkloadTesting\data\Directory.Packages.Helix.props" Link="staging-for-archive\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-
-    <!-- FIXME: rename to PropertyForOutsideOfRepoRun ? -->
-    <PropertyForHelixRun Include="NetCurrent" />
+    <None Include="$(MSBuildProjectDirectory)\**\*" Link="$(RelativeStagingDir)tests\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)src\Shared\**\*" Link="$(RelativeStagingDir)src\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)playground\**\*" Link="$(RelativeStagingDir)playground\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
-
-  <Target Name="_UpdateArchiveSourcePath" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true'">
-    <PropertyGroup>
-      <TestsArchiveSourceDir>$(OutDir)staging-for-archive\</TestsArchiveSourceDir>
-    </PropertyGroup>
-  </Target>
 
 </Project>

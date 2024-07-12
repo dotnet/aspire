@@ -3,10 +3,10 @@
 
 using System.Net.Http.Json;
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Xunit;
 
 namespace Aspire.Hosting.Testing.Tests;
 
