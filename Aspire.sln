@@ -502,12 +502,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "python", "python", "{7123AB
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Python.AppHost", "playground\python\Python.AppHost\Python.AppHost.csproj", "{173BDA6E-F175-4457-BF64-58CD184E9A81}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Components", "Components", "{C424395C-1235-41A4-BF55-07880A04368C}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Hosting", "Hosting", "{830A89EC-4029-4753-B25A-068BAE37DEC7}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Redis.Tests", "tests\Aspire.Hosting.Redis.Tests\Aspire.Hosting.Redis.Tests.csproj", "{1BC02557-B78B-48CE-9D3C-488A6B7672F4}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.PostgreSQL.Tests", "tests\Aspire.Hosting.PostgreSQL.Tests\Aspire.Hosting.PostgreSQL.Tests.csproj", "{7425E5B2-BC47-4521-AC40-B8CECA329E08}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Qdrant.Tests", "tests\Aspire.Hosting.Qdrant.Tests\Aspire.Hosting.Qdrant.Tests.csproj", "{8E2AA85E-C351-47B4-AF91-58557FAD5840}"
@@ -530,9 +524,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Keycloak.Web", "playground\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Keycloak.AppHost", "playground\keycloak\Keycloak.AppHost\Keycloak.AppHost.csproj", "{C556D61C-7E11-43EC-9098-C8D170FEA905}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Keycloak.Authentication.Tests", "tests\Aspire.Keycloak.Authentication.Tests\Aspire.Keycloak.Authentication.Tests.csproj", "{597838E1-150B-42A9-A542-CE2A6481ABC4}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Keycloak.Tests", "tests\Aspire.Hosting.Keycloak.Tests\Aspire.Hosting.Keycloak.Tests.csproj", "{5867BAF2-FEF0-4661-BFDE-9ADCDC2921CD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Keycloak.Authentication.Tests", "tests\Aspire.Keycloak.Authentication.Tests\Aspire.Keycloak.Authentication.Tests.csproj", "{48FF09E9-7D33-4A3F-9FF2-4C43A219C7B7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1372,10 +1366,6 @@ Global
 		{1C16DC2D-3B79-4081-AC1E-F3F965C61216}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1C16DC2D-3B79-4081-AC1E-F3F965C61216}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1C16DC2D-3B79-4081-AC1E-F3F965C61216}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5CB63205-24F4-4388-A41B-BAF3BEA59866}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5CB63205-24F4-4388-A41B-BAF3BEA59866}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5CB63205-24F4-4388-A41B-BAF3BEA59866}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5CB63205-24F4-4388-A41B-BAF3BEA59866}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C87D9F7D-300A-4880-A7E1-835772749912}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C87D9F7D-300A-4880-A7E1-835772749912}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C87D9F7D-300A-4880-A7E1-835772749912}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -1396,14 +1386,14 @@ Global
 		{C556D61C-7E11-43EC-9098-C8D170FEA905}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C556D61C-7E11-43EC-9098-C8D170FEA905}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C556D61C-7E11-43EC-9098-C8D170FEA905}.Release|Any CPU.Build.0 = Release|Any CPU
-		{597838E1-150B-42A9-A542-CE2A6481ABC4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{597838E1-150B-42A9-A542-CE2A6481ABC4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{597838E1-150B-42A9-A542-CE2A6481ABC4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{597838E1-150B-42A9-A542-CE2A6481ABC4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5867BAF2-FEF0-4661-BFDE-9ADCDC2921CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{5867BAF2-FEF0-4661-BFDE-9ADCDC2921CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5867BAF2-FEF0-4661-BFDE-9ADCDC2921CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5867BAF2-FEF0-4661-BFDE-9ADCDC2921CD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{48FF09E9-7D33-4A3F-9FF2-4C43A219C7B7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{48FF09E9-7D33-4A3F-9FF2-4C43A219C7B7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{48FF09E9-7D33-4A3F-9FF2-4C43A219C7B7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{48FF09E9-7D33-4A3F-9FF2-4C43A219C7B7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1658,8 +1648,8 @@ Global
 		{14BA6E7B-1726-4F23-9C32-72B953BC392B} = {EBC55A17-B0D6-4E0A-9DC2-7D264E96F631}
 		{0BE14FA4-3F09-426D-BF5A-F9102D36DE33} = {EBC55A17-B0D6-4E0A-9DC2-7D264E96F631}
 		{C556D61C-7E11-43EC-9098-C8D170FEA905} = {EBC55A17-B0D6-4E0A-9DC2-7D264E96F631}
-		{597838E1-150B-42A9-A542-CE2A6481ABC4} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{5867BAF2-FEF0-4661-BFDE-9ADCDC2921CD} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
+		{48FF09E9-7D33-4A3F-9FF2-4C43A219C7B7} = {C424395C-1235-41A4-BF55-07880A04368C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
