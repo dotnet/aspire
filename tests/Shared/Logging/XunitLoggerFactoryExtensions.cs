@@ -4,6 +4,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Testing;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Microsoft.Extensions.Logging;
 
@@ -44,4 +45,7 @@ public static class XunitLoggerFactoryExtensions
         loggerFactory.AddProvider(new XunitLoggerProvider(output, minLevel, logStart));
         return loggerFactory;
     }
+
+    public static IServiceCollection AddXunitLogging(this IServiceCollection services, ITestOutputHelper output) =>
+        services.AddLogging(b => b.AddXunit(output));
 }
