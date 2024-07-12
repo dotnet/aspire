@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Azure.Messaging.EventHubs\Aspire.Azure.Messaging.EventHubs.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Azure.Storage.Blobs\Aspire.Azure.Storage.Blobs.csproj" />
+    <ComponentReferenceForTests Include="Aspire.Azure.Messaging.EventHubs" />
+    <ComponentReferenceForTests Include="Aspire.Azure.Storage.Blobs" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
 
