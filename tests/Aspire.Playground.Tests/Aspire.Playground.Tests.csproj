@@ -15,6 +15,7 @@
     <ExtractTestClassNamesPrefix>Aspire.Playground.Tests</ExtractTestClassNamesPrefix>
 
     <PlaygroundSourceDir Condition="'$(PlaygroundSourceDir)' == ''">$(MSBuildThisFileDirectory)..\..\playground\</PlaygroundSourceDir>
+    <TestArchiveTestsDir>$(TestArchiveTestsDirForPlaygroundTests)</TestArchiveTestsDir>
 
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
   </PropertyGroup>
