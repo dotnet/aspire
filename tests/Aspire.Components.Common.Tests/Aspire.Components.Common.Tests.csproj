@@ -3,6 +3,8 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsTestSupportProject>true</IsTestSupportProject>
+
+    <IncludeTestPackages Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">true</IncludeTestPackages>
   </PropertyGroup>
 
   <ItemGroup>

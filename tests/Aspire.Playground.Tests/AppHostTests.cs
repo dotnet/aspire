@@ -8,6 +8,7 @@ using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
 using SamplesIntegrationTests;
 using SamplesIntegrationTests.Infrastructure;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace Aspire.Playground.Tests;

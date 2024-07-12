@@ -42,18 +42,11 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(ArchiveTests)' == 'true'">
-    <!-- <None Include="$(RepoRoot)playground\**\*" Link="staging-for-archive\playground\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" /> -->
-    <None Include="$(MSBuildProjectDirectory)\**\*" Link="staging-for-archive\tests\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\Aspire.Components.Common.Tests\**\*" Link="staging-for-archive\tests\Aspire.Components.Common.Tests\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(MSBuildProjectDirectory)\**\*" Link="$(RelativeStagingDir)tests\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Aspire.Components.Common.Tests\**\*" Link="$(RelativeStagingDir)tests\Aspire.Components.Common.Tests\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
-    <None Include="..\TestingAppHost1\**\*" Link="staging-for-archive\tests\TestingAppHost1\%(RecursiveDir)%(FileName)%(Extension)" />
+    <None Include="$(MSBuildThisFileDirectory)..\TestingAppHost1\**\*" Link="$(RelativeStagingDir)tests\TestingAppHost1\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
-    <None Include="$(RepoRoot)src\Shared\**\*" Link="staging-for-archive\src\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)src\Shared\**\*" Link="$(RelativeStagingDir)src\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
-
-  <Target Name="_UpdateArchiveSourcePath" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true'">
-    <PropertyGroup>
-      <TestsArchiveSourceDir>$(OutDir)staging-for-archive\</TestsArchiveSourceDir>
-    </PropertyGroup>
-  </Target>
 </Project>

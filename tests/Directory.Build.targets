@@ -31,6 +31,7 @@
                   Overwrite="true" />
   </Target>
 
+  <!-- move to .. repo.targets?? -->
   <!-- generate before the build so the project can use this in a <None ..> item -->
   <Target Name="_GeneratePackagesVersionsProps" BeforeTargets="BeforeBuild" Condition="'$(SupportsRunningOutsideOfRepo)' == 'true'">
     <!-- Duplicate all the @(PackageVersion) items with the evaluated versions -->

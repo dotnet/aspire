@@ -6,7 +6,7 @@
 
   <PropertyGroup>
     <GeneratedPackagesVersionsPropsPath>$(IntermediateOutputPath)Directory.Packages.Versions.props</GeneratedPackagesVersionsPropsPath>
-    <RelativeStagingDir Condition="'$(RelativeStagingDir)' == ''">$(RelativeStagingDir)</RelativeStagingDir>
+    <RelativeStagingDir Condition="'$(RelativeStagingDir)' == ''">staging-for-archive\</RelativeStagingDir>
     <RelativeStagingDir>$([MSBuild]::EnsureTrailingSlash('$(RelativeStagingDir)'))</RelativeStagingDir>
   </PropertyGroup>
 
@@ -32,13 +32,11 @@
     <PackageReference Include="Microsoft.DotNet.XUnitAssert" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(ArchiveTests)' == 'true'">
-    <!-- helps to isolate the build -->
+  <ItemGroup Condition="'$(ArchiveTests)' == 'true' and '$(SupportsRunningOutsideOfRepo)' == 'true' and '$(IsTestProject)' == 'true'">
+    <!-- needed to isolate the build -->
     <None Include="$(TestsSharedDir)EmptyProject.proj" Link="$(RelativeStagingDir)Directory.Build.props" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(TestsSharedDir)EmptyProject.proj" Link="$(RelativeStagingDir)Directory.Build.targets" CopyToOutputDirectory="PreserveNewest" />
-
-    <!--<None Include="$(TestsSharedRepoTestingDir)\*" Link="$(RelativeStagingDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />-->
-    <None Include="$(TestsSharedDir)\**\*" Link="staging-for-archive\tests\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedRepoTestingDir)\*" Link="$(RelativeStagingDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <None Include="$(GeneratedPackagesVersionsPropsPath)" Link="$(RelativeStagingDir)Directory.Packages.Versions.props" CopyToOutputDirectory="PreserveNewest" />
 
@@ -46,6 +44,9 @@
 
     <!-- FIXME: move this file to out-of-repo? -->
     <None Include="$(TestsSharedDir)WorkloadTesting\data\Directory.Packages.Helix.props" Link="$(RelativeStagingDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+
+    <!-- FIXME: should this be in the test project?? -->
+    <None Include="$(TestsSharedDir)\**\*" Link="staging-for-archive\tests\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
