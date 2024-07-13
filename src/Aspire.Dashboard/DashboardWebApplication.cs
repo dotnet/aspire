@@ -188,7 +188,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         var supportedLanguages = new[]
         {
             "en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant", // Standard cultures for compliance.
-            "zh-CN" // Non-standard culture but it is the default in many Chinese browsers. Adding zh-CN allows OS culture customization to flow through the dashboard.
+            "zh-CN", // Non-standard culture but it is the default in many Chinese browsers. Adding zh-CN allows OS culture customization to flow through the dashboard.
+            "en-GB", // Support UK DateTime formatting (24-hour clock, dd/MM/yyyy)
         };
 
         _app.UseRequestLocalization(new RequestLocalizationOptions()
