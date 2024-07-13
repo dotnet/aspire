@@ -8,7 +8,7 @@
     <SupportsRunningOutsideOfRepo Condition="'$(SupportsRunningOutsideOfRepo)' == '' and '$(IsHostingTestingProject)' == 'true'">true</SupportsRunningOutsideOfRepo>
 
     <!-- copy by default only when archiving tests, and for test projects that support running out of repo -->
-    <DeployOutsideOfRepoSupportFiles Condition="$'(DeployOutsideOfRepoSupportFiles)' == '' and '$(ArchiveTests)' == 'true' and '$(SupportsRunningOutsideOfRepo)' == 'true' and '$(IsTestProject)' == 'true'">true</DeployOutsideOfRepoSupportFiles>
+    <DeployOutsideOfRepoSupportFiles Condition="'$(DeployOutsideOfRepoSupportFiles)' == '' and '$(ArchiveTests)' == 'true' and '$(SupportsRunningOutsideOfRepo)' == 'true' and '$(IsTestProject)' == 'true'">true</DeployOutsideOfRepoSupportFiles>
 
     <IncludeTestPackages Condition="'$(IncludeTestPackages)' == '' and ('$(IsTestProject)' == 'true' or '$(IsTestSupportProject)' == 'true')">true</IncludeTestPackages>
     <GeneratedPackagesVersionsPropsPath>$(IntermediateOutputPath)Directory.Packages.Versions.props</GeneratedPackagesVersionsPropsPath>
