@@ -14,8 +14,6 @@ public static class EnvironmentVariables
     public static readonly bool    IsRunningOnCI             = Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is not null;
     public static readonly bool    TestsRunningOutsideOfRepo     = Environment.GetEnvironmentVariable("TestsRunningOutsideOfRepo") is "true";
     public static readonly string  BuildConfiguration        = Environment.GetEnvironmentVariable("BUILD_CONFIGURATION") ?? "Debug";
-    public static readonly string? TestAssetsPath            = Environment.GetEnvironmentVariable("TEST_ASSETS_PATH");
-    public static readonly string? PlaygroundAppsPath        = Environment.GetEnvironmentVariable("PLAYGROUND_APPS_PATH");
     public static readonly string? TestScenario              = Environment.GetEnvironmentVariable("TEST_SCENARIO");
     public static readonly string? BrowserPath               = Environment.GetEnvironmentVariable(PlaywrightProvider.BrowserPathEnvironmentVariableName);
 }

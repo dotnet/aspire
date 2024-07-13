@@ -20,7 +20,7 @@ public class AspireProject : IAsyncDisposable
     private static readonly Regex s_dashboardUrlRegex = new(@"Login to the dashboard at (?<url>.*)", RegexOptions.Compiled);
 
     public static string GetNuGetConfigPathFor(string targetFramework) =>
-        Path.Combine(BuildEnvironment.TestDataPath, "nuget8.config");
+        Path.Combine(BuildEnvironment.TestAssetsPath, "nuget8.config");
 
     public static Lazy<HttpClient> Client => new(CreateHttpClient);
     public Process? AppHostProcess { get; private set; }
@@ -93,7 +93,7 @@ public class AspireProject : IAsyncDisposable
         var project = new AspireProject(id, rootDir, testOutput, buildEnvironment);
         if (addEndpointsHook)
         {
-            File.Copy(Path.Combine(BuildEnvironment.TestDataPath, "EndPointWriterHook_cs"), Path.Combine(project.AppHostProjectDirectory, "EndPointWriterHook.cs"));
+            File.Copy(Path.Combine(BuildEnvironment.TestAssetsPath, "EndPointWriterHook_cs"), Path.Combine(project.AppHostProjectDirectory, "EndPointWriterHook.cs"));
             string programCsPath = Path.Combine(project.AppHostProjectDirectory, "Program.cs");
             string programCs = File.ReadAllText(programCsPath);
             programCs = "using Aspire.Hosting.Lifecycle; " + programCs;

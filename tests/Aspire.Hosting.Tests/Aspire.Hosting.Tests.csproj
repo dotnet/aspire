@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
-    <IsAspireHost>true</IsAspireHost>
     <!--
       CS8002: Referenced assembly does not have a strong name. MongoDB.Driver package is unsigned, we ignore that warning on purpose
     -->

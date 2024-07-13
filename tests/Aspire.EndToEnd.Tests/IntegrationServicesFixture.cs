@@ -54,12 +54,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             {
                 throw new InvalidOperationException("These tests should be run from inside the repo when using `TestsRunningOutsideOfRepo=false`");
             }
-
-            BuildEnvironment.TestAssetsPath = Path.Combine(BuildEnvironment.RepoRoot.FullName, "tests");
-            if (!Directory.Exists(BuildEnvironment.TestAssetsPath))
-            {
-                throw new ArgumentException($"Cannot find TestAssetsPath={BuildEnvironment.TestAssetsPath}");
-            }
         }
     }
 
