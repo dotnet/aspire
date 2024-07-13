@@ -7,6 +7,9 @@
     </PropertyGroup>
 
     <MSBuild Projects="Aspire.EndToEnd.Tests\Aspire.EndToEnd.Tests.csproj"
+             Targets="Restore"
+             Properties="Configuration=$(Configuration);TestUsingWorkloads=true" />
+    <MSBuild Projects="Aspire.EndToEnd.Tests\Aspire.EndToEnd.Tests.csproj"
              Targets="InstallWorkloadUsingArtifacts"
              Properties="Configuration=$(Configuration);TestUsingWorkloads=true" />
   </Target>

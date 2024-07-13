@@ -57,4 +57,6 @@
                       Lines="@(TestClassName->Distinct())"
                       Overwrite="true" />
   </Target>
+
+  <Import Project="Shared\Aspire.Workload.Testing.targets" Condition="'$(IsWorkloadTestProject)' == 'true'" />
 </Project>
