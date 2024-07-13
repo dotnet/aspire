@@ -31,7 +31,15 @@ internal sealed class RedisCommanderConfigWriterHook : IDistributedApplicationLi
         {
             if (redisInstance.PrimaryEndpoint.IsAllocated)
             {
-                var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.PrimaryEndpoint.ContainerHost}:{redisInstance.PrimaryEndpoint.Port}:0";
+                var hostString = string.Empty;
+                if (redisInstance.PasswordParameter is not null)
+                {
+                    hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.PrimaryEndpoint.ContainerHost}:{redisInstance.PrimaryEndpoint.Port}:0:{redisInstance.PasswordParameter.Value}";
+                }
+                else
+                {
+                    hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.PrimaryEndpoint.ContainerHost}:{redisInstance.PrimaryEndpoint.Port}:0";
+                }
                 hostsVariableBuilder.Append(hostString);
             }
         }

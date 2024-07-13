@@ -69,7 +69,43 @@ public class AddRedisTests
     }
 
     [Fact]
-    public async Task RedisCreatesConnectionString()
+    public void RedisCreatesConnectionStringWithPassword()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var password = "p@ssw0rd1";
+        appBuilder.Configuration["Parameters:pass"] = password;
+
+        var pass = appBuilder.AddParameter("pass");
+        appBuilder.AddRedis("myRedis", password: pass).PublishAsContainer();
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
+        Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port},password={pass.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public void RedisCreatesConnectionStringWithPasswordAndPort()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var password = "p@ssw0rd1";
+        appBuilder.Configuration["Parameters:pass"] = password;
+
+        var pass = appBuilder.AddParameter("pass");
+        appBuilder.AddRedis("myRedis", port: 3000, password: pass).PublishAsContainer();
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
+        Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port},password={pass.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public async Task RedisCreatesConnectionStringWithoutPassword()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddRedis("myRedis")
@@ -86,7 +122,7 @@ public class AddRedisTests
     }
 
     [Fact]
-    public async Task VerifyManifest()
+    public async Task VerifyWithoutPasswordManifestInRunMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("redis");
@@ -98,6 +134,101 @@ public class AddRedisTests
               "type": "container.v0",
               "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
               "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "targetPort": 6379
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task VerifyWithPasswordManifestInRunMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var password = "p@ssw0rd1";
+        builder.Configuration["Parameters:pass"] = password;
+
+        var pass = builder.AddParameter("pass");
+        var redis = builder.AddRedis("redis", password: pass);
+        var manifest = await ManifestUtils.GetManifest(redis.Resource);
+
+        var expectedManifest = $$"""
+            {
+              "type": "container.v0",
+              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={pass.value}",
+              "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+              "args": [
+                "--requirepass",
+                "{pass.value}"
+              ],
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "targetPort": 6379
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task VerifyWithPasswordValueNotProvidedManifestInRunMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var pass = builder.AddParameter("pass");
+        var redis = builder.AddRedis("redis", password: pass);
+        var manifest = await ManifestUtils.GetManifest(redis.Resource);
+
+        var expectedManifest = $$"""
+            {
+              "type": "container.v0",
+              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={pass.value}",
+              "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+              "args": [
+                "--requirepass",
+                "{pass.value}"
+              ],
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "targetPort": 6379
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task VerifyWithPasswordManifestInPublishMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var redis = builder.AddRedis("redis");
+        var manifest = await ManifestUtils.GetManifest(redis.Resource);
+
+        var expectedManifest = $$"""
+            {
+              "type": "container.v0",
+              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value}",
+              "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+              "args": [
+                "--requirepass",
+                "{redis-password.value}"
+              ],
               "bindings": {
                 "tcp": {
                   "scheme": "tcp",
@@ -156,7 +287,7 @@ public class AddRedisTests
     [Theory]
     [InlineData("host.docker.internal")]
     [InlineData("host.containers.internal")]
-    public async Task SingleRedisInstanceProducesCorrectRedisHostsVariable(string containerHost)
+    public async Task SingleRedisInstanceWithoutPasswordProducesCorrectRedisHostsVariableInRunMode(string containerHost)
     {
         var builder = DistributedApplication.CreateBuilder();
         var redis = builder.AddRedis("myredis1").WithRedisCommander();
@@ -177,6 +308,33 @@ public class AddRedisTests
             TestServiceProvider.Instance);
 
         Assert.Equal($"myredis1:{containerHost}:5001:0", config["REDIS_HOSTS"]);
+    }
+
+    [Theory]
+    [InlineData("host.docker.internal")]
+    [InlineData("host.containers.internal")]
+    public async Task SingleRedisInstanceWithPasswordProducesCorrectRedisHostsVariableInRunMode(string containerHost)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var password = "p@ssw0rd1";
+        builder.Configuration["Parameters:pass"] = password;
+
+        var pass = builder.AddParameter("pass");
+        var redis = builder.AddRedis("myredis1", password: pass).WithRedisCommander();
+        using var app = builder.Build();
+
+        // Add fake allocated endpoints.
+        redis.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var hook = new RedisCommanderConfigWriterHook();
+        await hook.AfterEndpointsAllocatedAsync(model, CancellationToken.None);
+
+        var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(commander);
+
+        Assert.Equal($"myredis1:{containerHost}:5001:0:{password}", config["REDIS_HOSTS"]);
     }
 
     [Theory]
@@ -348,5 +506,31 @@ public class AddRedisTests
 
         Assert.True(redis.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsAnnotations));
         Assert.NotNull(argsAnnotations.SingleOrDefault());
+    }
+
+    [Fact]
+    public async Task AddRedisContainerWithPasswordAnnotationMetadata()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var password = "p@ssw0rd1";
+        builder.Configuration["Parameters:pass"] = password;
+
+        var pass = builder.AddParameter("pass");
+        var redis = builder.
+            AddRedis("myRedis", password: pass)
+           .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var containerResource = Assert.Single(appModel.Resources.OfType<RedisResource>());
+
+        var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
+        var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
+        Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port},password={pass.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.StartsWith($"localhost:5001,password={password}", connectionString);
+
     }
 }
