@@ -8,6 +8,7 @@
     <TestArchiveTestsDirForWorkloadTests Condition="'$(TestArchiveTestsDirForWorkloadTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'workload-tests'))</TestArchiveTestsDirForWorkloadTests>
     <TestArchiveTestsDirForEndToEndTests Condition="'$(TestArchiveTestsDirForEndToEndTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'e2e-tests'))</TestArchiveTestsDirForEndToEndTests>
     <PlaywrightDependenciesDirectory>$(ArtifactsBinDir)playwright-deps</PlaywrightDependenciesDirectory>
+    <GeneratedPackagesVersionsPropsPath>$(IntermediateOutputPath)Directory.Packages.Versions.props</GeneratedPackagesVersionsPropsPath>
 
     <!-- This is useful for local runs -->
     <VSTestResultsDirectory>$(ArtifactsTestResultsDir)</VSTestResultsDirectory>
