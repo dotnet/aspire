@@ -5,6 +5,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting elasticsearch</PackageTags>
     <Description>Elasticsearch support for .NET Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)Elastic_logo.png</PackageIconFullPath>
   </PropertyGroup>
 
   <PropertyGroup>
