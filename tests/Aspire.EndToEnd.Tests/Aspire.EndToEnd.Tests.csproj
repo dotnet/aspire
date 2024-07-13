@@ -16,15 +16,11 @@
     <SupportsRunningOutsideOfRepo>true</SupportsRunningOutsideOfRepo>
     <TestsRunningOutsideOfRepo Condition="'$(TestsRunningOutsideOfRepo)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</TestsRunningOutsideOfRepo>
 
-    <IncludeTestPackages>false</IncludeTestPackages>
-    <SupportsRunningOutsideOfRepo>true</SupportsRunningOutsideOfRepo>
-    <TestsRunningOutsideOfRepo Condition="'$(TestsRunningOutsideOfRepo)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</TestsRunningOutsideOfRepo>
     <XunitRunnerJson>xunit.runner.json</XunitRunnerJson>
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
     <TestArchiveTestsDir>$(TestArchiveTestsDirForEndToEndTests)</TestArchiveTestsDir>
   </PropertyGroup>
 
-  <!-- testassets can be the staging directory -->
   <ItemGroup>
     <Compile Include="..\testproject\Common\TestResourceNames.cs" />
 
@@ -33,12 +29,6 @@
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
-
-    <!--<PropertyForHelixRun Include="XunitPackageVersion" />-->
-    <!--<PropertyForHelixRun Include="XunitRunnerVisualStudioPackageVersion" />-->
-    <!--<PropertyForHelixRun Include="XunitPackageVersion" />-->
-    <!--<PropertyForHelixRun Include="MSTestTestAdapterPackageVersion" />-->
-    <!--<PropertyForHelixRun Include="MicrosoftNETTestSdkPackageVersion" />-->
   </ItemGroup>
 
   <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" />
