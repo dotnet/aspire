@@ -101,5 +101,5 @@
                       Overwrite="true" />
   </Target>
 
-  <Import Project="$(TestsSharedDir)\Aspire.Workload.Testing.targets" Condition="'$(IsWorkloadTestProject)' == 'true'" />
+  <Import Project="$(TestsSharedDir)Aspire.Workload.Testing.targets" Condition="'$(IsWorkloadTestProject)' == 'true'" />
 </Project>
