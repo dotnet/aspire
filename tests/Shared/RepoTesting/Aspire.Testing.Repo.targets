@@ -7,6 +7,9 @@
   <PropertyGroup>
     <SupportsRunningOutsideOfRepo Condition="'$(SupportsRunningOutsideOfRepo)' == '' and '$(IsHostingTestingProject)' == 'true'">true</SupportsRunningOutsideOfRepo>
 
+    <!-- copy by default only when archiving tests, and for test projects that support running out of repo -->
+    <DeployOutsideOfRepoSupportFiles Condition="$'(DeployOutsideOfRepoSupportFiles)' == '' and '$(ArchiveTests)' == 'true' and '$(SupportsRunningOutsideOfRepo)' == 'true' and '$(IsTestProject)' == 'true'">true</DeployOutsideOfRepoSupportFiles>
+
     <IncludeTestPackages Condition="'$(IncludeTestPackages)' == '' and ('$(IsTestProject)' == 'true' or '$(IsTestSupportProject)' == 'true')">true</IncludeTestPackages>
     <GeneratedPackagesVersionsPropsPath>$(IntermediateOutputPath)Directory.Packages.Versions.props</GeneratedPackagesVersionsPropsPath>
     <!-- FIXME: probably can be supporting*==true -->
@@ -41,7 +44,7 @@
     <PackageReference Include="Microsoft.DotNet.XUnitAssert" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(SupportsRunningOutsideOfRepo)' == 'true' and '$(IsTestProject)' == 'true'">
+  <ItemGroup Condition="'$(DeployOutsideOfRepoSupportFiles)' == 'true'">
     <!-- needed to isolate the build -->
     <None Include="$(TestsSharedDir)EmptyProject.proj" Link="$(RootDirForTestsRunningOutOfRepo)Directory.Build.props" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(TestsSharedDir)EmptyProject.proj" Link="$(RootDirForTestsRunningOutOfRepo)Directory.Build.targets" CopyToOutputDirectory="PreserveNewest" />

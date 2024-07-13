@@ -14,6 +14,7 @@
     <RootDirForTestsRunningOutOfRepo>testassets\testproject\</RootDirForTestsRunningOutOfRepo>
     <IncludeTestPackages>false</IncludeTestPackages>
     <SupportsRunningOutsideOfRepo>true</SupportsRunningOutsideOfRepo>
+    <DeployOutsideOfRepoSupportFiles>true</DeployOutsideOfRepoSupportFiles>
     <TestsRunningOutsideOfRepo Condition="'$(TestsRunningOutsideOfRepo)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</TestsRunningOutsideOfRepo>
 
     <XunitRunnerJson>xunit.runner.json</XunitRunnerJson>
