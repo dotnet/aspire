@@ -1,6 +1,8 @@
 <Project>
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
 
+  <Import Project="$(TestsSharedRepoTestingDir)Aspire.Testing.Repo.targets" />
+
   <PropertyGroup>
     <!-- forward the settings file path to RunTests target in arcade -->
     <VSTestRunSettingsFile Condition="'$(VSTestRunSettingsFile)' == ''">$(RunSettingsFilePath)</VSTestRunSettingsFile>
