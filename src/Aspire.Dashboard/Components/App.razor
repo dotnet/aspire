@@ -32,6 +32,7 @@
     @*
         Directly reference theme and dependencies from HTML so they load quickly.
         It's much faster to load them here than wait for module load from Blazor interop.
+        Load time is important here because the theme should be applied ASAP.
     *@
     <script src="js/app-theme.js" type="module"></script>
     <script src="_content/Microsoft.FluentUI.AspNetCore.Components/Microsoft.FluentUI.AspNetCore.Components.lib.module.js" type="module"></script>
