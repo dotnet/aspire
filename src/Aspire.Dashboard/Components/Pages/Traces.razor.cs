@@ -113,8 +113,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
     {
         await this.InitializeViewModelAsync();
 
-        _selectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
-        TracesViewModel.ApplicationKey = _selectedApplication.Id?.GetApplicationKey();
+        TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
         UpdateSubscription();
     }
 
@@ -134,7 +133,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
 
     private void UpdateSubscription()
     {
-        var selectedApplicationKey = _selectedApplication.Id?.GetApplicationKey();
+        var selectedApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
 
         // Subscribe to updates.
         if (_tracesSubscription is null || _tracesSubscription.ApplicationKey != selectedApplicationKey)
@@ -197,7 +196,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
     public void UpdateViewModelFromQuery(TracesPageViewModel viewModel)
     {
         viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
-        TracesViewModel.ApplicationServiceId = PageViewModel.SelectedApplication.Id?.InstanceId;
+        TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
     }
 
     public string GetUrlFromSerializableViewModel(TracesPageState serializable)
