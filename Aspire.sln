@@ -505,9 +505,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Components", "Components", "{C424395C-1235-41A4-BF55-07880A04368C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Hosting", "Hosting", "{830A89EC-4029-4753-B25A-068BAE37DEC7}"
-	ProjectSection(SolutionItems) = preProject
-		tests\Aspire.Hosting.Kafka.Tests\Aspire.Hosting.Kafka.Tests.csproj = tests\Aspire.Hosting.Kafka.Tests\Aspire.Hosting.Kafka.Tests.csproj
-	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Redis.Tests", "tests\Aspire.Hosting.Redis.Tests\Aspire.Hosting.Redis.Tests.csproj", "{1BC02557-B78B-48CE-9D3C-488A6B7672F4}"
 EndProject
