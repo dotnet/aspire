@@ -3,6 +3,7 @@
 
 using Microsoft.Playwright;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright;
 
@@ -11,20 +12,38 @@ public class PlaywrightTestsBase : IClassFixture<DashboardServerFixture>, IClass
     public DashboardServerFixture DashboardServerFixture { get; }
     public PlaywrightFixture PlaywrightFixture { get; }
 
+    private readonly ITestOutputHelper _output;
     private IBrowserContext? _context;
 
-    public PlaywrightTestsBase(DashboardServerFixture dashboardServerFixture, PlaywrightFixture playwrightFixture)
+
+    public PlaywrightTestsBase(DashboardServerFixture dashboardServerFixture, PlaywrightFixture playwrightFixture, ITestOutputHelper output)
     {
         DashboardServerFixture = dashboardServerFixture;
         PlaywrightFixture = playwrightFixture;
+        _output = output;
     }
 
-    public async Task RunTestAsync(Func<IPage, Task> test)
+    public async Task RunTestAsync(Func<IPage, Task<bool>> setup, Func<IPage, Task> test)
     {
         var page = await CreateNewPageAsync();
         try
         {
-            await test(page);
+            var shouldRunTest = true;
+
+            try
+            {
+                await setup(page);
+            }
+            catch (PlaywrightException e)
+            {
+                _output.WriteLine($"Test setup failed: {e}");
+                shouldRunTest = false;
+            }
+
+            if (shouldRunTest)
+            {
+                await test(page);
+            }
         }
         finally
         {

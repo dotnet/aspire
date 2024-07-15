@@ -5,14 +5,15 @@ using Aspire.Dashboard.Resources;
 using Aspire.Workload.Tests;
 using Microsoft.Playwright;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright;
 
 [ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
 public class AppBarTests : PlaywrightTestsBase
 {
-    public AppBarTests(DashboardServerFixture dashboardServerFixture, PlaywrightFixture playwrightFixture)
-        : base(dashboardServerFixture, playwrightFixture)
+    public AppBarTests(DashboardServerFixture dashboardServerFixture, PlaywrightFixture playwrightFixture, ITestOutputHelper output)
+        : base(dashboardServerFixture, playwrightFixture, output)
     {
     }
 
@@ -20,32 +21,36 @@ public class AppBarTests : PlaywrightTestsBase
     public async Task AppBar_Change_Theme()
     {
         // Arrange
-        await RunTestAsync(async page =>
-        {
-            await PlaywrightFixture.GoToHomeAndWaitForDataGridLoad(page);
-
-            var settingsButton = page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = Layout.MainLayoutLaunchSettings });
-
-            await settingsButton.ClickAsync();
-
-            // Act and Assert
-
-            // set to dark
-            var darkThemeCheckbox = page.GetByRole(AriaRole.Radio).And(page.GetByText(Dialogs.SettingsDialogDarkTheme)).First;
-            var lightThemeCheckbox = page.GetByRole(AriaRole.Radio).And(page.GetByText(Dialogs.SettingsDialogLightTheme)).First;
-
-            await SetAndVerifyTheme(darkThemeCheckbox, "dark");
-            await SetAndVerifyTheme(lightThemeCheckbox, "light");
-
-            return;
-
-            async Task SetAndVerifyTheme(ILocator locator, string expected)
+        await RunTestAsync(
+            async page =>
             {
-                await locator.ClickAsync();
-                await Assertions
-                    .Expect(page.Locator("html"))
-                    .ToHaveAttributeAsync("data-theme", expected);
+                await PlaywrightFixture.GoToHomeAndWaitForDataGridLoad(page);
+                return true;
+            },
+            async page =>
+            {
+                var settingsButton = page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = Layout.MainLayoutLaunchSettings });
+                await settingsButton.ClickAsync();
+
+                // Act and Assert
+
+                // set to dark
+                var darkThemeCheckbox = page.GetByRole(AriaRole.Radio).And(page.GetByText(Dialogs.SettingsDialogDarkTheme)).First;
+                var lightThemeCheckbox = page.GetByRole(AriaRole.Radio).And(page.GetByText(Dialogs.SettingsDialogLightTheme)).First;
+
+                await SetAndVerifyTheme(darkThemeCheckbox, "dark");
+                await SetAndVerifyTheme(lightThemeCheckbox, "light");
+
+                return;
+
+                async Task SetAndVerifyTheme(ILocator locator, string expected)
+                {
+                    await locator.ClickAsync();
+                    await Assertions
+                        .Expect(page.Locator("html"))
+                        .ToHaveAttributeAsync("data-theme", expected);
+                }
             }
-        });
+        );
     }
 }
