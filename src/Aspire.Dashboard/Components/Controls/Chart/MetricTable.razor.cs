@@ -6,7 +6,6 @@ using System.Globalization;
 using Aspire.Dashboard.Components.Controls.Chart;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Components.Dialogs;
-using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
@@ -36,8 +35,6 @@ public partial class MetricTable : ChartBase
 
     [Inject]
     public required CurrentChartViewModel ChartViewModel { get; init; }
-
-    protected override async Task OnChartUpdated(List<ChartTrace> traces, List<DateTimeOffset> xValues, bool tickUpdate, DateTimeOffset inProgressDataTime)
 
     [Inject]
     public required IDialogService DialogService { get; init; }
