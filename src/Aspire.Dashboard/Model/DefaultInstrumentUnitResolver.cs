@@ -1,6 +1,7 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Resources;
 using Humanizer;
@@ -10,27 +11,44 @@ namespace Aspire.Dashboard.Model;
 
 public sealed class DefaultInstrumentUnitResolver(IStringLocalizer<ControlsStrings> loc) : IInstrumentUnitResolver
 {
-    public string ResolveDisplayedUnit(OtlpInstrument instrument)
+    public string ResolveDisplayedUnit(OtlpInstrument instrument, bool titleCase, bool pluralize)
     {
         if (!string.IsNullOrEmpty(instrument.Unit))
         {
             var unit = OtlpUnits.GetUnit(instrument.Unit.TrimStart('{').TrimEnd('}'));
-            return unit.Pluralize().Titleize();
+            if (pluralize)
+            {
+                unit = unit.Pluralize();
+            }
+            if (titleCase)
+            {
+                unit = unit.Titleize();
+            }
+            return unit;
         }
 
         // Hard code for instrument names that don't have units
         // but have a descriptive name that lets us infer the unit.
         if (instrument.Name.EndsWith(".count"))
         {
-            return loc[nameof(ControlsStrings.PlotlyChartCount)];
+            return UntitleCase(loc[nameof(ControlsStrings.PlotlyChartCount)], titleCase);
         }
         else if (instrument.Name.EndsWith(".length"))
         {
-            return loc[nameof(ControlsStrings.PlotlyChartLength)];
+            return UntitleCase(loc[nameof(ControlsStrings.PlotlyChartLength)], titleCase);
         }
         else
         {
-            return loc[nameof(ControlsStrings.PlotlyChartValue)];
+            return UntitleCase(loc[nameof(ControlsStrings.PlotlyChartValue)], titleCase);
+        }
+
+        static string UntitleCase(string value, bool titleCase)
+        {
+            if (!titleCase)
+            {
+                value = value.ToLower(CultureInfo.CurrentCulture);
+            }
+            return value;
         }
     }
 }

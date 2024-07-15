@@ -31,19 +31,19 @@ public class OtlpInstrument
             case Metric.DataOneofCase.Gauge:
                 foreach (var d in metric.Gauge.DataPoints)
                 {
-                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d);
+                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Options);
                 }
                 break;
             case Metric.DataOneofCase.Sum:
                 foreach (var d in metric.Sum.DataPoints)
                 {
-                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d);
+                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Options);
                 }
                 break;
             case Metric.DataOneofCase.Histogram:
                 foreach (var d in metric.Histogram.DataPoints)
                 {
-                    FindScope(d.Attributes, ref tempAttributes).AddHistogramValue(d);
+                    FindScope(d.Attributes, ref tempAttributes).AddHistogramValue(d, Options);
                 }
                 break;
         }

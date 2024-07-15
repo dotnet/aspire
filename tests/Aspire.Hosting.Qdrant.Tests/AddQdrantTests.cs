@@ -2,13 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using Aspire.Hosting.Qdrant;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace Aspire.Hosting.Tests.Qdrant;
+namespace Aspire.Hosting.Qdrant.Tests;
 
 public class AddQdrantTests
 {
@@ -22,7 +22,7 @@ public class AddQdrantTests
 
         var qd = appBuilder.AddQdrant("qd");
 
-        Assert.IsType<UserSecretsParameterDefault>(qd.Resource.ApiKeyParameter.Default);
+        Assert.Equal("Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault", qd.Resource.ApiKeyParameter.Default?.GetType().FullName);
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public class AddQdrantTests
 
         var qd = appBuilder.AddQdrant("qd");
 
-        Assert.IsNotType<UserSecretsParameterDefault>(qd.Resource.ApiKeyParameter.Default);
+        Assert.NotEqual("Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault", qd.Resource.ApiKeyParameter.Default?.GetType().FullName);
     }
 
     [Fact]
@@ -177,7 +177,7 @@ public class AddQdrantTests
             .WithEndpoint("grpc", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6334))
             .WithEndpoint("http", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 6333));
 
-        var projectA = appBuilder.AddProject<ProjectA>("projecta")
+        var projectA = appBuilder.AddProject<ProjectA>("projecta", o => o.ExcludeLaunchProfile = true)
             .WithReference(qdrant);
 
         // Call environment variable callbacks.
@@ -314,7 +314,5 @@ public class AddQdrantTests
     private sealed class ProjectA : IProjectMetadata
     {
         public string ProjectPath => "projectA";
-
-        public LaunchSettings LaunchSettings { get; } = new();
     }
 }
