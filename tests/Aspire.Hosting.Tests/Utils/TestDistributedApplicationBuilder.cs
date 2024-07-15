@@ -41,7 +41,7 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
         return new TestDistributedApplicationBuilder(options => options.Args = args);
     }
 
-    public static TestDistributedApplicationBuilder Create(Action<DistributedApplicationOptions> configureOptions)
+    public static TestDistributedApplicationBuilder Create(Action<DistributedApplicationOptions>? configureOptions)
     {
         return new TestDistributedApplicationBuilder(configureOptions);
     }
@@ -49,7 +49,7 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
     public static TestDistributedApplicationBuilder CreateWithTestContainerRegistry() =>
         Create(o => o.ContainerRegistryOverride = TestConstants.AspireTestContainerRegistry);
 
-    private TestDistributedApplicationBuilder(Action<DistributedApplicationOptions> configureOptions)
+    private TestDistributedApplicationBuilder(Action<DistributedApplicationOptions>? configureOptions)
     {
         var appAssembly = typeof(TestDistributedApplicationBuilder).Assembly;
         var assemblyName = appAssembly.FullName;
@@ -80,7 +80,7 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
                 ["DcpPublisher:ResourceNameSuffix"] = $"{Random.Shared.Next():x}",
             });
 
-            configureOptions(applicationOptions);
+            configureOptions?.Invoke(applicationOptions);
         }
     }
 
