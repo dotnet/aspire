@@ -37,13 +37,51 @@ public class KestrelConfigTests
 
         AllocateTestEndpoints(resource);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         // When using Kestrel, we should not be setting ASPNETCORE_URLS at all
         Assert.False(config.ContainsKey("ASPNETCORE_URLS"));
 
         // Instead, we should be setting the Kestrel override
         Assert.Equal("http://*:port_http", config["Kestrel__Endpoints__http__Url"]);
+    }
+
+    [Fact]
+    public async Task KestrelHttpEndpointsAreIgnoredWhenFlagIsSet()
+    {
+        var resource = CreateTestProjectResource<ProjectWithProfileEndpointAndKestrelHttpEndpoint>(
+            operation: DistributedApplicationOperation.Run,
+            callback: builder =>
+            {
+                builder.WithHttpEndpoint(5017, name: "ExplicitHttp");
+            },
+            options => { options.ExcludeKestrelEndpoints = true; });
+
+        Assert.Collection(
+            resource.Annotations.OfType<EndpointAnnotation>(),
+            a =>
+            {
+                Assert.Equal("http", a.Name);
+                Assert.Equal("http", a.UriScheme);
+                Assert.Equal(5031, a.Port);
+            },
+            a =>
+            {
+                Assert.Equal("ExplicitHttp", a.Name);
+                Assert.Equal("http", a.UriScheme);
+                Assert.Equal(5017, a.Port);
+            }
+            );
+
+        AllocateTestEndpoints(resource);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+
+        // We're ignoring Kestrel, so we should be setting ASPNETCORE_URLS
+        Assert.Equal("http://localhost:port_http;http://localhost:port_ExplicitHttp", config["ASPNETCORE_URLS"]);
+
+        // And we should not be setting the Kestrel override
+        Assert.False(config.ContainsKey("Kestrel__Endpoints__http__Url"));
     }
 
     [Fact]
@@ -102,7 +140,7 @@ public class KestrelConfigTests
 
         AllocateTestEndpoints(resource);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Collection(
             config.Where(envVar => envVar.Key.StartsWith("Kestrel__")),
@@ -236,6 +274,37 @@ public class KestrelConfigTests
     }
 
     [Fact]
+    public async Task VerifyKestrelEnvVariablesGetOmittedFromManifestIfExcluded()
+    {
+        var resource = CreateTestProjectResource<ProjectWithMultipleHttpKestrelEndpoints>(
+            operation: DistributedApplicationOperation.Publish,
+            callback: builder =>
+            {
+                builder.WithHttpEndpoint(5017, name: "ExplicitProxiedHttp")
+                    .WithHttpEndpoint(5018, name: "ExplicitNoProxyHttp", isProxied: false)
+                    // Exclude both a Kestrel endpoint and an explicit endpoint from environment injection
+                    // We do it as separate filters to ensure they are combined correctly
+                    .WithEndpointsInEnvironment(e => e.Name != "FirstHttpEndpoint")
+                    .WithEndpointsInEnvironment(e => e.Name != "ExplicitProxiedHttp");
+            });
+
+        var manifest = await ManifestUtils.GetManifest(resource);
+
+        var expectedEnv = """
+            {
+              "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+              "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+              "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+              "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+              "Kestrel__Endpoints__SecondHttpEndpoint__Url": "http://*:{projectName.bindings.SecondHttpEndpoint.targetPort}",
+              "Kestrel__Endpoints__ExplicitNoProxyHttp__Url": "http://*:{projectName.bindings.ExplicitNoProxyHttp.targetPort}"
+            }
+            """;
+
+        Assert.Equal(expectedEnv, manifest["env"]!.ToString());
+    }
+
+    [Fact]
     public async Task VerifyEndpointLevelKestrelProtocol()
     {
         var resource = CreateTestProjectResource<ProjectWithKestrelEndpointsLevelProtocols>(
@@ -277,10 +346,11 @@ public class KestrelConfigTests
 
     private static ProjectResource CreateTestProjectResource<TProject>(
         DistributedApplicationOperation operation = DistributedApplicationOperation.Publish,
-        Action<IResourceBuilder<ProjectResource>>? callback = null) where TProject : IProjectMetadata, new()
+        Action<IResourceBuilder<ProjectResource>>? callback = null,
+        Action<ProjectResourceOptions>? configure = null) where TProject : IProjectMetadata, new()
     {
         var appBuilder = ProjectResourceTests.CreateBuilder(operation: operation);
-        var projectBuilder = appBuilder.AddProject<TProject>("projectName");
+        var projectBuilder = appBuilder.AddProject<TProject>("projectName", configure ?? (_ => { }));
         if (callback != null)
         {
             callback(projectBuilder);

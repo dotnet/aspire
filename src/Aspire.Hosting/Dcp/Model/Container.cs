@@ -56,6 +56,13 @@ internal sealed class ContainerSpec
     // Additional arguments to pass to the container run command
     [JsonPropertyName("runArgs")]
     public List<string>? RunArgs { get; set; }
+
+    // Should this container be created and persisted between DCP runs?
+    [JsonPropertyName("persistent")]
+    public bool? Persistent { get; set; }
+
+    [JsonPropertyName("networks")]
+    public List<ContainerNetworkConnection>? Networks { get; set; }
 }
 
 internal sealed class BuildContext
@@ -134,6 +141,19 @@ internal sealed class VolumeMount
     // True if the mounted file system is supposed to be read-only
     [JsonPropertyName("readOnly")]
     public bool IsReadOnly { get; set; } = false;
+}
+
+internal sealed class ContainerNetworkConnection
+{
+    // DCP Resource name of a ContainerNetwork to connect to
+    // A container won't start running until it can be conneced to all specified networks
+    [JsonPropertyName("name")]
+	public string? Name { get; set; }
+
+	// Aliases of the container on the network
+	// This enables container DNS resolution
+    [JsonPropertyName("aliases")]
+	public List<string>? Aliases { get; set; }
 }
 
 internal sealed class ContainerLabel
@@ -263,6 +283,10 @@ internal sealed class ContainerStatus : V1Status
     [JsonPropertyName("effectiveArgs")]
     public List<string>? EffectiveArgs { get; set; }
 
+    // Any ContainerNetworks this container is attached to
+    [JsonPropertyName("networks")]
+    public List<string>? Networks { get; set; }
+
     // Note: the ContainerStatus has "Message" property that represents a human-readable information about Container state.
     // It is provided by V1Status base class.
 }
@@ -315,7 +339,9 @@ internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
     }
 
     public bool LogsAvailable =>
-        this.Status?.State == ContainerState.Running
+        this.Status?.State == ContainerState.Starting
+        || this.Status?.State == ContainerState.Building
+        || this.Status?.State == ContainerState.Running
         || this.Status?.State == ContainerState.Paused
         || this.Status?.State == ContainerState.Stopping
         || this.Status?.State == ContainerState.Exited

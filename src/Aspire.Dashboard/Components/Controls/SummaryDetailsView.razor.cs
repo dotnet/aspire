@@ -52,16 +52,16 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
     public RenderFragment? DetailsTitleTemplate { get; set; }
 
     [Inject]
-    public required ProtectedLocalStorage ProtectedLocalStore { get; set; }
+    public required ProtectedLocalStorage ProtectedLocalStore { get; init; }
 
     [Inject]
-    public required NavigationManager NavigationManager { get; set; }
+    public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
-    public required IJSRuntime JS { get; set; }
+    public required IJSRuntime JS { get; init; }
 
     [Inject]
-    public required ShortcutManager ShortcutManager { get; set; }
+    public required ShortcutManager ShortcutManager { get; init; }
 
     private readonly Icon _splitHorizontalIcon = new Icons.Regular.Size16.SplitHorizontal();
     private readonly Icon _splitVerticalIcon = new Icons.Regular.Size16.SplitVertical();

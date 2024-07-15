@@ -3,6 +3,8 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Dashboard;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -44,6 +46,9 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
         return new TestDistributedApplicationBuilder(configureOptions);
     }
 
+    public static TestDistributedApplicationBuilder CreateWithTestContainerRegistry() =>
+        Create(o => o.ContainerRegistryOverride = TestConstants.AspireTestContainerRegistry);
+
     private TestDistributedApplicationBuilder(Action<DistributedApplicationOptions> configureOptions)
     {
         var appAssembly = typeof(TestDistributedApplicationBuilder).Assembly;
@@ -55,7 +60,7 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
         {
             // Make sure we have a dashboard URL and OTLP endpoint URL (but don't overwrite them if they're already set)
             o.DashboardUrl ??= "http://localhost:8080";
-            o.OtlpEndpointUrl ??= "http://localhost:4317";
+            o.OtlpGrpcEndpointUrl ??= "http://localhost:4317";
         });
 
         _innerBuilder.Services.AddHttpClient();
@@ -82,6 +87,8 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
     public ConfigurationManager Configuration => _innerBuilder.Configuration;
 
     public string AppHostDirectory => _innerBuilder.AppHostDirectory;
+
+    public Assembly? AppHostAssembly => _innerBuilder.AppHostAssembly;
 
     public IHostEnvironment Environment => _innerBuilder.Environment;
 

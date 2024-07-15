@@ -14,6 +14,26 @@ namespace Aspire.Hosting.Tests.MySql;
 public class AddMySqlTests
 {
     [Fact]
+    public void AddMySqlAddsGeneratedPasswordParameterWithUserSecretsParameterDefaultInRunMode()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+
+        var mysql = appBuilder.AddMySql("mysql");
+
+        Assert.IsType<UserSecretsParameterDefault>(mysql.Resource.PasswordParameter.Default);
+    }
+
+    [Fact]
+    public void AddMySqlDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultInPublishMode()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var mysql = appBuilder.AddMySql("mysql");
+
+        Assert.IsNotType<UserSecretsParameterDefault>(mysql.Resource.PasswordParameter.Default);
+    }
+
+    [Fact]
     public async Task AddMySqlContainerWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
@@ -40,7 +60,7 @@ public class AddMySqlTests
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Collection(config,
             env =>
@@ -80,7 +100,7 @@ public class AddMySqlTests
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Collection(config,
             env =>
@@ -228,7 +248,7 @@ public class AddMySqlTests
 
         var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(myAdmin);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(myAdmin, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Equal($"{containerHost}:5001", config["PMA_HOST"]);
         Assert.NotNull(config["PMA_USER"]);
