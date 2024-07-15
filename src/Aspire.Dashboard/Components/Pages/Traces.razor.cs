@@ -34,16 +34,16 @@ public partial class Traces
     public string? ApplicationName { get; set; }
 
     [Inject]
-    public required TelemetryRepository TelemetryRepository { get; set; }
+    public required TelemetryRepository TelemetryRepository { get; init; }
 
     [Inject]
-    public required TracesViewModel TracesViewModel { get; set; }
+    public required TracesViewModel TracesViewModel { get; init; }
 
     [Inject]
-    public required IDialogService DialogService { get; set; }
+    public required IDialogService DialogService { get; init; }
 
     [Inject]
-    public required BrowserTimeProvider TimeProvider { get; set; }
+    public required BrowserTimeProvider TimeProvider { get; init; }
 
     [Inject]
     public required ILogger<Traces> Logger { get; init; }

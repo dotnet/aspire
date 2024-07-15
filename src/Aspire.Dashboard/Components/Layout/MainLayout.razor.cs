@@ -122,7 +122,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     {
         if (firstRender)
         {
-            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/theme.js");
+            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/app-theme.js");
             _shortcutManagerReference = DotNetObjectReference.Create(ShortcutManager);
             _keyboardHandlers = await JS.InvokeAsync<IJSObjectReference>("window.registerGlobalKeydownListener", _shortcutManagerReference);
             ShortcutManager.AddGlobalKeydownListener(this);

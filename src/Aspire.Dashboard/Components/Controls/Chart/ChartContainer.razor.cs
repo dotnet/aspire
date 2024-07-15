@@ -33,13 +33,13 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     public required TimeSpan Duration { get; set; }
 
     [Inject]
-    public required TelemetryRepository TelemetryRepository { get; set; }
+    public required TelemetryRepository TelemetryRepository { get; init; }
 
     [Inject]
-    public required ILogger<ChartContainer> Logger { get; set; }
+    public required ILogger<ChartContainer> Logger { get; init; }
 
     [Inject]
-    public required ThemeManager ThemeManager { get; set; }
+    public required ThemeManager ThemeManager { get; init; }
 
     [Inject]
     public required CurrentChartViewModel ChartViewModel { get; init; }

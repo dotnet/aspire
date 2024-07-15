@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Localization;
 
 namespace Aspire.Dashboard.Components;
 
@@ -22,6 +24,9 @@ public partial class EndpointsColumnDisplay
 
     [Inject]
     public required ILogger<EndpointsColumnDisplay> Logger { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<Columns> Loc { get; init; }
 
     private bool _popoverVisible;
 }

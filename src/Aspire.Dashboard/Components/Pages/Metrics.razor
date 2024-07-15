@@ -21,7 +21,7 @@
             <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Metrics.MetricsHeader)]</h1>
         </PageTitleSection>
         <ToolbarSection>
-            <ResourceSelect Resources="_applications"
+            <ResourceSelect Resources="_applicationViewModels"
                             AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
                             @bind-SelectedResource="PageViewModel.SelectedApplication"
                             @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync"/>
@@ -63,7 +63,8 @@
                                             InstrumentName="@(PageViewModel.SelectedInstrument.Name)"
                                             Duration="PageViewModel.SelectedDuration.Id"
                                             ActiveView="@(PageViewModel.SelectedViewKind ?? MetricViewKind.Graph)"
-                                            OnViewChangedAsync="@OnViewChangedAsync"/>
+                                            OnViewChangedAsync="@OnViewChangedAsync"
+                                            Applications="_applications" />
                                     }
                                     else if (PageViewModel.SelectedMeter != null)
                                     {
