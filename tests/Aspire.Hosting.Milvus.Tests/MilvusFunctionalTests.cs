@@ -6,12 +6,14 @@ using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Milvus.Client;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Milvus.Tests;
 
-public class MilvusFunctionalTests
+public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     //Right now can not set user and password for super user of Milvus at startup. default user and password is root:Milvus.
     //https://github.com/milvus-io/milvus/issues/33058
@@ -357,6 +359,10 @@ public class MilvusFunctionalTests
         }
     }
 
-    private static TestDistributedApplicationBuilder CreateDistributedApplicationBuilder() =>
-       TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
+    private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
+    {
+        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
+        builder.Services.AddXunitLogging(testOutputHelper);
+        return builder;
+    }
 }
