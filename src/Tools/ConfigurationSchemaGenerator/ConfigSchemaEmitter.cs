@@ -20,6 +20,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
 {
     internal const string RootPathPrefix = "--empty--";
     private static readonly string[] s_lineBreaks = ["\r\n", "\r", "\n"];
+    private static readonly JsonNodeOptions s_ignoreCaseNodeOptions = new() { PropertyNameCaseInsensitive = true };
 
     private static readonly JsonSerializerOptions s_serializerOptions = new()
     {
@@ -55,12 +56,12 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             return;
         }
 
-        var propertiesNode = new JsonObject();
+        var propertiesNode = new JsonObject(s_ignoreCaseNodeOptions);
         for (var i = 0; i < categories.Count; i++)
         {
-            var catObj = new JsonObject();
-            catObj["$ref"] = "#/definitions/logLevelThreshold";
-            propertiesNode.Add(categories[i], catObj);
+            var categoryNode = new JsonObject();
+            categoryNode["$ref"] = "#/definitions/logLevelThreshold";
+            propertiesNode[categories[i]] = categoryNode;
         }
 
         parent["definitions"] = new JsonObject
@@ -105,6 +106,8 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         }
 
         var pathSegment = pathSegments.Dequeue();
+        var isAsterisk = pathSegment == "*";
+        var propertiesName = isAsterisk ? "additionalProperties" : "properties";
 
         // While descending into the node tree, a container node is created or an existing one is reused, which is then passed to the subtree generator.
         // Each generator is responsible for reverting to the original state of its children and return false, in case there's nothing to generate.
@@ -117,19 +120,42 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         currentNode["type"] = "object";
 
         var ownsProperties = false;
-        if (currentNode["properties"] is not JsonObject propertiesNode)
+        if (currentNode[propertiesName] is not JsonObject propertiesNode)
         {
-            propertiesNode = new JsonObject();
-            currentNode["properties"] = propertiesNode;
+            propertiesNode = new JsonObject(s_ignoreCaseNodeOptions);
+            currentNode[propertiesName] = propertiesNode;
             ownsProperties = true;
         }
 
         var ownsPathSegment = false;
+        string? backupCasingOfPathSegmentName = null;
         if (propertiesNode[pathSegment] is not JsonObject pathSegmentNode)
         {
-            pathSegmentNode = new JsonObject();
-            propertiesNode[pathSegment] = pathSegmentNode;
-            ownsPathSegment = true;
+            if (isAsterisk)
+            {
+                pathSegmentNode = propertiesNode;
+            }
+            else
+            {
+                pathSegmentNode = new JsonObject();
+                propertiesNode[pathSegment] = pathSegmentNode;
+                ownsPathSegment = true;
+            }
+        }
+        else
+        {
+            backupCasingOfPathSegmentName = propertiesNode[pathSegment].GetPropertyName();
+
+            if (backupCasingOfPathSegmentName != pathSegment)
+            {
+                // Re-add existing node, so the new casing of pathSegment is used.
+                propertiesNode.Remove(pathSegment);
+                propertiesNode[pathSegment] = pathSegmentNode;
+            }
+            else
+            {
+                backupCasingOfPathSegmentName = null;
+            }
         }
 
         var hasGenerated = GeneratePathSegment(pathSegmentNode, type, pathSegments);
@@ -139,11 +165,18 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
 
             if (ownsProperties)
             {
-                currentNode.Remove("properties");
+                currentNode.Remove(propertiesName);
             }
             else if (ownsPathSegment)
             {
                 propertiesNode.Remove(pathSegment);
+            }
+            else if (backupCasingOfPathSegmentName != null)
+            {
+                // Revert casing change of pathSegment.
+                var existingValue = propertiesNode[pathSegment];
+                propertiesNode.Remove(pathSegment);
+                propertiesNode[backupCasingOfPathSegmentName] = existingValue;
             }
         }
 
@@ -458,18 +491,15 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             .Trim('\n');
     }
 
-    private void GenerateDescriptionForType(JsonObject? currentNode, TypeSpec type)
+    private void GenerateDescriptionForType(JsonObject currentNode, TypeSpec type)
     {
-        if (currentNode is not null && currentNode["description"] is null)
+        var typeSymbol = _compilation.GetBestTypeByMetadataName(type.FullName);
+        if (typeSymbol is not null)
         {
-            var typeSymbol = _compilation.GetBestTypeByMetadataName(type.FullName);
-            if (typeSymbol is not null)
+            var docComment = GetDocComment(typeSymbol);
+            if (!string.IsNullOrEmpty(docComment))
             {
-                var docComment = GetDocComment(typeSymbol);
-                if (!string.IsNullOrEmpty(docComment))
-                {
-                    GenerateDescriptionFromDocComment(currentNode, docComment);
-                }
+                GenerateDescriptionFromDocComment(currentNode, docComment);
             }
         }
     }

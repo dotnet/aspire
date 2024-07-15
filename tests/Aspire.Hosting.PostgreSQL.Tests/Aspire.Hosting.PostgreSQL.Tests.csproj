@@ -8,15 +8,11 @@
     <ProjectReference Include="..\..\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.PostgreSQL\Aspire.Hosting.PostgreSQL.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Tests\Aspire.Hosting.Tests.csproj" />
-    <ProjectReference Include="..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />
-
-    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="$(SharedDir)SecretsStore.cs" Link="Utils\SecretsStore.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting\ApplicationModel\UserSecretsParameterDefault.cs" Link="Utils\UserSecretsParameterDefault.cs" />
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting\Utils\PasswordGenerator.cs" Link="Utils\PasswordGenerator.cs" />
   </ItemGroup>
 
 </Project>

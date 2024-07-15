@@ -10,7 +10,7 @@ using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace Aspire.Hosting.Tests.Postgres;
+namespace Aspire.Hosting.PostgreSQL.Tests;
 
 public class AddPostgresTests
 {
@@ -21,7 +21,7 @@ public class AddPostgresTests
 
         var pg = appBuilder.AddPostgres("pg");
 
-        Assert.IsType<UserSecretsParameterDefault>(pg.Resource.PasswordParameter.Default);
+        Assert.Equal(nameof(UserSecretsParameterDefault), pg.Resource.PasswordParameter.Default?.GetType().Name);
     }
 
     [Fact]
@@ -31,7 +31,7 @@ public class AddPostgresTests
 
         var pg = appBuilder.AddPostgres("pg");
 
-        Assert.IsNotType<UserSecretsParameterDefault>(pg.Resource.PasswordParameter.Default);
+        Assert.Equal(nameof(GenerateParameterDefault), pg.Resource.PasswordParameter.Default?.GetType().Name);
     }
 
     [Fact]
