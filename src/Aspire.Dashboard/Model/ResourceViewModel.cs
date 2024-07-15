@@ -35,27 +35,30 @@ public sealed class ResourceViewModel
 
     internal OwnerViewModel? GetReplicaSetOrDefault()
     {
-        return Owners.FirstOrDefault(owner => string.Equals(owner.Kind, "ExecutableReplicaSet", StringComparisons.ResourceOwnerKind));
+        return Owners.FirstOrDefault(owner => string.Equals(owner.Kind, KnownOwnerProperties.ExecutableReplicaSetKind, StringComparisons.ResourceOwnerKind));
     }
 
     public static string GetResourceName(ResourceViewModel resource, IDictionary<string, ResourceViewModel> allResources)
     {
-        var count = 0;
-        foreach (var (_, item) in allResources)
+        if (resource.GetReplicaSetOrDefault() is { } resourceReplicaSet)
         {
-            if (item.IsHiddenState())
+            var count = 0;
+            foreach (var (_, item) in allResources)
             {
-                continue;
-            }
-
-            if (item.DisplayName == resource.DisplayName)
-            {
-                count++;
-                if (count >= 2)
+                if (item.IsHiddenState())
                 {
-                    // There are multiple resources with the same display name so they're part of a replica set.
-                    // Need to use the name which has a unique ID to tell them apart.
-                    return resource.Name;
+                    continue;
+                }
+
+                if (item.GetReplicaSetOrDefault() is { } itemReplicaSet && string.Equals(itemReplicaSet.Uid, resourceReplicaSet.Uid, StringComparisons.ResourceOwnerUid))
+                {
+                    count++;
+                    if (count >= 2)
+                    {
+                        // There are multiple resources with the same display name so they're part of a replica set.
+                        // Need to use the name which has a unique ID to tell them apart.
+                        return resource.Name;
+                    }
                 }
             }
         }

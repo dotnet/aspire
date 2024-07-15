@@ -166,13 +166,16 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         }
     }
 
-    private void UpdateResourcesList()
+    internal static ImmutableList<SelectViewModel<ResourceTypeDetails>> GetConsoleLogResourceSelectViewModels(
+        ConcurrentDictionary<string, ResourceViewModel> resourcesByName,
+        SelectViewModel<ResourceTypeDetails> noSelectionViewModel,
+        string resourceUnknownStateText)
     {
         var builder = ImmutableList.CreateBuilder<SelectViewModel<ResourceTypeDetails>>();
 
-        foreach (var grouping in _resourceByName
+        foreach (var grouping in resourcesByName
             .Where(r => !r.Value.IsHiddenState())
-            .OrderBy(c => c.Value.Name)
+            .OrderBy(c => c.Value.Name, StringComparers.ResourceName)
             .GroupBy(r => r.Value.GetReplicaSetOrDefault()?.Uid ?? r.Value.Uid))
         {
             string applicationName;
@@ -192,16 +195,14 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 applicationName = grouping.First().Value.DisplayName;
             }
 
-            foreach (var resource in grouping.Select(g => g.Value))
+            foreach (var resource in grouping.Select(g => g.Value).OrderBy(r => r.Name, StringComparers.ResourceName))
             {
                 builder.Add(ToOption(resource, grouping.Count() > 1, applicationName));
             }
         }
 
-        builder.Sort((r1, r2) => StringComparers.ResourceName.Compare(r1.Name, r2.Name));
-
-        builder.Insert(0, _noSelection);
-        _resources = builder.ToImmutableList();
+        builder.Insert(0, noSelectionViewModel);
+        return builder.ToImmutableList();
 
         SelectViewModel<ResourceTypeDetails> ToOption(ResourceViewModel resource, bool isReplica, string applicationName)
         {
@@ -217,11 +218,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             string GetDisplayText()
             {
-                var resourceName = ResourceViewModel.GetResourceName(resource, _resourceByName);
+                var resourceName = ResourceViewModel.GetResourceName(resource, resourcesByName);
 
                 if (resource.HasNoState())
                 {
-                    return $"{resourceName} ({Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)]})";
+                    return $"{resourceName} ({resourceUnknownStateText})";
                 }
 
                 if (resource.IsRunningState())
@@ -233,6 +234,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             }
         }
     }
+
+    private void UpdateResourcesList() => _resources = GetConsoleLogResourceSelectViewModels(_resourceByName, _noSelection, Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)]);
 
     private Task ClearLogsAsync()
     {
