@@ -31,7 +31,7 @@ public sealed class ApplicationsSelectHelpersTests
             app =>
             {
                 Assert.Equal("app", app.Name);
-                Assert.Equal(OtlpApplicationType.ReplicaSet, app.Id!.Type);
+                Assert.Equal(OtlpApplicationType.ApplicationGrouping, app.Id!.Type);
                 Assert.Null(app.Id!.InstanceId);
             },
             app =>
@@ -75,7 +75,7 @@ public sealed class ApplicationsSelectHelpersTests
             app =>
             {
                 Assert.Equal("app", app.Name);
-                Assert.Equal(OtlpApplicationType.ReplicaSet, app.Id!.Type);
+                Assert.Equal(OtlpApplicationType.ApplicationGrouping, app.Id!.Type);
                 Assert.Null(app.Id!.InstanceId);
             },
             app =>

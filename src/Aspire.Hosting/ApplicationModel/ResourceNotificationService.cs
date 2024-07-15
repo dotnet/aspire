@@ -182,11 +182,11 @@ public class ResourceNotificationService
                 _logger.LogTrace("Resource {Resource}/{ResourceId} update published: " +
                     "ResourceType = {ResourceType}, CreationTimeStamp = {CreationTimeStamp:s}, State = {{ Text = {StateText}, Style = {StateStyle} }}, " +
                     "ExitCode = {ExitCode}, EnvironmentVariables = {{ {EnvironmentVariables} }}, Urls = {{ {Urls} }}, " +
-                    "Properties = {{ {Properties} }}",
+                    "Properties = {{ {Properties} }}, Owners = {{ {Owners} }}",
                     resource.Name, resourceId,
                     newState.ResourceType, newState.CreationTimeStamp, newState.State?.Text, newState.State?.Style,
                     newState.ExitCode, string.Join(", ", newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")), string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
-                    string.Join(", ", newState.Properties.Select(p => $"{p.Name} = {p.Value}")));
+                    string.Join(", ", newState.Properties.Select(p => $"{p.Name} = {p.Value}")), string.Join(", ", newState.Owners.Select(o => $"{o.Kind} {o.Name} ({o.Uid})")));
             }
 
             return Task.CompletedTask;

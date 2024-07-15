@@ -6,12 +6,14 @@
 @inject IStringLocalizer<ControlsStrings> Loc
 
 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="3">
-    @if (ViewModel.Id?.Type is OtlpApplicationType.ReplicaSet)
+    @if (ViewModel.Id is { } typeDetails && typeDetails.Type is OtlpApplicationType.ApplicationGrouping)
     {
         <FluentIcon Icon="Icons.Regular.Size20.AppsList"
                     Color="Color.Accent"
                     Style="vertical-align: text-bottom;"/>
-        <span>@ViewModel.Name (<span style="color: var(--accent-foreground-rest)">@Loc[nameof(ControlsStrings.ReplicaSetLower)]</span>)</span>
+
+        var typeName = typeDetails.ReplicaSetName is not null ? Loc[nameof(ControlsStrings.ReplicaSetLower)] : Loc[nameof(ControlsStrings.ApplicationLower)];
+        <span>@ViewModel.Name (<span style="color: var(--accent-foreground-rest)">@typeName</span>)</span>
     }
     else if (ViewModel.Id?.Type is OtlpApplicationType.ReplicaInstance)
     {

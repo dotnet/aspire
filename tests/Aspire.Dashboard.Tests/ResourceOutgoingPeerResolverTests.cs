@@ -27,7 +27,8 @@ public class ResourceOutgoingPeerResolverTests
             State = null,
             KnownState = null,
             StateStyle = null,
-            Commands = []
+            Commands = [],
+            Owners = []
         };
     }
 

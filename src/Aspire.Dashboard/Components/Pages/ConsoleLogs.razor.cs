@@ -132,7 +132,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         {
             Debug.Assert(_resources is not null);
 
-            PageViewModel.SelectedOption = _resources.Single(option => option.Id?.Type is not OtlpApplicationType.ReplicaSet && string.Equals(ResourceName, option.Id?.InstanceId, StringComparison.Ordinal));
+            PageViewModel.SelectedOption = _resources.Single(option => option.Id?.Type is not OtlpApplicationType.ApplicationGrouping && string.Equals(ResourceName, option.Id?.InstanceId, StringComparison.Ordinal));
             PageViewModel.SelectedResource = resource;
 
             Logger.LogDebug("Selected console resource from name {ResourceName}.", ResourceName);
@@ -179,7 +179,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             {
                 builder.Add(new SelectViewModel<ResourceTypeDetails>
                 {
-                    Id = ResourceTypeDetails.CreateReplicaSet(resourceGroupsByApplicationName.Key),
+                    Id = ResourceTypeDetails.CreateApplicationGrouping(resourceGroupsByApplicationName.Key, true),
                     Name = resourceGroupsByApplicationName.Key
                 });
             }

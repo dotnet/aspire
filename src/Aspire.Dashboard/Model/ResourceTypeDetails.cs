@@ -33,11 +33,11 @@ public class ResourceTypeDetails
         }
 
         return new ApplicationKey(ReplicaSetName, InstanceId);
-    }        
+    }
 
-    public static ResourceTypeDetails CreateReplicaSet(string replicaSetName)
+    public static ResourceTypeDetails CreateApplicationGrouping(string groupingName, bool isReplicaSet)
     {
-        return new ResourceTypeDetails(OtlpApplicationType.ReplicaSet, instanceId: null, replicaSetName);
+        return new ResourceTypeDetails(OtlpApplicationType.ApplicationGrouping, instanceId: null, replicaSetName: isReplicaSet ? groupingName : null);
     }
 
     public static ResourceTypeDetails CreateSingleton(string instanceId, string replicaSetName)

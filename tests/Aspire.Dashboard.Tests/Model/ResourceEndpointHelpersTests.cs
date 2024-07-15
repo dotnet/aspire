@@ -183,7 +183,8 @@ public sealed class ResourceEndpointHelpersTests
             State = null,
             KnownState = null,
             StateStyle = null,
-            Commands = []
+            Commands = [],
+            Owners = []
         };
     }
 }

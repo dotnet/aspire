@@ -193,6 +193,7 @@ public class ResourcePublisherTests
             DisplayName = "",
             Urls = [],
             Environment = [],
+            Owners = []
         };
     }
 }

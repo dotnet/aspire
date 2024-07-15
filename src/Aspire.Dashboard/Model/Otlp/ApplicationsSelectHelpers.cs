@@ -64,7 +64,7 @@ public static class ApplicationsSelectHelpers
             // add a disabled "Resource" as a header
             selectViewModels.Add(new SelectViewModel<ResourceTypeDetails>
             {
-                Id = ResourceTypeDetails.CreateReplicaSet(applicationName),
+                Id = ResourceTypeDetails.CreateApplicationGrouping(applicationName, isReplicaSet: false),
                 Name = applicationName
             });
 

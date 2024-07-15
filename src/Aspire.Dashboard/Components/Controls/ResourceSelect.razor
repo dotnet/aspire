@@ -3,7 +3,7 @@
 <FluentSelect @ref="_resourceSelectComponent"
               Items="Resources"
               OptionValue="@(c => c!.Name)"
-              OptionDisabled="@(c => c!.Id?.Type is Otlp.Model.OtlpApplicationType.ReplicaSet)"
+              OptionDisabled="@(c => c!.Id?.Type is Otlp.Model.OtlpApplicationType.ApplicationGrouping)"
               SelectedOption="SelectedResource"
               SelectedOptionChanged="SelectedResourceChanged"
               AriaLabel="@AriaLabel"

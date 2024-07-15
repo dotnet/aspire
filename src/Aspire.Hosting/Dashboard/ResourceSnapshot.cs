@@ -24,6 +24,8 @@ internal abstract class ResourceSnapshot
 
     public required ImmutableArray<UrlSnapshot> Urls { get; init; }
 
+    public required ImmutableArray<OwnerReferenceSnapshot> Owners { get; init; }
+
     protected abstract IEnumerable<(string Key, Value Value)> GetProperties();
 
     public IEnumerable<(string Name, Value Value)> Properties

@@ -42,6 +42,7 @@ internal sealed class DashboardServiceData : IAsyncDisposable
                     ExitCode = snapshot.ExitCode,
                     State = snapshot.State?.Text,
                     StateStyle = snapshot.State?.Style,
+                    Owners = snapshot.Owners
                 };
             }
 

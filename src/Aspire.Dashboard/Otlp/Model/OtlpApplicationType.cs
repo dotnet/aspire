@@ -5,7 +5,7 @@ namespace Aspire.Dashboard.Otlp.Model;
 
 public enum OtlpApplicationType
 {
-    ReplicaSet,
+    ApplicationGrouping,
     Singleton,
     ReplicaInstance
 }

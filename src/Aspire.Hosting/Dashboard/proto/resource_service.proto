@@ -40,9 +40,16 @@ message ResourceCommand {
     optional google.protobuf.Value parameter = 4;
 }
 
+// Represents one, possibly of many, owners of this resource
+message ResourceOwner {
+  string kind = 1;
+  string name = 2;
+  string uid = 3;
+}
+
 // Represents a request to execute a command.
 // Sent by the dashboard to DashboardService.ExecuteResourceCommand.
-// Constructed with data from a corresponding 
+// Constructed with data from a corresponding
 message ResourceCommandRequest {
     // Unique identifier for the command.
     // Copied from the ResourceCommand that this request object is initialized from.
@@ -162,6 +169,8 @@ message Resource {
     // Supported styles are "success", "info", "warning" and "error". Any other style
     // will be treated as "unknown".
     optional string state_style = 14;
+
+    repeated ResourceOwner owners = 15;
 }
 
 ////////////////////////////////////////////

@@ -44,6 +44,11 @@ public sealed record CustomResourceSnapshot
     /// The URLs that should show up in the dashboard for this resource.
     /// </summary>
     public ImmutableArray<UrlSnapshot> Urls { get; init; } = [];
+
+    /// <summary>
+    /// The owners of this resource, possibly including a replica set.
+    /// </summary>
+    public ImmutableArray<OwnerReferenceSnapshot> Owners { get; init; } = [];
 }
 
 /// <summary>
@@ -76,6 +81,14 @@ public sealed record EnvironmentVariableSnapshot(string Name, string? Value, boo
 /// <param name="Url">The full uri.</param>
 /// <param name="IsInternal">Determines if this url is internal.</param>
 public sealed record UrlSnapshot(string Name, string Url, bool IsInternal);
+
+/// <summary>
+/// An owner of the resource.
+/// </summary>
+/// <param name="Kind">Kind of the owner.</param>
+/// <param name="Name">Name of the owner.</param>
+/// <param name="Uid">Uid of the owner.</param>
+public sealed record OwnerReferenceSnapshot(string Kind, string Name, string Uid);
 
 /// <summary>
 /// A snapshot of the resource property.

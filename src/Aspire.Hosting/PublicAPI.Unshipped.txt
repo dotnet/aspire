@@ -1,4 +1,14 @@
 #nullable enable
+Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Owners.get -> System.Collections.Immutable.ImmutableArray<Aspire.Hosting.ApplicationModel.OwnerReferenceSnapshot!>
+Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Owners.init -> void
+Aspire.Hosting.ApplicationModel.OwnerReferenceSnapshot
+Aspire.Hosting.ApplicationModel.OwnerReferenceSnapshot.Kind.get -> string!
+Aspire.Hosting.ApplicationModel.OwnerReferenceSnapshot.Kind.init -> void
+Aspire.Hosting.ApplicationModel.OwnerReferenceSnapshot.Name.get -> string!
+Aspire.Hosting.ApplicationModel.OwnerReferenceSnapshot.Name.init -> void
+Aspire.Hosting.ApplicationModel.OwnerReferenceSnapshot.OwnerReferenceSnapshot(string! Kind, string! Name, string! Uid) -> void
+Aspire.Hosting.ApplicationModel.OwnerReferenceSnapshot.Uid.get -> string!
+Aspire.Hosting.ApplicationModel.OwnerReferenceSnapshot.Uid.init -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, string? targetState = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, System.Collections.Generic.IEnumerable<string!>! targetStates, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
