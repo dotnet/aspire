@@ -43,6 +43,9 @@ updates:
       OpenTelemetry:
         patterns:
           - "OpenTelemetry.*"
+      Orleans:
+        patterns:
+          - "Microsoft.Orleans*"
       NetPlatform:
         patterns:
           - "Microsoft.AspNetCore.*"
