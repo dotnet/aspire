@@ -23,6 +23,7 @@ internal static class StringComparisons
     public static StringComparison EndpointAnnotationName => StringComparison.OrdinalIgnoreCase;
     public static StringComparison ResourceType => StringComparison.Ordinal;
     public static StringComparison ResourcePropertyName => StringComparison.Ordinal;
+    public static StringComparison ResourceOwnerKind => StringComparison.Ordinal;
     public static StringComparison UserTextSearch => StringComparison.CurrentCultureIgnoreCase;
     public static StringComparison EnvironmentVariableName => StringComparison.InvariantCultureIgnoreCase;
     public static StringComparison UrlPath => StringComparison.OrdinalIgnoreCase;

@@ -7,6 +7,11 @@
         <target state="translated">Все</target>
         <note />
       </trans-unit>
+      <trans-unit id="ApplicationLower">
+        <source>application</source>
+        <target state="new">application</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ChartContainerAllTags">
         <source>All tags</source>
         <target state="translated">Все теги</target>

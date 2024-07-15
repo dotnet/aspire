@@ -170,23 +170,31 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     {
         var builder = ImmutableList.CreateBuilder<SelectViewModel<ResourceTypeDetails>>();
 
-        foreach (var resourceGroupsByApplicationName in _resourceByName
+        foreach (var grouping in _resourceByName
             .Where(r => !r.Value.IsHiddenState())
             .OrderBy(c => c.Value.Name)
-            .GroupBy(r => r.Value.DisplayName, r => r.Value))
+            .GroupBy(r => r.Value.GetReplicaSetOrDefault()?.Uid ?? r.Value.Uid))
         {
-            if (resourceGroupsByApplicationName.Count() > 1)
+            string applicationName;
+
+            if (grouping.Count() > 1)
             {
+                applicationName = grouping.First().Value.GetReplicaSetOrDefault()!.Name;
+
                 builder.Add(new SelectViewModel<ResourceTypeDetails>
                 {
-                    Id = ResourceTypeDetails.CreateApplicationGrouping(resourceGroupsByApplicationName.Key, true),
-                    Name = resourceGroupsByApplicationName.Key
+                    Id = ResourceTypeDetails.CreateApplicationGrouping(applicationName, true),
+                    Name = applicationName
                 });
             }
-
-            foreach (var resource in resourceGroupsByApplicationName)
+            else
             {
-                builder.Add(ToOption(resource, resourceGroupsByApplicationName.Count() > 1, resourceGroupsByApplicationName.Key));
+                applicationName = grouping.First().Value.DisplayName;
+            }
+
+            foreach (var resource in grouping.Select(g => g.Value))
+            {
+                builder.Add(ToOption(resource, grouping.Count() > 1, applicationName));
             }
         }
 

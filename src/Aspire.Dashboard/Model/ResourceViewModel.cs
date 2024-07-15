@@ -33,6 +33,11 @@ public sealed class ResourceViewModel
         return Name.Contains(filter, StringComparisons.UserTextSearch);
     }
 
+    internal OwnerViewModel? GetReplicaSetOrDefault()
+    {
+        return Owners.FirstOrDefault(owner => string.Equals(owner.Kind, "ExecutableReplicaSet", StringComparisons.ResourceOwnerKind));
+    }
+
     public static string GetResourceName(ResourceViewModel resource, IDictionary<string, ResourceViewModel> allResources)
     {
         var count = 0;
