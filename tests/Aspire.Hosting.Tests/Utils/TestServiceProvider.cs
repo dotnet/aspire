@@ -6,7 +6,7 @@ using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Tests.Dcp;
 
 namespace Aspire.Hosting.Tests.Utils;
-internal sealed class TestServiceProvider : IServiceProvider
+public sealed class TestServiceProvider : IServiceProvider
 {
     private readonly ServiceContainer _serviceContainer = new ServiceContainer();
     private TestServiceProvider()
