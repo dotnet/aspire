@@ -31,7 +31,7 @@
     <PackageVersion Include="Azure.Storage.Queues" Version="12.18.0" />
     <PackageVersion Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="7.2.0" />
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.41.0" />
-    <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.25.2" />
+    <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.26.0" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.7.4" />
     <!-- Azure Management SDK for .NET dependencies -->
     <PackageVersion Include="Azure.Provisioning" Version="0.3.0" />
