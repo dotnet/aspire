@@ -14,9 +14,11 @@ public class BrowserDimensionWatcher : ComponentBase
     [Parameter]
     public EventCallback<ViewportInformation?> ViewportInformationChanged { get; set; }
 
-    [Inject] public required IJSRuntime JS { get; init; }
+    [Inject]
+    public required IJSRuntime JS { get; init; }
 
-    [Inject] public required DimensionManager DimensionManager { get; init; }
+    [Inject]
+    public required DimensionManager DimensionManager { get; init; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -40,8 +42,12 @@ public class BrowserDimensionWatcher : ComponentBase
         if (newViewportInformation.IsDesktop != ViewportInformation!.IsDesktop || newViewportInformation.IsUltraLowHeight != ViewportInformation.IsUltraLowHeight)
         {
             ViewportInformation = newViewportInformation;
+            DimensionManager.IsResizing = true;
+
             await ViewportInformationChanged.InvokeAsync(newViewportInformation);
             DimensionManager.InvokeOnBrowserDimensionsChanged();
+
+            DimensionManager.IsResizing = false;
         }
     }
 

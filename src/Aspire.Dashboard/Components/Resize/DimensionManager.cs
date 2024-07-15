@@ -7,6 +7,8 @@ public class DimensionManager
 {
     public event EventHandler? OnBrowserDimensionsChanged;
 
+    public bool IsResizing { get; set; }
+
     internal void InvokeOnBrowserDimensionsChanged()
     {
         OnBrowserDimensionsChanged?.Invoke(this, EventArgs.Empty);
