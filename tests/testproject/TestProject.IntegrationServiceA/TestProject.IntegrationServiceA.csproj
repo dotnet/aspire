@@ -9,13 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Using Include="Confluent.Kafka" />
-
     <Compile Include="..\Common\TestResourceNames.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <ComponentReferenceForTests Include="Aspire.Confluent.Kafka" />
     <ComponentReferenceForTests Include="Aspire.Microsoft.Azure.Cosmos" />
     <ComponentReferenceForTests Include="Aspire.Microsoft.Data.SqlClient" />
     <ComponentReferenceForTests Include="Aspire.Milvus.Client" />

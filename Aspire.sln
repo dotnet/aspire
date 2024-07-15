@@ -505,10 +505,15 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Components", "Components", "{C424395C-1235-41A4-BF55-07880A04368C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Hosting", "Hosting", "{830A89EC-4029-4753-B25A-068BAE37DEC7}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Aspire.Hosting.Kafka.Tests\Aspire.Hosting.Kafka.Tests.csproj = tests\Aspire.Hosting.Kafka.Tests\Aspire.Hosting.Kafka.Tests.csproj
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Redis.Tests", "tests\Aspire.Hosting.Redis.Tests\Aspire.Hosting.Redis.Tests.csproj", "{1BC02557-B78B-48CE-9D3C-488A6B7672F4}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Qdrant.Tests", "tests\Aspire.Hosting.Qdrant.Tests\Aspire.Hosting.Qdrant.Tests.csproj", "{8E2AA85E-C351-47B4-AF91-58557FAD5840}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Kafka.Tests", "tests\Aspire.Hosting.Kafka.Tests\Aspire.Hosting.Kafka.Tests.csproj", "{0A83AA67-221E-44B4-9BA9-DC64DC17949E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1332,6 +1337,10 @@ Global
 		{8E2AA85E-C351-47B4-AF91-58557FAD5840}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8E2AA85E-C351-47B4-AF91-58557FAD5840}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8E2AA85E-C351-47B4-AF91-58557FAD5840}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0A83AA67-221E-44B4-9BA9-DC64DC17949E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A83AA67-221E-44B4-9BA9-DC64DC17949E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A83AA67-221E-44B4-9BA9-DC64DC17949E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A83AA67-221E-44B4-9BA9-DC64DC17949E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1576,6 +1585,7 @@ Global
 		{830A89EC-4029-4753-B25A-068BAE37DEC7} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{1BC02557-B78B-48CE-9D3C-488A6B7672F4} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
 		{8E2AA85E-C351-47B4-AF91-58557FAD5840} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
+		{0A83AA67-221E-44B4-9BA9-DC64DC17949E} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
