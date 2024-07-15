@@ -15,7 +15,6 @@ public class PlaywrightTestsBase : IClassFixture<DashboardServerFixture>, IClass
     private readonly ITestOutputHelper _output;
     private IBrowserContext? _context;
 
-
     public PlaywrightTestsBase(DashboardServerFixture dashboardServerFixture, PlaywrightFixture playwrightFixture, ITestOutputHelper output)
     {
         DashboardServerFixture = dashboardServerFixture;
