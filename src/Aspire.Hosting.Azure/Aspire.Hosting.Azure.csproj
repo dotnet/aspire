@@ -19,9 +19,13 @@
     <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessUtil.cs" Link="Provisioning\Utils\ProcessUtil.cs" />
     <Compile Include="..\Shared\Cosmos\CosmosConstants.cs" Link="Shared\CosmosConstants.cs" />
   </ItemGroup>
-
+  
   <ItemGroup>
     <EmbeddedResource Include="Bicep\*.bicep" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**/*.targets;AspireAzureConfigurationSchema.json" Pack="true" PackagePath="%(RecursiveDir)%(Filename)%(Extension)"  />
   </ItemGroup>
 
   <ItemGroup>
