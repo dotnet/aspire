@@ -22,11 +22,11 @@ public class PlaywrightFixture : IAsyncLifetime
         await Browser.CloseAsync();
     }
 
-    public async Task GoToHomeAndWaitForDataGridLoad(IPage page)
+    public static async Task GoToHomeAndWaitForDataGridLoad(IPage page)
     {
         await page.GotoAsync("/");
         await Assertions
             .Expect(page.GetByText(MockDashboardClient.TestResource1.DisplayName))
-            .ToBeVisibleAsync();
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
     }
 }

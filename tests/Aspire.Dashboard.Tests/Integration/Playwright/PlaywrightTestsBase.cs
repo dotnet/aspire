@@ -14,12 +14,14 @@ public class PlaywrightTestsBase : IClassFixture<DashboardServerFixture>, IClass
 
     private readonly ITestOutputHelper _output;
     private IBrowserContext? _context;
+    private readonly Guid _id;
 
     public PlaywrightTestsBase(DashboardServerFixture dashboardServerFixture, PlaywrightFixture playwrightFixture, ITestOutputHelper output)
     {
         DashboardServerFixture = dashboardServerFixture;
         PlaywrightFixture = playwrightFixture;
         _output = output;
+        _id = Guid.NewGuid();
     }
 
     public async Task RunTestAsync(Func<IPage, Task<bool>> setup, Func<IPage, Task> test)
@@ -36,7 +38,7 @@ public class PlaywrightTestsBase : IClassFixture<DashboardServerFixture>, IClass
             catch (PlaywrightException e)
             {
                 _output.WriteLine($"Test setup failed: {e}");
-                shouldRunTest = false;
+                await TakeScreenshotAsync("dashboard-fail.png", page);
             }
 
             if (shouldRunTest)
@@ -67,5 +69,32 @@ public class PlaywrightTestsBase : IClassFixture<DashboardServerFixture>, IClass
         {
             await _context.DisposeAsync();
         }
+    }
+
+    protected async Task TakeScreenshotAsync(string path, IPage page)
+    {
+        var screenshotPath = Path.Combine(GetLogPath(), path);
+        await page.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
+        _output.WriteLine($"Dashboard screenshot saved to {screenshotPath}");
+    }
+
+    private string GetLogPath()
+    {
+        var testLogPath = Environment.GetEnvironmentVariable("TEST_LOG_PATH");
+        string? logRootPath;
+        if (!string.IsNullOrEmpty(testLogPath))
+        {
+            logRootPath = Path.GetFullPath(testLogPath);
+            if (!Directory.Exists(logRootPath))
+            {
+                Directory.CreateDirectory(logRootPath);
+            }
+        }
+        else
+        {
+            logRootPath = Path.Combine(AppContext.BaseDirectory, "logs");
+        }
+
+        return Path.Combine(logRootPath, _id.ToString());
     }
 }
