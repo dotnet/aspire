@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
@@ -31,6 +32,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
     private bool _applicationChanged;
     private CancellationTokenSource? _filterCts;
     private string _filter = string.Empty;
+    private AspirePageContentLayout? _contentLayout;
 
     public string SessionStorageKey => "Traces_PageState";
     public string BasePath => DashboardUrls.TracesBasePath;
@@ -65,9 +67,6 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
 
     [Inject]
     public required ProtectedSessionStorage SessionStorage { get; set; }
-
-    [Inject]
-    public required ProtectedSessionStorage SessionStorage { get; init; }
 
     [Inject]
     public required DimensionManager DimensionManager { get; set; }
@@ -158,7 +157,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
     private Task HandleSelectedApplicationChanged()
     {
         _applicationChanged = true;
-        return this.AfterViewModelChangedAsync();
+        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
     private void UpdateSubscription()
