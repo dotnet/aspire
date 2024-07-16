@@ -3,13 +3,13 @@
 
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
-using Aspire.Hosting.MySql;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace Aspire.Hosting.Tests.MySql;
+namespace Aspire.Hosting.MySql.Tests;
 
 public class AddMySqlTests
 {
@@ -20,7 +20,7 @@ public class AddMySqlTests
 
         var mysql = appBuilder.AddMySql("mysql");
 
-        Assert.IsType<UserSecretsParameterDefault>(mysql.Resource.PasswordParameter.Default);
+        Assert.Equal(nameof(UserSecretsParameterDefault), mysql.Resource.PasswordParameter.Default?.GetType().Name);
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public class AddMySqlTests
 
         var mysql = appBuilder.AddMySql("mysql");
 
-        Assert.IsNotType<UserSecretsParameterDefault>(mysql.Resource.PasswordParameter.Default);
+        Assert.Equal(nameof(GenerateParameterDefault), mysql.Resource.PasswordParameter.Default?.GetType().Name);
     }
 
     [Fact]
