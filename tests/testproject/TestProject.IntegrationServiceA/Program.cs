@@ -71,15 +71,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.oracledatabase))
 {
     builder.AddOracleDatabaseDbContext<MyDbContext>("freepdb1");
 }
-if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
-{
-    builder.AddKafkaProducer<string, string>("kafka");
-    builder.AddKafkaConsumer<string, string>("kafka", consumerBuilder =>
-    {
-        consumerBuilder.Config.GroupId = "aspire-consumer-group";
-        consumerBuilder.Config.AutoOffsetReset = AutoOffsetReset.Earliest;
-    });
-}
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos) || !resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
 {
@@ -178,11 +169,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.rabbitmq))
 if (!resourcesToSkip.HasFlag(TestResourceNames.oracledatabase))
 {
     app.MapOracleDatabaseApi();
-}
-
-if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
-{
-    app.MapKafkaApi();
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))

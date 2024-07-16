@@ -145,12 +145,6 @@ public class TestProgram : IDisposable
                     .AddDatabase(oracleDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(oracleDatabase);
             }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
-            {
-                var kafka = AppBuilder.AddKafka("kafka")
-                    .WithImageRegistry(AspireTestContainerRegistry);
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(kafka);
-            }
             if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos) || !resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
             {
                 var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
