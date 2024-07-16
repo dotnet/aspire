@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Dashboard.Components.Dialogs;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Extensions;
@@ -12,6 +14,7 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -67,6 +70,12 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
+    [Inject]
+    public required IOptions<DashboardOptions> DashboardOptions { get; init; }
+
+    [Inject]
+    public required IMessageService MessageService { get; init; }
+
     [Parameter]
     [SupplyParameterFromQuery]
     public string? TraceId { get; set; }
@@ -85,12 +94,25 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     public StructureLogsDetailsViewModel? SelectedLogEntry { get; set; }
 
-    private ValueTask<GridItemsProviderResult<OtlpLogEntry>> GetData(GridItemsProviderRequest<OtlpLogEntry> request)
+    private async ValueTask<GridItemsProviderResult<OtlpLogEntry>> GetData(GridItemsProviderRequest<OtlpLogEntry> request)
     {
         ViewModel.StartIndex = request.StartIndex;
         ViewModel.Count = request.Count;
 
         var logs = ViewModel.GetLogs();
+
+        if (DashboardOptions.Value.TelemetryLimits.MaxLogCount == logs.TotalItemCount && !TelemetryRepository.HasDisplayedMaxLogLimitMessage)
+        {
+            await MessageService.ShowMessageBarAsync(options =>
+            {
+                options.Title = Loc[nameof(Dashboard.Resources.StructuredLogs.MessageExceededLimitTitle)];
+                options.Body = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.StructuredLogs.MessageExceededLimitBody)], DashboardOptions.Value.TelemetryLimits.MaxLogCount);
+                options.Intent = MessageIntent.Info;
+                options.Section = "MessagesTop";
+                options.AllowDismiss = true;
+            });
+            TelemetryRepository.HasDisplayedMaxLogLimitMessage = true;
+        }
 
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.
         // The workaround is to put the count inside a control and explicitly update and refresh the control.
@@ -98,7 +120,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
         TelemetryRepository.MarkViewedErrorLogs(ViewModel.ApplicationKey);
 
-        return ValueTask.FromResult(GridItemsProviderResult.From(logs.Items, logs.TotalItemCount));
+        return GridItemsProviderResult.From(logs.Items, logs.TotalItemCount);
     }
 
     protected override Task OnInitializedAsync()

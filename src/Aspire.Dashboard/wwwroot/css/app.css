@@ -47,6 +47,8 @@ fluent-toolbar[orientation=horizontal] {
 
     --messagebar-warning-background-color: #FDF6F3;
     --messagebar-warning-border-color: #f4bfab;
+    --messagebar-info-background-color: #f5f5f5;
+    --messagebar-info-border-color: #d1d1d1;
 
     --layout-toolbar-padding: calc(var(--design-unit) * 1.5px);
 }
@@ -66,6 +68,8 @@ fluent-toolbar[orientation=horizontal] {
 
     --messagebar-warning-background-color: #411200;
     --messagebar-warning-border-color: #DA3B01;
+    --messagebar-info-background-color: #141414;
+    --messagebar-info-border-color: #666;
 
     /* overrides of default fluentui-blazor styling */
     --error: #E10B11 !important;
@@ -187,6 +191,11 @@ fluent-data-grid .loading-content-cell .stack-horizontal {
 .fluent-messagebar.intent-warning {
     background-color: var(--messagebar-warning-background-color) !important;
     border: 1px solid var(--messagebar-warning-border-color) !important;
+}
+
+.fluent-messagebar.intent-info {
+    background-color: var(--messagebar-info-background-color) !important;
+    border: 1px solid var(--messagebar-info-border-color) !important;
 }
 
 /* The fluent dialog's default fill color is too dark in our current dark theme.

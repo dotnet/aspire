@@ -379,17 +379,6 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
         additionalMessage = null;
 
-        // Make sure that endpoints have a consistent ordering. Show https first, then everything else.
-        return [.. GetEndpoints(resource)
-            .OrderByDescending(e => e.Url?.StartsWith("https") == true)
-            .ThenBy(e=> e.Url ?? e.Text)];
-    }
-
-    /// <summary>
-    /// A resource has services and endpoints. These can overlap. This method attempts to return a single list without duplicates.
-    /// </summary>
-    private static List<DisplayedEndpoint> GetEndpoints(ResourceViewModel resource)
-    {
         return ResourceEndpointHelpers.GetEndpoints(resource, includeInteralUrls: false);
     }
 
