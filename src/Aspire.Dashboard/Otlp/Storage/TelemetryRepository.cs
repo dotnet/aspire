@@ -40,6 +40,9 @@ public sealed class TelemetryRepository
     private readonly CircularBuffer<OtlpTrace> _traces;
     private readonly DashboardOptions _dashboardOptions;
 
+    public bool HasDisplayedMaxLogLimitMessage { get; set; }
+    public bool HasDisplayedMaxTraceLimitMessage { get; set; }
+
     public TelemetryRepository(ILoggerFactory loggerFactory, IOptions<DashboardOptions> dashboardOptions)
     {
         _logger = loggerFactory.CreateLogger(typeof(TelemetryRepository));

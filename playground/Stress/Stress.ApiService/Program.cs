@@ -11,7 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 builder.Services.AddOpenTelemetry()
-    .WithTracing(tracing => tracing.AddSource(BigTraceCreator.ActivitySourceName));
+    .WithTracing(tracing => tracing.AddSource(TraceCreator.ActivitySourceName));
 
 var app = builder.Build();
 
@@ -21,11 +21,41 @@ app.MapGet("/", () => "Hello world");
 
 app.MapGet("/big-trace", async () =>
 {
-    var bigTraceCreator = new BigTraceCreator();
+    var bigTraceCreator = new TraceCreator();
 
-    await bigTraceCreator.CreateBigTraceAsync();
+    await bigTraceCreator.CreateTraceAsync(count: 10, createChildren: true);
 
     return "Big trace created";
+});
+
+app.MapGet("/trace-limit", async () =>
+{
+    const int TraceCount = 20_000;
+
+    var current = Activity.Current;
+    Activity.Current = null;
+    var bigTraceCreator = new TraceCreator();
+
+    for (var i = 0; i < TraceCount; i++)
+    {
+        await bigTraceCreator.CreateTraceAsync(count: 1, createChildren: false);
+    }
+
+    Activity.Current = current;
+
+    return $"Created {TraceCount} traces.";
+});
+
+app.MapGet("/log-message-limit", ([FromServices] ILogger<Program> logger) =>
+{
+    const int LogCount = 20_000;
+
+    for (var i = 0; i < LogCount; i++)
+    {
+        logger.LogInformation("Log entry {LogEntryIndex}", i);
+    }
+
+    return $"Created {LogCount} logs.";
 });
 
 app.MapGet("/log-message", ([FromServices] ILogger<Program> logger) =>
