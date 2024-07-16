@@ -23,7 +23,6 @@
     <NonComponentReferenceForTests Include="Aspire.Hosting.RabbitMQ" IsAspireProjectResource="false" />
     <NonComponentReferenceForTests Include="Aspire.Hosting.Redis" IsAspireProjectResource="false" />
     <NonComponentReferenceForTests Include="Aspire.Hosting.SqlServer" IsAspireProjectResource="false" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.Valkey" IsAspireProjectResource="false" />
   </ItemGroup>
 
   <ItemGroup>

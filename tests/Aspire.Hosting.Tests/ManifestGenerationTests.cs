@@ -12,7 +12,6 @@ using Aspire.Hosting.RabbitMQ;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
-using Aspire.Hosting.Valkey;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -484,7 +483,6 @@ public class ManifestGenerationTests
                     "ConnectionStrings__mysqldb": "{mysqldb.connectionString}",
                     "ConnectionStrings__redis": "{redis.connectionString}",
                     "ConnectionStrings__garnet": "{garnet.connectionString}",
-                    "ConnectionStrings__valkey": "{valkey.connectionString}",
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
                     "ConnectionStrings__rabbitmq": "{rabbitmq.connectionString}",
                     "ConnectionStrings__mymongodb": "{mymongodb.connectionString}",
@@ -565,19 +563,6 @@ public class ManifestGenerationTests
                   "type": "container.v0",
                   "connectionString": "{garnet.bindings.tcp.host}:{garnet.bindings.tcp.port}",
                   "image": "{{GarnetContainerImageTags.Registry}}/{{GarnetContainerImageTags.Image}}:{{GarnetContainerImageTags.Tag}}",
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 6379
-                    }
-                  }
-                },
-                "valkey": {
-                  "type": "container.v0",
-                  "connectionString": "{valkey.bindings.tcp.host}:{valkey.bindings.tcp.port}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{ValkeyContainerImageTags.Image}}:{{ValkeyContainerImageTags.Tag}}",
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",
