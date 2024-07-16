@@ -12,6 +12,7 @@ using Aspire.Dashboard.Authentication.OpenIdConnect;
 using Aspire.Dashboard.Authentication.OtlpApiKey;
 using Aspire.Dashboard.Authentication.OtlpConnection;
 using Aspire.Dashboard.Components;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp;
@@ -173,6 +174,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         // Time zone is set by the browser.
         builder.Services.AddScoped<BrowserTimeProvider>();
+
+        builder.Services.AddScoped<LogViewerViewModel>();
+        builder.Services.AddScoped<CurrentChartViewModel>();
+
+        builder.Services.AddScoped<DimensionManager>();
 
         builder.Services.AddLocalization();
 

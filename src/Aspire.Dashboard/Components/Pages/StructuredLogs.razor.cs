@@ -4,6 +4,8 @@
 using System.Globalization;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Components.Layout;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -31,6 +33,8 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private bool _applicationChanged;
     private CancellationTokenSource? _filterCts;
     private string? _elementIdBeforeDetailsViewOpened;
+    private AspirePageContentLayout? _contentLayout;
+    private string _filter = string.Empty;
 
     public string BasePath => DashboardUrls.StructuredLogsBasePath;
     public string SessionStorageKey => "StructuredLogs_PageState";
@@ -59,6 +63,12 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     [Inject]
     public required ILogger<Traces> Logger { get; init; }
+
+    [Inject]
+    public required DimensionManager DimensionManager { get; set; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
 
     [Inject]
     public required IOptions<DashboardOptions> DashboardOptions { get; init; }
@@ -117,11 +127,17 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         if (!string.IsNullOrEmpty(TraceId))
         {
-            ViewModel.AddFilter(new LogFilter { Field = "TraceId", Condition = FilterCondition.Equals, Value = TraceId });
+            ViewModel.AddFilter(new LogFilter
+            {
+                Field = "TraceId", Condition = FilterCondition.Equals, Value = TraceId
+            });
         }
         if (!string.IsNullOrEmpty(SpanId))
         {
-            ViewModel.AddFilter(new LogFilter { Field = "SpanId", Condition = FilterCondition.Equals, Value = SpanId });
+            ViewModel.AddFilter(new LogFilter
+            {
+                Field = "SpanId", Condition = FilterCondition.Equals, Value = SpanId
+            });
         }
 
         _allApplication = new()
@@ -141,7 +157,11 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             new SelectViewModel<LogLevel?> { Id = LogLevel.Critical, Name = "Critical" },
         };
 
-        PageViewModel = new StructuredLogsPageViewModel { SelectedLogLevel = _logLevels[0], SelectedApplication = _allApplication };
+        PageViewModel = new StructuredLogsPageViewModel
+        {
+            SelectedLogLevel = _logLevels[0],
+            SelectedApplication = _allApplication
+        };
 
         UpdateApplications();
         _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
@@ -170,7 +190,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         _applicationChanged = true;
 
-        return this.AfterViewModelChangedAsync();
+        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
     private async Task HandleSelectedLogLevelChangedAsync()
@@ -178,7 +198,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         _applicationChanged = true;
 
         await ClearSelectedLogEntryAsync();
-        await this.AfterViewModelChangedAsync();
+        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
     private void UpdateSubscription()
@@ -228,6 +248,11 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     private async Task OpenFilterAsync(LogFilter? entry)
     {
+        if (_contentLayout is not null)
+        {
+            await _contentLayout.CloseMobileToolbarAsync();
+        }
+
         var logPropertyKeys = TelemetryRepository.GetLogPropertyKeys(PageViewModel.SelectedApplication.Id?.GetApplicationKey());
 
         var title = entry is not null ? Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEditFilter)] : Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter)];
@@ -241,8 +266,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         };
         var data = new FilterDialogViewModel
         {
-            Filter = entry,
-            LogPropertyKeys = logPropertyKeys
+            Filter = entry, LogPropertyKeys = logPropertyKeys
         };
         await DialogService.ShowPanelAsync<FilterDialog>(data, parameters);
     }
@@ -263,14 +287,13 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             await ClearSelectedLogEntryAsync();
         }
 
-        await this.AfterViewModelChangedAsync();
+        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
     private void HandleFilter(ChangeEventArgs args)
     {
         if (args.Value is string newFilter)
         {
-            PageViewModel.Filter = newFilter;
             _filterCts?.Cancel();
 
             // Debouncing logic. Apply the filter after a delay.
@@ -286,16 +309,23 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
     }
 
-    private async Task HandleClearAsync()
+    private async Task HandleAfterFilterBindAsync()
     {
+        if (!string.IsNullOrEmpty(_filter))
+        {
+            return;
+        }
+
         if (_filterCts is not null)
         {
             await _filterCts.CancelAsync();
         }
 
         ViewModel.FilterText = string.Empty;
+
         await ClearSelectedLogEntryAsync();
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
+        await this.AfterViewModelChangedAsync(_contentLayout, true);
     }
 
     private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
@@ -322,7 +352,17 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         if (firstRender)
         {
             await JS.InvokeVoidAsync("initializeContinuousScroll");
+            DimensionManager.OnBrowserDimensionsChanged += OnBrowserResize;
         }
+    }
+
+    private void OnBrowserResize(object? o, EventArgs args)
+    {
+        InvokeAsync(async () =>
+        {
+            await JS.InvokeVoidAsync("resetContinuousScrollPosition");
+            await JS.InvokeVoidAsync("initializeContinuousScroll");
+        });
     }
 
     public void Dispose()
@@ -330,6 +370,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         _applicationsSubscription?.Dispose();
         _logsSubscription?.Dispose();
         _filterCts?.Dispose();
+        DimensionManager.OnBrowserDimensionsChanged -= OnBrowserResize;
     }
 
     public string GetUrlFromSerializableViewModel(StructuredLogsPageState serializable)
@@ -348,7 +389,6 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         return new StructuredLogsPageState
         {
-            Filter = PageViewModel.Filter,
             LogLevelText = PageViewModel.SelectedLogLevel.Id?.ToString().ToLowerInvariant(),
             SelectedApplication = PageViewModel.SelectedApplication.Id is not null ? PageViewModel.SelectedApplication.Name : null,
             Filters = ViewModel.Filters
@@ -357,7 +397,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     public void UpdateViewModelFromQuery(StructuredLogsPageViewModel viewModel)
     {
-        PageViewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
+        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
         ViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
 
         if (LogLevelText is not null && Enum.TryParse<LogLevel>(LogLevelText, ignoreCase: true, out var logLevel))
@@ -390,14 +430,12 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     public class StructuredLogsPageViewModel
     {
-        public string Filter { get; set; } = string.Empty;
         public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }
         public SelectViewModel<LogLevel?> SelectedLogLevel { get; set; } = default!;
     }
 
     public class StructuredLogsPageState
     {
-        public required string Filter { get; set; }
         public string? SelectedApplication { get; set; }
         public string? LogLevelText { get; set; }
         public required IReadOnlyCollection<LogFilter> Filters { get; set; }
