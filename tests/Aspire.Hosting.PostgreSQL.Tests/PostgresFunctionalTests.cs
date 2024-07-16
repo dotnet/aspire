@@ -229,6 +229,80 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         }
     }
 
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWithInitBindMount()
+    {
+        // Creates a script that should be executed when the container is initialized.
+
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<NpgsqlException>() })
+            .Build();
+
+        var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
+        try
+        {
+            if (Directory.Exists(bindMountPath))
+            {
+                Directory.Delete(bindMountPath);
+            }
+
+            Directory.CreateDirectory(bindMountPath);
+
+            File.WriteAllText(Path.Combine(bindMountPath, "init.sql"), "CREATE TABLE cars (brand VARCHAR(255)); INSERT INTO cars (brand) VALUES ('BatMobile'); SELECT * FROM cars;");
+
+            var builder = CreateDistributedApplicationBuilder();
+
+            var postgresDbName = "db1";
+
+            var postgres = builder.AddPostgres("pg").WithEnvironment("POSTGRES_DB", postgresDbName);
+            var db = postgres.AddDatabase(postgresDbName);
+
+            postgres.WithInitBindMount(bindMountPath);
+
+            using var app = builder.Build();
+
+            await app.StartAsync();
+
+            var hb = Host.CreateApplicationBuilder();
+
+            hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default)
+            });
+
+            hb.AddNpgsqlDataSource(db.Resource.Name);
+
+            using var host = hb.Build();
+
+            await host.StartAsync();
+            await pipeline.ExecuteAsync(async token =>
+            {
+                using var connection = host.Services.GetRequiredService<NpgsqlConnection>();
+                await connection.OpenAsync(token);
+
+                var command = connection.CreateCommand();
+                command.CommandText = $"SELECT * FROM cars;";
+                var results = await command.ExecuteReaderAsync(token);
+
+                Assert.True(results.HasRows);
+            }, cts.Token);
+        }
+        finally
+        {
+            try
+            {
+                File.Delete(bindMountPath);
+            }
+            catch
+            {
+                // Don't fail test if we can't clean the temporary folder
+            }
+        }
+    }
+
     private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
     {
         var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
