@@ -14,7 +14,6 @@
     <NonComponentReferenceForTests Include="Aspire.Hosting.Azure.EventHubs" IsAspireProjectResource="false" />
     <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
     <NonComponentReferenceForTests Include="Aspire.Hosting.Garnet" IsAspireProjectResource="false" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.Kafka" IsAspireProjectResource="false" />
     <NonComponentReferenceForTests Include="Aspire.Hosting.Milvus" IsAspireProjectResource="false" />
     <NonComponentReferenceForTests Include="Aspire.Hosting.MongoDB" IsAspireProjectResource="false" />
     <NonComponentReferenceForTests Include="Aspire.Hosting.MySql" IsAspireProjectResource="false" />

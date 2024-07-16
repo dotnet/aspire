@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
@@ -23,6 +24,12 @@ public sealed partial class LogViewer
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
 
+    [Inject]
+    public required LogViewerViewModel ViewModel { get; init; }
+
+    [Inject]
+    public required DimensionManager DimensionManager { get; set; }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_applicationChanged)
@@ -33,13 +40,22 @@ public sealed partial class LogViewer
         if (firstRender)
         {
             await JS.InvokeVoidAsync("initializeContinuousScroll");
+            DimensionManager.OnBrowserDimensionsChanged += OnBrowserResize;
         }
     }
 
-    private readonly LogEntries _logEntries = new();
-
-    internal async Task SetLogSourceAsync(IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> batches, bool convertTimestampsFromUtc)
+    private void OnBrowserResize(object? o, EventArgs args)
     {
+        InvokeAsync(async () =>
+        {
+            await JS.InvokeVoidAsync("resetContinuousScrollPosition");
+            await JS.InvokeVoidAsync("initializeContinuousScroll");
+        });
+    }
+
+    internal async Task SetLogSourceAsync(string resourceName, IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> batches, bool convertTimestampsFromUtc)
+    {
+        ViewModel.ResourceName = resourceName;
         _convertTimestampsFromUtc = convertTimestampsFromUtc;
 
         var cancellationToken = await _cancellationSeries.NextAsync();
@@ -57,12 +73,12 @@ public sealed partial class LogViewer
             {
                 // Keep track of the base line number to ensure that we can calculate the line number of each log entry.
                 // This becomes important when the total number of log entries exceeds the limit and is truncated.
-                if (_logEntries.BaseLineNumber is null)
+                if (ViewModel.LogEntries.BaseLineNumber is null)
                 {
-                    _logEntries.BaseLineNumber = lineNumber;
+                    ViewModel.LogEntries.BaseLineNumber = lineNumber;
                 }
 
-                _logEntries.InsertSorted(logParser.CreateLogEntry(content, isErrorOutput));
+                ViewModel.LogEntries.InsertSorted(logParser.CreateLogEntry(content, isErrorOutput));
             }
 
             StateHasChanged();
@@ -84,12 +100,13 @@ public sealed partial class LogViewer
         await _cancellationSeries.ClearAsync();
 
         _applicationChanged = true;
-        _logEntries.Clear();
+        ViewModel.LogEntries.Clear();
         StateHasChanged();
     }
 
     public async ValueTask DisposeAsync()
     {
         await _cancellationSeries.ClearAsync();
+        DimensionManager.OnBrowserDimensionsChanged -= OnBrowserResize;
     }
 }

@@ -26,6 +26,9 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
     public async Task VerifyQdrantResource()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<RpcException>() })
+            .Build();
 
         var builder = CreateDistributedApplicationBuilder();
 
@@ -48,13 +51,16 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await host.StartAsync();
 
-        var qdrantClient = host.Services.GetRequiredService<QdrantClient>();
+        await pipeline.ExecuteAsync(async token =>
+        {
+            var qdrantClient = host.Services.GetRequiredService<QdrantClient>();
 
-        await CreateTestDataAsync(qdrantClient, cts.Token);
+            await CreateTestDataAsync(qdrantClient, token);
 
-        var results = await qdrantClient.SearchAsync(CollectionName, s_testVector, limit: 1, cancellationToken: cts.Token);
-        Assert.Collection(results,
-            r => Assert.Equal("Test", r.Payload["title"].StringValue));
+            var results = await qdrantClient.SearchAsync(CollectionName, s_testVector, limit: 1, cancellationToken: token);
+            Assert.Collection(results,
+                r => Assert.Equal("Test", r.Payload["title"].StringValue));
+        }, cts.Token);
     }
 
     private static async Task CreateTestDataAsync(QdrantClient qdrantClient, CancellationToken cancellationToken)
@@ -129,9 +135,12 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
-                        var qdrantClient = host.Services.GetRequiredService<QdrantClient>();
+                        await pipeline.ExecuteAsync(async token =>
+                        {
+                            var qdrantClient = host.Services.GetRequiredService<QdrantClient>();
 
-                        await CreateTestDataAsync(qdrantClient, cts.Token);
+                            await CreateTestDataAsync(qdrantClient, token);
+                        }, cts.Token);
                     }
                 }
                 finally
@@ -171,10 +180,10 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
-                        var qdrantClient = host.Services.GetRequiredService<QdrantClient>();
-
                         await pipeline.ExecuteAsync(async token =>
                         {
+                            var qdrantClient = host.Services.GetRequiredService<QdrantClient>();
+
                             var results = await qdrantClient.SearchAsync(CollectionName, s_testVector, limit: 1, cancellationToken: token);
                             Assert.Collection(results,
                                 r => Assert.Equal("Test", r.Payload["title"].StringValue));
