@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -9,6 +10,7 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -44,6 +46,12 @@ public partial class Traces
     public required BrowserTimeProvider TimeProvider { get; init; }
 
     [Inject]
+    public required IOptions<DashboardOptions> DashboardOptions { get; init; }
+
+    [Inject]
+    public required IMessageService MessageService { get; init; }
+
+    [Inject]
     public required ILogger<Traces> Logger { get; init; }
 
     private string GetNameTooltip(OtlpTrace trace)
@@ -69,18 +77,30 @@ public partial class Traces
         return tooltip;
     }
 
-    private ValueTask<GridItemsProviderResult<OtlpTrace>> GetData(GridItemsProviderRequest<OtlpTrace> request)
+    private async ValueTask<GridItemsProviderResult<OtlpTrace>> GetData(GridItemsProviderRequest<OtlpTrace> request)
     {
         TracesViewModel.StartIndex = request.StartIndex;
         TracesViewModel.Count = request.Count;
-
         var traces = TracesViewModel.GetTraces();
+
+        if (DashboardOptions.Value.TelemetryLimits.MaxTraceCount == traces.TotalItemCount && !TelemetryRepository.HasDisplayedMaxTraceLimitMessage)
+        {
+            await MessageService.ShowMessageBarAsync(options =>
+            {
+                options.Title = Loc[nameof(Dashboard.Resources.Traces.MessageExceededLimitTitle)];
+                options.Body = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.MessageExceededLimitBody)], DashboardOptions.Value.TelemetryLimits.MaxTraceCount);
+                options.Intent = MessageIntent.Info;
+                options.Section = "MessagesTop";
+                options.AllowDismiss = true;
+            });
+            TelemetryRepository.HasDisplayedMaxTraceLimitMessage = true;
+        }
 
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.
         // The workaround is to put the count inside a control and explicitly update and refresh the control.
         _totalItemsFooter.SetTotalItemCount(traces.TotalItemCount);
 
-        return ValueTask.FromResult(GridItemsProviderResult.From(traces.Items, traces.TotalItemCount));
+        return GridItemsProviderResult.From(traces.Items, traces.TotalItemCount);
     }
 
     protected override Task OnInitializedAsync()
