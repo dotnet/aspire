@@ -129,7 +129,7 @@
       </trans-unit>
       <trans-unit id="MetricTableExemplarsColumnHeader">
         <source>Exemplars</source>
-        <target state="new">Exemplars</target>
+        <target state="translated">Örnekler</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableNoMetricsFound">
@@ -169,7 +169,7 @@
       </trans-unit>
       <trans-unit id="MetricTableViewExemplarsLabel">
         <source>View exemplars</source>
-        <target state="new">View exemplars</target>
+        <target state="translated">Örnekleri görüntüle</target>
         <note />
       </trans-unit>
       <trans-unit id="NameColumnHeader">
@@ -184,7 +184,7 @@
       </trans-unit>
       <trans-unit id="PlotlyChartExemplars">
         <source>Exemplars</source>
-        <target state="new">Exemplars</target>
+        <target state="translated">Örnekler</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartLength">
@@ -194,12 +194,12 @@
       </trans-unit>
       <trans-unit id="PlotlyChartTime">
         <source>Time</source>
-        <target state="new">Time</target>
+        <target state="translated">Saat</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartTrace">
         <source>Trace</source>
-        <target state="new">Trace</target>
+        <target state="translated">İzleme</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartValue">
@@ -249,7 +249,7 @@
       </trans-unit>
       <trans-unit id="SpanDetailsContextHeader">
         <source>Context</source>
-        <target state="new">Context</target>
+        <target state="translated">Bağlam</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsDuration">

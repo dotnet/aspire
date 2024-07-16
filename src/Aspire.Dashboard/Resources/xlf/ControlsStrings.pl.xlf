@@ -249,7 +249,7 @@
       </trans-unit>
       <trans-unit id="SpanDetailsContextHeader">
         <source>Context</source>
-        <target state="new">Context</target>
+        <target state="translated">Kontekst</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsDuration">
