@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
@@ -15,22 +16,27 @@ using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
+using static Aspire.Dashboard.Components.Pages.Traces;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class Traces
+public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, TracesPageState>
 {
     private SelectViewModel<ResourceTypeDetails> _allApplication = null!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
     private List<OtlpApplication> _applications = default!;
     private List<SelectViewModel<ResourceTypeDetails>> _applicationViewModels = default!;
-    private SelectViewModel<ResourceTypeDetails> _selectedApplication = null!;
     private Subscription? _applicationsSubscription;
     private Subscription? _tracesSubscription;
     private bool _applicationChanged;
     private CancellationTokenSource? _filterCts;
     private string _filter = string.Empty;
+    private AspirePageContentLayout? _contentLayout;
+
+    public string SessionStorageKey => "Traces_PageState";
+    public string BasePath => DashboardUrls.TracesBasePath;
+    public TracesPageViewModel PageViewModel { get; set; } = null!;
 
     [Parameter]
     public string? ApplicationName { get; set; }
@@ -57,10 +63,10 @@ public partial class Traces
     public required ILogger<Traces> Logger { get; init; }
 
     [Inject]
-    public required ProtectedSessionStorage SessionStorage { get; init; }
+    public required NavigationManager NavigationManager { get; set; }
 
     [Inject]
-    public required NavigationManager NavigationManager { get; init; }
+    public required ProtectedSessionStorage SessionStorage { get; set; }
 
     [Inject]
     public required DimensionManager DimensionManager { get; set; }
@@ -120,7 +126,7 @@ public partial class Traces
     protected override Task OnInitializedAsync()
     {
         _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = $"({ControlsStringsLoc[nameof(ControlsStrings.All)]})" };
-        _selectedApplication = _allApplication;
+        PageViewModel = new TracesPageViewModel { SelectedApplication = _allApplication };
 
         UpdateApplications();
         _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
@@ -132,10 +138,11 @@ public partial class Traces
         return Task.CompletedTask;
     }
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        _selectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
-        TracesViewModel.ApplicationKey = _selectedApplication.Id?.GetApplicationKey();
+        await this.InitializeViewModelAsync();
+
+        TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
         UpdateSubscription();
     }
 
@@ -149,15 +156,13 @@ public partial class Traces
 
     private Task HandleSelectedApplicationChanged()
     {
-        NavigationManager.NavigateTo(DashboardUrls.TracesUrl(resource: _selectedApplication.Name));
         _applicationChanged = true;
-
-        return Task.CompletedTask;
+        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
     private void UpdateSubscription()
     {
-        var selectedApplicationKey = _selectedApplication.Id?.GetApplicationKey();
+        var selectedApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
 
         // Subscribe to updates.
         if (_tracesSubscription is null || _tracesSubscription.ApplicationKey != selectedApplicationKey)
@@ -234,5 +239,34 @@ public partial class Traces
         _applicationsSubscription?.Dispose();
         _tracesSubscription?.Dispose();
         DimensionManager.OnBrowserDimensionsChanged -= OnBrowserResize;
+    }
+
+    public void UpdateViewModelFromQuery(TracesPageViewModel viewModel)
+    {
+        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
+        TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
+    }
+
+    public string GetUrlFromSerializableViewModel(TracesPageState serializable)
+    {
+        return DashboardUrls.TracesUrl(serializable.SelectedApplication);
+    }
+
+    public TracesPageState ConvertViewModelToSerializable()
+    {
+        return new TracesPageState
+        {
+            SelectedApplication = PageViewModel.SelectedApplication.Id is not null ? PageViewModel.SelectedApplication.Name : null,
+        };
+    }
+
+    public class TracesPageViewModel
+    {
+        public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }
+    }
+
+    public class TracesPageState
+    {
+        public string? SelectedApplication { get; set; }
     }
 }

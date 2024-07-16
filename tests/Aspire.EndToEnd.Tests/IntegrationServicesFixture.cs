@@ -117,7 +117,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             TestResourceNames.rabbitmq => "rabbitmq",
             TestResourceNames.redis => "redis",
             TestResourceNames.sqlserver or TestResourceNames.efsqlserver => "sqlserver",
-            TestResourceNames.valkey => "valkey",
             _ => throw new ArgumentException($"Unknown resource: {resource}")
         };
 
@@ -154,7 +153,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                               | TestResourceNames.rabbitmq
                               | TestResourceNames.redis
                               | TestResourceNames.garnet
-                              | TestResourceNames.valkey
                               | TestResourceNames.postgres
                               | TestResourceNames.efnpgsql
                               | TestResourceNames.mysql
