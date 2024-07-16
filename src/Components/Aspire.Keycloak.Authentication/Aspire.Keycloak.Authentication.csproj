@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <PackageTags>$(ComponentCommonPackageTags) Keycloak</PackageTags>
     <Description>Configures Keycloak as the authentication provider for ASP.NET Core applications.</Description>
     <!-- Disable package validation as this package hasn't shipped yet. -->
