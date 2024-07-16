@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <PackageTags>$(ComponentCommonPackageTags) Elasticsearch</PackageTags>
     <Description>A Elasticsearch client that integrates with Aspire, including health checks, logging, and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)Elastic_logo.png</PackageIconFullPath>
