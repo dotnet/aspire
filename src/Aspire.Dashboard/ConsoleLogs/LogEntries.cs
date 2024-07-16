@@ -12,6 +12,8 @@ public sealed class LogEntries
 
     public int? BaseLineNumber { get; set; }
 
+    public int? MaximumEntryCount { get; set; }
+
     public void Clear() => _logEntries.Clear();
 
     public IList<LogEntry> GetEntries() => _logEntries;
@@ -68,6 +70,14 @@ public sealed class LogEntries
                 logEntry.LineNumber = logEntries[index - 1].LineNumber + 1;
             }
 
+            // Trim old log messages if we have a maximum and we're over it.
+            if (MaximumEntryCount is not (null or 0) && logEntries.Count >= MaximumEntryCount && index is not 0)
+            {
+                logEntries.RemoveAt(0);
+                index--;
+            }
+
+            // Insert the entry.
             logEntries.Insert(index, logEntry);
 
             // If a log entry isn't inserted at the end then update the line numbers of all subsequent entries.

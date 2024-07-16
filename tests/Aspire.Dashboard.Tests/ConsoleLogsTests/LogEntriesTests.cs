@@ -31,4 +31,44 @@ public class LogEntriesTests
             l => Assert.Equal("2", l.Content),
             l => Assert.Equal("3", l.Content));
     }
+
+    [Fact]
+    public void InsertSorted_TrimsToMaximumEntryCount_Ordered()
+    {
+        // Arrange
+        var logEntries = new LogEntries { MaximumEntryCount = 2, BaseLineNumber = 1 };
+
+        var timestamp = DateTimeOffset.UtcNow;
+
+        // Act
+        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(1), Content = "1" });
+        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(2), Content = "2" });
+        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(3), Content = "3" });
+
+        // Assert
+        var entries = logEntries.GetEntries();
+        Assert.Collection(entries,
+            l => Assert.Equal("2", l.Content),
+            l => Assert.Equal("3", l.Content));
+    }
+
+    [Fact]
+    public void InsertSorted_TrimsToMaximumEntryCount_OutOfOrder()
+    {
+        // Arrange
+        var logEntries = new LogEntries { MaximumEntryCount = 2, BaseLineNumber = 1 };
+
+        var timestamp = DateTimeOffset.UtcNow;
+
+        // Act
+        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(1), Content = "1" });
+        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(3), Content = "3" });
+        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(2), Content = "2" });
+
+        // Assert
+        var entries = logEntries.GetEntries();
+        Assert.Collection(entries,
+            l => Assert.Equal("2", l.Content),
+            l => Assert.Equal("3", l.Content));
+    }
 }
