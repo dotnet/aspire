@@ -1,0 +1,10 @@
+// IMPORTANT: This file is read by the merge flow from main branch only. 
+{
+    "merge-flow-configurations": {
+        // Automate opening PRs to merge aspire release/8.0-preview5 branch back to release/8.0
+        "release/8.0-preview5":{
+            "MergeToBranch": "release/8.0",
+            "ExtraSwitches": "-QuietComments"
+        }
+    }
+}
