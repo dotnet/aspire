@@ -31,49 +31,6 @@
                   Overwrite="true" />
   </Target>
 
-  <!-- move to .. repo.targets?? -->
-  <!-- generate before the build so the project can use this in a <None ..> item -->
-  <Target Name="_GeneratePackagesVersionsProps" BeforeTargets="BeforeBuild" Condition="'$(SupportsRunningOutsideOfRepo)' == 'true'">
-    <!-- Duplicate all the @(PackageVersion) items with the evaluated versions -->
-    <ItemGroup>
-      <_PackageVersionEvaluated Include="@(PackageVersion -> '&lt;PackageVersion Include=&quot;%(Identity)&quot; Version=&quot;%(Version)&quot; /&gt;')" />
-
-      <!-- Emit all properties named in @(PropertyForHelixRun).
-           doing this separately so the property value can be extracted from the name -->
-      <_PropertiesToPass
-        Include="%(PropertyForHelixRun.Identity)"
-        Name="$(%(PropertyForHelixRun.Identity))"
-        ConditionToUse__="%(PropertyForHelixRun.ConditionToUse__)" />
-      <_PropertiesToPassEvaluated Include="@(_PropertiesToPass -> '&lt;%(Identity)&gt;%(Name)&lt;/%(Identity)&gt;')" />
-    </ItemGroup>
-
-    <PropertyGroup>
-      <_HelixPropsContent>
-        <![CDATA[
-      <Project>
-        <PropertyGroup>
-          <PackageVersion>$(PackageVersion)</PackageVersion>
-
-          <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-        </PropertyGroup>
-
-        <ItemGroup>
-            @(_PackageVersionEvaluated, '
-            ')
-        </ItemGroup>
-
-        <PropertyGroup Label="From PropertyForHelixRun">
-            @(_PropertiesToPassEvaluated, '
-            ')
-        </PropertyGroup>
-      </Project>
-          ]]>
-      </_HelixPropsContent>
-    </PropertyGroup>
-
-    <WriteLinesToFile Lines="$(_HelixPropsContent)" File="$(GeneratedPackagesVersionsPropsPath)" Overwrite="true" />
-  </Target>
-
   <!-- Used for running one helix job per test class -->
   <Target Name="_ExtractTestClassNames"
           Condition="'$(ExtractTestClassNamesForHelix)' == 'true'"

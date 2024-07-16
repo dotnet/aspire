@@ -11,11 +11,14 @@
     <TestUsingWorkloads Condition="! ('$(ContinuousIntegrationBuild)' == 'true' and '$(OS)' == 'Windows_NT')">true</TestUsingWorkloads>
     <InstallWorkloadForTesting>$(TestUsingWorkloads)</InstallWorkloadForTesting>
 
-    <RootDirForTestsRunningOutOfRepo>testassets\testproject\</RootDirForTestsRunningOutOfRepo>
+    <!-- This isn't needed as the sdk will add them by default -->
     <IncludeTestPackages>false</IncludeTestPackages>
-    <SupportsRunningOutsideOfRepo>true</SupportsRunningOutsideOfRepo>
-    <DeployOutsideOfRepoSupportFiles>true</DeployOutsideOfRepoSupportFiles>
-    <TestsRunningOutsideOfRepo Condition="'$(TestsRunningOutsideOfRepo)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</TestsRunningOutsideOfRepo>
+    <DeployOutsideOfRepoSupportFilesDir>testassets\testproject\</DeployOutsideOfRepoSupportFilesDir>
+
+    <!-- FIXME: update README.md -->
+    <_BuildForTestsRunningOutsideOfRepo Condition="'$(ContinuousIntegrationBuild)' == 'true'">true</_BuildForTestsRunningOutsideOfRepo>
+    <DeployOutsideOfRepoSupportFiles>$(_BuildForTestsRunningOutsideOfRepo)</DeployOutsideOfRepoSupportFiles>
+    <DefineConstants Condition="'$(_BuildForTestsRunningOutsideOfRepo)' == 'true'">BUILD_FOR_TESTS_RUNNING_OUTSIDE_OF_REPO;$(DefineConstants)</DefineConstants>
 
     <XunitRunnerJson>xunit.runner.json</XunitRunnerJson>
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
@@ -25,11 +28,13 @@
   <ItemGroup>
     <Compile Include="..\testproject\Common\TestResourceNames.cs" />
 
-    <None Include="..\testproject\**\*" Link="testassets\testproject\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\.editorconfig" Link="testassets\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(_BuildForTestsRunningOutsideOfRepo)' == 'true'">
+    <None Include="..\testproject\**\*" Link="testassets\testproject\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\.editorconfig" Link="testassets\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" />

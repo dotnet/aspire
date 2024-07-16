@@ -4,7 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
-  <!-- FIXME: we don't have IsAspireHost property available here yet! -->
+  <!-- IsAspireHost property might not be available here, so allow infering that from the project name -->
   <ImportGroup Condition="'$(RepoRoot)' != 'null' and '$(TestsRunningOutsideOfRepo)' != 'true' and ($(MSBuildProjectName.EndsWith('AppHost')) or '$(IsAspireHost)' == 'true')">
     <Import Project="$(RepoRoot)src/Aspire.Hosting.AppHost/build/Aspire.Hosting.AppHost.props" Condition="Exists('$(RepoRoot)src/Aspire.Hosting.AppHost/build/Aspire.Hosting.AppHost.props')" />
   </ImportGroup>

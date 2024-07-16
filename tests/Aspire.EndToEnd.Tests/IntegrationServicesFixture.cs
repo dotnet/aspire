@@ -17,7 +17,7 @@ namespace Aspire.EndToEnd.Tests;
 /// </summary>
 public sealed class IntegrationServicesFixture : IAsyncLifetime
 {
-#if TESTS_RUNNING_OUTSIDE_OF_REPO
+#if BUILD_FOR_TESTS_RUNNING_OUTSIDE_OF_REPO
     public static bool TestsRunningOutsideOfRepo = true;
 #else
     public static bool TestsRunningOutsideOfRepo;
@@ -29,6 +29,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     private readonly IMessageSink _diagnosticMessageSink;
     private readonly TestOutputWrapper _testOutput;
     private AspireProject? _project;
+    private readonly string _testProjectPath;
 
     public BuildEnvironment BuildEnvironment { get; init; }
     public ProjectInfo IntegrationServiceA => Projects["integrationservicea"];
@@ -46,6 +47,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                 throw new InvalidOperationException("Expected to have sdk+workload from artifacts when running tests outside of the repo");
             }
             BuildEnvironment.EnvVars["TestsRunningOutsideOfRepo"] = "true";
+            _testProjectPath = Path.Combine(BuildEnvironment.TestAssetsPath, "testproject");
         }
         else
         {
@@ -54,13 +56,13 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             {
                 throw new InvalidOperationException("These tests should be run from inside the repo when using `TestsRunningOutsideOfRepo=false`");
             }
+            _testProjectPath = Path.Combine(BuildEnvironment.RepoRoot.FullName, "tests", "testproject");
         }
     }
 
     public async Task InitializeAsync()
     {
-        string testProjectPath = Path.Combine(BuildEnvironment.TestAssetsPath, "testproject");
-        _project = new AspireProject("TestProject", testProjectPath, _testOutput, BuildEnvironment);
+        _project = new AspireProject("TestProject", _testProjectPath, _testOutput, BuildEnvironment);
         if (TestsRunningOutsideOfRepo)
         {
             _testOutput.WriteLine("");
