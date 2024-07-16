@@ -15,8 +15,7 @@
     <IncludeTestPackages>false</IncludeTestPackages>
     <DeployOutsideOfRepoSupportFilesDir>testassets\testproject\</DeployOutsideOfRepoSupportFilesDir>
 
-    <!-- FIXME: update README.md -->
-    <_BuildForTestsRunningOutsideOfRepo Condition="'$(ContinuousIntegrationBuild)' == 'true'">true</_BuildForTestsRunningOutsideOfRepo>
+    <_BuildForTestsRunningOutsideOfRepo Condition="'$(TestsRunningOutsideOfRepo)' == 'true' or '$(ContinuousIntegrationBuild)' == 'true'">true</_BuildForTestsRunningOutsideOfRepo>
     <DeployOutsideOfRepoSupportFiles>$(_BuildForTestsRunningOutsideOfRepo)</DeployOutsideOfRepoSupportFiles>
     <DefineConstants Condition="'$(_BuildForTestsRunningOutsideOfRepo)' == 'true'">BUILD_FOR_TESTS_RUNNING_OUTSIDE_OF_REPO;$(DefineConstants)</DefineConstants>
 

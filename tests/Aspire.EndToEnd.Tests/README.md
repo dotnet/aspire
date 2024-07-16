@@ -8,7 +8,7 @@
 
 ### Using it from VS
 
-- For switching to `outside-of-repo` add `<TestsRunningOutsideOfRepo>true</TestsRunningOutsideOfRepo>` to `tests/Aspire.EndToEnd.Tests/Directory.Build.props` *before* any imports.
+- For switching to `outside-of-repo` set `<_BuildForTestsRunningOutsideOfRepo>true</_BuildForTestsRunningOutsideOfRepo>` in the project file.
     - tests cannot be run at this point as they will fail complaining about `artifacts/bin/dotnet-latest` being missing
     - Install the sdk+workload following the steps above
     - Run/debug the tests normally now, and they will be using the sdk
