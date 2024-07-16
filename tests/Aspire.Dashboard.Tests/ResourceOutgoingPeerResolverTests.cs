@@ -12,7 +12,7 @@ namespace Aspire.Dashboard.Tests;
 
 public class ResourceOutgoingPeerResolverTests
 {
-    private static ResourceViewModel CreateResource(string name, string? serviceAddress = null, int? servicePort = null, string? displayName = null)
+    private static ResourceViewModel CreateResource(string name, string? serviceAddress = null, int? servicePort = null, string? displayName = null, string? replicaSet = null)
     {
         return new ResourceViewModel
         {
@@ -28,7 +28,7 @@ public class ResourceOutgoingPeerResolverTests
             KnownState = null,
             StateStyle = null,
             Commands = [],
-            Owners = []
+            Owners = replicaSet is not null ? [new OwnerViewModel(KnownOwnerProperties.ExecutableReplicaSetKind, replicaSet, replicaSet)] : []
         };
     }
 
@@ -192,8 +192,8 @@ public class ResourceOutgoingPeerResolverTests
         // Arrange
         var resources = new Dictionary<string, ResourceViewModel>
         {
-            ["test-abc"] = CreateResource("test-abc", "localhost", 5000, displayName: "test"),
-            ["test-def"] = CreateResource("test-def", "localhost", 5001, displayName: "test")
+            ["test-abc"] = CreateResource("test-abc", "localhost", 5000, displayName: "test", replicaSet: "test"),
+            ["test-def"] = CreateResource("test-def", "localhost", 5001, displayName: "test", replicaSet: "test")
         };
 
         // Act & Assert

@@ -55,7 +55,7 @@ public sealed class ResourceViewModel
                     count++;
                     if (count >= 2)
                     {
-                        // There are multiple resources with the same display name so they're part of a replica set.
+                        // There are multiple resources that are part of a replica set.
                         // Need to use the name which has a unique ID to tell them apart.
                         return resource.Name;
                     }
