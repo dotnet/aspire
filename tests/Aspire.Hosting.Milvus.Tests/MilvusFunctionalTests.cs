@@ -15,8 +15,8 @@ namespace Aspire.Hosting.Milvus.Tests;
 
 public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
 {
-    //Right now can not set user and password for super user of Milvus at startup. default user and password is root:Milvus.
-    //https://github.com/milvus-io/milvus/issues/33058
+    // Right now can not set user and password for super user of Milvus at startup. default user and password is root:Milvus.
+    // https://github.com/milvus-io/milvus/issues/33058
     private const string MilvusToken = "root:Milvus";
 
     [Fact]
