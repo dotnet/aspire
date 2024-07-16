@@ -98,33 +98,57 @@ h1 {
     margin-bottom: 0.5rem;
 }
 
- #components-reconnect-modal :is(h5, p) {
-     color: var(--error-ui-foreground-color);
- }
+#components-reconnect-modal :is(h5, p) {
+    color: var(--error-ui-foreground-color);
+}
 
- #components-reconnect-modal a {
-     color: var(--error-ui-accent-foreground-color);
- }
+#components-reconnect-modal a {
+    color: var(--error-ui-accent-foreground-color);
+}
 
- #components-reconnect-modal {
-     /* avoid making modal take the entire screen dimensions */
-     inset: unset !important;
+#components-reconnect-modal {
+    /* avoid making modal take the entire screen dimensions */
+    inset: unset !important;
 
-     /* force modal to be compact, centered, slightly padded, and towards the top */
-     top: 5% !important;
-     left: 30% !important;
-     right: 30% !important;
-     height: 105px;
-     padding: 2px;
+    /* force modal to be compact, centered, slightly padded, and towards the top - media queries below adjust the width and height of the modal for
+     mobile and desktop screens
+    */
+    top: 5% !important;
+    padding: 2px;
 
-     /* add a slight shadow */
-     box-shadow: 2px 2px 2px var(--neutral-fill-secondary-rest);
+    /* add a slight shadow */
+    box-shadow: 2px 2px 2px var(--neutral-fill-secondary-rest);
 
-     /* avoid modal being see-through */
-     opacity: 1 !important;
+    /* avoid modal being see-through */
+    opacity: 1 !important;
 
-     /* ensure sufficient contrast between all elements in the modal and its background */
-     background-color: var(--reconnection-ui-bg) !important;
+    /* ensure sufficient contrast between all elements in the modal and its background */
+    background-color: var(--reconnection-ui-bg) !important;
+}
+
+@media (max-width: 768px) {
+    #components-reconnect-modal {
+         left: 15% !important;
+         right: 15% !important;
+         height: 130px;
+    }
+
+    /* we want less padding on mobile screens to preserve screen height for other elements */
+    .page-header {
+        padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 0.5px) 0;
+    }
+}
+
+ @media (min-width: 768px) {
+    #components-reconnect-modal {
+        left: 30% !important;
+        right: 30% !important;
+        height: 105px;
+    }
+
+     .page-header {
+         padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 2.5px);
+     }
  }
 
 .datagrid-overflow-area,
@@ -199,25 +223,6 @@ fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appear
     background: var(--fill-layer);
 }
 
-.content-layout-with-toolbar {
-    height: 100%;
-    width: 100%;
-    display: grid;
-    grid-template-rows: auto 1fr;
-    grid-template-areas:
-        "toolbar"
-        "main";
-}
-
-.content-layout-with-toolbar > fluent-toolbar {
-    grid-area: toolbar;
-}
-
-.content-layout-with-toolbar > .datagrid-overflow-area,
-.content-layout-with-toolbar > .parent-details-container {
-    grid-area: main;
-}
-
 .pane-details-subtext {
     color: var(--foreground-subtext-rest);
     padding-left: 0.5rem;
@@ -271,10 +276,6 @@ fluent-data-grid-cell .long-inner-content {
 
 .validation-message {
     color: var(--error);
-}
-
-.page-header {
-    padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 2.5px);
 }
 
 .selected-row,
@@ -400,6 +401,7 @@ fluent-switch.table-switch::part(label) {
 }
 
 .total-items-footer {
+    padding-top: calc(var(--design-unit) * 2.5px);
     padding-left: calc(var(--design-unit) * 2.5px);
     padding-bottom: calc(var(--design-unit) * 2.5px);
 }
@@ -437,4 +439,20 @@ fluent-data-grid-cell.no-ellipsis {
 
 .endpoint-button::part(control) {
     padding: calc(((var(--design-unit) * 0.5) - var(--stroke-width)) * 1px) calc((var(--design-unit) - var(--stroke-width)) * 1px);
+}
+
+.mobile-toolbar {
+    width: 100%;
+    height: max(5vh, 30px);
+}
+
+.mobile-absolute-toolbar {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+}
+
+.page-content-container {
+    height: 100%;
+    overflow: auto;
 }

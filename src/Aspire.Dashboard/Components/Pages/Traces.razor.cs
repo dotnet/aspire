@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -64,6 +65,15 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
 
     [Inject]
     public required ProtectedSessionStorage SessionStorage { get; set; }
+
+    [Inject]
+    public required ProtectedSessionStorage SessionStorage { get; init; }
+
+    [Inject]
+    public required DimensionManager DimensionManager { get; set; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
 
     private string GetNameTooltip(OtlpTrace trace)
     {
@@ -145,7 +155,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
         UpdateSubscription();
     }
 
-    private Task HandleSelectedApplicationChangedAsync()
+    private Task HandleSelectedApplicationChanged()
     {
         _applicationChanged = true;
         return this.AfterViewModelChangedAsync();
@@ -171,7 +181,6 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
     {
         if (args.Value is string newFilter)
         {
-            _filter = newFilter;
             _filterCts?.Cancel();
 
             // Debouncing logic. Apply the filter after a delay.
@@ -185,11 +194,20 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
         }
     }
 
-    private void HandleClear()
+    private async Task HandleAfterFilterBindAsync()
     {
-        _filterCts?.Cancel();
+        if (!string.IsNullOrEmpty(_filter))
+        {
+            return;
+        }
+
+        if (_filterCts is not null)
+        {
+            await _filterCts.CancelAsync();
+        }
+
         TracesViewModel.FilterText = string.Empty;
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
@@ -204,13 +222,24 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
         if (firstRender)
         {
             await JS.InvokeVoidAsync("initializeContinuousScroll");
+            DimensionManager.OnBrowserDimensionsChanged += OnBrowserResize;
         }
+    }
+
+    private void OnBrowserResize(object? o, EventArgs args)
+    {
+        InvokeAsync(async () =>
+        {
+            await JS.InvokeVoidAsync("resetContinuousScrollPosition");
+            await JS.InvokeVoidAsync("initializeContinuousScroll");
+        });
     }
 
     public void Dispose()
     {
         _applicationsSubscription?.Dispose();
         _tracesSubscription?.Dispose();
+        DimensionManager.OnBrowserDimensionsChanged -= OnBrowserResize;
     }
 
     public void UpdateViewModelFromQuery(TracesPageViewModel viewModel)
