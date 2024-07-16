@@ -70,7 +70,7 @@
 
     <!-- Needed to override aspire package versions, and provide versions for other packages -->
     <None Include="$(GeneratedPackagesVersionsPropsPath)" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)Directory.Packages.Versions.props" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(TestsSharedDir)WorkloadTesting\data\Directory.Packages.Helix.props" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedRepoTestingDir)Directory.Packages.Helix.props" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <!-- nuget.config to resolve built packages from artifacts -->
     <None Include="$(TestsSharedDir)nuget-with-package-source-mapping.config" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)nuget.config" CopyToOutputDirectory="PreserveNewest" />
