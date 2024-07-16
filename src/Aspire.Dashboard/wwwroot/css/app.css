@@ -84,6 +84,17 @@ fluent-toolbar[orientation=horizontal] {
     color-scheme: dark;
 }
 
+/*
+    Override the `cursor: pointer` in the default styles from fluentui-blazor since
+    we don't have selection implemented and the pointer doesn't really make sense.
+    The `fluent-data-grid-row[role='row']` part added to the beginning is a bit of
+    a hack to get the specificity higher than the default style to avoid using
+    `!important` just in case there's a reason to to override further later.
+*/
+fluent-data-grid-row[role='row'].hover:not([row-type='header'],[row-type='sticky-header']):hover {
+    cursor: auto;
+}
+
 [data-theme="light"] {
     color-scheme: light;
 }

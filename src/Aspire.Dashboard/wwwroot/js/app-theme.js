@@ -201,6 +201,12 @@ function isDark(color) {
     return color.relativeLuminance <= darknessLuminanceTarget;
 }
 
+/**
+ * Creates additional design tokens that are used to define the hover colors for the neutral layers
+ * used in the site theme (neutral-layer-1 and neutral-layer-2, specifically). Unlike other -hover
+ * variants, these are not created by the design system by default so we need to create them ourselves.
+ * This is a lightly tweaked variant of other hover recipes used in the design system.
+ */
 function createAdditionalDesignTokens() {
     const neutralLayer1HoverLightDelta = DesignToken.create({ name: 'neutral-layer-1-hover-light-delta', cssCustomPropertyName: null }).withDefault(3);
     const neutralLayer1HoverDarkDelta = DesignToken.create({ name: 'neutral-layer-1-hover-dark-delta', cssCustomPropertyName: null }).withDefault(2);
