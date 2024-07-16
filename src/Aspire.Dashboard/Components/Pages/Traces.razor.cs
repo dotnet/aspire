@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Components.Resize;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -9,6 +11,8 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -44,7 +48,25 @@ public partial class Traces
     public required BrowserTimeProvider TimeProvider { get; init; }
 
     [Inject]
+    public required IOptions<DashboardOptions> DashboardOptions { get; init; }
+
+    [Inject]
+    public required IMessageService MessageService { get; init; }
+
+    [Inject]
     public required ILogger<Traces> Logger { get; init; }
+
+    [Inject]
+    public required ProtectedSessionStorage SessionStorage { get; init; }
+
+    [Inject]
+    public required NavigationManager NavigationManager { get; init; }
+
+    [Inject]
+    public required DimensionManager DimensionManager { get; set; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
 
     private string GetNameTooltip(OtlpTrace trace)
     {
@@ -69,18 +91,30 @@ public partial class Traces
         return tooltip;
     }
 
-    private ValueTask<GridItemsProviderResult<OtlpTrace>> GetData(GridItemsProviderRequest<OtlpTrace> request)
+    private async ValueTask<GridItemsProviderResult<OtlpTrace>> GetData(GridItemsProviderRequest<OtlpTrace> request)
     {
         TracesViewModel.StartIndex = request.StartIndex;
         TracesViewModel.Count = request.Count;
-
         var traces = TracesViewModel.GetTraces();
+
+        if (DashboardOptions.Value.TelemetryLimits.MaxTraceCount == traces.TotalItemCount && !TelemetryRepository.HasDisplayedMaxTraceLimitMessage)
+        {
+            await MessageService.ShowMessageBarAsync(options =>
+            {
+                options.Title = Loc[nameof(Dashboard.Resources.Traces.MessageExceededLimitTitle)];
+                options.Body = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.MessageExceededLimitBody)], DashboardOptions.Value.TelemetryLimits.MaxTraceCount);
+                options.Intent = MessageIntent.Info;
+                options.Section = "MessagesTop";
+                options.AllowDismiss = true;
+            });
+            TelemetryRepository.HasDisplayedMaxTraceLimitMessage = true;
+        }
 
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.
         // The workaround is to put the count inside a control and explicitly update and refresh the control.
         _totalItemsFooter.SetTotalItemCount(traces.TotalItemCount);
 
-        return ValueTask.FromResult(GridItemsProviderResult.From(traces.Items, traces.TotalItemCount));
+        return GridItemsProviderResult.From(traces.Items, traces.TotalItemCount);
     }
 
     protected override Task OnInitializedAsync()
@@ -113,7 +147,7 @@ public partial class Traces
         UpdateSubscription();
     }
 
-    private Task HandleSelectedApplicationChangedAsync()
+    private Task HandleSelectedApplicationChanged()
     {
         NavigationManager.NavigateTo(DashboardUrls.TracesUrl(resource: _selectedApplication.Name));
         _applicationChanged = true;
@@ -141,7 +175,6 @@ public partial class Traces
     {
         if (args.Value is string newFilter)
         {
-            _filter = newFilter;
             _filterCts?.Cancel();
 
             // Debouncing logic. Apply the filter after a delay.
@@ -155,11 +188,20 @@ public partial class Traces
         }
     }
 
-    private void HandleClear()
+    private async Task HandleAfterFilterBindAsync()
     {
-        _filterCts?.Cancel();
+        if (!string.IsNullOrEmpty(_filter))
+        {
+            return;
+        }
+
+        if (_filterCts is not null)
+        {
+            await _filterCts.CancelAsync();
+        }
+
         TracesViewModel.FilterText = string.Empty;
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
@@ -174,12 +216,23 @@ public partial class Traces
         if (firstRender)
         {
             await JS.InvokeVoidAsync("initializeContinuousScroll");
+            DimensionManager.OnBrowserDimensionsChanged += OnBrowserResize;
         }
+    }
+
+    private void OnBrowserResize(object? o, EventArgs args)
+    {
+        InvokeAsync(async () =>
+        {
+            await JS.InvokeVoidAsync("resetContinuousScrollPosition");
+            await JS.InvokeVoidAsync("initializeContinuousScroll");
+        });
     }
 
     public void Dispose()
     {
         _applicationsSubscription?.Dispose();
         _tracesSubscription?.Dispose();
+        DimensionManager.OnBrowserDimensionsChanged -= OnBrowserResize;
     }
 }

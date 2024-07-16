@@ -5,18 +5,21 @@ using System.Diagnostics;
 
 namespace Stress.ApiService;
 
-public class BigTraceCreator
+public class TraceCreator
 {
-    public const string ActivitySourceName = "BigTraceSpan";
+    public const string ActivitySourceName = "CustomTraceSpan";
 
     private static readonly ActivitySource s_activitySource = new(ActivitySourceName);
 
-    public async Task CreateBigTraceAsync()
+    public async Task CreateTraceAsync(int count, bool createChildren)
     {
-        var activityStack = new Stack<Activity>();
-
-        for (var i = 0; i < 10; i++)
+        for (var i = 0; i < count; i++)
         {
+            if (i > 0)
+            {
+                await Task.Delay(Random.Shared.Next(10, 50));
+            }
+
             var name = $"Span-{i}";
             using var activity = s_activitySource.StartActivity(name, ActivityKind.Client);
             if (activity == null)
@@ -24,14 +27,10 @@ public class BigTraceCreator
                 continue;
             }
 
-            await CreateChildActivityAsync(name);
-
-            await Task.Delay(Random.Shared.Next(10, 50));
-        }
-
-        while (activityStack.Count > 0)
-        {
-            activityStack.Pop().Stop();
+            if (createChildren)
+            {
+                await CreateChildActivityAsync(name);
+            }
         }
     }
 
