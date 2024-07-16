@@ -19,8 +19,6 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifyValkeyResource()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
-
         var builder = CreateDistributedApplicationBuilder();
 
         var valkey = builder.AddValkey("valkey");
@@ -59,7 +57,6 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         string? volumeName = null;
         string? bindMountPath = null;
 
@@ -178,7 +175,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 try
                 {
-                    File.Delete(bindMountPath);
+                    Directory.Delete(bindMountPath, recursive: true);
                 }
                 catch
                 {
