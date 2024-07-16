@@ -6,12 +6,14 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Aspire.Dashboard.Extensions;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -36,27 +38,31 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     public required BrowserTimeProvider TimeProvider { get; init; }
     [Inject]
     public required IJSRuntime JS { get; init; }
+    [Inject]
+    public required ProtectedSessionStorage SessionStorage { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; init; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? VisibleTypes { get; set; }
 
     private ResourceViewModel? SelectedResource { get; set; }
 
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly ConcurrentDictionary<string, bool> _allResourceTypes = [];
-    private readonly ConcurrentDictionary<string, bool> _visibleResourceTypes;
+    private readonly ConcurrentDictionary<string, bool> _visibleResourceTypes = new(StringComparers.ResourceName);
     private string _filter = "";
     private bool _isTypeFilterVisible;
     private Task? _resourceSubscriptionTask;
     private bool _isLoading = true;
     private string? _elementIdBeforeDetailsViewOpened;
 
-    public Resources()
-    {
-        _visibleResourceTypes = new(StringComparers.ResourceType);
-    }
-
     private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter)) && !resource.IsHiddenState();
 
-    protected Task OnResourceTypeVisibilityChangedAsync(string resourceType, bool isVisible)
+    private Task OnResourceTypeVisibilityChangedAsync(string resourceType, bool isVisible)
     {
         if (isVisible)
         {
@@ -85,7 +91,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 var keysLeft = left.Keys;
                 var keysRight = right.Keys;
 
-                return keysLeft.Count == keysRight.Count && keysLeft.SequenceEqual(keysRight, StringComparers.ResourceType);
+                return keysLeft.Count == keysRight.Count && keysLeft.OrderBy(key => key, StringComparers.ResourceType).SequenceEqual(keysRight.OrderBy(key => key, StringComparers.ResourceType), StringComparers.ResourceType);
             }
 
             return SetEqualsKeys(_visibleResourceTypes, _allResourceTypes)
@@ -115,6 +121,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             {
                 _visibleResourceTypes.Clear();
             }
+
+            StateHasChanged();
         }
     }
 
@@ -151,6 +159,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
         async Task SubscribeResourcesAsync()
         {
+            var preselectedVisibleResourceTypes = VisibleTypes?.Split(',').ToHashSet();
+
             var (snapshot, subscription) = await DashboardClient.SubscribeResourcesAsync(_watchTaskCancellationTokenSource.Token);
 
             // Apply snapshot.
@@ -159,7 +169,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 var added = _resourceByName.TryAdd(resource.Name, resource);
 
                 _allResourceTypes.TryAdd(resource.ResourceType, true);
-                _visibleResourceTypes.TryAdd(resource.ResourceType, true);
+
+                if (preselectedVisibleResourceTypes is null || preselectedVisibleResourceTypes.Contains(resource.ResourceType))
+                {
+                    _visibleResourceTypes.TryAdd(resource.ResourceType, true);
+                }
 
                 Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
             }
@@ -226,6 +240,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private async Task ClearSelectedResourceAsync(bool causedByUserAction = false)
     {
         SelectedResource = null;
+
+        await InvokeAsync(StateHasChanged);
 
         if (_elementIdBeforeDetailsViewOpened is not null && causedByUserAction)
         {

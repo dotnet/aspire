@@ -79,23 +79,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     }
 
     [Fact]
-    [Trait("scenario", "basicservices")]
-    public Task KafkaComponentCanProduceAndConsume()
-        => RunTestAsync(async() =>
-        {
-            _integrationServicesFixture.EnsureAppHasResources(TestResourceNames.kafka);
-            string topic = $"topic-{Guid.NewGuid()}";
-
-            var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/kafka/produce/{topic}");
-            var responseContent = await response.Content.ReadAsStringAsync();
-            Assert.True(response.IsSuccessStatusCode, responseContent);
-
-            response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/kafka/consume/{topic}");
-            responseContent = await response.Content.ReadAsStringAsync();
-            Assert.True(response.IsSuccessStatusCode, responseContent);
-        });
-
-    [Fact]
     // Include all the scenarios here so this test gets run for all of them.
     [Trait("scenario", "cosmos")]
     [Trait("scenario", "oracle")]

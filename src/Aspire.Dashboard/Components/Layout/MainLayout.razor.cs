@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Dialogs;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
@@ -15,6 +16,8 @@ namespace Aspire.Dashboard.Components.Layout;
 
 public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 {
+    private bool _isNavMenuOpen;
+
     private IDisposable? _themeChangedSubscription;
     private IDisposable? _locationChangingRegistration;
     private IJSObjectReference? _jsModule;
@@ -39,6 +42,9 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     public required IStringLocalizer<Resources.Layout> Loc { get; init; }
 
     [Inject]
+    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
+
+    [Inject]
     public required IDialogService DialogService { get; init; }
 
     [Inject]
@@ -55,6 +61,9 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     [Inject]
     public required IOptionsMonitor<DashboardOptions> Options { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -117,6 +126,15 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             _shortcutManagerReference = DotNetObjectReference.Create(ShortcutManager);
             _keyboardHandlers = await JS.InvokeAsync<IJSObjectReference>("window.registerGlobalKeydownListener", _shortcutManagerReference);
             ShortcutManager.AddGlobalKeydownListener(this);
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (ViewportInformation.IsDesktop && _isNavMenuOpen)
+        {
+            _isNavMenuOpen = false;
+            CloseMobileNavMenu();
         }
     }
 
@@ -222,6 +240,12 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
                 NavigationManager.NavigateTo(DashboardUrls.MetricsUrl());
                 break;
         }
+    }
+
+    private void CloseMobileNavMenu()
+    {
+        _isNavMenuOpen = false;
+        StateHasChanged();
     }
 
     public async ValueTask DisposeAsync()

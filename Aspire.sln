@@ -512,6 +512,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.PostgreSQL.T
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Qdrant.Tests", "tests\Aspire.Hosting.Qdrant.Tests\Aspire.Hosting.Qdrant.Tests.csproj", "{8E2AA85E-C351-47B4-AF91-58557FAD5840}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Kafka.Tests", "tests\Aspire.Hosting.Kafka.Tests\Aspire.Hosting.Kafka.Tests.csproj", "{0A83AA67-221E-44B4-9BA9-DC64DC17949E}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Python.Tests", "tests\Aspire.Hosting.Python.Tests\Aspire.Hosting.Python.Tests.csproj", "{72F5A6F3-3516-402B-8F8D-50A7BC2E4BD4}"
 EndProject
 Global
@@ -1344,6 +1346,10 @@ Global
 		{7425E5B2-BC47-4521-AC40-B8CECA329E08}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7425E5B2-BC47-4521-AC40-B8CECA329E08}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7425E5B2-BC47-4521-AC40-B8CECA329E08}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0A83AA67-221E-44B4-9BA9-DC64DC17949E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A83AA67-221E-44B4-9BA9-DC64DC17949E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A83AA67-221E-44B4-9BA9-DC64DC17949E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A83AA67-221E-44B4-9BA9-DC64DC17949E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1590,6 +1596,7 @@ Global
 		{8E2AA85E-C351-47B4-AF91-58557FAD5840} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
 		{72F5A6F3-3516-402B-8F8D-50A7BC2E4BD4} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
 		{7425E5B2-BC47-4521-AC40-B8CECA329E08} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
+		{0A83AA67-221E-44B4-9BA9-DC64DC17949E} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
