@@ -12,6 +12,7 @@ using Aspire.Dashboard.Authentication.OpenIdConnect;
 using Aspire.Dashboard.Authentication.OtlpApiKey;
 using Aspire.Dashboard.Authentication.OtlpConnection;
 using Aspire.Dashboard.Components;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp;
@@ -174,6 +175,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         // Time zone is set by the browser.
         builder.Services.AddScoped<BrowserTimeProvider>();
 
+        builder.Services.AddScoped<LogViewerViewModel>();
+        builder.Services.AddScoped<CurrentChartViewModel>();
+
+        builder.Services.AddScoped<DimensionManager>();
+
         builder.Services.AddLocalization();
 
         builder.Services.AddAntiforgery(options =>
@@ -194,7 +200,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         var supportedLanguages = new[]
         {
             "en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant", // Standard cultures for compliance.
-            "zh-CN" // Non-standard culture but it is the default in many Chinese browsers. Adding zh-CN allows OS culture customization to flow through the dashboard.
+            "zh-CN", // Non-standard culture but it is the default in many Chinese browsers. Adding zh-CN allows OS culture customization to flow through the dashboard.
+            "en-GB", // Support UK DateTime formatting (24-hour clock, dd/MM/yyyy)
         };
 
         _app.UseRequestLocalization(new RequestLocalizationOptions()
