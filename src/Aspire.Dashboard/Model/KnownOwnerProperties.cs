@@ -3,7 +3,7 @@
 
 namespace Aspire.Dashboard.Model;
 
-public static class KnownOwnerProperties
+internal static class KnownOwnerProperties
 {
-    public static string ExecutableReplicaSetKind { get; } = "ExecutableReplicaSet";
+    public const string ExecutableReplicaSetKind = "ExecutableReplicaSet";
 }

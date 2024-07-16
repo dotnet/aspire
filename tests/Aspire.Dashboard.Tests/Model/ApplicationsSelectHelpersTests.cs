@@ -31,19 +31,19 @@ public sealed class ApplicationsSelectHelpersTests
             app =>
             {
                 Assert.Equal("app", app.Name);
-                Assert.Equal(OtlpApplicationType.ApplicationGrouping, app.Id!.Type);
+                Assert.Equal(OtlpApplicationType.ResourceGrouping, app.Id!.Type);
                 Assert.Null(app.Id!.InstanceId);
             },
             app =>
             {
                 Assert.Equal("app-app", app.Name);
-                Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
+                Assert.Equal(OtlpApplicationType.Instance, app.Id!.Type);
                 Assert.Equal("app", app.Id!.InstanceId);
             },
             app =>
             {
                 Assert.Equal("app-app-abc", app.Name);
-                Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
+                Assert.Equal(OtlpApplicationType.Instance, app.Id!.Type);
                 Assert.Equal("app-abc", app.Id!.InstanceId);
             },
             app =>
@@ -58,7 +58,7 @@ public sealed class ApplicationsSelectHelpersTests
 
         // Assert
         Assert.Equal("app-abc", app.Id!.InstanceId);
-        Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
+        Assert.Equal(OtlpApplicationType.Instance, app.Id!.Type);
     }
 
     [Fact]
@@ -75,19 +75,19 @@ public sealed class ApplicationsSelectHelpersTests
             app =>
             {
                 Assert.Equal("app", app.Name);
-                Assert.Equal(OtlpApplicationType.ApplicationGrouping, app.Id!.Type);
+                Assert.Equal(OtlpApplicationType.ResourceGrouping, app.Id!.Type);
                 Assert.Null(app.Id!.InstanceId);
             },
             app =>
             {
                 Assert.Equal("APP-app", app.Name);
-                Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
+                Assert.Equal(OtlpApplicationType.Instance, app.Id!.Type);
                 Assert.Equal("app", app.Id!.InstanceId);
             },
             app =>
             {
                 Assert.Equal("APP-app-abc", app.Name);
-                Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
+                Assert.Equal(OtlpApplicationType.Instance, app.Id!.Type);
                 Assert.Equal("app-abc", app.Id!.InstanceId);
             });
 
@@ -99,7 +99,7 @@ public sealed class ApplicationsSelectHelpersTests
 
         // Assert
         Assert.Equal("app", app.Id!.InstanceId);
-        Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
+        Assert.Equal(OtlpApplicationType.Instance, app.Id!.Type);
         Assert.Empty(testSink.Writes);
     }
 

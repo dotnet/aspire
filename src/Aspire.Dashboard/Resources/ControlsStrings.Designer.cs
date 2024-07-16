@@ -447,15 +447,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to replica set.
-        /// </summary>
-        public static string ReplicaSetLower {
-            get {
-                return ResourceManager.GetString("ReplicaSetLower", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Endpoints.
         /// </summary>
         public static string ResourceDetailsEndpointsHeader {

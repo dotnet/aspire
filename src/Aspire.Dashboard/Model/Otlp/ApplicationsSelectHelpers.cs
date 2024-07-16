@@ -14,7 +14,7 @@ public static class ApplicationsSelectHelpers
             return fallback;
         }
 
-        var matches = applications.Where(e => e.Id?.Type is OtlpApplicationType.ReplicaInstance or OtlpApplicationType.Singleton && string.Equals(name, e.Name, StringComparisons.ResourceName)).ToList();
+        var matches = applications.Where(e => e.Id?.Type is OtlpApplicationType.Instance or OtlpApplicationType.Singleton && string.Equals(name, e.Name, StringComparisons.ResourceName)).ToList();
         if (matches.Count == 1)
         {
             return matches[0];

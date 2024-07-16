@@ -37,7 +37,7 @@ public class ResourceTypeDetails
 
     public static ResourceTypeDetails CreateApplicationGrouping(string groupingName, bool isReplicaSet)
     {
-        return new ResourceTypeDetails(OtlpApplicationType.ApplicationGrouping, instanceId: null, replicaSetName: isReplicaSet ? groupingName : null);
+        return new ResourceTypeDetails(OtlpApplicationType.ResourceGrouping, instanceId: null, replicaSetName: isReplicaSet ? groupingName : null);
     }
 
     public static ResourceTypeDetails CreateSingleton(string instanceId, string replicaSetName)
@@ -47,7 +47,7 @@ public class ResourceTypeDetails
 
     public static ResourceTypeDetails CreateReplicaInstance(string instanceId, string replicaSetName)
     {
-        return new ResourceTypeDetails(OtlpApplicationType.ReplicaInstance, instanceId, replicaSetName);
+        return new ResourceTypeDetails(OtlpApplicationType.Instance, instanceId, replicaSetName);
     }
 
     public override string ToString()

@@ -429,3 +429,7 @@ fluent-data-grid-cell.no-ellipsis {
 .endpoint-button::part(control) {
     padding: calc(((var(--design-unit) * 0.5) - var(--stroke-width)) * 1px) calc((var(--design-unit) - var(--stroke-width)) * 1px);
 }
+
+.resource-select-application-label {
+    color: var(--accent-foreground-rest);
+}
