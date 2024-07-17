@@ -91,7 +91,7 @@ public static class KafkaBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<KafkaServerResource> WithDataVolume(this IResourceBuilder<KafkaServerResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/kafka/data", isReadOnly);
+        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/tmp/kraft-combined-logs", isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the data folder to a Kafka container resource.
@@ -101,7 +101,7 @@ public static class KafkaBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<KafkaServerResource> WithDataBindMount(this IResourceBuilder<KafkaServerResource> builder, string source, bool isReadOnly = false)
-        => builder.WithBindMount(source, "/var/lib/kafka/data", isReadOnly);
+        => builder.WithBindMount(source, "/tmp/kraft-combined-logs", isReadOnly);
 
     private static void ConfigureKafkaContainer(EnvironmentCallbackContext context, KafkaServerResource resource)
     {
