@@ -456,6 +456,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 name: 'standard'
               }
               properties: {
+                disableLocalAuth: true
               }
             }
 
