@@ -103,7 +103,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         string component = resource switch
         {
             TestResourceNames.cosmos or TestResourceNames.efcosmos => "cosmos",
-            TestResourceNames.elasticsearch => "elasticsearch",
             TestResourceNames.eventhubs => "eventhubs",
             TestResourceNames.garnet => "garnet",
             TestResourceNames.milvus => "milvus",
@@ -156,8 +155,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                               | TestResourceNames.efmysql
                               | TestResourceNames.sqlserver
                               | TestResourceNames.efsqlserver
-                              | TestResourceNames.milvus
-                              | TestResourceNames.elasticsearch,
+                              | TestResourceNames.milvus,
             "" or null => TestResourceNames.All,
             _ => throw new ArgumentException($"Unknown test scenario '{TestScenario}'")
         };

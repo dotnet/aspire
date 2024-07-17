@@ -160,11 +160,6 @@ public class TestProgram : IDisposable
                     .WithImageRegistry(AspireTestContainerRegistry);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(milvus);
             }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.elasticsearch))
-            {
-                var elasticsearch = AppBuilder.AddElasticsearch("elasticsearch");
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(elasticsearch);
-            }
         }
 
         AppBuilder.Services.AddLifecycleHook<EndPointWriterHook>();

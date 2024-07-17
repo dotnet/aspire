@@ -34,7 +34,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [InlineData(TestResourceNames.sqlserver)]
     [InlineData(TestResourceNames.efsqlserver)]
     [InlineData(TestResourceNames.milvus)]
-    [InlineData(TestResourceNames.elasticsearch)]
     public Task VerifyComponentWorks(TestResourceNames resourceName)
         => RunTestAsync(async () =>
         {

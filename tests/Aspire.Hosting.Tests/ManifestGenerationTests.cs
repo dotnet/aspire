@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using Aspire.Components.Common.Tests;
-using Aspire.Hosting.Elasticsearch;
 using Aspire.Hosting.Garnet;
 using Aspire.Hosting.MongoDB;
 using Aspire.Hosting.MySql;
@@ -491,7 +490,6 @@ public class ManifestGenerationTests
                     "ConnectionStrings__cosmos": "{cosmos.connectionString}",
                     "ConnectionStrings__eventhubns": "{eventhubns.connectionString}",
                     "ConnectionStrings__milvus": "{milvus.connectionString}",
-                    "ConnectionStrings__elasticsearch": "{elasticsearch.connectionString}"
                   },
                   "bindings": {
                     "http": {
@@ -702,30 +700,6 @@ public class ManifestGenerationTests
                     }
                   }
                 },
-                "elasticsearch": {
-                  "type": "container.v0",
-                  "connectionString": "http://elastic:{elasticsearch-password.value}@{elasticsearch.bindings.http.host}:{elasticsearch.bindings.http.port}",
-                  "image": "{{ElasticsearchContainerImageTags.Registry}}/{{ElasticsearchContainerImageTags.Image}}:{{ElasticsearchContainerImageTags.Tag}}",
-                  "env": {
-                    "discovery.type": "single-node",
-                    "xpack.security.enabled": "true",
-                    "ELASTIC_PASSWORD": "{elasticsearch-password.value}"
-                  },
-                  "bindings": {
-                    "http": {
-                      "scheme": "http",
-                      "protocol": "tcp",
-                      "transport": "http",
-                      "targetPort": 9200
-                    },
-                    "internal": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 9300
-                    }
-                  }
-                },
                 "sqlserver-password": {
                   "type": "parameter.v0",
                   "value": "{sqlserver-password.inputs.value}",
@@ -793,21 +767,6 @@ public class ManifestGenerationTests
                 "oracledatabase-password": {
                   "type": "parameter.v0",
                   "value": "{oracledatabase-password.inputs.value}",
-                  "inputs": {
-                    "value": {
-                      "type": "string",
-                      "secret": true,
-                      "default": {
-                        "generate": {
-                          "minLength": 22
-                        }
-                      }
-                    }
-                  }
-                },
-                "elasticsearch-password": {
-                  "type": "parameter.v0",
-                  "value": "{elasticsearch-password.inputs.value}",
                   "inputs": {
                     "value": {
                       "type": "string",

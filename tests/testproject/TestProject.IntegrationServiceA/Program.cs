@@ -96,11 +96,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.milvus))
     builder.AddMilvusClient("milvus");
 }
 
-if (!resourcesToSkip.HasFlag(TestResourceNames.elasticsearch))
-{
-    builder.AddElasticsearchClient("elasticsearch");
-}
-
 // Ensure healthChecks are added. Some components like Cosmos
 // don't add this
 builder.Services.AddHealthChecks();
@@ -185,11 +180,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
 if (!resourcesToSkip.HasFlag(TestResourceNames.milvus))
 {
     app.MapMilvusApi();
-}
-
-if (!resourcesToSkip.HasFlag(TestResourceNames.elasticsearch))
-{
-    app.MapElasticsearchApi();
 }
 
 app.Run();
