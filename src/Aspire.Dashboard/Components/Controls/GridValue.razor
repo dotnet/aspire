@@ -42,7 +42,7 @@
         ];
     }
 
-    <FluentButton Appearance="Appearance.Lightweight"
+    <!--<FluentButton Appearance="Appearance.Lightweight"
                   Id="@_anchorId"
                   Class="defaultHidden"
                   Style="float: right; flex-shrink: 0"
@@ -51,4 +51,24 @@
         <FluentIcon Class="checkmark-icon" Style="display:none;" Icon="Icons.Regular.Size16.Checkmark" />
     </FluentButton>
     <FluentTooltip @ref="_tooltipComponent" Anchor="@_anchorId" Position="TooltipPosition.Top" HideTooltipOnCursorLeave="true">@PreCopyToolTip</FluentTooltip>
+-->
+    <FluentButton Appearance="Appearance.Lightweight"
+                  Id="@_menuAnchorId"
+                  Class="defaultHidden"
+                  Style="float: right; flex-shrink: 0"
+                  OnClick="@ToggleMenuOpen">
+        <FluentIcon Style="display:inline;" Icon="Icons.Regular.Size16.MoreVertical" />
+    </FluentButton>
+
+    <FluentMenu Anchor="@_menuAnchorId" @bind-Open="_isMenuOpen" VerticalThreshold="170">
+        <FluentMenuItem
+            Id="@_copyAnchorId"
+            AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip, uncapturedAttributes)">
+            <span slot="start">
+                <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
+                <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
+            </span>
+            @PreCopyToolTip
+        </FluentMenuItem>
+    </FluentMenu>
 </div>

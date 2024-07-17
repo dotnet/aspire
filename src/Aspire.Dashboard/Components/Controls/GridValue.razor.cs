@@ -7,7 +7,7 @@ using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Controls;
 
-public partial class GridValue : IDisposable
+public partial class GridValue
 {
     [Parameter, EditorRequired]
     public string? Value { get; set; }
@@ -60,9 +60,9 @@ public partial class GridValue : IDisposable
 
     private readonly Icon _maskIcon = new Icons.Regular.Size16.EyeOff();
     private readonly Icon _unmaskIcon = new Icons.Regular.Size16.Eye();
-    private readonly string _anchorId = $"copy-{Guid.NewGuid():N}";
-
-    private FluentTooltip? _tooltipComponent;
+    private readonly string _copyAnchorId = $"copy-{Guid.NewGuid():N}";
+    private readonly string _menuAnchorId = $"menu-{Guid.NewGuid():N}";
+    private bool _isMenuOpen;
 
     protected override void OnInitialized()
     {
@@ -85,8 +85,9 @@ public partial class GridValue : IDisposable
         return text ?? "";
     }
 
-    public void Dispose()
+    private void ToggleMenuOpen()
     {
-        _tooltipComponent?.Dispose();
+        _isMenuOpen = !_isMenuOpen;
     }
+
 }
