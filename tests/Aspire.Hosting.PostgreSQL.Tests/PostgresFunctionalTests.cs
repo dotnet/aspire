@@ -234,14 +234,17 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<NpgsqlException>() })
+            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(2), ShouldHandle = new PredicateBuilder().Handle<NpgsqlException>() })
             .Build();
 
         var bindMountPath = Directory.CreateTempSubdirectory().FullName;
 
         try
         {
-            File.WriteAllText(Path.Combine(bindMountPath, "init.sql"), "CREATE TABLE cars (brand VARCHAR(255)); INSERT INTO cars (brand) VALUES ('BatMobile');");
+            File.WriteAllText(Path.Combine(bindMountPath, "init.sql"), """
+                CREATE TABLE cars (brand VARCHAR(255));
+                INSERT INTO cars (brand) VALUES ('BatMobile');
+            """);
 
             var builder = CreateDistributedApplicationBuilder();
 
