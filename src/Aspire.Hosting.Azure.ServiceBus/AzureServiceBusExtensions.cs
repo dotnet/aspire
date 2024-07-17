@@ -46,6 +46,7 @@ public static class AzureServiceBusExtensions
             serviceBusNamespace.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
 
             serviceBusNamespace.AssignProperty(p => p.Sku.Name, new Parameter("sku", defaultValue: "Standard"));
+            serviceBusNamespace.AssignProperty(p => p.DisableLocalAuth, "true");
 
             var serviceBusDataOwnerRole = serviceBusNamespace.AssignRole(RoleDefinition.ServiceBusDataOwner);
             serviceBusDataOwnerRole.AssignProperty(p => p.PrincipalId, construct.PrincipalIdParameter);

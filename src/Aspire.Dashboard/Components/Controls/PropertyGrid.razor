@@ -6,7 +6,8 @@
                 ResizableColumns="true"
                 Style="width:100%"
                 GenerateHeader="GenerateHeaderOption.Sticky"
-                GridTemplateColumns="@GridTemplateColumns">
+                GridTemplateColumns="@GridTemplateColumns"
+                ShowHover="true">
     <TemplateColumn Title="@(NameColumnTitle ?? Loc[nameof(ControlsStrings.NameColumnHeader)])" Class="nameColumn" SortBy="@NameSort" Sortable="@IsNameSortable">
         <GridValue Value="@NameColumnValue(context)" HighlightText="@HighlightText" />
     </TemplateColumn>

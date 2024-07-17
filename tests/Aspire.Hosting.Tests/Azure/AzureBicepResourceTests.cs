@@ -456,6 +456,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 name: 'standard'
               }
               properties: {
+                disableLocalAuth: true
               }
             }
 
@@ -1711,6 +1712,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 name: sku
               }
               properties: {
+                disableLocalAuth: true
               }
             }
 
