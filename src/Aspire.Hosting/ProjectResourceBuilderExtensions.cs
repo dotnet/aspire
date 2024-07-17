@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
+using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -259,6 +260,21 @@ public static class ProjectResourceBuilderExtensions
         return builder.AddResource(project)
                       .WithAnnotation(new ProjectMetadata(projectPath))
                       .WithProjectDefaults(options);
+    }
+
+    /// <summary>
+    /// Adds a settings file to the project resource, to optionally persist settings that are normally set via environment variables.
+    /// The settings file can be generated with or without also launching the project.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="settingsFileOptions"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<ProjectResource> WithSettingsFile(this IResourceBuilder<ProjectResource> builder, SettingsFileOptions settingsFileOptions)
+    {
+        builder.WithAnnotation(new SettingsFileAnnotation(settingsFileOptions));
+
+        builder.ApplicationBuilder.Services.TryAddLifecycleHook<SettingsFileWriterHook>();
+        return builder;
     }
 
     private static IResourceBuilder<ProjectResource> WithProjectDefaults(this IResourceBuilder<ProjectResource> builder, ProjectResourceOptions options)
