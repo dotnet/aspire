@@ -109,12 +109,6 @@ public class TestProgram : IDisposable
                 var garnet = AppBuilder.AddGarnet("garnet");
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(garnet);
             }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.valkey))
-            {
-                var valkey = AppBuilder.AddValkey("valkey")
-                    .WithImageRegistry(AspireTestContainerRegistry);
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(valkey);
-            }
             if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
             {
                 var postgresDbName = "postgresdb";
@@ -144,12 +138,6 @@ public class TestProgram : IDisposable
                 var oracleDatabase = AppBuilder.AddOracle("oracledatabase")
                     .AddDatabase(oracleDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(oracleDatabase);
-            }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
-            {
-                var kafka = AppBuilder.AddKafka("kafka")
-                    .WithImageRegistry(AspireTestContainerRegistry);
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(kafka);
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos) || !resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
             {

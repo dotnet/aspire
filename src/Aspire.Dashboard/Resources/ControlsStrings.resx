@@ -326,4 +326,34 @@
   <data name="SpanDetailsContextHeader" xml:space="preserve">
     <value>Context</value>
   </data>
+  <data name="MetricTableExemplarsColumnHeader" xml:space="preserve">
+    <value>Exemplars</value>
+  </data>
+  <data name="MetricTableViewExemplarsLabel" xml:space="preserve">
+    <value>View exemplars</value>
+  </data>
+  <data name="PlotlyChartTime" xml:space="preserve">
+    <value>Time</value>
+  </data>
+  <data name="PlotlyChartExemplars" xml:space="preserve">
+    <value>Exemplars</value>
+  </data>
+  <data name="PlotlyChartTrace" xml:space="preserve">
+    <value>Trace</value>
+  </data>
+  <data name="SpanDetailsLinksHeader" xml:space="preserve">
+    <value>Links</value>
+  </data>
+  <data name="SpanDetailsSpanPrefix" xml:space="preserve">
+    <value>Span</value>
+  </data>
+  <data name="SpanDetailsSpanColumnHeader" xml:space="preserve">
+    <value>Span</value>
+  </data>
+  <data name="SpanDetailsDetailsColumnHeader" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="SpanDetailsBacklinksHeader" xml:space="preserve">
+    <value>Backlinks</value>
+  </data>
 </root>

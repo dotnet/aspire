@@ -6,12 +6,14 @@ using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Redis.Tests;
 
-public class RedisFunctionalTests
+public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     [RequiresDocker]
@@ -215,7 +217,7 @@ public class RedisFunctionalTests
 
         try
         {
-            File.Delete(bindMountPath);
+            Directory.Delete(bindMountPath, recursive: true);
         }
         catch
         {
@@ -293,6 +295,10 @@ public class RedisFunctionalTests
         }
     }
 
-    private static TestDistributedApplicationBuilder CreateDistributedApplicationBuilder() =>
-        TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
+    private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
+    {
+        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
+        builder.Services.AddXunitLogging(testOutputHelper);
+        return builder;
+    }
 }

@@ -13,7 +13,6 @@ using Aspire.Hosting.RabbitMQ;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
-using Aspire.Hosting.Valkey;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -308,25 +307,6 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureAllKafkaManifestTypesHaveVersion0Suffix()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddKafka("kafkacontainer");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var server = resources.GetProperty("kafkacontainer");
-        Assert.Equal("container.v0", server.GetProperty("type").GetString());
-    }
-
-    [Fact]
     public void NodeAppIsExecutableResource()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();
@@ -504,12 +484,10 @@ public class ManifestGenerationTests
                     "ConnectionStrings__mysqldb": "{mysqldb.connectionString}",
                     "ConnectionStrings__redis": "{redis.connectionString}",
                     "ConnectionStrings__garnet": "{garnet.connectionString}",
-                    "ConnectionStrings__valkey": "{valkey.connectionString}",
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
                     "ConnectionStrings__rabbitmq": "{rabbitmq.connectionString}",
                     "ConnectionStrings__mymongodb": "{mymongodb.connectionString}",
                     "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
-                    "ConnectionStrings__kafka": "{kafka.connectionString}",
                     "ConnectionStrings__cosmos": "{cosmos.connectionString}",
                     "ConnectionStrings__eventhubns": "{eventhubns.connectionString}",
                     "ConnectionStrings__milvus": "{milvus.connectionString}",
@@ -596,19 +574,6 @@ public class ManifestGenerationTests
                     }
                   }
                 },
-                "valkey": {
-                  "type": "container.v0",
-                  "connectionString": "{valkey.bindings.tcp.host}:{valkey.bindings.tcp.port}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{ValkeyContainerImageTags.Image}}:{{ValkeyContainerImageTags.Tag}}",
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 6379
-                    }
-                  }
-                },
                 "postgres": {
                   "type": "container.v0",
                   "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}",
@@ -686,30 +651,6 @@ public class ManifestGenerationTests
                 "freepdb1": {
                   "type": "value.v0",
                   "connectionString": "{oracledatabase.connectionString}/freepdb1"
-                },
-                "kafka": {
-                  "type": "container.v0",
-                  "connectionString": "{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{KafkaContainerImageTags.Image}}:{{KafkaContainerImageTags.Tag}}",
-                  "env": {
-                    "KAFKA_LISTENERS": "PLAINTEXT://localhost:29092,CONTROLLER://localhost:29093,PLAINTEXT_HOST://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:9093",
-                    "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT",
-                    "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://{kafka.bindings.tcp.host}:29092,PLAINTEXT_HOST://{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port},PLAINTEXT_INTERNAL://{kafka.bindings.internal.host}:{kafka.bindings.internal.port}"
-                  },
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 9092
-                    },
-                    "internal": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 9093
-                    }
-                  }
                 },
                 "cosmos": {
                   "type": "azure.bicep.v0",
