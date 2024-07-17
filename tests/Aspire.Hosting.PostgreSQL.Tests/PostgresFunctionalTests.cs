@@ -74,9 +74,9 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         string? volumeName = null;
         string? bindMountPath = null;
 
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<NpgsqlException>() })
-            .AddTimeout(TimeSpan.FromSeconds(5))
             .Build();
 
         try
@@ -105,7 +105,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
-                bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                bindMountPath = Directory.CreateTempSubdirectory().FullName;
                 postgres1.WithDataBindMount(bindMountPath);
             }
 
@@ -128,18 +128,17 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
-                        await pipeline.ExecuteAsync(
-                            async token =>
-                            {
-                                using var connection = host.Services.GetRequiredService<NpgsqlConnection>();
-                                await connection.OpenAsync(token);
+                        await pipeline.ExecuteAsync(async token =>
+                        {
+                            using var connection = host.Services.GetRequiredService<NpgsqlConnection>();
+                            await connection.OpenAsync(token);
 
-                                var command = connection.CreateCommand();
-                                command.CommandText = $"CREATE TABLE cars (brand VARCHAR(255)); INSERT INTO cars (brand) VALUES ('BatMobile'); SELECT * FROM cars;";
-                                var results = await command.ExecuteReaderAsync(token);
+                            var command = connection.CreateCommand();
+                            command.CommandText = $"CREATE TABLE cars (brand VARCHAR(255)); INSERT INTO cars (brand) VALUES ('BatMobile'); SELECT * FROM cars;";
+                            var results = await command.ExecuteReaderAsync(token);
 
-                                Assert.True(results.HasRows);
-                            });
+                            Assert.True(results.HasRows);
+                        }, cts.Token);
                     }
                 }
                 finally
@@ -185,20 +184,18 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
-                        await pipeline.ExecuteAsync(
-                            async token =>
-                            {
-                                using var connection = host.Services.GetRequiredService<NpgsqlConnection>();
-                                await connection.OpenAsync(token);
+                        await pipeline.ExecuteAsync(async token =>
+                        {
+                            using var connection = host.Services.GetRequiredService<NpgsqlConnection>();
+                            await connection.OpenAsync(token);
 
-                                var command = connection.CreateCommand();
-                                command.CommandText = $"SELECT * FROM cars;";
-                                var results = await command.ExecuteReaderAsync(token);
+                            var command = connection.CreateCommand();
+                            command.CommandText = $"SELECT * FROM cars;";
+                            var results = await command.ExecuteReaderAsync(token);
 
-                                Assert.True(results.HasRows);
-                            });
+                            Assert.Single(results);
+                        }, cts.Token);
                     }
-
                 }
                 finally
                 {
@@ -219,7 +216,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 try
                 {
-                    File.Delete(bindMountPath);
+                    Directory.Delete(bindMountPath, true);
                 }
                 catch
                 {
@@ -240,18 +237,11 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<NpgsqlException>() })
             .Build();
 
-        var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        var bindMountPath = Directory.CreateTempSubdirectory().FullName;
 
         try
         {
-            if (Directory.Exists(bindMountPath))
-            {
-                Directory.Delete(bindMountPath);
-            }
-
-            Directory.CreateDirectory(bindMountPath);
-
-            File.WriteAllText(Path.Combine(bindMountPath, "init.sql"), "CREATE TABLE cars (brand VARCHAR(255)); INSERT INTO cars (brand) VALUES ('BatMobile'); SELECT * FROM cars;");
+            File.WriteAllText(Path.Combine(bindMountPath, "init.sql"), "CREATE TABLE cars (brand VARCHAR(255)); INSERT INTO cars (brand) VALUES ('BatMobile');");
 
             var builder = CreateDistributedApplicationBuilder();
 
@@ -287,14 +277,14 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                 command.CommandText = $"SELECT * FROM cars;";
                 var results = await command.ExecuteReaderAsync(token);
 
-                Assert.True(results.HasRows);
+                Assert.Single(results);
             }, cts.Token);
         }
         finally
         {
             try
             {
-                File.Delete(bindMountPath);
+                Directory.Delete(bindMountPath, true);
             }
             catch
             {
