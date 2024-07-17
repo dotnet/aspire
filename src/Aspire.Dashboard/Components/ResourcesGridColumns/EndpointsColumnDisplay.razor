@@ -1,66 +1,56 @@
 ﻿@using Aspire.Dashboard.Model
 @namespace Aspire.Dashboard.Components
 
-@if (DisplayedEndpoints.Count > 0)
+@if (DisplayedEndpoints.Count == 1)
 {
-    <div class="endpoint-container">
-        <div class="endpoint-first">
-            @WriteEndpoint(DisplayedEndpoints[0])
-            @if (DisplayedEndpoints.Count > 1)
+    @WriteEndpoint(DisplayedEndpoints[0])
+}
+else if (DisplayedEndpoints.Count > 1)
+{
+    <FluentOverflow Class="endpoint-overflow">
+        <ChildContent>
+            @for (var i = 0; i < DisplayedEndpoints.Count; i++)
             {
-                <span>,&nbsp;</span>
+                var displayedEndpoint = DisplayedEndpoints[i];
+                var isLast = i == DisplayedEndpoints.Count - 1;
+
+                <FluentOverflowItem Data="displayedEndpoint">
+                    @WriteEndpoint(displayedEndpoint)
+
+                    @if (!isLast)
+                    {
+                        <span>,</span>
+                    }
+                </FluentOverflowItem>
             }
-        </div>
-        <div>
-            @if (DisplayedEndpoints.Count > 1)
-            {
-                <FluentOverflow Class="endpoint-overflow">
-                    <ChildContent>
-                        @for (var i = 1; i < DisplayedEndpoints.Count; i++)
+        </ChildContent>
+        <MoreButtonTemplate Context="overflow">
+            <FluentButton Appearance="Appearance.Accent" OnClick="() => _popoverVisible = !_popoverVisible" Class="endpoint-button">
+                @($"+{overflow.ItemsOverflow.Count()}")
+            </FluentButton>
+        </MoreButtonTemplate>
+        <OverflowTemplate Context="overflow">
+            @{
+                var items = overflow.ItemsOverflow.ToList();
+            }
+            <FluentPopover AnchorId="@overflow.IdMoreButton" @bind-Open="_popoverVisible" VerticalThreshold="200" AutoFocus="false">
+                <Header>
+                    @Loc[Resources.Columns.EndpointsColumnDisplayOverflowTitle]
+                </Header>
+                <Body>
+                    <div class="endpoint-popup">
+                        @foreach (var item in items)
                         {
-                            var displayedEndpoint = DisplayedEndpoints[i];
-                            var isLast = i == DisplayedEndpoints.Count - 1;
-
-                            <FluentOverflowItem Data="displayedEndpoint">
-                                @WriteEndpoint(displayedEndpoint)
-
-                                @if (!isLast)
-                                {
-                                    <span>,</span>
-                                }
-                            </FluentOverflowItem>
+                            var d = (DisplayedEndpoint)item.Data!;
+                            <div class="endpoint-link">
+                                @WriteEndpoint(d)
+                            </div>
                         }
-                    </ChildContent>
-                    <MoreButtonTemplate Context="overflow">
-                        <FluentButton Appearance="Appearance.Accent" OnClick="() => _popoverVisible = !_popoverVisible" Class="endpoint-button">
-                            @($"+{overflow.ItemsOverflow.Count()}")
-                        </FluentButton>
-                    </MoreButtonTemplate>
-                    <OverflowTemplate Context="overflow">
-                        @{
-                            var items = overflow.ItemsOverflow.ToList();
-                        }
-                        <FluentPopover AnchorId="@overflow.IdMoreButton" @bind-Open="_popoverVisible" VerticalThreshold="200" AutoFocus="false">
-                            <Header>
-                                @Loc[Resources.Columns.EndpointsColumnDisplayOverflowTitle]
-                            </Header>
-                            <Body>
-                                <div class="endpoint-popup">
-                                    @foreach (var item in items)
-                                    {
-                                        var d = (DisplayedEndpoint)item.Data!;
-                                        <div class="endpoint-link">
-                                            @WriteEndpoint(d)
-                                        </div>
-                                    }
-                                </div>
-                            </Body>
-                        </FluentPopover>
-                    </OverflowTemplate>
-                </FluentOverflow>
-            }
-        </div>
-    </div>
+                    </div>
+                </Body>
+            </FluentPopover>
+        </OverflowTemplate>
+    </FluentOverflow>
 }
 
 @if (!string.IsNullOrEmpty(AdditionalMessage))
