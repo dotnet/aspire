@@ -74,7 +74,6 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Theory]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4909")]
     [InlineData(true)]
     [InlineData(false)]
     [RequiresDocker]
