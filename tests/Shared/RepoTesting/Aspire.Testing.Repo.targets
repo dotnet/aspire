@@ -52,7 +52,10 @@
     <PackageReference Include="@(NonComponentReferenceForTests)" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true' and '$(RepoRoot)' == '' and '$(IncludeTestPackages)' == 'true'">
+  <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true' and '$(RepoRoot)' == '' and '$(IncludeTestPackages)' == 'true'" Label="Test packages">
+    <!-- in-repo-builds use Arcade which adds these package references for test projects implicitly.
+         But when they are built without Arcade outside the repo, these need to be added
+         explicitly. -->
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.core" />
     <PackageReference Include="xunit.analyzers" />
@@ -60,6 +63,14 @@
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="Microsoft.DotNet.XUnitAssert" />
+
+    <!-- .. and the corresponding version properties -->
+    <PropertyForHelixRun Include="XunitVersion" />
+    <PropertyForHelixRun Include="XunitAnalyzersVersion" />
+    <PropertyForHelixRun Include="XunitRunnerVisualStudioVersion" />
+    <PropertyForHelixRun Include="MSTestTestAdapterVersion" />
+    <PropertyForHelixRun Include="MicrosoftNETTestSdkVersion" />
+    <PropertyForHelixRun Include="MicrosoftDotNetXUnitAssertVersion" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(DeployOutsideOfRepoSupportFiles)' == 'true'">
@@ -78,12 +89,6 @@
     <None Include="$(TestsSharedDir)\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <PropertyForHelixRun Include="NetCurrent" />
-    <PropertyForHelixRun Include="XunitVersion" />
-    <PropertyForHelixRun Include="XunitAnalyzersVersion" />
-    <PropertyForHelixRun Include="XunitRunnerVisualStudioVersion" />
-    <PropertyForHelixRun Include="MSTestTestAdapterVersion" />
-    <PropertyForHelixRun Include="MicrosoftNETTestSdkVersion" />
-    <PropertyForHelixRun Include="MicrosoftDotNetXUnitAssertVersion" />
   </ItemGroup>
 
   <Target Name="_UpdateArchiveSourcePath" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true' and '$(DeployOutsideOfRepoSupportFilesRelativeDir)' != ''">
