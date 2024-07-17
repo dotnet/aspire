@@ -1,7 +1,7 @@
 <Project>
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
-  <Import Project="$(TestsSharedRepoTestingDir)Aspire.Testing.Repo.props" />
+  <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.props" />
 
   <PropertyGroup>
     <!-- Set RunSettingsFilePath property which is read by VSTest. -->
