@@ -8,8 +8,11 @@ using Aspire.Hosting.Tests.Utils;
 using System.Diagnostics;
 using Aspire.Components.Common.Tests;
 using Xunit.Abstractions;
+using Aspire.Hosting.ApplicationModel;
+using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.Tests.Python;
+namespace Aspire.Hosting.Python.Tests;
 
 public class AddPythonProjectTests(ITestOutputHelper outputHelper)
 {
@@ -21,9 +24,9 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
 
         var manifestPath = Path.Combine(projectDirectory, "aspire-manifest.json");
 
-        using var builder = TestDistributedApplicationBuilder.Create(options =>
+        using var builder = CreateTestDistributedApplicationBuilder(options =>
         {
-            options.ProjectDirectory = Path.GetFullPath(projectDirectory);
+            GetProjectDirectoryRef(options) = Path.GetFullPath(projectDirectory);
             options.Args = ["--publisher", "manifest", "--output-path", manifestPath];
         });
 
@@ -51,9 +54,9 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
 
         var manifestPath = Path.Combine(projectDirectory, "aspire-manifest.json");
 
-        using var builder = TestDistributedApplicationBuilder.Create(options =>
+        using var builder = CreateTestDistributedApplicationBuilder(options =>
         {
-            options.ProjectDirectory = Path.GetFullPath(projectDirectory);
+            GetProjectDirectoryRef(options) = Path.GetFullPath(projectDirectory);
             options.Args = ["--publisher", "manifest", "--output-path", manifestPath];
         });
 
@@ -76,13 +79,16 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
         Directory.Delete(projectDirectory, true);
     }
 
+    [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_projectDirectory")]
+    static extern ref string? GetProjectDirectoryRef(DistributedApplicationOptions? @this);
+
     [Fact]
     [RequiresTools(["python"])]
     public async Task PythonResourceFinishesSuccessfully()
     {
         var (projectDirectory, _, scriptName) = CreateTempPythonProject(outputHelper);
 
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = CreateTestDistributedApplicationBuilder();
         builder.AddPythonProject("pyproj", projectDirectory, scriptName);
 
         using var app = builder.Build();
@@ -103,10 +109,10 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
     [RequiresTools(["python"])]
     public async Task AddPythonProject_SetsResourcePropertiesCorrectly()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = CreateTestDistributedApplicationBuilder();
 
         var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject(outputHelper);
-        
+
         builder.AddPythonProject("pythonProject", projectDirectory, scriptName);
 
         var app = builder.Build();
@@ -118,7 +124,7 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
         Assert.Equal("pythonProject", pythonProjectResource.Name);
         Assert.Equal(projectDirectory, pythonProjectResource.WorkingDirectory);
 
-        if(OperatingSystem.IsWindows())
+        if (OperatingSystem.IsWindows())
         {
             Assert.Equal(Path.Join(projectDirectory, ".venv", "Scripts", "python.exe"), pythonProjectResource.Command);
         }
@@ -139,10 +145,10 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
     [RequiresTools(["python"])]
     public async Task AddPythonProjectWithInstrumentation_SwitchesExecutableToInstrumentationExecutable()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = CreateTestDistributedApplicationBuilder();
 
         var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject(outputHelper, instrument: true);
-        
+
         builder.AddPythonProject("pythonProject", projectDirectory, scriptName, virtualEnvironmentPath: ".venv");
 
         var app = builder.Build();
@@ -169,7 +175,7 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
         Assert.Equal("otlp", commandArguments[5]);
         Assert.Equal(pythonExecutable, commandArguments[6]);
         Assert.Equal(scriptName, commandArguments[7]);
-         
+
         // If we don't throw, clean up the directories.
         Directory.Delete(projectDirectory, true);
     }
@@ -178,7 +184,7 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
     [RequiresTools(["python"])]
     public async Task AddPythonProjectWithScriptArgs_IncludesTheArguments()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = CreateTestDistributedApplicationBuilder();
 
         var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject(outputHelper);
 
@@ -209,6 +215,13 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
 
         // If we don't throw, clean up the directories.
         Directory.Delete(projectDirectory, true);
+    }
+
+    private TestDistributedApplicationBuilder CreateTestDistributedApplicationBuilder(Action<DistributedApplicationOptions>? configureOptions = null)
+    {
+        var builder = TestDistributedApplicationBuilder.Create(configureOptions);
+        builder.Services.AddXunitLogging(outputHelper);
+        return builder;
     }
 
     private static (string projectDirectory, string pythonExecutable, string scriptName) CreateTempPythonProject(ITestOutputHelper outputHelper, bool instrument = false)

@@ -111,9 +111,6 @@ public class WorkloadTestsBase
                         .Select(t => t.Result.Trim(','))
                         .ToList();
 
-                var firstEndpoint = await rowLoc.Locator("//div[@class='endpoint-first']").InnerTextAsync();
-                endpointsFound.Insert(0, firstEndpoint.Trim().Trim(','));
-
                 if (expectedEndpoints.Length != endpointsFound.Count)
                 {
                     // _testOutput.WriteLine($"For resource '{resourceName}, found ")

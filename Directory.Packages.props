@@ -157,11 +157,11 @@
 
     <!-- playground apps dependencies -->
     <PackageVersion Include="Dapr.AspNetCore" Version="1.13.1" />
-    <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="8.1.0" />
-    <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="8.1.0" />
-    <PackageVersion Include="Microsoft.Orleans.Client" Version="8.1.0" />
-    <PackageVersion Include="Microsoft.Orleans.Server" Version="8.1.0" />
-    <PackageVersion Include="Microsoft.Orleans.Sdk" Version="8.1.0" />
+    <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="8.2.0" />
+    <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="8.2.0" />
+    <PackageVersion Include="Microsoft.Orleans.Client" Version="8.2.0" />
+    <PackageVersion Include="Microsoft.Orleans.Server" Version="8.2.0" />
+    <PackageVersion Include="Microsoft.Orleans.Sdk" Version="8.2.0" />
     <!-- Pinned version for Component Governance - Remove when root dependencies are updated -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>

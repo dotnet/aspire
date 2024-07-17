@@ -216,7 +216,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 try
                 {
-                    Directory.Delete(bindMountPath, true);
+                    Directory.Delete(bindMountPath, recursive: true);
                 }
                 catch
                 {

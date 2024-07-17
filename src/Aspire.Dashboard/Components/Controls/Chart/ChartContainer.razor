@@ -1,8 +1,6 @@
 ﻿@namespace Aspire.Dashboard.Components
 
-@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Otlp.Model
-@using Aspire.Dashboard.Otlp.Model.MetricValues
 @using Aspire.Dashboard.Resources
 @using Metrics = Aspire.Dashboard.Components.Pages.Metrics
 @inject IStringLocalizer<ControlsStrings> Loc
@@ -26,7 +24,7 @@ else
                        Icon="@(new Icons.Regular.Size24.DataArea())">
                 <div class="metrics-chart-container metric-tab">
                     <PlotlyChart InstrumentViewModel="_instrumentViewModel" Duration="Duration" Applications="Applications"/>
-                    <ChartFilters InstrumentViewModel="_instrumentViewModel" Instrument="_instrument" ViewModel="_viewModel"/>
+                    <ChartFilters InstrumentViewModel="_instrumentViewModel" Instrument="_instrument"/>
                 </div>
             </FluentTab>
             <FluentTab LabelClass="tab-label"
@@ -35,7 +33,7 @@ else
                        Icon="@(new Icons.Regular.Size24.Table())">
                 <div class="metric-tab">
                     <MetricTable InstrumentViewModel="_instrumentViewModel" Duration="Duration" Applications="Applications" />
-                    <ChartFilters InstrumentViewModel="_instrumentViewModel" Instrument="_instrument" ViewModel="_viewModel"/>
+                    <ChartFilters InstrumentViewModel="_instrumentViewModel" Instrument="_instrument"/>
                 </div>
             </FluentTab>
         </FluentTabs>
