@@ -1711,6 +1711,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 name: sku
               }
               properties: {
+                disableLocalAuth: true
               }
             }
 
