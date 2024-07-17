@@ -247,9 +247,19 @@
         <target state="translated">Wybierz aplikację</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanDetailsBacklinksHeader">
+        <source>Backlinks</source>
+        <target state="new">Backlinks</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanDetailsContextHeader">
         <source>Context</source>
         <target state="translated">Kontekst</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsDetailsColumnHeader">
+        <source>Details</source>
+        <target state="new">Details</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsDuration">
@@ -262,6 +272,11 @@
         <target state="translated">Zdarzenia</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanDetailsLinksHeader">
+        <source>Links</source>
+        <target state="new">Links</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanDetailsResource">
         <source>Resource &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="translated">Zasób &lt;strong&gt;{0}&lt;/strong&gt;</target>
@@ -272,9 +287,19 @@
         <target state="translated">Zasób</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanDetailsSpanColumnHeader">
+        <source>Span</source>
+        <target state="new">Span</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanDetailsSpanHeader">
         <source>Span</source>
         <target state="translated">Zakres</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsSpanPrefix">
+        <source>Span</source>
+        <target state="new">Span</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsStartTime">
