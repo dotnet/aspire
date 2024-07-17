@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Components.Dialogs;
+using Aspire.Dashboard.Components.Resize;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -11,6 +14,9 @@ public partial class GridValue
 {
     [Parameter, EditorRequired]
     public string? Value { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string ValueDescription { get; set; }
 
     /// <summary>
     /// Content to include, if any, after the Value string
@@ -54,9 +60,17 @@ public partial class GridValue
     [Parameter]
     public string? ToolTip { get; set; }
 
-    [Parameter] public string PreCopyToolTip { get; set; } = null!;
+    [Parameter]
+    public string PreCopyToolTip { get; set; } = null!;
 
-    [Parameter] public string PostCopyToolTip { get; set; } = null!;
+    [Parameter]
+    public string PostCopyToolTip { get; set; } = null!;
+
+    [Inject]
+    public required IDialogService DialogService { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; init; }
 
     private readonly Icon _maskIcon = new Icons.Regular.Size16.EyeOff();
     private readonly Icon _unmaskIcon = new Icons.Regular.Size16.Eye();
@@ -90,4 +104,26 @@ public partial class GridValue
         _isMenuOpen = !_isMenuOpen;
     }
 
+    private async Task OpenTextVisualizerAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            Title = ValueDescription,
+            PrimaryActionEnabled = false,
+            SecondaryActionEnabled = false,
+            Width = ViewportInformation.IsDesktop ? "60vw" : "100vw",
+            Height = ViewportInformation.IsDesktop ? "60vh" : "100vh",
+            TrapFocus = true,
+            Modal = true,
+            PreventScroll = true
+        };
+
+        await DialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(Value!), parameters);
+    }
+
+#pragma warning disable CA1822
+    private void Test(MenuChangeEventArgs args)
+#pragma warning restore CA1822
+    {
+    }
 }

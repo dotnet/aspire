@@ -8,12 +8,17 @@
                 GenerateHeader="GenerateHeaderOption.Sticky"
                 GridTemplateColumns="@GridTemplateColumns">
     <TemplateColumn Title="@(NameColumnTitle ?? Loc[nameof(ControlsStrings.NameColumnHeader)])" Class="nameColumn" SortBy="@NameSort" Sortable="@IsNameSortable">
-        <GridValue Value="@NameColumnValue(context)" HighlightText="@HighlightText" />
+        <GridValue
+            ValueDescription="@(NameColumnTitle ?? Loc[nameof(ControlsStrings.NameColumnHeader)])"
+            Value="@NameColumnValue(context)"
+            HighlightText="@HighlightText" />
     </TemplateColumn>
     <TemplateColumn Title="@(ValueColumnTitle ?? Loc[nameof(ControlsStrings.PropertyGridValueColumnHeader)])" Class="valueColumn" SortBy="@ValueSort" Sortable="@IsValueSortable">
-        <GridValue Value="@ValueColumnValue(context)" HighlightText="@HighlightText"
-                   EnableMasking="@EnableValueMasking" IsMasked="@GetIsItemMasked(context)"
-                   IsMaskedChanged="(newValue) => OnIsMaskedChanged(context, newValue)" />
+        <GridValue
+            ValueDescription="@(ValueColumnTitle ?? Loc[nameof(ControlsStrings.PropertyGridValueColumnHeader)])"
+            Value="@ValueColumnValue(context)" HighlightText="@HighlightText"
+            EnableMasking="@EnableValueMasking" IsMasked="@GetIsItemMasked(context)"
+            IsMaskedChanged="(newValue) => OnIsMaskedChanged(context, newValue)"/>
         @ExtraValueContent(context)
     </TemplateColumn>
 </FluentDataGrid>

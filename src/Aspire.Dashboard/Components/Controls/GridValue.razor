@@ -60,15 +60,25 @@
         <FluentIcon Style="display:inline;" Icon="Icons.Regular.Size16.MoreVertical" />
     </FluentButton>
 
-    <FluentMenu Anchor="@_menuAnchorId" @bind-Open="_isMenuOpen" VerticalThreshold="170">
-        <FluentMenuItem
-            Id="@_copyAnchorId"
-            AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip, uncapturedAttributes)">
-            <span slot="start">
-                <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
-                <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
-            </span>
-            @PreCopyToolTip
-        </FluentMenuItem>
-    </FluentMenu>
+    <div>
+        <FluentMenu Anchor="@_menuAnchorId" @bind-Open="_isMenuOpen" VerticalThreshold="170" @onmenuchange="@Test">
+            <FluentMenuItem
+                Id="@_copyAnchorId"
+                AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip, uncapturedAttributes)">
+                <span slot="start">
+                    <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
+                    <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
+                </span>
+                @PreCopyToolTip
+            </FluentMenuItem>
+
+            <FluentMenuItem OnClick="@OpenTextVisualizerAsync" Disabled="@(Value is null)">
+                <span slot="start">
+                    <FluentIcon Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Open" Slot="start"/>
+                </span>
+
+                Open in text visualizer
+            </FluentMenuItem>
+        </FluentMenu>
+    </div>
 </div>

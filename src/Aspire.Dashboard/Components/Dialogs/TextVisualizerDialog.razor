@@ -1,0 +1,9 @@
+﻿@using Aspire.Dashboard.Model
+@implements IDialogContentComponent<Aspire.Dashboard.Model.TextVisualizerDialogViewModel>
+
+@Content.Text
+
+@code {
+    [Parameter, EditorRequired]
+    public required TextVisualizerDialogViewModel Content { get; set; }
+}
