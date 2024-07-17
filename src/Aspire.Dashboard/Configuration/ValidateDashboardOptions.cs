@@ -55,6 +55,11 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
                 break;
         }
 
+        if (options.Frontend.ConsoleLogHistoryLimit <= 0)
+        {
+            errorMessages.Add("ConsoleLogHistoryLimit must be greater than zero.");
+        }
+
         if (!options.Otlp.TryParseOptions(out var otlpParseErrorMessage))
         {
             errorMessages.Add(otlpParseErrorMessage);

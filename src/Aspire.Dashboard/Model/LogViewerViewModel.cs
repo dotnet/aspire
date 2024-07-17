@@ -9,5 +9,4 @@ public class LogViewerViewModel
 {
     public LogEntries LogEntries { get; } = new();
     public string? ResourceName { get; set; }
-
 }
