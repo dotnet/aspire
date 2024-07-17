@@ -159,11 +159,11 @@
     RenderFragment WriteSpanLink(SpanLinkViewModel context)
     {
         var content = context.Span != null
-        ? SpanWaterfallViewModel.GetTitle(context.Span, ViewModel.Applications)
-        : $"{Loc[nameof(ControlsStrings.SpanDetailsSpanPrefix)]}: {OtlpHelpers.ToShortenedId(context.SpanId)}";
+            ? SpanWaterfallViewModel.GetTitle(context.Span, ViewModel.Applications)
+            : $"{Loc[nameof(ControlsStrings.SpanDetailsSpanPrefix)]}: {OtlpHelpers.ToShortenedId(context.SpanId)}";
         var color = context.Span != null
-        ? ColorGenerator.Instance.GetColorHexByKey(OtlpApplication.GetResourceName(context.Span.Source, ViewModel.Applications))
-        : "transparent";
+            ? ColorGenerator.Instance.GetColorHexByKey(OtlpApplication.GetResourceName(context.Span.Source, ViewModel.Applications))
+            : "transparent";
 
         return @<div>
         <div class="spanlink-container" style="height:32px;">
