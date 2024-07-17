@@ -1,6 +1,0 @@
-<Project>
-  <ItemGroup>
-    <JsonSchemaSegment Include="$(MSBuildThisFileDirectory)..\AspireAzureConfigurationSchema.json"
-                       FilePathPattern="appsettings\..*json" />
-  </ItemGroup>
-</Project>
