@@ -109,7 +109,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             TestResourceNames.cosmos or TestResourceNames.efcosmos => "cosmos",
             TestResourceNames.eventhubs => "eventhubs",
             TestResourceNames.garnet => "garnet",
-            TestResourceNames.kafka => "kafka",
             TestResourceNames.milvus => "milvus",
             TestResourceNames.mongodb => "mongodb",
             TestResourceNames.mysql or TestResourceNames.efmysql => "mysql",
@@ -118,7 +117,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             TestResourceNames.rabbitmq => "rabbitmq",
             TestResourceNames.redis => "redis",
             TestResourceNames.sqlserver or TestResourceNames.efsqlserver => "sqlserver",
-            TestResourceNames.valkey => "valkey",
             _ => throw new ArgumentException($"Unknown resource: {resource}")
         };
 
@@ -151,12 +149,10 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             "oracle" => TestResourceNames.oracledatabase,
             "cosmos" => TestResourceNames.cosmos | TestResourceNames.efcosmos,
             "eventhubs" => TestResourceNames.eventhubs,
-            "basicservices" => TestResourceNames.kafka
-                              | TestResourceNames.mongodb
+            "basicservices" => TestResourceNames.mongodb
                               | TestResourceNames.rabbitmq
                               | TestResourceNames.redis
                               | TestResourceNames.garnet
-                              | TestResourceNames.valkey
                               | TestResourceNames.postgres
                               | TestResourceNames.efnpgsql
                               | TestResourceNames.mysql
