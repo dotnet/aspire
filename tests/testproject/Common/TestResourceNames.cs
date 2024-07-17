@@ -23,6 +23,7 @@ public enum TestResourceNames
     milvus = 1 << 14,
     efsqlserver = 1 << 16,
     efcosmos = 1 << 17,
+    elasticsearch = 1 << 18,
     All = cosmos | dashboard | mongodb | mysql | oracledatabase | efmysql | postgres | rabbitmq | redis | sqlserver | efnpgsql | garnet | eventhubs | milvus | efsqlserver | efcosmos | elasticsearch
 }
 
