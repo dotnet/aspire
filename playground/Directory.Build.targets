@@ -2,7 +2,7 @@
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
 
   <!-- when in-repo then use this. for out-of-repo a parent DBprops does the import -->
-  <Import Project="$(TestsSharedRepoTestingDir)Aspire.Testing.Repo.targets" Condition="'$(RepoRoot)' != ''" />
+  <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.targets" Condition="'$(RepoRoot)' != ''" />
 
   <PropertyGroup Condition="'$(BuildForTest)' == 'true'">
     <DefineConstants>BUILD_FOR_TEST;$(DefineConstants)</DefineConstants>
