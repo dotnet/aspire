@@ -199,6 +199,7 @@ public partial class PlotlyChart : ChartBase, IAsyncDisposable
         public void Dispose()
         {
             _cts.Cancel();
+            _cts.Dispose();
         }
 
         [JSInvokable]
@@ -207,7 +208,7 @@ public partial class PlotlyChart : ChartBase, IAsyncDisposable
             var available = await MetricsHelpers.WaitForSpanToBeAvailableAsync(
                 traceId,
                 spanId,
-                _plotlyChart.GetSpan,
+                _plotlyChart.TelemetryRepository.GetSpan,
                 _plotlyChart.DialogService,
                 _plotlyChart.InvokeAsync,
                 _plotlyChart.DialogsLoc,
