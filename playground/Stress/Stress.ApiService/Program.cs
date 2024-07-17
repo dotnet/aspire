@@ -11,7 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 builder.Services.AddOpenTelemetry()
-    .WithTracing(tracing => tracing.AddSource(TraceCreator.ActivitySourceName));
+    .WithTracing(tracing => tracing.AddSource(TraceCreator.ActivitySourceName, ProducerConsumer.ActivitySourceName));
 
 var app = builder.Build();
 
@@ -117,6 +117,15 @@ app.MapGet("/many-logs", (ILoggerFactory loggerFactory, CancellationToken cancel
             yield return message;
         }
     }
+});
+
+app.MapGet("/producer-consumer", async () =>
+{
+    var producerConsumer = new ProducerConsumer();
+
+    await producerConsumer.ProduceAndConsumeAsync(count: 5);
+
+    return "Produced and consumed";
 });
 
 app.Run();
