@@ -64,7 +64,8 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="Microsoft.DotNet.XUnitAssert" />
 
-    <!-- .. and the corresponding version properties -->
+    <!-- And corresponding version properties used by `PackageVersion` items
+         in Directory.Packages.Helix.props -->
     <PropertyForHelixRun Include="XunitVersion" />
     <PropertyForHelixRun Include="XunitAnalyzersVersion" />
     <PropertyForHelixRun Include="XunitRunnerVisualStudioVersion" />
