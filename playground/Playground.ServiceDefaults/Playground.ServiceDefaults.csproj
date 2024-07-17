@@ -18,8 +18,8 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
 
-    <NonComponentReferenceForTests Include="Microsoft.Extensions.ServiceDiscovery.Dns" />
-    <NonComponentReferenceForTests Include="Microsoft.Extensions.ServiceDiscovery" />
+    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Dns" />
+    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
 
   </ItemGroup>
 

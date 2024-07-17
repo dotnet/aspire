@@ -14,8 +14,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.Redis" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Redis" IsAspireProjectResource="false" />
 
     <ProjectReference Include="..\ProxylessEndToEnd.ApiService\ProxylessEndToEnd.ApiService.csproj" />
   </ItemGroup>

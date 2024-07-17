@@ -14,8 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.Python" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Python" IsAspireProjectResource="false" />
 
     <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
   </ItemGroup>

@@ -15,9 +15,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.Azure" IsAspireProjectResource="false" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.Nats" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Nats" IsAspireProjectResource="false" />
     <ProjectReference Include="..\Nats.ApiService\Nats.ApiService.csproj" />
     <ProjectReference Include="..\Nats.Backend\Nats.Backend.csproj" />
   </ItemGroup>

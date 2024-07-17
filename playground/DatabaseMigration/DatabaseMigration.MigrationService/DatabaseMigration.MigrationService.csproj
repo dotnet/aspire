@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ComponentReferenceForTests Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" />
+    <AspireProjectOrPackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
     <ProjectReference Include="..\DatabaseMigration.ApiModel\DatabaseMigration.ApiModel.csproj" />
   </ItemGroup>

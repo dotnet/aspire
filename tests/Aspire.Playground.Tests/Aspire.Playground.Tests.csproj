@@ -21,10 +21,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <NonComponentReferenceForTests Include="Aspire.Hosting.Testing" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.Azure" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.NodeJs" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Testing" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.NodeJs" />
 
     <!--<ProjectReference Include="$(PlaygroundSourceDir)AspireEventHub/EventHubs.AppHost/EventHubs.AppHost.csproj" />-->
     <ProjectReference Include="$(PlaygroundSourceDir)AzureStorageEndToEnd/AzureStorageEndToEnd.AppHost/AzureStorageEndToEnd.AppHost.csproj" />

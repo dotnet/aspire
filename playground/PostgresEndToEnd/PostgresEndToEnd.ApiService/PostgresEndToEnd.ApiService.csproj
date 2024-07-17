@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ComponentReferenceForTests Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <AspireProjectOrPackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
 

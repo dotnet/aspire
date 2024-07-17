@@ -12,10 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <NonComponentReferenceForTests Include="Microsoft.Extensions.ServiceDiscovery.Abstractions" />
-    <NonComponentReferenceForTests Include="Microsoft.Extensions.ServiceDiscovery.Yarp" />
-    <NonComponentReferenceForTests Include="Microsoft.Extensions.ServiceDiscovery" />
-    <NonComponentReferenceForTests Include="Microsoft.Extensions.ServiceDiscovery.Dns" />
+    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Abstractions" />
+    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Yarp" />
+    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
+    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Dns" />
     <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
   </ItemGroup>
 

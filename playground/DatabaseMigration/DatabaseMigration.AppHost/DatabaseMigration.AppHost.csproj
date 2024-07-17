@@ -14,8 +14,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
-    <NonComponentReferenceForTests Include="Aspire.Hosting.SqlServer" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.SqlServer" IsAspireProjectResource="false" />
 
     <ProjectReference Include="..\DatabaseMigration.ApiService\DatabaseMigration.ApiService.csproj" />
     <ProjectReference Include="..\DatabaseMigration.MigrationService\DatabaseMigration.MigrationService.csproj" />

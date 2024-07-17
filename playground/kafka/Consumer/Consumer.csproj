@@ -10,7 +10,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
   <ItemGroup>
-    <ComponentReferenceForTests Include="Aspire.Confluent.Kafka" />
+    <AspireProjectOrPackageReference Include="Aspire.Confluent.Kafka" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
 </Project>

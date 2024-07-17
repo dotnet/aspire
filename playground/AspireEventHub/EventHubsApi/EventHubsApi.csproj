@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ComponentReferenceForTests Include="Aspire.Azure.Messaging.EventHubs" />
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Messaging.EventHubs" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
 

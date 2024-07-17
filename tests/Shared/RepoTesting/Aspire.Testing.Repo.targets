@@ -4,7 +4,7 @@
     This provides support for running tests outside of the repo, for example on a helix agent.
     - For this you need the source of the tests, and any dependencies.
     - Instead of direct `ProjectReferences` to the various Aspire hosting, and component projects use
-      `@(ComponentReferenceForTests)`, and @(NonComponentReferenceForTests)`.
+      `@(AspireProjectOrPackageReference)`, and @(AspireProjectOrPackageReference)`.
       - These are converted to `ProjectReference` when `$(TestsRunningOutsideOfRepo) != true`.
       - But converted to `PackageReference` when `$(TestsRunningOutsideOfRepo) == true`.
 
@@ -30,8 +30,8 @@
       `GeneratedPackagesVersionsPropsPath` - path for the generated `Directory.Packages.Versions.props`
 
     Public Items:
-      `ComponentReferenceForTests` - maps to projects in `src/Components/
-      `NonComponentReferenceForTests` - maps to projects in `src/`
+      `AspireProjectOrPackageReference` - maps to projects in `src/Components/
+      `AspireProjectOrPackageReference` - maps to projects in `src/`
   -->
 
   <PropertyGroup>
@@ -43,13 +43,13 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">
-    <ProjectReference Include="@(ComponentReferenceForTests -> '$(RepoRoot)src\Components\%(Identity)\%(Identity).csproj')" />
-    <ProjectReference Include="@(NonComponentReferenceForTests -> '$(RepoRoot)src\%(Identity)\%(Identity).csproj')" />
+    <ProjectReference Include="@(AspireProjectOrPackageReference -> '$(RepoRoot)src\Components\%(Identity)\%(Identity).csproj')" />
+    <ProjectReference Include="@(AspireProjectOrPackageReference -> '$(RepoRoot)src\%(Identity)\%(Identity).csproj')" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
-    <PackageReference Include="@(ComponentReferenceForTests)" />
-    <PackageReference Include="@(NonComponentReferenceForTests)" />
+    <PackageReference Include="@(AspireProjectOrPackageReference)" />
+    <PackageReference Include="@(AspireProjectOrPackageReference)" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true' and '$(RepoRoot)' == '' and '$(IncludeTestPackages)' == 'true'" Label="Test packages">

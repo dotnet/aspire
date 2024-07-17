@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ComponentReferenceForTests Include="Aspire.Azure.Search.Documents" />
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Search.Documents" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
 </Project>

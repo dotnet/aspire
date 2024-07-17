@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ComponentReferenceForTests Include="Aspire.NATS.Net" />
+    <AspireProjectOrPackageReference Include="Aspire.NATS.Net" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
     <ProjectReference Include="..\Nats.Common\Nats.Common.csproj" />
   </ItemGroup>

@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
-    <ComponentReferenceForTests Include="Aspire.StackExchange.Redis" />
+    <AspireProjectOrPackageReference Include="Aspire.StackExchange.Redis" />
   </ItemGroup>
 
 </Project>

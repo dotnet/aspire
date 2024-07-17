@@ -13,7 +13,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Orleans.Client" />
     <PackageReference Include="Microsoft.Orleans.Clustering.AzureStorage" />
-    <ComponentReferenceForTests Include="Aspire.Azure.Data.Tables" />
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Data.Tables" />
     <ProjectReference Include="..\OrleansContracts\OrleansContracts.csproj" />
     <ProjectReference Include="..\OrleansServiceDefaults\OrleansServiceDefaults.csproj" />
   </ItemGroup>

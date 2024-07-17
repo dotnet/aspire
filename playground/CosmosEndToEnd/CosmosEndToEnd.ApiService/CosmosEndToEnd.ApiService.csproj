@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ComponentReferenceForTests Include="Aspire.Microsoft.Azure.Cosmos" />
-    <ComponentReferenceForTests Include="Aspire.Microsoft.EntityFrameworkCore.Cosmos" />
+    <AspireProjectOrPackageReference Include="Aspire.Microsoft.Azure.Cosmos" />
+    <AspireProjectOrPackageReference Include="Aspire.Microsoft.EntityFrameworkCore.Cosmos" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
 
