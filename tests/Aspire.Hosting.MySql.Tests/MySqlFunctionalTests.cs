@@ -3,6 +3,7 @@
 
 using System.Data;
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -334,6 +335,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
         builder.Services.AddXunitLogging(testOutputHelper);
+        builder.Services.AddHostedService<ResourceLoggerForwarderService>();
         return builder;
     }
 }
