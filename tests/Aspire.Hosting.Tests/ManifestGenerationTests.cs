@@ -489,7 +489,7 @@ public class ManifestGenerationTests
                     "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
                     "ConnectionStrings__cosmos": "{cosmos.connectionString}",
                     "ConnectionStrings__eventhubns": "{eventhubns.connectionString}",
-                    "ConnectionStrings__milvus": "{milvus.connectionString}",
+                    "ConnectionStrings__milvus": "{milvus.connectionString}"
                   },
                   "bindings": {
                     "http": {
