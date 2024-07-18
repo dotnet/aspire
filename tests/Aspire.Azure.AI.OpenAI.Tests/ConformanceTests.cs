@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Aspire.Azure.AI.OpenAI.Tests;
 
-public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettings>
+public class ConformanceTests : ConformanceTests<AzureOpenAIClient, AzureOpenAISettings>
 {
     protected const string Endpoint = "https://aspireopenaitests.openai.azure.com/";
 
@@ -54,7 +54,7 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
             ("""{"Aspire": { "Azure": { "AI":{ "OpenAI": {"Endpoint": "http://YOUR_URI", "DisableTracing": "true"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
-    protected override string ActivitySourceName => "Azure.AI.OpenAI.OpenAIClient";
+    protected override string ActivitySourceName => "OpenAI.ChatClient";
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
@@ -85,10 +85,12 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
     }
 
     [Fact]
+    [ActiveIssue("OpenAI library doesn't support tracing yet - https://github.com/openai/openai-dotnet/pull/107/")]
     public void TracingEnablesTheRightActivitySource()
         => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
 
     [Fact]
+    [ActiveIssue("OpenAI library doesn't support tracing yet - https://github.com/openai/openai-dotnet/pull/107/")]
     public void TracingEnablesTheRightActivitySource_Keyed()
         => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
 
@@ -101,6 +103,6 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
     protected override void SetTracing(AzureOpenAISettings options, bool enabled)
         => options.DisableTracing = !enabled;
 
-    protected override void TriggerActivity(OpenAIClient service)
-        => service.GetCompletions(new CompletionsOptions { DeploymentName = "dummy-gpt" });
+    protected override void TriggerActivity(AzureOpenAIClient service)
+        => service.GetChatClient("dummy").CompleteChat("dummy gpt");
 }

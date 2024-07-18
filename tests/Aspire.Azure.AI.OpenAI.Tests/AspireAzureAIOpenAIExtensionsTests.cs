@@ -34,8 +34,8 @@ public class AspireAzureAIOpenAIExtensionsTests
 
         using var host = builder.Build();
         var client = useKeyed ?
-            host.Services.GetRequiredKeyedService<OpenAIClient>("openai") :
-            host.Services.GetRequiredService<OpenAIClient>();
+            host.Services.GetRequiredKeyedService<AzureOpenAIClient>("openai") :
+            host.Services.GetRequiredService<AzureOpenAIClient>();
 
         Assert.NotNull(client);
     }
@@ -60,8 +60,8 @@ public class AspireAzureAIOpenAIExtensionsTests
 
         using var host = builder.Build();
         var client = useKeyed ?
-            host.Services.GetRequiredKeyedService<OpenAIClient>("openai") :
-            host.Services.GetRequiredService<OpenAIClient>();
+            host.Services.GetRequiredKeyedService<AzureOpenAIClient>("openai") :
+            host.Services.GetRequiredService<AzureOpenAIClient>();
 
         Assert.NotNull(client);
     }
@@ -81,7 +81,7 @@ public class AspireAzureAIOpenAIExtensionsTests
         builder.AddAzureOpenAIClient("openai");
 
         using var host = builder.Build();
-        var client = host.Services.GetRequiredService<OpenAIClient>();
+        var client = host.Services.GetRequiredService<AzureOpenAIClient>();
 
         Assert.NotNull(client);
     }
@@ -104,8 +104,8 @@ public class AspireAzureAIOpenAIExtensionsTests
 
         // Unkeyed services don't work with keyed services. See https://github.com/dotnet/aspire/issues/3890
         //var client1 = host.Services.GetRequiredService<OpenAIClient>();
-        var client2 = host.Services.GetRequiredKeyedService<OpenAIClient>("openai2");
-        var client3 = host.Services.GetRequiredKeyedService<OpenAIClient>("openai3");
+        var client2 = host.Services.GetRequiredKeyedService<AzureOpenAIClient>("openai2");
+        var client3 = host.Services.GetRequiredKeyedService<AzureOpenAIClient>("openai3");
 
         //Assert.NotSame(client1, client2);
         //Assert.NotSame(client1, client3);
