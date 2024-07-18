@@ -96,9 +96,15 @@ internal static class DashboardUrls
         return url;
     }
 
-    public static string TraceDetailUrl(string traceId)
+    public static string TraceDetailUrl(string traceId, string? spanId = null)
     {
-        return $"/{TracesBasePath}/detail/{Uri.EscapeDataString(traceId)}";
+        var url = $"/{TracesBasePath}/detail/{Uri.EscapeDataString(traceId)}";
+        if (spanId != null)
+        {
+            url = QueryHelpers.AddQueryString(url, "spanId", spanId);
+        }
+
+        return url;
     }
 
     public static string LoginUrl(string? returnUrl = null, string? token = null)

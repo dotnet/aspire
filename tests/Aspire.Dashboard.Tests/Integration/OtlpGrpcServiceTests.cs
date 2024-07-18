@@ -8,6 +8,7 @@ using Aspire.Dashboard.Configuration;
 using Aspire.Hosting;
 using Grpc.Core;
 using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using Xunit;
@@ -153,6 +154,10 @@ public class OtlpGrpcServiceTests
     public async Task CallService_OtlpGrpcEndPoint_ExternalFile_FileChanged_UseConfiguredKey()
     {
         // Arrange
+        var testSink = new TestSink();
+        using var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(_testOutputHelper, testSink: testSink);
+        var logger = loggerFactory.CreateLogger(GetType());
+
         var apiKey = "TestKey123!";
         var configPath = Path.GetTempFileName();
         var configJson = new JsonObject
@@ -166,22 +171,16 @@ public class OtlpGrpcServiceTests
                 }
             }
         };
-        File.WriteAllText(configPath, configJson.ToString());
+        logger.LogInformation("Writing original JSON file.");
+        await File.WriteAllTextAsync(configPath, configJson.ToString());
 
-        var testSink = new TestSink();
-        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(loggerFactory, config =>
         {
             config[DashboardConfigNames.DashboardConfigFilePathName.ConfigKey] = configPath;
-        }, testSink: testSink);
+        });
         await app.StartAsync();
 
-        var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        using var monitorRegistration = app.DashboardOptionsMonitor.OnChange((o, n) =>
-        {
-            tcs.TrySetResult();
-        });
-
-        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.OtlpServiceGrpcEndPointAccessor().EndPoint}", _testOutputHelper);
+        using var channel = IntegrationTestHelpers.CreateGrpcChannel($"http://{app.OtlpServiceGrpcEndPointAccessor().EndPoint}", loggerFactory);
         var client = new LogsService.LogsServiceClient(channel);
 
         var metadata = new Metadata
@@ -196,6 +195,13 @@ public class OtlpGrpcServiceTests
         Assert.Equal(0, response1.PartialSuccess.RejectedLogRecords);
 
         // Change config file
+        var tcs = new TaskCompletionSource<DashboardOptions>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var monitorRegistration = app.DashboardOptionsMonitor.OnChange((o, n) =>
+        {
+            logger.LogInformation("Options changed.");
+            tcs.TrySetResult(o);
+        });
+
         configJson = new JsonObject
         {
             ["Dashboard"] = new JsonObject
@@ -207,11 +213,18 @@ public class OtlpGrpcServiceTests
                 }
             }
         };
-        File.WriteAllText(configPath, configJson.ToString());
 
-        await tcs.Task;
+        logger.LogInformation("Writing new JSON file.");
+        await File.WriteAllTextAsync(configPath, configJson.ToString());
+
+        logger.LogInformation("Waiting for options change.");
+        var options = await tcs.Task;
+
+        logger.LogInformation("Assert new API key.");
+        Assert.Equal("Different", options.Otlp.PrimaryApiKey);
 
         // Act 2
+        logger.LogInformation("Client sends new request with old API key.");
         var ex = await Assert.ThrowsAsync<RpcException>(() => client.ExportAsync(new ExportLogsServiceRequest(), metadata).ResponseAsync);
 
         // Assert 2

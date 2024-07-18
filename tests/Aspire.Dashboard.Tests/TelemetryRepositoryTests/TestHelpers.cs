@@ -22,10 +22,16 @@ internal static class TestHelpers
 {
     public static void AssertId(string expected, string actual)
     {
-        var bytes = Convert.FromHexString(actual);
-        var resolvedActual = Encoding.UTF8.GetString(bytes);
+        var resolvedActual = GetStringId(actual);
 
         Assert.Equal(expected, resolvedActual);
+    }
+
+    public static string GetStringId(string hexString)
+    {
+        var bytes = Convert.FromHexString(hexString);
+        var resolved = Encoding.UTF8.GetString(bytes);
+        return resolved;
     }
 
     public static string GetHexId(string text)
@@ -74,7 +80,7 @@ internal static class TestHelpers
         };
     }
 
-    public static Metric CreateSumMetric(string metricName, DateTime startTime, IEnumerable<KeyValuePair<string, string>>? attributes = null, int? value = null)
+    public static Metric CreateSumMetric(string metricName, DateTime startTime, IEnumerable<KeyValuePair<string, string>>? attributes = null, IEnumerable<Exemplar>? exemplars = null, int? value = null)
     {
         return new Metric
         {
@@ -87,13 +93,13 @@ internal static class TestHelpers
                 IsMonotonic = true,
                 DataPoints =
                 {
-                    CreateNumberPoint(startTime, value ?? 1, attributes)
+                    CreateNumberPoint(startTime, value ?? 1, attributes, exemplars)
                 }
             }
         };
     }
 
-    private static NumberDataPoint CreateNumberPoint(DateTime startTime, int value, IEnumerable<KeyValuePair<string, string>>? attributes = null)
+    private static NumberDataPoint CreateNumberPoint(DateTime startTime, int value, IEnumerable<KeyValuePair<string, string>>? attributes = null, IEnumerable<Exemplar>? exemplars = null)
     {
         var point = new NumberDataPoint
         {
@@ -106,6 +112,13 @@ internal static class TestHelpers
             foreach (var attribute in attributes)
             {
                 point.Attributes.Add(new KeyValue { Key = attribute.Key, Value = new AnyValue { StringValue = attribute.Value } });
+            }
+        }
+        if (exemplars != null)
+        {
+            foreach (var exemplar in exemplars)
+            {
+                point.Exemplars.Add(exemplar);
             }
         }
 
@@ -130,7 +143,7 @@ internal static class TestHelpers
         return e;
     }
 
-    public static Span CreateSpan(string traceId, string spanId, DateTime startTime, DateTime endTime, string? parentSpanId = null, List<Span.Types.Event>? events = null, IEnumerable<KeyValuePair<string, string>>? attributes = null)
+    public static Span CreateSpan(string traceId, string spanId, DateTime startTime, DateTime endTime, string? parentSpanId = null, List<Span.Types.Event>? events = null, List<Span.Types.Link>? links = null, IEnumerable<KeyValuePair<string, string>>? attributes = null)
     {
         var span = new Span
         {
@@ -144,6 +157,10 @@ internal static class TestHelpers
         if (events != null)
         {
             span.Events.AddRange(events);
+        }
+        if (links != null)
+        {
+            span.Links.AddRange(links);
         }
         if (attributes != null)
         {
@@ -194,6 +211,7 @@ internal static class TestHelpers
         int? maxAttributeCount = null,
         int? maxAttributeLength = null,
         int? maxSpanEventCount = null,
+        int? maxTraceCount = null,
         TimeSpan? subscriptionMinExecuteInterval = null)
     {
         var options = new TelemetryLimitOptions();
@@ -212,6 +230,10 @@ internal static class TestHelpers
         if (maxSpanEventCount != null)
         {
             options.MaxSpanEventCount = maxSpanEventCount.Value;
+        }
+        if (maxTraceCount != null)
+        {
+            options.MaxTraceCount = maxTraceCount.Value;
         }
 
         var repository = new TelemetryRepository(NullLoggerFactory.Instance, Options.Create(new DashboardOptions { TelemetryLimits = options }));

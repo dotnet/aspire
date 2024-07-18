@@ -2,14 +2,28 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Configuration;
 
 public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions>
 {
+    private readonly ILogger _logger;
+
+    public ValidateDashboardOptions() : this(NullLogger<ValidateDashboardOptions>.Instance)
+    {
+    }
+
+    public ValidateDashboardOptions(ILogger<ValidateDashboardOptions> logger)
+    {
+        _logger = logger;
+    }
+
     public ValidateOptionsResult Validate(string? name, DashboardOptions options)
     {
+        _logger.LogDebug($"Validating {nameof(DashboardOptions)}.");
+
         var errorMessages = new List<string>();
 
         if (!options.Frontend.TryParseOptions(out var frontendParseErrorMessage))
@@ -39,6 +53,11 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
             default:
                 errorMessages.Add($"Unexpected frontend authentication mode: {options.Otlp.AuthMode}");
                 break;
+        }
+
+        if (options.Frontend.MaxConsoleLogCount <= 0)
+        {
+            errorMessages.Add($"{DashboardConfigNames.DashboardFrontendMaxConsoleLogCountName.ConfigKey} must be greater than zero.");
         }
 
         if (!options.Otlp.TryParseOptions(out var otlpParseErrorMessage))

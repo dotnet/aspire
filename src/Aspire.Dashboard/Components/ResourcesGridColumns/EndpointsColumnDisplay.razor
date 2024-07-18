@@ -3,17 +3,9 @@
 
 @if (DisplayedEndpoints.Count == 1)
 {
-    var displayedEndpoint = DisplayedEndpoints[0];
-    if (displayedEndpoint.Url != null)
-    {
-        <a href="@displayedEndpoint.Url" target="_blank">@displayedEndpoint.Text</a>
-    }
-    else
-    {
-        @displayedEndpoint.Text
-    }
+    @WriteEndpoint(DisplayedEndpoints[0])
 }
-else
+else if (DisplayedEndpoints.Count > 1)
 {
     <FluentOverflow Class="endpoint-overflow">
         <ChildContent>
@@ -23,14 +15,8 @@ else
                 var isLast = i == DisplayedEndpoints.Count - 1;
 
                 <FluentOverflowItem Data="displayedEndpoint">
-                    @if (displayedEndpoint.Url != null)
-                    {
-                        <a href="@displayedEndpoint.Url" target="_blank">@displayedEndpoint.Text</a>
-                    }
-                    else
-                    {
-                        @displayedEndpoint.Text
-                    }
+                    @WriteEndpoint(displayedEndpoint)
+
                     @if (!isLast)
                     {
                         <span>,</span>
@@ -49,7 +35,7 @@ else
             }
             <FluentPopover AnchorId="@overflow.IdMoreButton" @bind-Open="_popoverVisible" VerticalThreshold="200" AutoFocus="false">
                 <Header>
-                    Endpoints
+                    @Loc[Resources.Columns.EndpointsColumnDisplayOverflowTitle]
                 </Header>
                 <Body>
                     <div class="endpoint-popup">
@@ -57,14 +43,7 @@ else
                         {
                             var d = (DisplayedEndpoint)item.Data!;
                             <div class="endpoint-link">
-                                @if (d.Url != null)
-                                {
-                                    <a href="@d.Url" target="_blank" title="@d.Text">@d.Text</a>
-                                }
-                                else
-                                {
-                                    <span title="@d.Text">@d.Text</span>
-                                }
+                                @WriteEndpoint(d)
                             </div>
                         }
                     </div>
@@ -77,4 +56,18 @@ else
 @if (!string.IsNullOrEmpty(AdditionalMessage))
 {
     <div>@AdditionalMessage</div>
+}
+
+@code {
+    RenderFragment WriteEndpoint(DisplayedEndpoint displayedEndpoint)
+    {
+        if (displayedEndpoint.Url != null)
+        {
+            return @<a href="@displayedEndpoint.Url" target="_blank">@displayedEndpoint.Text</a>;
+        }
+        else
+        {
+            return @<span title="@displayedEndpoint.Text">@displayedEndpoint.Text</span>;
+        }
+    }
 }

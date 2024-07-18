@@ -116,29 +116,11 @@ namespace Aspire.Hosting.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Application orchestrator dependency check had an unexpected error {0}..
+        ///   Looks up a localized string similar to Application orchestrator dependency check returned an error: {0}.
         /// </summary>
         internal static string DcpDependencyCheckFailedMessage {
             get {
                 return ResourceManager.GetString("DcpDependencyCheckFailedMessage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The application orchestrator version could not be determined. Continuing..
-        /// </summary>
-        internal static string DcpVersionCheckFailedMessage {
-            get {
-                return ResourceManager.GetString("DcpVersionCheckFailedMessage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Found incompatible version of .NET Aspire workload (need application orchestrator version {0} to run the application)..
-        /// </summary>
-        internal static string DcpVersionCheckTooHighMessage {
-            get {
-                return ResourceManager.GetString("DcpVersionCheckTooHighMessage", resourceCulture);
             }
         }
         
@@ -148,15 +130,6 @@ namespace Aspire.Hosting.Properties {
         internal static string DcpVersionCheckTooLowMessage {
             get {
                 return ResourceManager.GetString("DcpVersionCheckTooLowMessage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Launch profile is specified but launch settings file is not present..
-        /// </summary>
-        internal static string LaunchProfileIsSpecifiedButLaunchSettingsFileIsNotPresentExceptionMessage {
-            get {
-                return ResourceManager.GetString("LaunchProfileIsSpecifiedButLaunchSettingsFileIsNotPresentExceptionMessage", resourceCulture);
             }
         }
         
