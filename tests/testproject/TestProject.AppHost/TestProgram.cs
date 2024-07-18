@@ -99,6 +99,13 @@ public class TestProgram : IDisposable
                 var eventHub = AppBuilder.AddAzureEventHubs("eventhubns").RunAsEmulator().AddEventHub("hub");
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(eventHub);
             }
+
+            if (!resourcesToSkip.HasFlag(TestResourceNames.milvus))
+            {
+                var milvus = AppBuilder.AddMilvus("milvus")
+                    .WithImageRegistry(AspireTestContainerRegistry);
+                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(milvus);
+            }
         }
 
         AppBuilder.Services.AddLifecycleHook<EndPointWriterHook>();

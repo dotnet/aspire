@@ -509,6 +509,31 @@ public class ManifestGenerationTests
                     "principalType": ""
                   }
                 },
+                "milvus": {
+                  "type": "container.v0",
+                  "connectionString": "Endpoint={milvus.bindings.grpc.url};Key=root:{milvus-Key.value}",
+                  "image": "{{TestConstants.AspireTestContainerRegistry}}/milvusdb/milvus:v2.4.7",
+                  "args": [
+                    "milvus",
+                    "run",
+                    "standalone"
+                  ],
+                  "env": {
+                    "COMMON_STORAGETYPE": "local",
+                    "ETCD_USE_EMBED": "true",
+                    "ETCD_DATA_DIR": "/var/lib/milvus/etcd",
+                    "COMMON_SECURITY_AUTHORIZATIONENABLED": "true",
+                    "COMMON_SECURITY_DEFAULTROOTPASSWORD": "{milvus-Key.value}"
+                  },
+                  "bindings": {
+                    "grpc": {
+                      "scheme": "http",
+                      "protocol": "tcp",
+                      "transport": "http2",
+                      "targetPort": 19530
+                    }
+                  }
+                },
                 "postgres-password": {
                   "type": "parameter.v0",
                   "value": "{postgres-password.inputs.value}",
@@ -535,6 +560,20 @@ public class ManifestGenerationTests
                         "generate": {
                           "minLength": 22
                         }
+                      }
+                    }
+                  }
+                },
+                "milvus-key": {
+                  "type": "parameter.v0",
+                  "value": "{milvus-Key.inputs.value}",
+                  "inputs": {
+                    "value": {
+                      "type": "string",
+                      "secret": true,
+                      "default": {
+                        "generate": {
+                          "minLength": 22
                       }
                     }
                   }
