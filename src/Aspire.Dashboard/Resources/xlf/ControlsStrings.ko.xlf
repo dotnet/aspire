@@ -127,6 +127,11 @@
         <target state="translated">로드 중...</target>
         <note />
       </trans-unit>
+      <trans-unit id="MetricTableExemplarsColumnHeader">
+        <source>Exemplars</source>
+        <target state="new">Exemplars</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MetricTableNoMetricsFound">
         <source>No metrics data found</source>
         <target state="translated">메트릭 데이터를 찾을 수 없음</target>
@@ -162,6 +167,11 @@
         <target state="translated">값이 변경되지 않음</target>
         <note />
       </trans-unit>
+      <trans-unit id="MetricTableViewExemplarsLabel">
+        <source>View exemplars</source>
+        <target state="new">View exemplars</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NameColumnHeader">
         <source>Name</source>
         <target state="translated">이름</target>
@@ -172,10 +182,25 @@
         <target state="translated">개수</target>
         <note>Count is the name of a plot y-axis label</note>
       </trans-unit>
+      <trans-unit id="PlotlyChartExemplars">
+        <source>Exemplars</source>
+        <target state="new">Exemplars</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlotlyChartLength">
         <source>Length</source>
         <target state="translated">길이</target>
         <note>Length is the name of a plot y-axis label</note>
+      </trans-unit>
+      <trans-unit id="PlotlyChartTime">
+        <source>Time</source>
+        <target state="new">Time</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PlotlyChartTrace">
+        <source>Trace</source>
+        <target state="new">Trace</target>
+        <note />
       </trans-unit>
       <trans-unit id="PlotlyChartValue">
         <source>Value</source>
@@ -222,6 +247,21 @@
         <target state="translated">애플리케이션 선택</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanDetailsBacklinksHeader">
+        <source>Backlinks</source>
+        <target state="new">Backlinks</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsContextHeader">
+        <source>Context</source>
+        <target state="new">Context</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsDetailsColumnHeader">
+        <source>Details</source>
+        <target state="new">Details</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanDetailsDuration">
         <source>Duration &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="translated">기간 &lt;strong&gt;{0}&lt;/strong&gt;</target>
@@ -230,6 +270,11 @@
       <trans-unit id="SpanDetailsEventsHeader">
         <source>Events</source>
         <target state="translated">이벤트</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsLinksHeader">
+        <source>Links</source>
+        <target state="new">Links</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsResource">
@@ -242,9 +287,19 @@
         <target state="translated">리소스</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanDetailsSpanColumnHeader">
+        <source>Span</source>
+        <target state="new">Span</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanDetailsSpanHeader">
         <source>Span</source>
         <target state="translated">범위</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsSpanPrefix">
+        <source>Span</source>
+        <target state="new">Span</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsStartTime">

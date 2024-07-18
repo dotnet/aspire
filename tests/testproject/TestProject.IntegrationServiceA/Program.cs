@@ -13,6 +13,10 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.sqlserver))
 {
     builder.AddSqlServerClient("tempdb");
 }
+if (!resourcesToSkip.HasFlag(TestResourceNames.efsqlserver))
+{
+    builder.AddSqlServerDbContext<EFCoreSqlServerDbContext>("tempdb");
+}
 if (!resourcesToSkip.HasFlag(TestResourceNames.mysql) || !resourcesToSkip.HasFlag(TestResourceNames.efmysql))
 {
     builder.AddMySqlDataSource("mysqldb", settings =>
@@ -37,10 +41,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
 {
     builder.AddKeyedRedisClient("garnet");
-}
-if (!resourcesToSkip.HasFlag(TestResourceNames.valkey))
-{
-    builder.AddKeyedRedisClient("valkey");
 }
 if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
@@ -67,19 +67,15 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.oracledatabase))
 {
     builder.AddOracleDatabaseDbContext<MyDbContext>("freepdb1");
 }
-if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
-{
-    builder.AddKafkaProducer<string, string>("kafka");
-    builder.AddKafkaConsumer<string, string>("kafka", consumerBuilder =>
-    {
-        consumerBuilder.Config.GroupId = "aspire-consumer-group";
-        consumerBuilder.Config.AutoOffsetReset = AutoOffsetReset.Earliest;
-    });
-}
 
-if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
+if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos) || !resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
 {
     builder.AddAzureCosmosClient("cosmos");
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
+{
+    builder.AddCosmosDbContext<EFCoreCosmosDbContext>("cosmos", "cosmos");
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
@@ -122,11 +118,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
     app.MapGarnetApi();
 }
 
-if (!resourcesToSkip.HasFlag(TestResourceNames.valkey))
-{
-    app.MapValkeyApi();
-}
-
 if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
 {
     app.MapMongoDBApi();
@@ -156,6 +147,11 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.sqlserver))
     app.MapSqlServerApi();
 }
 
+if (!resourcesToSkip.HasFlag(TestResourceNames.efsqlserver))
+{
+    app.MapEFCoreSqlServerApi();
+}
+
 if (!resourcesToSkip.HasFlag(TestResourceNames.rabbitmq))
 {
     app.MapRabbitMQApi();
@@ -166,14 +162,14 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.oracledatabase))
     app.MapOracleDatabaseApi();
 }
 
-if (!resourcesToSkip.HasFlag(TestResourceNames.kafka))
-{
-    app.MapKafkaApi();
-}
-
 if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
 {
     app.MapCosmosApi();
+}
+
+if (!resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
+{
+    app.MapEFCoreCosmosApi();
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))

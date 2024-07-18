@@ -33,7 +33,7 @@ public class ProjectResourceTests
         var serviceMetadata = Assert.Single(resource.Annotations.OfType<IProjectMetadata>());
         Assert.IsType<TestProject>(serviceMetadata);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Collection(config,
             env =>
@@ -74,7 +74,7 @@ public class ProjectResourceTests
             env =>
             {
                 Assert.Equal("OTEL_RESOURCE_ATTRIBUTES", env.Key);
-                Assert.Equal("service.instance.id={{- .Name -}}", env.Value);
+                Assert.Equal("service.instance.id={{- index .Annotations \"otel-service-instance-id\" -}}", env.Value);
             },
             env =>
             {
@@ -107,6 +107,11 @@ public class ProjectResourceTests
             {
                 Assert.Equal("OTEL_TRACES_SAMPLER", env.Key);
                 Assert.Equal("always_on", env.Value);
+            },
+            env =>
+            {
+                Assert.Equal("OTEL_METRICS_EXEMPLAR_FILTER", env.Key);
+                Assert.Equal("trace_based", env.Value);
             },
             env =>
             {
@@ -144,7 +149,7 @@ public class ProjectResourceTests
         var resource = Assert.Single(projectResources);
         Assert.Equal("projectName", resource.Name);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         if (hasHeader)
         {
@@ -288,6 +293,9 @@ public class ProjectResourceTests
                   .WithHttpEndpoint(port: 5000, name: "http")
                   .WithHttpsEndpoint(port: 5001, name: "https")
                   .WithHttpEndpoint(port: 5002, name: "http2", env: "SOME_ENV")
+                  .WithHttpEndpoint(port: 5003, name: "dontinjectme")
+                  // Should not be included in ASPNETCORE_URLS
+                  .WithEndpointsInEnvironment(filter: e => e.Name != "dontinjectme")
                   .WithEndpoint("http", e =>
                   {
                       e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p0");
@@ -299,6 +307,10 @@ public class ProjectResourceTests
                   .WithEndpoint("http2", e =>
                    {
                        e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p2");
+                   })
+                  .WithEndpoint("dontinjectme", e =>
+                   {
+                       e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p3");
                    });
 
         using var app = appBuilder.Build();
@@ -309,7 +321,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Equal("http://localhost:p0;https://localhost:p1", config["ASPNETCORE_URLS"]);
         Assert.Equal("5001", config["ASPNETCORE_HTTPS_PORT"]);
@@ -331,7 +343,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.False(config.ContainsKey("ASPNETCORE_URLS"));
         Assert.False(config.ContainsKey("ASPNETCORE_HTTPS_PORT"));
@@ -356,7 +368,7 @@ public class ProjectResourceTests
 
         var resource = Assert.Single(projectResources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Equal("http://localhost:p0", config["ASPNETCORE_URLS"]);
         Assert.False(config.ContainsKey("ASPNETCORE_HTTPS_PORT"));

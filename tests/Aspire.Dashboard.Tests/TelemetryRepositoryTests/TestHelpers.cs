@@ -80,7 +80,7 @@ internal static class TestHelpers
         };
     }
 
-    public static Metric CreateSumMetric(string metricName, DateTime startTime, IEnumerable<KeyValuePair<string, string>>? attributes = null, int? value = null)
+    public static Metric CreateSumMetric(string metricName, DateTime startTime, IEnumerable<KeyValuePair<string, string>>? attributes = null, IEnumerable<Exemplar>? exemplars = null, int? value = null)
     {
         return new Metric
         {
@@ -93,13 +93,13 @@ internal static class TestHelpers
                 IsMonotonic = true,
                 DataPoints =
                 {
-                    CreateNumberPoint(startTime, value ?? 1, attributes)
+                    CreateNumberPoint(startTime, value ?? 1, attributes, exemplars)
                 }
             }
         };
     }
 
-    private static NumberDataPoint CreateNumberPoint(DateTime startTime, int value, IEnumerable<KeyValuePair<string, string>>? attributes = null)
+    private static NumberDataPoint CreateNumberPoint(DateTime startTime, int value, IEnumerable<KeyValuePair<string, string>>? attributes = null, IEnumerable<Exemplar>? exemplars = null)
     {
         var point = new NumberDataPoint
         {
@@ -112,6 +112,13 @@ internal static class TestHelpers
             foreach (var attribute in attributes)
             {
                 point.Attributes.Add(new KeyValue { Key = attribute.Key, Value = new AnyValue { StringValue = attribute.Value } });
+            }
+        }
+        if (exemplars != null)
+        {
+            foreach (var exemplar in exemplars)
+            {
+                point.Exemplars.Add(exemplar);
             }
         }
 
@@ -136,7 +143,7 @@ internal static class TestHelpers
         return e;
     }
 
-    public static Span CreateSpan(string traceId, string spanId, DateTime startTime, DateTime endTime, string? parentSpanId = null, List<Span.Types.Event>? events = null, IEnumerable<KeyValuePair<string, string>>? attributes = null)
+    public static Span CreateSpan(string traceId, string spanId, DateTime startTime, DateTime endTime, string? parentSpanId = null, List<Span.Types.Event>? events = null, List<Span.Types.Link>? links = null, IEnumerable<KeyValuePair<string, string>>? attributes = null)
     {
         var span = new Span
         {
@@ -150,6 +157,10 @@ internal static class TestHelpers
         if (events != null)
         {
             span.Events.AddRange(events);
+        }
+        if (links != null)
+        {
+            span.Links.AddRange(links);
         }
         if (attributes != null)
         {

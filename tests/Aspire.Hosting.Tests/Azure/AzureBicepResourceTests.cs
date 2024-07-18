@@ -456,6 +456,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 name: 'standard'
               }
               properties: {
+                disableLocalAuth: true
               }
             }
 
@@ -734,7 +735,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var serviceA = builder.AddProject<ProjectA>("serviceA")
             .WithReference(appInsights);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(serviceA.Resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(serviceA.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.True(config.ContainsKey("APPLICATIONINSIGHTS_CONNECTION_STRING"));
         Assert.Equal("myinstrumentationkey", config["APPLICATIONINSIGHTS_CONNECTION_STRING"]);
@@ -1711,6 +1712,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 name: sku
               }
               properties: {
+                disableLocalAuth: true
               }
             }
 

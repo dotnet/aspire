@@ -7,6 +7,11 @@
         <target state="translated">なし</target>
         <note />
       </trans-unit>
+      <trans-unit id="EndpointsColumnDisplayOverflowTitle">
+        <source>Endpoints</source>
+        <target state="new">Endpoints</target>
+        <note />
+      </trans-unit>
       <trans-unit id="EndpointsColumnDisplayPlaceholder">
         <source>Starting...</source>
         <target state="translated">開始中...</target>

@@ -35,8 +35,6 @@ public class OtlpTrace
 
     public List<OtlpSpan> Spans { get; } = new List<OtlpSpan>();
 
-    public OtlpScope TraceScope { get; }
-
     public int CalculateDepth(OtlpSpan span)
     {
         var depth = 0;
@@ -93,17 +91,16 @@ public class OtlpTrace
         }
     }
 
-    public OtlpTrace(ReadOnlyMemory<byte> traceId, OtlpScope traceScope)
+    public OtlpTrace(ReadOnlyMemory<byte> traceId)
     {
         Key = traceId;
         TraceId = OtlpHelpers.ToHexString(traceId);
-        TraceScope = traceScope;
         FullName = string.Empty;
     }
 
     public static OtlpTrace Clone(OtlpTrace trace)
     {
-        var newTrace = new OtlpTrace(trace.Key, trace.TraceScope);
+        var newTrace = new OtlpTrace(trace.Key);
         foreach (var item in trace.Spans)
         {
             newTrace.AddSpan(OtlpSpan.Clone(item, newTrace));
