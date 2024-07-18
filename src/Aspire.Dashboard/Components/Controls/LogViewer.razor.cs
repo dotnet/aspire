@@ -103,7 +103,7 @@ public sealed partial class LogViewer
     public async ValueTask DisposeAsync()
     {
         await _cancellationSeries.ClearAsync();
-        ViewModel.LogEntries.Clear();
+        ViewModel.LogEntries.Clear(); // TODO can be removed after #4961
         DimensionManager.OnBrowserDimensionsChanged -= OnBrowserResize;
     }
 }
