@@ -7,7 +7,6 @@ using System.Diagnostics;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Components.Resize;
-using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -16,7 +15,6 @@ using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -39,9 +37,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     [Inject]
     public required DimensionManager DimensionManager { get; init; }
-
-    [Inject]
-    public required IOptionsMonitor<DashboardOptions> Options { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
@@ -183,8 +178,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     {
         if (firstRender)
         {
-            LogViewerViewModel.LogEntries.MaximumEntryCount = Options.CurrentValue.Frontend.MaxConsoleLogCount;
-
             // Let anyone waiting know that the render is complete, so we have access to the underlying log viewer.
             _whenDomReady.SetResult();
         }

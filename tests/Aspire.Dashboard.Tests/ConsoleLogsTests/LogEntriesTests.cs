@@ -13,7 +13,7 @@ public class LogEntriesTests
     public void InsertSorted_OutOfOrderWithSameTimestamp_ReturnInOrder()
     {
         // Arrange
-        var logEntries = new LogEntries();
+        var logEntries = new LogEntries(maximumEntryCount: int.MaxValue);
 
         var timestamp = new DateTimeOffset(2024, 6, 25, 15, 59, 0, TimeSpan.Zero);
 
@@ -36,7 +36,7 @@ public class LogEntriesTests
     public void InsertSorted_TrimsToMaximumEntryCount_Ordered()
     {
         // Arrange
-        var logEntries = new LogEntries { MaximumEntryCount = 2, BaseLineNumber = 1 };
+        var logEntries = new LogEntries(maximumEntryCount: 2) { BaseLineNumber = 1 };
 
         var timestamp = DateTimeOffset.UtcNow;
 
@@ -56,7 +56,7 @@ public class LogEntriesTests
     public void InsertSorted_TrimsToMaximumEntryCount_OutOfOrder()
     {
         // Arrange
-        var logEntries = new LogEntries { MaximumEntryCount = 2, BaseLineNumber = 1 };
+        var logEntries = new LogEntries(maximumEntryCount: 2) { BaseLineNumber = 1 };
 
         var timestamp = DateTimeOffset.UtcNow;
 

@@ -3,16 +3,15 @@
 
 using System.Diagnostics;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Otlp.Storage;
 
 namespace Aspire.Dashboard.ConsoleLogs;
 
-public sealed class LogEntries
+public sealed class LogEntries(int maximumEntryCount)
 {
-    private readonly List<LogEntry> _logEntries = new();
+    private readonly CircularBuffer<LogEntry> _logEntries = new(maximumEntryCount);
 
     public int? BaseLineNumber { get; set; }
-
-    public int? MaximumEntryCount { get; set; }
 
     public void Clear() => _logEntries.Clear();
 
@@ -68,13 +67,6 @@ public sealed class LogEntries
             else
             {
                 logEntry.LineNumber = _logEntries[index - 1].LineNumber + 1;
-            }
-
-            // Trim old log messages if we have a maximum and we're over it.
-            if (MaximumEntryCount is not (null or 0) && _logEntries.Count >= MaximumEntryCount && index is not 0)
-            {
-                _logEntries.RemoveAt(0);
-                index--;
             }
 
             // Insert the entry.
