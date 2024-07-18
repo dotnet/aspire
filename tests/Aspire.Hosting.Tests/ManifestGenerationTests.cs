@@ -263,7 +263,7 @@ public class ManifestGenerationTests
         Assert.Equal("container.v0", container.GetProperty("type").GetString());
         Assert.Equal("{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port}", container.GetProperty("connectionString").GetString());
     }
-    
+
     [Fact]
     public void EnsureAllPostgresManifestTypesHaveVersion0Suffix()
     {
