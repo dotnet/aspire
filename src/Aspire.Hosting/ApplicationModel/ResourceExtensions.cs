@@ -107,8 +107,8 @@ public static class ResourceExtensions
     ///             Assert.Equal("ELASTIC_PASSWORD", env.Key);
     ///             Assert.False(string.IsNullOrEmpty(env.Value));
     ///         });
-/// </code>
-/// </example>
+    /// </code>
+    /// </example>
 
 public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariableValuesAsync(this IResourceWithEnvironment resource,
             DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
