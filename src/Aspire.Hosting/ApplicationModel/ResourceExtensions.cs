@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting.Lifecycle;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -83,11 +84,7 @@ public static class ResourceExtensions
     /// var builder = DistributedApplication.CreateBuilder();
     /// var container = builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
     ///  .WithEnvironment("discovery.type", "single-node")
-    ///  .WithEnvironment("xpack.security.enabled", "true")
-    ///  .WithEnvironment(context =>
-    ///  {
-    ///      context.EnvironmentVariables["ELASTIC_PASSWORD"] = "123456";
-    ///  });
+    ///  .WithEnvironment("xpack.security.enabled", "true");
     /// 
     /// var env = await container.Resource.GetEnvironmentVariableValuesAsync();
     /// 
@@ -101,11 +98,6 @@ public static class ResourceExtensions
     ///         {
     ///             Assert.Equal("xpack.security.enabled", env.Key);
     ///             Assert.Equal("true", env.Value);
-    ///         },
-    ///         env =>
-    ///         {
-    ///             Assert.Equal("ELASTIC_PASSWORD", env.Key);
-    ///             Assert.False(string.IsNullOrEmpty(env.Value));
     ///         });
     /// </code>
     /// </example>
