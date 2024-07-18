@@ -9,6 +9,7 @@
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
 
     <IsHostingTestingProject>true</IsHostingTestingProject>
+    <DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive</DeployOutsideOfRepoSupportFilesRelativeDir>
 
     <!-- FIXME: reduce to one property? -->
     <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(ArchiveTests)' == 'true'">true</ExtractTestClassNamesForHelix>
@@ -71,9 +72,9 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(ArchiveTests)' == 'true'">
-    <None Include="$(MSBuildProjectDirectory)\**\*" Link="$(RelativeStagingDir)tests\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)src\Shared\**\*" Link="$(RelativeStagingDir)src\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)playground\**\*" Link="$(RelativeStagingDir)playground\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(MSBuildProjectDirectory)\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)src\Shared\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)src\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)playground\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)playground\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

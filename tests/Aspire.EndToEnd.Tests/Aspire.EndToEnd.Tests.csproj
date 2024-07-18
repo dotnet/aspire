@@ -13,7 +13,7 @@
 
     <!-- This isn't needed as the sdk will add them by default -->
     <IncludeTestPackages>false</IncludeTestPackages>
-    <DeployOutsideOfRepoSupportFilesDir>testassets\testproject\</DeployOutsideOfRepoSupportFilesDir>
+    <DeployOutsideOfRepoSupportFilesRelativeDir>testassets\testproject\</DeployOutsideOfRepoSupportFilesRelativeDir>
 
     <_BuildForTestsRunningOutsideOfRepo Condition="'$(TestsRunningOutsideOfRepo)' == 'true' or '$(ContinuousIntegrationBuild)' == 'true'">true</_BuildForTestsRunningOutsideOfRepo>
     <DeployOutsideOfRepoSupportFiles>$(_BuildForTestsRunningOutsideOfRepo)</DeployOutsideOfRepoSupportFiles>
@@ -32,8 +32,8 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(_BuildForTestsRunningOutsideOfRepo)' == 'true'">
-    <None Include="..\testproject\**\*" Link="$(DeployOutsideOfRepoSupportFilesDir)%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\.editorconfig" Link="$(DeployOutsideOfRepoSupportFilesDir)..\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\testproject\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\.editorconfig" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)..\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" />

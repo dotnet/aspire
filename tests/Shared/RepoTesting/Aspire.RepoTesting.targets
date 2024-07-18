@@ -34,11 +34,13 @@
   -->
 
   <PropertyGroup>
-    <!-- copy by default only when archiving tests, and for test projects that support running out of repo -->
-    <DeployOutsideOfRepoSupportFiles Condition="'$(DeployOutsideOfRepoSupportFiles)' == '' and '$(ArchiveTests)' == 'true' and '$(IsTestProject)' == 'true'">true</DeployOutsideOfRepoSupportFiles>
-
     <IncludeTestPackages Condition="'$(IncludeTestPackages)' == '' and ('$(IsTestProject)' == 'true' or '$(IsTestSupportProject)' == 'true')">true</IncludeTestPackages>
     <GeneratedPackagesVersionsPropsPath Condition="'$(GeneratedPackagesVersionsPropsPath)' == ''">$(IntermediateOutputPath)Directory.Packages.Versions.props</GeneratedPackagesVersionsPropsPath>
+
+    <!-- copy by default only when archiving and the DeployOutsideOfRepoSupportFilesRelativeDir path is set -->
+    <DeployOutsideOfRepoSupportFiles Condition="'$(DeployOutsideOfRepoSupportFiles)' == '' and '$(ArchiveTests)' == 'true' and '$(IsHostingTestingProject)' == 'true'">true</DeployOutsideOfRepoSupportFiles>
+    <!--<DeployOutsideOfRepoSupportFilesRelativeDir Condition="'$(DeployOutsideOfRepoSupportFilesRelativeDir)' == '' and '$(DeployOutsideOfRepoSupportFiles)' == 'true'">staging-archive</DeployOutsideOfRepoSupportFilesRelativeDir>-->
+    <DeployOutsideOfRepoSupportFilesRelativeDir Condition="'$(DeployOutsideOfRepoSupportFilesRelativeDir)' != ''">$([MSBuild]::EnsureTrailingSlash($(DeployOutsideOfRepoSupportFilesRelativeDir)))</DeployOutsideOfRepoSupportFilesRelativeDir>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">
@@ -75,25 +77,25 @@
 
   <ItemGroup Condition="'$(DeployOutsideOfRepoSupportFiles)' == 'true'">
     <!-- needed to isolate the build -->
-    <None Include="$(TestsSharedDir)EmptyProject.proj" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)Directory.Build.props" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(TestsSharedDir)EmptyProject.proj" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)Directory.Build.targets" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(TestsSharedRepoTestingDir)\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedDir)EmptyProject.proj" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)\Directory.Build.props" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedDir)EmptyProject.proj" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)\Directory.Build.targets" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedRepoTestingDir)\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <!-- Needed to override aspire package versions, and provide versions for other packages -->
-    <None Include="$(GeneratedPackagesVersionsPropsPath)" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)Directory.Packages.Versions.props" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(TestsSharedRepoTestingDir)Directory.Packages.Helix.props" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(GeneratedPackagesVersionsPropsPath)" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)\Directory.Packages.Versions.props" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedRepoTestingDir)Directory.Packages.Helix.props" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <!-- nuget.config to resolve built packages from artifacts -->
-    <None Include="$(TestsSharedDir)nuget-with-package-source-mapping.config" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)nuget.config" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedDir)nuget-with-package-source-mapping.config" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)\nuget.config" CopyToOutputDirectory="PreserveNewest" />
 
-    <None Include="$(TestsSharedDir)\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(TestsSharedDir)\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)\tests\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <PropertyForHelixRun Include="NetCurrent" />
   </ItemGroup>
 
   <Target Name="_UpdateArchiveSourcePath" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true' and '$(DeployOutsideOfRepoSupportFilesRelativeDir)' != ''">
     <PropertyGroup>
-      <TestsArchiveSourceDir>$(OutDir)$(DeployOutsideOfRepoSupportFilesRelativeDir)</TestsArchiveSourceDir>
+      <TestsArchiveSourceDir>$(OutDir)$(DeployOutsideOfRepoSupportFilesRelativeDir)\</TestsArchiveSourceDir>
     </PropertyGroup>
   </Target>
 
