@@ -3,6 +3,7 @@
 
 using System.Data;
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -296,7 +297,9 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                 command.CommandText = $"SELECT * FROM cars;";
                 var results = await command.ExecuteReaderAsync(token);
 
-                Assert.Single(results);
+                Assert.True(await results.ReadAsync(token));
+                Assert.Equal("BatMobile", results.GetString("brand"));
+                Assert.False(await results.ReadAsync(token));
             }, cts.Token);
         }
         finally
@@ -316,6 +319,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
         builder.Services.AddXunitLogging(testOutputHelper);
+        builder.Services.AddHostedService<ResourceLoggerForwarderService>();
         return builder;
     }
 }
