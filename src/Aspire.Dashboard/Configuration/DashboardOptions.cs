@@ -133,10 +133,10 @@ public sealed class FrontendOptions
     public string? BrowserToken { get; set; }
 
     /// <summary>
-    /// Gets and sets an optional limit on the number of log messages to be retained in the viewer.
+    /// Gets and sets an optional limit on the number of console log messages to be retained in the viewer.
     /// </summary>
     /// <remarks>
-    /// When non-null, the viewer will retain at most this number of log messages. When the limit is reached, the oldest messages will be removed.
+    /// The viewer will retain at most this number of log messages. When the limit is reached, the oldest messages will be removed.
     /// Defaults to 10,000, which matches the default used in the app host's circular buffer, on the publish side.
     /// </remarks>
     public int MaxConsoleLogCount { get; set; } = 10_000;
