@@ -98,6 +98,7 @@ public sealed partial class LogViewer
 
         _applicationChanged = true;
         ViewModel.LogEntries.Clear();
+        ViewModel.ResourceName = null;
         StateHasChanged();
     }
 
