@@ -77,30 +77,40 @@ public static class ResourceExtensions
     /// <param name="applicationOperation">The context in which the AppHost is being executed.</param>
     /// <returns>The environment variables retrieved from the resource.</returns>
     /// <example>
+    /// Using <see cref="GetEnvironmentVariableValuesAsync(IResourceWithEnvironment, DistributedApplicationOperation)"/> inside
+    /// a unit test to validate environment variable values.
     /// <code>
-    /// using var builder = await DistributedApplicationTestingBuilder.CreateAsync&lt;SampleShop_AppHost&gt;();
-    ///
-    /// builder.AddMongoDB("mongo")
-    ///     .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000, containerHost))
-    ///     .WithMongoExpress();
-    ///
-    /// var env = await mongoExpress.GetEnvironmentVariableValuesAsync();
-    ///
+    /// var builder = DistributedApplication.CreateBuilder();
+    /// var container = builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
+    ///  .WithEnvironment("discovery.type", "single-node")
+    ///  .WithEnvironment("xpack.security.enabled", "true")
+    ///  .WithEnvironment(context =>
+    ///  {
+    ///      context.EnvironmentVariables["ELASTIC_PASSWORD"] = "123456";
+    ///  });
+    /// 
+    /// var env = await container.Resource.GetEnvironmentVariableValuesAsync();
+    /// 
     /// Assert.Collection(env,
-    ///     e =>
+    ///     env =>
     ///         {
-    ///             Assert.Equal("ME_CONFIG_MONGODB_URL", e.Key);
-    ///             Assert.Equal($"mongodb://{containerHost}:3000/?directConnection=true", e.Value);
+    ///             Assert.Equal("discovery.type", env.Key);
+    ///             Assert.Equal("single-node", env.Value);
     ///         },
-    ///         e =>
+    ///         env =>
     ///         {
-    ///             Assert.Equal("ME_CONFIG_BASICAUTH", e.Key);
-    ///             Assert.Equal("false", e.Value);
+    ///             Assert.Equal("xpack.security.enabled", env.Key);
+    ///             Assert.Equal("true", env.Value);
+    ///         },
+    ///         env =>
+    ///         {
+    ///             Assert.Equal("ELASTIC_PASSWORD", env.Key);
+    ///             Assert.False(string.IsNullOrEmpty(env.Value));
     ///         });
-    /// </code>
-    /// </example>
+/// </code>
+/// </example>
 
-    public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariableValuesAsync(this IResourceWithEnvironment resource,
+public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariableValuesAsync(this IResourceWithEnvironment resource,
             DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
         var environmentVariables = new Dictionary<string, string>();
