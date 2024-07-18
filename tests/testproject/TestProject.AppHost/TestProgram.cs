@@ -152,11 +152,7 @@ public class TestProgram : IDisposable
 
             if (!resourcesToSkip.HasFlag(TestResourceNames.milvus))
             {
-                builder.Configuration["Parameters:milvusApiKey"] = "root:Milvus";
-
-                var milvusApiKey = builder.AddParameter("milvusApiKey");
-
-                var milvus = AppBuilder.AddMilvus("milvus", milvusApiKey)
+                var milvus = AppBuilder.AddMilvus("milvus")
                     .WithImageRegistry(AspireTestContainerRegistry);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(milvus);
             }

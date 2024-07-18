@@ -667,19 +667,10 @@ public class ManifestGenerationTests
                     "principalType": ""
                   }
                 },
-                "milvusApiKey": {
-                  "type": "parameter.v0",
-                  "value": "{milvusApiKey.inputs.value}",
-                  "inputs": {
-                    "value": {
-                      "type": "string"
-                    }
-                  }
-                },
                 "milvus": {
                   "type": "container.v0",
-                  "connectionString": "Endpoint={milvus.bindings.grpc.url};Key={milvusApiKey.value}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/milvusdb/milvus:2.3-latest",
+                  "connectionString": "Endpoint={milvus.bindings.grpc.url};Key=root:{milvus-Key.value}",
+                  "image": "{{TestConstants.AspireTestContainerRegistry}}/milvusdb/milvus:v2.4.7",
                   "args": [
                     "milvus",
                     "run",
@@ -689,7 +680,8 @@ public class ManifestGenerationTests
                     "COMMON_STORAGETYPE": "local",
                     "ETCD_USE_EMBED": "true",
                     "ETCD_DATA_DIR": "/var/lib/milvus/etcd",
-                    "COMMON_SECURITY_AUTHORIZATIONENABLED": "true"
+                    "COMMON_SECURITY_AUTHORIZATIONENABLED": "true",
+                    "COMMON_SECURITY_DEFAULTROOTPASSWORD": "{milvus-Key.value}"
                   },
                   "bindings": {
                     "grpc": {
@@ -774,6 +766,22 @@ public class ManifestGenerationTests
                       "default": {
                         "generate": {
                           "minLength": 22
+                        }
+                      }
+                    }
+                  }
+                },
+                "milvus-Key": {
+                  "type": "parameter.v0",
+                  "value": "{milvus-Key.inputs.value}",
+                  "inputs": {
+                    "value": {
+                      "type": "string",
+                      "secret": true,
+                      "default": {
+                        "generate": {
+                          "minLength": 22,
+                          "special": false
                         }
                       }
                     }

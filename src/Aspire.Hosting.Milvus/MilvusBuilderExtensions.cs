@@ -41,13 +41,13 @@ public static class MilvusBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{MilvusServerResource}"/>.</returns>
     public static IResourceBuilder<MilvusServerResource> AddMilvus(this IDistributedApplicationBuilder builder,
         string name,
-        IResourceBuilder<ParameterResource> apiKey,
+        IResourceBuilder<ParameterResource>? apiKey = null,
         int? grpcPort = null)
     {
-        ArgumentNullException.ThrowIfNull(apiKey, nameof(apiKey));
+        var apiKeyParameter = apiKey?.Resource ??
+            ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-Key", special: false);
 
-        var tokenParameter = apiKey.Resource;
-        var milvus = new MilvusServerResource(name, tokenParameter);
+        var milvus = new MilvusServerResource(name, apiKeyParameter);
 
         return builder.AddResource(milvus)
             .WithImage(MilvusContainerImageTags.Image, MilvusContainerImageTags.Tag)
@@ -61,6 +61,10 @@ public static class MilvusBuilderExtensions
             .WithEnvironment("ETCD_USE_EMBED", "true")
             .WithEnvironment("ETCD_DATA_DIR", "/var/lib/milvus/etcd")
             .WithEnvironment("COMMON_SECURITY_AUTHORIZATIONENABLED", "true")
+            .WithEnvironment(ctx =>
+            {
+                ctx.EnvironmentVariables["COMMON_SECURITY_DEFAULTROOTPASSWORD"] = milvus.ApiKeyParameter;
+            })
             .WithArgs("milvus", "run", "standalone");
     }
 
