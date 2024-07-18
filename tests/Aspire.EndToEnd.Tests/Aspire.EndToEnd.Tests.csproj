@@ -14,6 +14,7 @@
     <!-- This isn't needed as the sdk will add them by default -->
     <IncludeTestPackages>false</IncludeTestPackages>
     <DeployOutsideOfRepoSupportFilesRelativeDir>testassets\testproject\</DeployOutsideOfRepoSupportFilesRelativeDir>
+    <RelativeStagingDir>.\</RelativeStagingDir>
 
     <_BuildForTestsRunningOutsideOfRepo Condition="'$(TestsRunningOutsideOfRepo)' == 'true' or '$(ContinuousIntegrationBuild)' == 'true'">true</_BuildForTestsRunningOutsideOfRepo>
     <DeployOutsideOfRepoSupportFiles>$(_BuildForTestsRunningOutsideOfRepo)</DeployOutsideOfRepoSupportFiles>
