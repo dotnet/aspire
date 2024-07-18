@@ -341,4 +341,19 @@
   <data name="PlotlyChartTrace" xml:space="preserve">
     <value>Trace</value>
   </data>
+  <data name="SpanDetailsLinksHeader" xml:space="preserve">
+    <value>Links</value>
+  </data>
+  <data name="SpanDetailsSpanPrefix" xml:space="preserve">
+    <value>Span</value>
+  </data>
+  <data name="SpanDetailsSpanColumnHeader" xml:space="preserve">
+    <value>Span</value>
+  </data>
+  <data name="SpanDetailsDetailsColumnHeader" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="SpanDetailsBacklinksHeader" xml:space="preserve">
+    <value>Backlinks</value>
+  </data>
 </root>

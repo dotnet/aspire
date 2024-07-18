@@ -42,7 +42,7 @@ public partial class ExemplarsDialog : IDisposable
         var available = await MetricsHelpers.WaitForSpanToBeAvailableAsync(
             traceId: exemplar.TraceId,
             spanId: exemplar.SpanId,
-            getSpan: (traceId, spanId) => MetricsHelpers.GetSpan(TelemetryRepository, traceId, spanId),
+            getSpan: TelemetryRepository.GetSpan,
             DialogService,
             InvokeAsync,
             Loc,
@@ -79,6 +79,7 @@ public partial class ExemplarsDialog : IDisposable
 
     public void Dispose()
     {
+        _cts.Cancel();
         _cts.Dispose();
     }
 }

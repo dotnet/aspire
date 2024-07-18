@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Polly;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -48,11 +49,18 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
         await host.StartAsync();
 
         var topic = "test-topic";
-        var producer = host.Services.GetRequiredService<IProducer<string, string>>();
-        for (var i = 0; i < 10; i++)
+
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<ProduceException<string, string>>() })
+            .Build();
+        await pipeline.ExecuteAsync(async token =>
         {
-            await producer.ProduceAsync(topic, new Message<string, string> { Key = "test-key", Value = $"test-value{i}" });
-        }
+            var producer = host.Services.GetRequiredService<IProducer<string, string>>();
+            for (var i = 0; i < 10; i++)
+            {
+                await producer.ProduceAsync(topic, new Message<string, string> { Key = "test-key", Value = $"test-value{i}" }, token);
+            }
+        }, cts.Token);
 
         var consumer = host.Services.GetRequiredService<IConsumer<string, string>>();
         consumer.Subscribe(topic);
@@ -115,11 +123,17 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
-                        var producer = host.Services.GetRequiredService<IProducer<string, string>>();
-                        for (var i = 0; i < 10; i++)
+                        var pipeline = new ResiliencePipelineBuilder()
+                            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<ProduceException<string, string>>() })
+                            .Build();
+                        await pipeline.ExecuteAsync(async token =>
                         {
-                            await producer.ProduceAsync(topic, new Message<string, string> { Key = "test-key", Value = $"test-value{i}" });
-                        }
+                            var producer = host.Services.GetRequiredService<IProducer<string, string>>();
+                            for (var i = 0; i < 10; i++)
+                            {
+                                await producer.ProduceAsync(topic, new Message<string, string> { Key = "test-key", Value = $"test-value{i}" }, token);
+                            }
+                        }, cts.Token);
                     }
                 }
                 finally
@@ -163,15 +177,21 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
-                        var consumer = host.Services.GetRequiredService<IConsumer<string, string>>();
-                        consumer.Subscribe(topic);
-                        for (var i = 0; i < 10; i++)
+                        var pipeline = new ResiliencePipelineBuilder()
+                            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<ConsumeException>() })
+                            .Build();
+                        pipeline.Execute(() =>
                         {
-                            var result = consumer.Consume(cts.Token);
+                            var consumer = host.Services.GetRequiredService<IConsumer<string, string>>();
+                            consumer.Subscribe(topic);
+                            for (var i = 0; i < 10; i++)
+                            {
+                                var result = consumer.Consume(cts.Token);
 
-                            Assert.Equal($"test-key", result.Message.Key);
-                            Assert.Equal($"test-value{i}", result.Message.Value);
-                        }
+                                Assert.Equal($"test-key", result.Message.Key);
+                                Assert.Equal($"test-value{i}", result.Message.Value);
+                            }
+                        });
                     }
                 }
                 finally
@@ -192,7 +212,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 try
                 {
-                    File.Delete(bindMountPath);
+                    Directory.Delete(bindMountPath, recursive: true);
                 }
                 catch
                 {
