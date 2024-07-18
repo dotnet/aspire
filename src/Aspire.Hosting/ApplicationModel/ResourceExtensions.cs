@@ -100,7 +100,7 @@ public static class ResourceExtensions
     /// </code>
     /// </example>
 
-    public static async ValueTask<IReadOnlyDictionary<string, string>> GetEnvironmentVariableValuesAsync(this IResourceWithEnvironment resource,
+    public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariableValuesAsync(this IResourceWithEnvironment resource,
             DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
         var environmentVariables = new Dictionary<string, string>();
