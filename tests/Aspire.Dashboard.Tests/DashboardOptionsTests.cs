@@ -77,15 +77,15 @@ public sealed class DashboardOptionsTests
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
-    public void FrontendOptions_ConsoleLogHistoryLimit(int limit)
+    public void FrontendOptions_MaxConsoleLogCount(int limit)
     {
         var options = GetValidOptions();
-        options.Frontend.ConsoleLogHistoryLimit = limit;
+        options.Frontend.MaxConsoleLogCount = limit;
 
         var result = new ValidateDashboardOptions().Validate(null, options);
 
         Assert.False(result.Succeeded);
-        Assert.Equal("ConsoleLogHistoryLimit must be greater than zero.", result.FailureMessage);
+        Assert.Equal("MaxConsoleLogCount must be greater than zero.", result.FailureMessage);
     }
 
     #endregion

@@ -65,7 +65,7 @@ Set `Dashboard:Frontend:AuthMode` to `OpenIdConnect`, then add the following con
 
 #### Memory limits
 
-- `Dashboard:Frontend:ConsoleLogHistoryLimit` specifies the (optional) maximum number of console log messages to keep in memory. Defaults to 10,000. When the limit is reached, the oldest messages are removed.
+- `Dashboard:Frontend:MaxConsoleLogCount` specifies the (optional) maximum number of console log messages to keep in memory. Defaults to 10,000. When the limit is reached, the oldest messages are removed.
 
 ### OTLP authentication
 

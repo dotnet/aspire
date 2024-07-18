@@ -139,7 +139,7 @@ public sealed class FrontendOptions
     /// When non-null, the viewer will retain at most this number of log messages. When the limit is reached, the oldest messages will be removed.
     /// Defaults to 10,000, which matches the default used in the app host's circular buffer, on the publish side.
     /// </remarks>
-    public int ConsoleLogHistoryLimit { get; set; } = 10_000;
+    public int MaxConsoleLogCount { get; set; } = 10_000;
 
     public OpenIdConnectOptions OpenIdConnect { get; set; } = new();
 

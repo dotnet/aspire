@@ -183,7 +183,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     {
         if (firstRender)
         {
-            LogViewerViewModel.LogEntries.MaximumEntryCount = Options.CurrentValue.Frontend.ConsoleLogHistoryLimit;
+            LogViewerViewModel.LogEntries.MaximumEntryCount = Options.CurrentValue.Frontend.MaxConsoleLogCount;
 
             // Let anyone waiting know that the render is complete, so we have access to the underlying log viewer.
             _whenDomReady.SetResult();
