@@ -5,6 +5,7 @@ using Azure.AI.OpenAI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OpenAI;
 using Xunit;
 
 namespace Aspire.Azure.AI.OpenAI.Tests;
@@ -12,6 +13,41 @@ namespace Aspire.Azure.AI.OpenAI.Tests;
 public class AspireAzureAIOpenAIExtensionsTests
 {
     private const string ConnectionString = "Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake";
+
+    /// <summary>
+    /// Azure OpenAI registers both <see cref="AzureOpenAIClient"/> and <see cref="OpenAIClient"/> services.
+    /// This way consumers can use either service type to resolve the client.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void RegistersBothServiceTypes(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:openai", ConnectionString)
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddKeyedAzureOpenAIClient("openai");
+        }
+        else
+        {
+            builder.AddAzureOpenAIClient("openai");
+        }
+
+        using var host = builder.Build();
+        var azureClient = useKeyed ?
+            host.Services.GetRequiredKeyedService<AzureOpenAIClient>("openai") :
+            host.Services.GetRequiredService<AzureOpenAIClient>();
+
+        var unbrandedClient = useKeyed ?
+            host.Services.GetRequiredKeyedService<OpenAIClient>("openai") :
+            host.Services.GetRequiredService<OpenAIClient>();
+
+        Assert.Same(azureClient, unbrandedClient);
+    }
 
     [Theory]
     [InlineData(true)]

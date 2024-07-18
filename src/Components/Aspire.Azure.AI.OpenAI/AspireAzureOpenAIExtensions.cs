@@ -11,7 +11,9 @@ using Azure.Identity;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using OpenAI;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -24,6 +26,8 @@ public static class AspireAzureOpenAIExtensions
 
     /// <summary>
     /// Registers <see cref="AzureOpenAIClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
+    ///
+    /// Additionally, registers the <see cref="AzureOpenAIClient"/> as an <see cref="OpenAIClient"/> service.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
@@ -37,10 +41,15 @@ public static class AspireAzureOpenAIExtensions
         Action<IAzureClientBuilder<AzureOpenAIClient, AzureOpenAIClientOptions>>? configureClientBuilder = null)
     {
         new OpenAIComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
+
+        // Add the AzureOpenAIClient service as OpenAIClient. That way the service can be resolved by both service Types.
+        builder.Services.TryAddSingleton(typeof(OpenAIClient), static provider => provider.GetRequiredService<AzureOpenAIClient>());
     }
 
     /// <summary>
     /// Registers <see cref="AzureOpenAIClient"/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
+    ///
+    /// Additionally, registers the <see cref="AzureOpenAIClient"/> as an <see cref="OpenAIClient"/> service.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
@@ -58,6 +67,9 @@ public static class AspireAzureOpenAIExtensions
         var configurationSectionName = OpenAIComponent.GetKeyedConfigurationSectionName(name, DefaultConfigSectionName);
 
         new OpenAIComponent().AddClient(builder, configurationSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
+
+        // Add the AzureOpenAIClient service as OpenAIClient. That way the service can be resolved by both service Types.
+        builder.Services.TryAddKeyedSingleton(typeof(OpenAIClient), serviceKey: name, static (provider, key) => provider.GetRequiredKeyedService<AzureOpenAIClient>(key));
     }
 
     private sealed class OpenAIComponent : AzureComponent<AzureOpenAISettings, AzureOpenAIClient, AzureOpenAIClientOptions>

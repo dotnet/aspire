@@ -25,18 +25,20 @@ In the _Program.cs_ file of your project, call the `AddAzureOpenAIClient` extens
 builder.AddAzureOpenAIClient("openaiConnectionName");
 ```
 
-You can then retrieve the `OpenAIClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:
+You can then retrieve the `AzureOpenAIClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:
 
 ```csharp
-private readonly OpenAIClient _client;
+private readonly AzureOpenAIClient _client;
 
-public CognitiveController(OpenAIClient client)
+public CognitiveController(AzureOpenAIClient client)
 {
     _client = client;
 }
 ```
 
-See the [Azure OpenAI Service quickstarts](https://learn.microsoft.com/azure/ai-services/openai/quickstart) for examples on using the `OpenAIClient`.
+Additionally, you can retrieve the `AzureOpenAIClient` object using the base `OpenAIClient` service type. This allows for code that is not dependent on Azure OpenAI-specific features to not depend directly on Azure types.
+
+See the [Azure OpenAI Service quickstarts](https://learn.microsoft.com/azure/ai-services/openai/quickstart) for examples on using the `AzureOpenAIClient`.
 
 ## Configuration
 
@@ -80,7 +82,7 @@ In order to connect to the non-Azure OpenAI service, drop the Endpoint property 
 
 ### Use configuration providers
 
-The .NET Aspire Azure OpenAI library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureOpenAISettings` and `OpenAIClientOptions` from configuration by using the `Aspire:Azure:AI:OpenAI` key. Example `appsettings.json` that configures some of the options:
+The .NET Aspire Azure OpenAI library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureOpenAISettings` and `AzureOpenAIClientOptions` from configuration by using the `Aspire:Azure:AI:OpenAI` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
@@ -104,7 +106,7 @@ You can also pass the `Action<AzureOpenAISettings> configureSettings` delegate t
 builder.AddAzureOpenAIClient("openaiConnectionName", settings => settings.DisableTracing = true);
 ```
 
-You can also setup the [OpenAIClientOptions](https://learn.microsoft.com/dotnet/api/azure.ai.openai.openaiclientoptions) using the optional `Action<IAzureClientBuilder<OpenAIClient, OpenAIClientOptions>> configureClientBuilder` parameter of the `AddAzureOpenAIClient` method. For example, to set the client ID for this client:
+You can also setup the [AzureOpenAIClientOptions](https://learn.microsoft.com/dotnet/api/azure.ai.openai.openaiclientoptions) using the optional `Action<IAzureClientBuilder<AzureOpenAIClient, AzureOpenAIClientOptions>> configureClientBuilder` parameter of the `AddAzureOpenAIClient` method. For example, to set the client ID for this client:
 
 ```csharp
 builder.AddAzureOpenAIClient("openaiConnectionName", configureClientBuilder: configureClientBuilder: builder => builder.ConfigureOptions(options => options.NetworkTimeout = TimeSpan.FromSeconds(2)));
