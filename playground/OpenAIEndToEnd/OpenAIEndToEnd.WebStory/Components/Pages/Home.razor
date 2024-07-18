@@ -1,9 +1,8 @@
 ﻿@page "/"
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
-@using Azure.AI.OpenAI
+@using OpenAI
 @using OpenAI.Chat
-@using System.ClientModel
-@inject AzureOpenAIClient aiClient
+@inject OpenAIClient aiClient
 @inject ILogger<Home> logger
 @inject IConfiguration configuration
 
@@ -33,7 +32,7 @@
             chatMessages.Add(new UserChatMessage("Write the next sentence in the story."));
         }
 
-        ClientResult<ChatCompletion> result = await chatClient.CompleteChatAsync(chatMessages);
+        var result = await chatClient.CompleteChatAsync(chatMessages);
 
         chatMessages.Add(new AssistantChatMessage(result.Value.Content[0].Text));
 
