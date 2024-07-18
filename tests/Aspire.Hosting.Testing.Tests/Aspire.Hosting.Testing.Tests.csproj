@@ -14,7 +14,7 @@
 
     <!-- for running out of repo -->
     <TestsSharedDir Condition="'$(TestsSharedDir)' == ''">$(MSBuildThisFileDirectory)..\Shared\</TestsSharedDir>
-    <TestArchiveTestsDir>$(TestArchiveTestsDirForPlaygroundTests)</TestArchiveTestsDir>
+    <TestArchiveTestsDir>$(TestArchiveTestsDirForHostingTestingTests)</TestArchiveTestsDir>
   </PropertyGroup>
 
   <ItemGroup>

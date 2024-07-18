@@ -5,8 +5,8 @@
     <NeedsWorkload>true</NeedsWorkload>
     <NeedsPlaywright>true</NeedsPlaywright>
 
-    <WorkItemArchiveWildCard>$(TestArchiveTestsDirForPlaygroundTests)**/*.zip</WorkItemArchiveWildCard>
-    <!--<TestArchiveDir>$(TestArchiveTestsDirForPlaygroundTests)</TestArchiveDir>-->
+    <WorkItemArchiveWildCard>$(TestArchiveTestsDirForHostingTestingTests)**/*.zip</WorkItemArchiveWildCard>
+    <!--<TestArchiveDir>$(TestArchiveTestsDirForHostingTestingTests)</TestArchiveDir>-->
     <TestProjectName>Aspire.Playground.Tests</TestProjectName>
 
     <_CleanupProcessesCommand Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; get-ciminstance win32_process | where-object ExecutablePath -Match 'dotnet-latest|dcp.exe|dcpctrl.exe' | foreach-object { echo $_.ProcessId $_.ExecutablePath %3B stop-process -id $_.ProcessId -force -ErrorAction SilentlyContinue }"</_CleanupProcessesCommand>

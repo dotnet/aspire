@@ -8,7 +8,7 @@
     <RunSettingsFilePath>$(RepositoryEngineeringDir)testing\.runsettings</RunSettingsFilePath>
     <TestArchiveTestsDir Condition="'$(TestArchiveTestsDir)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'tests'))</TestArchiveTestsDir>
     <TestArchiveTestsDirForWorkloadTests Condition="'$(TestArchiveTestsDirForWorkloadTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'workload-tests'))</TestArchiveTestsDirForWorkloadTests>
-    <TestArchiveTestsDirForPlaygroundTests Condition="'$(TestArchiveTestsDirForPlaygroundTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'playground-tests'))</TestArchiveTestsDirForPlaygroundTests>
+    <TestArchiveTestsDirForHostingTestingTests Condition="'$(TestArchiveTestsDirForHostingTestingTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'hosting-testing-tests'))</TestArchiveTestsDirForHostingTestingTests>
     <TestArchiveTestsDirForEndToEndTests Condition="'$(TestArchiveTestsDirForEndToEndTests)' == ''">$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'e2e-tests'))</TestArchiveTestsDirForEndToEndTests>
     <PlaywrightDependenciesDirectory>$(ArtifactsBinDir)playwright-deps</PlaywrightDependenciesDirectory>
     <GeneratedPackagesVersionsPropsPath>$(IntermediateOutputPath)Directory.Packages.Versions.props</GeneratedPackagesVersionsPropsPath>
