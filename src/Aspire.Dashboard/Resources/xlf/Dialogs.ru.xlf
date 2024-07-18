@@ -47,14 +47,19 @@
         <target state="translated">Отмена</target>
         <note />
       </trans-unit>
-      <trans-unit id="FilterDialogConditionSelectLabel">
-        <source>Select a filter condition</source>
-        <target state="translated">Выберите условие фильтра</target>
+      <trans-unit id="FilterDialogConditionInputLabel">
+        <source>Condition</source>
+        <target state="new">Condition</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
         <source>Field</source>
         <target state="translated">Поле</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogParameterInputLabel">
+        <source>Parameter</source>
+        <target state="new">Parameter</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogRemoveFilterButtonText">

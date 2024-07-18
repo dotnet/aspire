@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="ko" original="../ControlsStrings.resx">
     <body>
       <trans-unit id="All">
-        <source>All</source>
-        <target state="translated">모두</target>
+        <source>(All)</source>
+        <target state="needs-review-translation">모두</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerAllTags">
@@ -172,7 +172,7 @@
         <target state="translated">이름</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoneSelected">
+      <trans-unit id="None">
         <source>(None)</source>
         <target state="new">(None)</target>
         <note />

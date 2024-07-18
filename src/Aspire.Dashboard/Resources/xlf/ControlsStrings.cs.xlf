@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="cs" original="../ControlsStrings.resx">
     <body>
       <trans-unit id="All">
-        <source>All</source>
-        <target state="translated">Vše</target>
+        <source>(All)</source>
+        <target state="needs-review-translation">Vše</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerAllTags">
@@ -172,7 +172,7 @@
         <target state="translated">Název</target>
         <note />
       </trans-unit>
-      <trans-unit id="NoneSelected">
+      <trans-unit id="None">
         <source>(None)</source>
         <target state="new">(None)</target>
         <note />

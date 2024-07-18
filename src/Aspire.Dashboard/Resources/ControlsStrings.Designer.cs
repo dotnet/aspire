@@ -60,7 +60,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to All.
+        ///   Looks up a localized string similar to (All).
         /// </summary>
         public static string All {
             get {
@@ -368,9 +368,9 @@ namespace Aspire.Dashboard.Resources {
         /// <summary>
         ///   Looks up a localized string similar to (None).
         /// </summary>
-        public static string NoneSelected {
+        public static string None {
             get {
-                return ResourceManager.GetString("NoneSelected", resourceCulture);
+                return ResourceManager.GetString("None", resourceCulture);
             }
         }
         
