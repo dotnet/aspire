@@ -19,6 +19,56 @@ namespace Aspire.Hosting.Tests.Dcp;
 public class ApplicationExecutorTests
 {
     [Fact]
+    public async Task LogLineNumbersAreConsistentAcrossWatches()
+    {
+        // Arrange
+        var tcs = new TaskCompletionSource<Container>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddContainer("CustomName", "container").WithOtlpExporter();
+
+        var kubernetesService = new TestKubernetesService();
+        kubernetesService.ActionCreatedResource = r =>
+        {
+            if (r is Container container)
+            {
+                container.Status = new ContainerStatus { State = ContainerState.Starting };
+                tcs.TrySetResult(container);
+            }
+        };
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var resourceLoggerService = new ResourceLoggerService();
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, resourceLoggerService: resourceLoggerService);
+
+        // Act
+        await appExecutor.RunApplicationAsync();
+        var container = await tcs.Task;
+
+        // Assert
+        var result1 = await GetFirstLogAsync(resourceLoggerService.WatchAsync(container.Name()));
+        var result2 = await GetFirstLogAsync(resourceLoggerService.WatchAsync(container.Name()));
+
+        Assert.Equal(1, result1.LineNumber);
+        Assert.Equal(1, result2.LineNumber);
+
+        static async Task<LogLine> GetFirstLogAsync(IAsyncEnumerable<IReadOnlyList<LogLine>> subscription)
+        {
+            await foreach (var logs in subscription)
+            {
+                foreach (var log in logs)
+                {
+                    return log;
+                }
+            }
+
+            throw new InvalidOperationException("No logs returned.");
+        }
+    }
+
+    [Fact]
     public async Task ContainersArePassedOtelServiceName()
     {
         // Arrange
@@ -701,9 +751,10 @@ public class ApplicationExecutorTests
     }
 
     private static ApplicationExecutor CreateAppExecutor(
-    DistributedApplicationModel distributedAppModel,
-    IConfiguration? configuration = null,
-    IKubernetesService? kubernetesService = null)
+        DistributedApplicationModel distributedAppModel,
+        IConfiguration? configuration = null,
+        IKubernetesService? kubernetesService = null,
+        ResourceLoggerService? resourceLoggerService = null)
     {
         if (configuration == null)
         {
@@ -735,7 +786,7 @@ public class ApplicationExecutorTests
                 ServiceProvider = TestServiceProvider.Instance
             }),
             new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime()),
-            new ResourceLoggerService(),
+            resourceLoggerService ?? new ResourceLoggerService(),
             new TestDcpDependencyCheckService()
         );
     }

@@ -19,9 +19,10 @@ internal sealed class TestKubernetesService : IKubernetesService
     public const int StartOfAutoPortRange = 52000;
 
     public ConcurrentQueue<CustomResource> CreatedResources { get; } = [];
+    public Action<CustomResource>? ActionCreatedResource { get; set; }
 
     private readonly List<Channel<(WatchEventType, CustomResource)>> _watchChannels = [];
-    private int _nextPort = StartOfAutoPortRange; 
+    private int _nextPort = StartOfAutoPortRange;
 
     public Task<T> GetAsync<T>(string name, string? namespaceParameter = null, CancellationToken _ = default) where T : CustomResource
     {
@@ -57,6 +58,8 @@ internal sealed class TestKubernetesService : IKubernetesService
             svc.Status.EffectiveAddress = svc.Spec.Address ?? "localhost";
             svc.Status.EffectivePort = svc.Spec.Port ?? Interlocked.Increment(ref _nextPort);
         }
+
+        ActionCreatedResource?.Invoke(res);
 
         lock (CreatedResources)
         {
