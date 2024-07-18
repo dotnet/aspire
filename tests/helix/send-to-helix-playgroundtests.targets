@@ -37,6 +37,7 @@
   <Target Name="BuildHelixWorkItemsForPlaygroundTests">
     <ItemGroup>
       <_PlaygroundTestRunCommandArguments Include="dotnet test" />
+      <_PlaygroundTestRunCommandArguments Include="-s .runsettings" />
       <_PlaygroundTestRunCommandArguments Include="--results-directory $(_HelixLogsPath)" />
       <_PlaygroundTestRunCommandArguments Include="--blame-hang" />
       <_PlaygroundTestRunCommandArguments Include="--blame-hang-dump-type" />
