@@ -85,7 +85,7 @@ public sealed class DashboardOptionsTests
         var result = new ValidateDashboardOptions().Validate(null, options);
 
         Assert.False(result.Succeeded);
-        Assert.Equal("MaxConsoleLogCount must be greater than zero.", result.FailureMessage);
+        Assert.Equal($"{DashboardConfigNames.DashboardFrontendMaxConsoleLogCountName.ConfigKey} must be greater than zero.", result.FailureMessage);
     }
 
     #endregion

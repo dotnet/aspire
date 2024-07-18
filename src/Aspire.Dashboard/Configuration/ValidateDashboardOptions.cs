@@ -57,7 +57,7 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
 
         if (options.Frontend.MaxConsoleLogCount <= 0)
         {
-            errorMessages.Add("MaxConsoleLogCount must be greater than zero.");
+            errorMessages.Add($"{DashboardConfigNames.DashboardFrontendMaxConsoleLogCountName.ConfigKey} must be greater than zero.");
         }
 
         if (!options.Otlp.TryParseOptions(out var otlpParseErrorMessage))
