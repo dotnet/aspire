@@ -3,12 +3,13 @@
 
 using System.Diagnostics;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Otlp.Storage;
 
 namespace Aspire.Dashboard.ConsoleLogs;
 
-public sealed class LogEntries
+public sealed class LogEntries(int maximumEntryCount)
 {
-    private readonly List<LogEntry> _logEntries = new();
+    private readonly CircularBuffer<LogEntry> _logEntries = new(maximumEntryCount);
 
     public int? BaseLineNumber { get; set; }
 
@@ -28,7 +29,7 @@ public sealed class LogEntries
 
                 if (current.Id == logEntry.ParentId && logEntry.LineIndex - 1 == current.LineIndex)
                 {
-                    InsertLogEntry(_logEntries, rowIndex + 1, logEntry);
+                    InsertAt(rowIndex + 1);
                     return;
                 }
             }
@@ -45,7 +46,7 @@ public sealed class LogEntries
 
                 if (currentTimestamp != null && currentTimestamp <= logEntry.Timestamp)
                 {
-                    InsertLogEntry(_logEntries, rowIndex + 1, logEntry);
+                    InsertAt(rowIndex + 1);
                     return;
                 }
             }
@@ -53,9 +54,9 @@ public sealed class LogEntries
 
         // If we didn't find a place to insert then append it to the end. This happens with the first entry, but
         // could also happen if the logs don't have recognized timestamps.
-        InsertLogEntry(_logEntries, _logEntries.Count, logEntry);
+        InsertAt(_logEntries.Count);
 
-        void InsertLogEntry(List<LogEntry> logEntries, int index, LogEntry logEntry)
+        void InsertAt(int index)
         {
             // Set the line number of the log entry.
             if (index == 0)
@@ -65,15 +66,16 @@ public sealed class LogEntries
             }
             else
             {
-                logEntry.LineNumber = logEntries[index - 1].LineNumber + 1;
+                logEntry.LineNumber = _logEntries[index - 1].LineNumber + 1;
             }
 
-            logEntries.Insert(index, logEntry);
+            // Insert the entry.
+            _logEntries.Insert(index, logEntry);
 
             // If a log entry isn't inserted at the end then update the line numbers of all subsequent entries.
-            for (var i = index + 1; i < logEntries.Count; i++)
+            for (var i = index + 1; i < _logEntries.Count; i++)
             {
-                logEntries[i].LineNumber++;
+                _logEntries[i].LineNumber++;
             }
         }
     }
