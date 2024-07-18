@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Aspire.Dashboard.Otlp.Storage;
@@ -64,5 +65,15 @@ internal static class ChannelExtensions
                 break;
             }
         }
+    }
+
+    /// <summary>
+    /// Write value with TryWrite then assert in debug that it was successful.
+    /// This method should only be used to write to unbound channels where TryWrite should never fail.
+    /// </summary>
+    public static void TryWriteWithAssert<T>(this ChannelWriter<T> writer, T value)
+    {
+        var write = writer.TryWrite(value);
+        Debug.Assert(write, "Channel is unbound so TryWrite always succeeds.");
     }
 }

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Aspire.Dashboard.Otlp.Storage;
@@ -99,7 +100,7 @@ public class ResourceLoggerService
 
             state.OnSubscribersChanged += (hasSubscribers) =>
             {
-                channel.Writer.TryWrite(new(name, hasSubscribers));
+                channel.Writer.TryWriteWithAssert(new(name, hasSubscribers));
             };
         }
 
@@ -230,7 +231,7 @@ public class ResourceLoggerService
             {
                 if (flushBacklogSync.IsSet)
                 {
-                    channel.Writer.TryWrite(log);
+                    channel.Writer.TryWriteWithAssert(log);
                     return;
                 }
 
@@ -238,7 +239,7 @@ public class ResourceLoggerService
                 // We need to ensure we don't write this log to the channel if it was already in the backlog
                 if (backlogSnapshot?.Contains(log) == false)
                 {
-                    channel.Writer.TryWrite(log);
+                    channel.Writer.TryWriteWithAssert(log);
                 }
             }
 
@@ -337,8 +338,6 @@ public class ResourceLoggerService
 
         private sealed class ResourceLogger(ResourceLoggerState loggerState) : ILogger
         {
-            private int _lineNumber;
-
             IDisposable? ILogger.BeginScope<TState>(TState state) => null;
 
             bool ILogger.IsEnabled(LogLevel logLevel) => true;
@@ -347,8 +346,13 @@ public class ResourceLoggerService
             {
                 if (loggerState._logStreamCts.IsCancellationRequested)
                 {
-                    // Noop if logging after completing the stream
+                    // No-op if logging after completing the stream
                     return;
+                }
+
+                if (!TryGetLineNumber(state, out var lineNumber))
+                {
+                    throw new InvalidOperationException("Couldn't get line number from log state.");
                 }
 
                 var log = formatter(state, exception) + (exception is null ? "" : $"\n{exception}");
@@ -357,13 +361,30 @@ public class ResourceLoggerService
                 LogLine logLine;
                 lock (loggerState._backlog)
                 {
-                    _lineNumber++;
-                    logLine = new LogLine(_lineNumber, log, isErrorMessage);
+                    logLine = new LogLine(lineNumber.Value, log, isErrorMessage);
 
                     loggerState._backlog.Add(logLine);
                 }
 
                 loggerState._onNewLog?.Invoke(logLine);
+            }
+
+            private static bool TryGetLineNumber<TState>(TState state, [NotNullWhen(true)] out int? lineNumber)
+            {
+                if (state is IReadOnlyList<KeyValuePair<string, object>> list)
+                {
+                    for (var i = 0; i < list.Count; i++)
+                    {
+                        if (list[i].Key == "LineNumber")
+                        {
+                            lineNumber = (int)list[i].Value;
+                            return true;
+                        }
+                    }
+                }
+
+                lineNumber = null;
+                return false;
             }
         }
     }

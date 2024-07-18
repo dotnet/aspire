@@ -123,7 +123,7 @@ public class ResourceNotificationService
         var channel = Channel.CreateUnbounded<ResourceEvent>();
 
         void WriteToChannel(ResourceEvent resourceEvent) =>
-            channel.Writer.TryWrite(resourceEvent);
+            channel.Writer.TryWriteWithAssert(resourceEvent);
 
         OnResourceUpdated += WriteToChannel;
 

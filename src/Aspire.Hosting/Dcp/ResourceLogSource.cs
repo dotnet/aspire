@@ -7,8 +7,8 @@ using Aspire.Hosting.Dcp.Model;
 
 namespace Aspire.Hosting.Dcp;
 
-using LogEntry = (string Content, bool IsErrorMessage);
-using LogEntryList = IReadOnlyList<(string Content, bool IsErrorMessage)>;
+using LogEntry = (int LineNumber, string Content, bool IsErrorMessage);
+using LogEntryList = IReadOnlyList<(int LineNumber, string Content, bool IsErrorMessage)>;
 
 internal sealed class ResourceLogSource<TResource>(
     ILogger logger,
@@ -75,6 +75,7 @@ internal sealed class ResourceLogSource<TResource>(
         {
             try
             {
+                var lineNumber = 1;
                 using var sr = new StreamReader(stream, leaveOpen: false);
                 while (!cancellationToken.IsCancellationRequested)
                 {
@@ -84,13 +85,8 @@ internal sealed class ResourceLogSource<TResource>(
                         return; // No more data
                     }
 
-                    var succeeded = channel.Writer.TryWrite((line, isError));
-                    if (!succeeded)
-                    {
-                        logger.LogWarning("Failed to write log entry to channel. Logs for {Kind} {Name} may be incomplete", resource.Kind, resource.Metadata.Name);
-                        channel.Writer.TryComplete();
-                        return;
-                    }
+                    channel.Writer.TryWriteWithAssert((lineNumber, line, isError));
+                    lineNumber++;
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

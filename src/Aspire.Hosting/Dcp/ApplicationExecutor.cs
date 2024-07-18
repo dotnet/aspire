@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Data;
@@ -233,7 +234,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             await foreach (var subscribers in loggerService.WatchAnySubscribersAsync(cancellationToken).ConfigureAwait(false))
             {
-                _logInformationChannel.Writer.TryWrite(new(subscribers.Name, LogsAvailable: null, subscribers.AnySubscribers));
+                _logInformationChannel.Writer.TryWriteWithAssert(new(subscribers.Name, LogsAvailable: null, subscribers.AnySubscribers));
             }
         });
 
@@ -410,7 +411,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     if (resource is Container { LogsAvailable: true } ||
                         resource is Executable { LogsAvailable: true })
                     {
-                        _logInformationChannel.Writer.TryWrite(new(resource.Metadata.Name, LogsAvailable: true, HasSubscribers: null));
+                        _logInformationChannel.Writer.TryWriteWithAssert(new(resource.Metadata.Name, LogsAvailable: true, HasSubscribers: null));
                     }
                 }
 
@@ -450,9 +451,40 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
+    private sealed class LogState(int LineNumber, string Content) : IReadOnlyList<KeyValuePair<string, object>>
+    {
+        public int LineNumber { get; } = LineNumber;
+        public string Content { get; } = Content;
+
+        KeyValuePair<string, object> IReadOnlyList<KeyValuePair<string, object>>.this[int index]
+        {
+            get
+            {
+                if (index == 0)
+                {
+                    return new KeyValuePair<string, object>("LineNumber", LineNumber);
+                }
+
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+        }
+
+        int IReadOnlyCollection<KeyValuePair<string, object>>.Count => 1;
+
+        IEnumerator<KeyValuePair<string, object>> IEnumerable<KeyValuePair<string, object>>.GetEnumerator()
+        {
+            yield return new KeyValuePair<string, object>("LineNumber", LineNumber);
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return ((IEnumerable<KeyValuePair<string, object>>)this).GetEnumerator();
+        }
+    }
+
     private void StartLogStream<T>(T resource) where T : CustomResource
     {
-        IAsyncEnumerable<IReadOnlyList<(string, bool)>>? enumerable = resource switch
+        IAsyncEnumerable<IReadOnlyList<(int, string, bool)>>? enumerable = resource switch
         {
             Container c when c.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, _dcpInfo?.Version, resource),
             Executable e when e.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, _dcpInfo?.Version, resource),
@@ -485,10 +517,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                     await foreach (var batch in enumerable.WithCancellation(cancellation.Token).ConfigureAwait(false))
                     {
-                        foreach (var (content, isError) in batch)
+                        foreach (var (lineNumber, content, isError) in batch)
                         {
                             var level = isError ? LogLevel.Error : LogLevel.Information;
-                            logger.Log(level, 0, content, null, (s, _) => s);
+                            logger.Log(level, 0, new LogState(lineNumber, content), exception: null, static (s, _) => s.Content);
                         }
                     }
                 }

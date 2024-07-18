@@ -381,8 +381,7 @@ internal sealed class DashboardClient : IDashboardClient
                         {
                             foreach (var channel in _outgoingChannels)
                             {
-                                // Channel is unbound so TryWrite always succeeds.
-                                channel.Writer.TryWrite(changes);
+                                channel.Writer.TryWriteWithAssert(changes);
                             }
                         }
                     }
@@ -487,8 +486,7 @@ internal sealed class DashboardClient : IDashboardClient
                         logLines[i] = new ResourceLogLine(response.LogLines[i].LineNumber, response.LogLines[i].Text, response.LogLines[i].IsStdErr);
                     }
 
-                    // Channel is unbound so TryWrite always succeeds.
-                    channel.Writer.TryWrite(logLines);
+                    channel.Writer.TryWriteWithAssert(logLines);
                 }
             }
             finally
