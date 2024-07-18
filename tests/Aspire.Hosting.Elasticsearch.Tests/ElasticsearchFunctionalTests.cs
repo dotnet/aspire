@@ -68,6 +68,7 @@ public class ElasticsearchFunctionalTests
     }
 
     [Fact]
+    [SkipOnCI("https://github.com/dotnet/aspire/issues/4968")]
     [RequiresDocker]
     public async Task WithDataVolumeShouldPersistStateBetweenUsages()
     {
