@@ -32,11 +32,6 @@
         <target state="translated">Граф</target>
         <note />
       </trans-unit>
-      <trans-unit id="ChartContainerNoneSelected">
-        <source>(None)</source>
-        <target state="translated">(Нет)</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">
         <source>Options</source>
         <target state="translated">Параметры</target>
@@ -175,6 +170,11 @@
       <trans-unit id="NameColumnHeader">
         <source>Name</source>
         <target state="translated">Имя</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoneSelected">
+        <source>(None)</source>
+        <target state="new">(None)</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">

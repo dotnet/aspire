@@ -32,11 +32,6 @@
         <target state="translated">Graph</target>
         <note />
       </trans-unit>
-      <trans-unit id="ChartContainerNoneSelected">
-        <source>(None)</source>
-        <target state="translated">(Yok)</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">
         <source>Options</source>
         <target state="translated">Seçenekler</target>
@@ -175,6 +170,11 @@
       <trans-unit id="NameColumnHeader">
         <source>Name</source>
         <target state="translated">Ad</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoneSelected">
+        <source>(None)</source>
+        <target state="new">(None)</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">

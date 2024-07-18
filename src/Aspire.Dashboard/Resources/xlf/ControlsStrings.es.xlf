@@ -32,11 +32,6 @@
         <target state="translated">Gráfico</target>
         <note />
       </trans-unit>
-      <trans-unit id="ChartContainerNoneSelected">
-        <source>(None)</source>
-        <target state="translated">(Ninguno)</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">
         <source>Options</source>
         <target state="translated">Opciones</target>
@@ -175,6 +170,11 @@
       <trans-unit id="NameColumnHeader">
         <source>Name</source>
         <target state="translated">Nombre</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoneSelected">
+        <source>(None)</source>
+        <target state="new">(None)</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
