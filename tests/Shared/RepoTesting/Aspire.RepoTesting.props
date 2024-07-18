@@ -5,7 +5,6 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive\</DeployOutsideOfRepoSupportFilesRelativeDir>
   </PropertyGroup>
 
   <!-- IsAspireHost property might not be available here, so allow infering that from the project name -->

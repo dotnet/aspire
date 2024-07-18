@@ -10,7 +10,7 @@
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
 
     <IsHostingTestingProject>true</IsHostingTestingProject>
-    <!--<DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive</DeployOutsideOfRepoSupportFilesRelativeDir>-->
+    <DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive\</DeployOutsideOfRepoSupportFilesRelativeDir>
 
     <!-- FIXME: reduce to one property? -->
     <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(ArchiveTests)' == 'true'">true</ExtractTestClassNamesForHelix>

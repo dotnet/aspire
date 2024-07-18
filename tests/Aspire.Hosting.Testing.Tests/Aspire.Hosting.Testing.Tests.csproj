@@ -11,6 +11,7 @@
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
 
     <IsHostingTestingProject>true</IsHostingTestingProject>
+    <DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive\</DeployOutsideOfRepoSupportFilesRelativeDir>
 
     <!-- for running out of repo -->
     <TestsSharedDir Condition="'$(TestsSharedDir)' == ''">$(MSBuildThisFileDirectory)..\Shared\</TestsSharedDir>
