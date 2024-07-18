@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Data;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
@@ -20,7 +21,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifyMySqlResource()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
             .Build();
@@ -123,13 +124,26 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
+                        // Wait until the database is available
+                        await pipeline.ExecuteAsync(async token =>
+                        {
+                            using var connection = host.Services.GetRequiredService<MySqlConnection>();
+                            await connection.OpenAsync(token);
+                            Assert.Equal(ConnectionState.Open, connection.State);
+                        }, cts.Token);
+
                         await pipeline.ExecuteAsync(async token =>
                         {
                             using var connection = host.Services.GetRequiredService<MySqlConnection>();
                             await connection.OpenAsync(token);
 
                             var command = connection.CreateCommand();
-                            command.CommandText = "CREATE TABLE cars (brand VARCHAR(255)); INSERT INTO cars (brand) VALUES ('BatMobile'); SELECT * FROM cars;";
+                            command.CommandText = """
+                                CREATE TABLE cars (brand VARCHAR(255));
+                                INSERT INTO cars (brand) VALUES ('BatMobile');
+                                SELECT * FROM cars;
+                            """;
+
                             var results = await command.ExecuteReaderAsync(token);
 
                             Assert.True(results.HasRows);
@@ -176,6 +190,14 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
+
+                        // Wait until the database is available
+                        await pipeline.ExecuteAsync(async token =>
+                        {
+                            using var connection = host.Services.GetRequiredService<MySqlConnection>();
+                            await connection.OpenAsync(token);
+                            Assert.Equal(ConnectionState.Open, connection.State);
+                        }, cts.Token);
 
                         await pipeline.ExecuteAsync(async token =>
                         {
@@ -242,7 +264,10 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
             Directory.CreateDirectory(bindMountPath);
 
-            File.WriteAllText(Path.Combine(bindMountPath, "init.sql"), "CREATE TABLE cars (brand VARCHAR(255)); INSERT INTO cars (brand) VALUES ('BatMobile'); SELECT * FROM cars;");
+            File.WriteAllText(Path.Combine(bindMountPath, "init.sql"), """
+                CREATE TABLE cars (brand VARCHAR(255));
+                INSERT INTO cars (brand) VALUES ('BatMobile');
+            """);
 
             var builder = CreateDistributedApplicationBuilder();
 
@@ -269,6 +294,15 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             using var host = hb.Build();
 
             await host.StartAsync();
+
+            // Wait until the database is available
+            await pipeline.ExecuteAsync(async token =>
+            {
+                using var connection = host.Services.GetRequiredService<MySqlConnection>();
+                await connection.OpenAsync(token);
+                Assert.Equal(ConnectionState.Open, connection.State);
+            }, cts.Token);
+
             await pipeline.ExecuteAsync(async token =>
             {
                 using var connection = host.Services.GetRequiredService<MySqlConnection>();
@@ -276,9 +310,11 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
                 var command = connection.CreateCommand();
                 command.CommandText = $"SELECT * FROM cars;";
-                var results = await command.ExecuteReaderAsync(token);
 
-                Assert.True(results.HasRows);
+                var results = await command.ExecuteReaderAsync(token);
+                Assert.True(await results.ReadAsync(token));
+                Assert.Equal("BatMobile", results.GetString("brand"));
+                Assert.False(await results.ReadAsync(token));
             }, cts.Token);
         }
         finally
