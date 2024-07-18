@@ -44,6 +44,8 @@
     <ProjectReference Include="$(PlaygroundSourceDir)seq/Seq.AppHost/Seq.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)signalr/SignalRAppHost/SignalRAppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)webpubsub/WebPubSubAppHost/WebPubSubAppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)keycloak/Keycloak.AppHost/Keycloak.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)Elasticsearch/Elasticsearch.AppHost/Elasticsearch.AppHost.csproj" />
 
     <!--
       Failed Aspire.Playground.Tests.AppHostTests.AppHostRunsCleanly(appHostPath: "MySqlDb.AppHost.dll") [26 s]
