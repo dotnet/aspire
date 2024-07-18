@@ -18,9 +18,10 @@ public class ConformanceTests : ConformanceTests<AzureOpenAIClient, AzureOpenAIS
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
-    protected override string[] RequiredLogCategories => new string[] {
-        "Azure.Core"
-    };
+    protected override string[] RequiredLogCategories => [
+        // since we don't have a way to connect to the server, we can't test the actual calls
+        "Azure.Identity"
+    ];
 
     protected override bool SupportsKeyedRegistrations => true;
 
@@ -33,13 +34,7 @@ public class ConformanceTests : ConformanceTests<AzureOpenAIClient, AzureOpenAIS
                   "Endpoint": "http://YOUR_URI",
                   "DisableTracing": false,
                   "ClientOptions": {
-                    "ConnectionIdleTimeout": "00:10",
-                    "EnableCrossEntityTransactions": true,
-                    "RetryOptions": {
-                      "Mode": "Fixed",
-                      "MaxDelay": "00:00:30"  
-                    },
-                    "TransportType": "AmqpWebSockets"
+                    "NetworkTimeout": "00:00:02"
                   }
                 }
               }
