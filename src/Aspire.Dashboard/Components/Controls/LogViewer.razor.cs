@@ -56,6 +56,9 @@ public sealed partial class LogViewer
     internal async Task SetLogSourceAsync(string resourceName, IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> batches, bool convertTimestampsFromUtc)
     {
         ViewModel.ResourceName = resourceName;
+
+        System.Diagnostics.Debug.Assert(ViewModel.LogEntries.GetEntries().Count == 0, "Expecting zero log entries");
+
         _convertTimestampsFromUtc = convertTimestampsFromUtc;
 
         var cancellationToken = await _cancellationSeries.NextAsync();
@@ -71,11 +74,7 @@ public sealed partial class LogViewer
 
             foreach (var (lineNumber, content, isErrorOutput) in batch)
             {
-                // Keep track of the base line number to ensure that we can calculate the line number of each log entry.
-                // This becomes important when the total number of log entries exceeds the limit and is truncated.
-                ViewModel.LogEntries.BaseLineNumber ??= lineNumber;
-
-                ViewModel.LogEntries.InsertSorted(logParser.CreateLogEntry(content, isErrorOutput));
+                ViewModel.LogEntries.InsertSorted(logParser.CreateLogEntry(content, isErrorOutput), lineNumber);
             }
 
             StateHasChanged();
@@ -104,6 +103,7 @@ public sealed partial class LogViewer
     public async ValueTask DisposeAsync()
     {
         await _cancellationSeries.ClearAsync();
+        ViewModel.LogEntries.Clear();
         DimensionManager.OnBrowserDimensionsChanged -= OnBrowserResize;
     }
 }
