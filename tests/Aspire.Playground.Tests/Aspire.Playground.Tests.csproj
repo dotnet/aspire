@@ -4,12 +4,13 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
 
     <IsTestProject>true</IsTestProject>
+    <IsHostingTestingProject>true</IsHostingTestingProject>
     <!-- no docker support on helix/windows yet -->
     <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
 
     <IsHostingTestingProject>true</IsHostingTestingProject>
-    <DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive</DeployOutsideOfRepoSupportFilesRelativeDir>
+    <!--<DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive</DeployOutsideOfRepoSupportFilesRelativeDir>-->
 
     <!-- FIXME: reduce to one property? -->
     <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(ArchiveTests)' == 'true'">true</ExtractTestClassNamesForHelix>

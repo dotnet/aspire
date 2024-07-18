@@ -14,7 +14,6 @@
 
     <!-- for running out of repo -->
     <TestsSharedDir Condition="'$(TestsSharedDir)' == ''">$(MSBuildThisFileDirectory)..\Shared\</TestsSharedDir>
-    <SharedDir Condition="'$(SharedDir)' == ''">$(MSBuildThisFileDirectory)..\..\src\Shared\</SharedDir>
     <TestArchiveTestsDir>$(TestArchiveTestsDirForPlaygroundTests)</TestArchiveTestsDir>
   </PropertyGroup>
 
@@ -22,10 +21,6 @@
     <ProjectCapability Include="Aspire" />
     <Using Include="Aspire.Hosting.Testing" />
     <Using Include="Xunit" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
   </ItemGroup>
 
   <ItemGroup>

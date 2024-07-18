@@ -12,14 +12,12 @@
       CS1712: Type parameter 'type_parameter' has no matching typeparam tag in the XML comment on 'type_or_member' (but other type parameters do)
     -->
     <NoWarn>$(NoWarn),1573,1591,1712</NoWarn>
+
+    <SharedDir Condition="'$(SharedDir)' == ''">$(MSBuildThisFileDirectory)..\src\Shared\</SharedDir>
   </PropertyGroup>
 
   <PropertyGroup>
     <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
-
-    <!--<TestsArchiveRootDir Condition="'$(TestsArchiveRootDir)' != ''">$([MSBuild]::NormalizeDirectory($(TestsArchiveRootDir)))</TestsArchiveRootDir>-->
-    <!-- FIXME: can this be replaced with just rr==null? -->
-    <!--<TestsSharedDataDir Condition="'$(RepoRoot)' == '' and '$(TestsRunningOutsideOfRepo)' == 'true' and '$(TestsArchiveRootDir)' != ''">$(TestsArchiveRootDir)test\testassets\</TestsSharedDataDir>-->
   </PropertyGroup>
 
   <!-- Enable Azure ActivitySources so Azure Components participate in tracing. -->
