@@ -73,10 +73,7 @@ public sealed partial class LogViewer
             {
                 // Keep track of the base line number to ensure that we can calculate the line number of each log entry.
                 // This becomes important when the total number of log entries exceeds the limit and is truncated.
-                if (ViewModel.LogEntries.BaseLineNumber is null)
-                {
-                    ViewModel.LogEntries.BaseLineNumber = lineNumber;
-                }
+                ViewModel.LogEntries.BaseLineNumber ??= lineNumber;
 
                 ViewModel.LogEntries.InsertSorted(logParser.CreateLogEntry(content, isErrorOutput));
             }
