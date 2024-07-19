@@ -236,7 +236,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 try
                 {
-                    File.Delete(bindMountPath);
+                    Directory.Delete(bindMountPath);
                 }
                 catch
                 {
@@ -325,7 +325,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         {
             try
             {
-                File.Delete(bindMountPath);
+                Directory.Delete(bindMountPath);
             }
             catch
             {
