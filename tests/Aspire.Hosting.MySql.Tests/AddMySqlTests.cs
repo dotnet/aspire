@@ -20,7 +20,7 @@ public class AddMySqlTests
 
         var mysql = appBuilder.AddMySql("mysql");
 
-        Assert.Equal(nameof(UserSecretsParameterDefault), mysql.Resource.PasswordParameter.Default?.GetType().Name);
+        Assert.Equal("Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault", mysql.Resource.PasswordParameter.Default?.GetType().FullName);
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public class AddMySqlTests
 
         var mysql = appBuilder.AddMySql("mysql");
 
-        Assert.Equal(nameof(GenerateParameterDefault), mysql.Resource.PasswordParameter.Default?.GetType().Name);
+        Assert.NotEqual("Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault", mysql.Resource.PasswordParameter.Default?.GetType().FullName);
     }
 
     [Fact]

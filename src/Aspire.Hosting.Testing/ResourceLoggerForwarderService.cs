@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Testing;
 /// <summary>
 /// A background service that watches resource logs and forwards them to the host's <see cref="ILogger"/> infrastructure.
 /// </summary>
-public sealed class ResourceLoggerForwarderService(
+internal sealed class ResourceLoggerForwarderService(
     ResourceNotificationService resourceNotificationService,
     ResourceLoggerService resourceLoggerService,
     IHostEnvironment hostEnvironment,
