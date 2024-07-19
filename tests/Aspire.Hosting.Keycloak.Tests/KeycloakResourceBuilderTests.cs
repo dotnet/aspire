@@ -111,7 +111,7 @@ public class KeycloakResourceBuilderTests
 
         var rmq = appBuilder.AddKeycloak("keycloak");
 
-        Assert.IsType<UserSecretsParameterDefault>(rmq.Resource.AdminPasswordParameter.Default);
+        Assert.Equal("Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault", rmq.Resource.AdminPasswordParameter.Default?.GetType().FullName);
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public class KeycloakResourceBuilderTests
 
         var rmq = appBuilder.AddKeycloak("keycloak");
 
-        Assert.IsNotType<UserSecretsParameterDefault>(rmq.Resource.AdminPasswordParameter.Default);
+        Assert.NotEqual("Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault", rmq.Resource.AdminPasswordParameter.Default?.GetType().FullName);
     }
 
     [Fact]
