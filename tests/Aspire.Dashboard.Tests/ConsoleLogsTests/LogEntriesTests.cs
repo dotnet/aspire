@@ -15,14 +15,12 @@ public class LogEntriesTests
         // Arrange
         var logEntries = new LogEntries(maximumEntryCount: int.MaxValue);
 
-        var timestamp = new DateTimeOffset(2024, 6, 25, 15, 59, 0, TimeSpan.Zero);
-
-        logEntries.BaseLineNumber = 1;
+        var timestamp = DateTimeOffset.UtcNow;
 
         // Act
-        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp, Content = "1" });
-        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(1), Content = "3" });
-        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp, Content = "2" });
+        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(1), Content = "1" }, 1);
+        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(3), Content = "3" }, 3);
+        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(2), Content = "2" }, 2);
 
         // Assert
         var entries = logEntries.GetEntries();
@@ -36,14 +34,14 @@ public class LogEntriesTests
     public void InsertSorted_TrimsToMaximumEntryCount_Ordered()
     {
         // Arrange
-        var logEntries = new LogEntries(maximumEntryCount: 2) { BaseLineNumber = 1 };
+        var logEntries = new LogEntries(maximumEntryCount: 2);
 
         var timestamp = DateTimeOffset.UtcNow;
 
         // Act
-        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(1), Content = "1" });
-        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(2), Content = "2" });
-        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(3), Content = "3" });
+        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(1), Content = "1" }, 1);
+        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(2), Content = "2" }, 2);
+        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(3), Content = "3" }, 3);
 
         // Assert
         var entries = logEntries.GetEntries();
@@ -56,14 +54,14 @@ public class LogEntriesTests
     public void InsertSorted_TrimsToMaximumEntryCount_OutOfOrder()
     {
         // Arrange
-        var logEntries = new LogEntries(maximumEntryCount: 2) { BaseLineNumber = 1 };
+        var logEntries = new LogEntries(maximumEntryCount: 2);
 
         var timestamp = DateTimeOffset.UtcNow;
 
         // Act
-        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(1), Content = "1" });
-        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(3), Content = "3" });
-        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(2), Content = "2" });
+        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(1), Content = "1" }, 1);
+        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(3), Content = "3" }, 2);
+        logEntries.InsertSorted(new LogEntry { Timestamp = timestamp.AddSeconds(2), Content = "2" }, 3);
 
         // Assert
         var entries = logEntries.GetEntries();
