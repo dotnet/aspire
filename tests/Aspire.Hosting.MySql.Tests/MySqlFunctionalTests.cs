@@ -27,7 +27,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
+            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(2), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
             .Build();
 
         var builder = CreateDistributedApplicationBuilder();
@@ -77,9 +77,9 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         string? volumeName = null;
         string? bindMountPath = null;
 
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1) })
+            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(2) })
             .Build();
 
         try
@@ -252,9 +252,9 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         // Creates a script that should be executed when the container is initialized.
 
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
+            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(2), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
             .Build();
 
         var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
