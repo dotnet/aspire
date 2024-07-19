@@ -94,11 +94,12 @@
                                 }
                             </TemplateColumn>
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEndpointsColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetEndpointsTooltip(ctx))">
-                                <EndpointsColumnDisplay
-                                    Resource="context"
-                                    HasMultipleReplicas="HasMultipleReplicas(context)"
-                                    DisplayedEndpoints="@GetDisplayedEndpoints(context, out var additionalMessage)"
-                                    AdditionalMessage="@additionalMessage" />
+                                <div @onclick:stopPropagation="true">
+                                    <EndpointsColumnDisplay Resource="context"
+                                                            HasMultipleReplicas="HasMultipleReplicas(context)"
+                                                            DisplayedEndpoints="@GetDisplayedEndpoints(context, out var additionalMessage)"
+                                                            AdditionalMessage="@additionalMessage" />
+                                </div>
                             </TemplateColumn>
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesLogsColumnHeader)]" Class="no-ellipsis">
                                 <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(resource: context.Name)">@ControlsStringsLoc[ControlsStrings.ViewAction]</FluentAnchor>
@@ -107,10 +108,12 @@
                                 @{
                                 var id = $"details-button-{context.Uid}";
                                 }
-                                <FluentButton Appearance="Appearance.Lightweight"
-                                              Id="@id"
-                                              Title="@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]"
-                                              OnClick="@(() => ShowResourceDetailsAsync(context, id))">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
+                                <div @onclick:stopPropagation="true">
+                                    <FluentButton Appearance="Appearance.Lightweight"
+                                                  Id="@id"
+                                                  Title="@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]"
+                                                  OnClick="@(() => ShowResourceDetailsAsync(context, id))">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
+                                </div>
                             </TemplateColumn>
                             @if (HasResourcesWithCommands)
                             {
