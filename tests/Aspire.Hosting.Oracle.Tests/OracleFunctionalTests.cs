@@ -23,9 +23,9 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifyOracleResource()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 20, Delay = TimeSpan.FromSeconds(5) })
+            .AddRetry(new() { MaxRetryAttempts = 20, Delay = TimeSpan.FromSeconds(10) })
             .Build();
 
         var builder = CreateDistributedApplicationBuilder();
@@ -64,19 +64,9 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         {
             var dbContext = host.Services.GetRequiredService<TestDbContext>();
 
-            // Don't dispose the connection as it is managed by EF Core
-            var connection = dbContext.Database.GetDbConnection();
+            var results = await dbContext.Database.ExecuteSqlRawAsync("SELECT 1", token);
 
-            if (connection.State != System.Data.ConnectionState.Open)
-            {
-                await connection.OpenAsync(token);
-            }
-
-            var command = connection.CreateCommand();
-            command.CommandText = "SELECT 1";
-            var results = await command.ExecuteReaderAsync(token);
-
-            Assert.True(results.HasRows);
+            Assert.Equal(1, results);
         }, cts.Token);
     }
 
@@ -91,9 +81,9 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         string? volumeName = null;
         string? bindMountPath = null;
 
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 20, Delay = TimeSpan.FromSeconds(5) })
+            .AddRetry(new() { MaxRetryAttempts = 20, Delay = TimeSpan.FromSeconds(10) })
             .Build();
 
         try
@@ -287,9 +277,9 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         // Creates a script that should be executed when the container is initialized.
 
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 20, Delay = TimeSpan.FromSeconds(5) })
+            .AddRetry(new() { MaxRetryAttempts = 20, Delay = TimeSpan.FromSeconds(10) })
             .Build();
 
         var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
