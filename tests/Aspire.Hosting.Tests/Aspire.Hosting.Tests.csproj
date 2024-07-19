@@ -47,7 +47,6 @@
 
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Garnet\GarnetContainerImageTags.cs" />
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Kafka\KafkaContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Nats\NatsContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Milvus\MilvusContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.MongoDB\MongoDBContainerImageTags.cs" />
@@ -55,7 +54,6 @@
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.PostgreSQL\PostgresContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.RabbitMQ\RabbitMQContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Redis\RedisContainerImageTags.cs" />
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Qdrant\QdrantContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.SqlServer\SqlServerContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Azure.EventHubs\EventHubsEmulatorContainerImageTags.cs" />
 
