@@ -93,18 +93,18 @@
                     <ExtraValueContent>
                         @if (context.Attributes.Length > 0)
                         {
-                            /* There's a weird bug where trying to render a nested FluentDataGrid here with a non-primitive
-                               TItem leads to the click event not being raised *only in the value (not header) rows*. A
-                               workaround is to use the attribute index as the item and query the attributes list for its
-                               name and value in the name/value producers.
-                             */
+                            // There's a weird bug where trying to render a nested FluentDataGrid here with a non-primitive
+                            // TItem leads to the click event not being raised *only in the value (not header) rows*. A
+                            // workaround is to use the attribute index as the item and query the attributes list for its
+                            // name and value in the name/value producers.
                             <PropertyGrid TItem="int"
-                                Items="@context.Attributes.Select((_, i) => i).AsQueryable()"
-                                GridTemplateColumns="1fr 2fr"
-                                NameColumnValue="(i) => context.Attributes[i].Key"
-                                ValueColumnValue="(i) => context.Attributes[i].Value"
-                                IsNameSortable="false"
-                                IsValueSortable="false"></PropertyGrid>
+                                          Items="@context.Attributes.Select((_, i) => i).AsQueryable()"
+                                          GridTemplateColumns="1fr 2fr"
+                                          NameColumnValue="(i) => context.Attributes[i].Key"
+                                          ValueColumnValue="(i) => context.Attributes[i].Value"
+                                          IsNameSortable="false"
+                                          IsValueSortable="false"
+                                          GenerateHeader="GenerateHeaderOption.Default" />
                         }
                     </ExtraValueContent>
                 </PropertyGrid>
@@ -119,7 +119,8 @@
                                 Items="@FilteredSpanLinks"
                                 Style="width:100%"
                                 GenerateHeader="GenerateHeaderOption.Sticky"
-                                GridTemplateColumns="4fr 1fr">
+                                GridTemplateColumns="4fr 1fr"
+                                ShowHover="true">
                     <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">
                         @WriteSpanLink(context)
                     </TemplateColumn>
@@ -138,7 +139,8 @@
                                 Items="@FilteredSpanBacklinks"
                                 Style="width:100%"
                                 GenerateHeader="GenerateHeaderOption.Sticky"
-                                GridTemplateColumns="4fr 1fr">
+                                GridTemplateColumns="4fr 1fr"
+                                ShowHover="true">
                     <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">
                         @WriteSpanLink(context)
                     </TemplateColumn>
@@ -162,21 +164,26 @@
             : "transparent";
 
         return @<div>
-            <div class="spanlink-container" style="height:32px;">
+        <div class="spanlink-container" style="height:32px;">
             <span class="spanlink-text" title="@content" style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(color);">
-                    @content
-                </span>
-            </div>
-            @if (context.Attributes.Length > 0)
-            {
-                <PropertyGrid TItem="SpanPropertyViewModel"
-                              Items="@Queryable.AsQueryable(context.Attributes.Select(a => new SpanPropertyViewModel() { Name = a.Key, Value = a.Value }))"
-                              GridTemplateColumns="1fr 2fr"
-                              NameColumnValue="(vm) => vm.Name"
-                              ValueColumnValue="(vm) => vm.Value"
-                              IsNameSortable="false"
-                              IsValueSortable="false" />
-            }
-        </div>;
+                @content
+            </span>
+        </div>
+        @if (context.Attributes.Length > 0)
+        {
+            // There's a weird bug where trying to render a nested FluentDataGrid here with a non-primitive
+            // TItem leads to the click event not being raised *only in the value (not header) rows*. A
+            // workaround is to use the attribute index as the item and query the attributes list for its
+            // name and value in the name/value producers.
+            <PropertyGrid TItem="int"
+                          Items="@context.Attributes.Select((_, i) => i).AsQueryable()"
+                          GridTemplateColumns="1fr 2fr"
+                          NameColumnValue="(i) => context.Attributes[i].Key"
+                          ValueColumnValue="(i) => context.Attributes[i].Value"
+                          IsNameSortable="false"
+                          IsValueSortable="false"
+                          GenerateHeader="GenerateHeaderOption.Default" />
+        }
+    </div>;
     }
 }
