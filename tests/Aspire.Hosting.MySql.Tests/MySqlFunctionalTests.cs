@@ -105,7 +105,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
-                bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                bindMountPath = Directory.CreateTempSubdirectory().FullName;
                 mysql1.WithDataBindMount(bindMountPath);
             }
 
