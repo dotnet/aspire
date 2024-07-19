@@ -120,7 +120,9 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
-                bindMountPath = Directory.CreateTempSubdirectory().FullName;
+                bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                Directory.CreateDirectory(bindMountPath);
+
                 oracle1.WithDataBindMount(bindMountPath);
             }
 
@@ -267,7 +269,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 try
                 {
-                    Directory.Delete(bindMountPath);
+                    Directory.Delete(bindMountPath, true);
                 }
                 catch
                 {
@@ -290,7 +292,8 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
             .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(2) })
             .Build();
 
-        var bindMountPath = Directory.CreateTempSubdirectory().FullName;
+        var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(bindMountPath);
 
         var oracleDbName = "freepdb1";
 
