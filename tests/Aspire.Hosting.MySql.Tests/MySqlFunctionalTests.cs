@@ -5,6 +5,9 @@ using System.Data;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -83,7 +86,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         {
             var builder1 = CreateDistributedApplicationBuilder();
 
-            var password = "p@ssw0rd1";
+            var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder1, "mysql-password").Value;
 
             var passwordParameter = builder1.AddParameter("pwd");
             builder1.Configuration["Parameters:pwd"] = password;
@@ -329,6 +332,71 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
                 // Don't fail test if we can't clean the temporary folder
             }
         }
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyEfMySql()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
+            .Build();
+
+        var builder = CreateDistributedApplicationBuilder();
+
+        var mySqlDbName = "db1";
+
+        var mysql = builder.AddMySql("mysql").WithEnvironment("MYSQL_DATABASE", mySqlDbName);
+        var db = mysql.AddDatabase(mySqlDbName);
+
+        using var app = builder.Build();
+
+        await app.StartAsync();
+
+        var hb = Host.CreateApplicationBuilder();
+
+        hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default)
+        });
+
+        hb.AddMySqlDbContext<TestDbContext>(db.Resource.Name);
+
+        using var host = hb.Build();
+
+        await host.StartAsync();
+
+        // Wait until the database is available
+        await pipeline.ExecuteAsync(async token =>
+        {
+            var dbContext = host.Services.GetRequiredService<TestDbContext>();
+            var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
+            Assert.True(await databaseCreator.CanConnectAsync(token));
+        }, cts.Token);
+
+        // Initialize database schema
+        await pipeline.ExecuteAsync(async token =>
+        {
+            var dbContext = host.Services.GetRequiredService<TestDbContext>();
+            var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
+            await databaseCreator.CreateTablesAsync(token);
+        }, cts.Token);
+
+        await pipeline.ExecuteAsync(async token =>
+        {
+            var dbContext = host.Services.GetRequiredService<TestDbContext>();
+            dbContext.Cars.Add(new TestDbContext.Car { Brand = "BatMobile" });
+            await dbContext.SaveChangesAsync(token);
+        }, cts.Token);
+
+        await pipeline.ExecuteAsync(async token =>
+        {
+            var dbContext = host.Services.GetRequiredService<TestDbContext>();
+            var cars = await dbContext.Cars.ToListAsync(token);
+            Assert.Single(cars);
+            Assert.Equal("BatMobile", cars[0].Brand);
+        }, cts.Token);
     }
 
     private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
