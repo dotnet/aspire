@@ -79,7 +79,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
+            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1) })
             .Build();
 
         try
