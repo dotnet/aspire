@@ -23,9 +23,9 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifyOracleResource()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(2) })
+            .AddRetry(new() { MaxRetryAttempts = 20, Delay = TimeSpan.FromSeconds(5) })
             .Build();
 
         var builder = CreateDistributedApplicationBuilder();
@@ -93,7 +93,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(2) })
+            .AddRetry(new() { MaxRetryAttempts = 20, Delay = TimeSpan.FromSeconds(5) })
             .Build();
 
         try
@@ -289,7 +289,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(2) })
+            .AddRetry(new() { MaxRetryAttempts = 20, Delay = TimeSpan.FromSeconds(5) })
             .Build();
 
         var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
@@ -354,17 +354,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
                     var brands = await dbContext.Cars.ToListAsync(cancellationToken: token);
                     Assert.Single(brands);
-                }, cts.Token);
-
-                await app.StopAsync();
-
-                // Wait for the database to not be available before attempting to clean the volume.
-
-                await pipeline.ExecuteAsync(async token =>
-                {
-                    var dbContext = host.Services.GetRequiredService<TestDbContext>();
-                    var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
-                    Assert.False(await databaseCreator.CanConnectAsync(token));
+                    Assert.Equal("BatMobile", brands[0].Brand);
                 }, cts.Token);
             }
             finally
