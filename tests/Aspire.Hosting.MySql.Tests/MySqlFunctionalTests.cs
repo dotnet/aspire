@@ -27,7 +27,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(2), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
+            .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
             .Build();
 
         var builder = CreateDistributedApplicationBuilder();
@@ -79,18 +79,15 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(2) })
+            .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
             .Build();
 
         try
         {
             var builder1 = CreateDistributedApplicationBuilder();
 
-            var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder1, "mysql-password").Value;
-
-            var passwordParameter = builder1.AddParameter("pwd");
-            builder1.Configuration["Parameters:pwd"] = password;
-            var mysql1 = builder1.AddMySql("mysql", passwordParameter).WithEnvironment("MYSQL_DATABASE", mySqlDbName);
+            var mysql1 = builder1.AddMySql("mysql").WithEnvironment("MYSQL_DATABASE", mySqlDbName);
+            var password = mysql1.Resource.PasswordParameter.Value;
 
             var db1 = mysql1.AddDatabase(mySqlDbName);
 
@@ -162,10 +159,10 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             var builder2 = CreateDistributedApplicationBuilder();
-            passwordParameter = builder2.AddParameter("pwd");
+            var passwordParameter2 = builder2.AddParameter("pwd");
             builder2.Configuration["Parameters:pwd"] = password;
 
-            var mysql2 = builder2.AddMySql("mysql", passwordParameter);
+            var mysql2 = builder2.AddMySql("mysql", passwordParameter2);
             var db2 = mysql2.AddDatabase(mySqlDbName);
 
             if (useVolume)
@@ -254,7 +251,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(2), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
+            .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
             .Build();
 
         var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
@@ -340,7 +337,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
+            .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
             .Build();
 
         var builder = CreateDistributedApplicationBuilder();
