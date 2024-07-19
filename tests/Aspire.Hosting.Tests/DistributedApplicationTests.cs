@@ -560,7 +560,6 @@ public class DistributedApplicationTests
             "redis",
             "postgres",
             "mongodb",
-            "oracledatabase",
             "cosmos",
             "sqlserver",
             "mysql",

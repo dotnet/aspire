@@ -20,7 +20,6 @@
     <AspireProjectOrPackageReference Include="Aspire.MySqlConnector" />
     <AspireProjectOrPackageReference Include="Aspire.Npgsql" />
     <AspireProjectOrPackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
-    <AspireProjectOrPackageReference Include="Aspire.Oracle.EntityFrameworkCore" />
     <AspireProjectOrPackageReference Include="Aspire.Pomelo.EntityFrameworkCore.MySql" />
     <AspireProjectOrPackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" />
     <AspireProjectOrPackageReference Include="Aspire.RabbitMQ.Client" />

@@ -132,13 +132,6 @@ public class TestProgram : IDisposable
                     .AddDatabase(mongoDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(mongodb);
             }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.oracledatabase))
-            {
-                var oracleDbName = "freepdb1";
-                var oracleDatabase = AppBuilder.AddOracle("oracledatabase")
-                    .AddDatabase(oracleDbName);
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(oracleDatabase);
-            }
             if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos) || !resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
             {
                 var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -99,11 +100,11 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         {
             var builder1 = CreateDistributedApplicationBuilder();
 
-            // Prevent CredScan warnings
-            var password = PasswordGenerator.Generate(8, true, true, true, false, 1, 1, 1, 0);
+            var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder1, "orcl-password").Value;
 
             var passwordParameter = builder1.AddParameter("pwd");
             builder1.Configuration["Parameters:pwd"] = password;
+
             var oracle1 = builder1.AddOracle("oracle", passwordParameter);
 
             var db1 = oracle1.AddDatabase(oracleDbName);
@@ -387,6 +388,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         var builder = TestDistributedApplicationBuilder.Create();
         builder.Services.AddLogging(config => config.SetMinimumLevel(LogLevel.Information));
         builder.Services.AddXunitLogging(testOutputHelper);
+        builder.Services.AddHostedService<ResourceLoggerForwarderService>();
         return builder;
     }
 }

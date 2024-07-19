@@ -108,7 +108,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             TestResourceNames.milvus => "milvus",
             TestResourceNames.mongodb => "mongodb",
             TestResourceNames.mysql or TestResourceNames.efmysql => "mysql",
-            TestResourceNames.oracledatabase => "oracledatabase",
             TestResourceNames.postgres or TestResourceNames.efnpgsql => "postgres",
             TestResourceNames.rabbitmq => "rabbitmq",
             TestResourceNames.redis => "redis",
@@ -142,7 +141,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     {
         TestResourceNames resourcesToInclude = TestScenario switch
         {
-            "oracle" => TestResourceNames.oracledatabase,
             "cosmos" => TestResourceNames.cosmos | TestResourceNames.efcosmos,
             "eventhubs" => TestResourceNames.eventhubs,
             "basicservices" => TestResourceNames.mongodb
@@ -173,7 +171,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             if (BuildEnvironment.IsRunningOnCI)
             {
                 resourcesToSkip |= TestResourceNames.cosmos;
-                resourcesToSkip |= TestResourceNames.oracledatabase;
             }
         }
 
