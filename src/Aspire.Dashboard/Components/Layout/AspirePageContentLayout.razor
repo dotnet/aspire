@@ -1,0 +1,77 @@
+﻿@using Aspire.Dashboard.Resources
+
+@inject IStringLocalizer<Layout> LayoutLoc
+@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
+
+<div class="content-layout">
+    @if (ViewportInformation.IsDesktop)
+    {
+        <div style="grid-area: page-header; @HeaderStyle">
+            @if (AddNewlineOnToolbar)
+            {
+                @PageTitleSection
+
+                <FluentToolbar Orientation="Orientation.Horizontal">
+                    @ToolbarSection
+                </FluentToolbar>
+            }
+            else
+            {
+                <FluentToolbar Class="title-toolbar-inline" Orientation="Orientation.Horizontal">
+                    @PageTitleSection
+                    @ToolbarSection
+                </FluentToolbar>
+            }
+        </div>
+
+        <div style="grid-area: main; overflow: auto; @MainContentStyle">@MainSection</div>
+
+        @if (FooterSection is not null && ShouldShowFooter)
+        {
+            <div style="grid-area: footer">@FooterSection</div>
+        }
+    }
+    else if (IsSummaryDetailsViewOpen)
+    {
+        <div style="@GetMobileMainStyle()">@MainSection</div>
+    }
+    else
+    {
+        <div style="grid-area: page-header">
+            <FluentToolbar Orientation="Orientation.Horizontal" Style="@HeaderStyle">
+                @PageTitleSection
+
+                @if (!AddNewlineOnToolbar)
+                {
+                    @MobilePageTitleToolbarSection
+                }
+            </FluentToolbar>
+
+            @if (AddNewlineOnToolbar)
+            {
+                <div style="padding: calc(var(--design-unit) * 2.5px)">@MobilePageTitleToolbarSection</div>
+            }
+        </div>
+
+        <div style="@GetMobileMainStyle()">@MainSection</div>
+
+        if ((FooterSection is not null && ShouldShowFooter) || ToolbarSection is not null)
+        {
+            <div style="grid-area: footer">
+                @if (FooterSection is not null && ShouldShowFooter)
+                {
+                    @FooterSection
+                }
+
+                @if (ToolbarSection is not null)
+                {
+                    <FluentButton Class="mobile-toolbar"
+                                  Appearance="@Appearance.Accent"
+                                  OnClick="@OpenMobileToolbarAsync">
+                        @(MobileToolbarButtonText ?? LayoutLoc[nameof(Layout.PageLayoutViewFilters)])
+                    </FluentButton>
+                }
+            </div>
+        }
+    }
+</div>

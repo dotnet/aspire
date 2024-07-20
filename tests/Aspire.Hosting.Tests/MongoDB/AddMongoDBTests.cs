@@ -146,7 +146,7 @@ public class AddMongoDBTests
 
         var mongoExpress = Assert.Single(builder.Resources.OfType<MongoExpressContainerResource>());
 
-        var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(mongoExpress);
+        var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(mongoExpress, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Collection(env,
             e =>

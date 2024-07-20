@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.InteropServices;
 using Microsoft.Playwright;
 
 namespace Aspire.Workload.Tests;
@@ -10,6 +9,9 @@ public class PlaywrightProvider
 {
     public const string BrowserPathEnvironmentVariableName = "BROWSER_PATH";
     private const string PlaywrightBrowsersPathEnvironmentVariableName = "PLAYWRIGHT_BROWSERS_PATH";
+
+    public static bool DoesNotHavePlaywrightSupport => Environment.GetEnvironmentVariable("DISABLE_PLAYWRIGHT_TESTS")?.ToLowerInvariant() is "true";
+    public static bool HasPlaywrightSupport => !DoesNotHavePlaywrightSupport;
 
     public static async Task<IBrowser> CreateBrowserAsync(BrowserTypeLaunchOptions? options = null)
     {

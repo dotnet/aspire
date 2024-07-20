@@ -9,12 +9,10 @@ namespace Aspire.Hosting.Utils;
 
 internal static class ImageNameGenerator
 {
-    private static readonly SHA1 s_sha1 = SHA1.Create();
-
     public static string GenerateImageName<T>(this IResourceBuilder<T> builder) where T: IResource
     {
         var bytes = Encoding.UTF8.GetBytes(builder.ApplicationBuilder.AppHostDirectory);
-        var hash = s_sha1.ComputeHash(bytes);
+        var hash = SHA1.HashData(bytes);
         var hex = Convert.ToHexString(hash).ToLower();
         return $"{builder.Resource.Name}-image-{hex}";
     }

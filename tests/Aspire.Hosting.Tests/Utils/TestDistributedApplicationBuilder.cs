@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Dashboard;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -40,12 +41,15 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
         return new TestDistributedApplicationBuilder(options => options.Args = args);
     }
 
-    public static TestDistributedApplicationBuilder Create(Action<DistributedApplicationOptions> configureOptions)
+    public static TestDistributedApplicationBuilder Create(Action<DistributedApplicationOptions>? configureOptions)
     {
         return new TestDistributedApplicationBuilder(configureOptions);
     }
 
-    private TestDistributedApplicationBuilder(Action<DistributedApplicationOptions> configureOptions)
+    public static TestDistributedApplicationBuilder CreateWithTestContainerRegistry() =>
+        Create(o => o.ContainerRegistryOverride = TestConstants.AspireTestContainerRegistry);
+
+    private TestDistributedApplicationBuilder(Action<DistributedApplicationOptions>? configureOptions)
     {
         var appAssembly = typeof(TestDistributedApplicationBuilder).Assembly;
         var assemblyName = appAssembly.FullName;
@@ -76,7 +80,7 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
                 ["DcpPublisher:ResourceNameSuffix"] = $"{Random.Shared.Next():x}",
             });
 
-            configureOptions(applicationOptions);
+            configureOptions?.Invoke(applicationOptions);
         }
     }
 

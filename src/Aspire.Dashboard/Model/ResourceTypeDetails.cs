@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Otlp.Storage;
 
 namespace Aspire.Dashboard.Model;
 
@@ -20,14 +21,28 @@ public class ResourceTypeDetails
     public string? InstanceId { get; }
     public string? ReplicaSetName { get; }
 
+    public ApplicationKey GetApplicationKey()
+    {
+        if (ReplicaSetName == null)
+        {
+            throw new InvalidOperationException($"Can't get ApplicationKey from resource type details '{ToString()}' because {nameof(ReplicaSetName)} is null.");
+        }
+        if (InstanceId == null)
+        {
+            throw new InvalidOperationException($"Can't get ApplicationKey from resource type details '{ToString()}' because {nameof(InstanceId)} is null.");
+        }
+
+        return new ApplicationKey(ReplicaSetName, InstanceId);
+    }        
+
     public static ResourceTypeDetails CreateReplicaSet(string replicaSetName)
     {
         return new ResourceTypeDetails(OtlpApplicationType.ReplicaSet, instanceId: null, replicaSetName);
     }
 
-    public static ResourceTypeDetails CreateSingleton(string instanceId)
+    public static ResourceTypeDetails CreateSingleton(string instanceId, string replicaSetName)
     {
-        return new ResourceTypeDetails(OtlpApplicationType.Singleton, instanceId, replicaSetName: null);
+        return new ResourceTypeDetails(OtlpApplicationType.Singleton, instanceId, replicaSetName: replicaSetName);
     }
 
     public static ResourceTypeDetails CreateReplicaInstance(string instanceId, string replicaSetName)

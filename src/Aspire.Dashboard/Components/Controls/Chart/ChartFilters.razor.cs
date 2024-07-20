@@ -1,23 +1,27 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Model;
+using Microsoft.AspNetCore.Components;
+
 namespace Aspire.Dashboard.Components;
 
 public partial class ChartFilters
 {
-    private bool _showCount;
+    [Inject]
+    public required CurrentChartViewModel ChartViewModel { get; init; }
 
     protected override void OnInitialized()
     {
         InstrumentViewModel.DataUpdateSubscriptions.Add(() =>
         {
-            _showCount = InstrumentViewModel.ShowCount;
+            ChartViewModel.ShowCounts = InstrumentViewModel.ShowCount;
             return Task.CompletedTask;
         });
     }
 
     private void ShowCountChanged()
     {
-        InstrumentViewModel.ShowCount = _showCount;
+        InstrumentViewModel.ShowCount = ChartViewModel.ShowCounts;
     }
 }

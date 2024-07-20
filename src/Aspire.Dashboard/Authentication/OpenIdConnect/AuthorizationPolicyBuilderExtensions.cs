@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.AspNetCore.Authorization;
-using OpenIdConnectOptions = Aspire.Dashboard.Configuration.OpenIdConnectOptions;
+using Aspire.Dashboard.Configuration;
 
 namespace Aspire.Dashboard.Authentication.OpenIdConnect;
 

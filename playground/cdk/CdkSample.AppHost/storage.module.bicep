@@ -31,6 +31,7 @@ resource storageAccount_1XR3Um8QY 'Microsoft.Storage/storageAccounts@2022-09-01'
     networkAcls: {
       defaultAction: 'Allow'
     }
+    minimumTlsVersion: 'TLS1_2'
   }
 }
 

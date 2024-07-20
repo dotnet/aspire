@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -32,7 +31,7 @@ public sealed class ResourceViewModel
         return Name.Contains(filter, StringComparisons.UserTextSearch);
     }
 
-    public static string GetResourceName(ResourceViewModel resource, ConcurrentDictionary<string, ResourceViewModel> allResources)
+    public static string GetResourceName(ResourceViewModel resource, IDictionary<string, ResourceViewModel> allResources)
     {
         var count = 0;
         foreach (var (_, item) in allResources)
@@ -47,6 +46,8 @@ public sealed class ResourceViewModel
                 count++;
                 if (count >= 2)
                 {
+                    // There are multiple resources with the same display name so they're part of a replica set.
+                    // Need to use the name which has a unique ID to tell them apart.
                     return resource.Name;
                 }
             }
@@ -56,6 +57,7 @@ public sealed class ResourceViewModel
     }
 }
 
+[DebuggerDisplay("CommandType = {CommandType}, DisplayName = {DisplayName}")]
 public sealed class CommandViewModel
 {
     public string CommandType { get; }
@@ -75,6 +77,7 @@ public sealed class CommandViewModel
     }
 }
 
+[DebuggerDisplay("Name = {Name}, Value = {Value}, FromSpec = {FromSpec}, IsValueMasked = {IsValueMasked}")]
 public sealed class EnvironmentVariableViewModel
 {
     public string Name { get; }
@@ -93,6 +96,7 @@ public sealed class EnvironmentVariableViewModel
     }
 }
 
+[DebuggerDisplay("Name = {Name}, Url = {Url}, IsInternal = {IsInternal}")]
 public sealed class UrlViewModel
 {
     public string Name { get; }

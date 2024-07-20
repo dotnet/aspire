@@ -6,11 +6,11 @@
 @inject IStringLocalizer<ControlsStrings> Loc
 
 <div class="metrics-filters-container">
-    @if (ViewModel.DimensionFilters.Count > 0)
+    @if (ChartViewModel.DimensionFilters.Count > 0)
     {
         <div class="metrics-filters-section">
             <h5>@Loc[nameof(ControlsStrings.ChartContainerFiltersHeader)]</h5>
-            <FluentDataGrid Items="@Queryable.AsQueryable(ViewModel.DimensionFilters)" GridTemplateColumns="200px 1fr auto" GenerateHeader="GenerateHeaderOption.None">
+            <FluentDataGrid Items="@Queryable.AsQueryable(ChartViewModel.DimensionFilters)" GridTemplateColumns="200px 1fr auto" GenerateHeader="GenerateHeaderOption.None">
                 <ChildContent>
                     <PropertyColumn Tooltip="true" TooltipText="@(c => c.Name)" Property="@(c => c.Name)"/>
                     <TemplateColumn Tooltip="true" TooltipText="@(c => c.SelectedValues.Count == 0 ? Loc[nameof(ControlsStrings.ChartContainerNoneSelected)] : string.Join(", ", c.SelectedValues.Select(v => v.Name)))">
@@ -79,7 +79,7 @@
             <div>
                 <FluentSwitch Class="table-switch"
                               Label="@Loc[nameof(ControlsStrings.ChartContainerShowCountLabel)]"
-                              @bind-Value="_showCount"
+                              @bind-Value="ChartViewModel.ShowCounts"
                               @bind-Value:after="ShowCountChanged"/>
             </div>
         </div>
@@ -89,9 +89,6 @@
 @code {
     [Parameter, EditorRequired]
     public required OtlpInstrument Instrument { get; set; }
-
-    [Parameter, EditorRequired]
-    public required CounterChartViewModel ViewModel { get; set; }
 
     [Parameter, EditorRequired]
     public required InstrumentViewModel InstrumentViewModel { get; set; }

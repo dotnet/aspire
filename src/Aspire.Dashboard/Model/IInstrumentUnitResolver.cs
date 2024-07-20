@@ -7,5 +7,5 @@ namespace Aspire.Dashboard.Model;
 
 public interface IInstrumentUnitResolver
 {
-    string ResolveDisplayedUnit(OtlpInstrument instrument);
+    string ResolveDisplayedUnit(OtlpInstrument instrument, bool titleCase, bool pluralize);
 }

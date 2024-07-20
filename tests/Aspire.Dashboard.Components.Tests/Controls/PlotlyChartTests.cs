@@ -5,9 +5,11 @@ using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
+using Aspire.Dashboard.Otlp.Storage;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.FluentUI.AspNetCore.Components;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using Xunit;
@@ -23,9 +25,13 @@ public class PlotlyChartTests : TestContext
     public void Render_NoInstrument_NoPlotlyInvocations()
     {
         // Arrange
+        JSInterop.SetupModule("/js/app-metrics.js");
+
         Services.AddLocalization();
         Services.AddSingleton<IInstrumentUnitResolver, TestInstrumentUnitResolver>();
         Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
+        Services.AddSingleton<TelemetryRepository>();
+        Services.AddSingleton<IDialogService, DialogService>();
 
         var model = new InstrumentViewModel();
 
@@ -38,18 +44,26 @@ public class PlotlyChartTests : TestContext
         // Assert
         cut.MarkupMatches(ContainerHtml);
 
-        Assert.Empty(JSInterop.Invocations);
+        Assert.Collection(JSInterop.Invocations,
+            i =>
+            {
+                Assert.Equal("import", i.Identifier);
+                Assert.Equal("/js/app-metrics.js", i.Arguments[0]);
+            });
     }
 
     [Fact]
     public async Task Render_HasInstrument_InitializeChartInvocation()
     {
         // Arrange
-        JSInterop.SetupVoid("initializeChart", _ => true);
+        var module = JSInterop.SetupModule("/js/app-metrics.js");
+        module.SetupVoid("initializeChart", _ => true);
 
         Services.AddLocalization();
         Services.AddSingleton<IInstrumentUnitResolver, TestInstrumentUnitResolver>();
         Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
+        Services.AddSingleton<TelemetryRepository>();
+        Services.AddSingleton<IDialogService, DialogService>();
 
         var options = new TelemetryLimitOptions();
         var instrument = new OtlpInstrument
@@ -72,7 +86,7 @@ public class PlotlyChartTests : TestContext
             AsInt = 1,
             StartTimeUnixNano = 0,
             TimeUnixNano = long.MaxValue
-        });
+        }, options);
 
         await model.UpdateDataAsync(instrument, new List<DimensionScope>
         {
@@ -89,19 +103,27 @@ public class PlotlyChartTests : TestContext
         // Assert
         cut.MarkupMatches(ContainerHtml);
 
-        var result = Assert.Single(JSInterop.Invocations);
-        Assert.Equal("initializeChart", result.Identifier);
-        Assert.Equal("plotly-chart-container", result.Arguments[0]);
-        Assert.Collection((IEnumerable<PlotlyTrace>)result.Arguments[1]!, trace =>
-        {
-            Assert.Equal("Unit-&lt;b&gt;Bold&lt;/b&gt;", trace.Name);
-            Assert.Equal("<b>Name-&lt;b&gt;Bold&lt;/b&gt;</b><br />Unit-&lt;b&gt;Bold&lt;/b&gt;: 1<br />Time: 12:59:57 AM", trace.Tooltips[0]);
-        });
+        Assert.Collection(JSInterop.Invocations,
+            i =>
+            {
+                Assert.Equal("import", i.Identifier);
+                Assert.Equal("/js/app-metrics.js", i.Arguments[0]);
+            },
+            i =>
+            {
+                Assert.Equal("initializeChart", i.Identifier);
+                Assert.Equal("plotly-chart-container", i.Arguments[0]);
+                Assert.Collection((IEnumerable<PlotlyTrace>)i.Arguments[1]!, trace =>
+                {
+                    Assert.Equal("Unit-&lt;b&gt;Bold&lt;/b&gt;", trace.Name);
+                    Assert.Equal("<b>Name-&lt;b&gt;Bold&lt;/b&gt;</b><br />Unit-&lt;b&gt;Bold&lt;/b&gt;: 1<br />Time: 12:59:57 AM", trace.Tooltips[0]);
+                });
+            });
     }
 
     private sealed class TestInstrumentUnitResolver : IInstrumentUnitResolver
     {
-        public string ResolveDisplayedUnit(OtlpInstrument instrument)
+        public string ResolveDisplayedUnit(OtlpInstrument instrument, bool titleCase, bool pluralize)
         {
             return instrument.Unit;
         }

@@ -5,6 +5,8 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Aspire.Dashboard.Components.Controls;
+using Aspire.Dashboard.Components.Layout;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -30,6 +32,15 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     [Inject]
     public required ILogger<ConsoleLogs> Logger { get; init; }
 
+    [Inject]
+    public required LogViewerViewModel LogViewerViewModel { get; init; }
+
+    [Inject]
+    public required DimensionManager DimensionManager { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; init; }
+
     [Parameter]
     public string? ResourceName { get; set; }
 
@@ -44,6 +55,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     private ResourceSelect? _resourceSelectComponent;
     private SelectViewModel<ResourceTypeDetails> _noSelection = null!;
     private LogViewer _logViewer = null!;
+    private AspirePageContentLayout? _contentLayout;
 
     // State
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
@@ -108,7 +120,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             {
                 await foreach (var changes in subscription.WithCancellation(_resourceSubscriptionCancellation.Token).ConfigureAwait(false))
                 {
-                    // TODO: This could be updated to be more efficent.
+                    // TODO: This could be updated to be more efficient.
                     // It should apply on the resource changes in a batch and then update the UI.
                     foreach (var (changeType, resource) in changes)
                     {
@@ -142,6 +154,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     protected override async Task OnParametersSetAsync()
     {
+        if (!DimensionManager.IsResizing && PageViewModel.InitialisedSuccessfully is true && StringComparers.ResourceName.Equals(ResourceName, LogViewerViewModel.ResourceName))
+        {
+            return;
+        }
+
         Logger.LogDebug("Initializing console logs view model.");
         await this.InitializeViewModelAsync();
 
@@ -169,7 +186,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     private void UpdateResourcesList()
     {
         var builder = ImmutableList.CreateBuilder<SelectViewModel<ResourceTypeDetails>>();
-        builder.Add(_noSelection);
 
         foreach (var resourceGroupsByApplicationName in _resourceByName
             .Where(r => !r.Value.IsHiddenState())
@@ -191,13 +207,16 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             }
         }
 
-        _resources = builder.ToImmutable();
+        builder.Sort((r1, r2) => StringComparers.ResourceName.Compare(r1.Name, r2.Name));
+
+        builder.Insert(0, _noSelection);
+        _resources = builder.ToImmutableList();
 
         SelectViewModel<ResourceTypeDetails> ToOption(ResourceViewModel resource, bool isReplica, string applicationName)
         {
             var id = isReplica
                 ? ResourceTypeDetails.CreateReplicaInstance(resource.Name, applicationName)
-                : ResourceTypeDetails.CreateSingleton(resource.Name);
+                : ResourceTypeDetails.CreateSingleton(resource.Name, applicationName);
 
             return new SelectViewModel<ResourceTypeDetails>
             {
@@ -253,6 +272,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             if (subscription is not null)
             {
                 var task = _logViewer.SetLogSourceAsync(
+                    PageViewModel.SelectedResource.Name,
                     subscription,
                     convertTimestampsFromUtc: PageViewModel.SelectedResource.IsContainer());
 
@@ -282,7 +302,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         await ClearLogsAsync();
 
         PageViewModel.SelectedResource = PageViewModel.SelectedOption?.Id?.InstanceId is null ? null : _resourceByName[PageViewModel.SelectedOption.Id.InstanceId];
-        await this.AfterViewModelChangedAsync();
+        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: false);
     }
 
     private async Task OnResourceChanged(ResourceViewModelChangeType changeType, ResourceViewModel resource)

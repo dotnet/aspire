@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Components.Layout;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 
@@ -56,13 +57,27 @@ public static class PageExtensions
     /// Called after a change in the view model that will affect the url associated with new page state
     /// to navigate to the new url and save new state in localstorage.
     /// </summary>
-    public static async Task AfterViewModelChangedAsync<TViewModel, TSerializableViewModel>(this IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel> page) where TSerializableViewModel : class
+    public static async Task AfterViewModelChangedAsync<TViewModel, TSerializableViewModel>(this IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel> page, AspirePageContentLayout? layout, bool isChangeInToolbar) where TSerializableViewModel : class
     {
-        var serializableViewModel = page.ConvertViewModelToSerializable();
-        var pathWithParameters = page.GetUrlFromSerializableViewModel(serializableViewModel).ToString();
+        // if the mobile filter dialog is open, we want to wait until the dialog is closed to apply all changes
+        // we should only apply the last invocation, as TViewModel will be up-to-date
+        if (layout is not null && !layout.ViewportInformation.IsDesktop && isChangeInToolbar)
+        {
+            layout.DialogCloseListeners[nameof(AfterViewModelChangedAsync)] = SetStateAndNavigateAsync;
+            return;
+        }
 
-        page.NavigationManager.NavigateTo(pathWithParameters);
-        await page.SessionStorage.SetAsync(page.SessionStorageKey, serializableViewModel).ConfigureAwait(false);
+        await SetStateAndNavigateAsync();
+        return;
+
+        async Task SetStateAndNavigateAsync()
+        {
+            var serializableViewModel = page.ConvertViewModelToSerializable();
+            var pathWithParameters = page.GetUrlFromSerializableViewModel(serializableViewModel);
+
+            page.NavigationManager.NavigateTo(pathWithParameters);
+            await page.SessionStorage.SetAsync(page.SessionStorageKey, serializableViewModel).ConfigureAwait(false);
+        }
     }
 
     public static async Task InitializeViewModelAsync<TViewModel, TSerializableViewModel>(this IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel> page) where TSerializableViewModel : class

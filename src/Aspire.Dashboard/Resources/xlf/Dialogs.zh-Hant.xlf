@@ -2,6 +2,41 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hant" original="../Dialogs.resx">
     <body>
+      <trans-unit id="ExemplarsDialogCloseButtonText">
+        <source>Close</source>
+        <target state="new">Close</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExemplarsDialogDetailsColumnHeader">
+        <source>Details</source>
+        <target state="new">Details</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExemplarsDialogTimestampColumnHeader">
+        <source>Timestamp</source>
+        <target state="new">Timestamp</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExemplarsDialogTitle">
+        <source>Exemplars</source>
+        <target state="new">Exemplars</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExemplarsDialogTrace">
+        <source>Trace</source>
+        <target state="new">Trace</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExemplarsDialogTraceColumnHeader">
+        <source>Trace</source>
+        <target state="new">Trace</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExemplarsDialogValueColumnHeader">
+        <source>Value</source>
+        <target state="new">Value</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FilterDialogApplyFilterButtonText">
         <source>Apply filter</source>
         <target state="translated">套用篩選</target>
@@ -116,6 +151,16 @@
         <source>Toggle panel orientation</source>
         <target state="translated">切換面板方向</target>
         <note />
+      </trans-unit>
+      <trans-unit id="OpenTraceDialogCancelButtonText">
+        <source>Cancel</source>
+        <target state="new">Cancel</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OpenTraceDialogMessage">
+        <source>Waiting for trace {0} to load...</source>
+        <target state="new">Waiting for trace {0} to load...</target>
+        <note>{0} is a trace ID</note>
       </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
         <source>Dark</source>

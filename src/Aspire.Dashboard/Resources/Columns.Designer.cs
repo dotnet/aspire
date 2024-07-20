@@ -70,6 +70,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Endpoints.
+        /// </summary>
+        public static string EndpointsColumnDisplayOverflowTitle {
+            get {
+                return ResourceManager.GetString("EndpointsColumnDisplayOverflowTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Starting....
         /// </summary>
         public static string EndpointsColumnDisplayPlaceholder {

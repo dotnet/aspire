@@ -37,7 +37,7 @@ public class KestrelConfigTests
 
         AllocateTestEndpoints(resource);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         // When using Kestrel, we should not be setting ASPNETCORE_URLS at all
         Assert.False(config.ContainsKey("ASPNETCORE_URLS"));
@@ -75,7 +75,7 @@ public class KestrelConfigTests
 
         AllocateTestEndpoints(resource);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         // We're ignoring Kestrel, so we should be setting ASPNETCORE_URLS
         Assert.Equal("http://localhost:port_http;http://localhost:port_ExplicitHttp", config["ASPNETCORE_URLS"]);
@@ -140,7 +140,7 @@ public class KestrelConfigTests
 
         AllocateTestEndpoints(resource);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Collection(
             config.Where(envVar => envVar.Key.StartsWith("Kestrel__")),
@@ -271,6 +271,37 @@ public class KestrelConfigTests
             """;
 
         Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public async Task VerifyKestrelEnvVariablesGetOmittedFromManifestIfExcluded()
+    {
+        var resource = CreateTestProjectResource<ProjectWithMultipleHttpKestrelEndpoints>(
+            operation: DistributedApplicationOperation.Publish,
+            callback: builder =>
+            {
+                builder.WithHttpEndpoint(5017, name: "ExplicitProxiedHttp")
+                    .WithHttpEndpoint(5018, name: "ExplicitNoProxyHttp", isProxied: false)
+                    // Exclude both a Kestrel endpoint and an explicit endpoint from environment injection
+                    // We do it as separate filters to ensure they are combined correctly
+                    .WithEndpointsInEnvironment(e => e.Name != "FirstHttpEndpoint")
+                    .WithEndpointsInEnvironment(e => e.Name != "ExplicitProxiedHttp");
+            });
+
+        var manifest = await ManifestUtils.GetManifest(resource);
+
+        var expectedEnv = """
+            {
+              "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+              "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+              "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+              "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+              "Kestrel__Endpoints__SecondHttpEndpoint__Url": "http://*:{projectName.bindings.SecondHttpEndpoint.targetPort}",
+              "Kestrel__Endpoints__ExplicitNoProxyHttp__Url": "http://*:{projectName.bindings.ExplicitNoProxyHttp.targetPort}"
+            }
+            """;
+
+        Assert.Equal(expectedEnv, manifest["env"]!.ToString());
     }
 
     [Fact]

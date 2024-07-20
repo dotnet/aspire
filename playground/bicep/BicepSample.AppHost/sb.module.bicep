@@ -23,6 +23,7 @@ resource serviceBusNamespace_1RzZvI0LZ 'Microsoft.ServiceBus/namespaces@2021-11-
     name: sku
   }
   properties: {
+    disableLocalAuth: true
   }
 }
 

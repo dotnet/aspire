@@ -1,0 +1,10 @@
+{
+    "instanceUrl": "https://devdiv.visualstudio.com/",
+    "template": "TFSDEVDIV",
+    "projectName": "DEVDIV",
+    "areaPath": "DevDiv\\ASP.NET Core\\Policy Violations",
+    "iterationPath": "DevDiv",
+    "notificationAliases": [ "aspnetcore-build@microsoft.com" ],
+    "repositoryName": "aspire",
+    "codebaseName": "aspire"
+}

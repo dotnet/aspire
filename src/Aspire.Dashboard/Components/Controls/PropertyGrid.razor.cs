@@ -58,6 +58,9 @@ public partial class PropertyGrid<TItem>
     [Parameter]
     public RenderFragment<TItem> ExtraValueContent { get; set; } = s_emptyChildContent;
 
+    [Parameter]
+    public GenerateHeaderOption GenerateHeader { get; set; } = GenerateHeaderOption.Sticky;
+
     public readonly record struct PropertyGridIsMaskedChangedArgs(TItem Item, bool NewValue);
 
     private async Task OnIsMaskedChanged(TItem item, bool newValue)

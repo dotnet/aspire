@@ -12,13 +12,13 @@ namespace Aspire.Dashboard.Tests;
 
 public class ResourceOutgoingPeerResolverTests
 {
-    private static ResourceViewModel CreateResource(string name, string? serviceAddress = null, int? servicePort = null)
+    private static ResourceViewModel CreateResource(string name, string? serviceAddress = null, int? servicePort = null, string? displayName = null)
     {
         return new ResourceViewModel
         {
             Name = name,
             ResourceType = "Container",
-            DisplayName = name,
+            DisplayName = displayName ?? name,
             Uid = Guid.NewGuid().ToString(),
             CreationTimeStamp = DateTime.UtcNow,
             Environment = [],
@@ -169,6 +169,38 @@ public class ResourceOutgoingPeerResolverTests
                 yield return [item];
             }
         }
+    }
+
+    [Fact]
+    public void NameAndDisplayNameDifferent_OneInstance_ReturnDisplayName()
+    {
+        // Arrange
+        var resources = new Dictionary<string, ResourceViewModel>
+        {
+            ["test-abc"] = CreateResource("test-abc", "localhost", 5000, displayName: "test")
+        };
+
+        // Act & Assert
+        Assert.True(TryResolvePeerName(resources, [KeyValuePair.Create("server.address", "localhost"), KeyValuePair.Create("server.port", "5000")], out var value));
+        Assert.Equal("test", value);
+    }
+
+    [Fact]
+    public void NameAndDisplayNameDifferent_MultipleInstances_ReturnName()
+    {
+        // Arrange
+        var resources = new Dictionary<string, ResourceViewModel>
+        {
+            ["test-abc"] = CreateResource("test-abc", "localhost", 5000, displayName: "test"),
+            ["test-def"] = CreateResource("test-def", "localhost", 5001, displayName: "test")
+        };
+
+        // Act & Assert
+        Assert.True(TryResolvePeerName(resources, [KeyValuePair.Create("server.address", "localhost"), KeyValuePair.Create("server.port", "5000")], out var value1));
+        Assert.Equal("test-abc", value1);
+
+        Assert.True(TryResolvePeerName(resources, [KeyValuePair.Create("server.address", "localhost"), KeyValuePair.Create("server.port", "5001")], out var value2));
+        Assert.Equal("test-def", value2);
     }
 
     private static bool TryResolvePeerName(IDictionary<string, ResourceViewModel> resources, KeyValuePair<string, string>[] attributes, out string? peerName)

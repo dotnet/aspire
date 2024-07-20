@@ -63,6 +63,10 @@ Set `Dashboard:Frontend:AuthMode` to `OpenIdConnect`, then add the following con
 - `Dashboard:Frontend:OpenIdConnect:RequiredClaimType` specifies the (optional) claim that be present for authorized users. Defaults to empty.
 - `Dashboard:Frontend:OpenIdConnect:RequiredClaimValue` specifies the (optional) value of the required claim. Only used if `Dashboard:Frontend:OpenIdConnect:RequireClaimType` is also specified. Defaults to empty.
 
+#### Memory limits
+
+- `Dashboard:Frontend:MaxConsoleLogCount` specifies the (optional) maximum number of console log messages to keep in memory. Defaults to 10,000. When the limit is reached, the oldest messages are removed.
+
 ### OTLP authentication
 
 The OTLP endpoint can be secured with [client certificate](https://learn.microsoft.com/aspnet/core/security/authentication/certauth) or API key authentication.

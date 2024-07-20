@@ -42,6 +42,7 @@ public static class AzureAppConfigurationExtensions
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
             var store = new AppConfigurationStore(construct, name: name, skuName: "standard");
+            store.AssignProperty(x => x.DisableLocalAuth, "true");
             store.AddOutput("appConfigEndpoint", x => x.Endpoint);
             var appConfigurationDataOwnerRoleAssignemnt = store.AssignRole(RoleDefinition.AppConfigurationDataOwner);
             appConfigurationDataOwnerRoleAssignemnt.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
