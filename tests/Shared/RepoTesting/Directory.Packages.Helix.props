@@ -3,81 +3,81 @@
 
   <ItemGroup Label="Aspire packages">
     <PackageVersion Include="Aspire.Azure.AI.OpenAI" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Azure.Data.Tables" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Azure.Data.Tables" Version="8.1.0" />
     <PackageVersion Include="Aspire.Azure.Messaging.EventHubs" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Azure.Messaging.ServiceBus" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Azure.Messaging.WebPubSub" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Azure.Search.Documents" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Azure.Security.KeyVault" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Azure.Storage.Blobs" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Azure.Storage.Queues" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Confluent.Kafka" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Azure.Messaging.ServiceBus" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Azure.Messaging.WebPubSub" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Azure.Search.Documents" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Azure.Security.KeyVault" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Azure.Storage.Blobs" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Azure.Storage.Queues" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Confluent.Kafka" Version="8.1.0" />
     <PackageVersion Include="Aspire.Elastic.Clients.Elasticsearch" Version="$(PackageVersion)" />
 
-    <PackageVersion Include="Aspire.Hosting" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.AppHost" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="8.1.0" />
     <PackageVersion Include="Aspire.Hosting.AWS" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Azure" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Azure.AppConfiguration" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Azure.ApplicationInsights" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Azure.CosmosDB" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Azure.EventHubs" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Azure.KeyVault" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Azure.OperationalInsights" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Azure.PostgreSQL" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Azure.Redis" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Azure.Search" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Azure.SignalR" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Azure.Sql" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Azure" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.AppConfiguration" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.ApplicationInsights" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.CosmosDB" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.EventHubs" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.KeyVault" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.OperationalInsights" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.PostgreSQL" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Redis" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Search" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.SignalR" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Sql" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Azure.Storage" Version="8.1.0" />
     <PackageVersion Include="Aspire.Hosting.Elasticsearch" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Hosting.Azure.WebPubSub" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Dapr" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Garnet" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Kafka" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Milvus" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.MongoDB" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.MySql" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Nats" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.NodeJs" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Oracle" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Orleans" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Python" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Qdrant" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Redis" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Sdk" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Seq" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Testing" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Hosting.Valkey" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Hosting.Dapr" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Garnet" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Kafka" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Milvus" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.MongoDB" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.MySql" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Nats" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.NodeJs" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Oracle" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Orleans" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Python" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Qdrant" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Redis" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Sdk" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Seq" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Testing" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Valkey" Version="8.1.0" />
 
-    <PackageVersion Include="Aspire.Microsoft.Azure.Cosmos" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Microsoft.Data.SqlClient" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Microsoft.EntityFrameworkCore.Cosmos" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Microsoft.Azure.Cosmos" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Microsoft.Data.SqlClient" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Microsoft.EntityFrameworkCore.Cosmos" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="8.1.0" />
     <PackageVersion Include="Aspire.Milvus.Client" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.MongoDB.Driver" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.MySqlConnector" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.NATS.Net" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Npgsql" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Oracle.EntityFrameworkCore" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Pomelo.EntityFrameworkCore.MySql" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Qdrant.Client" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.RabbitMQ.Client" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.Seq" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.StackExchange.Redis" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="$(PackageVersion)" />
-    <PackageVersion Include="Aspire.StackExchange.Redis.OutputCaching" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.MongoDB.Driver" Version="8.1.0" />
+    <PackageVersion Include="Aspire.MySqlConnector" Version="8.1.0" />
+    <PackageVersion Include="Aspire.NATS.Net" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Npgsql" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Oracle.EntityFrameworkCore" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Pomelo.EntityFrameworkCore.MySql" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Qdrant.Client" Version="8.1.0" />
+    <PackageVersion Include="Aspire.RabbitMQ.Client" Version="8.1.0" />
+    <PackageVersion Include="Aspire.Seq" Version="8.1.0" />
+    <PackageVersion Include="Aspire.StackExchange.Redis" Version="8.1.0" />
+    <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="8.1.0" />
+    <PackageVersion Include="Aspire.StackExchange.Redis.OutputCaching" Version="8.1.0" />
 
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(PackageVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Abstractions" Version="$(PackageVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Dns" Version="$(PackageVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Yarp" Version="$(PackageVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="8.1.0" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Abstractions" Version="8.1.0" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Dns" Version="8.1.0" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Yarp" Version="8.1.0" />
   </ItemGroup>
 
   <ItemGroup Label="For tests">
