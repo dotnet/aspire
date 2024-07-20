@@ -261,7 +261,7 @@ public class ElasticsearchFunctionalTests
 
         try
         {
-            File.Delete(bindMountPath);
+            Directory.Delete(bindMountPath);
         }
         catch
         {
