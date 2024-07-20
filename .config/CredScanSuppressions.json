@@ -32,6 +32,10 @@
     {
       "file": "\\tests\\Shared\\TestCertificates\\testCert.pfx",
       "_justification": "Legitimate UT certificate file with private key, from dotnet/aspnetcore"
+    },
+    {
+      "file": "\\playground\\keycloak\\realms\\weathershop-realm.json",
+      "_justification": "Bogus secret used in test sample data"
     }
   ]
 }
