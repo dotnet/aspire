@@ -89,15 +89,6 @@ public class TestProgram : IDisposable
                     .AddDatabase(sqlserverDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(sqlserver);
             }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.mysql) || !resourcesToSkip.HasFlag(TestResourceNames.efmysql))
-            {
-                var mysqlDbName = "mysqldb";
-                var mysql = AppBuilder.AddMySql("mysql")
-                    .WithImageRegistry(AspireTestContainerRegistry)
-                    .WithEnvironment("MYSQL_DATABASE", mysqlDbName)
-                    .AddDatabase(mysqlDbName);
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(mysql);
-            }
             if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
             {
                 var redis = AppBuilder.AddRedis("redis")

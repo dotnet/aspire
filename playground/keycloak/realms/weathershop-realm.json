@@ -378,30 +378,6 @@
   "webAuthnPolicyPasswordlessAvoidSameAuthenticatorRegister" : false,
   "webAuthnPolicyPasswordlessAcceptableAaguids" : [ ],
   "webAuthnPolicyPasswordlessExtraOrigins" : [ ],
-  "users" : [ {
-    "id" : "8e6aa491-29b4-4701-ac20-a6f0b72ebf2c",
-    "username" : "testuser",
-    "firstName" : "Test",
-    "lastName" : "User",
-    "email" : "testuser@example.com",
-    "emailVerified" : true,
-    "createdTimestamp" : 1719876361930,
-    "enabled" : true,
-    "totp" : false,
-    "credentials" : [ {
-      "id" : "662acb61-35aa-4550-aa3d-1b91d548379b",
-      "type" : "password",
-      "userLabel" : "My password",
-      "createdDate" : 1719876373873,
-      "secretData" : "{\"value\":\"4DfZJfojd4Ef08uoboJ2V+RMpF20yGEbw2pDouefjmcTmAVxE6wPkbLN03u/bAElCm4Y/ndJ9YruH3Q5pFuSLQ==\",\"salt\":\"E8I7GRLxZI2lzpKCI6h/bw==\",\"additionalParameters\":{}}",
-      "credentialData" : "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
-    } ],
-    "disableableCredentialTypes" : [ ],
-    "requiredActions" : [ ],
-    "realmRoles" : [ "default-roles-weathershop" ],
-    "notBefore" : 0,
-    "groups" : [ ]
-  } ],
   "scopeMappings" : [ {
     "clientScope" : "offline_access",
     "roles" : [ "offline_access" ]
@@ -1298,7 +1274,7 @@
       "subType" : "authenticated",
       "subComponents" : { },
       "config" : {
-        "allowed-protocol-mapper-types" : [ "saml-user-attribute-mapper", "saml-user-property-mapper", "oidc-usermodel-attribute-mapper", "oidc-sha256-pairwise-sub-mapper", "oidc-usermodel-property-mapper", "oidc-full-name-mapper", "oidc-address-mapper", "saml-role-list-mapper" ]
+        "allowed-protocol-mapper-types" : [ "oidc-usermodel-attribute-mapper", "oidc-address-mapper", "saml-role-list-mapper", "saml-user-property-mapper", "saml-user-attribute-mapper", "oidc-sha256-pairwise-sub-mapper", "oidc-full-name-mapper", "oidc-usermodel-property-mapper" ]
       }
     }, {
       "id" : "241c5dea-68b9-4684-a816-80b08ef86bff",
@@ -1314,7 +1290,7 @@
       "subType" : "anonymous",
       "subComponents" : { },
       "config" : {
-        "allowed-protocol-mapper-types" : [ "saml-user-property-mapper", "oidc-sha256-pairwise-sub-mapper", "oidc-full-name-mapper", "oidc-usermodel-attribute-mapper", "oidc-address-mapper", "saml-user-attribute-mapper", "saml-role-list-mapper", "oidc-usermodel-property-mapper" ]
+        "allowed-protocol-mapper-types" : [ "saml-user-property-mapper", "oidc-usermodel-attribute-mapper", "saml-user-attribute-mapper", "oidc-address-mapper", "oidc-sha256-pairwise-sub-mapper", "oidc-usermodel-property-mapper", "saml-role-list-mapper", "oidc-full-name-mapper" ]
       }
     }, {
       "id" : "730409bc-ce7e-4b64-a870-946aeba9f65b",

@@ -10,8 +10,6 @@ public enum TestResourceNames
     cosmos = 1 << 0,
     dashboard = 1 << 1,
     mongodb = 1 << 3,
-    mysql = 1 << 4,
-    efmysql = 1 << 6,
     postgres = 1 << 7,
     rabbitmq = 1 << 8,
     redis = 1 << 9,
@@ -22,7 +20,7 @@ public enum TestResourceNames
     milvus = 1 << 14,
     efsqlserver = 1 << 16,
     efcosmos = 1 << 17,
-    All = cosmos | dashboard | mongodb | mysql | efmysql | postgres | rabbitmq | redis | sqlserver | efnpgsql | garnet | eventhubs | milvus | efsqlserver | efcosmos
+    All = cosmos | dashboard | mongodb | postgres | rabbitmq | redis | sqlserver | efnpgsql | garnet | eventhubs | milvus | efsqlserver | efcosmos
 }
 
 public static class TestResourceNamesExtensions
