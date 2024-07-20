@@ -40,7 +40,6 @@
     <ProjectReference Include="..\..\src\Components\Aspire.Microsoft.Data.SqlClient\Aspire.Microsoft.Data.SqlClient.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Components\Aspire.MongoDB.Driver\Aspire.MongoDB.Driver.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Components\Aspire.MySqlConnector\Aspire.MySqlConnector.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\..\src\Components\Aspire.Npgsql\Aspire.Npgsql.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Components\Aspire.Oracle.EntityFrameworkCore\Aspire.Oracle.EntityFrameworkCore.csproj" IsAspireProjectResource="false" />
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
@@ -48,7 +47,6 @@
 
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Garnet\GarnetContainerImageTags.cs" />
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Kafka\KafkaContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Nats\NatsContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Milvus\MilvusContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.MongoDB\MongoDBContainerImageTags.cs" />
@@ -56,7 +54,6 @@
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.PostgreSQL\PostgresContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.RabbitMQ\RabbitMQContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Redis\RedisContainerImageTags.cs" />
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Qdrant\QdrantContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.SqlServer\SqlServerContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Azure.EventHubs\EventHubsEmulatorContainerImageTags.cs" />
 
