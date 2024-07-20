@@ -1,5 +1,11 @@
+@media (min-width: 768px) {
+    .summary-details-container {
+        overflow: auto;
+    }
+}
+
 .summary-details-container {
-    overflow: auto;
+    height: 100%;
 }
 
 ::deep split-panels {
@@ -10,12 +16,10 @@
 ::deep .summary-container {
     height: 100%;
     min-width: 100%;
-    overflow: auto;
 }
 
 ::deep .details-container {
     height: 100%;
-    overflow: auto;
     display: grid;
     grid-template-rows: auto 1fr;
     grid-template-areas:
@@ -26,13 +30,21 @@
 ::deep .details-container > header {
     height: auto;
     grid-row-start: 1;
-    background-color: var(--neutral-layer-4);
     color: var(--neutral-foreground-rest);
     padding: calc(var(--design-unit) * 2px) calc(var(--design-unit) * 3px);
     display: grid;
     grid-template-columns: 1fr auto;
     grid-template-areas: "title actions";
     align-items: center;
+}
+
+/* At lower widths we want to use the same background color as the rest of the page, as the header
+   is our page header too
+*/
+@media (min-width: 768px) {
+    ::deep .details-container > header {
+        background-color: var(--neutral-layer-4);
+    }
 }
 
 ::deep .details-container > header fluent-button[appearance=stealth]:not(:hover)::part(control) {

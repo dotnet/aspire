@@ -4,6 +4,8 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Text;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Model;
 using Google.Protobuf.Collections;
@@ -38,7 +40,14 @@ public sealed class TelemetryRepository
     private readonly ReaderWriterLockSlim _tracesLock = new();
     private readonly Dictionary<string, OtlpScope> _traceScopes = new();
     private readonly CircularBuffer<OtlpTrace> _traces;
+    private readonly List<OtlpSpanLink> _spanLinks = new();
     private readonly DashboardOptions _dashboardOptions;
+
+    public bool HasDisplayedMaxLogLimitMessage { get; set; }
+    public bool HasDisplayedMaxTraceLimitMessage { get; set; }
+
+    // For testing.
+    internal List<OtlpSpanLink> SpanLinks => _spanLinks;
 
     public TelemetryRepository(ILoggerFactory loggerFactory, IOptions<DashboardOptions> dashboardOptions)
     {
@@ -47,6 +56,19 @@ public sealed class TelemetryRepository
 
         _logs = new(_dashboardOptions.TelemetryLimits.MaxLogCount);
         _traces = new(_dashboardOptions.TelemetryLimits.MaxTraceCount);
+        _traces.ItemRemovedForCapacity += TracesItemRemovedForCapacity;
+    }
+
+    private void TracesItemRemovedForCapacity(OtlpTrace trace)
+    {
+        // Remove links from central collection when the span is removed.
+        foreach (var span in trace.Spans)
+        {
+            foreach (var link in span.Links)
+            {
+                _spanLinks.Remove(link);
+            }
+        }
     }
 
     public List<OtlpApplication> GetApplications()
@@ -412,6 +434,20 @@ public sealed class TelemetryRepository
 
         try
         {
+            return GetTraceUnsynchronized(traceId);
+        }
+        finally
+        {
+            _tracesLock.ExitReadLock();
+        }
+    }
+
+    private OtlpTrace? GetTraceUnsynchronized(string traceId)
+    {
+        Debug.Assert(_tracesLock.IsReadLockHeld || _tracesLock.IsWriteLockHeld, $"Must get lock before calling {nameof(GetTraceUnsynchronized)}.");
+
+        try
+        {
             var results = _traces.Where(t => t.TraceId.StartsWith(traceId, StringComparison.Ordinal));
             var trace = results.SingleOrDefault();
             return trace is not null ? OtlpTrace.Clone(trace) : null;
@@ -419,6 +455,35 @@ public sealed class TelemetryRepository
         catch (Exception ex)
         {
             throw new InvalidOperationException($"Multiple traces found with trace id '{traceId}'.", ex);
+        }
+    }
+
+    private OtlpSpan? GetSpanUnsynchronized(string traceId, string spanId)
+    {
+        Debug.Assert(_tracesLock.IsReadLockHeld || _tracesLock.IsWriteLockHeld, $"Must get lock before calling {nameof(GetSpanUnsynchronized)}.");
+
+        var trace = GetTraceUnsynchronized(traceId);
+        if (trace != null)
+        {
+            foreach (var span in trace.Spans)
+            {
+                if (span.SpanId == spanId)
+                {
+                    return span;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public OtlpSpan? GetSpan(string traceId, string spanId)
+    {
+        _tracesLock.EnterReadLock();
+
+        try
+        {
+            return GetSpanUnsynchronized(traceId, spanId);
         }
         finally
         {
@@ -560,6 +625,25 @@ public sealed class TelemetryRepository
                         var newSpan = CreateSpan(application, span, trace, scope, _dashboardOptions.TelemetryLimits);
                         trace.AddSpan(newSpan);
 
+                        // The new span might be linked to by an existing span.
+                        // Check current links to see if a backlink should be created.
+                        foreach (var existingLink in _spanLinks)
+                        {
+                            if (existingLink.SpanId == newSpan.SpanId && existingLink.TraceId == newSpan.TraceId)
+                            {
+                                newSpan.BackLinks.Add(existingLink);
+                            }
+                        }
+
+                        // Add links to central collection. Add backlinks to existing spans.
+                        foreach (var link in newSpan.Links)
+                        {
+                            _spanLinks.Add(link);
+
+                            var linkedSpan = GetSpanUnsynchronized(link.TraceId, link.SpanId);
+                            linkedSpan?.BackLinks.Add(link);
+                        }
+
                         // Traces are sorted by the start time of the first span.
                         // We need to ensure traces are in the correct order if we're:
                         // 1. Adding a new trace.
@@ -624,6 +708,7 @@ public sealed class TelemetryRepository
                     }
 
                     AssertTraceOrder();
+                    AssertSpanLinks();
                 }
 
             }
@@ -666,6 +751,42 @@ public sealed class TelemetryRepository
         }
     }
 
+    [Conditional("DEBUG")]
+    private void AssertSpanLinks()
+    {
+        // Create a local copy of span links.
+        var currentSpanLinks = _spanLinks.ToList();
+
+        // Remove span links that match span links on spans.
+        // Throw an error if an expected span link doesn't exist.
+        foreach (var trace in _traces)
+        {
+            foreach (var span in trace.Spans)
+            {
+                foreach (var link in span.Links)
+                {
+                    if (!currentSpanLinks.Remove(link))
+                    {
+                        throw new InvalidOperationException($"Couldn't find expected link from span {span.SpanId} to span {link.SpanId}.");
+                    }
+                }
+            }
+        }
+
+        // Throw error if there are orphaned span links.
+        if (currentSpanLinks.Count > 0)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine(CultureInfo.InvariantCulture, $"There are {currentSpanLinks.Count} orphaned span links.");
+            foreach (var link in currentSpanLinks)
+            {
+                sb.AppendLine(CultureInfo.InvariantCulture, $"\tSource span ID: {link.SourceSpanId}, Target span ID: {link.SpanId}");
+            }
+
+            throw new InvalidOperationException(sb.ToString());
+        }
+    }
+
     private static OtlpSpan CreateSpan(OtlpApplication application, Span span, OtlpTrace trace, OtlpScope scope, TelemetryLimitOptions options)
     {
         var id = span.SpanId?.ToHexString();
@@ -677,7 +798,7 @@ public sealed class TelemetryRepository
         var events = new List<OtlpSpanEvent>();
         foreach (var e in span.Events.OrderBy(e => e.TimeUnixNano))
         {
-            events.Add(new OtlpSpanEvent()
+            events.Add(new OtlpSpanEvent
             {
                 Name = e.Name,
                 Time = OtlpHelpers.UnixNanoSecondsToDateTime(e.TimeUnixNano),
@@ -688,6 +809,20 @@ public sealed class TelemetryRepository
             {
                 break;
             }
+        }
+
+        var links = new List<OtlpSpanLink>();
+        foreach (var e in span.Links)
+        {
+            links.Add(new OtlpSpanLink
+            {
+                SourceSpanId = id,
+                SourceTraceId = trace.TraceId,
+                TraceState = e.TraceState,
+                SpanId = e.SpanId.ToHexString(),
+                TraceId = e.TraceId.ToHexString(),
+                Attributes = e.Attributes.ToKeyValuePairs(options)
+            });
         }
 
         var newSpan = new OtlpSpan(application, trace, scope)
@@ -702,7 +837,9 @@ public sealed class TelemetryRepository
             StatusMessage = span.Status?.Message,
             Attributes = span.Attributes.ToKeyValuePairs(options),
             State = span.TraceState,
-            Events = events
+            Events = events,
+            Links = links,
+            BackLinks = new()
         };
         return newSpan;
     }

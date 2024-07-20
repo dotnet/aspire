@@ -45,6 +45,7 @@
     <MicrosoftExtensionsOptionsPackageVersion>8.0.2</MicrosoftExtensionsOptionsPackageVersion>
     <MicrosoftExtensionsPrimitivesPackageVersion>8.0.0</MicrosoftExtensionsPrimitivesPackageVersion>
     <MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>8.0.6</MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>
+    <MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>8.0.6</MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>
     <MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion>8.0.6</MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion>
     <MicrosoftAspNetCoreOpenApiPackageVersion>8.0.6</MicrosoftAspNetCoreOpenApiPackageVersion>
     <MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>8.0.6</MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>

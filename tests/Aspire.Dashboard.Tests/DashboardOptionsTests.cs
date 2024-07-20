@@ -74,6 +74,20 @@ public sealed class DashboardOptionsTests
         Assert.Equal("Failed to parse frontend endpoint URLs 'http://localhost:5000;invalid'.", result.FailureMessage);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void FrontendOptions_MaxConsoleLogCount(int limit)
+    {
+        var options = GetValidOptions();
+        options.Frontend.MaxConsoleLogCount = limit;
+
+        var result = new ValidateDashboardOptions().Validate(null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal($"{DashboardConfigNames.DashboardFrontendMaxConsoleLogCountName.ConfigKey} must be greater than zero.", result.FailureMessage);
+    }
+
     #endregion
 
     #region Resource service client options
