@@ -104,7 +104,7 @@ public class AddMilvusTests
         var milvus = appBuilder.AddMilvus("my-milvus", pass)
             .WithEndpoint("grpc", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", MilvusPortGrpc));
 
-        var projectA = appBuilder.AddProject<ProjectA>("projecta")
+        var projectA = appBuilder.AddProject<ProjectA>("projecta", o => o.ExcludeLaunchProfile = true)
             .WithReference(milvus);
 
         // Call environment variable callbacks.
@@ -209,7 +209,5 @@ public class AddMilvusTests
     private sealed class ProjectA : IProjectMetadata
     {
         public string ProjectPath => "projectA";
-
-        public LaunchSettings LaunchSettings { get; } = new();
     }
 }
