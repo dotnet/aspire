@@ -129,7 +129,7 @@
       </trans-unit>
       <trans-unit id="MetricTableExemplarsColumnHeader">
         <source>Exemplars</source>
-        <target state="new">Exemplars</target>
+        <target state="translated">예시</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableNoMetricsFound">
@@ -169,7 +169,7 @@
       </trans-unit>
       <trans-unit id="MetricTableViewExemplarsLabel">
         <source>View exemplars</source>
-        <target state="new">View exemplars</target>
+        <target state="translated">예시 보기</target>
         <note />
       </trans-unit>
       <trans-unit id="NameColumnHeader">
@@ -184,7 +184,7 @@
       </trans-unit>
       <trans-unit id="PlotlyChartExemplars">
         <source>Exemplars</source>
-        <target state="new">Exemplars</target>
+        <target state="translated">예시</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartLength">
@@ -194,12 +194,12 @@
       </trans-unit>
       <trans-unit id="PlotlyChartTime">
         <source>Time</source>
-        <target state="new">Time</target>
+        <target state="translated">시간</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartTrace">
         <source>Trace</source>
-        <target state="new">Trace</target>
+        <target state="translated">추적</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartValue">
