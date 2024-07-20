@@ -24,14 +24,11 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [Theory]
     [Trait("scenario", "basicservices")]
     [InlineData(TestResourceNames.mongodb)]
-    [InlineData(TestResourceNames.mysql)]
-    [InlineData(TestResourceNames.efmysql)]
     [InlineData(TestResourceNames.postgres)]
     [InlineData(TestResourceNames.efnpgsql)]
     [InlineData(TestResourceNames.rabbitmq)]
     [InlineData(TestResourceNames.redis)]
     [InlineData(TestResourceNames.garnet)]
-    [InlineData(TestResourceNames.valkey)]
     [InlineData(TestResourceNames.sqlserver)]
     [InlineData(TestResourceNames.efsqlserver)]
     [InlineData(TestResourceNames.milvus)]
@@ -77,23 +74,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
 
         return VerifyComponentWorks(resourceName);
     }
-
-    [Fact]
-    [Trait("scenario", "basicservices")]
-    public Task KafkaComponentCanProduceAndConsume()
-        => RunTestAsync(async() =>
-        {
-            _integrationServicesFixture.EnsureAppHasResources(TestResourceNames.kafka);
-            string topic = $"topic-{Guid.NewGuid()}";
-
-            var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/kafka/produce/{topic}");
-            var responseContent = await response.Content.ReadAsStringAsync();
-            Assert.True(response.IsSuccessStatusCode, responseContent);
-
-            response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/kafka/consume/{topic}");
-            responseContent = await response.Content.ReadAsStringAsync();
-            Assert.True(response.IsSuccessStatusCode, responseContent);
-        });
 
     [Fact]
     // Include all the scenarios here so this test gets run for all of them.

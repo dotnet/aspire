@@ -34,6 +34,8 @@ public class OtlpSpan
     public required string? State { get; init; }
     public required KeyValuePair<string, string>[] Attributes { get; init; }
     public required List<OtlpSpanEvent> Events { get; init; }
+    public required List<OtlpSpanLink> Links { get; init; }
+    public required List<OtlpSpanLink> BackLinks { get; init; }
 
     public OtlpScope Scope { get; }
     public TimeSpan Duration => EndTime - StartTime;
@@ -62,7 +64,9 @@ public class OtlpSpan
             StatusMessage = item.StatusMessage,
             State = item.State,
             Attributes = item.Attributes,
-            Events = item.Events
+            Events = item.Events,
+            Links = item.Links,
+            BackLinks = item.BackLinks,
         };
     }
 

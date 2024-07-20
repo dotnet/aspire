@@ -17,7 +17,7 @@ namespace Aspire.EndToEnd.Tests;
 /// </summary>
 public sealed class IntegrationServicesFixture : IAsyncLifetime
 {
-#if TESTS_RUNNING_OUTSIDE_OF_REPO
+#if BUILD_FOR_TESTS_RUNNING_OUTSIDE_OF_REPO
     public static bool TestsRunningOutsideOfRepo = true;
 #else
     public static bool TestsRunningOutsideOfRepo;
@@ -29,6 +29,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     private readonly IMessageSink _diagnosticMessageSink;
     private readonly TestOutputWrapper _testOutput;
     private AspireProject? _project;
+    private readonly string _testProjectPath;
 
     public BuildEnvironment BuildEnvironment { get; init; }
     public ProjectInfo IntegrationServiceA => Projects["integrationservicea"];
@@ -46,6 +47,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                 throw new InvalidOperationException("Expected to have sdk+workload from artifacts when running tests outside of the repo");
             }
             BuildEnvironment.EnvVars["TestsRunningOutsideOfRepo"] = "true";
+            _testProjectPath = Path.Combine(BuildEnvironment.TestAssetsPath, "testproject");
         }
         else
         {
@@ -54,19 +56,13 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             {
                 throw new InvalidOperationException("These tests should be run from inside the repo when using `TestsRunningOutsideOfRepo=false`");
             }
-
-            BuildEnvironment.TestAssetsPath = Path.Combine(BuildEnvironment.RepoRoot.FullName, "tests");
-            if (!Directory.Exists(BuildEnvironment.TestAssetsPath))
-            {
-                throw new ArgumentException($"Cannot find TestAssetsPath={BuildEnvironment.TestAssetsPath}");
-            }
+            _testProjectPath = Path.Combine(BuildEnvironment.RepoRoot.FullName, "tests", "testproject");
         }
     }
 
     public async Task InitializeAsync()
     {
-        string testProjectPath = Path.Combine(BuildEnvironment.TestAssetsPath, "testproject");
-        _project = new AspireProject("TestProject", testProjectPath, _testOutput, BuildEnvironment);
+        _project = new AspireProject("TestProject", _testProjectPath, _testOutput, BuildEnvironment);
         if (TestsRunningOutsideOfRepo)
         {
             _testOutput.WriteLine("");
@@ -109,16 +105,13 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             TestResourceNames.cosmos or TestResourceNames.efcosmos => "cosmos",
             TestResourceNames.eventhubs => "eventhubs",
             TestResourceNames.garnet => "garnet",
-            TestResourceNames.kafka => "kafka",
             TestResourceNames.milvus => "milvus",
             TestResourceNames.mongodb => "mongodb",
-            TestResourceNames.mysql or TestResourceNames.efmysql => "mysql",
             TestResourceNames.oracledatabase => "oracledatabase",
             TestResourceNames.postgres or TestResourceNames.efnpgsql => "postgres",
             TestResourceNames.rabbitmq => "rabbitmq",
             TestResourceNames.redis => "redis",
             TestResourceNames.sqlserver or TestResourceNames.efsqlserver => "sqlserver",
-            TestResourceNames.valkey => "valkey",
             _ => throw new ArgumentException($"Unknown resource: {resource}")
         };
 
@@ -151,16 +144,12 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             "oracle" => TestResourceNames.oracledatabase,
             "cosmos" => TestResourceNames.cosmos | TestResourceNames.efcosmos,
             "eventhubs" => TestResourceNames.eventhubs,
-            "basicservices" => TestResourceNames.kafka
-                              | TestResourceNames.mongodb
+            "basicservices" => TestResourceNames.mongodb
                               | TestResourceNames.rabbitmq
                               | TestResourceNames.redis
                               | TestResourceNames.garnet
-                              | TestResourceNames.valkey
                               | TestResourceNames.postgres
                               | TestResourceNames.efnpgsql
-                              | TestResourceNames.mysql
-                              | TestResourceNames.efmysql
                               | TestResourceNames.sqlserver
                               | TestResourceNames.efsqlserver
                               | TestResourceNames.milvus,

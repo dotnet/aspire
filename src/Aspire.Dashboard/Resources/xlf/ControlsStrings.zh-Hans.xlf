@@ -262,6 +262,11 @@
         <target state="new">Details</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanDetailsDetailsColumnHeader">
+        <source>Details</source>
+        <target state="new">Details</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanDetailsDuration">
         <source>Duration &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="translated">持续时间 &lt;strong&gt;{0}&lt;/strong&gt;</target>
