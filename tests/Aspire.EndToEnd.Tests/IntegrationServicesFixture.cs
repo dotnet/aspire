@@ -107,7 +107,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             TestResourceNames.garnet => "garnet",
             TestResourceNames.milvus => "milvus",
             TestResourceNames.mongodb => "mongodb",
-            TestResourceNames.mysql or TestResourceNames.efmysql => "mysql",
             TestResourceNames.oracledatabase => "oracledatabase",
             TestResourceNames.postgres or TestResourceNames.efnpgsql => "postgres",
             TestResourceNames.rabbitmq => "rabbitmq",
@@ -151,8 +150,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                               | TestResourceNames.garnet
                               | TestResourceNames.postgres
                               | TestResourceNames.efnpgsql
-                              | TestResourceNames.mysql
-                              | TestResourceNames.efmysql
                               | TestResourceNames.sqlserver
                               | TestResourceNames.efsqlserver
                               | TestResourceNames.milvus,
