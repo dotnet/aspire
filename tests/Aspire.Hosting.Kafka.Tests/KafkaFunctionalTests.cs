@@ -101,7 +101,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
-                bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                bindMountPath = Directory.CreateTempSubdirectory().FullName;
                 kafka1.WithDataBindMount(bindMountPath);
             }
 

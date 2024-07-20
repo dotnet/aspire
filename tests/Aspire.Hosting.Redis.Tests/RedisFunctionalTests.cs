@@ -138,12 +138,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task WithDataBindMountShouldPersistStateBetweenUsages()
     {
-        var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-
-        if (!Directory.Exists(bindMountPath))
-        {
-            Directory.CreateDirectory(bindMountPath);
-        }
+        var bindMountPath = Directory.CreateTempSubdirectory().FullName;
 
         // Use a bind mount to do a snapshot save
 
