@@ -40,6 +40,7 @@
 
   <ItemGroup Condition="'$(ArchiveTests)' == 'true'">
     <None Include="$(MSBuildProjectDirectory)\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RunSettingsFilePath)" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)$([System.IO.Path]::GetRelativePath('$(RepoRoot)', '$(RunSettingsFilePath)'))" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\Aspire.Components.Common.Tests\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\Aspire.Components.Common.Tests\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <None Include="$(MSBuildThisFileDirectory)..\TestingAppHost1\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\TestingAppHost1\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
