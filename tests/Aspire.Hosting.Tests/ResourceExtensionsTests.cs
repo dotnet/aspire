@@ -35,7 +35,7 @@ public class ResourceExtensionsTests
          .WithEnvironment("xpack.security.enabled", "true")
          .WithEnvironment(context =>
          {
-             context.EnvironmentVariables["ELASTIC_PASSWORD"] = "123456";
+             context.EnvironmentVariables["ELASTIC_PASSWORD"] = "p@ssw0rd1";
          });
 
         var env = await container.Resource.GetEnvironmentVariableValuesAsync();
@@ -54,7 +54,7 @@ public class ResourceExtensionsTests
             env =>
             {
                 Assert.Equal("ELASTIC_PASSWORD", env.Key);
-                Assert.False(string.IsNullOrEmpty(env.Value));
+                Assert.Equal("p@ssw0rd1", env.Value);
             });
     }
 
@@ -87,7 +87,7 @@ public class ResourceExtensionsTests
             env =>
             {
                 Assert.Equal("ELASTIC_PASSWORD", env.Key);
-                Assert.False(string.IsNullOrEmpty(env.Value));
+                Assert.Equal("p@ssw0rd1", env.Value);
             });
     }
 
