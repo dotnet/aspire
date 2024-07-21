@@ -5,7 +5,6 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var catalogDbName = "catalog"; // MySql database & table names are case-sensitive on non-Windows.
 var catalogDb = builder.AddMySql("mysql")
-    .WithRestart(RestartPolicy.OnFailure)
     .WithEnvironment("MYSQL_DATABASE", catalogDbName)
     .WithBindMount("../MySql.ApiService/data", "/docker-entrypoint-initdb.d")
     .WithPhpMyAdmin()
