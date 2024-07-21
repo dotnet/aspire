@@ -1,7 +1,16 @@
 #nullable enable
+Aspire.Hosting.ApplicationModel.IResourceWithRestartPolicy
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, string? targetState = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, System.Collections.Generic.IEnumerable<string!>! targetStates, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+Aspire.Hosting.ApplicationModel.RestartPolicy
+Aspire.Hosting.ApplicationModel.RestartPolicy.Always = 0 -> Aspire.Hosting.ApplicationModel.RestartPolicy
+Aspire.Hosting.ApplicationModel.RestartPolicy.Never = 1 -> Aspire.Hosting.ApplicationModel.RestartPolicy
+Aspire.Hosting.ApplicationModel.RestartPolicy.OnFailure = 2 -> Aspire.Hosting.ApplicationModel.RestartPolicy
+Aspire.Hosting.ApplicationModel.RestartPolicyAnnotation
+Aspire.Hosting.ApplicationModel.RestartPolicyAnnotation.RestartPolicy.get -> Aspire.Hosting.ApplicationModel.RestartPolicy
+Aspire.Hosting.ApplicationModel.RestartPolicyAnnotation.RestartPolicy.set -> void
+Aspire.Hosting.ApplicationModel.RestartPolicyAnnotation.RestartPolicyAnnotation(Aspire.Hosting.ApplicationModel.RestartPolicy restartPolicy) -> void
 static Aspire.Hosting.ProjectResourceBuilderExtensions.WithEndpointsInEnvironment(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>! builder, System.Func<Aspire.Hosting.ApplicationModel.EndpointAnnotation!, bool>! filter) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
 Aspire.Hosting.DistributedApplicationExecutionContext.DistributedApplicationExecutionContext(Aspire.Hosting.DistributedApplicationExecutionContextOptions! options) -> void
 Aspire.Hosting.DistributedApplicationExecutionContext.ServiceProvider.get -> System.IServiceProvider!
@@ -10,6 +19,7 @@ Aspire.Hosting.DistributedApplicationExecutionContextOptions.DistributedApplicat
 Aspire.Hosting.DistributedApplicationExecutionContextOptions.Operation.get -> Aspire.Hosting.DistributedApplicationOperation
 Aspire.Hosting.DistributedApplicationExecutionContextOptions.ServiceProvider.get -> System.IServiceProvider?
 Aspire.Hosting.DistributedApplicationExecutionContextOptions.ServiceProvider.set -> void
+static Aspire.Hosting.ResourceBuilderExtensions.WithRestart<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, Aspire.Hosting.ApplicationModel.RestartPolicy restartPolicy) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Exited -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.FailedToStart -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Finished -> string!

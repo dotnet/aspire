@@ -8,6 +8,7 @@ var goVersion = builder.AddParameter("goversion");
 var secret = builder.AddParameter("secret", secret: true);
 
 builder.AddDockerfile("mycontainer", "qots")
+       .WithRestart(RestartPolicy.OnFailure)
        .WithBuildArg("GO_VERSION", goVersion)
        .WithBuildSecret("SECRET_ASFILE", new FileInfo("Program.cs"))
        .WithBuildSecret("SECRET_ASENV", secret);
