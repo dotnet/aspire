@@ -382,12 +382,6 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         return ResourceEndpointHelpers.GetEndpoints(resource, includeInteralUrls: false);
     }
 
-    public async Task ResourceClick(FluentDataGridRow<ResourceViewModel> row)
-    {
-        var resource = row.Item!;
-        await ShowResourceDetailsAsync(resource, buttonId: null);
-    }
-
     public async ValueTask DisposeAsync()
     {
         _watchTaskCancellationTokenSource.Cancel();

@@ -29,19 +29,18 @@
                               IconEnd="@(new Icons.Regular.Size24.Filter())"
                               @onclick="() => _isTypeFilterVisible = !_isTypeFilterVisible"
                               Title="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])"
-                              aria-label="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])"/>
+                              aria-label="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])" />
             }
             else
             {
                 <div>
                     <h5>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)]</h5>
 
-                    <SelectResourceTypes
-                        AllResourceTypes="_allResourceTypes"
-                        VisibleResourceTypes="_visibleResourceTypes"
-                        OnAllResourceTypesCheckedChanged="@(b => AreAllTypesVisible = b)"
-                        AreAllTypesVisible="@(() => AreAllTypesVisible)"
-                        OnResourceTypeVisibilityChangedAsync="@OnResourceTypeVisibilityChangedAsync" />
+                    <SelectResourceTypes AllResourceTypes="_allResourceTypes"
+                                         VisibleResourceTypes="_visibleResourceTypes"
+                                         OnAllResourceTypesCheckedChanged="@(b => AreAllTypesVisible = b)"
+                                         AreAllTypesVisible="@(() => AreAllTypesVisible)"
+                                         OnResourceTypeVisibilityChangedAsync="@OnResourceTypeVisibilityChangedAsync" />
                 </div>
             }
 
@@ -50,19 +49,18 @@
                           @bind-Value="_filter"
                           slot="end"
                           Label="@(ViewportInformation.IsDesktop ? null : ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)].Value)"
-                          @bind-Value:after="HandleSearchFilterChangedAsync"/>
+                          @bind-Value:after="HandleSearchFilterChangedAsync" />
         </ToolbarSection>
 
         <MainSection>
             <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isTypeFilterVisible" AutoFocus="true">
                 <Header>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)]</Header>
                 <Body>
-                    <SelectResourceTypes
-                        AllResourceTypes="_allResourceTypes"
-                        VisibleResourceTypes="_visibleResourceTypes"
-                        OnAllResourceTypesCheckedChanged="@(b => AreAllTypesVisible = b)"
-                        AreAllTypesVisible="@(() => AreAllTypesVisible)"
-                        OnResourceTypeVisibilityChangedAsync="@OnResourceTypeVisibilityChangedAsync" />
+                    <SelectResourceTypes AllResourceTypes="_allResourceTypes"
+                                         VisibleResourceTypes="_visibleResourceTypes"
+                                         OnAllResourceTypesCheckedChanged="@(b => AreAllTypesVisible = b)"
+                                         AreAllTypesVisible="@(() => AreAllTypesVisible)"
+                                         OnResourceTypeVisibilityChangedAsync="@OnResourceTypeVisibilityChangedAsync" />
                 </Body>
             </FluentPopover>
 
@@ -73,16 +71,27 @@
                                 ViewKey="ResourcesList">
                 <Summary>
                     @{
-                    var gridTemplateColumns = HasResourcesWithCommands ? "1fr 1.5fr 1.25fr 1.5fr 2.5fr 2.5fr 1fr 1fr 1fr" : "1fr 1.5fr 1.25fr 1.5fr 2.5fr 2.5fr 1fr 1fr";
+                        var gridTemplateColumns = HasResourcesWithCommands ? "1fr 1.5fr 1.25fr 1.5fr 2.5fr 2.5fr 1fr 1fr 1fr" : "1fr 1.5fr 1.25fr 1.5fr 2.5fr 2.5fr 1fr 1fr";
                     }
-                    <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="@gridTemplateColumns" RowClass="GetRowClass" Loading="_isLoading" ShowHover="true" TGridItem="ResourceViewModel" OnRowClick="ResourceClick">
+                    <FluentDataGrid Virtualize="true"
+                                    GenerateHeader="GenerateHeaderOption.Sticky"
+                                    ItemSize="46"
+                                    Items="@FilteredResources"
+                                    ResizableColumns="true"
+                                    GridTemplateColumns="@gridTemplateColumns"
+                                    RowClass="GetRowClass"
+                                    Loading="_isLoading"
+                                    ShowHover="true"
+                                    TGridItem="ResourceViewModel"
+                                    OnRowClick="@(r => r.ExecuteOnDefault(d => ShowResourceDetailsAsync(d, buttonId: null)))"
+                                    Class="enable-row-click">
                         <ChildContent>
-                            <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeColumnHeader)]" Property="@(c => c.ResourceType)" Sortable="true" Tooltip="true" TooltipText="@(c => c.ResourceType)"/>
-                            <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort" Tooltip="true" TooltipText="@(c => GetResourceName(c))" >
+                            <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeColumnHeader)]" Property="@(c => c.ResourceType)" Sortable="true" Tooltip="true" TooltipText="@(c => c.ResourceType)" />
+                            <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort" Tooltip="true" TooltipText="@(c => GetResourceName(c))">
                                 <ResourceNameDisplay Resource="context" FilterText="@_filter" FormatName="GetResourceName" />
                             </TemplateColumn>
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStateColumnHeader)]" Sortable="true" SortBy="@_stateSort" Tooltip="true" TooltipText="@(c => c.State.Humanize())">
-                                <StateColumnDisplay Resource="@context" UnviewedErrorCounts ="@_applicationUnviewedErrorCounts" />
+                                <StateColumnDisplay Resource="@context" UnviewedErrorCounts="@_applicationUnviewedErrorCounts" />
                             </TemplateColumn>
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStartTimeColumnHeader)]" Sortable="true" SortBy="@_startTimeSort" TooltipText="@(context => context.CreationTimeStamp != null ? FormatHelpers.FormatDateTime(TimeProvider, context.CreationTimeStamp.Value, MillisecondsDisplay.None, CultureInfo.CurrentCulture) : null)" Tooltip="true">
                                 <StartTimeColumnDisplay Resource="@context" />
@@ -90,23 +99,21 @@
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesSourceColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetSourceColumnValueAndTooltip(ctx)?.Tooltip)">
                                 @if (GetSourceColumnValueAndTooltip(context) is { } columnDisplay)
                                 {
-                                <SourceColumnDisplay Resource="context" FilterText="@_filter" Value="@columnDisplay.Value" ContentAfterValue="@columnDisplay.ContentAfterValue" ValueToCopy="@columnDisplay.ValueToCopy" Tooltip="@columnDisplay.Tooltip" />
+                                    <SourceColumnDisplay Resource="context" FilterText="@_filter" Value="@columnDisplay.Value" ContentAfterValue="@columnDisplay.ContentAfterValue" ValueToCopy="@columnDisplay.ValueToCopy" Tooltip="@columnDisplay.Tooltip" />
                                 }
                             </TemplateColumn>
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEndpointsColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetEndpointsTooltip(ctx))">
-                                <div @onclick:stopPropagation="true">
-                                    <EndpointsColumnDisplay Resource="context"
-                                                            HasMultipleReplicas="HasMultipleReplicas(context)"
-                                                            DisplayedEndpoints="@GetDisplayedEndpoints(context, out var additionalMessage)"
-                                                            AdditionalMessage="@additionalMessage" />
-                                </div>
+                                <EndpointsColumnDisplay Resource="context"
+                                                        HasMultipleReplicas="HasMultipleReplicas(context)"
+                                                        DisplayedEndpoints="@GetDisplayedEndpoints(context, out var additionalMessage)"
+                                                        AdditionalMessage="@additionalMessage" />
                             </TemplateColumn>
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesLogsColumnHeader)]" Class="no-ellipsis">
-                                <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(resource: context.Name)">@ControlsStringsLoc[ControlsStrings.ViewAction]</FluentAnchor>
+                                <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(resource: context.Name)" @onclick:stopPropagation="true">@ControlsStringsLoc[ControlsStrings.ViewAction]</FluentAnchor>
                             </TemplateColumn>
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesDetailsColumnHeader)]" Sortable="false" Class="no-ellipsis">
                                 @{
-                                var id = $"details-button-{context.Uid}";
+                                    var id = $"details-button-{context.Uid}";
                                 }
                                 <div @onclick:stopPropagation="true">
                                     <FluentButton Appearance="Appearance.Lightweight"
@@ -117,10 +124,12 @@
                             </TemplateColumn>
                             @if (HasResourcesWithCommands)
                             {
-                            <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesCommandsColumnHeader)]">
-                                <ResourceCommands Commands="@context.Commands"
-                                                  CommandSelected="async (command) => await ExecuteResourceCommandAsync(context, command)" />
-                            </TemplateColumn>
+                                <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesCommandsColumnHeader)]">
+                                    <div @onclick:stopPropagation="true">
+                                        <ResourceCommands Commands="@context.Commands"
+                                                          CommandSelected="async (command) => await ExecuteResourceCommandAsync(context, command)" />
+                                    </div>
+                                </TemplateColumn>
                             }
                         </ChildContent>
                         <EmptyContent>
