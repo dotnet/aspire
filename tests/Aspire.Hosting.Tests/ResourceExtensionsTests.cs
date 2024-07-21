@@ -95,7 +95,7 @@ public class ResourceExtensionsTests
     public async Task GetEnvironmentVariableValuesAsyncReturnCorrectVariablesUsingManifestExpressionProviderInPublishMode()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.Configuration["Parameters:ElasticPassword"] = "123456";
+        builder.Configuration["Parameters:ElasticPassword"] = "p@ssw0rd1";
 
         var passwordParameter = builder.AddParameter("ElasticPassword");
 
