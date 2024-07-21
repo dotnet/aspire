@@ -283,7 +283,8 @@ internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
     {
     }
 
-    public static Container Create(string name, string image, ResourceAnnotationCollection containerAnnotations)
+    // the container annotations default value is null in order not to break any existing code that relies on this method
+    public static Container Create(string name, string image, ResourceAnnotationCollection? containerAnnotations = null)
     {
         var c = new Container(new ContainerSpec { Image = image, RestartPolicy = GetRestartPolicy(containerAnnotations) });
 
@@ -295,12 +296,16 @@ internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
         return c;
     }
 
-    private static string GetRestartPolicy(ResourceAnnotationCollection containerAnnotations)
+    private static string GetRestartPolicy(ResourceAnnotationCollection? containerAnnotations)
     {
+        if (containerAnnotations is null)
+        {
+            return ContainerRestartPolicy.None;
+        }
         var policy =
             (RestartPolicyAnnotation?)containerAnnotations.FirstOrDefault(x =>
                 x.GetType().Name == "RestartPolicyAnnotation");
-        return policy is null ? ContainerRestartPolicy.Always : GetRestartPolicyValue(policy);
+        return policy is null ? ContainerRestartPolicy.None : GetRestartPolicyValue(policy);
     }
 
     private static string GetRestartPolicyValue(RestartPolicyAnnotation annotation)
