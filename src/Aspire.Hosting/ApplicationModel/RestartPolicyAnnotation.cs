@@ -22,6 +22,11 @@ public enum RestartPolicy : ushort
     /// Restart only on failure.
     /// </summary>
     OnFailure,
+
+    /// <summary>
+    /// Restart unless stopped.
+    /// </summary>
+    UnlessStopped,
 }
 
 /// <summary>

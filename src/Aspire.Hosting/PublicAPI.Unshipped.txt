@@ -7,6 +7,7 @@ Aspire.Hosting.ApplicationModel.RestartPolicy
 Aspire.Hosting.ApplicationModel.RestartPolicy.Always = 0 -> Aspire.Hosting.ApplicationModel.RestartPolicy
 Aspire.Hosting.ApplicationModel.RestartPolicy.Never = 1 -> Aspire.Hosting.ApplicationModel.RestartPolicy
 Aspire.Hosting.ApplicationModel.RestartPolicy.OnFailure = 2 -> Aspire.Hosting.ApplicationModel.RestartPolicy
+Aspire.Hosting.ApplicationModel.RestartPolicy.UnlessStopped = 3 -> Aspire.Hosting.ApplicationModel.RestartPolicy
 Aspire.Hosting.ApplicationModel.RestartPolicyAnnotation
 Aspire.Hosting.ApplicationModel.RestartPolicyAnnotation.RestartPolicy.get -> Aspire.Hosting.ApplicationModel.RestartPolicy
 Aspire.Hosting.ApplicationModel.RestartPolicyAnnotation.RestartPolicy.set -> void
