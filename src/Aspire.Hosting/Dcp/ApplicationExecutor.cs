@@ -1319,7 +1319,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             var nameSuffix = GetRandomNameSuffix();
             var containerObjectName = GetObjectNameForResource(container, nameSuffix);
-            var ctr = Container.Create(containerObjectName, containerImageName);
+            var ctr = Container.Create(containerObjectName, containerImageName, container.Annotations);
 
             ctr.Spec.ContainerName = containerObjectName; // Use the same name for container orchestrator (Docker, Podman) resource and DCP object name.
             ctr.Annotate(CustomResource.ResourceNameAnnotation, container.Name);
