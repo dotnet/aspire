@@ -299,3 +299,19 @@ window.listenToWindowResize = function(dotnetHelper) {
 
     window.addEventListener('resize', throttledResizeListener);
 }
+
+window.registerOpenTextVisualizerOnClick = function(menuItemId, gridValue) {
+    const onClickListener = function () {
+        gridValue.invokeMethodAsync('OpenTextVisualizerAsync');
+    }
+
+    document.getElementById(menuItemId).addEventListener('onclick', onClickListener);
+
+    return {
+        onClickListener: onClickListener,
+    }
+}
+
+window.unregisterOpenTextVisualizerOnClick = function (menuItemId, onClickListener) {
+    document.getElementById(menuItemId).removeEventListener('onclick', onClickListener);
+}

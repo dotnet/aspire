@@ -34,7 +34,7 @@
     }
 
     @{
-        (string, object)[] uncapturedAttributes = [
+        (string, object)[] uncapturedCopyAttributes = [
             ("alt", PreCopyToolTip),
             ("title", string.Empty),
             ("aria-label", Loc[nameof(ControlsStrings.GridValueCopyToClipboard)]),
@@ -42,16 +42,6 @@
         ];
     }
 
-    <!--<FluentButton Appearance="Appearance.Lightweight"
-                  Id="@_anchorId"
-                  Class="defaultHidden"
-                  Style="float: right; flex-shrink: 0"
-                  AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip, uncapturedAttributes)">
-        <FluentIcon Class="copy-icon" Style="display:inline;" Icon="Icons.Regular.Size16.Copy" />
-        <FluentIcon Class="checkmark-icon" Style="display:none;" Icon="Icons.Regular.Size16.Checkmark" />
-    </FluentButton>
-    <FluentTooltip @ref="_tooltipComponent" Anchor="@_anchorId" Position="TooltipPosition.Top" HideTooltipOnCursorLeave="true">@PreCopyToolTip</FluentTooltip>
--->
     <FluentButton Appearance="Appearance.Lightweight"
                   Id="@_menuAnchorId"
                   Class="defaultHidden"
@@ -59,26 +49,24 @@
                   OnClick="@ToggleMenuOpen">
         <FluentIcon Style="display:inline;" Icon="Icons.Regular.Size16.MoreVertical" />
     </FluentButton>
-
-    <div>
-        <FluentMenu Anchor="@_menuAnchorId" @bind-Open="_isMenuOpen" VerticalThreshold="170" @onmenuchange="@Test">
-            <FluentMenuItem
-                Id="@_copyAnchorId"
-                AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip, uncapturedAttributes)">
-                <span slot="start">
-                    <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
-                    <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
-                </span>
-                @PreCopyToolTip
-            </FluentMenuItem>
-
-            <FluentMenuItem OnClick="@OpenTextVisualizerAsync" Disabled="@(Value is null)">
-                <span slot="start">
-                    <FluentIcon Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Open" Slot="start"/>
-                </span>
-
-                Open in text visualizer
-            </FluentMenuItem>
-        </FluentMenu>
-    </div>
 </div>
+
+<FluentMenu Anchor="@_menuAnchorId" @bind-Open="_isMenuOpen" VerticalThreshold="170" @bind-Open:after="@OnOpenChangedAsync">
+    <FluentMenuItem
+        Id="@_copyId"
+        AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip, uncapturedCopyAttributes)">
+        <span slot="start">
+            <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
+            <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
+        </span>
+        @PreCopyToolTip
+    </FluentMenuItem>
+
+    <FluentMenuItem Id="@_openVisualizerId">
+        <span slot="start">
+            <FluentIcon Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Open" Slot="start"/>
+        </span>
+
+        Open in text visualizer
+    </FluentMenuItem>
+</FluentMenu>

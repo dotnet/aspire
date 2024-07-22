@@ -5,8 +5,10 @@ using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
 
@@ -69,14 +71,20 @@ public partial class GridValue
     [Inject]
     public required IDialogService DialogService { get; init; }
 
+    [Inject]
+    public required IJSRuntime JS { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 
     private readonly Icon _maskIcon = new Icons.Regular.Size16.EyeOff();
     private readonly Icon _unmaskIcon = new Icons.Regular.Size16.Eye();
-    private readonly string _copyAnchorId = $"copy-{Guid.NewGuid():N}";
+    private readonly string _copyId = $"copy-{Guid.NewGuid():N}";
     private readonly string _menuAnchorId = $"menu-{Guid.NewGuid():N}";
+    private readonly string _openVisualizerId = $"open-visualizer-{Guid.NewGuid():N}";
     private bool _isMenuOpen;
+    private IJSObjectReference? _onClickHandler;
+    private DotNetObjectReference<GridValue>? _thisReference;
 
     protected override void OnInitialized()
     {
@@ -84,7 +92,32 @@ public partial class GridValue
         PostCopyToolTip = Loc[nameof(ControlsStrings.GridValueCopied)];
     }
 
-    private string GetContainerClass() => EnableMasking ? "container masking-enabled wrap" : "container wrap";
+    private async Task OnOpenChangedAsync()
+    {
+        if (_isMenuOpen)
+        {
+            _thisReference?.Dispose();
+
+            try
+            {
+                await JS.InvokeVoidAsync("window.unregisterGlobalKeydownListener", _openVisualizerId, _onClickHandler);
+            }
+            catch (JSDisconnectedException)
+            {
+                // Per https://learn.microsoft.com/aspnet/core/blazor/javascript-interoperability/?view=aspnetcore-7.0#javascript-interop-calls-without-a-circuit
+                // this is one of the calls that will fail if the circuit is disconnected, and we just need to catch the exception so it doesn't pollute the logs
+            }
+
+            await JSInteropHelpers.SafeDisposeAsync(_onClickHandler);
+        }
+        else
+        {
+            _thisReference = DotNetObjectReference.Create(this);
+            _onClickHandler = await JS.InvokeAsync<IJSObjectReference>("window.registerOpenTextVisualizerOnClick", _openVisualizerId, _thisReference);
+        }
+    }
+
+    private string GetContainerClass() => EnableMasking ? "container masking-enabled" : "container";
 
     private async Task ToggleMaskStateAsync()
         => await IsMaskedChanged.InvokeAsync(!IsMasked);
@@ -104,7 +137,8 @@ public partial class GridValue
         _isMenuOpen = !_isMenuOpen;
     }
 
-    private async Task OpenTextVisualizerAsync()
+    [JSInvokable]
+    public async Task OpenTextVisualizerAsync()
     {
         var parameters = new DialogParameters
         {
@@ -119,11 +153,5 @@ public partial class GridValue
         };
 
         await DialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(Value!), parameters);
-    }
-
-#pragma warning disable CA1822
-    private void Test(MenuChangeEventArgs args)
-#pragma warning restore CA1822
-    {
     }
 }
