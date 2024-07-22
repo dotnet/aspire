@@ -11,14 +11,23 @@ public sealed class LogEntries(int maximumEntryCount)
 {
     private readonly CircularBuffer<LogEntry> _logEntries = new(maximumEntryCount);
 
-    public int? BaseLineNumber { get; set; }
+    private int? _baseLineNumber;
 
-    public void Clear() => _logEntries.Clear();
+    public void Clear()
+    {
+        _logEntries.Clear();
+
+        _baseLineNumber = null;
+    }
 
     public IList<LogEntry> GetEntries() => _logEntries;
 
-    public void InsertSorted(LogEntry logEntry)
+    public void InsertSorted(LogEntry logEntry, int lineNumber)
     {
+        // Keep track of the base line number to ensure that we can calculate the line number of each log entry.
+        // This becomes important when the total number of log entries exceeds the limit and is truncated.
+        _baseLineNumber ??= lineNumber;
+
         if (logEntry.ParentId != null)
         {
             // If we have a parent id, then we know we're on a non-timestamped line that is part
@@ -61,8 +70,8 @@ public sealed class LogEntries(int maximumEntryCount)
             // Set the line number of the log entry.
             if (index == 0)
             {
-                Debug.Assert(BaseLineNumber != null, "Should be set before this method is run.");
-                logEntry.LineNumber = BaseLineNumber.Value;
+                Debug.Assert(_baseLineNumber != null, "Should be set before this method is run.");
+                logEntry.LineNumber = _baseLineNumber.Value;
             }
             else
             {

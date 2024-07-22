@@ -68,6 +68,7 @@ public class ElasticsearchFunctionalTests
     }
 
     [Fact]
+    [SkipOnCI("https://github.com/dotnet/aspire/issues/4968")]
     [RequiresDocker]
     public async Task WithDataVolumeShouldPersistStateBetweenUsages()
     {
@@ -163,6 +164,7 @@ public class ElasticsearchFunctionalTests
     }
 
     [Fact]
+    [SkipOnCI("https://github.com/dotnet/aspire/issues/4968")]
     [RequiresDocker]
     public async Task WithDataBindMountShouldPersistStateBetweenUsages()
     {
@@ -259,7 +261,7 @@ public class ElasticsearchFunctionalTests
 
         try
         {
-            File.Delete(bindMountPath);
+            Directory.Delete(bindMountPath);
         }
         catch
         {

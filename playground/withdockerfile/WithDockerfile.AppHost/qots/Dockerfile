@@ -9,6 +9,5 @@ RUN go build qots.go
 FROM mcr.microsoft.com/cbl-mariner/base/core:2.0
 WORKDIR /app
 RUN --mount=type=secret,id=SECRET_ASENV cp /run/secrets/SECRET_ASENV /app/SECRET_ASENV
-RUN --mount=type=secret,id=SECRET_ASFILE cp /run/secrets/SECRET_ASFILE /app/SECRET_ASFILE
 COPY --from=builder /app/qots .
 CMD ["./qots"]

@@ -1025,7 +1025,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             exeSpec.WorkingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath);
 
             IAnnotationHolder annotationHolder = ers.Spec.Template;
-            annotationHolder.Annotate(CustomResource.OtelServiceNameAnnotation, ers.Metadata.Name);
+            annotationHolder.Annotate(CustomResource.OtelServiceNameAnnotation, (replicas > 1) ? ers.Metadata.Name : project.Name);
             // The OTEL service instance ID annotation will be generated and applied automatically by DCP.
             annotationHolder.Annotate(CustomResource.ResourceNameAnnotation, project.Name);
 
