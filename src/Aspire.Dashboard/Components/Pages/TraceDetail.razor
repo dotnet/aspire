@@ -59,7 +59,7 @@
                         </div>
                     </DetailsTitleTemplate>
                     <Summary>
-                        <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" Class="trace-view-grid" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="SpanWaterfallViewModel" RowClass="@GetRowClass" GridTemplateColumns="4fr 12fr 85px">
+                        <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" Class="trace-view-grid" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="SpanWaterfallViewModel" RowClass="@GetRowClass" GridTemplateColumns="4fr 12fr 85px" ShowHover="true">
                             <TemplateColumn Title="Name">
                                 <div class="col-long-content" title="@context.GetTooltip(_applications)" @onclick="() => OnShowPropertiesAsync(context, null)">
                                     @{

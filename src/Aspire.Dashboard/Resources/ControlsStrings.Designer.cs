@@ -502,11 +502,29 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Backlinks.
+        /// </summary>
+        public static string SpanDetailsBacklinksHeader {
+            get {
+                return ResourceManager.GetString("SpanDetailsBacklinksHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Context.
         /// </summary>
         public static string SpanDetailsContextHeader {
             get {
                 return ResourceManager.GetString("SpanDetailsContextHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Details.
+        /// </summary>
+        public static string SpanDetailsDetailsColumnHeader {
+            get {
+                return ResourceManager.GetString("SpanDetailsDetailsColumnHeader", resourceCulture);
             }
         }
         
@@ -525,6 +543,15 @@ namespace Aspire.Dashboard.Resources {
         public static string SpanDetailsEventsHeader {
             get {
                 return ResourceManager.GetString("SpanDetailsEventsHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Links.
+        /// </summary>
+        public static string SpanDetailsLinksHeader {
+            get {
+                return ResourceManager.GetString("SpanDetailsLinksHeader", resourceCulture);
             }
         }
         
@@ -549,9 +576,27 @@ namespace Aspire.Dashboard.Resources {
         /// <summary>
         ///   Looks up a localized string similar to Span.
         /// </summary>
+        public static string SpanDetailsSpanColumnHeader {
+            get {
+                return ResourceManager.GetString("SpanDetailsSpanColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Span.
+        /// </summary>
         public static string SpanDetailsSpanHeader {
             get {
                 return ResourceManager.GetString("SpanDetailsSpanHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Span.
+        /// </summary>
+        public static string SpanDetailsSpanPrefix {
+            get {
+                return ResourceManager.GetString("SpanDetailsSpanPrefix", resourceCulture);
             }
         }
         

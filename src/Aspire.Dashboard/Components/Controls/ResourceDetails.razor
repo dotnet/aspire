@@ -47,7 +47,8 @@
                                 ResizableColumns="true"
                                 Style="width:100%"
                                 GenerateHeader="GenerateHeaderOption.Sticky"
-                                GridTemplateColumns="1fr 1.5fr">
+                                GridTemplateColumns="1fr 1.5fr"
+                                ShowHover="true">
                     <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">
                         <GridValue
                             Value="@(context.KnownProperty?.DisplayName ?? context.Key)"
@@ -72,7 +73,8 @@
                                 ResizableColumns="true"
                                 Style="width:100%"
                                 GenerateHeader="GenerateHeaderOption.Sticky"
-                                GridTemplateColumns="1fr 1.5fr">
+                                GridTemplateColumns="1fr 1.5fr"
+                                ShowHover="true">
                     <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">
                         <GridValue Value="@context.Name" ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" />
                     </TemplateColumn>

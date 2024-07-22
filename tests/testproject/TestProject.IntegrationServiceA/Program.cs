@@ -17,23 +17,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.efsqlserver))
 {
     builder.AddSqlServerDbContext<EFCoreSqlServerDbContext>("tempdb");
 }
-if (!resourcesToSkip.HasFlag(TestResourceNames.mysql) || !resourcesToSkip.HasFlag(TestResourceNames.efmysql))
-{
-    builder.AddMySqlDataSource("mysqldb", settings =>
-    {
-        // add the connection string options required by Pomelo EF Core MySQL
-        var connectionStringBuilder = new MySqlConnector.MySqlConnectionStringBuilder(settings.ConnectionString!)
-        {
-            AllowUserVariables = true,
-            UseAffectedRows = false,
-        };
-        settings.ConnectionString = connectionStringBuilder.ConnectionString;
-    });
-}
-if (!resourcesToSkip.HasFlag(TestResourceNames.efmysql))
-{
-    builder.AddMySqlDbContext<PomeloMySqlDbContext>("mysqldb", settings => settings.ServerVersion = "8.2.0-mysql");
-}
 if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 {
     builder.AddKeyedRedisClient("redis");
@@ -41,10 +24,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
 {
     builder.AddKeyedRedisClient("garnet");
-}
-if (!resourcesToSkip.HasFlag(TestResourceNames.valkey))
-{
-    builder.AddKeyedRedisClient("valkey");
 }
 if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
@@ -122,24 +101,9 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
     app.MapGarnetApi();
 }
 
-if (!resourcesToSkip.HasFlag(TestResourceNames.valkey))
-{
-    app.MapValkeyApi();
-}
-
 if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
 {
     app.MapMongoDBApi();
-}
-
-if (!resourcesToSkip.HasFlag(TestResourceNames.mysql))
-{
-    app.MapMySqlApi();
-}
-
-if (!resourcesToSkip.HasFlag(TestResourceNames.efmysql))
-{
-    app.MapPomeloEFCoreMySqlApi();
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.postgres))

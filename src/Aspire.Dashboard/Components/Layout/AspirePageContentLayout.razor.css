@@ -1,4 +1,4 @@
-﻿::deep.content-layout {
+::deep.content-layout {
     height: 100%;
     width: 100%;
     display: grid;
@@ -13,6 +13,7 @@
 
 ::deep .title-toolbar-inline {
     padding-left: 0px;
+    padding-top: 0px;
 }
 
 ::deep .title-toolbar-inline > h1 {

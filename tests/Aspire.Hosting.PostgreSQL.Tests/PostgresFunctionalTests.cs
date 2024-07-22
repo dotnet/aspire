@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Data;
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,6 +22,11 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifyPostgresResource()
     {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<NpgsqlException>() })
+            .Build();
+
         var builder = CreateDistributedApplicationBuilder();
 
         var postgresDbName = "db1";
@@ -44,23 +51,17 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await host.StartAsync();
 
-        var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<NpgsqlException>() })
-            .AddTimeout(TimeSpan.FromSeconds(5))
-            .Build();
+        await pipeline.ExecuteAsync(async token =>
+        {
+            using var connection = host.Services.GetRequiredService<NpgsqlConnection>();
+            await connection.OpenAsync(token);
 
-        await pipeline.ExecuteAsync(
-            async token =>
-            {
-                using var connection = host.Services.GetRequiredService<NpgsqlConnection>();
-                await connection.OpenAsync(token);
+            var command = connection.CreateCommand();
+            command.CommandText = $"SELECT 1";
+            var results = await command.ExecuteReaderAsync(token);
 
-                var command = connection.CreateCommand();
-                command.CommandText = $"SELECT 1";
-                var results = await command.ExecuteReaderAsync(token);
-
-                Assert.True(results.HasRows);
-            });
+            Assert.True(results.HasRows);
+        }, cts.Token);
     }
 
     [Theory]
@@ -74,9 +75,9 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         string? volumeName = null;
         string? bindMountPath = null;
 
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<NpgsqlException>() })
-            .AddTimeout(TimeSpan.FromSeconds(5))
             .Build();
 
         try
@@ -105,7 +106,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
-                bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                bindMountPath = Directory.CreateTempSubdirectory().FullName;
                 postgres1.WithDataBindMount(bindMountPath);
             }
 
@@ -128,18 +129,22 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
-                        await pipeline.ExecuteAsync(
-                            async token =>
-                            {
-                                using var connection = host.Services.GetRequiredService<NpgsqlConnection>();
-                                await connection.OpenAsync(token);
+                        await pipeline.ExecuteAsync(async token =>
+                        {
+                            using var connection = host.Services.GetRequiredService<NpgsqlConnection>();
+                            await connection.OpenAsync(token);
 
-                                var command = connection.CreateCommand();
-                                command.CommandText = $"CREATE TABLE cars (brand VARCHAR(255)); INSERT INTO cars (brand) VALUES ('BatMobile'); SELECT * FROM cars;";
-                                var results = await command.ExecuteReaderAsync(token);
+                            var command = connection.CreateCommand();
+                            command.CommandText = """
+                                CREATE TABLE cars (brand VARCHAR(255));
+                                INSERT INTO cars (brand) VALUES ('BatMobile');
+                                SELECT * FROM cars;
+                            """;
 
-                                Assert.True(results.HasRows);
-                            });
+                            var results = await command.ExecuteReaderAsync(token);
+
+                            Assert.True(results.HasRows);
+                        }, cts.Token);
                     }
                 }
                 finally
@@ -185,20 +190,20 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
-                        await pipeline.ExecuteAsync(
-                            async token =>
-                            {
-                                using var connection = host.Services.GetRequiredService<NpgsqlConnection>();
-                                await connection.OpenAsync(token);
+                        await pipeline.ExecuteAsync(async token =>
+                        {
+                            using var connection = host.Services.GetRequiredService<NpgsqlConnection>();
+                            await connection.OpenAsync(token);
 
-                                var command = connection.CreateCommand();
-                                command.CommandText = $"SELECT * FROM cars;";
-                                var results = await command.ExecuteReaderAsync(token);
+                            var command = connection.CreateCommand();
+                            command.CommandText = $"SELECT * FROM cars;";
+                            var results = await command.ExecuteReaderAsync(token);
 
-                                Assert.True(results.HasRows);
-                            });
+                            Assert.True(await results.ReadAsync(token));
+                            Assert.Equal("BatMobile", results.GetString("brand"));
+                            Assert.False(await results.ReadAsync(token));
+                        }, cts.Token);
                     }
-
                 }
                 finally
                 {
@@ -219,7 +224,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 try
                 {
-                    File.Delete(bindMountPath);
+                    Directory.Delete(bindMountPath, recursive: true);
                 }
                 catch
                 {
@@ -229,10 +234,94 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         }
     }
 
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWithInitBindMount()
+    {
+        // Creates a script that should be executed when the container is initialized.
+
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(2) })
+            .Build();
+
+        var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
+        Directory.CreateDirectory(bindMountPath);
+
+        try
+        {
+            File.WriteAllText(Path.Combine(bindMountPath, "init.sql"), """
+                CREATE TABLE cars (brand VARCHAR(255));
+                INSERT INTO cars (brand) VALUES ('BatMobile');
+            """);
+
+            var builder = CreateDistributedApplicationBuilder();
+
+            var postgresDbName = "db1";
+
+            var postgres = builder.AddPostgres("pg").WithEnvironment("POSTGRES_DB", postgresDbName);
+            var db = postgres.AddDatabase(postgresDbName);
+
+            postgres.WithInitBindMount(bindMountPath);
+
+            using var app = builder.Build();
+
+            await app.StartAsync();
+
+            var hb = Host.CreateApplicationBuilder();
+
+            hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default)
+            });
+
+            hb.AddNpgsqlDataSource(db.Resource.Name);
+
+            using var host = hb.Build();
+
+            await host.StartAsync();
+
+            // Wait until the database is available
+            await pipeline.ExecuteAsync(async token =>
+            {
+                using var connection = host.Services.GetRequiredService<NpgsqlConnection>();
+                await connection.OpenAsync(token);
+                Assert.Equal(ConnectionState.Open, connection.State);
+            }, cts.Token);
+
+            await pipeline.ExecuteAsync(async token =>
+            {
+                using var connection = host.Services.GetRequiredService<NpgsqlConnection>();
+                await connection.OpenAsync(token);
+
+                var command = connection.CreateCommand();
+                command.CommandText = $"SELECT * FROM cars;";
+                var results = await command.ExecuteReaderAsync(token);
+
+                Assert.True(await results.ReadAsync(token));
+                Assert.Equal("BatMobile", results.GetString("brand"));
+                Assert.False(await results.ReadAsync(token));
+            }, cts.Token);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(bindMountPath, true);
+            }
+            catch
+            {
+                // Don't fail test if we can't clean the temporary folder
+            }
+        }
+    }
+
     private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
     {
         var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
         builder.Services.AddXunitLogging(testOutputHelper);
+        builder.Services.AddHostedService<ResourceLoggerForwarderService>();
         return builder;
     }
 }

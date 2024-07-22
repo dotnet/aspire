@@ -13,14 +13,15 @@
     @if (_hasErrorInfo)
     {
         var iconId = Guid.NewGuid().ToString();
-
         @*
-            We don't want a browser tooltip to display when hovering over the error icon.
-            Use alt instead of title for screen readers. Also, the column has a title set
-            so add a whitespace title to prevent a browser tooltip from displaying.
+        * We don't want a browser tooltip to display when hovering over the error icon.
+        * Use alt instead of title for screen readers. Also, the column has a title set
+        * so add a whitespace title to prevent a browser tooltip from displaying.
         *@
+        var title = " ";
+
         <FluentIcon alt="@Loc[nameof(Columns.LogMessageColumnExceptionDetailsTitle)]"
-                    title="@Loc[nameof(Columns.LogMessageColumnExceptionDetailsTitle)].ToString()"
+                    title="@title"
                     Style="flex-shrink: 0"
                     Id="@iconId"
                     Icon="Icons.Filled.Size16.DocumentError"
