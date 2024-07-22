@@ -1,6 +1,7 @@
 ﻿@using Aspire.Dashboard.Extensions
 @using Aspire.Dashboard.Resources
 @inject IStringLocalizer<ControlsStrings> Loc
+@inject IStringLocalizer<Dialogs> DialogsLoc
 
 <div class="@GetContainerClass()" style="width: inherit;">
     @if (EnableMasking && IsMasked)
@@ -69,6 +70,6 @@
             <FluentIcon Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Open" Slot="start"/>
         </span>
 
-        Open in text visualizer
+        @DialogsLoc[nameof(Dialogs.OpenInTextVisualizer)]
     </FluentMenuItem>
 </FluentMenu>

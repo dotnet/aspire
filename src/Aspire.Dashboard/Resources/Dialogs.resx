@@ -242,4 +242,7 @@
   <data name="TextVisualizerSelectFormatType" xml:space="preserve">
     <value>Select format</value>
   </data>
+  <data name="OpenInTextVisualizer" xml:space="preserve">
+    <value>Open in text visualizer</value>
+  </data>
 </root>

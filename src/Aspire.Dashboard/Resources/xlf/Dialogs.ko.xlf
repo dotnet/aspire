@@ -152,6 +152,11 @@
         <target state="translated">패널 방향 전환</target>
         <note />
       </trans-unit>
+      <trans-unit id="OpenInTextVisualizer">
+        <source>Open in text visualizer</source>
+        <target state="new">Open in text visualizer</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OpenTraceDialogCancelButtonText">
         <source>Cancel</source>
         <target state="new">Cancel</target>

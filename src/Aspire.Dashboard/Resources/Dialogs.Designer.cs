@@ -290,5 +290,11 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("TextVisualizerSelectFormatType", resourceCulture);
             }
         }
+        
+        public static string OpenInTextVisualizer {
+            get {
+                return ResourceManager.GetString("OpenInTextVisualizer", resourceCulture);
+            }
+        }
     }
 }
