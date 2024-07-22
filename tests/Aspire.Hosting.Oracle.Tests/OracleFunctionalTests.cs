@@ -17,8 +17,17 @@ using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Oracle.Tests;
 
-public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
+public class OracleFunctionalTests : IClassFixture<OracleContainerFixture>
 {
+    private readonly ITestOutputHelper _testOutputHelper;
+    private readonly OracleContainerFixture _oracleContainerFixture;
+
+    public OracleFunctionalTests(ITestOutputHelper testOutputHelper, OracleContainerFixture oracleContainerFixture)
+    {
+        _testOutputHelper = testOutputHelper;
+        _oracleContainerFixture = oracleContainerFixture;
+    }
+
     [Fact]
     [RequiresDocker]
     public async Task VerifyOracleResource()
@@ -370,7 +379,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         // Do not use the test container registry as Oracle has their own
         var builder = TestDistributedApplicationBuilder.Create();
         builder.Services.AddLogging(config => config.SetMinimumLevel(LogLevel.Information));
-        builder.Services.AddXunitLogging(testOutputHelper);
+        builder.Services.AddXunitLogging(_testOutputHelper);
         builder.Services.AddHostedService<ResourceLoggerForwarderService>();
         return builder;
     }
