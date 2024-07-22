@@ -1,9 +1,5 @@
 #nullable enable
 Aspire.Hosting.Testing.DistributedApplicationFactory.DistributedApplicationFactory(System.Type! entryPoint, string![]! args) -> void
 Aspire.Hosting.Testing.IDistributedApplicationTestingBuilder.AppHostAssembly.get -> System.Reflection.Assembly?
-Aspire.Hosting.Testing.ResourceLoggerForwarderService
-Aspire.Hosting.Testing.ResourceLoggerForwarderService.OnResourceLog.get -> System.Action<string!>?
-Aspire.Hosting.Testing.ResourceLoggerForwarderService.OnResourceLog.set -> void
-Aspire.Hosting.Testing.ResourceLoggerForwarderService.ResourceLoggerForwarderService(Aspire.Hosting.ApplicationModel.ResourceNotificationService! resourceNotificationService, Aspire.Hosting.ApplicationModel.ResourceLoggerService! resourceLoggerService, Microsoft.Extensions.Hosting.IHostEnvironment! hostEnvironment, Microsoft.Extensions.Logging.ILoggerFactory! loggerFactory) -> void
 static Aspire.Hosting.Testing.DistributedApplicationTestingBuilder.CreateAsync(System.Type! entryPoint, string![]! args, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Aspire.Hosting.Testing.IDistributedApplicationTestingBuilder!>!
 static Aspire.Hosting.Testing.DistributedApplicationTestingBuilder.CreateAsync<TEntryPoint>(string![]! args, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Aspire.Hosting.Testing.IDistributedApplicationTestingBuilder!>!

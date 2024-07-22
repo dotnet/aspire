@@ -34,7 +34,7 @@ public class OracleFunctionalTests : IClassFixture<OracleContainerFixture>
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 20, Delay = TimeSpan.FromSeconds(10) })
+            .AddRetry(new() { MaxRetryAttempts = 20, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
             .Build();
 
         var builder = CreateDistributedApplicationBuilder();
@@ -92,19 +92,16 @@ public class OracleFunctionalTests : IClassFixture<OracleContainerFixture>
 
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 20, Delay = TimeSpan.FromSeconds(10) })
+            .AddRetry(new() { MaxRetryAttempts = 20, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
             .Build();
 
         try
         {
             var builder1 = CreateDistributedApplicationBuilder();
 
-            var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder1, "orcl-password").Value;
+            var oracle1 = builder1.AddOracle("oracle");
 
-            var passwordParameter = builder1.AddParameter("pwd");
-            builder1.Configuration["Parameters:pwd"] = password;
-
-            var oracle1 = builder1.AddOracle("oracle", passwordParameter);
+            var password = oracle1.Resource.PasswordParameter.Value;
 
             var db1 = oracle1.AddDatabase(oracleDbName);
 
@@ -189,10 +186,10 @@ public class OracleFunctionalTests : IClassFixture<OracleContainerFixture>
             }
 
             var builder2 = CreateDistributedApplicationBuilder();
-            passwordParameter = builder2.AddParameter("pwd");
+            var passwordParameter2 = builder2.AddParameter("pwd");
             builder2.Configuration["Parameters:pwd"] = password;
 
-            var oracle2 = builder2.AddOracle("oracle", passwordParameter);
+            var oracle2 = builder2.AddOracle("oracle", passwordParameter2);
             var db2 = oracle2.AddDatabase(oracleDbName);
 
             if (useVolume)
@@ -288,7 +285,7 @@ public class OracleFunctionalTests : IClassFixture<OracleContainerFixture>
 
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 20, Delay = TimeSpan.FromSeconds(10) })
+            .AddRetry(new() { MaxRetryAttempts = 20, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
             .Build();
 
         var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());

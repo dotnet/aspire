@@ -12,11 +12,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="$(SharedDir)SecretsStore.cs" Link="Utils\SecretsStore.cs" />
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting\ApplicationModel\UserSecretsParameterDefault.cs" Link="Utils\UserSecretsParameterDefault.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Oracle\OracleContainerImageTags.cs" />
     <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting\Utils\PasswordGenerator.cs" Link="Utils\PasswordGenerator.cs" />
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Testing\ResourceLoggerForwarderService.cs" Link="Utils\ResourceLoggerForwarderService.cs" />
   </ItemGroup>
 
 </Project>

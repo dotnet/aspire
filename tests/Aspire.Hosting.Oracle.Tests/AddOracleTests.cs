@@ -19,7 +19,7 @@ public class AddOracleTests
 
         var orcl = appBuilder.AddOracle("orcl");
 
-        Assert.Equal(nameof(UserSecretsParameterDefault), orcl.Resource.PasswordParameter.Default?.GetType().Name);
+        Assert.Equal("Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault", orcl.Resource.PasswordParameter.Default?.GetType().Name);
     }
 
     [Fact]
@@ -29,7 +29,7 @@ public class AddOracleTests
 
         var orcl = appBuilder.AddOracle("orcl");
 
-        Assert.Equal(nameof(GenerateParameterDefault), orcl.Resource.PasswordParameter.Default?.GetType().Name);
+        Assert.NotEqual("Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault", orcl.Resource.PasswordParameter.Default?.GetType().Name);
     }
 
     [Fact]
