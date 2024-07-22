@@ -38,7 +38,7 @@
                     <FluentButton
                         Id="@Guid.NewGuid().ToString()"
                         Appearance="Appearance.Lightweight"
-                        AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(_errorInfo, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)].ToString(), ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)].ToString())">
+                        AdditionalAttributes="@FluentUiExtensions.GetClipboardCopyAdditionalAttributes(_errorInfo, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)].ToString(), ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)].ToString())">
                         @ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)]
 
                         <FluentIcon Class="copy-icon align-text-bottom" Style="display:inline;" Icon="Icons.Regular.Size16.Copy"/>

@@ -1,7 +1,49 @@
 ﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Resources
+
+@inject IStringLocalizer<Dialogs> Loc
 @implements IDialogContentComponent<Aspire.Dashboard.Model.TextVisualizerDialogViewModel>
 
-@Content.Text
+<FluentDialogHeader ShowDismiss="true">
+    <FluentStack VerticalAlignment="VerticalAlignment.Center">
+        <FluentIcon Value="@(new Icons.Regular.Size24.SlideSearch())" />
+        <FluentLabel Typo="Typography.PaneHeader">
+            @Content.Description
+        </FluentLabel>
+
+        <FluentButton id="@_openSelectFormatButtonId" slot="end"
+                      Style="margin-left: auto"
+                      Appearance="Appearance.Accent"
+                      IconEnd="@(new Icons.Regular.Size24.Filter())"
+                      @onclick="() => _isSelectFormatPopupOpen = !_isSelectFormatPopupOpen"
+                      Title="@Loc[nameof(Dialogs.TextVisualizerSelectFormatType)]"
+                      aria-label="@Loc[nameof(Dialogs.TextVisualizerSelectFormatType)]"/>
+
+        <FluentPopover AnchorId="@_openSelectFormatButtonId"
+                       @bind-Open="@_isSelectFormatPopupOpen"
+                       AutoFocus="true">
+            <Body>
+                <FluentRadioGroup aria-labelledby="@_openSelectFormatButtonId"
+                                  @bind-Value="_selectedOption"
+                                  @bind-Value:after="@OnFormatOptionChanged"
+                                  Orientation="Orientation.Vertical">
+                    @foreach (var option in _options)
+                    {
+                        <FluentRadio Value="@option.Id">@option.Name</FluentRadio>
+                    }
+                </FluentRadioGroup>
+            </Body>
+        </FluentPopover>
+    </FluentStack>
+</FluentDialogHeader>
+
+<FluentDialogBody>
+    <pre style="white-space: pre-wrap; overflow-wrap: break-word">
+        @_formattedText
+    </pre>
+</FluentDialogBody>
+
+<FluentDialogFooter Visible="false" />
 
 @code {
     [Parameter, EditorRequired]

@@ -1,11 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Resize;
-using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Resources;
-using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -81,40 +78,12 @@ public partial class GridValue
     private readonly Icon _unmaskIcon = new Icons.Regular.Size16.Eye();
     private readonly string _copyId = $"copy-{Guid.NewGuid():N}";
     private readonly string _menuAnchorId = $"menu-{Guid.NewGuid():N}";
-    private readonly string _openVisualizerId = $"open-visualizer-{Guid.NewGuid():N}";
     private bool _isMenuOpen;
-    private IJSObjectReference? _onClickHandler;
-    private DotNetObjectReference<GridValue>? _thisReference;
 
     protected override void OnInitialized()
     {
         PreCopyToolTip = Loc[nameof(ControlsStrings.GridValueCopyToClipboard)];
         PostCopyToolTip = Loc[nameof(ControlsStrings.GridValueCopied)];
-    }
-
-    private async Task OnOpenChangedAsync()
-    {
-        if (_isMenuOpen)
-        {
-            _thisReference?.Dispose();
-
-            try
-            {
-                await JS.InvokeVoidAsync("window.unregisterGlobalKeydownListener", _openVisualizerId, _onClickHandler);
-            }
-            catch (JSDisconnectedException)
-            {
-                // Per https://learn.microsoft.com/aspnet/core/blazor/javascript-interoperability/?view=aspnetcore-7.0#javascript-interop-calls-without-a-circuit
-                // this is one of the calls that will fail if the circuit is disconnected, and we just need to catch the exception so it doesn't pollute the logs
-            }
-
-            await JSInteropHelpers.SafeDisposeAsync(_onClickHandler);
-        }
-        else
-        {
-            _thisReference = DotNetObjectReference.Create(this);
-            _onClickHandler = await JS.InvokeAsync<IJSObjectReference>("window.registerOpenTextVisualizerOnClick", _openVisualizerId, _thisReference);
-        }
     }
 
     private string GetContainerClass() => EnableMasking ? "container masking-enabled" : "container";
@@ -135,23 +104,5 @@ public partial class GridValue
     private void ToggleMenuOpen()
     {
         _isMenuOpen = !_isMenuOpen;
-    }
-
-    [JSInvokable]
-    public async Task OpenTextVisualizerAsync()
-    {
-        var parameters = new DialogParameters
-        {
-            Title = ValueDescription,
-            PrimaryActionEnabled = false,
-            SecondaryActionEnabled = false,
-            Width = ViewportInformation.IsDesktop ? "60vw" : "100vw",
-            Height = ViewportInformation.IsDesktop ? "60vh" : "100vh",
-            TrapFocus = true,
-            Modal = true,
-            PreventScroll = true
-        };
-
-        await DialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(Value!), parameters);
     }
 }

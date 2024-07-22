@@ -3,7 +3,7 @@
 
 namespace Aspire.Dashboard.Extensions;
 
-internal static class FluentUIExtensions
+internal static class FluentUiExtensions
 {
     public static Dictionary<string, object> GetClipboardCopyAdditionalAttributes(string? text, string? precopy, string? postcopy, params (string Attribute, object Value)[] additionalAttributes)
     {
@@ -16,6 +16,22 @@ internal static class FluentUIExtensions
             { "data-precopy", precopy ?? string.Empty },
             { "data-postcopy", postcopy ?? string.Empty },
             { "data-copybutton", "true" }
+        };
+
+        foreach (var (attribute, value) in additionalAttributes)
+        {
+            attributes.Add(attribute, value);
+        }
+
+        return attributes;
+    }
+
+    public static Dictionary<string, object> GetOpenTextVisualizerAdditionalAttributes(string textValue, string textValueDescription, params (string Attribute, object Value)[] additionalAttributes)
+    {
+        var attributes = new Dictionary<string, object>
+        {
+            { "data-textvisualizer-text", textValue },
+            { "data-textvisualizer-description", textValueDescription }
         };
 
         foreach (var (attribute, value) in additionalAttributes)

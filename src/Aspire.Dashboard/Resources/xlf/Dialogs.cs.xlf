@@ -187,6 +187,26 @@
         <target state="translated">Verze: {0}</target>
         <note>{0} is the dashboard version string</note>
       </trans-unit>
+      <trans-unit id="TextVisualizerDialogJsonFormat">
+        <source>Format JSON</source>
+        <target state="new">Format JSON</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerDialogPlaintextFormat">
+        <source>Plain-text</source>
+        <target state="new">Plain-text</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerDialogXmlFormat">
+        <source>Format XML</source>
+        <target state="new">Format XML</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerSelectFormatType">
+        <source>Select format</source>
+        <target state="new">Select format</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

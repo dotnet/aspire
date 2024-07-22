@@ -300,18 +300,24 @@ window.listenToWindowResize = function(dotnetHelper) {
     window.addEventListener('resize', throttledResizeListener);
 }
 
-window.registerOpenTextVisualizerOnClick = function(menuItemId, gridValue) {
-    const onClickListener = function () {
-        gridValue.invokeMethodAsync('OpenTextVisualizerAsync');
+window.registerOpenTextVisualizerOnClick = function(layout) {
+    const onClickListener = function (e) {
+        const text = e.target.getAttribute("data-textvisualizer-text");
+        const description = e.target.getAttribute("data-textvisualizer-description");
+
+        if (e.target.tagName.toLowerCase() === "fluent-menu-item" && text && description) {
+            e.stopPropagation();
+            layout.invokeMethodAsync("OpenTextVisualizerAsync", text, description);
+        }
     }
 
-    document.getElementById(menuItemId).addEventListener('onclick', onClickListener);
+    document.addEventListener('click', onClickListener);
 
     return {
         onClickListener: onClickListener,
     }
 }
 
-window.unregisterOpenTextVisualizerOnClick = function (menuItemId, onClickListener) {
-    document.getElementById(menuItemId).removeEventListener('onclick', onClickListener);
+window.unregisterOpenTextVisualizerOnClick = function (listener) {
+    document.removeEventListener('click', listener);
 }

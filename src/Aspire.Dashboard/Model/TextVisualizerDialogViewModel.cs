@@ -3,4 +3,4 @@
 
 namespace Aspire.Dashboard.Model;
 
-public record TextVisualizerDialogViewModel(string Text);
+public record TextVisualizerDialogViewModel(string Text, string Description);
