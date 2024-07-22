@@ -263,11 +263,30 @@ public static class ProjectResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds a .NET project to the application model, just generating a settings file for the project.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This overload of the <see cref="AddProject(IDistributedApplicationBuilder, string, string)"/> method adds a project to the application
+    /// model where Aspire only generates a settings file for the project, not otherwise trying to build or run it. This is useful for projects
+    /// that you wish to always launch manually, but have them connect to Aspire services and OTEL.
+    /// </para>
+    public static IResourceBuilder<ProjectResource> AddSettingsOnlyProject(this IDistributedApplicationBuilder builder, string name,
+        string settingsFilePath, SettingsFileType settingsFileType)
+    {
+        return builder.AddProject(name, "")
+            .WithSettingsFile(settingsFilePath, settingsFileType, onlyGenerateSettings:true);
+    }
+
+    /// <summary>
     /// Adds a settings file to the project resource, to optionally persist settings that are normally set via environment variables.
     /// The settings file can be generated with or without also launching the project.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="settingsFileOptions"></param>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="settingsFileOptions">The options to use for settings file generation.</param>
     /// <returns></returns>
     public static IResourceBuilder<ProjectResource> WithSettingsFile(this IResourceBuilder<ProjectResource> builder, SettingsFileOptions settingsFileOptions)
     {
@@ -275,6 +294,19 @@ public static class ProjectResourceBuilderExtensions
 
         builder.ApplicationBuilder.Services.TryAddLifecycleHook<SettingsFileWriterHook>();
         return builder;
+    }
+
+    /// <summary>
+    /// Adds a settings file to the project resource, to optionally persist settings that are normally set via environment variables.
+    /// The settings file can be generated with or without also launching the project.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="settingsFilePath">The path to settings file, absolute or relative to app host directory.</param>
+    /// <param name="settingsFileType">The settings file type, C# code (for use with IConfigurationBuilder.AddInMemoryCollection) or JSON (for use with IConfigurationBuilder.AddJsonFile).</param>
+    /// <param name="onlyGenerateSettings">Indicate whether to skip build/running this resource, only generating settings.</param>
+    public static IResourceBuilder<ProjectResource> WithSettingsFile(this IResourceBuilder<ProjectResource> builder, string settingsFilePath, SettingsFileType settingsFileType, bool onlyGenerateSettings)
+    {
+        return builder.WithSettingsFile(new SettingsFileOptions(settingsFilePath, settingsFileType, onlyGenerateSettings));
     }
 
     private static IResourceBuilder<ProjectResource> WithProjectDefaults(this IResourceBuilder<ProjectResource> builder, ProjectResourceOptions options)

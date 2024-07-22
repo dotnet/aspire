@@ -34,7 +34,7 @@ public class SettingsFileOptions
     /// <param name="settingsFilePath">The path to settings file, absolute or relative to app host directory.</param>
     /// <param name="settingsFileType">The settings file type, C# code (for use with IConfigurationBuilder.AddInMemoryCollection) or JSON (for use with IConfigurationBuilder.AddJsonFile).</param>
     /// <param name="onlyGenerateSettings">Indicate whether to skip build/running this resource, only generating settings.</param>
-    public SettingsFileOptions(string? settingsFilePath, SettingsFileType settingsFileType, bool onlyGenerateSettings)
+    public SettingsFileOptions(string settingsFilePath, SettingsFileType settingsFileType, bool onlyGenerateSettings)
     {
         SettingsFilePath = settingsFilePath;
         SettingsFileType = settingsFileType;
@@ -45,7 +45,7 @@ public class SettingsFileOptions
     /// Path, including file name, for the settings file to be generated. If the not an absolute path then it should be
     /// relative to the app host directory.
     /// </summary>
-    public string? SettingsFilePath { get; set; }
+    public string SettingsFilePath { get; set; }
 
     /// <summary>
     /// Setting file type, C# code (for use with IConfigurationBuilder.AddInMemoryCollection) or JSON (for use with IConfigurationBuilder.AddJsonFile)
