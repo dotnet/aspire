@@ -7,7 +7,7 @@ Registers a [ElasticsearchClient](https://github.com/elastic/elasticsearch-net) 
 ### Prerequisites
 
 - Elasticsearch cluster.
-- Connection string for accessing the Elasticsearch API endpoint or a CloudId and an ApiKey from [Elastic Cloud](https://www.elastic.co/cloud)
+- Endpoint URI string for accessing the Elasticsearch API endpoint or a CloudId and an ApiKey from [Elastic Cloud](https://www.elastic.co/cloud)
 
 ### Install the package
 
@@ -57,7 +57,7 @@ The .NET Aspire Elasticsearch Client component supports [Microsoft.Extensions.Co
     "Elastic": {
       "Clients": {
         "Elasticsearch": {
-            "ConnectionString": "http://elastic:password@localhost:27011"
+            "Endpoint": "http://elastic:password@localhost:27011"
         }
       }
     }
@@ -70,7 +70,7 @@ The .NET Aspire Elasticsearch Client component supports [Microsoft.Extensions.Co
 Also you can pass the `Action<ElasticClientsElasticsearchSettings> configureSettings` delegate to set up some or all the options inline, for example to set the API key from code:
 
 ```csharp
-builder.AddElasticsearchClient("elasticsearch", settings => settings.ConnectionString = "http://elastic:password@localhost:27011");
+builder.AddElasticsearchClient("elasticsearch", settings => settings.Endpoint = new Uri("http://elastic:password@localhost:27011"));
 ```
 
 ## AppHost extensions
@@ -99,8 +99,7 @@ builder.AddElasticsearchClient("elasticsearch");
 ### Use a ```CloudId``` and an ```ApiKey``` with configuration providers
 
 When using [Elastic Cloud](https://www.elastic.co/cloud) ,
-you can provide the ```CloudId``` and ```ApiKey``` in ```Aspire:Elastic:Clients:Elasticsearch:Cloud``` section
-and set ```Aspire:Elastic:Clients:Elasticsearch:UseCloud``` key to ```true```
+you can provide the ```CloudId``` and ```ApiKey``` in ```Aspire:Elastic:Clients:Elasticsearch``` section
 when calling `builder.AddElasticsearchClient()`.
 Example appsettings.json that configures the options:
 
@@ -113,8 +112,7 @@ builder.AddElasticsearchClient("elasticsearch");
   "Aspire": {
     "Elastic": {
       "Clients": {
-        "UseCloud" : true,
-        "Cloud": {
+        "Elasticsearch": {
             "ApiKey": "Valid ApiKey",
             "CloudId": "Valid CloudId"
         }
@@ -129,9 +127,8 @@ builder.AddElasticsearchClient("elasticsearch");
 ```csharp
 builder.AddElasticsearchClient("elasticsearch",
 settings => {
-    settings.UseCloud = true;
-    settings.Cloud.CloudId = "Valid CloudId";
-    settings.Cloud.ApiKey = "Valid ApiKey";
+    settings.CloudId = "Valid CloudId";
+    settings.ApiKey = "Valid ApiKey";
 });
 ```
 
