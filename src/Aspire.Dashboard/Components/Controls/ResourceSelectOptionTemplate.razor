@@ -11,7 +11,6 @@
         <FluentIcon Icon="Icons.Regular.Size20.AppsList"
                     Color="Color.Accent"
                     Style="vertical-align: text-bottom;"/>
-
         <span>@ViewModel.Name (<span class="resource-select-application-label">@Loc[nameof(ControlsStrings.ApplicationLower)]</span>)</span>
     }
     else if (ViewModel.Id?.Type is OtlpApplicationType.Instance)
