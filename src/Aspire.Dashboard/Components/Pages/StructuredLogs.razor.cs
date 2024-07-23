@@ -129,14 +129,14 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         {
             ViewModel.AddFilter(new LogFilter
             {
-                Field = "TraceId", Condition = FilterCondition.Equals, Value = TraceId
+                Field = LogFilter.KnownTraceIdField, Condition = FilterCondition.Equals, Value = TraceId
             });
         }
         if (!string.IsNullOrEmpty(SpanId))
         {
             ViewModel.AddFilter(new LogFilter
             {
-                Field = "SpanId", Condition = FilterCondition.Equals, Value = SpanId
+                Field = LogFilter.KnownSpanIdField, Condition = FilterCondition.Equals, Value = SpanId
             });
         }
 
