@@ -6,17 +6,25 @@ using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Polly;
 using StackExchange.Redis;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Garnet.Tests;
 
-public class GarnetFunctionalTests
+public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     [RequiresDocker]
     public async Task VerifyGarnetResource()
     {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var pipeline = new ResiliencePipelineBuilder()
+           .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(3) })
+           .Build();
+
         var builder = CreateDistributedApplicationBuilder();
 
         var garnet = builder.AddGarnet("garnet");
@@ -29,7 +37,7 @@ public class GarnetFunctionalTests
 
         hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            [$"ConnectionStrings:{garnet.Resource.Name}"] = await garnet.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None)
+            [$"ConnectionStrings:{garnet.Resource.Name}"] = await garnet.Resource.ConnectionStringExpression.GetValueAsync(default)
         });
 
         hb.AddRedisClient(garnet.Resource.Name);
@@ -40,15 +48,23 @@ public class GarnetFunctionalTests
 
         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
-        var db = redisClient.GetDatabase();
+        await pipeline.ExecuteAsync(async token =>
+         {
+             var db = redisClient.GetDatabase();
 
-        await db.StringSetAsync("key", "value");
+             await db.StringSetAsync("key", "value");
 
-        var value = await db.StringGetAsync("key");
+             var value = await db.StringGetAsync("key");
 
-        Assert.Equal("value", value);
+             Assert.Equal("value", value);
+
+         }, cts.Token);
     }
 
-    private static TestDistributedApplicationBuilder CreateDistributedApplicationBuilder() =>
-        TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
+    private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddXunitLogging(testOutputHelper);
+        return builder;
+    }
 }
