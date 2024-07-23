@@ -25,9 +25,9 @@ else if (DisplayedEndpoints.Count > 1)
             }
         </ChildContent>
         <MoreButtonTemplate Context="overflow">
-            <FluentButton Appearance="Appearance.Accent" OnClick="() => _popoverVisible = !_popoverVisible" Class="endpoint-button">
+            <FluentBadge role="button" tabindex="0" Appearance="Appearance.Accent" OnClick="() => _popoverVisible = !_popoverVisible" Class="endpoint-button">
                 @($"+{overflow.ItemsOverflow.Count()}")
-            </FluentButton>
+            </FluentBadge>
         </MoreButtonTemplate>
         <OverflowTemplate Context="overflow">
             @{

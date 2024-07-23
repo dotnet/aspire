@@ -467,8 +467,8 @@ fluent-data-grid-cell.no-ellipsis {
     overflow-x: visible !important;
 }
 
-.endpoint-overflow .fluent-overflow-more {
-    display: flex;
+.endpoint-button::part(control) {
+    padding: 2px 8px !important;
 }
 
 .endpoint-button {
