@@ -26,8 +26,6 @@ public partial class MetricTable : ChartBase
     private bool _showCount;
     private DateTimeOffset? _lastUpdate;
 
-    private readonly CancellationTokenSource _waitTaskCancellationTokenSource = new();
-
     private IQueryable<MetricViewBase> _metricsView => _metrics.Values.AsEnumerable().Reverse().ToList().AsQueryable();
 
     [Inject]
@@ -39,7 +37,7 @@ public partial class MetricTable : ChartBase
     [Inject]
     public required IDialogService DialogService { get; init; }
 
-    protected override async Task OnChartUpdated(List<ChartTrace> traces, List<DateTimeOffset> xValues, List<ChartExemplar> exemplars, bool tickUpdate, DateTimeOffset inProgressDataTime)
+    protected override async Task OnChartUpdatedAsync(List<ChartTrace> traces, List<DateTimeOffset> xValues, List<ChartExemplar> exemplars, bool tickUpdate, DateTimeOffset inProgressDataTime, CancellationToken cancellationToken)
     {
         // Only update the data grid once per second to avoid additional DOM re-renders.
         if (inProgressDataTime - _lastUpdate < TimeSpan.FromSeconds(1))
@@ -69,7 +67,7 @@ public partial class MetricTable : ChartBase
 
         if (_jsModule is not null)
         {
-            await Task.Delay(500, _waitTaskCancellationTokenSource.Token);
+            await Task.Delay(500, cancellationToken);
 
             if (_jsModule is not null)
             {
@@ -84,7 +82,15 @@ public partial class MetricTable : ChartBase
                     }
                 }
 
-                await _jsModule.InvokeVoidAsync("announceDataGridRows", "metric-table-container", indices);
+                try
+                {
+                    await _jsModule.InvokeVoidAsync("announceDataGridRows", "metric-table-container", indices);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // This call happens after a delay. To ensure there is no chance of a race between disposing
+                    // and using the module, catch and ignore disposed exceptions.
+                }
             }
         }
     }
@@ -261,10 +267,9 @@ public partial class MetricTable : ChartBase
         return comparisonResult < 0 ? ValueDirectionChange.Down : ValueDirectionChange.Constant;
     }
 
-    public async ValueTask DisposeAsync()
+    protected override async ValueTask DisposeAsync(bool disposing)
     {
-        await _waitTaskCancellationTokenSource.CancelAsync();
-        _waitTaskCancellationTokenSource.Dispose();
+        await base.DisposeAsync(disposing);
         await JSInteropHelpers.SafeDisposeAsync(_jsModule);
     }
 
