@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Text;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Mvc;
 using Stress.ApiService;
@@ -126,6 +127,41 @@ app.MapGet("/producer-consumer", async () =>
     await producerConsumer.ProduceAndConsumeAsync(count: 5);
 
     return "Produced and consumed";
+});
+
+app.MapGet("/log-formatting", (ILoggerFactory loggerFactory) =>
+{
+    var logger = loggerFactory.CreateLogger("LogAttributes");
+
+    // From https://learn.microsoft.com/previous-versions/windows/desktop/ms762271(v=vs.85)
+    var xmlLarge = File.ReadAllText(Path.Combine("content", "books.xml"));
+
+    var xmlWithComments = @"<hello><!-- world --></hello>";
+
+    // From https://microsoftedge.github.io/Demos/json-dummy-data/
+    var jsonLarge = File.ReadAllText(Path.Combine("content", "example.json"));
+
+    var jsonWithComments = @"
+// line comment
+[
+    /* block comment */
+    1
+]";
+
+    var sb = new StringBuilder();
+    for (int i = 0; i < 26; i++)
+    {
+        var line = new string((char)('a' + i), 256);
+        sb.AppendLine(line);
+    }
+
+    logger.LogInformation(@"XML large content: {XmlLarge}
+XML comment content: {XmlComment}
+JSON large content: {JsonLarge}
+JSON comment content: {JsonComment}
+Long line content: {LongLines}", xmlLarge, xmlWithComments, jsonLarge, jsonWithComments, sb.ToString());
+
+    return "Log with formatted data";
 });
 
 app.Run();
