@@ -20,7 +20,7 @@ public sealed class ElasticsearchContainerFixture : IAsyncLifetime
         if (RequiresDockerAttribute.IsSupported)
         {
             Container = new ElasticsearchBuilder()
-                .WithImage($"{ElasticsearchContainerImageTags.Image}:{ElasticsearchContainerImageTags.Tag}")
+                .WithImage($"{TestConstants.AspireTestContainerRegistry}/{ElasticsearchContainerImageTags.Image}:{ElasticsearchContainerImageTags.Tag}")
                 .Build();
             await Container.StartAsync();
         }
