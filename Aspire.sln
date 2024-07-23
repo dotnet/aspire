@@ -493,8 +493,17 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Valkey", "sr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Elasticsearch", "src\Aspire.Hosting.Elasticsearch\Aspire.Hosting.Elasticsearch.csproj", "{9357EC71-823B-433A-9993-B7CB2FA082D1}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WithDockerfile.AppHost", "playground\withdockerfile\WithDockerfile.AppHost\WithDockerfile.AppHost.csproj", "{E6BE41D3-872C-47D2-B5B1-78C37AFAEAF9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Elastic.Clients.Elasticsearch", "src\Components\Aspire.Elastic.Clients.Elasticsearch\Aspire.Elastic.Clients.Elasticsearch.csproj", "{3F7B206E-5457-458F-AA81-9449FA3C1B5C}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Elasticsearch", "Elasticsearch", "{6C71A90C-30AE-45D7-9347-D66F9B257CBE}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Elasticsearch.ApiService", "playground\Elasticsearch\Elasticsearch.ApiService\Elasticsearch.ApiService.csproj", "{F7F57331-5DDD-444A-A620-8639FC9362B2}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Elasticsearch.AppHost", "playground\Elasticsearch\Elasticsearch.AppHost\Elasticsearch.AppHost.csproj", "{569B8215-BDB1-445D-A7BA-DB255700A4AC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dockerfile", "dockerfile", "{A6813855-E322-41EF-B2E6-7A44949EF962}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "withdockerfile", "withdockerfile", "{5B5DC91B-5754-4CE5-B3C0-FA1584B916A0}"
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Containers.Tests", "tests\Aspire.Hosting.Containers.Tests\Aspire.Hosting.Containers.Tests.csproj", "{588CD2D7-EE70-43C1-8233-330854BDF53C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WithDockerfile.AppHost", "playground\withdockerfile\WithDockerfile.AppHost\WithDockerfile.AppHost.csproj", "{E6BE41D3-872C-47D2-B5B1-78C37AFAEAF9}"
