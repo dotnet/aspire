@@ -32,6 +32,7 @@ As part of the .NET Aspire November preview, we want to include a set of .NET As
 | Seq                                     |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        N/A           |        N/A           |              ✅                  |
 | Qdrant.Client                           |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |                    |                   |                                |
 | Milvus.Client                           |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |                    |                   |                    ✅          |
+| Elastic.Clients.Elasticsearch           |                  ✅                  |             ✅             |                           ✅                            |              ✅              |                      |         ✅           |                       |              ✅                 |
 
 Nomenclature used in the table above:
 

@@ -1,0 +1,56 @@
+﻿@using Aspire.Dashboard.Components.Resize
+@using Aspire.Dashboard.Resources
+@inject IStringLocalizer<ControlsStrings> Loc
+
+<div class="details-container">
+    <header style="height: auto;">
+        @if (DetailsTitle is not null)
+        {
+            <div class="details-header-title" title="@DetailsTitle">@DetailsTitle</div>
+        }
+        else if (DetailsTitleTemplate is not null)
+        {
+            <div class="details-header-title">@DetailsTitleTemplate</div>
+        }
+        <div class="header-actions">
+            @if (ViewportInformation.IsDesktop)
+            {
+                <FluentButton Appearance="Appearance.Stealth"
+                              IconEnd="@(Orientation == Orientation.Horizontal ? _splitHorizontalIcon : _splitVerticalIcon)"
+                              OnClick="HandleToggleOrientation"
+                              Title="@(Orientation == Orientation.Horizontal ? Loc[nameof(ControlsStrings.SummaryDetailsViewSplitHorizontal)] : Loc[nameof(ControlsStrings.SummaryDetailsViewSplitVertical)])"
+                              aria-label="@(Orientation == Orientation.Horizontal ? Loc[nameof(ControlsStrings.SummaryDetailsViewSplitHorizontal)] : Loc[nameof(ControlsStrings.SummaryDetailsViewSplitVertical)])"/>
+            }
+
+            <FluentButton Appearance="Appearance.Stealth" BackgroundColor="@(ViewportInformation.IsDesktop ? null : "rgba(0, 0, 0, 0)")" IconEnd="@(new Icons.Regular.Size16.Dismiss())"
+                          OnClick="HandleDismissAsync" Title="@Loc[nameof(ControlsStrings.SummaryDetailsViewCloseView)]" aria-label="@Loc[nameof(ControlsStrings.SummaryDetailsViewCloseView)]"/>
+        </div>
+    </header>
+    @Details
+</div>
+
+@code {
+    private readonly Icon _splitHorizontalIcon = new Icons.Regular.Size16.SplitHorizontal();
+    private readonly Icon _splitVerticalIcon = new Icons.Regular.Size16.SplitVertical();
+
+    [Parameter]
+    public string? DetailsTitle { get; set; }
+
+    [Parameter]
+    public RenderFragment? Details { get; set; }
+
+    [Parameter]
+    public RenderFragment? DetailsTitleTemplate { get; set; }
+
+    [Parameter]
+    public required Func<Task> HandleToggleOrientation { get; set; }
+
+    [Parameter]
+    public required Func<Task> HandleDismissAsync { get; set; }
+
+    [Parameter]
+    public required Orientation Orientation { get; set; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
+}

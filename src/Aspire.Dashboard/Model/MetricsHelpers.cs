@@ -3,7 +3,6 @@
 
 using System.Globalization;
 using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.Extensions.Localization;
@@ -13,17 +12,6 @@ namespace Aspire.Dashboard.Model;
 
 public static class MetricsHelpers
 {
-    public static OtlpSpan? GetSpan(TelemetryRepository telemetryRepository, string traceId, string spanId)
-    {
-        var trace = telemetryRepository.GetTrace(traceId);
-        if (trace == null)
-        {
-            return null;
-        }
-
-        return trace.Spans.FirstOrDefault(s => s.SpanId == spanId);
-    }
-
     public static async Task<bool> WaitForSpanToBeAvailableAsync(
         string traceId,
         string spanId,
