@@ -2,6 +2,16 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="pl" original="../StructuredLogs.resx">
     <body>
+      <trans-unit id="MessageExceededLimitBody">
+        <source>A maximum of {0} structured logs are stored. Old structured logs are automatically removed.</source>
+        <target state="new">A maximum of {0} structured logs are stored. Old structured logs are automatically removed.</target>
+        <note>{0} is the max count</note>
+      </trans-unit>
+      <trans-unit id="MessageExceededLimitTitle">
+        <source>Exceeded structured log limit</source>
+        <target state="new">Exceeded structured log limit</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StructuredLogsAddFilter">
         <source>Add filter</source>
         <target state="translated">Dodaj filtr</target>

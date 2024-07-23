@@ -13,15 +13,11 @@ namespace Aspire.Dashboard.Components;
 
 public partial class ChartContainer : ComponentBase, IAsyncDisposable
 {
-    private readonly CounterChartViewModel _viewModel = new();
-
     private OtlpInstrument? _instrument;
     private PeriodicTimer? _tickTimer;
     private Task? _tickTask;
     private IDisposable? _themeChangedSubscription;
     private int _renderedDimensionsCount;
-    private string? _previousMeterName;
-    private string? _previousInstrumentName;
     private readonly InstrumentViewModel _instrumentViewModel = new InstrumentViewModel();
 
     [Parameter, EditorRequired]
@@ -44,6 +40,9 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
+
+    [Inject]
+    public required CurrentChartViewModel ChartViewModel { get; init; }
 
     protected override void OnInitialized()
     {
@@ -113,7 +112,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     private bool MatchDimension(DimensionScope dimension)
     {
-        foreach (var dimensionFilter in _viewModel.DimensionFilters)
+        foreach (var dimensionFilter in ChartViewModel.DimensionFilters)
         {
             if (!MatchFilter(dimension.Attributes, dimensionFilter))
             {
@@ -156,14 +155,14 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
             return;
         }
 
-        var hasInstrumentChanged = _previousMeterName != MeterName || _previousInstrumentName != InstrumentName;
-        _previousMeterName = MeterName;
-        _previousInstrumentName = InstrumentName;
+        var hasInstrumentChanged = ChartViewModel.PreviousMeterName != MeterName || ChartViewModel.PreviousInstrumentName != InstrumentName;
+        ChartViewModel.PreviousMeterName = MeterName;
+        ChartViewModel.PreviousInstrumentName = InstrumentName;
 
         var filters = CreateUpdatedFilters(hasInstrumentChanged);
 
-        _viewModel.DimensionFilters.Clear();
-        _viewModel.DimensionFilters.AddRange(filters);
+        ChartViewModel.DimensionFilters.Clear();
+        ChartViewModel.DimensionFilters.AddRange(filters);
 
         await UpdateInstrumentDataAsync(_instrument);
     }
@@ -235,7 +234,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                 }
                 else
                 {
-                    var existing = _viewModel.DimensionFilters.SingleOrDefault(m => m.Name == item.Name);
+                    var existing = ChartViewModel.DimensionFilters.SingleOrDefault(m => m.Name == item.Name);
                     if (existing != null)
                     {
                         // Select previously selected.
