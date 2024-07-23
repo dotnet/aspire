@@ -17,6 +17,9 @@ namespace Aspire.Hosting.Nats.Tests;
 
 public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
 {
+    private const string StreamName = "test-stream";
+    private const string SubjectName = "test-subject";
+
     [Fact]
     [RequiresDocker]
     public async Task VerifyNatsResource()
@@ -62,8 +65,6 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
-        var streamName = "test-stream";
-        var subjectName = "test-subject";
         string? volumeName = null;
         string? bindMountPath = null;
 
@@ -84,7 +85,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
-                bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                bindMountPath = Directory.CreateTempSubdirectory().FullName;
                 nats1.WithDataBindMount(bindMountPath);
             }
 
@@ -119,17 +120,8 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
                         await pipeline.ExecuteAsync(async token =>
                         {
                             var jetStream = host.Services.GetRequiredService<INatsJSContext>();
-
-                            var stream = await jetStream.CreateStreamAsync(new StreamConfig(streamName, [subjectName]), cancellationToken: token);
-                            var name = stream.Info.Config.Name;
-                            Assert.Equal(streamName, stream.Info.Config.Name);
-
-                            for (var i = 0; i < 10; i++)
-                            {
-                                var appEvent = new AppEvent(subjectName, $"test-event-{i}", $"test-event-description-{i}", i);
-                                var ack = await jetStream.PublishAsync(appEvent.Subject, appEvent, cancellationToken: token);
-                                ack.EnsureSuccess();
-                            }
+                            await CreateTestData(jetStream, token);
+                            await ConsumeTestData(jetStream, token);
 
                         }, cts.Token);
                     }
@@ -184,26 +176,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
                         await pipeline.ExecuteAsync(async token =>
                         {
                             var jetStream = host.Services.GetRequiredService<INatsJSContext>();
-
-                            var stream = await jetStream.GetStreamAsync(streamName, cancellationToken: token);
-                            var consumer = await stream.CreateOrderedConsumerAsync(cancellationToken: token);
-
-                            var events = new List<AppEvent>();
-                            await foreach (var msg in consumer.ConsumeAsync<AppEvent>(cancellationToken: token))
-                            {
-                                events.Add(msg.Data!);
-
-                                if (msg.Metadata?.NumPending == 0)
-                                {
-                                    break;
-                                }
-                            }
-
-                            foreach (var item in events.Select((appEvent, i) => new { i, appEvent }))
-                            {
-                                Assert.Equal($"test-event-{item.i}", item.appEvent.Name);
-                                Assert.Equal($"test-event-description-{item.i}", item.appEvent.Description);
-                            }
+                            await ConsumeTestData(jetStream, token);
                         });
                     }
                 }
@@ -232,6 +205,43 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
                     // Don't fail test if we can't clean the temporary folder
                 }
             }
+        }
+    }
+
+    private static async Task ConsumeTestData(INatsJSContext jetStream, CancellationToken token)
+    {
+        var stream = await jetStream.GetStreamAsync(StreamName, cancellationToken: token);
+        var consumer = await stream.CreateOrderedConsumerAsync(cancellationToken: token);
+
+        var events = new List<AppEvent>();
+        await foreach (var msg in consumer.ConsumeAsync<AppEvent>(cancellationToken: token))
+        {
+            events.Add(msg.Data!);
+
+            if (msg.Metadata?.NumPending == 0)
+            {
+                break;
+            }
+        }
+
+        for (var i = 0; i < 10; i++)
+        {
+            var @event = events[i];
+            Assert.Equal($"test-event-{i}", @event.Name);
+            Assert.Equal($"test-event-description-{i}", @event.Description);
+        }
+    }
+
+    private static async Task CreateTestData(INatsJSContext jetStream, CancellationToken token)
+    {
+        var stream = await jetStream.CreateStreamAsync(new StreamConfig(StreamName, [SubjectName]), cancellationToken: token);
+        Assert.Equal(StreamName, stream.Info.Config.Name);
+
+        for (var i = 0; i < 10; i++)
+        {
+            var appEvent = new AppEvent(SubjectName, $"test-event-{i}", $"test-event-description-{i}", i);
+            var ack = await jetStream.PublishAsync(appEvent.Subject, appEvent, cancellationToken: token);
+            ack.EnsureSuccess();
         }
     }
 
