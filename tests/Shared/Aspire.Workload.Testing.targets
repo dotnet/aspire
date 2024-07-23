@@ -105,7 +105,7 @@
 
     <ItemGroup>
       <AllPackages Include="$(ArtifactsShippingPackagesDir)*.nupkg" />
-      <ExpectedPackagePaths Include="$(ArtifactsShippingPackagesDir)%(ExpectedPackageNames.Identity).$(PackageVersion).nupkg" />
+      <ExpectedPackagePaths Include="$(ArtifactsShippingPackagesDir)%(ExpectedPackageNames.Identity).%(ExpectedPackageNames.WithPackageVersion).nupkg" />
       <MissingPackages Include="@(ExpectedPackagePaths)" Condition="!Exists(%(ExpectedPackagePaths.Identity))" />
 
       <UnexpectedPackages Include="@(AllPackages)" Exclude="@(ExpectedPackagePaths)" />
