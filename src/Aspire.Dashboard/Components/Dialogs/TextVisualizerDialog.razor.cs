@@ -1,7 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text;
 using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
@@ -23,6 +22,8 @@ public partial class TextVisualizerDialog : ComponentBase
 
     private readonly string _openSelectFormatButtonId = $"select-format-{Guid.NewGuid():N}";
     private bool _isSelectFormatPopupOpen;
+
+    private static readonly JsonSerializerOptions s_serializerOptions = new() { WriteIndented = true };
 
     protected override void OnInitialized()
     {
@@ -57,7 +58,7 @@ public partial class TextVisualizerDialog : ComponentBase
     {
         try
         {
-            _formattedText = XElement.Parse(Content.Text).ToString();
+            _formattedText = XDocument.Parse(Content.Text).ToString();
             return true;
         }
         catch (XmlException)
@@ -81,12 +82,7 @@ public partial class TextVisualizerDialog : ComponentBase
                 }
             );
 
-            var memoryStream = new MemoryStream();
-            using var utf8JsonWriter = new Utf8JsonWriter(memoryStream, new JsonWriterOptions { Indented = true });
-            doc.WriteTo(utf8JsonWriter);
-            utf8JsonWriter.Flush();
-
-            _formattedText = Encoding.Default.GetString(memoryStream.ToArray());
+            _formattedText = JsonSerializer.Serialize(doc.RootElement, s_serializerOptions);
             return true;
         }
         catch (JsonException)

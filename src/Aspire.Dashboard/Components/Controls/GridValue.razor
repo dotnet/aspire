@@ -55,7 +55,7 @@
 <FluentMenu Anchor="@_menuAnchorId" @bind-Open="_isMenuOpen" VerticalThreshold="170">
     <FluentMenuItem
         Id="@_copyId"
-        AdditionalAttributes="@FluentUiExtensions.GetClipboardCopyAdditionalAttributes(ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip, uncapturedCopyAttributes)">
+        AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip, uncapturedCopyAttributes)">
         <span slot="start">
             <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
             <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
@@ -65,7 +65,7 @@
 
     <FluentMenuItem
         Disabled="@(Value is null)"
-        AdditionalAttributes="@FluentUiExtensions.GetOpenTextVisualizerAdditionalAttributes(Value!, ValueDescription)">
+        AdditionalAttributes="@FluentUIExtensions.GetOpenTextVisualizerAdditionalAttributes(Value!, ValueDescription)">
         <span slot="start">
             <FluentIcon Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Open" Slot="start"/>
         </span>

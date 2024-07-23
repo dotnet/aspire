@@ -198,8 +198,8 @@
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerDialogPlaintextFormat">
-        <source>Plain-text</source>
-        <target state="new">Plain-text</target>
+        <source>Unformatted</source>
+        <target state="new">Unformatted</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerDialogXmlFormat">

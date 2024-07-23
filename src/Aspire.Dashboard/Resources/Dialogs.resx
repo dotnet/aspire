@@ -231,7 +231,7 @@
     <value>Cancel</value>
   </data>
   <data name="TextVisualizerDialogPlaintextFormat" xml:space="preserve">
-    <value>Plain-text</value>
+    <value>Unformatted</value>
   </data>
   <data name="TextVisualizerDialogJsonFormat" xml:space="preserve">
     <value>Format JSON</value>
