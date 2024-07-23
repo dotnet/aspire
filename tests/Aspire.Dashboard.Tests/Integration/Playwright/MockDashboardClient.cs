@@ -15,7 +15,6 @@ public sealed class MockDashboardClient : IDashboardClient
         Name = "TestResource",
         DisplayName = "TestResource",
         Commands = ImmutableArray<CommandViewModel>.Empty,
-        Owners = [],
         CreationTimeStamp = DateTime.Now,
         Environment = ImmutableArray<EnvironmentVariableViewModel>.Empty,
         ResourceType = KnownResourceTypes.Project,

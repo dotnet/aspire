@@ -40,11 +40,6 @@ partial class Resource
             resource.Properties.Add(new ResourceProperty { Name = property.Name, Value = property.Value });
         }
 
-        foreach (var owner in snapshot.Owners)
-        {
-            resource.Owners.Add(new ResourceOwner { Kind = owner.Kind, Name = owner.Name, Uid = owner.Uid });
-        }
-
         return resource;
     }
 }

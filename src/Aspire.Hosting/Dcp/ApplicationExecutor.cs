@@ -630,7 +630,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         var state = executable.AppModelInitialState is "Hidden" ? "Hidden" : executable.Status?.State;
 
         var urls = GetUrls(executable);
-        var owners = GetOwners(executable);
 
         var environment = GetEnvironmentVariables(executable.Status?.EffectiveEnv, executable.Spec.Env);
 
@@ -650,8 +649,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 ],
                 EnvironmentVariables = environment,
                 CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
-                Urls = urls,
-                Owners = owners
+                Urls = urls
             };
         }
 
@@ -668,17 +666,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             ],
             EnvironmentVariables = environment,
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
-            Urls = urls,
-            Owners = owners
+            Urls = urls
         };
-    }
-
-    private static ImmutableArray<OwnerReferenceSnapshot> GetOwners(CustomResource resource)
-    {
-        return [
-            ..resource.Metadata.OwnerReferences
-                .Select(ownerReference => new OwnerReferenceSnapshot(ownerReference.Kind, ownerReference.Name, ownerReference.Uid))
-        ];
     }
 
     private ImmutableArray<UrlSnapshot> GetUrls(CustomResource resource)

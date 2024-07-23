@@ -1,14 +1,4 @@
 #nullable enable
-Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Owners.get -> System.Collections.Immutable.ImmutableArray<Aspire.Hosting.ApplicationModel.OwnerReferenceSnapshot!>
-Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Owners.init -> void
-Aspire.Hosting.ApplicationModel.OwnerReferenceSnapshot
-Aspire.Hosting.ApplicationModel.OwnerReferenceSnapshot.Kind.get -> string!
-Aspire.Hosting.ApplicationModel.OwnerReferenceSnapshot.Kind.init -> void
-Aspire.Hosting.ApplicationModel.OwnerReferenceSnapshot.Name.get -> string!
-Aspire.Hosting.ApplicationModel.OwnerReferenceSnapshot.Name.init -> void
-Aspire.Hosting.ApplicationModel.OwnerReferenceSnapshot.OwnerReferenceSnapshot(string! Kind, string! Name, string! Uid) -> void
-Aspire.Hosting.ApplicationModel.OwnerReferenceSnapshot.Uid.get -> string!
-Aspire.Hosting.ApplicationModel.OwnerReferenceSnapshot.Uid.init -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.GetEnvironmentVariableValuesAsync(this Aspire.Hosting.ApplicationModel.IResourceWithEnvironment! resource, Aspire.Hosting.DistributedApplicationOperation applicationOperation = Aspire.Hosting.DistributedApplicationOperation.Run) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.Dictionary<string!, string!>!>
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, string? targetState = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -42,6 +32,5 @@ static Aspire.Hosting.ContainerResourceBuilderExtensions.WithDockerfile<T>(this 
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithBuildArg<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithBuildArg<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, object! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithBuildSecret<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
-static Aspire.Hosting.ContainerResourceBuilderExtensions.WithBuildSecret<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, System.IO.FileInfo! filePath) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ProjectResourceBuilderExtensions.AddProject(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! projectPath, System.Action<Aspire.Hosting.ProjectResourceOptions!>! configure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
 static Aspire.Hosting.ProjectResourceBuilderExtensions.AddProject<TProject>(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.ProjectResourceOptions!>! configure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!

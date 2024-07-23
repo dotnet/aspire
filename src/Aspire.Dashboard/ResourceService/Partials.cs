@@ -28,8 +28,7 @@ partial class Resource
             State = HasState ? State : null,
             KnownState = HasState ? Enum.TryParse(State, out KnownResourceState knownState) ? knownState : null : null,
             StateStyle = HasStateStyle ? StateStyle : null,
-            Commands = GetCommands(),
-            Owners = GetOwners()
+            Commands = GetCommands()
         };
 
         ImmutableArray<EnvironmentVariableViewModel> GetEnvironment()
@@ -53,13 +52,6 @@ partial class Resource
         {
             return Commands
                 .Select(c => new CommandViewModel(c.CommandType, c.DisplayName, c.ConfirmationMessage, c.Parameter))
-                .ToImmutableArray();
-        }
-
-        ImmutableArray<OwnerViewModel> GetOwners()
-        {
-            return Owners
-                .Select(o => new OwnerViewModel(o.Kind, o.Name, o.Uid))
                 .ToImmutableArray();
         }
 

@@ -19,12 +19,12 @@ public class CreateResourceSelectModelsTests
         // Arrange
         var applications = new List<ResourceViewModel>
         {
-            CreateResourceViewModel("App1-r1", KnownResourceState.Running, ("App1", "111")),
-            CreateResourceViewModel("App1-r2", null, ("App1", "111")),
-            CreateResourceViewModel("App1-r1-same-display-name", KnownResourceState.Running, null, displayName: "App1-r1"), // we could have apps with the same name but different / no owner,
-            CreateResourceViewModel("App2", KnownResourceState.Starting, null),
-            CreateResourceViewModel("App3", KnownResourceState.Finished, ("App3", "222")), // we won't show a grouping if there is only one app with an owner
-            CreateResourceViewModel("App1-same-owner-name", KnownResourceState.Running, ("App1", "333")) // this should show up in its own grouping since its owner uid is different
+            CreateResourceViewModel("App1-r1", KnownResourceState.Running),
+            CreateResourceViewModel("App1-r2", null),
+            CreateResourceViewModel("App1-r1-same-display-name", KnownResourceState.Running, displayName: "App1-r1"), // we could have apps with the same name but different / no owner,
+            CreateResourceViewModel("App2", KnownResourceState.Starting),
+            CreateResourceViewModel("App3", KnownResourceState.Finished), // we won't show a grouping if there is only one app with an owner
+            CreateResourceViewModel("App1-same-owner-name", KnownResourceState.Running) // this should show up in its own grouping since its owner uid is different
         };
 
         var resourcesByName = new ConcurrentDictionary<string, ResourceViewModel>(applications.ToDictionary(app => app.Name));
@@ -104,7 +104,7 @@ public class CreateResourceSelectModelsTests
             );
     }
 
-    private static ResourceViewModel CreateResourceViewModel(string appName, KnownResourceState? state, (string OwnerName, string OwnerUid)? owner, string? displayName = null)
+    private static ResourceViewModel CreateResourceViewModel(string appName, KnownResourceState? state, string? displayName = null)
     {
         return new ResourceViewModel
         {
@@ -119,8 +119,7 @@ public class CreateResourceSelectModelsTests
             State = state?.ToString(),
             KnownState = state,
             StateStyle = null,
-            Commands = [],
-            Owners = owner is not null ? [new OwnerViewModel(KnownOwnerProperties.ExecutableReplicaSetKind, owner.Value.OwnerName, owner.Value.OwnerUid)] : []
+            Commands = []
         };
     }
 }

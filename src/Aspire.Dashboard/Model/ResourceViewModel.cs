@@ -23,7 +23,6 @@ public sealed class ResourceViewModel
     public required ImmutableArray<UrlViewModel> Urls { get; init; }
     public required FrozenDictionary<string, Value> Properties { get; init; }
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
-    public required ImmutableArray<OwnerViewModel> Owners { get; init; }
 
     public KnownResourceState? KnownState { get; init; }
 
@@ -33,32 +32,24 @@ public sealed class ResourceViewModel
         return Name.Contains(filter, StringComparisons.UserTextSearch);
     }
 
-    internal OwnerViewModel? GetReplicaSetOrDefault()
-    {
-        return Owners.FirstOrDefault(owner => string.Equals(owner.Kind, KnownOwnerProperties.ExecutableReplicaSetKind, StringComparisons.ResourceOwnerKind));
-    }
-
     public static string GetResourceName(ResourceViewModel resource, IDictionary<string, ResourceViewModel> allResources)
     {
-        if (resource.GetReplicaSetOrDefault() is { } resourceReplicaSet)
+        var count = 0;
+        foreach (var (_, item) in allResources)
         {
-            var count = 0;
-            foreach (var (_, item) in allResources)
+            if (item.IsHiddenState())
             {
-                if (item.IsHiddenState())
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                if (item.GetReplicaSetOrDefault() is { } itemReplicaSet && string.Equals(itemReplicaSet.Uid, resourceReplicaSet.Uid, StringComparisons.ResourceOwnerUid))
+            if (item.DisplayName == resource.DisplayName)
+            {
+                count++;
+                if (count >= 2)
                 {
-                    count++;
-                    if (count >= 2)
-                    {
-                        // There are multiple resources that are part of a replica set.
-                        // Need to use the name which has a unique ID to tell them apart.
-                        return resource.Name;
-                    }
+                    // There are multiple resources with the same display name so they're part of a replica set.
+                    // Need to use the name which has a unique ID to tell them apart.
+                    return resource.Name;
                 }
             }
         }
@@ -123,5 +114,3 @@ public sealed class UrlViewModel
         IsInternal = isInternal;
     }
 }
-
-public record OwnerViewModel(string Kind, string Name, string Uid);

@@ -193,13 +193,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         foreach (var grouping in resourcesByName
             .Where(r => !r.Value.IsHiddenState())
             .OrderBy(c => c.Value.Name, StringComparers.ResourceName)
-            .GroupBy(r => r.Value.GetReplicaSetOrDefault()?.Uid ?? r.Value.Uid))
+            .GroupBy(r => r.Value.DisplayName, StringComparers.ResourceName))
         {
             string applicationName;
 
             if (grouping.Count() > 1)
             {
-                applicationName = grouping.First().Value.GetReplicaSetOrDefault()!.Name;
+                applicationName = grouping.Key;
 
                 builder.Add(new SelectViewModel<ResourceTypeDetails>
                 {
