@@ -8,6 +8,7 @@
     <PackageIconFullPath>$(SharedDir)AzureWebPubSub_256x.png</PackageIconFullPath>
     <!-- This library can't ship stable until Azure.Provisioning.WebPubSub ships stable. -->
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+    <!-- This package hasn't shipped stable, so package validation runs against previously shipped version of it. -->
     <PackageValidationBaselineVersion>8.1.0-preview.1.24373.2</PackageValidationBaselineVersion>
   </PropertyGroup>
 

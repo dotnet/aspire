@@ -6,6 +6,8 @@
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <PackageTags>$(ComponentCommonPackageTags) Keycloak</PackageTags>
     <Description>Configures Keycloak as the authentication provider for ASP.NET Core applications.</Description>
+    <!-- This package hasn't shipped stable, so package validation runs against previously shipped version of it. -->
+    <PackageValidationBaselineVersion>8.1.0-preview.1.24373.2</PackageValidationBaselineVersion>
   </PropertyGroup>
 
   <PropertyGroup>
