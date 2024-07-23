@@ -259,6 +259,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         {
             Title = valueDescription,
             Width = ViewportInformation.IsDesktop ? "60vw" : "100vw",
+            Height = ViewportInformation.IsDesktop ? "60vh" : "100vh",
             TrapFocus = true,
             Modal = true,
             PreventScroll = true,
@@ -295,5 +296,6 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         await JSInteropHelpers.SafeDisposeAsync(_jsModule);
         await JSInteropHelpers.SafeDisposeAsync(_keyboardHandlers);
+        await JSInteropHelpers.SafeDisposeAsync(_textVisualizerHandler);
     }
 }

@@ -30,7 +30,7 @@ internal static class FluentUIExtensions
     {
         var attributes = new Dictionary<string, object>(AttributeKeyComparer.Instance)
         {
-            { "data-textvisualizer-text", textValue },
+            { "data-text", textValue },
             { "data-textvisualizer-description", textValueDescription }
         };
 

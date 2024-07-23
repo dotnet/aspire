@@ -250,8 +250,8 @@ window.registerGlobalKeydownListener = function(shortcutManager) {
     }
 }
 
-window.unregisterGlobalKeydownListener = function (keydownListener) {
-    window.document.removeEventListener('keydown', keydownListener);
+window.unregisterGlobalKeydownListener = function (obj) {
+    window.document.removeEventListener('keydown', obj.keydownListener);
 }
 
 window.getBrowserTimeZone = function () {
@@ -302,7 +302,7 @@ window.listenToWindowResize = function(dotnetHelper) {
 
 window.registerOpenTextVisualizerOnClick = function(layout) {
     const onClickListener = function (e) {
-        const text = e.target.getAttribute("data-textvisualizer-text");
+        const text = e.target.getAttribute("data-text");
         const description = e.target.getAttribute("data-textvisualizer-description");
 
         if (e.target.tagName.toLowerCase() === "fluent-menu-item" && text && description) {
@@ -318,6 +318,6 @@ window.registerOpenTextVisualizerOnClick = function(layout) {
     }
 }
 
-window.unregisterOpenTextVisualizerOnClick = function (listener) {
-    document.removeEventListener('click', listener);
+window.unregisterOpenTextVisualizerOnClick = function (obj) {
+    document.removeEventListener('click', obj.onClickListener);
 }

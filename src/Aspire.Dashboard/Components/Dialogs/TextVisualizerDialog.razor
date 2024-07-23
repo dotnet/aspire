@@ -13,7 +13,7 @@
 
         <FluentButton id="@_openSelectFormatButtonId" slot="end"
                       Style="margin-left: auto"
-                      Appearance="Appearance.Stealth"
+                      Appearance="@(_selectedOption == PlaintextFormat ? Appearance.Stealth : Appearance.Accent)"
                       IconEnd="@(new Icons.Regular.Size24.SlideTextEdit())"
                       @onclick="() => _isSelectFormatPopupOpen = !_isSelectFormatPopupOpen"
                       Title="@Loc[nameof(Dialogs.TextVisualizerSelectFormatType)]"
@@ -29,7 +29,7 @@
                                   Orientation="Orientation.Vertical">
                     @foreach (var option in _options)
                     {
-                        <FluentRadio Value="@option.Id">@option.Name</FluentRadio>
+                        <FluentRadio Disabled="@(!_enabledOptions.Contains(option.Id))" Value="@option.Id">@option.Name</FluentRadio>
                     }
                 </FluentRadioGroup>
             </Body>
@@ -38,9 +38,22 @@
 </FluentDialogHeader>
 
 <FluentDialogBody>
-    <pre style="white-space: pre-wrap; overflow-wrap: break-word">
-        @_formattedText
-    </pre>
+    <div class="log-overflow">
+        <div class="log-container">
+            <Virtualize Items="@GetLines()" ItemSize="20" OverscanCount="100" TItem="ResourceLogLine">
+                <div class="log-line-row-container">
+                    <div class="log-line-row">
+                    <span class="log-line-area">
+                        <span class="log-line-number text-visualizer-line-number">@context.LineNumber</span>
+                        <span class="log-content">
+                            @((MarkupString)(context.Content ?? string.Empty))
+                        </span>
+                    </span>
+                    </div>
+                </div>
+            </Virtualize>
+        </div>
+    </div>
 </FluentDialogBody>
 
 <FluentDialogFooter Visible="false" />

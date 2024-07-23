@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Microsoft.AspNetCore.Components;
 
@@ -14,44 +16,53 @@ public partial class TextVisualizerDialog : ComponentBase
     private const string XmlFormat = "xml";
     private const string JsonFormat = "json";
     private const string PlaintextFormat = "text";
+    private static readonly JsonSerializerOptions s_serializerOptions = new() { WriteIndented = true };
 
     private List<SelectViewModel<string>> _options = null!;
+    private readonly HashSet<string?> _enabledOptions = [];
     private string _selectedOption = null!;
-
     private string _formattedText = string.Empty;
 
     private readonly string _openSelectFormatButtonId = $"select-format-{Guid.NewGuid():N}";
     private bool _isSelectFormatPopupOpen;
 
-    private static readonly JsonSerializerOptions s_serializerOptions = new() { WriteIndented = true };
-
-    protected override void OnInitialized()
-    {
-        _options =
-        [
-            new SelectViewModel<string> { Id = PlaintextFormat, Name = Loc[nameof(Resources.Dialogs.TextVisualizerDialogPlaintextFormat)] },
-            new SelectViewModel<string> { Id = JsonFormat, Name = Loc[nameof(Resources.Dialogs.TextVisualizerDialogJsonFormat)] },
-            new SelectViewModel<string> { Id = XmlFormat, Name = Loc[nameof(Resources.Dialogs.TextVisualizerDialogXmlFormat)] },
-        ];
-    }
-
     protected override void OnParametersSet()
     {
-        // We don't know what format the string is in, but we can guess
-        if (TryFormatXml())
-        {
-            _selectedOption = XmlFormat;
-            return;
-        }
+        _enabledOptions.Clear();
+        _enabledOptions.Add(PlaintextFormat);
+
+        _options = [
+            new SelectViewModel<string> { Id = PlaintextFormat, Name = Loc[nameof(Resources.Dialogs.TextVisualizerDialogPlaintextFormat)] },
+            new SelectViewModel<string> { Id = JsonFormat, Name = Loc[nameof(Resources.Dialogs.TextVisualizerDialogJsonFormat)] },
+            new SelectViewModel<string> { Id = XmlFormat, Name = Loc[nameof(Resources.Dialogs.TextVisualizerDialogXmlFormat)] }
+        ];
 
         if (TryFormatJson())
         {
             _selectedOption = JsonFormat;
-            return;
+            _enabledOptions.Add(JsonFormat);
+        }
+        else if (TryFormatXml())
+        {
+            _selectedOption = XmlFormat;
+            _enabledOptions.Add(XmlFormat);
+        }
+        else
+        {
+            _selectedOption = PlaintextFormat;
+            _formattedText = Content.Text;
+        }
+    }
+
+    private ICollection<ResourceLogLine> GetLines()
+    {
+        var lines = Regex.Split(_formattedText, "(\r\n|\n)", RegexOptions.Compiled).ToList();
+        if (lines.Count > 0 && lines[0].Length == 0)
+        {
+            lines.RemoveAt(0);
         }
 
-        _selectedOption = PlaintextFormat;
-        _formattedText = Content.Text;
+        return lines.Select((line, index) => new ResourceLogLine(index, line, false)).ToList();
     }
 
     private bool TryFormatXml()
@@ -107,6 +118,8 @@ public partial class TextVisualizerDialog : ComponentBase
         {
             _formattedText = Content.Text;
         }
+
+        _isSelectFormatPopupOpen = false;
     }
 }
 
