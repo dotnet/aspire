@@ -3,9 +3,9 @@
 
 using System.Globalization;
 using Aspire.Dashboard.Components.Dialogs;
-using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Components.Resize;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -13,7 +13,6 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -40,9 +39,6 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     public string SessionStorageKey => "StructuredLogs_PageState";
     public StructuredLogsPageViewModel PageViewModel { get; set; } = null!;
 
-    [Parameter]
-    public string? ApplicationName { get; set; }
-
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
 
@@ -53,7 +49,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     public required IDialogService DialogService { get; init; }
 
     [Inject]
-    public required ProtectedSessionStorage SessionStorage { get; init; }
+    public required ILocalStorage SessionStorage { get; init; }
 
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
@@ -62,19 +58,22 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     public required BrowserTimeProvider TimeProvider { get; init; }
 
     [Inject]
-    public required ILogger<Traces> Logger { get; init; }
+    public required ILogger<StructuredLogs> Logger { get; init; }
 
     [Inject]
     public required DimensionManager DimensionManager { get; set; }
-
-    [CascadingParameter]
-    public required ViewportInformation ViewportInformation { get; set; }
 
     [Inject]
     public required IOptions<DashboardOptions> DashboardOptions { get; init; }
 
     [Inject]
     public required IMessageService MessageService { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
+
+    [Parameter]
+    public string? ApplicationName { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery]

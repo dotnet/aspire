@@ -12,7 +12,6 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -66,7 +65,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
     public required NavigationManager NavigationManager { get; set; }
 
     [Inject]
-    public required ProtectedSessionStorage SessionStorage { get; set; }
+    public required ILocalStorage SessionStorage { get; set; }
 
     [Inject]
     public required DimensionManager DimensionManager { get; set; }

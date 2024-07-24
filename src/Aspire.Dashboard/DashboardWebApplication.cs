@@ -174,6 +174,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         // Time zone is set by the browser.
         builder.Services.AddScoped<BrowserTimeProvider>();
+        builder.Services.AddScoped<ILocalStorage, DefaultLocalStorage>();
 
         builder.Services.AddScoped<LogViewerViewModel>();
         builder.Services.AddScoped<CurrentChartViewModel>();
