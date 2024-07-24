@@ -18,7 +18,6 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.MongoDB" IsAspireProjectResource="false" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.MySql" IsAspireProjectResource="false" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.NodeJs" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Oracle" IsAspireProjectResource="false" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.PostgreSQL" IsAspireProjectResource="false" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.RabbitMQ" IsAspireProjectResource="false" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Redis" IsAspireProjectResource="false" />
