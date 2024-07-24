@@ -15,7 +15,6 @@
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Microsoft.Azure.Cosmos" />
     <AspireProjectOrPackageReference Include="Aspire.Microsoft.Data.SqlClient" />
-    <AspireProjectOrPackageReference Include="Aspire.Milvus.Client" />
     <AspireProjectOrPackageReference Include="Aspire.MongoDB.Driver" />
     <AspireProjectOrPackageReference Include="Aspire.MySqlConnector" />
     <AspireProjectOrPackageReference Include="Aspire.Npgsql" />
