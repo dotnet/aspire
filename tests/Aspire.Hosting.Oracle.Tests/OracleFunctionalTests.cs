@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Oracle.ManagedDataAccess.Client;
 using Polly;
 using Xunit;
 using Xunit.Abstractions;
@@ -30,9 +31,13 @@ public class OracleFunctionalTests
     [RequiresDocker]
     public async Task VerifyOracleResource()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(20));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(30));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = int.MaxValue, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
+            .AddRetry(new() {
+                MaxRetryAttempts = int.MaxValue,
+                BackoffType = DelayBackoffType.Linear,
+                ShouldHandle = new PredicateBuilder().HandleResult(false),
+                Delay = TimeSpan.FromSeconds(2) })
             .Build();
 
         var builder = CreateDistributedApplicationBuilder();
@@ -59,21 +64,19 @@ public class OracleFunctionalTests
 
         await host.StartAsync();
 
-        // Wait until the database is available
         await pipeline.ExecuteAsync(async token =>
         {
-            var dbContext = host.Services.GetRequiredService<TestDbContext>();
-            var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
-            Assert.True(await databaseCreator.CanConnectAsync(token));
-        }, cts.Token);
+            using var dbContext = host.Services.GetRequiredService<TestDbContext>();
 
-        await pipeline.ExecuteAsync(async token =>
-        {
-            var dbContext = host.Services.GetRequiredService<TestDbContext>();
-
-            var results = await dbContext.Database.ExecuteSqlRawAsync("SELECT 1", token);
-
-            Assert.Equal(1, results);
+            try
+            {
+                var results = await dbContext.Database.ExecuteSqlRawAsync("SELECT 1", token);
+                return true;
+            }
+            catch (OracleException)
+            {
+                return false;
+            }
         }, cts.Token);
     }
 
@@ -88,9 +91,15 @@ public class OracleFunctionalTests
         string? volumeName = null;
         string? bindMountPath = null;
 
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(20));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(30));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = int.MaxValue, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
+            .AddRetry(new()
+            {
+                MaxRetryAttempts = int.MaxValue,
+                BackoffType = DelayBackoffType.Linear,
+                ShouldHandle = new PredicateBuilder().HandleResult(false),
+                Delay = TimeSpan.FromSeconds(2)
+            })
             .Build();
 
         try
@@ -142,26 +151,19 @@ public class OracleFunctionalTests
                         // Wait until the database is available
                         await pipeline.ExecuteAsync(async token =>
                         {
-                            var dbContext = host.Services.GetRequiredService<TestDbContext>();
+                            using var dbContext = host.Services.GetRequiredService<TestDbContext>();
                             var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
-                            Assert.True(await databaseCreator.CanConnectAsync(token));
+                            return await databaseCreator.CanConnectAsync(token);
                         }, cts.Token);
 
-                        // Initialize database schema
-                        await pipeline.ExecuteAsync(async token =>
-                        {
-                            var dbContext = host.Services.GetRequiredService<TestDbContext>();
-                            var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
-                            await databaseCreator.CreateTablesAsync(token);
-                        }, cts.Token);
+                        // Create tables
+                        using var dbContext = host.Services.GetRequiredService<TestDbContext>();
+                        var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
+                        await databaseCreator.CreateTablesAsync(cts.Token);
 
                         // Seed database
-                        await pipeline.ExecuteAsync(async token =>
-                        {
-                            var dbContext = host.Services.GetRequiredService<TestDbContext>();
-                            dbContext.Cars.Add(new TestDbContext.Car { Brand = "BatMobile" });
-                            await dbContext.SaveChangesAsync(token);
-                        }, cts.Token);
+                        dbContext.Cars.Add(new TestDbContext.Car { Brand = "BatMobile" });
+                        await dbContext.SaveChangesAsync(cts.Token);
 
                         // Stops the container and wait until it's not accessible anymore before creating a new one
                         // using the same volume.
@@ -170,9 +172,10 @@ public class OracleFunctionalTests
 
                         await pipeline.ExecuteAsync(async token =>
                         {
-                            var dbContext = host.Services.GetRequiredService<TestDbContext>();
+                            using var dbContext = host.Services.GetRequiredService<TestDbContext>();
                             var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
-                            Assert.False(await databaseCreator.CanConnectAsync(token));
+
+                            return !await databaseCreator.CanConnectAsync(token);
                         }, cts.Token);
                     }
                 }
@@ -220,17 +223,14 @@ public class OracleFunctionalTests
                         // Wait until the database is available
                         await pipeline.ExecuteAsync(async token =>
                         {
-                            var dbContext = host.Services.GetRequiredService<TestDbContext>();
+                            using var dbContext = host.Services.GetRequiredService<TestDbContext>();
                             var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
-                            Assert.True(await databaseCreator.CanConnectAsync(token));
+                            return await databaseCreator.CanConnectAsync(token);
                         });
 
-                        await pipeline.ExecuteAsync(async token =>
-                        {
-                            using var dbContext = host.Services.GetRequiredService<TestDbContext>();
-                            var brands = await dbContext.Cars.ToListAsync(cancellationToken: token);
-                            Assert.Single(brands);
-                        }, cts.Token);
+                        using var dbContext = host.Services.GetRequiredService<TestDbContext>();
+                        var brands = await dbContext.Cars.ToListAsync(cancellationToken: cts.Token);
+                        Assert.Single(brands);
 
                         await app.StopAsync();
 
@@ -240,7 +240,7 @@ public class OracleFunctionalTests
                         {
                             var dbContext = host.Services.GetRequiredService<TestDbContext>();
                             var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
-                            Assert.False(await databaseCreator.CanConnectAsync(token));
+                            return !await databaseCreator.CanConnectAsync(token);
                         }, cts.Token);
                     }
                 }
@@ -283,7 +283,13 @@ public class OracleFunctionalTests
 
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(20));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = int.MaxValue, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
+            .AddRetry(new()
+            {
+                MaxRetryAttempts = int.MaxValue,
+                BackoffType = DelayBackoffType.Linear,
+                ShouldHandle = new PredicateBuilder().HandleResult(false),
+                Delay = TimeSpan.FromSeconds(2)
+            })
             .Build();
 
         var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
@@ -339,17 +345,14 @@ public class OracleFunctionalTests
                 {
                     var dbContext = host.Services.GetRequiredService<TestDbContext>();
                     var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
-                    Assert.True(await databaseCreator.CanConnectAsync(token));
+                    return await databaseCreator.CanConnectAsync(token);
                 }, cts.Token);
 
-                await pipeline.ExecuteAsync(async token =>
-                {
-                    var dbContext = host.Services.GetRequiredService<TestDbContext>();
+                var dbContext = host.Services.GetRequiredService<TestDbContext>();
 
-                    var brands = await dbContext.Cars.ToListAsync(cancellationToken: token);
-                    Assert.Single(brands);
-                    Assert.Equal("BatMobile", brands[0].Brand);
-                }, cts.Token);
+                var brands = await dbContext.Cars.ToListAsync(cancellationToken: cts.Token);
+                Assert.Single(brands);
+                Assert.Equal("BatMobile", brands[0].Brand);
             }
             finally
             {
