@@ -1,0 +1,4 @@
+<PoliCheckExclusions>
+  <!-- https://eng.ms/docs/experiences-devices/customer-success-engineering/global/language-as-a-service/validationservices/policheck-for-microsoft/policheckclient/features/features#false-positive-management -->
+  <Exclusion Type="FileName">plotly-2.32.0.min.js</Exclusion>
+</PoliCheckExclusions>

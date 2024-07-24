@@ -343,6 +343,30 @@ public class ApplicationExecutorTests
         }
     }
 
+    [Theory]
+    [InlineData(1, "ServiceA")]
+    [InlineData(2, "ServiceA-suffix")]
+    public async Task EndpointOtelServiceName(int replicaCount, string expectedName)
+    {
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
+        });
+
+        builder.AddProject<Projects.ServiceA>("ServiceA")
+            .WithReplicas(replicaCount);
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var dcpOptions = new DcpOptions { DashboardPath = "./dashboard", ResourceNameSuffix = "suffix" };
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, dcpOptions: dcpOptions);
+        await appExecutor.RunApplicationAsync();
+
+        var ers = Assert.Single(kubernetesService.CreatedResources.OfType<ExecutableReplicaSet>());
+        Assert.Equal(expectedName, ers.Spec?.Template.Annotations?[CustomResource.OtelServiceNameAnnotation]);
+    }
+
     [Fact]
     public async Task EndpointPortsProjectNoPortNoTargetPort()
     {
@@ -353,6 +377,9 @@ public class ApplicationExecutorTests
 
         builder.AddProject<Projects.ServiceA>("ServiceA")
             .WithEndpoint(name: "NoPortNoTargetPort", env: "NO_PORT_NO_TARGET_PORT", isProxied: true)
+            .WithHttpEndpoint(name: "hp1", port: 5001)
+            .WithHttpEndpoint(name: "dontinjectme", port: 5002)
+            .WithEndpointsInEnvironment(e => e.Name != "dontinjectme")
             .WithReplicas(3);
 
         var kubernetesService = new TestKubernetesService();
@@ -376,6 +403,10 @@ public class ApplicationExecutorTests
         var envVarVal = ers.Spec.Template.Spec.Env?.Single(v => v.Name == "NO_PORT_NO_TARGET_PORT").Value;
         Assert.False(string.IsNullOrWhiteSpace(envVarVal));
         Assert.Contains("""portForServing "ServiceA-NoPortNoTargetPort" """, envVarVal);
+
+        // ASPNETCORE_URLS should not include dontinjectme, as it was excluded using WithEndpointsInEnvironment
+        var aspnetCoreUrls = ers.Spec.Template.Spec.Env?.Single(v => v.Name == "ASPNETCORE_URLS").Value;
+        Assert.Equal("http://localhost:{{- portForServing \"ServiceA-http\" -}};http://localhost:{{- portForServing \"ServiceA-hp1\" -}}", aspnetCoreUrls);
     }
 
     [Fact]
@@ -694,9 +725,10 @@ public class ApplicationExecutorTests
     }
 
     private static ApplicationExecutor CreateAppExecutor(
-    DistributedApplicationModel distributedAppModel,
-    IConfiguration? configuration = null,
-    IKubernetesService? kubernetesService = null)
+        DistributedApplicationModel distributedAppModel,
+        IConfiguration? configuration = null,
+        IKubernetesService? kubernetesService = null,
+        DcpOptions? dcpOptions = null)
     {
         if (configuration == null)
         {
@@ -719,10 +751,7 @@ public class ApplicationExecutorTests
             Array.Empty<IDistributedApplicationLifecycleHook>(),
             configuration,
             new DistributedApplicationOptions(),
-            Options.Create(new DcpOptions
-            {
-                DashboardPath = "./dashboard"
-            }),
+            Options.Create(dcpOptions ?? new DcpOptions { DashboardPath = "./dashboard" }),
             new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
             {
                 ServiceProvider = TestServiceProvider.Instance

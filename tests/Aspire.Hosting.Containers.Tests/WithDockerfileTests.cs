@@ -28,14 +28,10 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         var parameter = builder.AddParameter("secret", secret: true);
         builder.Configuration["Parameters:secret"] = "open sesame from env";
 
-        var secretPath = Path.Combine(tempContextPath, "secret.txt");
-        File.WriteAllText(secretPath, "open sesame from file");
-
         builder.AddContainer("testcontainer", "testimage")
                .WithHttpEndpoint(targetPort: 80)
                .WithDockerfile(tempContextPath, tempDockerfilePath)
-               .WithBuildSecret("ENV_SECRET", parameter)
-               .WithBuildSecret("FILE_SECRET", new FileInfo(secretPath));
+               .WithBuildSecret("ENV_SECRET", parameter);
 
         using var app = builder.Build();
         await app.StartAsync();
@@ -46,9 +42,6 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
         var envSecretMessage = await client.GetStringAsync("/ENV_SECRET.txt");
         Assert.Equal("open sesame from env", envSecretMessage);
-
-        var fileSecretMessage = await client.GetStringAsync("/FILE_SECRET.txt");
-        Assert.Equal("open sesame from file", fileSecretMessage);
 
         await app.StopAsync();
     }
@@ -289,99 +282,6 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
                   "SECRET": {
                     "type": "env",
                     "value": "{secret.value}"
-                  }
-                }
-              },
-              "bindings": {
-                "http": {
-                  "scheme": "http",
-                  "protocol": "tcp",
-                  "transport": "http",
-                  "targetPort": 80
-                }
-              }
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ToString());
-    }
-
-    [Fact]
-    public async Task WithDockerfileWithBuildSecretFilePathResultsInManifestReferencingSecretParameter()
-    {
-        var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
-        var manifestOutputPath = Path.Combine(tempContextPath, "aspire-manifest.json");
-        var secretPath = Path.Combine(tempContextPath, "secret.txt");
-
-        File.WriteAllText(secretPath, "open sesame");
-
-        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
-        {
-            Args = ["--publisher", "manifest", "--output-path", manifestOutputPath],
-        });
-        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
-
-        var container = builder.AddContainer("testcontainer", "testimage")
-                               .WithHttpEndpoint(targetPort: 80)
-                               .WithDockerfile(tempContextPath, tempDockerfilePath)
-                               .WithBuildSecret("SECRET", new FileInfo(secretPath));
-
-        var manifest = await ManifestUtils.GetManifest(container.Resource, manifestDirectory: tempContextPath);
-        var expectedManifest = $$$$"""
-            {
-              "type": "container.v1",
-              "build": {
-                "context": ".",
-                "dockerfile": "Dockerfile",
-                "secrets": {
-                  "SECRET": {
-                    "type": "file",
-                    "source": "secret.txt"
-                  }
-                }
-              },
-              "bindings": {
-                "http": {
-                  "scheme": "http",
-                  "protocol": "tcp",
-                  "transport": "http",
-                  "targetPort": 80
-                }
-              }
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ToString());
-    }
-
-    [Fact]
-    public async Task AddDockerfileWithBuildSecretFilePathResultsInManifestReferencingSecretParameter()
-    {
-        var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
-        var manifestOutputPath = Path.Combine(tempContextPath, "aspire-manifest.json");
-        var secretPath = Path.Combine(tempContextPath, "secret.txt");
-
-        File.WriteAllText(secretPath, "open sesame");
-
-        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
-        {
-            Args = ["--publisher", "manifest", "--output-path", manifestOutputPath],
-        });
-        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
-
-        var container = builder.AddDockerfile("testcontainer", tempContextPath, tempDockerfilePath)
-                               .WithHttpEndpoint(targetPort: 80)
-                               .WithBuildSecret("SECRET", new FileInfo(secretPath));
-
-        var manifest = await ManifestUtils.GetManifest(container.Resource, manifestDirectory: tempContextPath);
-        var expectedManifest = $$$$"""
-            {
-              "type": "container.v1",
-              "build": {
-                "context": ".",
-                "dockerfile": "Dockerfile",
-                "secrets": {
-                  "SECRET": {
-                    "type": "file",
-                    "source": "secret.txt"
                   }
                 }
               },
@@ -822,28 +722,32 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
     private const string DefaultMessage = "aspire!";
 
     private const string HelloWorldDockerfile = $$"""
-        FROM mcr.microsoft.com/k8se/quickstart:latest AS builder
+        FROM mcr.microsoft.com/cbl-mariner/base/nginx:1.22 AS builder
         ARG MESSAGE=aspire!
-        RUN echo !!!CACHEBUSTER!!! > /app/static/cachebuster.txt
-        RUN echo ${MESSAGE} > /app/static/aspire.html
+        RUN mkdir -p /usr/share/nginx/html
+        RUN echo !!!CACHEBUSTER!!! > /usr/share/nginx/html/cachebuster.txt
+        RUN echo ${MESSAGE} > /usr/share/nginx/html/aspire.html
 
-        FROM mcr.microsoft.com/k8se/quickstart:latest AS runner
+        FROM mcr.microsoft.com/cbl-mariner/base/nginx:1.22 AS runner
         ARG MESSAGE
-        COPY --from=builder /app/static/cachebuster.txt /app/static
-        COPY --from=builder /app/static/aspire.html /app/static
+        RUN mkdir -p /usr/share/nginx/html
+        COPY --from=builder /usr/share/nginx/html/cachebuster.txt /usr/share/nginx/html
+        COPY --from=builder /usr/share/nginx/html/aspire.html /usr/share/nginx/html
         """;
 
     private const string HelloWorldDockerfileWithSecrets = $$"""
-        FROM mcr.microsoft.com/k8se/quickstart:latest AS builder
+        FROM mcr.microsoft.com/cbl-mariner/base/nginx:1.22 AS builder
         ARG MESSAGE=aspire!
-        RUN echo !!!CACHEBUSTER!!! > /app/static/cachebuster.txt
-        RUN echo ${MESSAGE} > /app/static/aspire.html
+        RUN mkdir -p /usr/share/nginx/html
+        RUN echo !!!CACHEBUSTER!!! > /usr/share/nginx/html/cachebuster.txt
+        RUN echo ${MESSAGE} > /usr/share/nginx/html/aspire.html
 
-        FROM mcr.microsoft.com/k8se/quickstart:latest AS runner
+        FROM mcr.microsoft.com/cbl-mariner/base/nginx:1.22 AS runner
         ARG MESSAGE
-        COPY --from=builder /app/static/cachebuster.txt /app/static
-        COPY --from=builder /app/static/aspire.html /app/static
-        RUN --mount=type=secret,id=FILE_SECRET cp /run/secrets/FILE_SECRET /app/static/FILE_SECRET.txt
-        RUN --mount=type=secret,id=ENV_SECRET cp /run/secrets/ENV_SECRET /app/static/ENV_SECRET.txt
+        RUN mkdir -p /usr/share/nginx/html
+        COPY --from=builder /usr/share/nginx/html/cachebuster.txt /usr/share/nginx/html
+        COPY --from=builder /usr/share/nginx/html/aspire.html /usr/share/nginx/html
+        RUN --mount=type=secret,id=ENV_SECRET cp /run/secrets/ENV_SECRET /usr/share/nginx/html/ENV_SECRET.txt
+        RUN chmod -R 777 /usr/share/nginx/html
         """;
 }

@@ -61,7 +61,7 @@ public class WorkloadTestsBase
             await Task.Delay(500);
 
             // _testOutput.WriteLine($"Checking for rows again");
-            ILocator rowsLocator = dashboardPage.Locator("//fluent-data-grid-row[@class='resource-row']");
+            ILocator rowsLocator = dashboardPage.Locator("//fluent-data-grid-row[@class='hover resource-row']");
             var allRows = await rowsLocator.AllAsync();
             // _testOutput.WriteLine($"found rows#: {allRows.Count}");
             if (allRows.Count == 0)
@@ -105,25 +105,20 @@ public class WorkloadTestsBase
                 int matchingEndpoints = 0;
                 var expectedEndpoints = expectedRow.Endpoints;
 
-                string[] endpointsFound =
+                var endpointsFound =
                     (await rowLoc.Locator("//div[@class='fluent-overflow-item']").AllAsync())
                         .Select(async e => await e.InnerTextAsync())
                         .Select(t => t.Result.Trim(','))
-                        .ToArray();
-                // FIXME: this could still return "+2"
-                if (endpointsFound.Length == 0)
-                {
-                    var cellText = await cellLocs[5].InnerTextAsync();
-                    endpointsFound = cellText.Trim().Split(',', StringSplitOptions.RemoveEmptyEntries);
-                }
-                if (expectedEndpoints.Length != endpointsFound.Length)
+                        .ToList();
+
+                if (expectedEndpoints.Length != endpointsFound.Count)
                 {
                     // _testOutput.WriteLine($"For resource '{resourceName}, found ")
                     // _testOutput.WriteLine($"-- expected: {expectedEndpoints.Length} found: {endpointsFound.Length}, expected: {string.Join(',', expectedEndpoints)} found: {string.Join(',', endpointsFound)} for {resourceName}");
                     continue;
                 }
 
-                AssertEqual(expectedEndpoints.Length, endpointsFound.Length, $"#endpoints for {resourceName}");
+                AssertEqual(expectedEndpoints.Length, endpointsFound.Count, $"#endpoints for {resourceName}");
 
                 // endpointsFound: ["foo", "https://localhost:7589/weatherforecast"]
                 foreach (var endpointFound in endpointsFound)
@@ -142,7 +137,7 @@ public class WorkloadTestsBase
                 // Check 'Source' column
                 AssertEqual(expectedRow.Source, await cellLocs[4].InnerTextAsync(), $"Source for {resourceName}");
 
-                foundRows.Add(expectedRow with { Endpoints = endpointsFound });
+                foundRows.Add(expectedRow with { Endpoints = endpointsFound.ToArray() });
                 foundNames.Add(resourceName);
             }
         }
