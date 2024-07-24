@@ -47,6 +47,7 @@
     <_ShellCommandSeparator Condition="'$(OS)' != 'Windows_NT'">&amp;&amp;</_ShellCommandSeparator>
 
     <_ShutdownDockerContainersCommand Condition="'$(OS)' != 'Windows_NT'">for f in `docker ps -aq`%3B do docker stop $f%3B docker rm $f%3B done</_ShutdownDockerContainersCommand>
+    <_DeleteDockerVolumesCommand Condition="'$(OS)' != 'Windows_NT'">for f in `docker volume ls -q`%3B do docker volume rm $f%3B done</_DeleteDockerVolumesCommand>
   </PropertyGroup>
 
   <ItemGroup>
@@ -105,9 +106,11 @@
     <HelixPreCommand Condition="'$(HasDocker)' == 'true'" Include="docker ps" />
     <HelixPreCommand Condition="'$(HasDocker)' == 'true'" Include="docker container ls --all" />
     <HelixPreCommand Condition="'$(HasDocker)' == 'true'" Include="$(_ShutdownDockerContainersCommand)" />
+    <HelixPreCommand Condition="'$(HasDocker)' == 'true'" Include="$(_DeleteDockerVolumesCommand)" />
 
     <HelixPostCommand Condition="'$(HasDocker)' == 'true'" Include="docker container ls --all" />
     <HelixPostCommand Condition="'$(HasDocker)' == 'true'" Include="$(_ShutdownDockerContainersCommand)" />
+    <HelixPostCommand Condition="'$(HasDocker)' == 'true'" Include="$(_DeleteDockerVolumesCommand)" />
   </ItemGroup>
 
   <ItemGroup>
