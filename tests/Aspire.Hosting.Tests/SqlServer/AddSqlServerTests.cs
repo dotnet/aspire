@@ -55,7 +55,7 @@ public class AddSqlServerTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal(SqlServerContainerImageTags.Tag, containerAnnotation.Tag);
+        Assert.Equal(SqlServerContainerImageTags.Digest, containerAnnotation.SHA256);
         Assert.Equal(SqlServerContainerImageTags.Image, containerAnnotation.Image);
         Assert.Equal(SqlServerContainerImageTags.Registry, containerAnnotation.Registry);
 
@@ -135,7 +135,7 @@ public class AddSqlServerTests
             {
               "type": "container.v0",
               "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver-password.value};TrustServerCertificate=true",
-              "image": "{{SqlServerContainerImageTags.Registry}}/{{SqlServerContainerImageTags.Image}}:{{SqlServerContainerImageTags.Tag}}",
+              "image": "{{SqlServerContainerImageTags.Registry}}/{{SqlServerContainerImageTags.Image}}@{{SqlServerContainerImageTags.Digest}}",
               "env": {
                 "ACCEPT_EULA": "Y",
                 "MSSQL_SA_PASSWORD": "{sqlserver-password.value}"
@@ -175,7 +175,7 @@ public class AddSqlServerTests
             {
               "type": "container.v0",
               "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={pass.value};TrustServerCertificate=true",
-              "image": "{{SqlServerContainerImageTags.Registry}}/{{SqlServerContainerImageTags.Image}}:{{SqlServerContainerImageTags.Tag}}",
+              "image": "{{SqlServerContainerImageTags.Registry}}/{{SqlServerContainerImageTags.Image}}@{{SqlServerContainerImageTags.Digest}}",
               "env": {
                 "ACCEPT_EULA": "Y",
                 "MSSQL_SA_PASSWORD": "{pass.value}"
