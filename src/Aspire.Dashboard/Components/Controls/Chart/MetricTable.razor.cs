@@ -39,6 +39,8 @@ public partial class MetricTable : ChartBase
 
     protected override async Task OnChartUpdatedAsync(List<ChartTrace> traces, List<DateTimeOffset> xValues, List<ChartExemplar> exemplars, bool tickUpdate, DateTimeOffset inProgressDataTime, CancellationToken cancellationToken)
     {
+        Debug.Assert(_jsModule != null, "The module should be initialized before chart data is sent to control.");
+
         // Only update the data grid once per second to avoid additional DOM re-renders.
         if (inProgressDataTime - _lastUpdate < TimeSpan.FromSeconds(1))
         {
@@ -65,33 +67,27 @@ public partial class MetricTable : ChartBase
             return;
         }
 
-        if (_jsModule is not null)
+        await Task.Delay(500, cancellationToken);
+
+        var metricView = _metricsView.ToList();
+        List<int> indices = [];
+
+        for (var i = 0; i < metricView.Count; i++)
         {
-            await Task.Delay(500, cancellationToken);
-
-            if (_jsModule is not null)
+            if (xValuesToAnnounce.Contains(metricView[i].DateTime))
             {
-                var metricView = _metricsView.ToList();
-                List<int> indices = [];
-
-                for (var i = 0; i < metricView.Count; i++)
-                {
-                    if (xValuesToAnnounce.Contains(metricView[i].DateTime))
-                    {
-                        indices.Add(i);
-                    }
-                }
-
-                try
-                {
-                    await _jsModule.InvokeVoidAsync("announceDataGridRows", "metric-table-container", indices);
-                }
-                catch (ObjectDisposedException)
-                {
-                    // This call happens after a delay. To ensure there is no chance of a race between disposing
-                    // and using the module, catch and ignore disposed exceptions.
-                }
+                indices.Add(i);
             }
+        }
+
+        try
+        {
+            await _jsModule.InvokeVoidAsync("announceDataGridRows", "metric-table-container", indices);
+        }
+        catch (ObjectDisposedException)
+        {
+            // This call happens after a delay. To ensure there is no chance of a race between disposing
+            // and using the module, catch and ignore disposed exceptions.
         }
     }
 
@@ -244,6 +240,9 @@ public partial class MetricTable : ChartBase
 
         await base.OnAfterRenderAsync(firstRender);
     }
+
+    // The first data is used to initialize the chart. The module needs to be ready first.
+    protected override bool ReadyForData() => _jsModule != null;
 
     private bool IsHistogramInstrument()
     {

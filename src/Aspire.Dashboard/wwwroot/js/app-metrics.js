@@ -4,6 +4,9 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
     registerLocale(serverLocale);
 
     var chartContainerDiv = document.getElementById(id);
+    if (!chartContainerDiv) {
+        return;
+    }
 
     // Reusing a div can create issues with chart lines appearing beyond the end range.
     // Workaround this issue by replacing the chart div. Ensures we start from a new state.
@@ -125,6 +128,10 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
 
 export function updateChart(id, traces, exemplarTrace, rangeStartTime, rangeEndTime) {
     var chartContainerDiv = document.getElementById(id);
+    if (!chartContainerDiv) {
+        return;
+    }
+
     var chartDiv = chartContainerDiv.firstChild;
 
     var themeColors = getThemeColors();
