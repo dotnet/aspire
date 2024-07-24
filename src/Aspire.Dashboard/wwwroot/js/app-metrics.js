@@ -5,6 +5,7 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
 
     var chartContainerDiv = document.getElementById(id);
     if (!chartContainerDiv) {
+        console.log(`Couldn't find container '${id}' when initializing chart.`);
         return;
     }
 
@@ -129,10 +130,15 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
 export function updateChart(id, traces, exemplarTrace, rangeStartTime, rangeEndTime) {
     var chartContainerDiv = document.getElementById(id);
     if (!chartContainerDiv) {
+        console.log(`Couldn't find container '${id}' when updating chart.`);
         return;
     }
 
     var chartDiv = chartContainerDiv.firstChild;
+    if (!chartDiv) {
+        console.log(`Couldn't find div inside container '${id}' when updating chart. Chart may not have been successfully initialized.`);
+        return;
+    }
 
     var themeColors = getThemeColors();
 
