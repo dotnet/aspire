@@ -175,8 +175,11 @@ public partial class PlotlyChart : ChartBase
     {
         await base.DisposeAsync(disposing);
 
-        _chartInteropReference?.Dispose();
-        await JSInteropHelpers.SafeDisposeAsync(_jsModule);
+        if (disposing)
+        {
+            _chartInteropReference?.Dispose();
+            await JSInteropHelpers.SafeDisposeAsync(_jsModule);
+        }
     }
 
     /// <summary>

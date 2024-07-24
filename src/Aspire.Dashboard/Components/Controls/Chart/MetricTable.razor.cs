@@ -270,7 +270,11 @@ public partial class MetricTable : ChartBase
     protected override async ValueTask DisposeAsync(bool disposing)
     {
         await base.DisposeAsync(disposing);
-        await JSInteropHelpers.SafeDisposeAsync(_jsModule);
+
+        if (disposing)
+        {
+            await JSInteropHelpers.SafeDisposeAsync(_jsModule);
+        }
     }
 
     public abstract record MetricViewBase
