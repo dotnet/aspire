@@ -163,12 +163,18 @@ public class AppHostTests
             // new TestEndpoints("SignalR.AppHost", new() { { "webfrontend", ["/alive", "/health"] } }),
             //
             // FIXME: testShop, dapr etc
-            // new TestEndpoints("AppHost", new() { { "apigateway", ["/alive", "/health"] } }),
-            // new TestEndpoints("AppHost", new() { { "catalogdbapp", ["/alive", "/health"] } }),
-            // new TestEndpoints("AppHost", new() { { "frontend", ["/alive", "/health"] } }),
-            // new TestEndpoints("AppHost", new() { { "servicea", ["/alive", "/health"] } }),
-            // new TestEndpoints("AppHost", new() { { "serviceb", ["/alive", "/health"] } }),
-            // new TestEndpoints("AppHost", new() { { "orderprocessor", ["/alive", "/health"] } }),
+            new TestEndpoints("TestShop.AppHost", new() {
+                // { "apigateway", ["/alive", "/health"] },
+                { "catalogdbapp", ["/alive", "/health"] },
+                { "frontend", ["/alive", "/health"] },
+                // { "orderprocessor", ["/alive", "/health"] }
+            }),
+
+            // FIXME: needs dapr cli
+            // new TestEndpoints("Dapr.AppHost", new() {
+            //     { "servicea", ["/alive", "/health"] },
+            //     { "serviceb", ["/alive", "/health"] },
+            // }),
 
             // new TestEndpoints("AzureStorageEndToEnd.AppHost", new() { { "api", ["/alive", "/health", "/"] } }),
             new TestEndpoints("CosmosEndToEnd.AppHost", new() { { "api", ["/alive", "/health"] } }),
