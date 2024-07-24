@@ -20,7 +20,7 @@ public sealed class SqlServerContainerFixture : IAsyncLifetime
         if (RequiresDockerAttribute.IsSupported)
         {
             Container = new MsSqlBuilder()
-                            .WithImage($"{SqlServerContainerImageTags.Registry}/{SqlServerContainerImageTags.Image}@{SqlServerContainerImageTags.Digest}")
+                            .WithImage($"{SqlServerContainerImageTags.Registry}/{SqlServerContainerImageTags.Image}@sha256:{SqlServerContainerImageTags.Digest}")
                             .Build();
             await Container.StartAsync();
         }

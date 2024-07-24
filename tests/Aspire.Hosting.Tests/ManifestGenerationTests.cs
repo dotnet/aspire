@@ -504,7 +504,7 @@ public class ManifestGenerationTests
                 "sqlserver": {
                   "type": "container.v0",
                   "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver-password.value};TrustServerCertificate=true",
-                  "image": "{{SqlServerContainerImageTags.Registry}}/{{SqlServerContainerImageTags.Image}}@{{SqlServerContainerImageTags.Digest}}",
+                  "image": "{{SqlServerContainerImageTags.Registry}}/{{SqlServerContainerImageTags.Image}}@sha256:{{SqlServerContainerImageTags.Digest}}",
                   "env": {
                     "ACCEPT_EULA": "Y",
                     "MSSQL_SA_PASSWORD": "{sqlserver-password.value}"
