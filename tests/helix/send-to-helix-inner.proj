@@ -106,10 +106,12 @@
     <HelixPreCommand Condition="'$(HasDocker)' == 'true'" Include="docker ps" />
     <HelixPreCommand Condition="'$(HasDocker)' == 'true'" Include="docker container ls --all" />
     <HelixPreCommand Condition="'$(HasDocker)' == 'true'" Include="$(_ShutdownDockerContainersCommand)" />
+    <HelixPreCommand Condition="'$(HasDocker)' == 'true'" Include="docker volume ls" />
     <HelixPreCommand Condition="'$(HasDocker)' == 'true'" Include="$(_DeleteDockerVolumesCommand)" />
 
     <HelixPostCommand Condition="'$(HasDocker)' == 'true'" Include="docker container ls --all" />
     <HelixPostCommand Condition="'$(HasDocker)' == 'true'" Include="$(_ShutdownDockerContainersCommand)" />
+    <HelixPostCommand Condition="'$(HasDocker)' == 'true'" Include="docker volume ls" />
     <HelixPostCommand Condition="'$(HasDocker)' == 'true'" Include="$(_DeleteDockerVolumesCommand)" />
   </ItemGroup>
 
