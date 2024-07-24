@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Layout;
-using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Pages;
@@ -27,7 +26,7 @@ public interface IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel>
     public string SessionStorageKey { get; }
 
     public NavigationManager NavigationManager { get; }
-    public ILocalStorage SessionStorage { get; }
+    public ISessionStorage SessionStorage { get; }
 
     /// <summary>
     /// The view model containing live state, to be instantiated in OnInitialized.

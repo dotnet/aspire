@@ -23,7 +23,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     public required IDashboardClient DashboardClient { get; init; }
 
     [Inject]
-    public required ILocalStorage SessionStorage { get; init; }
+    public required ISessionStorage SessionStorage { get; init; }
 
     [Inject]
     public required NavigationManager NavigationManager { get; init; }

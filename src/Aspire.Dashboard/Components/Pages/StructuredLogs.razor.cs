@@ -49,7 +49,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     public required IDialogService DialogService { get; init; }
 
     [Inject]
-    public required ILocalStorage SessionStorage { get; init; }
+    public required ISessionStorage SessionStorage { get; init; }
 
     [Inject]
     public required NavigationManager NavigationManager { get; init; }

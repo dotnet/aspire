@@ -52,7 +52,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
-    public required ILocalStorage SessionStorage { get; init; }
+    public required ISessionStorage SessionStorage { get; init; }
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
