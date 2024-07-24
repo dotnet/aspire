@@ -1,4 +1,4 @@
-﻿using NATS.Client.Core;
+using NATS.Client.Core;
 using Nats.Common;
 
 var builder = WebApplication.CreateBuilder(args);

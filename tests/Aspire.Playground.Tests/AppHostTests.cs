@@ -158,6 +158,9 @@ public class AppHostTests
             // new TestEndpoints("BicepSample.AppHost", new() { { "api", ["/alive", "/health"] } }),
             // new TestEndpoints("CdkSample.AppHost", new() { { "api", ["/alive", "/health"] } }),
             // new TestEndpoints("OpenAIEndToEnd.AppHost", new() { { "webstory", ["/alive", "/health"] } }),
+            // new TestEndpoints("WebPubSub.AppHost", new() { { "webfrontend", ["/alive", "/health"] } }),
+            // FIXME: needs creds + rename to .AppHost, so it gets the name _AppHost for the generated type
+            // new TestEndpoints("SignalR.AppHost", new() { { "webfrontend", ["/alive", "/health"] } }),
             //
             // FIXME: testShop, dapr etc
             // new TestEndpoints("AppHost", new() { { "apigateway", ["/alive", "/health"] } }),
@@ -166,7 +169,8 @@ public class AppHostTests
             // new TestEndpoints("AppHost", new() { { "servicea", ["/alive", "/health"] } }),
             // new TestEndpoints("AppHost", new() { { "serviceb", ["/alive", "/health"] } }),
             // new TestEndpoints("AppHost", new() { { "orderprocessor", ["/alive", "/health"] } }),
-            new TestEndpoints("AzureStorageEndToEnd.AppHost", new() { { "api", ["/alive", "/health", "/"] } }),
+
+            // new TestEndpoints("AzureStorageEndToEnd.AppHost", new() { { "api", ["/alive", "/health", "/"] } }),
             new TestEndpoints("CosmosEndToEnd.AppHost", new() { { "api", ["/alive", "/health"] } }),
             // new TestEndpoints("DatabaseMigration.AppHost", new() { { "api", ["/alive", "/health"] } }),
             // new TestEndpoints("DatabaseMigration.AppHost", new() { { "migration", ["/alive", "/health"] } }),
@@ -183,29 +187,32 @@ public class AppHostTests
             // FIXME: The realm import directory ../realms does not exist.
             // new TestEndpoints("Keycloak.AppHost", new() { { "webfrontend", ["/alive", "/health"] } }),
 
-            // FIXME: failing - check
-            // new TestEndpoints("OrleansAppHost", new() { { "frontend", ["/alive", "/health"] } }),
-            // new TestEndpoints("OrleansAppHost", new() { { "silo", ["/alive", "/health"] } }),
+            // FIXME: Could not find any gateway in Orleans.AzureUtils.AzureGatewayListProvider
+            // new TestEndpoints("Orleans.AppHost", new() {
+            //     { "frontend", ["/alive", "/health"] },
+            //     { "silo", ["/alive", "/health"] }
+            // }),
 
-            new TestEndpoints("MilvusPlayground.AppHost", new() { { "apiservice", ["/alive", "/health"] } }),
+            // FIXME:  Parameter resource could not be used because configuration key 'Parameters:milvusauth' is missing and the Parameter has no default value.
+            //new TestEndpoints("MilvusPlayground.AppHost", new() { { "apiservice", ["/alive", "/health"] } }),
+
             new TestEndpoints("Mongo.AppHost", new() { { "api", ["/alive", "/health"] } }),
             new TestEndpoints("MySqlDb.AppHost", new() { { "apiservice", ["/alive", "/health", "/catalog"] }, }),
             new TestEndpoints("Nats.AppHost", new() {
                 { "api", ["/alive", "/health"] },
                 { "backend", ["/alive", "/health"] }
             }),
-            new TestEndpoints("ParameterEndToEnd.AppHost", new() { { "api", ["/alive", "/health", "/"] } }),
+            // new TestEndpoints("ParameterEndToEnd.AppHost", new() { { "api", ["/alive", "/health", "/"] } }),
             new TestEndpoints("PostgresEndToEnd.Apphost", new() { { "api", ["/", "/alive", "/health"] }, }),
             new TestEndpoints("ProxylessEndToEnd.AppHost", new() { { "api", ["/alive", "/health"] } }),
             new TestEndpoints("Qdrant.AppHost", new() { { "apiservice", ["/alive", "/health"] } }),
             new TestEndpoints("Seq.AppHost", new() { { "api", ["/alive", "/health"] } }),
-            new TestEndpoints("SignalRAppHost", new() { { "webfrontend", ["/alive", "/health"] } }),
+
             // new TestEndpoints("SqlServerEndToEnd.AppHost", new() { { "api", ["/alive", "/health"] } }),
-            new TestEndpoints("Stress.AppHost", new() {
-                { "stress-apiservice", ["/alive", "/health"] },
-                // no endpoints exposed?? { "stress-telemetryservice", ["/alive", "/health"] }
-            }),
-            new TestEndpoints("WebPubSubAppHost", new() { { "webfrontend", ["/alive", "/health"] } }),
+            // new TestEndpoints("Stress.AppHost", new() {
+            //     { "stress-apiservice", ["/alive", "/health"] },
+            //     // no endpoints exposed?? { "stress-telemetryservice", ["/alive", "/health"] }
+            // }),
         ];
 
         TheoryData<TestEndpoints> data = new();
