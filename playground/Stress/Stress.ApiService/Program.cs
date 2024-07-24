@@ -16,6 +16,7 @@ builder.Services.AddOpenTelemetry()
 
 var app = builder.Build();
 
+app.MapDefaultEndpoints();
 app.Lifetime.ApplicationStarted.Register(ConsoleStresser.Stress);
 
 app.MapGet("/", () => "Hello world");

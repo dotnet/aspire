@@ -13,4 +13,5 @@ builder.AddKafkaProducer<Null, string>("kafka");
 builder.Services.AddHostedService<IntermittentProducerWorker>();
 builder.Services.AddHostedService<ContinuousProducerWorker>();
 
-builder.Build().Run();
+var app = builder.Build();
+app.Run();

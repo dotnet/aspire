@@ -4,7 +4,8 @@
   <!-- when in-repo then use this. for out-of-repo a parent DBprops does the import -->
   <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.targets" Condition="'$(RepoRoot)' != ''" />
 
-  <PropertyGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
+  <!-- BuildForTest=true can be set when running tests locally, in-repo -->
+  <PropertyGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true' or '$(BuildForTest)' == 'true'">
     <DefineConstants>BUILD_FOR_TEST;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
 

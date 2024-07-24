@@ -150,17 +150,62 @@ public class AppHostTests
 
     public static TheoryData<TestEndpoints> TestEndpoints()
     {
-        IEnumerable<TestEndpoints> candidates =
+        IList<TestEndpoints> candidates =
         [
-            new TestEndpoints("MySqlDb.AppHost", new() {
-                { "apiservice", ["/alive", "/health", "/catalog"] },
+            // need creds
+            // new TestEndpoints("AWS.AppHost", new() { { "Frontend", ["/alive", "/health"] } }),
+            // new TestEndpoints("AzureSearch.AppHost", new() { { "api", ["/alive", "/health"] } }),
+            // new TestEndpoints("BicepSample.AppHost", new() { { "api", ["/alive", "/health"] } }),
+            // new TestEndpoints("CdkSample.AppHost", new() { { "api", ["/alive", "/health"] } }),
+            // new TestEndpoints("OpenAIEndToEnd.AppHost", new() { { "webstory", ["/alive", "/health"] } }),
+            //
+            // FIXME: testShop, dapr etc
+            // new TestEndpoints("AppHost", new() { { "apigateway", ["/alive", "/health"] } }),
+            // new TestEndpoints("AppHost", new() { { "catalogdbapp", ["/alive", "/health"] } }),
+            // new TestEndpoints("AppHost", new() { { "frontend", ["/alive", "/health"] } }),
+            // new TestEndpoints("AppHost", new() { { "servicea", ["/alive", "/health"] } }),
+            // new TestEndpoints("AppHost", new() { { "serviceb", ["/alive", "/health"] } }),
+            // new TestEndpoints("AppHost", new() { { "orderprocessor", ["/alive", "/health"] } }),
+            new TestEndpoints("AzureStorageEndToEnd.AppHost", new() { { "api", ["/alive", "/health", "/"] } }),
+            new TestEndpoints("CosmosEndToEnd.AppHost", new() { { "api", ["/alive", "/health"] } }),
+            // new TestEndpoints("DatabaseMigration.AppHost", new() { { "api", ["/alive", "/health"] } }),
+            // new TestEndpoints("DatabaseMigration.AppHost", new() { { "migration", ["/alive", "/health"] } }),
+            new TestEndpoints("Elasticsearch.AppHost", new() { { "api", ["/alive", "/health"] } }),
+            new TestEndpoints("EventHubs.AppHost", new() {
+                { "api", ["/alive", "/health"] },
+                // { "consumer", ["/alive", "/health"] }
             }),
-            new TestEndpoints("PostgresEndToEnd.Apphost", new() {
-                { "api", ["/", "/alive", "/health"] },
-            }),
-            // new TestEndpoints("Mongo.AppHost", new() {
-            //     { "api", ["/alive", "/health"] },
+            // new TestEndpoints("KafkaBasic.AppHost", new() {
+            //     { "consumer", ["/alive", "/health"] },
+            //     { "producer", ["/alive", "/health"] }
             // }),
+
+            // FIXME: The realm import directory ../realms does not exist.
+            // new TestEndpoints("Keycloak.AppHost", new() { { "webfrontend", ["/alive", "/health"] } }),
+
+            // FIXME: failing - check
+            // new TestEndpoints("OrleansAppHost", new() { { "frontend", ["/alive", "/health"] } }),
+            // new TestEndpoints("OrleansAppHost", new() { { "silo", ["/alive", "/health"] } }),
+
+            new TestEndpoints("MilvusPlayground.AppHost", new() { { "apiservice", ["/alive", "/health"] } }),
+            new TestEndpoints("Mongo.AppHost", new() { { "api", ["/alive", "/health"] } }),
+            new TestEndpoints("MySqlDb.AppHost", new() { { "apiservice", ["/alive", "/health", "/catalog"] }, }),
+            new TestEndpoints("Nats.AppHost", new() {
+                { "api", ["/alive", "/health"] },
+                { "backend", ["/alive", "/health"] }
+            }),
+            new TestEndpoints("ParameterEndToEnd.AppHost", new() { { "api", ["/alive", "/health", "/"] } }),
+            new TestEndpoints("PostgresEndToEnd.Apphost", new() { { "api", ["/", "/alive", "/health"] }, }),
+            new TestEndpoints("ProxylessEndToEnd.AppHost", new() { { "api", ["/alive", "/health"] } }),
+            new TestEndpoints("Qdrant.AppHost", new() { { "apiservice", ["/alive", "/health"] } }),
+            new TestEndpoints("Seq.AppHost", new() { { "api", ["/alive", "/health"] } }),
+            new TestEndpoints("SignalRAppHost", new() { { "webfrontend", ["/alive", "/health"] } }),
+            // new TestEndpoints("SqlServerEndToEnd.AppHost", new() { { "api", ["/alive", "/health"] } }),
+            new TestEndpoints("Stress.AppHost", new() {
+                { "stress-apiservice", ["/alive", "/health"] },
+                // no endpoints exposed?? { "stress-telemetryservice", ["/alive", "/health"] }
+            }),
+            new TestEndpoints("WebPubSubAppHost", new() { { "webfrontend", ["/alive", "/health"] } }),
         ];
 
         TheoryData<TestEndpoints> data = new();

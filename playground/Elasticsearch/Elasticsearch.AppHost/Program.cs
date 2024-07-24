@@ -6,7 +6,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 var elasticsearch = builder.AddElasticsearch("elasticsearch")
     .WithDataVolume();
 
-builder.AddProject<Projects.Elasticsearch_ApiService>("elasticsearch-apiservice")
+builder.AddProject<Projects.Elasticsearch_ApiService>("api")
     .WithReference(elasticsearch);
 
 #if !BUILD_FOR_TEST

@@ -29,6 +29,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.MapDefaultEndpoints();
+
 app.MapGet("/ping", async (INatsConnection nats) =>
 {
     var rtt = await nats.PingAsync();

@@ -11,4 +11,6 @@ builder.AddKafkaConsumer<Ignore, string>("kafka");
 
 builder.Services.AddHostedService<ConsumerWorker>();
 
-builder.Build().Run();
+var app = builder.Build();
+// app.MapDefaultEndpoints();
+app.Run();
