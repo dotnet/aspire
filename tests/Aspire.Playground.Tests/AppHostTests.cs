@@ -14,21 +14,6 @@ using Xunit.Abstractions;
 
 namespace Aspire.Playground.Tests;
 
-/*
- *   Failed Aspire.Playground.Tests.AppHostTests.AppHostRunsCleanly(appHostPath: "MySqlDb.AppHost.dll") [26 s]
-  Error Message:
-   System.InvalidOperationException : AppHost 'MySqlDb.AppHost' logged errors:
-[MySqlDb.AppHost.Resources.mysql] 4: 2024-07-18T04:31:40.844574245Z 2024-07-18T04:31:40.813701Z 0 [System] [MY-015017] [Server] MySQL Server Initialization - start.
-[MySqlDb.AppHost.Resources.mysql] 5: 2024-07-18T04:31:40.844650847Z 2024-07-18T04:31:40.841687Z 0 [System] [MY-013169] [Server] /usr/sbin/mysqld (mysqld 8.3.0) initializing of server in progress as process 79
-[MySqlDb.AppHost.Resources.mysql] 7: 2024-07-18T04:31:41.152397617Z 2024-07-18T04:31:41.152212Z 1 [System] [MY-013576] [InnoDB] InnoDB initialization has started.
-[MySqlDb.AppHost.Resources.mysql] 8: 2024-07-18T04:31:44.788877483Z 2024-07-18T04:31:44.788699Z 1 [System] [MY-013577] [InnoDB] InnoDB initialization has ended.
-  Stack Trace:
-     at SamplesIntegrationTests.Infrastructure.LoggerLogStore.EnsureNoErrors() in /datadisks/disk1/work/A91B09AF/w/AE7009F6/e/tests/Aspire.Playground.Tests/Infrastructure/LoggerLogStore.cs:line 33
-   at Aspire.Playground.Tests.AppHostTests.AppHostRunsCleanly(String appHostPath) in /datadisks/disk1/work/A91B09AF/w/AE7009F6/e/tests/Aspire.Playground.Tests/AppHostTests.cs:line 30
-   at Aspire.Playground.Tests.AppHostTests.AppHostRunsCleanly(String appHostPath) in /datadisks/disk1/work/A91B09AF/w/AE7009F6/e/tests/Aspire.Playground.Tests/AppHostTests.cs:line 33
---- End of stack trace from previous location ---
-*/
-
 public class AppHostTests
 {
     private readonly TestOutputWrapper _testOutput;
@@ -163,16 +148,33 @@ public class AppHostTests
         return theoryData;
     }
 
-    public static TheoryData<TestEndpoints> TestEndpoints() =>
-        new TheoryData<TestEndpoints>()
-        {
+    public static TheoryData<TestEndpoints> TestEndpoints()
+    {
+        IEnumerable<TestEndpoints> candidates =
+        [
+            new TestEndpoints("MySqlDb.AppHost", new() {
+                { "apiservice", ["/alive", "/health", "/catalog"] },
+            }),
             new TestEndpoints("PostgresEndToEnd.Apphost", new() {
                 { "api", ["/", "/alive", "/health"] },
             }),
             // new TestEndpoints("Mongo.AppHost", new() {
             //     { "api", ["/alive", "/health"] },
             // }),
-        };
+        ];
+
+        TheoryData<TestEndpoints> data = new();
+        string? appHostNameFilter = Environment.GetEnvironmentVariable("TEST_PLAYGROUND_APPHOST_FILTER");
+        foreach (var candidateTestEndpoint in candidates)
+        {
+            if (string.IsNullOrEmpty(appHostNameFilter) || candidateTestEndpoint.AppHost?.Contains(appHostNameFilter, StringComparison.OrdinalIgnoreCase) == true)
+            {
+                data.Add(candidateTestEndpoint);
+            }
+        }
+
+        return data;
+    }
 
     private static IEnumerable<string> GetSamplesAppHostAssemblyPaths()
     {

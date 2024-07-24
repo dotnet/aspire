@@ -25,6 +25,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.MapDefaultEndpoints();
+
 app.MapGet("/catalog", async (MySqlConnection db) =>
 {
     const string sql = """
