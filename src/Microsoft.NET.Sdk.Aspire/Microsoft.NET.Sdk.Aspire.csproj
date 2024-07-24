@@ -5,6 +5,7 @@
   <PropertyGroup>
     <PackageId>$(PackageId).Manifest-$(DotNetAspireManifestVersionBand)</PackageId>
     <Description>.NET Aspire workload manifest</Description>
+    <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
 
   <PropertyGroup>
