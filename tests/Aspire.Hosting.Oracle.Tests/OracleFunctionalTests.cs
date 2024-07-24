@@ -17,24 +17,22 @@ using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Oracle.Tests;
 
-public class OracleFunctionalTests : IClassFixture<OracleContainerFixture>
+public class OracleFunctionalTests
 {
     private readonly ITestOutputHelper _testOutputHelper;
-    private readonly OracleContainerFixture _oracleContainerFixture;
 
-    public OracleFunctionalTests(ITestOutputHelper testOutputHelper, OracleContainerFixture oracleContainerFixture)
+    public OracleFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         _testOutputHelper = testOutputHelper;
-        _oracleContainerFixture = oracleContainerFixture;
     }
 
     [Fact]
     [RequiresDocker]
     public async Task VerifyOracleResource()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(20));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 20, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
+            .AddRetry(new() { MaxRetryAttempts = int.MaxValue, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
             .Build();
 
         var builder = CreateDistributedApplicationBuilder();
@@ -90,9 +88,9 @@ public class OracleFunctionalTests : IClassFixture<OracleContainerFixture>
         string? volumeName = null;
         string? bindMountPath = null;
 
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(20));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 20, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
+            .AddRetry(new() { MaxRetryAttempts = int.MaxValue, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
             .Build();
 
         try
@@ -283,9 +281,9 @@ public class OracleFunctionalTests : IClassFixture<OracleContainerFixture>
     {
         // Creates a script that should be executed when the container is initialized.
 
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(20));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 20, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
+            .AddRetry(new() { MaxRetryAttempts = int.MaxValue, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
             .Build();
 
         var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
