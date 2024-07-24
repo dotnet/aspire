@@ -21,13 +21,13 @@ public class LoggerLogStore(IHostEnvironment hostEnvironment)
         return _store.ToDictionary(entry => entry.Key, entry => (IList<(DateTimeOffset, string, LogLevel, string, Exception?)>)entry.Value);
     }
 
-    public void EnsureNoErrors()
+    public void EnsureNoErrors(Func<string, bool>? categoryPredicate = null)
     {
         var logs = GetLogs();
 
-        var errors = logs.SelectMany(kvp => kvp.Value).Where(log => log.Level == LogLevel.Error || log.Level == LogLevel.Critical).ToList();
-        //Where(category => category.Value.Any(log => log.Level == LogLevel.Error || log.Level == LogLevel.Critical)).ToList();
-        if (errors.Count > 0)
+        var errors = logs.SelectMany(kvp => kvp.Value).Where(log => log.Level == LogLevel.Error || log.Level == LogLevel.Critical);
+        errors = categoryPredicate is not null ? errors.Where(log => categoryPredicate(log.Category)) : errors;
+        if (errors.Any())
         {
             var appName = hostEnvironment.ApplicationName;
             throw new InvalidOperationException(

@@ -23,6 +23,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="$(TestsSharedDir)WorkloadTesting\TestOutputWrapper.cs" />
+    <Compile Include="$(TestsSharedDir)WorkloadTesting\EnvironmentVariables.cs" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Testing" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />

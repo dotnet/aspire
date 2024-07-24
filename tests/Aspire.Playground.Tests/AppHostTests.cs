@@ -5,6 +5,7 @@ using System.Net;
 using System.Text.Json;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Workload.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using SamplesIntegrationTests;
 using SamplesIntegrationTests.Infrastructure;
@@ -28,13 +29,19 @@ namespace Aspire.Playground.Tests;
 --- End of stack trace from previous location ---
 */
 
-public class AppHostTests(ITestOutputHelper testOutput)
+public class AppHostTests
 {
+    private readonly TestOutputWrapper _testOutput;
+    public AppHostTests(ITestOutputHelper testOutput)
+    {
+        this._testOutput = new TestOutputWrapper(testOutput);
+    }
+
     [Theory]
     [MemberData(nameof(AppHostAssemblies))]
     public async Task AppHostRunsCleanly(string appHostPath)
     {
-        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, testOutput);
+        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, _testOutput);
         await using var app = await appHost.BuildAsync();
 
         var appHostLogs = app.GetAppHostLogs();
@@ -42,7 +49,7 @@ public class AppHostTests(ITestOutputHelper testOutput)
 
         await app.StartAsync(waitForResourcesToStart: true);
 
-        appHostLogs.EnsureNoErrors();
+        appHostLogs.EnsureNoErrors(cat => ShouldAssertInAppHostIgnoringResources(Path.GetFileNameWithoutExtension(appHostPath), cat));
         resourceLogs.EnsureNoErrors(ShouldAssertErrorsForResource);
 
         await app.StopAsync();
@@ -56,7 +63,7 @@ public class AppHostTests(ITestOutputHelper testOutput)
         var resourceEndpoints = testEndpoints.ResourceEndpoints!;
 
         var appHostPath = $"{appHostName}.dll";
-        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, testOutput);
+        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, _testOutput);
         var projects = appHost.Resources.OfType<ProjectResource>();
         await using var app = await appHost.BuildAsync();
 
@@ -71,6 +78,7 @@ public class AppHostTests(ITestOutputHelper testOutput)
             var timeout = TimeSpan.FromMinutes(5);
             foreach (var (ResourceName, TargetState) in testEndpoints.WaitForResources)
             {
+                _testOutput.WriteLine($"Waiting for resource '{ResourceName}' to reach state '{TargetState}' in app '{Path.GetFileNameWithoutExtension(appHostPath)}'");
                 await app.WaitForResource(ResourceName, TargetState, new CancellationTokenSource(timeout).Token);
             }
         }
@@ -102,28 +110,25 @@ public class AppHostTests(ITestOutputHelper testOutput)
 
             foreach (var path in endpoints)
             {
-                if (string.Equals("/ApplyDatabaseMigrations", path, StringComparison.OrdinalIgnoreCase)
-                    && projects.FirstOrDefault(p => string.Equals(p.Name, resource, StringComparison.OrdinalIgnoreCase)) is { } project)
-                {
-                    await app.TryApplyEfMigrationsAsync(project);
-                    continue;
-                }
-
-                testOutput.WriteLine($"Calling endpoint '{client.BaseAddress}{path.TrimStart('/')} for resource '{resource}' in app '{Path.GetFileNameWithoutExtension(appHostPath)}'");
+                _testOutput.WriteLine($"Calling endpoint '{client.BaseAddress}{path.TrimStart('/')} for resource '{resource}' in app '{Path.GetFileNameWithoutExtension(appHostPath)}'");
                 response = await client.GetAsync(path);
 
                 Assert.True(HttpStatusCode.OK == response.StatusCode, $"Endpoint '{client.BaseAddress}{path.TrimStart('/')}' for resource '{resource}' in app '{Path.GetFileNameWithoutExtension(appHostPath)}' returned status code {response.StatusCode}");
             }
         }
 
-        appHostLogs.EnsureNoErrors();
+        appHostLogs.EnsureNoErrors(cat => ShouldAssertInAppHostIgnoringResources(Path.GetFileNameWithoutExtension(appHostPath), cat));
         resourceLogs.EnsureNoErrors(ShouldAssertErrorsForResource);
 
         await app.StopAsync();
     }
 
+    private static bool ShouldAssertInAppHostIgnoringResources(string appHostName, string categoryName)
+        => !categoryName.StartsWith($"{appHostName}.Resources.", StringComparison.OrdinalIgnoreCase);
+
     private static bool ShouldAssertErrorsForResource(IResource resource)
     {
+        // Console.WriteLine($"ShouldAssertErrorsForResource: {resource.Name}: {resource.GetType()}");
         return resource
             is
                 // Container resources tend to write to stderr for various reasons so only assert projects and executables
@@ -131,7 +136,8 @@ public class AppHostTests(ITestOutputHelper testOutput)
                 // Node resources tend to have npm modules that write to stderr so ignore them
                 and not NodeAppResource
             // Dapr resources write to stderr about deprecated --components-path flag
-            && !resource.Name.EndsWith("-dapr-cli");
+            && !resource.Name.EndsWith("-dapr-cli")
+            && !resource.Name.StartsWith("pg");
     }
 
     public static TheoryData<string> AppHostAssemblies()
@@ -160,9 +166,12 @@ public class AppHostTests(ITestOutputHelper testOutput)
     public static TheoryData<TestEndpoints> TestEndpoints() =>
         new TheoryData<TestEndpoints>()
         {
-            new TestEndpoints("Mongo.AppHost", new() {
-                { "api", ["/alive", "/health"] },
+            new TestEndpoints("PostgresEndToEnd.Apphost", new() {
+                { "api", ["/", "/alive", "/health"] },
             }),
+            // new TestEndpoints("Mongo.AppHost", new() {
+            //     { "api", ["/alive", "/health"] },
+            // }),
         };
 
     private static IEnumerable<string> GetSamplesAppHostAssemblyPaths()

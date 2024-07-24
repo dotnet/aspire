@@ -3,8 +3,16 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+var bindMountPath = Directory.CreateTempSubdirectory().FullName;
+File.WriteAllText(Path.Combine(bindMountPath, "init.sql"), """
+    CREATE TABLE cars (brand VARCHAR(255));
+    INSERT INTO cars (brand) VALUES ('BatMobile');
+""");
+
 // Abstract resources.
-var db1 = builder.AddPostgres("pg1").WithPgAdmin().AddDatabase("db1");
+var ddb1 = builder.AddPostgres("pg1").WithPgAdmin();
+ddb1.WithInitBindMount(bindMountPath);
+var db1 = ddb1.AddDatabase("db1");
 var db2 = builder.AddPostgres("pg2").WithPgAdmin().AddDatabase("db2");
 var pg3 = builder.AddPostgres("pg3").WithPgAdmin();
 var db3 = pg3.AddDatabase("db3");
@@ -34,11 +42,13 @@ builder.AddProject<Projects.PostgresEndToEnd_ApiService>("api")
        .WithReference(db9)
        .WithReference(db10);
 
+#if !BUILD_FOR_TEST
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code
 // to test end developer dashboard launch experience. Refer to Directory.Build.props
 // for the path to the dashboard binary (defaults to the Aspire.Dashboard bin output
 // in the artifacts dir).
 builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
+#endif
 
 builder.Build().Run();
