@@ -19,8 +19,4 @@
     <PackageReference Include="Azure.Provisioning.PostgreSql" />
   </ItemGroup>
 
-  <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
-  </ItemGroup>
-
 </Project>
