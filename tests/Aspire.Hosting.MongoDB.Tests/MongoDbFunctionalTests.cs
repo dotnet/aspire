@@ -222,7 +222,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(6));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1) })
+            .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
             .Build();
 
         var bindMountPath = Directory.CreateTempSubdirectory().FullName;
