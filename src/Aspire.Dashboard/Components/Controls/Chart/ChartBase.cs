@@ -72,12 +72,10 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (CancellationToken.IsCancellationRequested)
-        {
-            return;
-        }
-
-        if (InstrumentViewModel.Instrument is null || InstrumentViewModel.MatchedDimensions is null || !ReadyForData())
+        if (CancellationToken.IsCancellationRequested ||
+            InstrumentViewModel.Instrument is null ||
+            InstrumentViewModel.MatchedDimensions is null ||
+            !ReadyForData())
         {
             return;
         }
@@ -527,7 +525,7 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
 
     protected abstract Task OnChartUpdatedAsync(List<ChartTrace> traces, List<DateTimeOffset> xValues, List<ChartExemplar> exemplars, bool tickUpdate, DateTimeOffset inProgressDataTime, CancellationToken cancellationToken);
 
-    protected virtual bool ReadyForData() => true;
+    protected abstract bool ReadyForData();
 
     public ValueTask DisposeAsync() => DisposeAsync(disposing: true);
 
