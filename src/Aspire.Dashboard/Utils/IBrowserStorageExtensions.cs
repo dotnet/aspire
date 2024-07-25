@@ -3,11 +3,10 @@
 
 using System.Diagnostics;
 using System.Security.Cryptography;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 
 namespace Aspire.Dashboard.Utils;
 
-internal static class ProtectedLocalStorageExtensions
+internal static class IBrowserStorageExtensions
 {
     /// <summary>
     /// Retrieves the value associated with the specified key.
@@ -15,7 +14,7 @@ internal static class ProtectedLocalStorageExtensions
     /// because the local data protection key for the dashboard has changed, and previously stored data can no longer be
     /// successfully decrypted.
     /// </summary>
-    public static async Task<ProtectedBrowserStorageResult<T>> SafeGetAsync<T>(this ProtectedLocalStorage value, string key)
+    public static async Task<StorageResult<T>> SafeGetAsync<T>(this IBrowserStorage value, string key)
     {
         try
         {
