@@ -56,6 +56,19 @@ app.MapGet("/trace-limit", async () =>
     return $"Created {TraceCount} traces.";
 });
 
+app.MapGet("/http-client-requests", async (HttpClient client) =>
+{
+    var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS")!.Split(';');
+
+    foreach (var url in urls)
+    {
+        var response = await client.GetAsync(url);
+        await response.Content.ReadAsStringAsync();
+    }
+
+    return $"Sent requests to {string.Join(';', urls)}";
+});
+
 app.MapGet("/log-message-limit", ([FromServices] ILogger<Program> logger) =>
 {
     const int LogCount = 20_000;
