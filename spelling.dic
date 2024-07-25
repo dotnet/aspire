@@ -17,6 +17,7 @@ chmod
 consolelogs
 cors
 csproj
+dashpage
 dbug
 dcpctrl
 dockerfile
