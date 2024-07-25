@@ -4,8 +4,6 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- MongoDB.Driver package is unsigned, we ignore that warning on purpose  -->
-    <NoWarn>$(NoWarn);CS8002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,12 +13,9 @@
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Microsoft.Azure.Cosmos" />
     <AspireProjectOrPackageReference Include="Aspire.Microsoft.Data.SqlClient" />
-    <AspireProjectOrPackageReference Include="Aspire.MongoDB.Driver" />
-    <AspireProjectOrPackageReference Include="Aspire.MySqlConnector" />
     <AspireProjectOrPackageReference Include="Aspire.Npgsql" />
     <AspireProjectOrPackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
     <AspireProjectOrPackageReference Include="Aspire.Oracle.EntityFrameworkCore" />
-    <AspireProjectOrPackageReference Include="Aspire.Pomelo.EntityFrameworkCore.MySql" />
     <AspireProjectOrPackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" />
     <AspireProjectOrPackageReference Include="Aspire.RabbitMQ.Client" />
     <AspireProjectOrPackageReference Include="Aspire.StackExchange.Redis" />

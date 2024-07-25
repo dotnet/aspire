@@ -37,10 +37,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.rabbitmq))
 {
     builder.AddRabbitMQClient("rabbitmq");
 }
-if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
-{
-    builder.AddMongoDBClient("mymongodb");
-}
 if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
 {
     builder.AddAzureEventHubProducerClient("eventhubsns", settings => settings.EventHubName = "hub");
@@ -94,11 +90,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
 {
     app.MapGarnetApi();
-}
-
-if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
-{
-    app.MapMongoDBApi();
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.postgres))

@@ -115,14 +115,6 @@ public class TestProgram : IDisposable
                     .WithImageRegistry(AspireTestContainerRegistry);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(rabbitmq);
             }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
-            {
-                var mongoDbName = "mymongodb";
-                var mongodb = AppBuilder.AddMongoDB("mongodb")
-                    .WithImageRegistry(AspireTestContainerRegistry)
-                    .AddDatabase(mongoDbName);
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(mongodb);
-            }
             if (!resourcesToSkip.HasFlag(TestResourceNames.oracledatabase))
             {
                 var oracleDbName = "freepdb1";
