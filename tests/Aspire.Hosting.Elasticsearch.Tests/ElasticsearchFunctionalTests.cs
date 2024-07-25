@@ -7,17 +7,32 @@ using Elastic.Clients.Elasticsearch;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Polly;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Elasticsearch.Tests;
 
-public class ElasticsearchFunctionalTests
+public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
 {
+    private const string IndexName = "people";
+    private static readonly Person s_person = new()
+    {
+        Id = 1,
+        FirstName = "Alireza",
+        LastName = "Baloochi"
+    };
+
     [Fact]
     [RequiresDocker]
     public async Task VerifyElasticsearchResource()
     {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+        var pipeline = new ResiliencePipelineBuilder()
+           .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(10) })
+           .Build();
+
         var builder = CreateDistributedApplicationBuilder();
 
         var elasticsearch = builder.AddElasticsearch("elasticsearch");
@@ -30,7 +45,7 @@ public class ElasticsearchFunctionalTests
 
         hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            [$"ConnectionStrings:{elasticsearch.Resource.Name}"] = await elasticsearch.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None)
+            [$"ConnectionStrings:{elasticsearch.Resource.Name}"] = await elasticsearch.Resource.ConnectionStringExpression.GetValueAsync(default)
         });
 
         hb.AddElasticsearchClient(elasticsearch.Resource.Name);
@@ -39,238 +54,186 @@ public class ElasticsearchFunctionalTests
 
         await host.StartAsync();
 
-        var elasticsearchClient = host.Services.GetRequiredService<ElasticsearchClient>();
-
-        var person = new Person
-        {
-            Id = 1,
-            FirstName = "Alireza",
-            LastName = "Baloochi"
-        };
-
-        var pipeline = new ResiliencePipelineBuilder()
-           .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(3) })
-           .AddTimeout(TimeSpan.FromSeconds(5))
-           .Build();
-
         await pipeline.ExecuteAsync(
             async token =>
             {
-                var indexResponse = await elasticsearchClient.IndexAsync<Person>(person, "people", "1",CancellationToken.None);
 
-                var getResponse = await elasticsearchClient.GetAsync<Person>("people", "1", CancellationToken.None);
+                var elasticsearchClient = host.Services.GetRequiredService<ElasticsearchClient>();
 
-                Assert.True(indexResponse.IsSuccess());
-                Assert.True(getResponse.IsSuccess());
-                Assert.NotNull(getResponse.Source);
-                Assert.Equal(person.Id, getResponse.Source?.Id);
-            });
+                await CreateTestData(elasticsearchClient, testOutputHelper, token);
+            }, cts.Token);
     }
 
-    [Fact]
-    [SkipOnCI("https://github.com/dotnet/aspire/issues/4968")]
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     [RequiresDocker]
-    public async Task WithDataVolumeShouldPersistStateBetweenUsages()
+    public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
-        var builder1 = CreateDistributedApplicationBuilder();
-        var elasticsearch1 = builder1.AddElasticsearch("elasticsearch");
-
-        // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
-        var volumeName = VolumeNameGenerator.CreateVolumeName(elasticsearch1, nameof(WithDataVolumeShouldPersistStateBetweenUsages));
-        elasticsearch1.WithDataVolume(volumeName);
-
-        var person = new Person
-        {
-            Id = 1,
-            FirstName = "Alireza",
-            LastName = "Baloochi"
-        };
-
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         var pipeline = new ResiliencePipelineBuilder()
-              .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(3) })
-              .AddTimeout(TimeSpan.FromSeconds(5))
-              .Build();
+           .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(10) })
+           .Build();
 
-        using (var app = builder1.Build())
-        {
-            await app.StartAsync();
-
-            var hb = Host.CreateApplicationBuilder();
-
-            hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                [$"ConnectionStrings:{elasticsearch1.Resource.Name}"] = await elasticsearch1.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None)
-            });
-
-            hb.AddElasticsearchClient(elasticsearch1.Resource.Name);
-
-            using (var host = hb.Build())
-            {
-                await host.StartAsync();
-
-                await pipeline.ExecuteAsync(
-                    async token =>
-                    {
-                        var elasticsearchClient = host.Services.GetRequiredService<ElasticsearchClient>();
-
-                        var indexResponse = await elasticsearchClient.IndexAsync<Person>(person, "people", "1", CancellationToken.None);
-
-                        Assert.True(indexResponse.IsSuccess());
-                    });
-            }
-
-            // Stops the container, or the Volume would still be in use
-            await app.StopAsync();
-        }
-
-        var builder2 = CreateDistributedApplicationBuilder();
-        var elasticsearch2 = builder2.AddElasticsearch("elasticsearch").WithDataVolume(volumeName);
-
-        using (var app = builder2.Build())
-        {
-            await app.StartAsync();
-
-            var hb = Host.CreateApplicationBuilder();
-
-            hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                [$"ConnectionStrings:{elasticsearch2.Resource.Name}"] = await elasticsearch2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None)
-            });
-
-            hb.AddElasticsearchClient(elasticsearch2.Resource.Name);
-
-            using (var host = hb.Build())
-            {
-                await host.StartAsync();
-                await pipeline.ExecuteAsync(
-                    async token =>
-                    {
-                        var elasticsearchClient = host.Services.GetRequiredService<ElasticsearchClient>();
-
-                        var getResponse = await elasticsearchClient.GetAsync<Person>("people", "1", CancellationToken.None);
-
-                        Assert.True(getResponse.IsSuccess());
-                        Assert.NotNull(getResponse.Source);
-                        Assert.Equal(person.Id, getResponse.Source?.Id);
-                    });
-
-            }
-
-            // Stops the container, or the Volume would still be in use
-            await app.StopAsync();
-        }
-
-        DockerUtils.AttemptDeleteDockerVolume(volumeName);
-    }
-
-    [Fact]
-    [SkipOnCI("https://github.com/dotnet/aspire/issues/4968")]
-    [RequiresDocker]
-    public async Task WithDataBindMountShouldPersistStateBetweenUsages()
-    {
-        var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-
-        if (!Directory.Exists(bindMountPath))
-        {
-            Directory.CreateDirectory(bindMountPath);
-        }
-
-        var builder1 = CreateDistributedApplicationBuilder();
-        var elasticsearch1 = builder1.AddElasticsearch("elasticsearch").WithDataBindMount(bindMountPath);
-
-        var person = new Person
-        {
-            Id = 1,
-            FirstName = "Alireza",
-            LastName = "Baloochi"
-        };
-
-        var pipeline = new ResiliencePipelineBuilder()
-              .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(3) })
-              .AddTimeout(TimeSpan.FromSeconds(5))
-              .Build();
-
-        using (var app = builder1.Build())
-        {
-            await app.StartAsync();
-
-            var hb = Host.CreateApplicationBuilder();
-
-            hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                [$"ConnectionStrings:{elasticsearch1.Resource.Name}"] = await elasticsearch1.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None)
-            });
-
-            hb.AddElasticsearchClient(elasticsearch1.Resource.Name);
-
-            using (var host = hb.Build())
-            {
-                await host.StartAsync();
-
-                await pipeline.ExecuteAsync(
-                    async token =>
-                    {
-                        var elasticsearchClient = host.Services.GetRequiredService<ElasticsearchClient>();
-
-                        var indexResponse = await elasticsearchClient.IndexAsync<Person>(person, "people", "1", CancellationToken.None);
-
-                        Assert.True(indexResponse.IsSuccess());
-                    });
-            }
-
-            // Stops the container, or the Volume would still be in use
-            await app.StopAsync();
-        }
-
-        var builder2 = CreateDistributedApplicationBuilder();
-        var elasticsearch2 = builder2.AddElasticsearch("elasticsearch").WithDataBindMount(bindMountPath);
-
-        using (var app = builder2.Build())
-        {
-            await app.StartAsync();
-
-            var hb = Host.CreateApplicationBuilder();
-
-            hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                [$"ConnectionStrings:{elasticsearch2.Resource.Name}"] = await elasticsearch2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None)
-            });
-
-            hb.AddElasticsearchClient(elasticsearch2.Resource.Name);
-
-            using (var host = hb.Build())
-            {
-                await host.StartAsync();
-                await pipeline.ExecuteAsync(
-                    async token =>
-                    {
-                        var elasticsearchClient = host.Services.GetRequiredService<ElasticsearchClient>();
-
-                        var getResponse = await elasticsearchClient.GetAsync<Person>("people", "1", CancellationToken.None);
-
-                        Assert.True(getResponse.IsSuccess());
-                        Assert.NotNull(getResponse.Source);
-                        Assert.Equal(person.Id, getResponse.Source?.Id);
-                    });
-
-            }
-
-            // Stops the container, or the Volume would still be in use
-            await app.StopAsync();
-        }
+        string? volumeName = null;
+        string? bindMountPath = null;
 
         try
         {
-            Directory.Delete(bindMountPath);
+            var builder1 = CreateDistributedApplicationBuilder();
+            var password = "passw0rd1";
+
+            var passwordParameter = builder1.AddParameter("pwd");
+            builder1.Configuration["Parameters:pwd"] = password;
+            var elasticsearch1 = builder1.AddElasticsearch("elasticsearch", passwordParameter);
+            if (useVolume)
+            {
+                // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
+                volumeName = VolumeNameGenerator.CreateVolumeName(elasticsearch1, nameof(WithDataShouldPersistStateBetweenUsages));
+
+                // if the volume already exists (because of a crashing previous run), try to delete it
+                DockerUtils.AttemptDeleteDockerVolume(volumeName);
+                elasticsearch1.WithDataVolume(volumeName);
+            }
+            else
+            {
+                bindMountPath = Directory.CreateTempSubdirectory().FullName;
+                elasticsearch1.WithDataBindMount(bindMountPath);
+            }
+
+            using (var app = builder1.Build())
+            {
+                await app.StartAsync();
+
+                try
+                {
+                    var hb = Host.CreateApplicationBuilder();
+
+                    hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                    {
+                        [$"ConnectionStrings:{elasticsearch1.Resource.Name}"] = await elasticsearch1.Resource.ConnectionStringExpression.GetValueAsync(default)
+                    });
+
+                    hb.AddElasticsearchClient(elasticsearch1.Resource.Name);
+
+                    using (var host = hb.Build())
+                    {
+                        await host.StartAsync();
+
+                        await pipeline.ExecuteAsync(
+                            async token =>
+                            {
+                                var elasticsearchClient = host.Services.GetRequiredService<ElasticsearchClient>();
+                                await CreateTestData(elasticsearchClient, testOutputHelper, token);
+                            }, cts.Token);
+                    }
+                }
+                finally
+                {
+                    // Stops the container, or the Volume would still be in use
+                    await app.StopAsync();
+                }
+            }
+            var builder2 = CreateDistributedApplicationBuilder();
+            passwordParameter = builder2.AddParameter("pwd");
+            builder2.Configuration["Parameters:pwd"] = password;
+            var elasticsearch2 = builder2.AddElasticsearch("elasticsearch", passwordParameter);
+
+            if (useVolume)
+            {
+                elasticsearch2.WithDataVolume(volumeName);
+            }
+            else
+            {
+                elasticsearch2.WithDataBindMount(bindMountPath!);
+            }
+
+            using (var app = builder2.Build())
+            {
+                await app.StartAsync();
+
+                try
+                {
+                    var hb = Host.CreateApplicationBuilder();
+
+                    hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                    {
+                        [$"ConnectionStrings:{elasticsearch2.Resource.Name}"] = await elasticsearch2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None)
+                    });
+
+                    hb.AddElasticsearchClient(elasticsearch2.Resource.Name);
+
+                    using (var host = hb.Build())
+                    {
+                        await host.StartAsync();
+                        await pipeline.ExecuteAsync(
+                            async token =>
+                            {
+                                var elasticsearchClient = host.Services.GetRequiredService<ElasticsearchClient>();
+
+                                var getResponse = await elasticsearchClient.GetAsync<Person>(IndexName, s_person.Id, token);
+
+                                Assert.True(getResponse.IsSuccess());
+                                Assert.NotNull(getResponse.Source);
+                                Assert.Equal(s_person.Id, getResponse.Source?.Id);
+                            }, cts.Token);
+
+                    }
+                }
+                finally
+                {
+                    // Stops the container, or the Volume would still be in use
+                    await app.StopAsync();
+                }
+            }
+
         }
-        catch
+        finally
         {
-            // Don't fail test if we can't clean the temporary folder
+            if (volumeName is not null)
+            {
+                DockerUtils.AttemptDeleteDockerVolume(volumeName);
+            }
+
+            if (bindMountPath is not null)
+            {
+                try
+                {
+                    Directory.Delete(bindMountPath, recursive: true);
+                }
+                catch
+                {
+                    // Don't fail test if we can't clean the temporary folder
+                }
+            }
         }
     }
 
-    private static TestDistributedApplicationBuilder CreateDistributedApplicationBuilder() =>
-    TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
+#pragma warning disable IDE0060 // Remove unused parameter
+    private static async Task CreateTestData(ElasticsearchClient elasticsearchClient, ITestOutputHelper testOutputHelper, CancellationToken cancellationToken)
+#pragma warning restore IDE0060 // Remove unused parameter
+    {
+       var indexResponse = await elasticsearchClient.IndexAsync<Person>(s_person, IndexName, s_person.Id, cancellationToken);
+
+        var getResponse = await elasticsearchClient.GetAsync<Person>(IndexName, s_person.Id, cancellationToken);
+
+        testOutputHelper.WriteLine(indexResponse.DebugInformation);
+        testOutputHelper.WriteLine(getResponse.DebugInformation);
+
+        Assert.True(indexResponse.IsSuccess());
+        Assert.True(getResponse.IsSuccess());
+        Assert.NotNull(getResponse.Source);
+        Assert.Equal(s_person.Id, getResponse.Source?.Id);
+
+        //Assert.True(indexResponse.IsSuccess());
+    }
+
+    private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
+    {
+        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
+        builder.Services.AddXunitLogging(testOutputHelper);
+        return builder;
+    }
 
     private sealed class Person
     {
