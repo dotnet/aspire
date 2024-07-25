@@ -12,7 +12,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 builder.Services.AddOpenTelemetry()
-    .WithTracing(tracing => tracing.AddSource(TraceCreator.ActivitySourceName, ProducerConsumer.ActivitySourceName));
+    .WithTracing(tracing => tracing.AddSource(TraceCreator.ActivitySourceName, ProducerConsumer.ActivitySourceName))
+    .WithMetrics(metrics => metrics.AddMeter(TestMetrics.MeterName));
+builder.Services.AddSingleton<TestMetrics>();
 
 var app = builder.Build();
 
@@ -20,6 +22,13 @@ app.MapDefaultEndpoints();
 app.Lifetime.ApplicationStarted.Register(ConsoleStresser.Stress);
 
 app.MapGet("/", () => "Hello world");
+
+app.MapGet("/increment-counter", (TestMetrics metrics) =>
+{
+    metrics.IncrementCounter(1, new TagList([new KeyValuePair<string, object?>("add-tag", "1")]));
+
+    return "Big trace created";
+});
 
 app.MapGet("/big-trace", async () =>
 {
@@ -46,6 +55,19 @@ app.MapGet("/trace-limit", async () =>
     Activity.Current = current;
 
     return $"Created {TraceCount} traces.";
+});
+
+app.MapGet("/http-client-requests", async (HttpClient client) =>
+{
+    var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS")!.Split(';');
+
+    foreach (var url in urls)
+    {
+        var response = await client.GetAsync(url);
+        await response.Content.ReadAsStringAsync();
+    }
+
+    return $"Sent requests to {string.Join(';', urls)}";
 });
 
 app.MapGet("/log-message-limit", ([FromServices] ILogger<Program> logger) =>
