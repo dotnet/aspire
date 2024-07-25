@@ -19,7 +19,7 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" IsAspireProjectResource="false" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" IsAspireProjectResource="false" />
 
-    <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" Condition="'$(TestsRunningOutsideOfRepo)' != 'true'" />
+    <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" Condition="'$(BuildForTest)' != 'true'" />
     <ProjectReference Include="..\OrleansServer\OrleansServer.csproj" />
     <ProjectReference Include="..\OrleansClient\OrleansClient.csproj" />
   </ItemGroup>
