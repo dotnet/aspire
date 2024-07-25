@@ -287,15 +287,15 @@ public class MongoDBFunctionalTests(ITestOutputHelper testOutputHelper)
 
             await host.StartAsync();
 
+            var mongoDatabase = host.Services.GetRequiredService<IMongoDatabase>();
+
             // Wait until the database is available
             await pipeline.ExecuteAsync(async token =>
             {
-                var mongoDatabase = host.Services.GetRequiredService<IMongoDatabase>();
-                await mongoDatabase.ListCollectionsAsync(cancellationToken: token);
-                
+                var collections = await mongoDatabase.ListCollectionsAsync(cancellationToken: token);
+                Assert.True(collections.Any(token));
             }, cts.Token);
 
-            var mongoDatabase = host.Services.GetRequiredService<IMongoDatabase>();
             var moviesCollection = mongoDatabase.GetCollection<Movie>("movies");
             var movies = await moviesCollection.Find(x => true).ToListAsync();
             Assert.Single(movies);
@@ -316,8 +316,7 @@ public class MongoDBFunctionalTests(ITestOutputHelper testOutputHelper)
 
     private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
     {
-        var builder = TestDistributedApplicationBuilder.Create();
-//        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
+        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
         builder.Services.AddXunitLogging(testOutputHelper);
         builder.Services.AddHostedService<ResourceLoggerForwarderService>();
         return builder;
