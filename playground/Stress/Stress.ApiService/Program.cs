@@ -26,7 +26,7 @@ app.MapGet("/increment-counter", (TestMetrics metrics) =>
 {
     metrics.IncrementCounter(1, new TagList([new KeyValuePair<string, object?>("add-tag", "1")]));
 
-    return "Big trace created";
+    return "Counter incremented";
 });
 
 app.MapGet("/big-trace", async () =>
