@@ -1,0 +1,7 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!-- When $(BuildForTest)==true, importing Aspire.RepoTesting.targets is needed. But import
+       only when in-repo. For the out-of-repo case a parent Directory.Build.targets does the import -->
+  <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.targets" Condition="'$(RepoRoot)' != ''" />
+</Project>
