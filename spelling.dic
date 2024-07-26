@@ -46,6 +46,7 @@ orleans
 otel
 otlp
 pgadmin
+plotly
 postgre
 postgres
 protoc
