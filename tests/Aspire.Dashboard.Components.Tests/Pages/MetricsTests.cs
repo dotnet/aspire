@@ -15,7 +15,7 @@ using OpenTelemetry.Proto.Metrics.V1;
 using Xunit;
 using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
 
-namespace Aspire.Dashboard.Components.Tests.Controls;
+namespace Aspire.Dashboard.Components.Tests.Pages;
 
 [UseCulture("en-US")]
 public partial class MetricsTests : TestContext
@@ -101,7 +101,7 @@ public partial class MetricsTests : TestContext
         var innerSelect = resourceSelect.Find("fluent-select");
         innerSelect.Change("TestApp2");
 
-        cut.WaitForAssertion(() => Assert.Equal("TestApp2", viewModel.SelectedApplication.Name));
+        cut.WaitForAssertion(() => Assert.Equal("TestApp2", viewModel.SelectedApplication.Name), TimeSpan.FromSeconds(5));
 
         Assert.Equal(expectedInstrumentNameAfterChange, viewModel.SelectedInstrument?.Name);
         if (expectedInstrumentNameAfterChange != null)

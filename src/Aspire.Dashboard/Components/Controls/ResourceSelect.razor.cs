@@ -34,9 +34,9 @@ public partial class ResourceSelect
 
     private FluentSelect<SelectViewModel<ResourceTypeDetails>>? _resourceSelectComponent;
 
-    public void ValuedChanged(string value)
+    private static void ValuedChanged(string value)
     {
-
+        // Do nothing. Required for bunit change to trigger SelectedOptionChanged.
     }
 
     /// <summary>
