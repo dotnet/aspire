@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Garnet;
 using Aspire.Hosting.Utils;
@@ -143,8 +142,10 @@ public static class GarnetBuilderExtensions
             context.Args.Add("/data/checkpoint");
             context.Args.Add("--recover");
             context.Args.Add("--aof");
-            context.Args.Add("--aof-commit-freq");
-            context.Args.Add((interval ?? TimeSpan.FromSeconds(60)).TotalMicroseconds.ToString(CultureInfo.InvariantCulture));
+
+            //seems not working
+            //context.Args.Add("--aof-commit-freq");
+            //context.Args.Add((interval ?? TimeSpan.FromSeconds(60)).TotalMilliseconds.ToString(CultureInfo.InvariantCulture));
 
             return Task.CompletedTask;
         }), ResourceAnnotationMutationBehavior.Replace);

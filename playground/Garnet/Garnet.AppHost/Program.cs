@@ -3,8 +3,10 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+var mountPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "aspire-garnet-data");
+
 var garnet = builder.AddGarnet("garnet")
-    .WithDataVolume("garnet-data");
+    .WithDataBindMount(mountPath);
 
 builder.AddProject<Projects.Garnet_ApiService>("apiservice")
     .WithReference(garnet);

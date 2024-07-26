@@ -9,13 +9,11 @@
         "--checkpointdir",
         "/data/checkpoint",
         "--recover",
-        "--aof",
-        "--aof-commit-freq",
-        "60000000"
+        "--aof"
       ],
-      "volumes": [
+      "bindMounts": [
         {
-          "name": "garnet-data",
+          "source": "C:/ProgramData/aspire-garnet-data",
           "target": "/data",
           "readOnly": false
         }
