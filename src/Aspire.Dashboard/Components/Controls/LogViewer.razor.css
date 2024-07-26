@@ -210,3 +210,11 @@
 ::deep .ansi-bg-yellow {
     background-color: var(--console-theme-yellow);
 }
+
+::deep .ansi-underline {
+    text-decoration: underline;
+}
+
+::deep .ansi-italic {
+    font-style: italic;
+}

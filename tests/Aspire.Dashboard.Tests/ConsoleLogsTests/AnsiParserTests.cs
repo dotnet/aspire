@@ -213,4 +213,52 @@ public class AnsiParserTests
         Assert.Equal(expectedOutput, result.ConvertedText);
         Assert.Equal(expectedResidualState, result.ResidualState);
     }
+
+    [Fact]
+    public void ConvertToHtml_HandlesMultipleParameterInSingleEscape()
+    {
+        var input = "\x1B[31;42;3;4mThis text is red, italic and underlined.";
+        var expectedOutput = "<span class=\"ansi-fg-red ansi-bg-green ansi-underline ansi-italic\">This text is red, italic and underlined.</span>";
+        var result = AnsiParser.ConvertToHtml(input);
+
+        Assert.Equal(expectedOutput, result.ConvertedText);
+    }
+
+    [Theory]
+    [InlineData("\x1B[38;5;100mtext", "<span style=\"color: #878700\">text</span>")]
+    [InlineData("\x1B[38;5;200mtext", "<span style=\"color: #ff00d7\">text</span>")]
+    [InlineData("\x1B[38;5;245mtext", "<span style=\"color: #8a8a8a\">text</span>")]
+    [InlineData("\x1B[38;5;231mtext", "<span style=\"color: #ffffff\">text</span>")]
+    [InlineData("\x1B[38;5;255mtext", "<span style=\"color: #eeeeee\">text</span>")]
+    [InlineData("\x1B[38;5;0mtext", "<span style=\"color: #000000\">text</span>")]
+    public void ConvertToHtml_HandlesForegroundAnsi256ColorCode(string input, string expectedOutput)
+    {
+        var result = AnsiParser.ConvertToHtml(input);
+
+        Assert.Equal(expectedOutput, result.ConvertedText);
+    }
+
+    [Theory]
+    [InlineData("\x1B[48;5;100mtext", "<span style=\"background-color: #878700\">text</span>")]
+    [InlineData("\x1B[48;5;200mtext", "<span style=\"background-color: #ff00d7\">text</span>")]
+    [InlineData("\x1B[48;5;245mtext", "<span style=\"background-color: #8a8a8a\">text</span>")]
+    [InlineData("\x1B[48;5;231mtext", "<span style=\"background-color: #ffffff\">text</span>")]
+    [InlineData("\x1B[48;5;255mtext", "<span style=\"background-color: #eeeeee\">text</span>")]
+    [InlineData("\x1B[48;5;0mtext", "<span style=\"background-color: #000000\">text</span>")]
+    public void ConvertToHtml_HandlesBackgroundAnsi256ColorCode(string input, string expectedOutput)
+    {
+        var result = AnsiParser.ConvertToHtml(input);
+
+        Assert.Equal(expectedOutput, result.ConvertedText);
+    }
+
+    [Fact]
+    public void ConvertToHtml_HandlesInvalidAnsi256ColorCode()
+    {
+        var input = "\x1B[38;5;300mInvalid color\x1B[0m";
+        var expectedOutput = "Invalid color";
+        var result = AnsiParser.ConvertToHtml(input);
+
+        Assert.Equal(expectedOutput, result.ConvertedText);
+    }
 }

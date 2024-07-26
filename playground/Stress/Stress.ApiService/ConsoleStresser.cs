@@ -109,6 +109,24 @@ public static class ConsoleStresser
         Console.WriteLine("\u001b[1mThis text is bold using ANSI escape codes.\u001b[0m");
         Console.WriteLine("\u001b[4mThis text is underlined using ANSI escape codes.\u001b[0m");
         Console.WriteLine("\u001b[31;1;4mThis text is red, bold, and underlined.\u001b[0m");
+        Console.WriteLine("\u001b[31;3;4mThis text is red, italic and underlined.\u001b[0m");
+        Console.WriteLine("\u001b[31;42;3;4mThis text is red, green background, italic and underlined.\u001b[0m");
+
+        Console.WriteLine();
+        Console.WriteLine("\u001b[38;5;221mThis text is a 256 text color using ANSI escape codes.\u001b[0m");
+        Console.WriteLine("\u001b[48;5;95mThis text is a 256 bakground color using ANSI escape codes.\u001b[0m");
+        Console.WriteLine("\u001b[38;5;221m\u001b[48;5;95mThis text is a 256 text and bakground color using ANSI escape codes.\u001b[0m");
+        Console.WriteLine("\u001b[38;5;243mThis text is a 256 gray text color using ANSI escape codes.\u001b[0m");
+        Console.WriteLine("\u001b[48;5;243mThis text is a 256 gray background color using ANSI escape codes.\u001b[0m");
+        Console.WriteLine("\u001b[38;5;1mThis text is a 256 red color using ANSI escape codes.\u001b[0m");
+        Console.WriteLine("\u001b[38;5;9mThis text is a 256 bright red color using ANSI escape codes.\u001b[0m");
+        Console.WriteLine("\u001b[48;5;1mThis text is a 256 red background color using ANSI escape codes.\u001b[0m");
+        Console.WriteLine("\u001b[48;5;9mThis text is a 256 bright red background color using ANSI escape codes.\u001b[0m");
+
+        Console.WriteLine();
+        Console.WriteLine("\u001b[38;5;321mThis text is a 256 text color using invalid color value.\u001b[0m");
+        Console.WriteLine("\u001b[38;5;100This text is a 256 text color using unfinished escape sequence (m here to finish the sequence late).\u001b[0m");
+        Console.WriteLine("\u001b[38;5;100This text is a 256 text color using unfinished escape sequence.\u001b[0m");
 
         Console.WriteLine();
         Console.WriteLine("HTML:");
