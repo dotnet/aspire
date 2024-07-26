@@ -55,7 +55,9 @@ public class OtlpInstrument
     {
         // We want to find the dimension scope that matches the attributes, but we don't want to allocate.
         // Copy values to a temporary reusable array.
-        OtlpHelpers.CopyKeyValuePairs(attributes, Options, out var copyCount, ref tempAttributes);
+        //
+        // A meter can have attributes. Merge these with the data point attributes when creating a dimension.
+        OtlpHelpers.CopyKeyValuePairs(attributes, Parent.Attributes, Options, out var copyCount, ref tempAttributes);
         Array.Sort(tempAttributes, 0, copyCount, KeyValuePairComparer.Instance);
 
         var comparableAttributes = tempAttributes.AsMemory(0, copyCount);
