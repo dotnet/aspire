@@ -74,11 +74,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
     });
 }
 
-if (!resourcesToSkip.HasFlag(TestResourceNames.milvus))
-{
-    builder.AddMilvusClient("milvus");
-}
-
 // Ensure healthChecks are added. Some components like Cosmos
 // don't add this
 builder.Services.AddHealthChecks();
@@ -148,11 +143,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
 if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
 {
     app.MapEventHubsApi();
-}
-
-if (!resourcesToSkip.HasFlag(TestResourceNames.milvus))
-{
-    app.MapMilvusApi();
 }
 
 app.Run();
