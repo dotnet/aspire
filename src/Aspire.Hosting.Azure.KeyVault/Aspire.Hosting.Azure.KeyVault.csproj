@@ -18,8 +18,4 @@
     <PackageReference Include="Azure.Provisioning.KeyVault" />
   </ItemGroup>
 
-  <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
-  </ItemGroup>
-
 </Project>

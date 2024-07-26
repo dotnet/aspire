@@ -5,7 +5,6 @@ using System.Text.Json;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Garnet;
 using Aspire.Hosting.MongoDB;
-using Aspire.Hosting.MySql;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.RabbitMQ;
@@ -480,7 +479,6 @@ public class ManifestGenerationTests
                     "HTTP_PORTS": "{integrationservicea.bindings.http.targetPort}",
                     "SKIP_RESOURCES": "None",
                     "ConnectionStrings__tempdb": "{tempdb.connectionString}",
-                    "ConnectionStrings__mysqldb": "{mysqldb.connectionString}",
                     "ConnectionStrings__redis": "{redis.connectionString}",
                     "ConnectionStrings__garnet": "{garnet.connectionString}",
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
@@ -524,27 +522,6 @@ public class ManifestGenerationTests
                 "tempdb": {
                   "type": "value.v0",
                   "connectionString": "{sqlserver.connectionString};Database=tempdb"
-                },
-                "mysql": {
-                  "type": "container.v0",
-                  "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql-password.value}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{MySqlContainerImageTags.Image}}:{{MySqlContainerImageTags.Tag}}",
-                  "env": {
-                    "MYSQL_ROOT_PASSWORD": "{mysql-password.value}",
-                    "MYSQL_DATABASE": "mysqldb"
-                  },
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 3306
-                    }
-                  }
-                },
-                "mysqldb": {
-                  "type": "value.v0",
-                  "connectionString": "{mysql.connectionString};Database=mysqldb"
                 },
                 "redis": {
                   "type": "container.v0",
@@ -713,21 +690,6 @@ public class ManifestGenerationTests
                           "minLower": 1,
                           "minUpper": 1,
                           "minNumeric": 1
-                        }
-                      }
-                    }
-                  }
-                },
-                "mysql-password": {
-                  "type": "parameter.v0",
-                  "value": "{mysql-password.inputs.value}",
-                  "inputs": {
-                    "value": {
-                      "type": "string",
-                      "secret": true,
-                      "default": {
-                        "generate": {
-                          "minLength": 22
                         }
                       }
                     }

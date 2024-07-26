@@ -107,12 +107,6 @@ public class SchemaTests
                     }
                 },
 
-                { "CdkResourceWithChildResource", (IDistributedApplicationBuilder builder) =>
-                    {
-                        builder.AddPostgres("postgres").PublishAsAzurePostgresFlexibleServer().AddDatabase("db");
-                    }
-                },
-
                 { "BasicDockerfile", (IDistributedApplicationBuilder builder) =>
                     {
                         builder.AddExecutable("foo", "bar", "baz", "one", "two", "three").PublishAsDockerFile();

@@ -4,8 +4,9 @@
 using Aspire.Hosting.Utils;
 using Aspire.Hosting.Azure.EventHubs;
 using Xunit;
+using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.Tests.Azure;
+namespace Aspire.Hosting.Azure.Tests;
 
 public class AzureEventHubsExtensionsTests
 {

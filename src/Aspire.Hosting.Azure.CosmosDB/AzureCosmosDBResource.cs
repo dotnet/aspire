@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using Aspire.Hosting.Azure.Cosmos;
 
 namespace Aspire.Hosting;
 
@@ -38,7 +37,3 @@ public class AzureCosmosDBResource(string name, Action<ResourceModuleConstruct> 
         : ReferenceExpression.Create($"{ConnectionString}");
 }
 
-internal static class AzureCosmosDBEmulatorConnectionString
-{
-    public static string Create(int port) => $"AccountKey={CosmosConstants.EmulatorAccountKey};AccountEndpoint=https://127.0.0.1:{port};DisableServerCertificateValidation=True;";
-}

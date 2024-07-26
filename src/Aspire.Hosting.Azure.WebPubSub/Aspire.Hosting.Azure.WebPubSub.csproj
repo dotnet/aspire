@@ -32,8 +32,4 @@
     <PackageReference Include="Azure.Provisioning.WebPubSub" />
   </ItemGroup>
 
-  <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
-  </ItemGroup>
-
 </Project>

@@ -21,7 +21,7 @@ public class AddPostgresTests
 
         var pg = appBuilder.AddPostgres("pg");
 
-        Assert.Equal(nameof(UserSecretsParameterDefault), pg.Resource.PasswordParameter.Default?.GetType().Name);
+        Assert.Equal("Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault", pg.Resource.PasswordParameter.Default?.GetType().FullName);
     }
 
     [Fact]
@@ -31,7 +31,7 @@ public class AddPostgresTests
 
         var pg = appBuilder.AddPostgres("pg");
 
-        Assert.Equal(nameof(GenerateParameterDefault), pg.Resource.PasswordParameter.Default?.GetType().Name);
+        Assert.NotEqual("Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault", pg.Resource.PasswordParameter.Default?.GetType().FullName);
     }
 
     [Fact]

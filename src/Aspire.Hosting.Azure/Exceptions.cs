@@ -3,14 +3,14 @@
 
 namespace Aspire.Hosting.Azure;
 
-internal class AzureCliNotOnPathException : DistributedApplicationException
+internal sealed class AzureCliNotOnPathException : DistributedApplicationException
 {
     public AzureCliNotOnPathException() { }
     public AzureCliNotOnPathException(string message) : base(message) { }
     public AzureCliNotOnPathException(string message, Exception inner) : base(message, inner) { }
 }
 
-internal class FailedToApplyEnvironmentException : DistributedApplicationException
+internal sealed class FailedToApplyEnvironmentException : DistributedApplicationException
 {
     public FailedToApplyEnvironmentException() { }
     public FailedToApplyEnvironmentException(string message) : base(message) { }

@@ -22,8 +22,4 @@
     <PackageReference Include="Azure.Provisioning.Storage" />
   </ItemGroup>
 
-  <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
-  </ItemGroup>
-
 </Project>
