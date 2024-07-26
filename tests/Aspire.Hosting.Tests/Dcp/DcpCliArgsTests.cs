@@ -48,7 +48,7 @@ public class DcpCliArgsTests
             "--dcp-cli-path", "/not/a/valid/path",
             "--dcp-container-runtime", "not-a-valid-container-runtime",
             "--dcp-dependency-check-timeout", "42",
-            "--dashboard-path", "/not/a/valid/path"
+            "--dcp-dashboard-path", "/not/a/valid/path"
             ]);
 
         using var app = builder.Build();
