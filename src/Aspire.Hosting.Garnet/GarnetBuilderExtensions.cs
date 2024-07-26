@@ -139,9 +139,13 @@ public static class GarnetBuilderExtensions
         TimeSpan? interval = null, long keysChangedThreshold = 1)
         => builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
         {
-            context.Args.Add("--save");
-            context.Args.Add((interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
-            context.Args.Add(keysChangedThreshold.ToString(CultureInfo.InvariantCulture));
+            context.Args.Add("--checkpointdir");
+            context.Args.Add("/data/checkpoint");
+            context.Args.Add("--recover");
+            context.Args.Add("--aof");
+            context.Args.Add("--aof-commit-freq");
+            context.Args.Add((interval ?? TimeSpan.FromSeconds(60)).TotalMicroseconds.ToString(CultureInfo.InvariantCulture));
+
             return Task.CompletedTask;
         }), ResourceAnnotationMutationBehavior.Replace);
 }
