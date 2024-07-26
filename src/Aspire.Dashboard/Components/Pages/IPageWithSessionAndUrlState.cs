@@ -3,7 +3,6 @@
 
 using Aspire.Dashboard.Components.Layout;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -27,7 +26,7 @@ public interface IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel>
     public string SessionStorageKey { get; }
 
     public NavigationManager NavigationManager { get; }
-    public ProtectedSessionStorage SessionStorage { get; }
+    public ISessionStorage SessionStorage { get; }
 
     /// <summary>
     /// The view model containing live state, to be instantiated in OnInitialized.
