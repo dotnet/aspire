@@ -101,7 +101,7 @@ public partial class MetricsTests : TestContext
         var innerSelect = resourceSelect.Find("fluent-select");
         innerSelect.Change("TestApp2");
 
-        cut.WaitForAssertion(() => Assert.Equal("TestApp2", viewModel.SelectedApplication.Name), TimeSpan.FromSeconds(5));
+        cut.WaitForAssertion(() => Assert.Equal("TestApp2", viewModel.SelectedApplication.Name), TestConstants.WaitTimeout);
 
         Assert.Equal(expectedInstrumentNameAfterChange, viewModel.SelectedInstrument?.Name);
         if (expectedInstrumentNameAfterChange != null)
