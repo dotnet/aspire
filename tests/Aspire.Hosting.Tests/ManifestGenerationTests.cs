@@ -5,7 +5,6 @@ using System.Text.Json;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Garnet;
 using Aspire.Hosting.MongoDB;
-using Aspire.Hosting.MySql;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.RabbitMQ;
@@ -263,7 +262,7 @@ public class ManifestGenerationTests
         Assert.Equal("container.v0", container.GetProperty("type").GetString());
         Assert.Equal("{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port}", container.GetProperty("connectionString").GetString());
     }
-    
+
     [Fact]
     public void EnsureAllPostgresManifestTypesHaveVersion0Suffix()
     {
@@ -480,7 +479,6 @@ public class ManifestGenerationTests
                     "HTTP_PORTS": "{integrationservicea.bindings.http.targetPort}",
                     "SKIP_RESOURCES": "None",
                     "ConnectionStrings__tempdb": "{tempdb.connectionString}",
-                    "ConnectionStrings__mysqldb": "{mysqldb.connectionString}",
                     "ConnectionStrings__redis": "{redis.connectionString}",
                     "ConnectionStrings__garnet": "{garnet.connectionString}",
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
@@ -488,8 +486,7 @@ public class ManifestGenerationTests
                     "ConnectionStrings__mymongodb": "{mymongodb.connectionString}",
                     "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
                     "ConnectionStrings__cosmos": "{cosmos.connectionString}",
-                    "ConnectionStrings__eventhubns": "{eventhubns.connectionString}",
-                    "ConnectionStrings__milvus": "{milvus.connectionString}"
+                    "ConnectionStrings__eventhubns": "{eventhubns.connectionString}"
                   },
                   "bindings": {
                     "http": {
@@ -524,27 +521,6 @@ public class ManifestGenerationTests
                 "tempdb": {
                   "type": "value.v0",
                   "connectionString": "{sqlserver.connectionString};Database=tempdb"
-                },
-                "mysql": {
-                  "type": "container.v0",
-                  "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql-password.value}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{MySqlContainerImageTags.Image}}:{{MySqlContainerImageTags.Tag}}",
-                  "env": {
-                    "MYSQL_ROOT_PASSWORD": "{mysql-password.value}",
-                    "MYSQL_DATABASE": "mysqldb"
-                  },
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 3306
-                    }
-                  }
-                },
-                "mysqldb": {
-                  "type": "value.v0",
-                  "connectionString": "{mysql.connectionString};Database=mysqldb"
                 },
                 "redis": {
                   "type": "container.v0",
@@ -667,39 +643,6 @@ public class ManifestGenerationTests
                     "principalType": ""
                   }
                 },
-                "milvusApiKey": {
-                  "type": "parameter.v0",
-                  "value": "{milvusApiKey.inputs.value}",
-                  "inputs": {
-                    "value": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "milvus": {
-                  "type": "container.v0",
-                  "connectionString": "Endpoint={milvus.bindings.grpc.url};Key={milvusApiKey.value}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/milvusdb/milvus:2.3-latest",
-                  "args": [
-                    "milvus",
-                    "run",
-                    "standalone"
-                  ],
-                  "env": {
-                    "COMMON_STORAGETYPE": "local",
-                    "ETCD_USE_EMBED": "true",
-                    "ETCD_DATA_DIR": "/var/lib/milvus/etcd",
-                    "COMMON_SECURITY_AUTHORIZATIONENABLED": "true"
-                  },
-                  "bindings": {
-                    "grpc": {
-                      "scheme": "http",
-                      "protocol": "tcp",
-                      "transport": "http2",
-                      "targetPort": 19530
-                    }
-                  }
-                },
                 "sqlserver-password": {
                   "type": "parameter.v0",
                   "value": "{sqlserver-password.inputs.value}",
@@ -713,21 +656,6 @@ public class ManifestGenerationTests
                           "minLower": 1,
                           "minUpper": 1,
                           "minNumeric": 1
-                        }
-                      }
-                    }
-                  }
-                },
-                "mysql-password": {
-                  "type": "parameter.v0",
-                  "value": "{mysql-password.inputs.value}",
-                  "inputs": {
-                    "value": {
-                      "type": "string",
-                      "secret": true,
-                      "default": {
-                        "generate": {
-                          "minLength": 22
                         }
                       }
                     }

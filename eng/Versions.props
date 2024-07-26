@@ -3,8 +3,8 @@
     <!-- This repo version -->
     <MajorVersion>8</MajorVersion>
     <MinorVersion>1</MinorVersion>
-    <PatchVersion>0</PatchVersion>
-    <VersionPrefix>8.1.0</VersionPrefix>
+    <PatchVersion>1</PatchVersion>
+    <VersionPrefix>8.1.1</VersionPrefix>
     <PreReleaseVersionLabel>preview.1</PreReleaseVersionLabel>
     <!--
       When running package validation as part of the build, we want to ensure we didn't break the API against the previous
@@ -29,10 +29,10 @@
     <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.5.7</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
     <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.5.7</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
     <!-- Other -->
-    <MicrosoftDotNetRemoteExecutorPackageVersion>8.0.0-beta.24360.5</MicrosoftDotNetRemoteExecutorPackageVersion>
-    <MicrosoftDotNetXUnitExtensionsPackageVersion>8.0.0-beta.24360.5</MicrosoftDotNetXUnitExtensionsPackageVersion>
-    <MicrosoftDotNetBuildTasksInstallersPackageVersion>8.0.0-beta.24360.5</MicrosoftDotNetBuildTasksInstallersPackageVersion>
-    <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>8.0.0-beta.24360.5</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
+    <MicrosoftDotNetRemoteExecutorPackageVersion>8.0.0-beta.24367.1</MicrosoftDotNetRemoteExecutorPackageVersion>
+    <MicrosoftDotNetXUnitExtensionsPackageVersion>8.0.0-beta.24367.1</MicrosoftDotNetXUnitExtensionsPackageVersion>
+    <MicrosoftDotNetBuildTasksInstallersPackageVersion>8.0.0-beta.24367.1</MicrosoftDotNetBuildTasksInstallersPackageVersion>
+    <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>8.0.0-beta.24367.1</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
     <MicrosoftExtensionsHttpResiliencePackageVersion>8.7.0</MicrosoftExtensionsHttpResiliencePackageVersion>
     <MicrosoftExtensionsDiagnosticsTestingPackageVersion>8.7.0</MicrosoftExtensionsDiagnosticsTestingPackageVersion>
     <MicrosoftExtensionsConfigurationAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsConfigurationAbstractionsPackageVersion>
@@ -44,14 +44,15 @@
     <MicrosoftExtensionsLoggingAbstractionsPackageVersion>8.0.1</MicrosoftExtensionsLoggingAbstractionsPackageVersion>
     <MicrosoftExtensionsOptionsPackageVersion>8.0.2</MicrosoftExtensionsOptionsPackageVersion>
     <MicrosoftExtensionsPrimitivesPackageVersion>8.0.0</MicrosoftExtensionsPrimitivesPackageVersion>
-    <MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>8.0.6</MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>
-    <MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion>8.0.6</MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion>
-    <MicrosoftAspNetCoreOpenApiPackageVersion>8.0.6</MicrosoftAspNetCoreOpenApiPackageVersion>
-    <MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>8.0.6</MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>
+    <MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>8.0.7</MicrosoftAspNetCoreAuthenticationCertificatePackageVersion>
+    <MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>8.0.7</MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>
+    <MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion>8.0.7</MicrosoftAspNetCoreAuthenticationOpenIdConnectPackageVersion>
+    <MicrosoftAspNetCoreOpenApiPackageVersion>8.0.7</MicrosoftAspNetCoreOpenApiPackageVersion>
+    <MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>8.0.7</MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>
     <MicrosoftExtensionsCachingStackExchangeRedisPackageVersion>8.0.7</MicrosoftExtensionsCachingStackExchangeRedisPackageVersion>
     <MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>8.0.7</MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>
     <MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>8.0.7</MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>
-    <MicrosoftExtensionsFeaturesPackageVersion>8.0.6</MicrosoftExtensionsFeaturesPackageVersion>
+    <MicrosoftExtensionsFeaturesPackageVersion>8.0.7</MicrosoftExtensionsFeaturesPackageVersion>
     <MicrosoftExtensionsTimeProviderTestingVersion>8.7.0</MicrosoftExtensionsTimeProviderTestingVersion>
     <!-- EF -->
     <MicrosoftEntityFrameworkCoreCosmosPackageVersion>8.0.7</MicrosoftEntityFrameworkCoreCosmosPackageVersion>

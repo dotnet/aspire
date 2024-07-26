@@ -51,6 +51,13 @@ fluent-toolbar[orientation=horizontal] {
     --messagebar-info-border-color: #d1d1d1;
 
     --layout-toolbar-padding: calc(var(--design-unit) * 1.5px);
+
+    /*
+        --neutral-layer-2 is the background for the body of most of the site so
+        we can default the datagrid hover color to that and just override it as
+        necessary elsewhere (e.g. in the details view)
+    */
+    --datagrid-hover-color: var(--neutral-layer-2-hover);
 }
 
 [data-theme="dark"] {
@@ -75,6 +82,17 @@ fluent-toolbar[orientation=horizontal] {
     --error: #E10B11 !important;
 
     color-scheme: dark;
+}
+
+/*
+    Override the `cursor: pointer` in the default styles from fluentui-blazor since
+    we don't have selection implemented and the pointer doesn't really make sense.
+    The `fluent-data-grid-row[role='row']` part added to the beginning is a bit of
+    a hack to get the specificity higher than the default style to avoid using
+    `!important` just in case there's a reason to to override further later.
+*/
+fluent-data-grid-row[role='row'].hover:not([row-type='header'],[row-type='sticky-header']):hover {
+    cursor: auto;
 }
 
 [data-theme="light"] {
@@ -338,6 +356,24 @@ fluent-switch.table-switch::part(label) {
      width: 160px;
 }
 
+/*
+    If ShowHover is enabled on a FluentDataGrid, we need to tweak the way anchors and buttons
+    are colored when a row is hovered
+*/
+fluent-data-grid-row[row-type=default].hover:hover fluent-anchor[appearance=lightweight]::part(control):not(:hover),
+fluent-data-grid-row[row-type=default].hover:hover fluent-anchor[appearance=stealth]::part(control):not(:hover),
+fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=lightweight]::part(control):not(:hover),
+fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=stealth]::part(control):not(:hover) {
+    background-color: var(--datagrid-hover-color);
+}
+
+fluent-data-grid-row[row-type=default].hover:hover fluent-anchor[appearance=lightweight]::part(control):hover,
+fluent-data-grid-row[row-type=default].hover:hover fluent-anchor[appearance=stealth]::part(control):hover,
+fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=lightweight]::part(control):hover,
+fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=stealth]::part(control):hover {
+    background-color: var(--fill-color);
+}
+
 .property-grid-container {
     grid-area: main;
     overflow: auto;
@@ -352,8 +388,12 @@ fluent-switch.table-switch::part(label) {
     --fill-color: var(--neutral-layer-1);
 }
 
+.property-grid-container fluent-accordion fluent-data-grid {
+    --datagrid-hover-color: var(--neutral-layer-1-hover);
+}
+
 /* Under the current light theme, --neutral-layer-1 is too white, so we'll
-   use something that's halfway between --neutral-layer-2 and --neutral-layer1.
+   use something that's halfway between --neutral-layer-2 and --neutral-layer-1.
 */
 [data-theme="light"] .property-grid-container fluent-accordion {
     --fill-color: var(--neutral-fill-rest);
@@ -385,13 +425,13 @@ fluent-switch.table-switch::part(label) {
     border-bottom: none;
 }
 
-.property-grid-container fluent-accordion fluent-data-grid fluent-button[appearance=stealth]:not(:hover)::part(control),
-.property-grid-container fluent-accordion fluent-data-grid fluent-button[appearance=lightweight]:not(:hover)::part(control) {
+.property-grid-container fluent-accordion fluent-data-grid-row fluent-button[appearance=stealth]::part(control):not(:hover),
+.property-grid-container fluent-accordion fluent-data-grid-row fluent-button[appearance=lightweight]::part(control):not(:hover) {
     background-color: var(--fill-color);
 }
 
-.property-grid-container fluent-accordion fluent-data-grid fluent-button[appearance=stealth]:hover::part(control),
-.property-grid-container fluent-accordion fluent-data-grid fluent-button[appearance=lightweight]:hover::part(control) {
+.property-grid-container fluent-accordion fluent-data-grid-row:not([row-type=default]) fluent-button[appearance=stealth]::part(control):hover,
+.property-grid-container fluent-accordion fluent-data-grid-row:not([row-type=default]) fluent-button[appearance=lightweight]::part(control):hover {
     background-color: var(--neutral-fill-stealth-hover-on-neutral-fill-layer-rest);
 }
 
@@ -427,8 +467,8 @@ fluent-data-grid-cell.no-ellipsis {
     overflow-x: visible !important;
 }
 
-.endpoint-overflow .fluent-overflow-more {
-    display: flex;
+.endpoint-overflow .fluent-overflow-more fluent-button {
+    vertical-align: middle;
 }
 
 .endpoint-button {

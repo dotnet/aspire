@@ -14,7 +14,6 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -24,7 +23,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     public required IDashboardClient DashboardClient { get; init; }
 
     [Inject]
-    public required ProtectedSessionStorage SessionStorage { get; init; }
+    public required ISessionStorage SessionStorage { get; init; }
 
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
@@ -120,7 +119,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             {
                 await foreach (var changes in subscription.WithCancellation(_resourceSubscriptionCancellation.Token).ConfigureAwait(false))
                 {
-                    // TODO: This could be updated to be more efficent.
+                    // TODO: This could be updated to be more efficient.
                     // It should apply on the resource changes in a batch and then update the UI.
                     foreach (var (changeType, resource) in changes)
                     {

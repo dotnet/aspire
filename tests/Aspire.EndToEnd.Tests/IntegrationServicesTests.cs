@@ -24,8 +24,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [Theory]
     [Trait("scenario", "basicservices")]
     [InlineData(TestResourceNames.mongodb)]
-    [InlineData(TestResourceNames.mysql)]
-    [InlineData(TestResourceNames.efmysql)]
     [InlineData(TestResourceNames.postgres)]
     [InlineData(TestResourceNames.efnpgsql)]
     [InlineData(TestResourceNames.rabbitmq)]
@@ -33,7 +31,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [InlineData(TestResourceNames.garnet)]
     [InlineData(TestResourceNames.sqlserver)]
     [InlineData(TestResourceNames.efsqlserver)]
-    [InlineData(TestResourceNames.milvus)]
     public Task VerifyComponentWorks(TestResourceNames resourceName)
         => RunTestAsync(async () =>
         {

@@ -9,7 +9,6 @@ var secret = builder.AddParameter("secret", secret: true);
 
 builder.AddDockerfile("mycontainer", "qots")
        .WithBuildArg("GO_VERSION", goVersion)
-       .WithBuildSecret("SECRET_ASFILE", new FileInfo("Program.cs"))
        .WithBuildSecret("SECRET_ASENV", secret);
 
 // This project is only added in playground projects to support development/debugging

@@ -8,7 +8,6 @@ using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Storage;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.FluentUI.AspNetCore.Components;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
@@ -119,29 +118,5 @@ public class PlotlyChartTests : TestContext
                     Assert.Equal("<b>Name-&lt;b&gt;Bold&lt;/b&gt;</b><br />Unit-&lt;b&gt;Bold&lt;/b&gt;: 1<br />Time: 12:59:57 AM", trace.Tooltips[0]);
                 });
             });
-    }
-
-    private sealed class TestInstrumentUnitResolver : IInstrumentUnitResolver
-    {
-        public string ResolveDisplayedUnit(OtlpInstrument instrument, bool titleCase, bool pluralize)
-        {
-            return instrument.Unit;
-        }
-    }
-
-    private sealed class TestTimeProvider : BrowserTimeProvider
-    {
-        private TimeZoneInfo? _localTimeZone;
-
-        public TestTimeProvider() : base(NullLoggerFactory.Instance)
-        {
-        }
-
-        public override DateTimeOffset GetUtcNow()
-        {
-            return new DateTimeOffset(2025, 12, 20, 23, 59, 59, TimeSpan.Zero);
-        }
-
-        public override TimeZoneInfo LocalTimeZone => _localTimeZone ??= TimeZoneInfo.CreateCustomTimeZone(nameof(PlotlyChartTests), TimeSpan.FromHours(1), nameof(PlotlyChartTests), nameof(PlotlyChartTests));
     }
 }

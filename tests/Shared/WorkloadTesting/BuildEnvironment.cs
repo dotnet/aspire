@@ -17,13 +17,12 @@ public class BuildEnvironment
     public string                           BuiltNuGetsPath               { get; init; }
     public bool                             HasWorkloadFromArtifacts      { get; init; }
     public bool                             UsesSystemDotNet => !HasWorkloadFromArtifacts;
-    public string                           TestAssetsPath                { get; set; }
     public string?                          NuGetPackagesPath             { get; init; }
     public TestTargetFramework              TargetFramework               { get; init; }
     public DirectoryInfo?                   RepoRoot                      { get; init; }
 
     public const TestTargetFramework        DefaultTargetFramework = TestTargetFramework.Net80;
-    public static readonly string           TestDataPath = Path.Combine(AppContext.BaseDirectory, "data");
+    public static readonly string           TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "testassets");
     public static readonly string           TestRootPath = Path.Combine(Path.GetTempPath(), "testroot");
 
     public static bool IsRunningOnHelix => Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is not null;
@@ -97,7 +96,6 @@ public class BuildEnvironment
             BuiltNuGetsPath = EnvironmentVariables.BuiltNuGetsPath;
         }
 
-        TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "testassets");
         if (!Directory.Exists(TestAssetsPath))
         {
             throw new ArgumentException($"Cannot find TestAssetsPath={TestAssetsPath}");
@@ -215,7 +213,6 @@ public class BuildEnvironment
         WorkloadPacksDir = otherBuildEnvironment.WorkloadPacksDir;
         BuiltNuGetsPath = otherBuildEnvironment.BuiltNuGetsPath;
         HasWorkloadFromArtifacts = otherBuildEnvironment.HasWorkloadFromArtifacts;
-        TestAssetsPath = otherBuildEnvironment.TestAssetsPath;
         NuGetPackagesPath = otherBuildEnvironment.NuGetPackagesPath;
         TargetFramework = otherBuildEnvironment.TargetFramework;
         RepoRoot = otherBuildEnvironment.RepoRoot;
