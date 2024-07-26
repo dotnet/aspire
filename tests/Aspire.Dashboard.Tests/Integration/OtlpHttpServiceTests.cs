@@ -7,7 +7,7 @@ using System.Text;
 using Aspire.Dashboard.Authentication.OtlpApiKey;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Http;
-using Aspire.Dashboard.Tests.TelemetryRepositoryTests;
+using Aspire.Tests.Shared.Telemetry;
 using Aspire.Hosting;
 using Google.Protobuf;
 using Microsoft.AspNetCore.InternalTesting;
@@ -80,17 +80,17 @@ public class OtlpHttpServiceTests
     {
         var scopeLogs = new ScopeLogs
         {
-            Scope = TestHelpers.CreateScope("TestLogger")
+            Scope = TelemetryTestHelpers.CreateScope("TestLogger")
         };
         for (var i = 0; i < logRecordsCount; i++)
         {
-            scopeLogs.LogRecords.Add(TestHelpers.CreateLogRecord(message: $"This is the test log message {i}. The quick brown fox jumped over the lazy dog. Peter Pipper picked a patch of pickled peppers."));
+            scopeLogs.LogRecords.Add(TelemetryTestHelpers.CreateLogRecord(message: $"This is the test log message {i}. The quick brown fox jumped over the lazy dog. Peter Pipper picked a patch of pickled peppers."));
         }
 
         var request = new ExportLogsServiceRequest();
         request.ResourceLogs.Add(new ResourceLogs
         {
-            Resource = TestHelpers.CreateResource(),
+            Resource = TelemetryTestHelpers.CreateResource(),
             ScopeLogs = { scopeLogs }
         });
         return request;

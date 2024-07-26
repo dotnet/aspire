@@ -34,6 +34,11 @@ public partial class ResourceSelect
 
     private FluentSelect<SelectViewModel<ResourceTypeDetails>>? _resourceSelectComponent;
 
+    public void ValuedChanged(string value)
+    {
+
+    }
+
     /// <summary>
     /// Workaround for issue in fluent-select web component where the display value of the
     /// selected item doesn't update automatically when the item changes.
