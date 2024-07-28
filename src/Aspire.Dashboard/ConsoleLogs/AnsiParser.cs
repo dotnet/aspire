@@ -13,11 +13,12 @@ public class AnsiParser
     private const int IncreasedIntensityCode = 1;
     private const int ItalicCode = 3;
     private const int UnderlineCode = 4;
+    private const int StrikeThroughCode = 9;
     private const int NormalIntensityCode = 22;
     private const int DefaultForegroundCode = 39;
     private const int DefaultBackgroundCode = 49;
-    private const int Ansi256ForegroundSequenceCode = 38;
-    private const int Ansi256BackgroundSequenceCode = 48;
+    private const int XtermForegroundSequenceCode = 38;
+    private const int XtermBackgroundSequenceCode = 48;
 
     public static ConversionResult ConvertToHtml(string? text, ParserState? priorResidualState = null)
     {
@@ -56,6 +57,29 @@ public class AnsiParser
                 }
 
                 ProcessParameters(ref newState, parameters);
+
+                continue;
+            }
+
+            if (IsLinkControlSequence(span[i..], ref i, out var url))
+            {
+                // If we have a control sequence, but have found some text already,
+                // we need to write out the new styles (if applicable) and that text
+                // before we continue
+                if (textStartIndex != -1)
+                {
+                    if (newState != currentState)
+                    {
+                        outputBuilder.Append(ProcessStateChange(currentState, newState));
+                        currentState = newState;
+                    }
+                    outputBuilder.Append(text[textStartIndex..(textStartIndex + textLength)]);
+                    textStartIndex = -1;
+                    textLength = 0;
+                }
+
+                // Apppend the URL unformatted, the Url matcher will convert to link later.
+                outputBuilder.Append(url);
 
                 continue;
             }
@@ -106,27 +130,30 @@ public class AnsiParser
 
     private static void ProcessParameters(ref ParserState newState, int[] parameters)
     {
-        // If 256 color format parameters
-        if (parameters is [int colorSequence, int colorType, int colorValue]
-            && colorSequence is Ansi256ForegroundSequenceCode or Ansi256BackgroundSequenceCode
-            && colorType is 5
-            && colorValue is >= 0 and < 256)
+        for (var i = 0; i < parameters.Length; i++)
         {
-            if (colorSequence == Ansi256ForegroundSequenceCode)
-            {
-                newState.Ansi256ForegroundColorCode = colorValue;
-                return;
-            }
-            else if (colorSequence == Ansi256BackgroundSequenceCode)
-            {
-                newState.Ansi256BackgroundColorCode = colorValue;
-                return;
-            }
-        }
+            var parameter = parameters[i];
 
-        foreach (var parameter in parameters)
-        {
-            if (TryGetForegroundColor(parameter, out var color))
+            // If Xterm color sequence
+            if (parameter is XtermForegroundSequenceCode or XtermBackgroundSequenceCode && i + 2 < parameters.Length)
+            {
+                var colorCode = parameters[i + 2];
+                if (colorCode is >= 0 and < 256)
+                {
+                    if (parameter == XtermBackgroundSequenceCode)
+                    {
+                        newState.XtermBackgroundColorCode = colorCode;
+                    }
+                    else if (parameter == XtermForegroundSequenceCode)
+                    {
+                        newState.XtermForegroundColorCode = colorCode;
+                    }
+                }
+
+                // Skip ahead 2 more parameters that are part of the Xterm color sequence
+                i += 2;
+            }
+            else if (TryGetForegroundColor(parameter, out var color))
             {
                 newState.ForegroundColor = color;
             }
@@ -162,6 +189,10 @@ public class AnsiParser
             {
                 newState.Italic = true;
             }
+            else if (parameter == StrikeThroughCode)
+            {
+                newState.StrikeThrough = true;
+            }
         }
     }
 
@@ -176,7 +207,7 @@ public class AnsiParser
 
         // Find the index of the next 'm' character
         var paramsEndPosition = span.IndexOf('m');
-        if (paramsEndPosition == -1)
+        if (paramsEndPosition < 0)
         {
             // No end of escape with 'm' code, cannot parse params.
             parameters = [];
@@ -184,7 +215,7 @@ public class AnsiParser
         }
 
         // Find the index of the next escape character
-        var nextEscapePosition = span[1..].IndexOf(EscapeChar);
+        var nextEscapePosition = SubIndexOfSpan(span, EscapeChar, 1);
         if (nextEscapePosition != -1 && nextEscapePosition < paramsEndPosition)
         {
             // Current sequence is not finished before the next escape sequence starts.
@@ -224,6 +255,72 @@ public class AnsiParser
         return true;
     }
 
+    private static bool IsLinkControlSequence(ReadOnlySpan<char> span, ref int position, out string? url)
+    {
+        url = null;
+
+        // Link sequence
+        // \x1B]8;{params};{url}\x1B\\{url-text}\x1B]8;;\x1B\\
+
+        // If we're at \x1B[
+        // Links are minimum 5 chars
+        if (span.Length <= 5 || (span[0] != EscapeChar || span[1] != ']'))
+        {
+            return false;
+        }
+
+        // Only supported Os sequence is links
+        if (span[2] != '8' || span[3] != ';')
+        {
+            return false;
+        }
+
+        // Find the positon where the url section ends
+        var urlEndEscapePosition = SubIndexOfSpan(span, EscapeChar, 4);
+        if (urlEndEscapePosition < 0 || span.Length < urlEndEscapePosition + 1 || span[urlEndEscapePosition + 1] != '\\')
+        {
+            return false;
+        }
+
+        // Find the position where the url-text section ends
+        // Continue to search untill the following char is ']', could be color/mode formatting escape sequences mixed in
+        var linkEndEscapePosition = SubIndexOfSpan(span, EscapeChar, urlEndEscapePosition + 1);
+        while (linkEndEscapePosition != -1 && span.Length > (linkEndEscapePosition + 2) && span[linkEndEscapePosition + 1] != ']')
+        {
+            linkEndEscapePosition = SubIndexOfSpan(span, EscapeChar, linkEndEscapePosition + 1);
+        }
+
+        // If we didn't find the end of the url-text sequence return false
+        if (linkEndEscapePosition < 0 || span.Length < linkEndEscapePosition + 2 || span[linkEndEscapePosition + 2] != '8')
+        {
+            return false;
+        }
+
+        // Find the position where the whole link sequence ends
+        var linkEndPosition = SubIndexOfSpan(span, '\\', linkEndEscapePosition);
+        if (linkEndPosition < 0)
+        {
+            return false;
+        }
+
+        var urlSpan = span[4..urlEndEscapePosition];
+
+        // Fin the position where the params section within the url section ends.
+        var argsEndPosition = urlSpan.IndexOf(';');
+        if (argsEndPosition < 0)
+        {
+            return false;
+        }
+
+        // Return the extracted url
+        url = urlSpan[(argsEndPosition + 1)..].ToString();
+
+        // Advance the position in the external span to the end of the whole control sequence
+        position += linkEndPosition;
+
+        return true;
+    }
+
     private static string ProcessStateChange(ParserState currentState, ParserState newState)
     {
         var closeSpanIfNeeded = "";
@@ -253,36 +350,47 @@ public class AnsiParser
         {
             classes.Add("ansi-italic");
         }
-
-        if (newState.Ansi256ForegroundColorCode.HasValue)
+        if (newState.StrikeThrough)
         {
-            var colorValue = newState.Ansi256ForegroundColorCode.Value;
+            classes.Add("ansi-strikethrough");
+        }
+
+        if (newState.XtermForegroundColorCode.HasValue)
+        {
+            var colorValue = newState.XtermForegroundColorCode.Value;
             if (TryGetXtermRgbHexColor(colorValue, out var rgbForegroundHex))
             {
                 styles.Add($"color: {rgbForegroundHex}");
             }
         }
 
-        if (newState.Ansi256BackgroundColorCode.HasValue)
+        if (newState.XtermBackgroundColorCode.HasValue)
         {
-            var colorValue = newState.Ansi256BackgroundColorCode.Value;
+            var colorValue = newState.XtermBackgroundColorCode.Value;
             if (TryGetXtermRgbHexColor(colorValue, out var rgbBackgroundHex))
             {
                 styles.Add($"background-color: {rgbBackgroundHex}");
             }
         }
 
+        if (classes.Count == 0 && styles.Count == 0)
+        {
+            return closeSpanIfNeeded;
+        }
+
+        var combined = closeSpanIfNeeded + "<span ";
+
         if (classes.Count > 0)
         {
-            return closeSpanIfNeeded + $"<span class=\"{string.Join(" ", classes)}\">";
+            combined += $"class=\"{string.Join(" ", classes)}\" ";
         }
 
         if (styles.Count > 0)
         {
-            return closeSpanIfNeeded + $"<span style=\"{string.Join(";", styles)}\">";
+            combined += $"style=\"{string.Join(";", styles)}\" ";
         }
 
-        return closeSpanIfNeeded;
+        return combined.TrimEnd() + ">";
     }
 
     private static string? GetForegroundColorClass(ParserState state)
@@ -617,15 +725,28 @@ public class AnsiParser
         return rgbHex != null;
     }
 
+    private static int SubIndexOfSpan(ReadOnlySpan<char> span, char value, int startIndex = 0)
+    {
+        var indexInSlice = span[startIndex..].IndexOf(value);
+
+        if (indexInSlice < 0)
+        {
+            return indexInSlice;
+        }
+
+        return startIndex + indexInSlice;
+    }
+
     public record struct ParserState
     {
         public ConsoleColor? ForegroundColor { get; set; }
         public ConsoleColor? BackgroundColor { get; set; }
-        public int? Ansi256ForegroundColorCode { get; set; }
-        public int? Ansi256BackgroundColorCode { get; set; }
+        public int? XtermForegroundColorCode { get; set; }
+        public int? XtermBackgroundColorCode { get; set; }
         public bool Bright { get; set; }
         public bool Underline { get; set; }
         public bool Italic { get; set; }
+        public bool StrikeThrough { get; set; }
     }
 
     public readonly record struct ConversionResult(string? ConvertedText, ParserState ResidualState);

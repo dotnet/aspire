@@ -231,7 +231,7 @@ public class AnsiParserTests
     [InlineData("\x1B[38;5;231mtext", "<span style=\"color: #ffffff\">text</span>")]
     [InlineData("\x1B[38;5;255mtext", "<span style=\"color: #eeeeee\">text</span>")]
     [InlineData("\x1B[38;5;0mtext", "<span style=\"color: #000000\">text</span>")]
-    public void ConvertToHtml_HandlesForegroundAnsi256ColorCode(string input, string expectedOutput)
+    public void ConvertToHtml_HandlesForegroundXtermColorCode(string input, string expectedOutput)
     {
         var result = AnsiParser.ConvertToHtml(input);
 
@@ -245,7 +245,28 @@ public class AnsiParserTests
     [InlineData("\x1B[48;5;231mtext", "<span style=\"background-color: #ffffff\">text</span>")]
     [InlineData("\x1B[48;5;255mtext", "<span style=\"background-color: #eeeeee\">text</span>")]
     [InlineData("\x1B[48;5;0mtext", "<span style=\"background-color: #000000\">text</span>")]
-    public void ConvertToHtml_HandlesBackgroundAnsi256ColorCode(string input, string expectedOutput)
+    public void ConvertToHtml_HandlesBackgroundXtermColorCode(string input, string expectedOutput)
+    {
+        var result = AnsiParser.ConvertToHtml(input);
+
+        Assert.Equal(expectedOutput, result.ConvertedText);
+    }
+
+    [Theory]
+    [InlineData("\x1B[4;38;5;100mtext", "<span class=\"ansi-underline\" style=\"color: #878700\">text</span>")]
+    [InlineData("\x1B[4;9;38;5;100mtext", "<span class=\"ansi-underline ansi-strikethrough\" style=\"color: #878700\">text</span>")]
+    public void ConvertToHtml_HandlesCombinedXtermColorAndModes(string input, string expectedOutput)
+    {
+        var result = AnsiParser.ConvertToHtml(input);
+
+        Assert.Equal(expectedOutput, result.ConvertedText);
+    }
+
+    [Theory]
+    [InlineData("\x1B[3mtext", "<span class=\"ansi-italic\">text</span>")]
+    [InlineData("\x1B[4mtext", "<span class=\"ansi-underline\">text</span>")]
+    [InlineData("\x1B[9mtext", "<span class=\"ansi-strikethrough\">text</span>")]
+    public void ConvertToHtml_HandlesModes(string input, string expectedOutput)
     {
         var result = AnsiParser.ConvertToHtml(input);
 
