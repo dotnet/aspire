@@ -1,2 +1,5 @@
 #nullable enable
-
+Aspire.Hosting.Postgres.PgWebContainerResource
+Aspire.Hosting.Postgres.PgWebContainerResource.PgWebContainerResource(string! name) -> void
+static Aspire.Hosting.PostgresBuilderExtensions.WithHostPort(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Postgres.PgWebContainerResource!>! builder, int? port) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Postgres.PgWebContainerResource!>!
+static Aspire.Hosting.PostgresBuilderExtensions.WithPgWeb<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Postgres.PgWebContainerResource!>!>? configureContainer = null, string? containerName = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
