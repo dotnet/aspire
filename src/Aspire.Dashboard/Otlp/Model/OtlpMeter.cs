@@ -13,7 +13,7 @@ public class OtlpMeter
     public string MeterName { get; init; }
     public string Version { get; init; }
 
-    public ReadOnlyMemory<KeyValuePair<string, string>> Attributes { get; }
+    public KeyValuePair<string, string>[] Attributes { get; }
 
     public OtlpMeter(InstrumentationScope scope, TelemetryLimitOptions options)
     {

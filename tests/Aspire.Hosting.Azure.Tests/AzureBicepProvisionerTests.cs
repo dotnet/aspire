@@ -2,13 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
-using Aspire.Hosting.Azure;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Xunit;
 
-namespace Aspire.Hosting.Tests.Azure;
+namespace Aspire.Hosting.Azure.Tests;
 
 public class AzureBicepProvisionerTests
 {
@@ -32,10 +32,12 @@ public class AzureBicepProvisionerTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
+        builder.Configuration["Parameters:param"] = "paramValue";
+
         var connectionStringResource = builder.CreateResourceBuilder(
             new ResourceWithConnectionString("A", "connection string"));
 
-        var param = builder.AddParameter("param", _ => "paramValue");
+        var param = builder.AddParameter("param");
 
         var bicep0 = builder.AddBicepTemplateString("bicep0", "param name string")
                .WithParameter("name", "john")
