@@ -307,7 +307,12 @@ window.registerOpenTextVisualizerOnClick = function(layout) {
 
         if (e.target.tagName.toLowerCase() === "fluent-menu-item" && text && description) {
             e.stopPropagation();
-            layout.invokeMethodAsync("OpenTextVisualizerAsync", text, description);
+
+            // data-text may be larger than the max Blazor message size limit for very large strings
+            // we have to stream it
+            const textAsArray = new TextEncoder().encode(text);
+            const textAsStream = DotNet.createJSStreamReference(textAsArray);
+            layout.invokeMethodAsync("OpenTextVisualizerAsync", textAsStream, description);
         }
     }
 
