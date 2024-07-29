@@ -62,7 +62,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           ILogger<DistributedApplication> distributedApplicationLogger,
                                           DistributedApplicationModel model,
                                           IKubernetesService kubernetesService,
-                                          IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks,
+                                          ILifecycleEventPublisher lifecycleEventPublisher,
                                           IConfiguration configuration,
                                           DistributedApplicationOptions distributedApplicationOptions,
                                           IOptions<DcpOptions> options,
@@ -83,7 +83,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private readonly DistributedApplicationModel _model = model;
     private readonly Dictionary<string, IResource> _applicationModel = model.Resources.ToDictionary(r => r.Name);
     private readonly ILookup<IResource?, IResourceWithParent> _parentChildLookup = GetParentChildLookup(model);
-    private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks = lifecycleHooks.ToArray();
     private readonly DistributedApplicationOptions _distributedApplicationOptions = distributedApplicationOptions;
     private readonly IOptions<DcpOptions> _options = options;
     private readonly DistributedApplicationExecutionContext _executionContext = executionContext;
@@ -129,10 +128,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
 
-            foreach (var lifecycleHook in _lifecycleHooks)
-            {
-                await lifecycleHook.AfterResourcesCreatedAsync(_model, cancellationToken).ConfigureAwait(false);
-            }
+            var lifecycleEvent = new AfterResourcesCreatedLifecycleEvent(_model);
+            await lifecycleEventPublisher.PublishAsync(lifecycleEvent, cancellationToken).ConfigureAwait(false);
         }
         catch
         {
@@ -886,10 +883,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         var toCreate = _appResources.Where(r => r.DcpResource is Container || r.DcpResource is Executable || r.DcpResource is ExecutableReplicaSet);
         AddAllocatedEndpointInfo(toCreate);
 
-        foreach (var lifecycleHook in _lifecycleHooks)
-        {
-            await lifecycleHook.AfterEndpointsAllocatedAsync(_model, cancellationToken).ConfigureAwait(false);
-        }
+        var lifecycleEvent = new AfterEndpointsAllocatedLifecycleEvent(_model);
+        await lifecycleEventPublisher.PublishAsync(lifecycleEvent, cancellationToken).ConfigureAwait(false);
 
         var containersTask = CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container), cancellationToken);
         var executablesTask = CreateExecutablesAsync(toCreate.Where(ar => ar.DcpResource is Executable || ar.DcpResource is ExecutableReplicaSet), cancellationToken);
