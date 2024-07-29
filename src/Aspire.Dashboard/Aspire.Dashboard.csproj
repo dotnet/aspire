@@ -49,6 +49,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="Aspire.Dashboard.Model.BrowserStorage" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Update="Resources\ControlsStrings.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
