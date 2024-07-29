@@ -14,7 +14,8 @@ else if (DisplayedEndpoints.Count > 1)
                 var displayedEndpoint = DisplayedEndpoints[i];
                 var isLast = i == DisplayedEndpoints.Count - 1;
 
-                <FluentOverflowItem Data="displayedEndpoint">
+                 // Always display the first item by setting a fixed value.
+                <FluentOverflowItem Data="displayedEndpoint" Fixed="@((i == 0) ? OverflowItemFixed.Ellipsis : OverflowItemFixed.None)">
                     @WriteEndpoint(displayedEndpoint)
 
                     @if (!isLast)
