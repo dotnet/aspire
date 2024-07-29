@@ -8,7 +8,6 @@ using Xunit.Abstractions;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NATS.Client.Core;
 using NATS.Client.JetStream;
@@ -26,12 +25,13 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(2) })
-            .Build();
+                            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<NatsException>() })
+                            .Build();
 
         var builder = CreateDistributedApplicationBuilder();
 
-        var nats = builder.AddNats("nats");
+        var nats = builder.AddNats("nats")
+            .WithJetStream();
 
         using var app = builder.Build();
 
@@ -39,12 +39,15 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var hb = Host.CreateApplicationBuilder();
 
-        hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        hb.Configuration[$"ConnectionStrings:{nats.Resource.Name}"] = await nats.Resource.ConnectionStringExpression.GetValueAsync(default);
+
+        hb.AddNatsClient("nats", configureOptions: opts =>
         {
-            [$"ConnectionStrings:{nats.Resource.Name}"] = await nats.Resource.ConnectionStringExpression.GetValueAsync(default)
+            var jsonRegistry = new NatsJsonContextSerializerRegistry(AppJsonContext.Default);
+            return opts with { SerializerRegistry = jsonRegistry };
         });
 
-        hb.AddNatsClient(nats.Resource.Name);
+        hb.AddNatsJetStream();
 
         using var host = hb.Build();
 
@@ -52,9 +55,10 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await pipeline.ExecuteAsync(async token =>
         {
-            var natsConnection = host.Services.GetRequiredService<INatsConnection>();
+            var jetStream = host.Services.GetRequiredService<INatsJSContext>();
 
-            var rtt = await natsConnection.PingAsync(token);
+            await CreateTestData(jetStream, token);
+            await ConsumeTestData(jetStream, token);
         }, cts.Token);
     }
 
@@ -65,6 +69,9 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        var pipeline = new ResiliencePipelineBuilder()
+                            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<NatsException>() })
+                            .Build();
         string? volumeName = null;
         string? bindMountPath = null;
 
@@ -96,10 +103,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-                    {
-                        [$"ConnectionStrings:{nats1.Resource.Name}"] = await nats1.Resource.ConnectionStringExpression.GetValueAsync(default)
-                    });
+                    hb.Configuration[$"ConnectionStrings:{nats1.Resource.Name}"] = await nats1.Resource.ConnectionStringExpression.GetValueAsync(default);
 
                     hb.AddNatsClient("nats", configureOptions: opts =>
                     {
@@ -112,10 +116,6 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
-
-                        var pipeline = new ResiliencePipelineBuilder()
-                            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<NatsException>() })
-                            .Build();
 
                         await pipeline.ExecuteAsync(async token =>
                         {
@@ -153,11 +153,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-                    {
-                        [$"ConnectionStrings:{nats2.Resource.Name}"] = await nats2.Resource.ConnectionStringExpression.GetValueAsync(default)
-                    });
-
+                    hb.Configuration[$"ConnectionStrings:{nats2.Resource.Name}"] = await nats2.Resource.ConnectionStringExpression.GetValueAsync(default);
                     hb.AddNatsClient("nats", configureOptions: opts =>
                     {
                         var jsonRegistry = new NatsJsonContextSerializerRegistry(AppJsonContext.Default);
@@ -170,9 +166,6 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
-                        var pipeline = new ResiliencePipelineBuilder()
-                            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<NatsException>() })
-                            .Build();
                         await pipeline.ExecuteAsync(async token =>
                         {
                             var jetStream = host.Services.GetRequiredService<INatsJSContext>();
@@ -217,7 +210,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
         await foreach (var msg in consumer.ConsumeAsync<AppEvent>(cancellationToken: token))
         {
             events.Add(msg.Data!);
-
+            await msg.AckAsync(cancellationToken: token);
             if (msg.Metadata?.NumPending == 0)
             {
                 break;
