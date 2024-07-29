@@ -345,13 +345,11 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
         try
         {
-            var lifecycleHooks = _host.Services.GetServices<IDistributedApplicationLifecycleHook>();
+            var lifecycleEventPublisher = _host.Services.GetRequiredService<ILifecycleEventPublisher>();
             var appModel = _host.Services.GetRequiredService<DistributedApplicationModel>();
 
-            foreach (var lifecycleHook in lifecycleHooks)
-            {
-                await lifecycleHook.BeforeStartAsync(appModel, cancellationToken).ConfigureAwait(false);
-            }
+            var beforeStartEvent = new BeforeStartLifecycleEvent(appModel);
+            await lifecycleEventPublisher.PublishAsync(beforeStartEvent, cancellationToken).ConfigureAwait(false);
         }
         finally
         {

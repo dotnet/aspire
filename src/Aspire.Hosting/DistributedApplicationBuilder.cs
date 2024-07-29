@@ -203,6 +203,21 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                     );
                 }
 
+                // Lifecycle event pub/sub.
+                _innerBuilder.Services.AddSingleton<ILifecycleEventPublisher, LifecycleEventPublisher>();
+
+                // ... replace direct calls to BeforeStartAync(...);
+                _innerBuilder.Services.AddSingleton<ILifecycleEventDispatcher<BeforeStartLifecycleEvent>, BeforeStartLifecycleEventHandler>();
+                _innerBuilder.Services.AddSingleton<ILifecycleEventSubscriber<BeforeStartLifecycleEvent>, LegacyBeforeStartLifecycleHookSubscriber>();
+
+                // ... replace direct calls to AfterEndpointsAllocatedAync(...);
+                _innerBuilder.Services.AddSingleton<ILifecycleEventDispatcher<AfterEndpointsAllocatedLifecycleEvent>, AfterEndpointsAllocatedLifecycleEventHandler>();
+                _innerBuilder.Services.AddSingleton<ILifecycleEventSubscriber<AfterEndpointsAllocatedLifecycleEvent>, LegacyAfterEndpointsAllocatedLifecycleHookSubscriber>();
+
+                // ... replace direct calls to AfterResourcesCreatedAync(...);
+                _innerBuilder.Services.AddSingleton<ILifecycleEventDispatcher<AfterResourcesCreatedLifecycleEvent>, AfterResourcesCreatedLifecycleEventHandler>();
+                _innerBuilder.Services.AddSingleton<ILifecycleEventSubscriber<AfterResourcesCreatedLifecycleEvent>, LegacyAfterResourcesCreatedLifecycleHookSubscriber>();
+
                 _innerBuilder.Services.AddOptions<TransportOptions>().ValidateOnStart().PostConfigure(MapTransportOptionsFromCustomKeys);
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<TransportOptions>, TransportOptionsValidator>());
                 _innerBuilder.Services.AddSingleton<DashboardServiceHost>();
