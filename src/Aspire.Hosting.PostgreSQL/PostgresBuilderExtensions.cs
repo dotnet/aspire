@@ -139,9 +139,10 @@ public static class PostgresBuilderExtensions
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// var postgres = builder.AddPostgres("postgres");
-    /// var db = postgres.AddDatabase("db")
-    ///   .WithPgWeb();  
+    /// var postgres = builder.AddPostgres("postgres")
+    ///    .WithPgWeb();
+    /// var db = postgres.AddDatabase("db");
+    ///   
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithReference(db);
     ///  

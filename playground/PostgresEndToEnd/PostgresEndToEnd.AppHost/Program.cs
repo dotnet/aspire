@@ -25,8 +25,8 @@ builder.Configuration["Parameters:pass"] = "p!ssw0rd1";
 
 var pass = builder.AddParameter("pass");
 
-var db11 = builder.AddPostgres("pg11",password: pass).AddDatabase("postgres").WithPgWeb();
-var db12 = builder.AddPostgres("pg12").AddDatabase("db12").WithPgWeb();
+var db11 = builder.AddPostgres("pg11", password: pass).WithPgWeb().AddDatabase("postgres");
+var db12 = builder.AddPostgres("pg12").WithPgWeb().AddDatabase("db12");
 
 builder.AddProject<Projects.PostgresEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()
