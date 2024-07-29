@@ -4,7 +4,7 @@
 using Aspire.Hosting.Azure.Utils;
 using Xunit;
 
-namespace Aspire.Hosting.Tests.Azure;
+namespace Aspire.Hosting.Azure.Tests;
 
 public class ResourceGroupNameHelpersTests
 {

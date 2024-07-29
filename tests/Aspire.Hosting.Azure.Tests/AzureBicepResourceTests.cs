@@ -4,7 +4,7 @@
 #pragma warning disable AZPROVISION001 // Because we are testing CDK callbacks.
 
 using System.Text.Json.Nodes;
-using Aspire.Hosting.Azure;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
@@ -19,7 +19,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Aspire.Hosting.Tests.Azure;
+namespace Aspire.Hosting.Azure.Tests;
 
 public class AzureBicepResourceTests(ITestOutputHelper output)
 {
@@ -732,7 +732,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         appInsights.Resource.Outputs["appInsightsConnectionString"] = "myinstrumentationkey";
 
-        var serviceA = builder.AddProject<ProjectA>("serviceA")
+        var serviceA = builder.AddProject<ProjectA>("serviceA", o => o.ExcludeLaunchProfile = true)
             .WithReference(appInsights);
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(serviceA.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
@@ -2897,7 +2897,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var ai = builder.AddAzureApplicationInsights("ai").PublishAsConnectionString();
         var serviceBus = builder.AddAzureServiceBus("servicebus").PublishAsConnectionString();
 
-        var serviceA = builder.AddProject<ProjectA>("serviceA")
+        var serviceA = builder.AddProject<ProjectA>("serviceA", o => o.ExcludeLaunchProfile = true)
             .WithReference(ai)
             .WithReference(serviceBus);
 
@@ -3113,7 +3113,5 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     private sealed class ProjectA : IProjectMetadata
     {
         public string ProjectPath => "projectA";
-
-        public LaunchSettings LaunchSettings { get; } = new();
     }
 }
