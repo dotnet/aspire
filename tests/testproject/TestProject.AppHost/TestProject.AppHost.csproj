@@ -13,7 +13,6 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CosmosDB" IsAspireProjectResource="false" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.EventHubs" IsAspireProjectResource="false" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Garnet" IsAspireProjectResource="false" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.MongoDB" IsAspireProjectResource="false" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.MySql" IsAspireProjectResource="false" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.NodeJs" IsAspireProjectResource="false" />
