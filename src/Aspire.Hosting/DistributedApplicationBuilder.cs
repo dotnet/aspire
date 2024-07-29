@@ -260,8 +260,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             { "--publisher", "Publishing:Publisher" },
             { "--output-path", "Publishing:OutputPath" },
             { "--dcp-cli-path", "DcpPublisher:CliPath" },
-            { "--container-runtime", "DcpPublisher:ContainerRuntime" },
-            { "--dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },
+            { "--dcp-container-runtime", "DcpPublisher:ContainerRuntime" },
+            { "--dcp-dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },
+            { "--dcp-dashboard-path", "DcpPublisher:DashboardPath" },
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
         _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
