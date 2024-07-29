@@ -150,7 +150,6 @@ public class QdrantPublicApiTests
     [Fact]
     public void CtorQdrantServerResourceShouldThrowsWhenApiKeyIsNull()
     {
-        var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
         const string name = "Qdrant";
         ParameterResource apiKey = null!;
 
