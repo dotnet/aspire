@@ -95,11 +95,6 @@ public class TestProgram : IDisposable
                     .WithImageRegistry(AspireTestContainerRegistry);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(redis);
             }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
-            {
-                var garnet = AppBuilder.AddGarnet("garnet");
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(garnet);
-            }
             if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
             {
                 var postgresDbName = "postgresdb";
