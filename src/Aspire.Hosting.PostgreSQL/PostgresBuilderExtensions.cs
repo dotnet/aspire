@@ -129,8 +129,11 @@ public static class PostgresBuilderExtensions
     }
 
     /// <summary>
-    /// Adds an administration and development platform for PostgreSQL to the application model using pgweb. This version the package defaults to the 2.3-latest tag of the latest container image
+    /// Adds an administration and development platform for PostgreSQL to the application model using pgweb.
     /// </summary>
+    /// <param name="builder">The Postgres server resource builder.</param>
+    /// <param name="configureContainer">Configuration callback for pgweb container resource.</param>
+    /// <param name="containerName">The name of the container (Optional).</param>
     /// <example>
     /// Use in application host with a Postgres resource
     /// <code lang="csharp">
@@ -145,16 +148,16 @@ public static class PostgresBuilderExtensions
     /// builder.Build().Run(); 
     /// </code>
     /// </example>
-    /// <param name="builder">The Postgres server resource builder.</param>
-    /// <param name="configureContainer">Configuration callback for pgweb container resource.</param>
-    /// <param name="containerName">The name of the container (Optional).</param>
+    /// <remarks>
+    /// This version the package defaults to the latest tag of the sosedoff/pgweb container image.
+    /// </remarks>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithPgWeb<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<PgWebContainerResource>>? configureContainer = null, string? containerName = null) where T : PostgresDatabaseResource
+    public static IResourceBuilder<T> WithPgWeb<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<PgWebContainerResource>>? configureContainer = null, string? containerName = null) where T : PostgresServerResource
     {
 
-        if (builder.ApplicationBuilder.Resources.OfType<PgWebContainerResource>().SingleOrDefault() is { } existingPgAdminResource)
+        if (builder.ApplicationBuilder.Resources.OfType<PgWebContainerResource>().SingleOrDefault() is { } existingPgWebResource)
         {
-            var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingPgAdminResource);
+            var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingPgWebResource);
             configureContainer?.Invoke(builderForExistingResource);
             return builder;
         }
@@ -164,11 +167,10 @@ public static class PostgresBuilderExtensions
 
             containerName ??= $"{builder.Resource.Name}-pgweb";
             var dir = Directory.CreateTempSubdirectory().FullName;
-            Console.WriteLine("pgweg bookmars {0}", dir);
             var pgwebContainer = new PgWebContainerResource(containerName);
             var pgwebContainerBuilder = builder.ApplicationBuilder.AddResource(pgwebContainer)
-                                               .WithImage(PostgresContainerImageTags.PgwebImage, PostgresContainerImageTags.PgwebTag)
-                                               .WithImageRegistry(PostgresContainerImageTags.PgwebRegistry)
+                                               .WithImage(PostgresContainerImageTags.PgWebImage, PostgresContainerImageTags.PgWebTag)
+                                               .WithImageRegistry(PostgresContainerImageTags.PgWebRegistry)
                                                .WithHttpEndpoint(targetPort: 8081, name: "http")
                                                .WithBindMount(dir, "/.pgweb/bookmarks")
                                                .WithArgs("--bookmarks-dir=/.pgweb/bookmarks")
@@ -177,7 +179,6 @@ public static class PostgresBuilderExtensions
 
             configureContainer?.Invoke(pgwebContainerBuilder);
             return builder;
-
         }
     }
 
