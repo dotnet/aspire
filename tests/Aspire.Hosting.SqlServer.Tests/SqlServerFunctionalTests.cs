@@ -66,7 +66,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    [SkipOnCI("https://github.com/dotnet/aspire/issues/5055")]
+    //[SkipOnCI("https://github.com/dotnet/aspire/issues/5055")]
     [RequiresDocker]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
@@ -83,7 +83,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         {
             var builder1 = CreateDistributedApplicationBuilder();
 
-            var password = "P@ssw0rd1";
+            var password = "p@ssw0rd1";
 
             var passwordParameter = builder1.AddParameter("pwd");
             builder1.Configuration["Parameters:pwd"] = password;
@@ -103,7 +103,8 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             }
             else
             {
-                bindMountPath = Directory.CreateTempSubdirectory().FullName;
+                bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                Directory.CreateDirectory(bindMountPath);
                 sqlserver1.WithDataBindMount(bindMountPath);
             }
 
