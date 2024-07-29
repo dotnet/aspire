@@ -17,7 +17,7 @@ if (firstUndefinedElement) {
 // Register a global click event listener to handle copy button clicks.
 // Required because an "onclick" attribute is denied by CSP.
 document.addEventListener("click", function (e) {
-    if (e.target.tagName.toLowerCase() === "fluent-menu-item" && e.target.getAttribute("data-copybutton")) {
+    if ((e.target.tagName.toLowerCase() === "fluent-menu-item" || e.target.tagName.toLowerCase() === "fluent-button") && e.target.getAttribute("data-copybutton")) {
         buttonCopyTextToClipboard(e.target);
         e.stopPropagation();
     }

@@ -1,7 +1,9 @@
-﻿@using Aspire.Dashboard.Model
+﻿@using Aspire.Dashboard.Extensions
+@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
 
 @inject IStringLocalizer<Dialogs> Loc
+@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 @implements IDialogContentComponent<Aspire.Dashboard.Model.TextVisualizerDialogViewModel>
 
 <FluentDialogHeader ShowDismiss="true">
@@ -11,52 +13,66 @@
             @Content.Description
         </FluentLabel>
 
-        <FluentButton id="@_openSelectFormatButtonId" slot="end"
-                      Style="margin-left: auto"
-                      Appearance="@(_selectedOption == PlaintextFormat ? Appearance.Stealth : Appearance.Accent)"
-                      IconEnd="@(new Icons.Regular.Size24.SlideTextEdit())"
-                      @onclick="() => _isSelectFormatPopupOpen = !_isSelectFormatPopupOpen"
-                      Title="@Loc[nameof(Dialogs.TextVisualizerSelectFormatType)]"
-                      aria-label="@Loc[nameof(Dialogs.TextVisualizerSelectFormatType)]"/>
-
-        <FluentPopover AnchorId="@_openSelectFormatButtonId"
-                       @bind-Open="@_isSelectFormatPopupOpen"
-                       AutoFocus="true">
-            <Body>
-                <FluentRadioGroup aria-labelledby="@_openSelectFormatButtonId"
-                                  @bind-Value="_selectedOption"
-                                  @bind-Value:after="@OnFormatOptionChanged"
-                                  Orientation="Orientation.Vertical">
-                    @foreach (var option in _options)
-                    {
-                        <FluentRadio Disabled="@(!_enabledOptions.Contains(option.Id))" Value="@option.Id">@option.Name</FluentRadio>
-                    }
-                </FluentRadioGroup>
-            </Body>
-        </FluentPopover>
+        <div style="margin-left: auto">
+            <FluentMenuButton id="@_openSelectFormatButtonId" slot="end"
+                              ButtonAppearance="Appearance.Stealth"
+                              IconEnd="@(new Icons.Regular.Size24.SlideTextEdit())"
+                              Text="@Loc[nameof(Dialogs.TextVisualizerSelectFormatType)]"
+                              aria-label="@Loc[nameof(Dialogs.TextVisualizerSelectFormatType)]"
+                              OnMenuChanged="@OnFormatOptionChanged">
+                @foreach (var option in _options)
+                {
+                    <FluentMenuItem Id="@option.Id" Disabled="@(!_enabledOptions.Contains(option.Id))" Value="@option.Id">@option.Name</FluentMenuItem>
+                }
+            </FluentMenuButton>
+        </div>
     </FluentStack>
 </FluentDialogHeader>
 
 <FluentDialogBody>
     <div class="log-overflow">
-        <div class="log-container">
-            <Virtualize Items="@GetLines()" ItemSize="20" OverscanCount="100" TItem="ResourceLogLine">
+        <div class="log-container" id="test">
+            <Virtualize Items="@GetLines()" ItemSize="20" OverscanCount="100" TItem="StringLogLine">
                 <div class="log-line-row-container">
                     <div class="log-line-row">
-                    <span class="log-line-area">
-                        <span class="log-line-number text-visualizer-line-number">@context.LineNumber</span>
-                        <span class="log-content">
-                            @((MarkupString)(context.Content ?? string.Empty))
+                        <span class="log-line-area">
+                            <span class="log-line-number text-visualizer-line-number">@context.LineNumber</span>
+                            @if (context.IsFormatted)
+                            {
+                                <span class="@GetLogContentClass()">
+                                    @context.Content
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="log-content">
+                                    @context.Content
+                                </span>
+                            }
                         </span>
-                    </span>
                     </div>
                 </div>
             </Virtualize>
         </div>
+
+        <FluentButton
+            Id="@_copyButtonId"
+            Class="text-visualizer-copy-button"
+            AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(Content.Text, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
+        <span slot="start">
+            <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
+            <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
+        </span>
+
+            @ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)]
+        </FluentButton>
     </div>
 </FluentDialogBody>
 
 <FluentDialogFooter Visible="false" />
+
+<link rel="stylesheet" href="css/highlight-11.10.0-default.min.css" />
+<script src="js/highlight-11.10.0.min.js"></script>
 
 @code {
     [Parameter, EditorRequired]

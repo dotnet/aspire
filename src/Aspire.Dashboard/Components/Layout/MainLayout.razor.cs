@@ -258,8 +258,8 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         var parameters = new DialogParameters
         {
             Title = valueDescription,
-            Width = ViewportInformation.IsDesktop ? "60vw" : "100vw",
-            Height = ViewportInformation.IsDesktop ? "60vh" : "100vh",
+            Width = ViewportInformation.IsDesktop ? "75vw" : "100vw",
+            Height = ViewportInformation.IsDesktop ? "75vh" : "100vh",
             TrapFocus = true,
             Modal = true,
             PreventScroll = true,

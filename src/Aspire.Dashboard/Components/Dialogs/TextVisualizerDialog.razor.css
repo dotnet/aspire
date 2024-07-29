@@ -1,3 +1,14 @@
 ::deep .text-visualizer-line-number {
     user-select: none;
 }
+
+::deep .text-visualizer-copy-button {
+    position: absolute;
+    right: calc(var(--design-unit) * 4px);
+    bottom: calc(var(--design-unit) * 4px);
+}
+
+::deep .highlight-line {
+    width: 100%;
+    background: transparent;
+}
