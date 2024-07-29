@@ -1,13 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Nats;
 using Aspire.Hosting.Utils;
 using System.Net.Sockets;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.Tests.Nats;
+namespace Aspire.Hosting.Nats.Tests;
 
 public class AddNatsTests
 {
