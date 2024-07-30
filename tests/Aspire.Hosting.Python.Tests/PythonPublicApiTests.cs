@@ -10,7 +10,7 @@ public class PythonPublicApiTests
     #region PythonProjectResource
 
     [Fact]
-    public void CtorPythonProjectResourceShouldThrowsWhenNameIsNull()
+    public void CtorPythonProjectResourceShouldThrowWhenNameIsNull()
     {
         string name = null!;
         const string executablePath = "/src/python";
@@ -26,7 +26,7 @@ public class PythonPublicApiTests
     }
 
     [Fact]
-    public void CtorPythonProjectResourceShouldThrowsWhenExecutablePathIsNull()
+    public void CtorPythonProjectResourceShouldThrowWhenExecutablePathIsNull()
     {
         const string name = "Python";
         string executablePath = null!;
@@ -42,7 +42,7 @@ public class PythonPublicApiTests
     }
 
     [Fact]
-    public void CtorPythonProjectResourceShouldThrowsWhenProjectDirectoryIsNull()
+    public void CtorPythonProjectResourceShouldThrowWhenProjectDirectoryIsNull()
     {
         const string name = "Python";
         const string executablePath = "/src/python";
@@ -62,7 +62,7 @@ public class PythonPublicApiTests
     #region PythonProjectResourceBuilderExtensions
 
     [Fact]
-    public void AddPythonProjectShouldThrowsWhenBuilderIsNull()
+    public void AddPythonProjectShouldThrowWhenBuilderIsNull()
     {
         IDistributedApplicationBuilder builder = null!;
         const string name = "Python";
@@ -84,7 +84,7 @@ public class PythonPublicApiTests
     }
 
     [Fact]
-    public void AddPythonProjectShouldThrowsWhenNameIsNull()
+    public void AddPythonProjectShouldThrowWhenNameIsNull()
     {
         var builder = DistributedApplication.CreateBuilder();
         string name = null!;
@@ -106,7 +106,7 @@ public class PythonPublicApiTests
     }
 
     [Fact]
-    public void AddPythonProjectShouldThrowsWhenProjectDirectoryIsNull()
+    public void AddPythonProjectShouldThrowWhenProjectDirectoryIsNull()
     {
         var builder = DistributedApplication.CreateBuilder();
         const string name = "Python";
@@ -128,7 +128,7 @@ public class PythonPublicApiTests
     }
 
     [Fact]
-    public void AddPythonProjectShouldThrowsWhenScriptPathIsNull()
+    public void AddPythonProjectShouldThrowWhenScriptPathIsNull()
     {
         var builder = DistributedApplication.CreateBuilder();
         const string name = "Python";
@@ -150,7 +150,7 @@ public class PythonPublicApiTests
     }
 
     [Fact]
-    public void AddPythonProjectShouldThrowsWhenScriptArgsIsNull()
+    public void AddPythonProjectShouldThrowWhenScriptArgsIsNull()
     {
         var builder = DistributedApplication.CreateBuilder();
         const string name = "Python";
@@ -172,7 +172,7 @@ public class PythonPublicApiTests
     }
 
     [Fact]
-    public void AddPythonProjectWithVirtualEnvironmentPathShouldThrowsWhenBuilderIsNull()
+    public void AddPythonProjectWithVirtualEnvironmentPathShouldThrowWhenBuilderIsNull()
     {
         IDistributedApplicationBuilder builder = null!;
         const string name = "Python";
@@ -196,7 +196,7 @@ public class PythonPublicApiTests
     }
 
     [Fact]
-    public void AddPythonProjectWithVirtualEnvironmentPathShouldThrowsWhenNameIsNull()
+    public void AddPythonProjectWithVirtualEnvironmentPathShouldThrowWhenNameIsNull()
     {
         var builder = DistributedApplication.CreateBuilder();
         string name = null!;
@@ -220,7 +220,7 @@ public class PythonPublicApiTests
     }
 
     [Fact]
-    public void AddPythonProjectWithVirtualEnvironmentPathShouldThrowsWhenProjectDirectoryIsNull()
+    public void AddPythonProjectWithVirtualEnvironmentPathShouldThrowWhenProjectDirectoryIsNull()
     {
         var builder = DistributedApplication.CreateBuilder();
         const string name = "Python";
@@ -244,7 +244,7 @@ public class PythonPublicApiTests
     }
 
     [Fact]
-    public void AddPythonProjectWithVirtualEnvironmentPathShouldThrowsWhenScriptPathIsNull()
+    public void AddPythonProjectWithVirtualEnvironmentPathShouldThrowWhenScriptPathIsNull()
     {
         var builder = DistributedApplication.CreateBuilder();
         const string name = "Python";
@@ -268,7 +268,7 @@ public class PythonPublicApiTests
     }
 
     [Fact]
-    public void AddPythonProjectWithVirtualEnvironmentPathShouldThrowsWhenVirtualEnvironmentPathIsNull()
+    public void AddPythonProjectWithVirtualEnvironmentPathShouldThrowWhenVirtualEnvironmentPathIsNull()
     {
         var builder = DistributedApplication.CreateBuilder();
         const string name = "Python";
@@ -292,7 +292,7 @@ public class PythonPublicApiTests
     }
 
     [Fact]
-    public void AddPythonProjectWithVirtualEnvironmentPathShouldThrowsWhenScriptArgsIsNull()
+    public void AddPythonProjectWithVirtualEnvironmentPathShouldThrowWhenScriptArgsIsNull()
     {
         var builder = DistributedApplication.CreateBuilder();
         const string name = "Python";
