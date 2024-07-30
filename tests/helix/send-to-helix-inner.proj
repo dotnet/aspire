@@ -108,6 +108,7 @@
 
   <ItemGroup Condition="'$(HasDocker)' == 'true'">
     <HelixPreCommand Include="docker info" />
+    <HelixPreCommand Include="docker image ls" />
     <HelixPreCommand Include="docker ps" />
     <HelixPreCommand Include="docker container ls --all" />
     <HelixPreCommand Include="$(_ShutdownDockerContainersCommand)" />
@@ -118,6 +119,7 @@
     <HelixPostCommand Include="$(_ShutdownDockerContainersCommand)" />
     <HelixPostCommand Include="docker volume ls" />
     <HelixPostCommand Include="$(_DeleteDockerVolumesCommand)" />
+    <HelixPostCommand Include="docker image ls" />
   </ItemGroup>
 
   <ItemGroup>
