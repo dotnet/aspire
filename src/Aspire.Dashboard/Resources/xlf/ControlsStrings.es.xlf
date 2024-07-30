@@ -238,8 +238,8 @@
         <note>{0} is a resource name, {1} is a replica set name</note>
       </trans-unit>
       <trans-unit id="SelectAResource">
-        <source>Select a resource</source>
-        <target state="translated">Seleccionar un recurso</target>
+        <source>Resource</source>
+        <target state="needs-review-translation">Seleccionar un recurso</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">

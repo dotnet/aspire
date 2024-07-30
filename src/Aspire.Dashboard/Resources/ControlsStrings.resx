@@ -255,7 +255,7 @@
     <value>No metrics data found</value>
   </data>
   <data name="SelectAResource" xml:space="preserve">
-    <value>Select a resource</value>
+    <value>Resource</value>
   </data>
   <data name="TimeOffsetColumnHeader" xml:space="preserve">
     <value>Time offset</value>
