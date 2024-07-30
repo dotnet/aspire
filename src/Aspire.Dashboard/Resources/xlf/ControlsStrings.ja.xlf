@@ -7,6 +7,11 @@
         <target state="translated">すべて</target>
         <note />
       </trans-unit>
+      <trans-unit id="ApplicationLower">
+        <source>application</source>
+        <target state="new">application</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ChartContainerAllTags">
         <source>All tags</source>
         <target state="translated">すべてのタグ</target>
@@ -215,11 +220,6 @@
       <trans-unit id="PropertyGridValueColumnHeader">
         <source>Value</source>
         <target state="translated">値</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ReplicaSetLower">
-        <source>replica set</source>
-        <target state="translated">レプリカ セット</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointsHeader">

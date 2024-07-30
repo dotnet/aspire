@@ -7,6 +7,11 @@
         <target state="translated">全部</target>
         <note />
       </trans-unit>
+      <trans-unit id="ApplicationLower">
+        <source>application</source>
+        <target state="new">application</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ChartContainerAllTags">
         <source>All tags</source>
         <target state="translated">所有標籤</target>
@@ -215,11 +220,6 @@
       <trans-unit id="PropertyGridValueColumnHeader">
         <source>Value</source>
         <target state="translated">值</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ReplicaSetLower">
-        <source>replica set</source>
-        <target state="translated">複本集</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointsHeader">
