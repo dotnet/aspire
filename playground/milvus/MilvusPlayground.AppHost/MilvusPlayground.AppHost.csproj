@@ -14,8 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" IsAspireProjectResource="False" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Milvus" IsAspireProjectResource="False" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Milvus" />
     <ProjectReference Include="..\MilvusPlayground.ApiService\MilvusPlayground.ApiService.csproj" />
   </ItemGroup>
 
