@@ -150,7 +150,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     protected override async Task OnParametersSetAsync()
     {
-        if (!DimensionManager.IsResizing && PageViewModel.InitialisedSuccessfully is true)
+        if (DimensionManager.IsResizing && PageViewModel.InitialisedSuccessfully is true)
         {
             return;
         }
