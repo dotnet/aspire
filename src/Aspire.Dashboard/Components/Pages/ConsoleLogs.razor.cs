@@ -143,7 +143,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         {
             Debug.Assert(_resources is not null);
 
-            PageViewModel.SelectedOption = _resources.Single(option => option.Id?.Type is not OtlpApplicationType.ReplicaSet && string.Equals(ResourceName, option.Id?.InstanceId, StringComparison.Ordinal));
+            PageViewModel.SelectedOption = _resources.Single(option => option.Id?.Type is not OtlpApplicationType.ResourceGrouping && string.Equals(ResourceName, option.Id?.InstanceId, StringComparison.Ordinal));
             PageViewModel.SelectedResource = resource;
 
             Logger.LogDebug("Selected console resource from name {ResourceName}.", ResourceName);
@@ -182,34 +182,43 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         }
     }
 
-    private void UpdateResourcesList()
+    internal static ImmutableList<SelectViewModel<ResourceTypeDetails>> GetConsoleLogResourceSelectViewModels(
+        ConcurrentDictionary<string, ResourceViewModel> resourcesByName,
+        SelectViewModel<ResourceTypeDetails> noSelectionViewModel,
+        string resourceUnknownStateText)
     {
         var builder = ImmutableList.CreateBuilder<SelectViewModel<ResourceTypeDetails>>();
 
-        foreach (var resourceGroupsByApplicationName in _resourceByName
+        foreach (var grouping in resourcesByName
             .Where(r => !r.Value.IsHiddenState())
-            .OrderBy(c => c.Value.Name)
-            .GroupBy(r => r.Value.DisplayName, r => r.Value))
+            .OrderBy(c => c.Value.Name, StringComparers.ResourceName)
+            .GroupBy(r => r.Value.DisplayName, StringComparers.ResourceName))
         {
-            if (resourceGroupsByApplicationName.Count() > 1)
+            string applicationName;
+
+            if (grouping.Count() > 1)
             {
+                applicationName = grouping.Key;
+
                 builder.Add(new SelectViewModel<ResourceTypeDetails>
                 {
-                    Id = ResourceTypeDetails.CreateReplicaSet(resourceGroupsByApplicationName.Key),
-                    Name = resourceGroupsByApplicationName.Key
+                    Id = ResourceTypeDetails.CreateApplicationGrouping(applicationName, true),
+                    Name = applicationName
                 });
             }
-
-            foreach (var resource in resourceGroupsByApplicationName)
+            else
             {
-                builder.Add(ToOption(resource, resourceGroupsByApplicationName.Count() > 1, resourceGroupsByApplicationName.Key));
+                applicationName = grouping.First().Value.DisplayName;
+            }
+
+            foreach (var resource in grouping.Select(g => g.Value).OrderBy(r => r.Name, StringComparers.ResourceName))
+            {
+                builder.Add(ToOption(resource, grouping.Count() > 1, applicationName));
             }
         }
 
-        builder.Sort((r1, r2) => StringComparers.ResourceName.Compare(r1.Name, r2.Name));
-
-        builder.Insert(0, _noSelection);
-        _resources = builder.ToImmutableList();
+        builder.Insert(0, noSelectionViewModel);
+        return builder.ToImmutableList();
 
         SelectViewModel<ResourceTypeDetails> ToOption(ResourceViewModel resource, bool isReplica, string applicationName)
         {
@@ -225,11 +234,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             string GetDisplayText()
             {
-                var resourceName = ResourceViewModel.GetResourceName(resource, _resourceByName);
+                var resourceName = ResourceViewModel.GetResourceName(resource, resourcesByName);
 
                 if (resource.HasNoState())
                 {
-                    return $"{resourceName} ({Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)]})";
+                    return $"{resourceName} ({resourceUnknownStateText})";
                 }
 
                 if (resource.IsRunningState())
@@ -241,6 +250,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             }
         }
     }
+
+    private void UpdateResourcesList() => _resources = GetConsoleLogResourceSelectViewModels(_resourceByName, _noSelection, Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)]);
 
     private Task ClearLogsAsync()
     {
