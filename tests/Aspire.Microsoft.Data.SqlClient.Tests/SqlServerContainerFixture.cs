@@ -3,6 +3,7 @@
 
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting;
+using DotNet.Testcontainers.Builders;
 using Testcontainers.MsSql;
 using Xunit;
 
@@ -21,6 +22,7 @@ public sealed class SqlServerContainerFixture : IAsyncLifetime
         {
             Container = new MsSqlBuilder()
                             .WithImage($"{SqlServerContainerImageTags.Registry}/{SqlServerContainerImageTags.Image}:{SqlServerContainerImageTags.Tag}")
+                            .WithWaitStrategy(Wait.ForUnixContainer().UntilCommandIsCompleted("/opt/mssql-tools18/bin/sqlcmd", "-C", "-Q", "SELECT 1;")) // https://github.com/dotnet/aspire/issues/5057
                             .Build();
             await Container.StartAsync();
         }
