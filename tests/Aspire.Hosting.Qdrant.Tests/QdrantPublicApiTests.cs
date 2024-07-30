@@ -18,11 +18,8 @@ public class QdrantPublicApiTests
 
         var action = () => builder.AddQdrant(name);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(builder), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
@@ -33,11 +30,8 @@ public class QdrantPublicApiTests
 
         var action = () => builder.AddQdrant(name);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(name), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
     }
 
     [Fact]
@@ -47,11 +41,8 @@ public class QdrantPublicApiTests
 
         var action = () => builder.WithDataVolume();
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(builder), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
@@ -62,11 +53,8 @@ public class QdrantPublicApiTests
 
         var action = () => builder.WithDataBindMount(source);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(builder), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
@@ -81,11 +69,8 @@ public class QdrantPublicApiTests
 
         var action = () => builder.WithDataBindMount(source);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(source), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(source), exception.ParamName);
     }
 
     [Fact]
@@ -100,11 +85,8 @@ public class QdrantPublicApiTests
         
         var action = () => builder.WithReference(qdrantResource);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(builder), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
@@ -119,11 +101,8 @@ public class QdrantPublicApiTests
 
         var action = () => builder.WithReference(qdrantResource);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(qdrantResource), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(qdrantResource), exception.ParamName);
     }
 
     #endregion
@@ -140,11 +119,8 @@ public class QdrantPublicApiTests
 
         var action = () => new QdrantServerResource(name, apiKey);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(name), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
     }
 
     [Fact]
@@ -155,11 +131,8 @@ public class QdrantPublicApiTests
 
         var action = () => new QdrantServerResource(name, apiKey);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(apiKey), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(apiKey), exception.ParamName);
     }
 
     #endregion
