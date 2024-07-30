@@ -19,12 +19,18 @@ public class CreateResourceSelectModelsTests
         // Arrange
         var applications = new List<ResourceViewModel>
         {
-            CreateResourceViewModel("App1-r1", KnownResourceState.Running),
-            CreateResourceViewModel("App1-r2", null),
-            CreateResourceViewModel("App1-r1-same-display-name", KnownResourceState.Running, displayName: "App1-r1"), // we could have apps with the same name but different / no owner,
+            // replica set
+            CreateResourceViewModel("App1-r1", KnownResourceState.Running, displayName: "App1"),
+            CreateResourceViewModel("App1-r2", null, displayName: "App1"),
+
+            // singleton, starting state (should be listed in text)
             CreateResourceViewModel("App2", KnownResourceState.Starting),
-            CreateResourceViewModel("App3", KnownResourceState.Finished), // we won't show a grouping if there is only one app with an owner
-            CreateResourceViewModel("App1-same-owner-name", KnownResourceState.Running) // this should show up in its own grouping since its owner uid is different
+
+            // singleton, finished state (should be listed in text)
+            CreateResourceViewModel("App3", KnownResourceState.Finished),
+
+            // singleton, should not have state in text
+            CreateResourceViewModel("App4", KnownResourceState.Running)
         };
 
         var resourcesByName = new ConcurrentDictionary<string, ResourceViewModel>(applications.ToDictionary(app => app.Name));
@@ -73,22 +79,6 @@ public class CreateResourceSelectModelsTests
             {
                 Assert.NotNull(entry.Id);
                 Assert.Equal(OtlpApplicationType.Singleton, entry.Id.Type);
-                Assert.Equal("App1-r1-same-display-name", entry.Id.InstanceId);
-
-                Assert.Equal("App1-r1", entry.Name);
-            },
-            entry =>
-            {
-                Assert.NotNull(entry.Id);
-                Assert.Equal(OtlpApplicationType.Singleton, entry.Id.Type);
-                Assert.Equal("App1-same-owner-name", entry.Id.InstanceId);
-
-                Assert.Equal("App1-same-owner-name", entry.Name);
-            },
-            entry =>
-            {
-                Assert.NotNull(entry.Id);
-                Assert.Equal(OtlpApplicationType.Singleton, entry.Id.Type);
                 Assert.Equal("App2", entry.Id.InstanceId);
 
                 Assert.Equal("App2 (Starting)", entry.Name);
@@ -100,10 +90,18 @@ public class CreateResourceSelectModelsTests
                 Assert.Equal("App3", entry.Id.InstanceId);
 
                 Assert.Equal("App3 (Finished)", entry.Name);
-            }
-            );
+            },
+            entry =>
+            {
+                Assert.NotNull(entry.Id);
+                Assert.Equal(OtlpApplicationType.Singleton, entry.Id.Type);
+                Assert.Equal("App4", entry.Id.InstanceId);
+
+                Assert.Equal("App4", entry.Name);
+            });
     }
 
+    // display name will be replica set when there are multiple resources with the same display name
     private static ResourceViewModel CreateResourceViewModel(string appName, KnownResourceState? state, string? displayName = null)
     {
         return new ResourceViewModel
