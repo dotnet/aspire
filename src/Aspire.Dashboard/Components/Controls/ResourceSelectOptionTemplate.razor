@@ -6,7 +6,7 @@
 @inject IStringLocalizer<ControlsStrings> Loc
 
 <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="3">
-    @if (ViewModel.Id is { } typeDetails && typeDetails.Type is OtlpApplicationType.ResourceGrouping)
+    @if (ViewModel.Id?.Type is OtlpApplicationType.ResourceGrouping)
     {
         <FluentIcon Icon="Icons.Regular.Size20.AppsList"
                     Color="Color.Accent"
