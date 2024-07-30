@@ -11,7 +11,7 @@ public class QdrantPublicApiTests
     #region QdrantBuilderExtensions
 
     [Fact]
-    public void AddQdrantContainerShouldThrowsWhenBuilderIsNull()
+    public void AddQdrantContainerShouldThrowWhenBuilderIsNull()
     {
         IDistributedApplicationBuilder builder = null!;
         const string name = "Qdrant";
@@ -26,7 +26,7 @@ public class QdrantPublicApiTests
     }
 
     [Fact]
-    public void AddQdrantContainerShouldThrowsWhenNameIsNull()
+    public void AddQdrantContainerShouldThrowWhenNameIsNull()
     {
         var builder = DistributedApplication.CreateBuilder([]);
         string name = null!;
@@ -41,7 +41,7 @@ public class QdrantPublicApiTests
     }
 
     [Fact]
-    public void WithDataVolumeShouldThrowsWhenBuilderIsNull()
+    public void WithDataVolumeShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<QdrantServerResource> builder = null!;
 
@@ -55,7 +55,7 @@ public class QdrantPublicApiTests
     }
 
     [Fact]
-    public void WithDataBindMountShouldThrowsWhenBuilderIsNull()
+    public void WithDataBindMountShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<QdrantServerResource> builder = null!;
         const string source = "/qdrant/storage";
@@ -70,7 +70,7 @@ public class QdrantPublicApiTests
     }
 
     [Fact]
-    public void WithDataBindMountShouldThrowsWhenNameIsNull()
+    public void WithDataBindMountShouldThrowWhenNameIsNull()
     {
         var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
         const string name = "Qdrant";
@@ -89,7 +89,7 @@ public class QdrantPublicApiTests
     }
 
     [Fact]
-    public void WithReferenceShouldThrowsWhenBuilderIsNull()
+    public void WithReferenceShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<IResourceWithEnvironment> builder = null!;
         var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
@@ -108,7 +108,7 @@ public class QdrantPublicApiTests
     }
 
     [Fact]
-    public void WithReferenceShouldThrowsWhenQdrantResourceIsNull()
+    public void WithReferenceShouldThrowWhenQdrantResourceIsNull()
     {
         var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
         const string name = "Qdrant";
@@ -131,7 +131,7 @@ public class QdrantPublicApiTests
     #region QdrantServerResource
 
     [Fact]
-    public void CtorQdrantServerResourceShouldThrowsWhenNameIsNull()
+    public void CtorQdrantServerResourceShouldThrowWhenNameIsNull()
     {
         var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
         string name = null!;
@@ -148,7 +148,7 @@ public class QdrantPublicApiTests
     }
 
     [Fact]
-    public void CtorQdrantServerResourceShouldThrowsWhenApiKeyIsNull()
+    public void CtorQdrantServerResourceShouldThrowWhenApiKeyIsNull()
     {
         const string name = "Qdrant";
         ParameterResource apiKey = null!;
