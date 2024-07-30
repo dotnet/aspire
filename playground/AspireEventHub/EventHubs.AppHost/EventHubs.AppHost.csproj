@@ -14,8 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" Condition="'$(BuildForTest)' != 'true'" />
-
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.EventHubs" IsAspireProjectResource="false" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" IsAspireProjectResource="false" />

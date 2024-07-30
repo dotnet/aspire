@@ -1,6 +1,10 @@
 <Project>
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
 
+  <ItemGroup Condition="'$(BuildForTest)' != 'true' and '$(IsAspireHost)' == 'true' and '$(SkipDashboardProjectReference)' != 'true'">
+    <ProjectReference Include="$(RepoRoot)src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
+  </ItemGroup>
+
   <!-- When $(BuildForTest)==true, importing Aspire.RepoTesting.targets is needed. But import
        only when in-repo. For the out-of-repo case a parent Directory.Build.targets does the import -->
   <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.targets" Condition="'$(RepoRoot)' != '' and '$(BuildForTest)' != 'true'" />

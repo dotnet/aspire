@@ -18,7 +18,6 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" IsAspireProjectResource="false" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.SignalR" IsAspireProjectResource="false" />
 
-    <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" Condition="'$(BuildForTest)' != 'true'" />
     <ProjectReference Include="..\SignalRWeb\SignalRWeb.csproj" />
   </ItemGroup>
 
