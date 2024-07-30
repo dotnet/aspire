@@ -13,9 +13,9 @@
     <Compile Include="$(SharedDir)KnownResourceNames.cs" Link="KnownResourceNames.cs" />
   </ItemGroup>
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.WebPubSub" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.WebPubSub" />
 
     <ProjectReference Include="..\WebPubSubWeb\WebPubSubWeb.csproj" />
   </ItemGroup>

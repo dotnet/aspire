@@ -13,8 +13,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.AWS" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AWS" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
 
     <ProjectReference Include="..\Frontend\Frontend.csproj" />
   </ItemGroup>

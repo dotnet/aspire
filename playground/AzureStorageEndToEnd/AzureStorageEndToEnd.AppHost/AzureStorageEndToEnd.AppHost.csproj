@@ -14,9 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
 
     <ProjectReference Include="..\AzureStorageEndToEnd.ApiService\AzureStorageEndToEnd.ApiService.csproj" />
   </ItemGroup>
