@@ -70,7 +70,7 @@ public class QdrantPublicApiTests
     }
 
     [Fact]
-    public void WithDataBindMountShouldThrowWhenNameIsNull()
+    public void WithDataBindMountShouldThrowWhenSourceIsNull()
     {
         var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
         const string name = "Qdrant";
