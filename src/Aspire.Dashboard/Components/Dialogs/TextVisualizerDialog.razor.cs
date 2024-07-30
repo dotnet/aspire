@@ -39,7 +39,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
             _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/Components/Dialogs/TextVisualizerDialog.razor.js");
         }
 
-        if (_jsModule is not null && !string.Equals(FormatKind, PlaintextFormat, StringComparison.Ordinal))
+        if (_jsModule is not null && FormatKind != PlaintextFormat)
         {
             await _jsModule.InvokeVoidAsync("connectObserver");
         }
@@ -84,7 +84,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
             lines.RemoveAt(0);
         }
 
-        return lines.Select((line, index) => new StringLogLine(index, line, FormatKind is not null)).ToList();
+        return lines.Select((line, index) => new StringLogLine(index, line, FormatKind != PlaintextFormat)).ToList();
     }
 
     private bool TryFormatXml()
