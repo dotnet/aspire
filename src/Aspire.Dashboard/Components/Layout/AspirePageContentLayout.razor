@@ -7,7 +7,7 @@
     <!-- Toolbar -->
     @if (ViewportInformation.IsDesktop)
     {
-        <div style="grid-area: page-header; @HeaderStyle">
+        <header style="grid-area: page-header; @HeaderStyle" aria-label="@ControlsStringsLoc[nameof(ControlsStrings.PageToolbarLandmark)]">
             @if (AddNewlineOnToolbar)
             {
                 @PageTitleSection
@@ -23,11 +23,11 @@
                     @ToolbarSection
                 </FluentToolbar>
             }
-        </div>
+        </header>
     }
     else if (!IsSummaryDetailsViewOpen)
     {
-        <div style="grid-area: page-header">
+        <header style="grid-area: page-header">
             <FluentToolbar Orientation="Orientation.Horizontal" Style="@HeaderStyle">
                 @PageTitleSection
 
@@ -41,27 +41,27 @@
             {
                 <div style="padding: calc(var(--design-unit) * 2.5px)">@MobilePageTitleToolbarSection</div>
             }
-        </div>
+        </header>
     }
 
     <!-- Main content -->
-    <div style="@(ViewportInformation.IsDesktop ? $"grid-area: main; overflow: auto; {MainContentStyle}" : GetMobileMainStyle())">
+    <main style="@(ViewportInformation.IsDesktop ? $"grid-area: main; overflow: auto; {MainContentStyle}" : GetMobileMainStyle())">
         @MainSection
-    </div>
+    </main>
 
     <!-- Footer -->
     @if (ViewportInformation.IsDesktop)
     {
         @if (FooterSection is not null && ShouldShowFooter)
         {
-            <div style="grid-area: footer">@FooterSection</div>
+            <footer style="grid-area: footer">@FooterSection</footer>
         }
     }
     else if (!IsSummaryDetailsViewOpen)
     {
         if ((FooterSection is not null && ShouldShowFooter) || ToolbarSection is not null)
         {
-            <div style="grid-area: footer">
+            <footer style="grid-area: footer">
                 @if (FooterSection is not null && ShouldShowFooter)
                 {
                     @FooterSection
@@ -75,7 +75,7 @@
                         @(MobileToolbarButtonText ?? LayoutLoc[nameof(Layout.PageLayoutViewFilters)])
                     </FluentButton>
                 }
-            </div>
+            </footer>
         }
     }
 </div>
