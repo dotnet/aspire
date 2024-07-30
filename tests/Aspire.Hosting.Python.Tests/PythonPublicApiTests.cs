@@ -18,11 +18,8 @@ public class PythonPublicApiTests
 
         var action = () => new PythonProjectResource(name, executablePath, projectDirectory);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(name), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
     }
 
     [Fact]
@@ -34,11 +31,8 @@ public class PythonPublicApiTests
 
         var action = () => new PythonProjectResource(name, executablePath, projectDirectory);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal("command", exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal("command", exception.ParamName);
     }
 
     [Fact]
@@ -50,11 +44,8 @@ public class PythonPublicApiTests
 
         var action = () => new PythonProjectResource(name, executablePath, projectDirectory);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal("workingDirectory", exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal("workingDirectory", exception.ParamName);
     }
 
     #endregion
@@ -76,11 +67,8 @@ public class PythonPublicApiTests
             scriptPath,
             scriptArgs);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(builder), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
@@ -98,11 +86,8 @@ public class PythonPublicApiTests
             scriptPath,
             scriptArgs);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(name), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
     }
 
     [Fact]
@@ -120,11 +105,8 @@ public class PythonPublicApiTests
             scriptPath,
             scriptArgs);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(projectDirectory), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(projectDirectory), exception.ParamName);
     }
 
     [Fact]
@@ -142,11 +124,8 @@ public class PythonPublicApiTests
             scriptPath,
             scriptArgs);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(scriptPath), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(scriptPath), exception.ParamName);
     }
 
     [Fact]
@@ -164,11 +143,8 @@ public class PythonPublicApiTests
             scriptPath,
             scriptArgs);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(scriptArgs), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(scriptArgs), exception.ParamName);
     }
 
     [Fact]
@@ -188,11 +164,8 @@ public class PythonPublicApiTests
             virtualEnvironmentPath,
             scriptArgs);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(builder), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
@@ -212,11 +185,8 @@ public class PythonPublicApiTests
             virtualEnvironmentPath,
             scriptArgs);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(name), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
     }
 
     [Fact]
@@ -236,11 +206,8 @@ public class PythonPublicApiTests
             virtualEnvironmentPath,
             scriptArgs);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(projectDirectory), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(projectDirectory), exception.ParamName);
     }
 
     [Fact]
@@ -260,11 +227,8 @@ public class PythonPublicApiTests
             virtualEnvironmentPath,
             scriptArgs);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(scriptPath), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(scriptPath), exception.ParamName);
     }
 
     [Fact]
@@ -284,11 +248,8 @@ public class PythonPublicApiTests
             virtualEnvironmentPath,
             scriptArgs);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(virtualEnvironmentPath), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(virtualEnvironmentPath), exception.ParamName);
     }
 
     [Fact]
@@ -308,11 +269,8 @@ public class PythonPublicApiTests
             virtualEnvironmentPath,
             scriptArgs);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(scriptArgs), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(scriptArgs), exception.ParamName);
     }
 
     #endregion
