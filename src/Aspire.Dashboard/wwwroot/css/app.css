@@ -528,6 +528,10 @@ fluent-data-grid-cell.no-ellipsis {
     overflow: auto;
 }
 
+.console-overflow {
+    background-color: var(--console-background-color);
+}
+
 .log-container {
     font-family: 'Cascadia Mono', Consolas, monospace;
     font-size: 13px;

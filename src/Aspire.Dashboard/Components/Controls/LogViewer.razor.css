@@ -1,11 +1,6 @@
-::deep .console-overflow {
-    background-color: var(--console-background-color);
-}
-
 ::deep .console-container {
     background: var(--console-background-color);
     color: var(--console-font-color);
-    height: 100%;
 }
 
 ::deep .console-line-row:hover {
