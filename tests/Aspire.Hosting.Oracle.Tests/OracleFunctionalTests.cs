@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +12,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Oracle.ManagedDataAccess.Client;
 using Polly;
 using Xunit;
 using Xunit.Abstractions;
@@ -45,6 +45,10 @@ public class OracleFunctionalTests
         var oracleDbName = "freepdb1";
 
         var oracle = builder.AddOracle("oracle");
+        ConfigureTestOracleDatabase(oracle);
+
+        oracle.WithEnvironment("ORACLE_PASSWORD", oracle.Resource.PasswordParameter.Value);
+
         var db = oracle.AddDatabase(oracleDbName);
 
         var ready = builder.WaitForText(oracle.Resource, "Completed: ALTER DATABASE OPEN", cts.Token);
@@ -70,22 +74,15 @@ public class OracleFunctionalTests
         await pipeline.ExecuteAsync(async token =>
         {
             using var dbContext = host.Services.GetRequiredService<TestDbContext>();
-
-            try
-            {
-                var results = await dbContext.Database.ExecuteSqlRawAsync("SELECT 1", token);
-                return true;
-            }
-            catch (OracleException)
-            {
-                return false;
-            }
+            var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
+            return await databaseCreator.CanConnectAsync(token);
         }, cts.Token);
     }
 
     [Theory]
     [InlineData(true)]
-    [InlineData(false, Skip = "Takes too long to be ready.")]
+    //[InlineData(false, Skip = "Takes too long to be ready.")]
+    [InlineData(false)]
     [RequiresDocker]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
@@ -110,6 +107,7 @@ public class OracleFunctionalTests
             var builder1 = CreateDistributedApplicationBuilder();
 
             var oracle1 = builder1.AddOracle("oracle");
+            ConfigureTestOracleDatabase(oracle1);
 
             var password = oracle1.Resource.PasswordParameter.Value;
 
@@ -197,6 +195,8 @@ public class OracleFunctionalTests
             builder2.Configuration["Parameters:pwd"] = password;
 
             var oracle2 = builder2.AddOracle("oracle", passwordParameter2);
+            ConfigureTestOracleDatabase(oracle2);
+
             var db2 = oracle2.AddDatabase(oracleDbName);
 
             var ready2 = builder2.WaitForText(oracle2.Resource, "Completed: ALTER DATABASE OPEN", cts.Token);
@@ -394,5 +394,13 @@ public class OracleFunctionalTests
         builder.Services.AddXunitLogging(_testOutputHelper);
         builder.Services.AddHostedService<ResourceLoggerForwarderService>();
         return builder;
+    }
+
+    private static IResourceBuilder<OracleDatabaseServerResource> ConfigureTestOracleDatabase(IResourceBuilder<OracleDatabaseServerResource> oracle)
+    {
+        return oracle
+            .WithImage("gvenzl/oracle-xe", "21.3.0")
+            .WithImageRegistry("docker.io")
+            .WithEnvironment("ORACLE_PASSWORD", oracle.Resource.PasswordParameter.Value);
     }
 }
