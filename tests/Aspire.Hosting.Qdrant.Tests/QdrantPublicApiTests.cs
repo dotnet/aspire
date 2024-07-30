@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 using Xunit;
 
 namespace Aspire.Hosting.Qdrant.Tests;
@@ -60,14 +61,11 @@ public class QdrantPublicApiTests
     [Fact]
     public void WithDataBindMountShouldThrowWhenSourceIsNull()
     {
-        var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
-        const string name = "Qdrant";
-        var apiKeyParameter = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(distributedApplicationBuilder, $"{name}-Key", special: false);
-        var resource = new QdrantServerResource(name, apiKeyParameter);
-        var builder = distributedApplicationBuilder.AddResource(resource);
+        var builderResource = TestDistributedApplicationBuilder.Create();
+        var qdrant = builderResource.AddQdrant("Qdrant");
         string source = null!;
 
-        var action = () => builder.WithDataBindMount(source);
+        var action = () => qdrant.WithDataBindMount(source);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(source), exception.ParamName);
@@ -77,12 +75,9 @@ public class QdrantPublicApiTests
     public void WithReferenceShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<IResourceWithEnvironment> builder = null!;
-        var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
-        const string name = "Qdrant";
-        var apiKeyParameter = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(distributedApplicationBuilder, $"{name}-Key", special: false);
-        var resource = new QdrantServerResource(name, apiKeyParameter);
-        var qdrantResource = distributedApplicationBuilder.AddResource(resource);
-        
+        var builderResource = TestDistributedApplicationBuilder.Create();
+        var qdrantResource = builderResource.AddQdrant("Qdrant");
+
         var action = () => builder.WithReference(qdrantResource);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
@@ -92,14 +87,11 @@ public class QdrantPublicApiTests
     [Fact]
     public void WithReferenceShouldThrowWhenQdrantResourceIsNull()
     {
-        var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
-        const string name = "Qdrant";
-        var apiKeyParameter = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(distributedApplicationBuilder, $"{name}-Key", special: false);
-        var resource = new QdrantServerResource(name, apiKeyParameter);
-        var builder = distributedApplicationBuilder.AddResource(resource);
+        var builder = TestDistributedApplicationBuilder.Create();
+        var qdrant = builder.AddQdrant("Qdrant");
         IResourceBuilder<QdrantServerResource> qdrantResource = null!;
 
-        var action = () => builder.WithReference(qdrantResource);
+        var action = () => qdrant.WithReference(qdrantResource);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(qdrantResource), exception.ParamName);
