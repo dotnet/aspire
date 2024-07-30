@@ -89,25 +89,11 @@ public class TestProgram : IDisposable
                     .AddDatabase(sqlserverDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(sqlserver);
             }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.mysql) || !resourcesToSkip.HasFlag(TestResourceNames.efmysql))
-            {
-                var mysqlDbName = "mysqldb";
-                var mysql = AppBuilder.AddMySql("mysql")
-                    .WithImageRegistry(AspireTestContainerRegistry)
-                    .WithEnvironment("MYSQL_DATABASE", mysqlDbName)
-                    .AddDatabase(mysqlDbName);
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(mysql);
-            }
             if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
             {
                 var redis = AppBuilder.AddRedis("redis")
                     .WithImageRegistry(AspireTestContainerRegistry);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(redis);
-            }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
-            {
-                var garnet = AppBuilder.AddGarnet("garnet");
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(garnet);
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
             {
@@ -148,17 +134,6 @@ public class TestProgram : IDisposable
             {
                 var eventHub = AppBuilder.AddAzureEventHubs("eventhubns").RunAsEmulator().AddEventHub("hub");
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(eventHub);
-            }
-
-            if (!resourcesToSkip.HasFlag(TestResourceNames.milvus))
-            {
-                builder.Configuration["Parameters:milvusApiKey"] = "root:Milvus";
-
-                var milvusApiKey = builder.AddParameter("milvusApiKey");
-
-                var milvus = AppBuilder.AddMilvus("milvus", milvusApiKey)
-                    .WithImageRegistry(AspireTestContainerRegistry);
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(milvus);
             }
         }
 

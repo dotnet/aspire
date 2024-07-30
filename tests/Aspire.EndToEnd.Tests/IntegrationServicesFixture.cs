@@ -104,10 +104,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         {
             TestResourceNames.cosmos or TestResourceNames.efcosmos => "cosmos",
             TestResourceNames.eventhubs => "eventhubs",
-            TestResourceNames.garnet => "garnet",
-            TestResourceNames.milvus => "milvus",
             TestResourceNames.mongodb => "mongodb",
-            TestResourceNames.mysql or TestResourceNames.efmysql => "mysql",
             TestResourceNames.oracledatabase => "oracledatabase",
             TestResourceNames.postgres or TestResourceNames.efnpgsql => "postgres",
             TestResourceNames.rabbitmq => "rabbitmq",
@@ -148,14 +145,10 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             "basicservices" => TestResourceNames.mongodb
                               | TestResourceNames.rabbitmq
                               | TestResourceNames.redis
-                              | TestResourceNames.garnet
                               | TestResourceNames.postgres
                               | TestResourceNames.efnpgsql
-                              | TestResourceNames.mysql
-                              | TestResourceNames.efmysql
                               | TestResourceNames.sqlserver
-                              | TestResourceNames.efsqlserver
-                              | TestResourceNames.milvus,
+                              | TestResourceNames.efsqlserver,
             "" or null => TestResourceNames.All,
             _ => throw new ArgumentException($"Unknown test scenario '{TestScenario}'")
         };

@@ -9,7 +9,6 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Pages;
@@ -53,7 +52,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
-    public required ProtectedSessionStorage SessionStorage { get; init; }
+    public required ISessionStorage SessionStorage { get; init; }
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }

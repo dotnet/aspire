@@ -17,30 +17,9 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.efsqlserver))
 {
     builder.AddSqlServerDbContext<EFCoreSqlServerDbContext>("tempdb");
 }
-if (!resourcesToSkip.HasFlag(TestResourceNames.mysql) || !resourcesToSkip.HasFlag(TestResourceNames.efmysql))
-{
-    builder.AddMySqlDataSource("mysqldb", settings =>
-    {
-        // add the connection string options required by Pomelo EF Core MySQL
-        var connectionStringBuilder = new MySqlConnector.MySqlConnectionStringBuilder(settings.ConnectionString!)
-        {
-            AllowUserVariables = true,
-            UseAffectedRows = false,
-        };
-        settings.ConnectionString = connectionStringBuilder.ConnectionString;
-    });
-}
-if (!resourcesToSkip.HasFlag(TestResourceNames.efmysql))
-{
-    builder.AddMySqlDbContext<PomeloMySqlDbContext>("mysqldb", settings => settings.ServerVersion = "8.2.0-mysql");
-}
 if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 {
     builder.AddKeyedRedisClient("redis");
-}
-if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
-{
-    builder.AddKeyedRedisClient("garnet");
 }
 if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
@@ -91,11 +70,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
     });
 }
 
-if (!resourcesToSkip.HasFlag(TestResourceNames.milvus))
-{
-    builder.AddMilvusClient("milvus");
-}
-
 // Ensure healthChecks are added. Some components like Cosmos
 // don't add this
 builder.Services.AddHealthChecks();
@@ -113,24 +87,9 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
     app.MapRedisApi();
 }
 
-if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
-{
-    app.MapGarnetApi();
-}
-
 if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
 {
     app.MapMongoDBApi();
-}
-
-if (!resourcesToSkip.HasFlag(TestResourceNames.mysql))
-{
-    app.MapMySqlApi();
-}
-
-if (!resourcesToSkip.HasFlag(TestResourceNames.efmysql))
-{
-    app.MapPomeloEFCoreMySqlApi();
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.postgres))
@@ -175,11 +134,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
 if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
 {
     app.MapEventHubsApi();
-}
-
-if (!resourcesToSkip.HasFlag(TestResourceNames.milvus))
-{
-    app.MapMilvusApi();
 }
 
 app.Run();

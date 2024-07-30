@@ -5,7 +5,7 @@
 <FluentDataGrid Items="@Items"
                 ResizableColumns="true"
                 Style="width:100%"
-                GenerateHeader="GenerateHeaderOption.Sticky"
+                GenerateHeader="@GenerateHeader"
                 GridTemplateColumns="@GridTemplateColumns"
                 ShowHover="true">
     <TemplateColumn Title="@(NameColumnTitle ?? Loc[nameof(ControlsStrings.NameColumnHeader)])" Class="nameColumn" SortBy="@NameSort" Sortable="@IsNameSortable">

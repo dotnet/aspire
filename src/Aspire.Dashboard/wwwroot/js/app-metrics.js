@@ -4,6 +4,10 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
     registerLocale(serverLocale);
 
     var chartContainerDiv = document.getElementById(id);
+    if (!chartContainerDiv) {
+        console.log(`Couldn't find container '${id}' when initializing chart.`);
+        return;
+    }
 
     // Reusing a div can create issues with chart lines appearing beyond the end range.
     // Workaround this issue by replacing the chart div. Ensures we start from a new state.
@@ -125,7 +129,16 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
 
 export function updateChart(id, traces, exemplarTrace, rangeStartTime, rangeEndTime) {
     var chartContainerDiv = document.getElementById(id);
+    if (!chartContainerDiv) {
+        console.log(`Couldn't find container '${id}' when updating chart.`);
+        return;
+    }
+
     var chartDiv = chartContainerDiv.firstChild;
+    if (!chartDiv) {
+        console.log(`Couldn't find div inside container '${id}' when updating chart. Chart may not have been successfully initialized.`);
+        return;
+    }
 
     var themeColors = getThemeColors();
 
