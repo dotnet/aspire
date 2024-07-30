@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
   </ItemGroup>
 
 </Project>

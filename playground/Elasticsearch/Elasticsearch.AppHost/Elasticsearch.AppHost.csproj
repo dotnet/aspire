@@ -10,8 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Elasticsearch" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Elasticsearch" />
     <ProjectReference Include="..\Elasticsearch.ApiService\Elasticsearch.ApiService.csproj" />
   </ItemGroup>
 

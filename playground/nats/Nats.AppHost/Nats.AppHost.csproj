@@ -14,9 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Nats" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Nats" />
     <ProjectReference Include="..\Nats.ApiService\Nats.ApiService.csproj" />
     <ProjectReference Include="..\Nats.Backend\Nats.Backend.csproj" />
   </ItemGroup>

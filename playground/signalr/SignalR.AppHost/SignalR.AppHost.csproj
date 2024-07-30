@@ -13,10 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Dapr" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.SignalR" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Dapr" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.SignalR" />
 
     <ProjectReference Include="..\SignalRWeb\SignalRWeb.csproj" />
   </ItemGroup>

@@ -14,9 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.EventHubs" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.EventHubs" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" />
 
     <ProjectReference Include="..\EventHubsApi\EventHubsApi.csproj" />
     <ProjectReference Include="..\EventHubsConsumer\EventHubsConsumer.csproj" />

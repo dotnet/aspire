@@ -14,9 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CosmosDB" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CosmosDB" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
 
     <ProjectReference Include="..\CosmosEndToEnd.ApiService\CosmosEndToEnd.ApiService.csproj" />
   </ItemGroup>

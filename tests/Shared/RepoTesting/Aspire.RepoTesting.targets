@@ -46,7 +46,9 @@
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">
     <_CandidateProjectReference Include="@(AspireProjectOrPackageReference -> '$(RepoRoot)src\Components\%(Identity)\%(Identity).csproj')" />
     <_CandidateProjectReference Include="@(AspireProjectOrPackageReference -> '$(RepoRoot)src\%(Identity)\%(Identity).csproj')" />
-    <ProjectReference Include="@(_CandidateProjectReference->Exists())" />
+
+    <ProjectReference Include="@(_CandidateProjectReference->Exists())" Condition="'$(IsAspireHost)' == 'true'" IsAspireProjectResource="false" />
+    <ProjectReference Include="@(_CandidateProjectReference->Exists())" Condition="'$(IsAspireHost)' != 'true'" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">

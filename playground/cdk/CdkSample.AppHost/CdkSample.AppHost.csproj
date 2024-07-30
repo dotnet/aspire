@@ -14,19 +14,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.KeyVault" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Redis" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.PostgreSQL" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CosmosDB" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.ServiceBus" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Sql" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.SignalR" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Search" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.OperationalInsights" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.ApplicationInsights" IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.AppConfiguration" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.KeyVault" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Redis" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.PostgreSQL" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CosmosDB" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.ServiceBus" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Sql" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.SignalR" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Search" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.OperationalInsights" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.ApplicationInsights" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.AppConfiguration" />
     <ProjectReference Include="..\CdkSample.ApiService\CdkSample.ApiService.csproj" />
   </ItemGroup>
 
