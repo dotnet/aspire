@@ -9,9 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost"  IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.PostgreSQL"  IsAspireProjectResource="false" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Redis"  IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.PostgreSQL"/>
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Redis" />
 
     <ProjectReference Include="..\TestingAppHost1.MyWebApp\TestingAppHost1.MyWebApp.csproj" />
     <ProjectReference Include="..\TestingAppHost1.MyWorker\TestingAppHost1.MyWorker.csproj" />
