@@ -4,6 +4,7 @@
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
 <div class="content-layout">
+    <!-- Toolbar -->
     @if (ViewportInformation.IsDesktop)
     {
         <div style="grid-area: page-header; @HeaderStyle">
@@ -23,19 +24,8 @@
                 </FluentToolbar>
             }
         </div>
-
-        <div style="grid-area: main; overflow: auto; @MainContentStyle">@MainSection</div>
-
-        @if (FooterSection is not null && ShouldShowFooter)
-        {
-            <div style="grid-area: footer">@FooterSection</div>
-        }
     }
-    else if (IsSummaryDetailsViewOpen)
-    {
-        <div style="@GetMobileMainStyle()">@MainSection</div>
-    }
-    else
+    else if (!IsSummaryDetailsViewOpen)
     {
         <div style="grid-area: page-header">
             <FluentToolbar Orientation="Orientation.Horizontal" Style="@HeaderStyle">
@@ -52,9 +42,23 @@
                 <div style="padding: calc(var(--design-unit) * 2.5px)">@MobilePageTitleToolbarSection</div>
             }
         </div>
+    }
 
-        <div style="@GetMobileMainStyle()">@MainSection</div>
+    <!-- Main content -->
+    <div style="@(ViewportInformation.IsDesktop ? $"grid-area: main; overflow: auto; {MainContentStyle}" : GetMobileMainStyle())">
+        @MainSection
+    </div>
 
+    <!-- Footer -->
+    @if (ViewportInformation.IsDesktop)
+    {
+        @if (FooterSection is not null && ShouldShowFooter)
+        {
+            <div style="grid-area: footer">@FooterSection</div>
+        }
+    }
+    else if (!IsSummaryDetailsViewOpen)
+    {
         if ((FooterSection is not null && ShouldShowFooter) || ToolbarSection is not null)
         {
             <div style="grid-area: footer">
