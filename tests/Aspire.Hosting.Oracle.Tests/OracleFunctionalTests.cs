@@ -31,7 +31,7 @@ public class OracleFunctionalTests
     [RequiresDocker]
     public async Task VerifyOracleResource()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(30));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new() {
                 MaxRetryAttempts = int.MaxValue,
@@ -47,9 +47,12 @@ public class OracleFunctionalTests
         var oracle = builder.AddOracle("oracle");
         var db = oracle.AddDatabase(oracleDbName);
 
+        var ready = builder.WaitForText(oracle.Resource, "Completed: ALTER DATABASE OPEN", cts.Token);
+
         using var app = builder.Build();
 
-        await app.StartAsync();
+        await app.StartAsync(cts.Token);
+        await ready;
 
         var hb = Host.CreateApplicationBuilder();
 
@@ -82,7 +85,7 @@ public class OracleFunctionalTests
 
     [Theory]
     [InlineData(true)]
-    [InlineData(false, Skip = "When using p@ssw0rd1 it fails with: Password cannot be null. Enter password: \n Then when using a different password the image takes 5 minutes to be ready.")]
+    [InlineData(false, Skip = "Takes too long to be ready.")]
     [RequiresDocker]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
@@ -91,7 +94,7 @@ public class OracleFunctionalTests
         string? volumeName = null;
         string? bindMountPath = null;
 
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(30));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new()
             {
@@ -129,9 +132,12 @@ public class OracleFunctionalTests
                 oracle1.WithDataBindMount(bindMountPath);
             }
 
+            var ready1 = builder1.WaitForText(oracle1.Resource, "Completed: ALTER DATABASE OPEN", cts.Token);
+
             using (var app = builder1.Build())
             {
                 await app.StartAsync();
+                await ready1;
 
                 try
                 {
@@ -193,6 +199,8 @@ public class OracleFunctionalTests
             var oracle2 = builder2.AddOracle("oracle", passwordParameter2);
             var db2 = oracle2.AddDatabase(oracleDbName);
 
+            var ready2 = builder2.WaitForText(oracle2.Resource, "Completed: ALTER DATABASE OPEN", cts.Token);
+
             if (useVolume)
             {
                 oracle2.WithDataVolume(volumeName);
@@ -205,6 +213,8 @@ public class OracleFunctionalTests
             using (var app = builder2.Build())
             {
                 await app.StartAsync();
+                await ready2;
+
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
@@ -281,7 +291,7 @@ public class OracleFunctionalTests
     {
         // Creates a script that should be executed when the container is initialized.
 
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(20));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new()
             {
@@ -312,6 +322,8 @@ public class OracleFunctionalTests
             var oracle = builder.AddOracle("oracle");
             var db = oracle.AddDatabase(oracleDbName);
 
+            var ready = builder.WaitForText(oracle.Resource, "Completed: ALTER DATABASE OPEN", cts.Token);
+
             if (init)
             {
                 oracle.WithInitBindMount(bindMountPath);
@@ -324,6 +336,8 @@ public class OracleFunctionalTests
             using var app = builder.Build();
 
             await app.StartAsync();
+
+            await ready;
 
             var hb = Host.CreateApplicationBuilder();
 

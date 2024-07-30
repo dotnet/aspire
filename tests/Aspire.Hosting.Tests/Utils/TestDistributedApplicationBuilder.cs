@@ -82,6 +82,8 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
 
             configureOptions?.Invoke(applicationOptions);
         }
+
+        _innerBuilder.Services.AddHostedService<ResourceLoggerEventService>();
     }
 
     public ConfigurationManager Configuration => _innerBuilder.Configuration;
@@ -108,6 +110,13 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
     public IResourceBuilder<T> CreateResourceBuilder<T>(T resource) where T : IResource
     {
         return _innerBuilder.CreateResourceBuilder(resource);
+    }
+    public Task WaitForText(IResource resource, string text, CancellationToken cancellationToken = default)
+    {
+        var tcs = new TaskCompletionSource();
+        _ = _innerBuilder.Services.AddKeyedSingleton<List<(IResource, string, TaskCompletionSource)>>("StartCompletions", (sp, key) => [(resource, text, tcs)]);
+
+        return tcs.Task.WaitAsync(cancellationToken);
     }
 
     public void Dispose()
@@ -211,6 +220,57 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
                 {
                     var (options, innerBuilderOptions) = ((DistributedApplicationOptions, HostApplicationBuilderSettings))value.Value!;
                     owner._onConstructing?.Invoke(options, innerBuilderOptions);
+                }
+            }
+        }
+    }
+}
+
+internal sealed class ResourceLoggerEventService(
+    ResourceNotificationService resourceNotificationService,
+    ResourceLoggerService resourceLoggerService,
+    [FromKeyedServices("StartCompletions")] IEnumerable<List<(IResource Resource, string Text, TaskCompletionSource TaskCompletionSource)>> startCompletions)
+    : BackgroundService
+{
+
+    /// <inheritdoc/>
+    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        // We need to pass the stopping token in here because the ResourceNotificationService doesn't stop on host shutdown
+        return WatchNotifications(stoppingToken);
+    }
+
+    private async Task WatchNotifications(CancellationToken cancellationToken)
+    {
+        var loggingResourceIds = new HashSet<string>();
+        var logWatchTasks = new List<Task>();
+
+        await foreach (var resourceEvent in resourceNotificationService.WatchAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var resourceId = resourceEvent.ResourceId;
+
+            if (loggingResourceIds.Add(resourceId))
+            {
+                // Start watching the logs for this resource ID
+                logWatchTasks.Add(WatchResourceLogs(resourceEvent.Resource, resourceId, cancellationToken));
+            }
+        }
+
+        await Task.WhenAll(logWatchTasks).ConfigureAwait(false);
+    }
+
+    private async Task WatchResourceLogs(IResource resource, string resourceId, CancellationToken cancellationToken)
+    {
+        await foreach (var logEvent in resourceLoggerService.WatchAsync(resourceId).WithCancellation(cancellationToken).ConfigureAwait(false))
+        {
+            foreach (var line in logEvent)
+            {
+                foreach (var notification in startCompletions.SelectMany(x => x))
+                {
+                    if (notification.Resource == resource && line.Content.Contains(notification.Text))
+                    {
+                        notification.TaskCompletionSource.SetResult();
+                    }
                 }
             }
         }
