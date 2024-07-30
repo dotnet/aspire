@@ -3,7 +3,7 @@
 
   <!-- When $(BuildForTest)==true, importing Aspire.RepoTesting.targets is needed. But import
        only when in-repo. For out-of-repo a parent Directory.Build.props does the import -->
-  <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.props" Condition="'$(RepoRoot)' != '' and '$(BuildForTest)' != 'true'" />
+  <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.props" Condition="'$(RepoRoot)' != ''" />
 
   <PropertyGroup>
     <!--
