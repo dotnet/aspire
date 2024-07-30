@@ -11,66 +11,54 @@ public class ValkeyPublicApiTests
     #region ValkeyBuilderExtensions
 
     [Fact]
-    public void AddValkeyContainerShouldThrowsWhenBuilderIsNull()
+    public void AddValkeyContainerShouldThrowWhenBuilderIsNull()
     {
         IDistributedApplicationBuilder builder = null!;
         const string name = "Valkey";
 
         var action = () => builder.AddValkey(name);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(builder), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
-    public void AddValkeyContainerShouldThrowsWhenNameIsNull()
+    public void AddValkeyContainerShouldThrowWhenNameIsNull()
     {
         IDistributedApplicationBuilder builder = new DistributedApplicationBuilder([]);
         string name = null!;
 
         var action = () => builder.AddValkey(name);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(name), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
     }
 
     [Fact]
-    public void WithDataVolumeShouldThrowsWhenBuilderIsNull()
+    public void WithDataVolumeShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<ValkeyResource> builder = null!;
 
         var action = () => builder.WithDataVolume();
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(builder), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
-    public void WithDataBindMountShouldThrowsWhenBuilderIsNull()
+    public void WithDataBindMountShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<ValkeyResource> builder = null!;
         const string source = "Valkey";
 
         var action = () => builder.WithDataBindMount(source);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(builder), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
-    public void WithDataBindMountShouldThrowsWhenSourceIsNull()
+    public void WithDataBindMountShouldThrowWhenSourceIsNull()
     {
         var distributedApplicationBuilder = new DistributedApplicationBuilder([]);
         const string name = "Valkey";
@@ -80,25 +68,19 @@ public class ValkeyPublicApiTests
 
         var action = () => builder.WithDataBindMount(source);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(source), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(source), exception.ParamName);
     }
 
     [Fact]
-    public void WithPersistenceShouldThrowsWhenBuilderIsNull()
+    public void WithPersistenceShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<ValkeyResource> builder = null!;
 
         var action = () => builder.WithPersistence();
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(builder), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     #endregion
@@ -106,17 +88,14 @@ public class ValkeyPublicApiTests
     #region ValkeyResource
 
     [Fact]
-    public void CtorValkeyResourceShouldThrowsWhenNameIsNull()
+    public void CtorValkeyResourceShouldThrowWhenNameIsNull()
     {
         string name = null!;
 
         var action = () => new ValkeyResource(name);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(name), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
     }
 
     #endregion
