@@ -16,6 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="$(SharedDir)KnownResourceNames.cs" Link="KnownResourceNames.cs" />
+    <Compile Include="..\..\KnownResourceNames.cs" Link="KnownResourceNames.cs" />
   </ItemGroup>
 </Project>

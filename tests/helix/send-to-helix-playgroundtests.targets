@@ -23,9 +23,6 @@
     <HelixPreCommand Include="$(_EnvVarSetKeyword) BuildForTest=true" />
     <HelixPreCommand Include="$(_EnvVarSetKeyword) TestsRunningOutsideOfRepo=true" />
 
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set SharedDir=%HELIX_WORKITEM_ROOT%\src\Shared\" />
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export SharedDir=$HELIX_WORKITEM_ROOT/src/Shared/" />
-
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set NUGET_PACKAGES=%HELIX_WORKITEM_ROOT%\nuget-cache\" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export NUGET_PACKAGES=$HELIX_WORKITEM_ROOT/nuget-cache/" />
 
