@@ -17,7 +17,6 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" IsAspireProjectResource="false" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.WebPubSub" IsAspireProjectResource="false" />
 
-    <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" Condition="'$(BuildForTest)' != 'true'" />
     <ProjectReference Include="..\WebPubSubWeb\WebPubSubWeb.csproj" />
   </ItemGroup>
 
