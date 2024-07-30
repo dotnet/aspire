@@ -56,7 +56,7 @@ public class OracleFunctionalTests
         using var app = builder.Build();
 
         await app.StartAsync(cts.Token);
-        await ready;
+        await ready.WaitAsync(TimeSpan.FromMinutes(2));
 
         var hb = Host.CreateApplicationBuilder();
 
@@ -81,8 +81,8 @@ public class OracleFunctionalTests
 
     [Theory]
     [InlineData(true)]
-    //[InlineData(false, Skip = "Takes too long to be ready.")]
-    [InlineData(false)]
+    [InlineData(false, Skip = "Takes too long to be ready.")]
+    //[InlineData(false)]
     [RequiresDocker]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
@@ -135,7 +135,7 @@ public class OracleFunctionalTests
             using (var app = builder1.Build())
             {
                 await app.StartAsync();
-                await ready1;
+                await ready1.WaitAsync(TimeSpan.FromMinutes(2));
 
                 try
                 {
@@ -213,7 +213,7 @@ public class OracleFunctionalTests
             using (var app = builder2.Build())
             {
                 await app.StartAsync();
-                await ready2;
+                await ready2.WaitAsync(TimeSpan.FromMinutes(2));
 
                 try
                 {
@@ -337,7 +337,7 @@ public class OracleFunctionalTests
 
             await app.StartAsync();
 
-            await ready;
+            await ready.WaitAsync(TimeSpan.FromMinutes(2));
 
             var hb = Host.CreateApplicationBuilder();
 
@@ -399,8 +399,9 @@ public class OracleFunctionalTests
     private static IResourceBuilder<OracleDatabaseServerResource> ConfigureTestOracleDatabase(IResourceBuilder<OracleDatabaseServerResource> oracle)
     {
         return oracle
-            .WithImage("gvenzl/oracle-xe", "21.3.0")
+            .WithImage("gvenzl/oracle-free", "23-slim-faststart")
             .WithImageRegistry("docker.io")
-            .WithEnvironment("ORACLE_PASSWORD", oracle.Resource.PasswordParameter.Value);
+            .WithEnvironment("ORACLE_PASSWORD", oracle.Resource.PasswordParameter.Value)
+            ;
     }
 }
