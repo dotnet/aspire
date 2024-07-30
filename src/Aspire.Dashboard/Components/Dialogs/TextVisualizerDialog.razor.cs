@@ -14,19 +14,20 @@ namespace Aspire.Dashboard.Components.Dialogs;
 
 public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
 {
-    private const string XmlFormat = "xml";
-    private const string JsonFormat = "json";
-    private const string PlaintextFormat = "plaintext";
+    public const string XmlFormat = "xml";
+    public const string JsonFormat = "json";
+    public const string PlaintextFormat = "plaintext";
     private static readonly JsonSerializerOptions s_serializerOptions = new() { WriteIndented = true };
 
-    private List<SelectViewModel<string>> _options = null!;
-    private readonly HashSet<string?> _enabledOptions = [];
-    private string _formattedText = string.Empty;
-    private string? _formatKind;
     private readonly string _copyButtonId = $"copy-{Guid.NewGuid():N}";
-
     private readonly string _openSelectFormatButtonId = $"select-format-{Guid.NewGuid():N}";
+
     private IJSObjectReference? _jsModule;
+    private List<SelectViewModel<string>> _options = null!;
+
+    public HashSet<string?> EnabledOptions { get; } = [];
+    public string FormattedText { get; private set; } = string.Empty;
+    public string FormatKind { get; private set; } = PlaintextFormat;
 
     [Inject]
     public required IJSRuntime JS { get; init; }
@@ -38,7 +39,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
             _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/Components/Dialogs/TextVisualizerDialog.razor.js");
         }
 
-        if (_jsModule is not null && _formatKind is not null)
+        if (_jsModule is not null && !string.Equals(FormatKind, PlaintextFormat, StringComparison.Ordinal))
         {
             await _jsModule.InvokeVoidAsync("connectObserver");
         }
@@ -46,8 +47,8 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
 
     protected override void OnParametersSet()
     {
-        _enabledOptions.Clear();
-        _enabledOptions.Add(PlaintextFormat);
+        EnabledOptions.Clear();
+        EnabledOptions.Add(PlaintextFormat);
 
         _options = [
             new SelectViewModel<string> { Id = PlaintextFormat, Name = Loc[nameof(Resources.Dialogs.TextVisualizerDialogPlaintextFormat)] },
@@ -57,41 +58,41 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
 
         if (TryFormatJson())
         {
-            _enabledOptions.Add(JsonFormat);
+            EnabledOptions.Add(JsonFormat);
         }
         else if (TryFormatXml())
         {
-            _enabledOptions.Add(XmlFormat);
+            EnabledOptions.Add(XmlFormat);
         }
         else
         {
-            _formattedText = Content.Text;
-            _formatKind = null;
+            FormattedText = Content.Text;
+            FormatKind = PlaintextFormat;
         }
     }
 
     private string GetLogContentClass()
     {
-        return $"log-content highlight-line language-{_formatKind}";
+        return $"log-content highlight-line language-{FormatKind}";
     }
 
     private ICollection<StringLogLine> GetLines()
     {
-        var lines = Regex.Split(_formattedText, Environment.NewLine, RegexOptions.Compiled).ToList();
+        var lines = Regex.Split(FormattedText, Environment.NewLine, RegexOptions.Compiled).ToList();
         if (lines.Count > 0 && lines[0].Length == 0)
         {
             lines.RemoveAt(0);
         }
 
-        return lines.Select((line, index) => new StringLogLine(index, line, _formatKind is not null)).ToList();
+        return lines.Select((line, index) => new StringLogLine(index, line, FormatKind is not null)).ToList();
     }
 
     private bool TryFormatXml()
     {
         try
         {
-            _formattedText = XDocument.Parse(Content.Text).ToString();
-            _formatKind = XmlFormat;
+            FormattedText = XDocument.Parse(Content.Text).ToString();
+            FormatKind = XmlFormat;
             return true;
         }
         catch (XmlException)
@@ -114,8 +115,8 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
                 }
             );
 
-            _formattedText = JsonSerializer.Serialize(doc.RootElement, s_serializerOptions);
-            _formatKind = JsonFormat;
+            FormattedText = JsonSerializer.Serialize(doc.RootElement, s_serializerOptions);
+            FormatKind = JsonFormat;
             return true;
         }
         catch (JsonException)
@@ -124,20 +125,22 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
         }
     }
 
-    private void OnFormatOptionChanged(MenuChangeEventArgs args)
+    private void OnFormatOptionChanged(MenuChangeEventArgs args) => ChangeFormat(args.Id);
+
+    public void ChangeFormat(string? newFormat)
     {
-        if (args.Id == XmlFormat)
+        if (newFormat == XmlFormat)
         {
             TryFormatXml();
         }
-        else if (args.Id == JsonFormat)
+        else if (newFormat == JsonFormat)
         {
             TryFormatJson();
         }
         else
         {
-            _formattedText = Content.Text;
-            _formatKind = null;
+            FormattedText = Content.Text;
+            FormatKind = PlaintextFormat;
         }
     }
 
