@@ -303,9 +303,9 @@ namespace Aspire.Dashboard.Resources {
             }
         }
         
-        public static string SelectAResource {
+        public static string ResourceLabel {
             get {
-                return ResourceManager.GetString("SelectAResource", resourceCulture);
+                return ResourceManager.GetString("ResourceLabel", resourceCulture);
             }
         }
         

@@ -254,7 +254,7 @@
   <data name="MetricTableNoMetricsFound" xml:space="preserve">
     <value>No metrics data found</value>
   </data>
-  <data name="SelectAResource" xml:space="preserve">
+  <data name="ResourceLabel" xml:space="preserve">
     <value>Resource</value>
   </data>
   <data name="TimeOffsetColumnHeader" xml:space="preserve">
