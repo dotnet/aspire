@@ -345,9 +345,9 @@ namespace Aspire.Dashboard.Resources {
             }
         }
         
-        public static string ReplicaSetLower {
+        public static string ApplicationLower {
             get {
-                return ResourceManager.GetString("ReplicaSetLower", resourceCulture);
+                return ResourceManager.GetString("ApplicationLower", resourceCulture);
             }
         }
         
