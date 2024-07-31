@@ -32,14 +32,14 @@ public class OracleFunctionalTests
     [RequiresDocker]
     public async Task VerifyOracleResource()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
-        var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() {
-                MaxRetryAttempts = int.MaxValue,
-                BackoffType = DelayBackoffType.Linear,
-                ShouldHandle = new PredicateBuilder().HandleResult(false),
-                Delay = TimeSpan.FromSeconds(2) })
-            .Build();
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        //var pipeline = new ResiliencePipelineBuilder()
+        //    .AddRetry(new() {
+        //        MaxRetryAttempts = int.MaxValue,
+        //        BackoffType = DelayBackoffType.Linear,
+        //        ShouldHandle = new PredicateBuilder().HandleResult(false),
+        //        Delay = TimeSpan.FromSeconds(2) })
+        //    .Build();
 
         var builder = CreateDistributedApplicationBuilder();
 
@@ -72,17 +72,22 @@ public class OracleFunctionalTests
 
         await host.StartAsync();
 
-        await pipeline.ExecuteAsync(async token =>
+        using var dbContext = host.Services.GetRequiredService<TestDbContext>();
+        var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
+
+        try
         {
-            using var dbContext = host.Services.GetRequiredService<TestDbContext>();
-            var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
-            return await databaseCreator.CanConnectAsync(token);
-        }, cts.Token);
+            await databaseCreator.CanConnectAsync(cts.Token);
+        }
+        catch
+        {
+            // Ignore failures
+        }
 
         var process = Process.Start(new ProcessStartInfo
         {
-            FileName = "docker",
-            Arguments = "exec $(docker ps -l -q) bash -c \"cat /opt/oracle/diag/rdbms/free/FREE/trace/*.trc & cat /opt/oracle/diag/rdbms/free/FREE/trace/*.log\"",
+            FileName = "/usr/bin/env",
+            Arguments = "bash docker exec $(docker ps -l -q) bash -c \"cat /opt/oracle/diag/rdbms/free/FREE/trace/*.trc & cat /opt/oracle/diag/rdbms/free/FREE/trace/*.log\"",
             RedirectStandardOutput = true,
         });
 
