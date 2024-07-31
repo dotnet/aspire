@@ -1,6 +1,7 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml;
@@ -17,7 +18,6 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
     public const string XmlFormat = "xml";
     public const string JsonFormat = "json";
     public const string PlaintextFormat = "plaintext";
-    private static readonly JsonSerializerOptions s_serializerOptions = new() { WriteIndented = true };
 
     private readonly string _copyButtonId = $"copy-{Guid.NewGuid():N}";
     private readonly string _openSelectFormatButtonId = $"select-format-{Guid.NewGuid():N}";
@@ -105,17 +105,9 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
     {
         try
         {
-            using var doc = JsonDocument.Parse(
-                Content.Text,
-                new JsonDocumentOptions
-                {
-                    AllowTrailingCommas = true,
-                    /* comments are not allowed in JSON, the only options are Skip or Disallow. Skip to allow showing formatted JSON in any case */
-                    CommentHandling = JsonCommentHandling.Skip
-                }
-            );
+            var formattedJson = FormatJson(Content.Text);
 
-            FormattedText = JsonSerializer.Serialize(doc.RootElement, s_serializerOptions);
+            FormattedText = formattedJson;
             FormatKind = JsonFormat;
             return true;
         }
@@ -142,6 +134,78 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
             FormattedText = Content.Text;
             FormatKind = PlaintextFormat;
         }
+    }
+
+    public static string FormatJson(string jsonString)
+    {
+        var jsonData = Encoding.UTF8.GetBytes(jsonString);
+
+        // Initialize the Utf8JsonReader
+        var reader = new Utf8JsonReader(jsonData, new JsonReaderOptions
+        {
+            AllowTrailingCommas = true,
+            CommentHandling = JsonCommentHandling.Allow,
+            // Increase the allowed limit to 1000. This matches the allowed limit of the writer.
+            // It's ok to allow recursion here because JSON is read in a flat loop. There isn't a danger
+            // of recursive method calls that cause a stack overflow.
+            MaxDepth = 1000
+        });
+
+        // Use a MemoryStream and Utf8JsonWriter to write the formatted JSON
+        using var stream = new MemoryStream();
+        using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
+
+        while (reader.Read())
+        {
+            switch (reader.TokenType)
+            {
+                case JsonTokenType.StartObject:
+                    writer.WriteStartObject();
+                    break;
+                case JsonTokenType.EndObject:
+                    writer.WriteEndObject();
+                    break;
+                case JsonTokenType.StartArray:
+                    writer.WriteStartArray();
+                    break;
+                case JsonTokenType.EndArray:
+                    writer.WriteEndArray();
+                    break;
+                case JsonTokenType.PropertyName:
+                    writer.WritePropertyName(reader.GetString()!);
+                    break;
+                case JsonTokenType.String:
+                    writer.WriteStringValue(reader.GetString());
+                    break;
+                case JsonTokenType.Number:
+                    if (reader.TryGetInt32(out var intValue))
+                    {
+                        writer.WriteNumberValue(intValue);
+                    }
+                    else if (reader.TryGetDouble(out var doubleValue))
+                    {
+                        writer.WriteNumberValue(doubleValue);
+                    }
+                    break;
+                case JsonTokenType.True:
+                    writer.WriteBooleanValue(true);
+                    break;
+                case JsonTokenType.False:
+                    writer.WriteBooleanValue(false);
+                    break;
+                case JsonTokenType.Null:
+                    writer.WriteNullValue();
+                    break;
+                case JsonTokenType.Comment:
+                    writer.WriteCommentValue(reader.GetComment());
+                    break;
+            }
+        }
+
+        writer.Flush();
+        var formattedJson = Encoding.UTF8.GetString(stream.ToArray());
+
+        return formattedJson;
     }
 
     public async ValueTask DisposeAsync()
