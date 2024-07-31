@@ -1,14 +1,11 @@
 ﻿@namespace Aspire.Dashboard.Components
-@using System.Text
-@using Aspire.Dashboard.ConsoleLogs
 @using Aspire.Dashboard.Model
-@using System.Collections.Concurrent
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
 <div class="log-overflow continuous-scroll-overflow">
     <div class="log-container" id="logContainer">
-        <Virtualize Items="@ViewModel.LogEntries.GetEntries()" ItemSize="20" OverscanCount="100" TItem="LogEntry">
+        <Virtualize Items="@LogEntries.GetEntries()" ItemSize="20" OverscanCount="100" TItem="LogEntry">
             <div class="line-row-container">
                 <div class="line-row">
                     <span class="line-area" role="log">
