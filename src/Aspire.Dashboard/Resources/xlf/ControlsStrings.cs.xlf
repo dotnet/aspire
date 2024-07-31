@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="cs" original="../ControlsStrings.resx">
     <body>
       <trans-unit id="All">
-        <source>All</source>
-        <target state="translated">Vše</target>
+        <source>(All)</source>
+        <target state="needs-review-translation">Vše</target>
         <note />
       </trans-unit>
       <trans-unit id="ApplicationLower">
@@ -35,11 +35,6 @@
       <trans-unit id="ChartContainerGraphTab">
         <source>Graph</source>
         <target state="translated">Graf</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ChartContainerNoneSelected">
-        <source>(None)</source>
-        <target state="translated">(žádné)</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">
@@ -182,9 +177,9 @@
         <target state="translated">Název</target>
         <note />
       </trans-unit>
-      <trans-unit id="PageToolbarLandmark">
-        <source>Page toolbar</source>
-        <target state="new">Page toolbar</target>
+      <trans-unit id="None">
+        <source>(None)</source>
+        <target state="new">(None)</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -242,9 +237,9 @@
         <target state="translated">{0} (replika sady {1})</target>
         <note>{0} is a resource name, {1} is a replica set name</note>
       </trans-unit>
-      <trans-unit id="SelectAResource">
-        <source>Select a resource</source>
-        <target state="translated">Vybrat prostředek</target>
+      <trans-unit id="ResourceLabel">
+        <source>Resource</source>
+        <target state="new">Resource</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">

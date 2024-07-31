@@ -255,9 +255,9 @@ namespace Aspire.Dashboard.Resources {
             }
         }
         
-        public static string ChartContainerNoneSelected {
+        public static string None {
             get {
-                return ResourceManager.GetString("ChartContainerNoneSelected", resourceCulture);
+                return ResourceManager.GetString("None", resourceCulture);
             }
         }
         
@@ -303,9 +303,9 @@ namespace Aspire.Dashboard.Resources {
             }
         }
         
-        public static string SelectAResource {
+        public static string ResourceLabel {
             get {
-                return ResourceManager.GetString("SelectAResource", resourceCulture);
+                return ResourceManager.GetString("ResourceLabel", resourceCulture);
             }
         }
         
@@ -498,12 +498,6 @@ namespace Aspire.Dashboard.Resources {
         public static string SpanDetailsBacklinksHeader {
             get {
                 return ResourceManager.GetString("SpanDetailsBacklinksHeader", resourceCulture);
-            }
-        }
-        
-        public static string PageToolbarLandmark {
-            get {
-                return ResourceManager.GetString("PageToolbarLandmark", resourceCulture);
             }
         }
     }

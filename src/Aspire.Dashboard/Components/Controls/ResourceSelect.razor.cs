@@ -15,6 +15,8 @@ public partial class ResourceSelect
     private const int MaxVisibleResourceOptions = 15;
     private const int SelectPadding = 8; // 4px top + 4px bottom
 
+    private readonly string _selectId = $"resource-select-{Guid.NewGuid():N}";
+
     [Parameter]
     public IEnumerable<SelectViewModel<ResourceTypeDetails>> Resources { get; set; } = default!;
 

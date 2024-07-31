@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="tr" original="../ControlsStrings.resx">
     <body>
       <trans-unit id="All">
-        <source>All</source>
-        <target state="translated">Tümü</target>
+        <source>(All)</source>
+        <target state="needs-review-translation">Tümü</target>
         <note />
       </trans-unit>
       <trans-unit id="ApplicationLower">
@@ -35,11 +35,6 @@
       <trans-unit id="ChartContainerGraphTab">
         <source>Graph</source>
         <target state="translated">Graph</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ChartContainerNoneSelected">
-        <source>(None)</source>
-        <target state="translated">(Yok)</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">
@@ -182,9 +177,9 @@
         <target state="translated">Ad</target>
         <note />
       </trans-unit>
-      <trans-unit id="PageToolbarLandmark">
-        <source>Page toolbar</source>
-        <target state="new">Page toolbar</target>
+      <trans-unit id="None">
+        <source>(None)</source>
+        <target state="new">(None)</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -242,9 +237,9 @@
         <target state="translated">{0} ({1} çoğaltması)</target>
         <note>{0} is a resource name, {1} is a replica set name</note>
       </trans-unit>
-      <trans-unit id="SelectAResource">
-        <source>Select a resource</source>
-        <target state="translated">Kaynak seçin</target>
+      <trans-unit id="ResourceLabel">
+        <source>Resource</source>
+        <target state="new">Resource</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">

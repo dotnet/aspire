@@ -500,3 +500,11 @@ fluent-data-grid-cell.no-ellipsis {
 .resource-select-application-label {
     color: var(--accent-foreground-rest);
 }
+
+.filter-input-container {
+    width: 75%;
+}
+
+.layout fluent-toolbar > .fluent-input-label {
+    margin-bottom: 0;
+}
