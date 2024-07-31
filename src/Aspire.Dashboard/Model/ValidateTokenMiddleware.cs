@@ -32,7 +32,7 @@ internal sealed class ValidateTokenMiddleware
             {
                 _logger.LogDebug($"Request to validate token URL but auth mode isn't set to {FrontendAuthMode.BrowserToken}.");
 
-                context.Response.Redirect(DashboardUrls.ResourcesUrl());
+                RedirectAfterValidation(context);
             }
             else if (context.Request.Query.TryGetValue("t", out var value) && _options.CurrentValue.Frontend.AuthMode == FrontendAuthMode.BrowserToken)
             {
@@ -40,14 +40,7 @@ internal sealed class ValidateTokenMiddleware
                 if (await TryAuthenticateAsync(value.ToString(), context, dashboardOptions).ConfigureAwait(false))
                 {
                     // Success. Redirect to the app.
-                    if (context.Request.Query.TryGetValue("returnUrl", out var returnUrl))
-                    {
-                        context.Response.Redirect(returnUrl.ToString());
-                    }
-                    else
-                    {
-                        context.Response.Redirect(DashboardUrls.ResourcesUrl());
-                    }
+                    RedirectAfterValidation(context);
                 }
                 else
                 {
@@ -71,6 +64,17 @@ internal sealed class ValidateTokenMiddleware
         }
 
         await _next(context).ConfigureAwait(false);
+    }
+    private static void RedirectAfterValidation(HttpContext context)
+    {
+        if (context.Request.Query.TryGetValue("returnUrl", out var returnUrl))
+        {
+            context.Response.Redirect(returnUrl.ToString());
+        }
+        else
+        {
+            context.Response.Redirect(DashboardUrls.ResourcesUrl());
+        }
     }
 
     public static async Task<bool> TryAuthenticateAsync(string incomingBrowserToken, HttpContext httpContext, IOptionsMonitor<DashboardOptions> dashboardOptions)

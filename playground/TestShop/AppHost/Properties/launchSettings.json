@@ -26,7 +26,9 @@
         "DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL": "http://localhost:16032",
         "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL": "http://localhost:17031",
         "DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES": "true",
-        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true"
+        "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true",
+        "Dashboard:Frontend:AuthMode": "Unsecured",
+        "DASHBOARD__FRONTEND__AUTHMODE": "Unsecured"
       }
     },
     "generate-manifest": {
