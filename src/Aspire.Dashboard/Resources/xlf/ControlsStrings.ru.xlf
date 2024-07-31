@@ -7,6 +7,11 @@
         <target state="needs-review-translation">Все</target>
         <note />
       </trans-unit>
+      <trans-unit id="ApplicationLower">
+        <source>application</source>
+        <target state="new">application</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ChartContainerAllTags">
         <source>All tags</source>
         <target state="translated">Все теги</target>
@@ -210,11 +215,6 @@
       <trans-unit id="PropertyGridValueColumnHeader">
         <source>Value</source>
         <target state="translated">Значение</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ReplicaSetLower">
-        <source>replica set</source>
-        <target state="translated">набор реплик</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointsHeader">

@@ -497,6 +497,10 @@ fluent-data-grid-cell.no-ellipsis {
     overflow: auto;
 }
 
+.resource-select-application-label {
+    color: var(--accent-foreground-rest);
+}
+
 .filter-input-container {
     width: 75%;
 }
