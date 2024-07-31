@@ -25,10 +25,7 @@ public class AppBarTests : PlaywrightTestsBase
             async page =>
             {
                 await PlaywrightFixture.GoToHomeAndWaitForDataGridLoad(page);
-                return true;
-            },
-            async page =>
-            {
+
                 var settingsButton = page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = Layout.MainLayoutLaunchSettings });
                 await settingsButton.ClickAsync();
 

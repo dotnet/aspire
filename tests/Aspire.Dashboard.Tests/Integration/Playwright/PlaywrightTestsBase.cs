@@ -24,27 +24,19 @@ public class PlaywrightTestsBase : IClassFixture<DashboardServerFixture>, IClass
         _id = Guid.NewGuid();
     }
 
-    public async Task RunTestAsync(Func<IPage, Task<bool>> setup, Func<IPage, Task> test)
+    public async Task RunTestAsync(Func<IPage, Task> test)
     {
         var page = await CreateNewPageAsync();
         try
         {
-            var shouldRunTest = true;
+            await test(page);
 
-            try
-            {
-                await setup(page);
-            }
-            catch (PlaywrightException e)
-            {
-                _output.WriteLine($"Test setup failed: {e}");
-                await TakeScreenshotAsync("dashboard-fail.png", page);
-            }
-
-            if (shouldRunTest)
-            {
-                await test(page);
-            }
+        }
+        catch (PlaywrightException e)
+        {
+            _output.WriteLine($"Test setup failed: {e}");
+            await TakeScreenshotAsync("dashboard-fail.png", page);
+            throw;
         }
         finally
         {
@@ -71,7 +63,7 @@ public class PlaywrightTestsBase : IClassFixture<DashboardServerFixture>, IClass
         }
     }
 
-    protected async Task TakeScreenshotAsync(string path, IPage page)
+    private async Task TakeScreenshotAsync(string path, IPage page)
     {
         var screenshotPath = Path.Combine(GetLogPath(), path);
         await page.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
@@ -80,21 +72,14 @@ public class PlaywrightTestsBase : IClassFixture<DashboardServerFixture>, IClass
 
     private string GetLogPath()
     {
-        var testLogPath = Environment.GetEnvironmentVariable("TEST_LOG_PATH");
-        string? logRootPath;
-        if (!string.IsNullOrEmpty(testLogPath))
+        var testLogPath = Path.Combine(AppContext.BaseDirectory, "logs");
+        var logRootPath = Path.Combine(testLogPath, _id.ToString());
+
+        if (!Directory.Exists(logRootPath))
         {
-            logRootPath = Path.GetFullPath(testLogPath);
-            if (!Directory.Exists(logRootPath))
-            {
-                Directory.CreateDirectory(logRootPath);
-            }
-        }
-        else
-        {
-            logRootPath = Path.Combine(AppContext.BaseDirectory, "logs");
+            Directory.CreateDirectory(logRootPath);
         }
 
-        return Path.Combine(logRootPath, _id.ToString());
+        return logRootPath;
     }
 }
