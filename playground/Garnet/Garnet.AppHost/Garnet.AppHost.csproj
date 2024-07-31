@@ -9,13 +9,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(SharedDir)KnownResourceNames.cs" Link="KnownResourceNames.cs" />
+    <Compile Include="..\..\KnownResourceNames.cs" Link="KnownResourceNames.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Garnet\Aspire.Hosting.Garnet.csproj" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Garnet" />
     <ProjectReference Include="..\Garnet.ApiService\Garnet.ApiService.csproj" />
   </ItemGroup>
 
