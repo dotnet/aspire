@@ -216,7 +216,7 @@
     <value>View</value>
   </data>
   <data name="All" xml:space="preserve">
-    <value>All</value>
+    <value>(All)</value>
   </data>
   <data name="ChartContainerAllTags" xml:space="preserve">
     <value>All tags</value>
@@ -230,7 +230,7 @@
   <data name="ChartContainerShowCountLabel" xml:space="preserve">
     <value>Show count</value>
   </data>
-  <data name="ChartContainerNoneSelected" xml:space="preserve">
+  <data name="None" xml:space="preserve">
     <value>(None)</value>
   </data>
   <data name="MetricTableStartColumnHeader" xml:space="preserve">
@@ -254,8 +254,8 @@
   <data name="MetricTableNoMetricsFound" xml:space="preserve">
     <value>No metrics data found</value>
   </data>
-  <data name="SelectAResource" xml:space="preserve">
-    <value>Select a resource</value>
+  <data name="ResourceLabel" xml:space="preserve">
+    <value>Resource</value>
   </data>
   <data name="TimeOffsetColumnHeader" xml:space="preserve">
     <value>Time offset</value>
