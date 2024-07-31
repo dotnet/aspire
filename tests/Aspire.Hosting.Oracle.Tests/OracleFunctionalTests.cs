@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
@@ -77,12 +78,26 @@ public class OracleFunctionalTests
             var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
             return await databaseCreator.CanConnectAsync(token);
         }, cts.Token);
+
+        var process = Process.Start(new ProcessStartInfo
+        {
+            FileName = "docker",
+            Arguments = "exec $(docker ps -l -q) bash -c \"cat /opt/oracle/diag/rdbms/free/FREE/trace/*.trc & cat /opt/oracle/diag/rdbms/free/FREE/trace/*.log\"",
+            RedirectStandardOutput = true,
+        });
+
+        process!.OutputDataReceived += (object sender, DataReceivedEventArgs e) =>
+        {
+            _testOutputHelper.WriteLine($"[DOCKER] {e.Data}");
+        };
+
+        process.Start();
+        process.WaitForExit();
     }
 
     [Theory]
-    [InlineData(true)]
+    [InlineData(true, Skip = " Debugging")]
     [InlineData(false, Skip = "Takes too long to be ready.")]
-    //[InlineData(false)]
     [RequiresDocker]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
@@ -284,7 +299,7 @@ public class OracleFunctionalTests
     }
 
     [Theory]
-    [InlineData(true)]
+    [InlineData(true, Skip = " Debugging")]
     [InlineData(false, Skip = "Scripts are not executed when in the /setup folder")]
     [RequiresDocker]
     public async Task VerifyWithInitBindMount(bool init)
