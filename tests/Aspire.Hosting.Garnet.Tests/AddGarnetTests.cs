@@ -228,7 +228,7 @@ public class AddGarnetTests
         using var builder = TestDistributedApplicationBuilder.Create();
         var garnet = builder.AddGarnet("myGarnet")
                            .WithDataVolume()
-                           .WithPersistence(TimeSpan.FromSeconds(10), 2);
+                           .WithPersistence(TimeSpan.FromSeconds(10));
 
         Assert.True(garnet.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
 
