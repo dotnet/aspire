@@ -25,7 +25,7 @@ public class ValidateTokenMiddlewareTests
     }
 
     [Fact]
-    public async Task ValidateToken_NotBrowserTokenAuth_RedirectedToHomepage_ReturnUrl()
+    public async Task ValidateToken_NotBrowserTokenAuth_RedirectedToReturnUrl()
     {
         using var host = await SetUpHostAsync(FrontendAuthMode.Unsecured, string.Empty);
         var response = await host.GetTestClient().GetAsync("/login?t=test&returnUrl=/test");
@@ -57,7 +57,7 @@ public class ValidateTokenMiddlewareTests
     }
 
     [Fact]
-    public async Task ValidateToken_BrowserTokenAuth_RightToken_RedirectsToHome_WithReturnUrl()
+    public async Task ValidateToken_BrowserTokenAuth_RightToken_RedirectsToReturnUrl()
     {
         using var host = await SetUpHostAsync(FrontendAuthMode.BrowserToken, "token");
         var response = await host.GetTestClient().GetAsync("/login?t=token&returnUrl=/test");
