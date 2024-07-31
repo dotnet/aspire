@@ -104,7 +104,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         {
             TestResourceNames.cosmos or TestResourceNames.efcosmos => "cosmos",
             TestResourceNames.eventhubs => "eventhubs",
-            TestResourceNames.garnet => "garnet",
             TestResourceNames.oracledatabase => "oracledatabase",
             TestResourceNames.postgres or TestResourceNames.efnpgsql => "postgres",
             TestResourceNames.rabbitmq => "rabbitmq",
