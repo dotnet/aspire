@@ -27,7 +27,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [InlineData(TestResourceNames.efnpgsql)]
     [InlineData(TestResourceNames.rabbitmq)]
     [InlineData(TestResourceNames.redis)]
-    [InlineData(TestResourceNames.garnet)]
     [InlineData(TestResourceNames.sqlserver)]
     [InlineData(TestResourceNames.efsqlserver)]
     public Task VerifyComponentWorks(TestResourceNames resourceName)

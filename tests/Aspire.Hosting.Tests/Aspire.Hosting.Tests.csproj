@@ -26,8 +26,6 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
 
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Garnet\GarnetContainerImageTags.cs" />
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Nats\NatsContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.MongoDB\MongoDBContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Oracle\OracleContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.PostgreSQL\PostgresContainerImageTags.cs" />

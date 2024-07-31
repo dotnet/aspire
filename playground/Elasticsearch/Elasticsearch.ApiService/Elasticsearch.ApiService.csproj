@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Elastic.Clients.Elasticsearch\Aspire.Elastic.Clients.Elasticsearch.csproj" />
+    <AspireProjectOrPackageReference Include="Aspire.Elastic.Clients.Elasticsearch" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
 </Project>

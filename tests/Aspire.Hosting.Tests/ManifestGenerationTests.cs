@@ -479,7 +479,6 @@ public class ManifestGenerationTests
                     "SKIP_RESOURCES": "None",
                     "ConnectionStrings__tempdb": "{tempdb.connectionString}",
                     "ConnectionStrings__redis": "{redis.connectionString}",
-                    "ConnectionStrings__garnet": "{garnet.connectionString}",
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
                     "ConnectionStrings__rabbitmq": "{rabbitmq.connectionString}",
                     "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
@@ -524,19 +523,6 @@ public class ManifestGenerationTests
                   "type": "container.v0",
                   "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
                   "image": "{{TestConstants.AspireTestContainerRegistry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 6379
-                    }
-                  }
-                },
-                "garnet": {
-                  "type": "container.v0",
-                  "connectionString": "{garnet.bindings.tcp.host}:{garnet.bindings.tcp.port}",
-                  "image": "{{GarnetContainerImageTags.Registry}}/{{GarnetContainerImageTags.Image}}:{{GarnetContainerImageTags.Tag}}",
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",

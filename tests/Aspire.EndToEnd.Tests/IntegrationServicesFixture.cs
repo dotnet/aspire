@@ -144,7 +144,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             "eventhubs" => TestResourceNames.eventhubs,
             "basicservices" => TestResourceNames.rabbitmq
                               | TestResourceNames.redis
-                              | TestResourceNames.garnet
                               | TestResourceNames.postgres
                               | TestResourceNames.efnpgsql
                               | TestResourceNames.sqlserver

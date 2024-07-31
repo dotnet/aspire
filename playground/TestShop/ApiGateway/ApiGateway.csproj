@@ -12,10 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Microsoft.Extensions.ServiceDiscovery.Abstractions\Microsoft.Extensions.ServiceDiscovery.Abstractions.csproj" />
-    <ProjectReference Include="..\..\..\src\Microsoft.Extensions.ServiceDiscovery.Yarp\Microsoft.Extensions.ServiceDiscovery.Yarp.csproj" />
-    <ProjectReference Include="..\..\..\src\Microsoft.Extensions.ServiceDiscovery\Microsoft.Extensions.ServiceDiscovery.csproj" />
-    <ProjectReference Include="..\..\..\src\Microsoft.Extensions.ServiceDiscovery.Dns\Microsoft.Extensions.ServiceDiscovery.Dns.csproj" />
+    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Abstractions" />
+    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Yarp" />
+    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
+    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Dns" />
     <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
   </ItemGroup>
 
