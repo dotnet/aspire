@@ -32,9 +32,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     public required ILogger<ConsoleLogs> Logger { get; init; }
 
     [Inject]
-    public required LogViewerViewModel LogViewerViewModel { get; init; }
-
-    [Inject]
     public required DimensionManager DimensionManager { get; init; }
 
     [CascadingParameter]
@@ -64,7 +61,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     protected override async Task OnInitializedAsync()
     {
-        _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)] };
+        _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.None)] };
         PageViewModel = new ConsoleLogsViewModel { SelectedOption = _noSelection, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
 
         var loadingTcs = new TaskCompletionSource();
@@ -153,7 +150,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     protected override async Task OnParametersSetAsync()
     {
-        if (!DimensionManager.IsResizing && PageViewModel.InitialisedSuccessfully is true && StringComparers.ResourceName.Equals(ResourceName, LogViewerViewModel.ResourceName))
+        if (DimensionManager.IsResizing && PageViewModel.InitialisedSuccessfully is true)
         {
             return;
         }
