@@ -19,7 +19,7 @@
         <ToolbarSection>
             <ResourceSelect @ref="_resourceSelectComponent"
                             Resources="_resources"
-                            AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)]"
+                            AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.ResourceLabel)]"
                             @bind-SelectedResource="PageViewModel.SelectedOption"
                             @bind-SelectedResource:after="HandleSelectedOptionChangedAsync" />
             @if (ViewportInformation.IsDesktop)
