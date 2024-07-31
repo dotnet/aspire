@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 using Xunit;
 
 namespace Aspire.Hosting.Redis.Tests;
@@ -11,123 +12,97 @@ public class RedisPublicApiTests
     #region RedisBuilderExtensions
 
     [Fact]
-    public void AddRedisContainerShouldThrowsWhenBuilderIsNull()
+    public void AddRedisContainerShouldThrowWhenBuilderIsNull()
     {
         IDistributedApplicationBuilder builder = null!;
         const string name = "Redis";
 
         var action = () => builder.AddRedis(name);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(builder), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
-    public void AddRedisContainerShouldThrowsWhenNameIsNull()
+    public void AddRedisContainerShouldThrowWhenNameIsNull()
     {
         IDistributedApplicationBuilder builder = new DistributedApplicationBuilder([]);
         string name = null!;
 
         var action = () => builder.AddRedis(name);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(name), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
     }
 
     [Fact]
-    public void WithRedisCommanderShouldThrowsWhenBuilderIsNull()
+    public void WithRedisCommanderShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<RedisResource> builder = null!;
 
         var action = () => builder.WithRedisCommander();
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(builder), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
-    public void WithHostPortShouldThrowsWhenBuilderIsNull()
+    public void WithHostPortShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<RedisCommanderResource> builder = null!;
         const int port = 777;
 
         var action = () => builder.WithHostPort(port);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(builder), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
-    public void WithDataVolumeShouldThrowsWhenBuilderIsNull()
+    public void WithDataVolumeShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<RedisResource> builder = null!;
 
         var action = () => builder.WithDataVolume();
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(builder), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
-    public void WithDataBindMountShouldThrowsWhenBuilderIsNull()
+    public void WithDataBindMountShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<RedisResource> builder = null!;
         const string source = "/data";
 
         var action = () => builder.WithDataBindMount(source);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(builder), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
-    public void WithDataBindMountShouldThrowsWhenNameIsNull()
+    public void WithDataBindMountShouldThrowWhenNameIsNull()
     {
-        var distributedApplicationBuilder = new DistributedApplicationBuilder([]);
-        const string name = "Redis";
-        var resource = new RedisResource(name);
-        var builder = distributedApplicationBuilder.AddResource(resource);
+        var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder.AddRedis("Redis");
         string source = null!;
 
-        var action = () => builder.WithDataBindMount(source);
+        var action = () => redis.WithDataBindMount(source);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(source), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(source), exception.ParamName);
     }
 
     [Fact]
-    public void WithPersistenceShouldThrowsWhenBuilderIsNull()
+    public void WithPersistenceShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<RedisResource> builder = null!;
 
         var action = () => builder.WithPersistence();
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(builder), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     #endregion
@@ -135,7 +110,7 @@ public class RedisPublicApiTests
     #region RedisCommanderConfigWriterHook
 
     [Fact]
-    public async Task AfterEndpointsAllocatedAsyncShouldThrowsWhenDistributedApplicationModelIsNull()
+    public async Task AfterEndpointsAllocatedAsyncShouldThrowWhenDistributedApplicationModelIsNull()
     {
         DistributedApplicationModel appModel = null!;
         var cancellationToken = CancellationToken.None;
@@ -153,17 +128,14 @@ public class RedisPublicApiTests
     #region RedisCommanderResource
 
     [Fact]
-    public void CtorRedisCommanderResourceShouldThrowsWhenNameIsNull()
+    public void CtorRedisCommanderResourceShouldThrowWhenNameIsNull()
     {
         string name = null!;
 
         var action = () => new RedisCommanderResource(name);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(name), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
     }
 
     #endregion
@@ -171,17 +143,14 @@ public class RedisPublicApiTests
     #region RedisResource
 
     [Fact]
-    public void CtorRedisResourceShouldThrowsWhenNameIsNull()
+    public void CtorRedisResourceShouldThrowWhenNameIsNull()
     {
         string name = null!;
 
         var action = () => new RedisResource(name);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(name), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
     }
 
     #endregion

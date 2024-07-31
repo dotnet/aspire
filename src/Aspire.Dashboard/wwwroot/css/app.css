@@ -587,3 +587,15 @@ fluent-data-grid-cell.no-ellipsis {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }
+
+.resource-select-application-label {
+    color: var(--accent-foreground-rest);
+}
+
+.filter-input-container {
+    width: 75%;
+}
+
+.layout fluent-toolbar > .fluent-input-label {
+    margin-bottom: 0;
+}
