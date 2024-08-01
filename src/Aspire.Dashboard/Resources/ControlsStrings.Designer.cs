@@ -500,5 +500,11 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("SpanDetailsBacklinksHeader", resourceCulture);
             }
         }
+        
+        public static string PageToolbarLandmark {
+            get {
+                return ResourceManager.GetString("PageToolbarLandmark", resourceCulture);
+            }
+        }
     }
 }

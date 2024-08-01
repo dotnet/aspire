@@ -41,8 +41,9 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
 
-    [Inject]
-    public required CurrentChartViewModel ChartViewModel { get; init; }
+    public List<DimensionFilterViewModel> DimensionFilters { get; } = [];
+    public string? PreviousMeterName { get; set; }
+    public string? PreviousInstrumentName { get; set; }
 
     protected override void OnInitialized()
     {
@@ -112,7 +113,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     private bool MatchDimension(DimensionScope dimension)
     {
-        foreach (var dimensionFilter in ChartViewModel.DimensionFilters)
+        foreach (var dimensionFilter in DimensionFilters)
         {
             if (!MatchFilter(dimension.Attributes, dimensionFilter))
             {
@@ -155,14 +156,14 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
             return;
         }
 
-        var hasInstrumentChanged = ChartViewModel.PreviousMeterName != MeterName || ChartViewModel.PreviousInstrumentName != InstrumentName;
-        ChartViewModel.PreviousMeterName = MeterName;
-        ChartViewModel.PreviousInstrumentName = InstrumentName;
+        var hasInstrumentChanged = PreviousMeterName != MeterName || PreviousInstrumentName != InstrumentName;
+        PreviousMeterName = MeterName;
+        PreviousInstrumentName = InstrumentName;
 
         var filters = CreateUpdatedFilters(hasInstrumentChanged);
 
-        ChartViewModel.DimensionFilters.Clear();
-        ChartViewModel.DimensionFilters.AddRange(filters);
+        DimensionFilters.Clear();
+        DimensionFilters.AddRange(filters);
 
         await UpdateInstrumentDataAsync(_instrument);
     }
@@ -234,7 +235,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                 }
                 else
                 {
-                    var existing = ChartViewModel.DimensionFilters.SingleOrDefault(m => m.Name == item.Name);
+                    var existing = DimensionFilters.SingleOrDefault(m => m.Name == item.Name);
                     if (existing != null)
                     {
                         // Select previously selected.
