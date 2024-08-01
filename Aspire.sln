@@ -13,7 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "playground", "playground", 
 		playground\README.md = playground\README.md
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceDefaults", "playground\TestShop\ServiceDefaults\ServiceDefaults.csproj", "{C7B2309C-073A-4552-A508-A69768B64C6F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestShop.ServiceDefaults", "playground\TestShop\TestShop.ServiceDefaults\TestShop.ServiceDefaults.csproj", "{C7B2309C-073A-4552-A508-A69768B64C6F}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CatalogService", "playground\TestShop\CatalogService\CatalogService.csproj", "{6D04BB34-1CC6-4FF3-A02A-1FFAC2A7A4F3}"
 EndProject
