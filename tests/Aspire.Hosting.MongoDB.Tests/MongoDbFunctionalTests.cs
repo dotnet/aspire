@@ -220,7 +220,6 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            Directory.CreateDirectory(bindMountPath);
             var initFilePath = Path.Combine(bindMountPath, "mongo-init.js");
             await File.WriteAllTextAsync(initFilePath, $$"""
                 db = db.getSiblingDB('{{dbName}}');
@@ -250,11 +249,11 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
 
             var builder = CreateDistributedApplicationBuilder();
 
-            var mongodb = builder.AddMongoDB("mongodb");
+            var mongodb = builder.AddMongoDB("mongodb")
+                .WithInitBindMount(bindMountPath);
+
             var db = mongodb.AddDatabase(dbName);
             using var app = builder.Build();
-
-            mongodb.WithInitBindMount(bindMountPath);
 
             await app.StartAsync();
 
