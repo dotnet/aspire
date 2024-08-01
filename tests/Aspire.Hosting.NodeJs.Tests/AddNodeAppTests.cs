@@ -9,18 +9,19 @@ namespace Aspire.Hosting.NodeJs.Tests;
 public class AddNodeAppTests
 {
     [Fact]
-    public async Task NodeAppIsExecutableResource()
+    public async Task VerifyManifest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var nodeApp = builder.AddNodeApp("nodeapp", "..\\foo\\app.js")
+        var workingDirectory = AppContext.BaseDirectory;
+        var nodeApp = builder.AddNodeApp("nodeapp", "..\\foo\\app.js", workingDirectory)
             .WithHttpEndpoint(port: 5031, env: "PORT");
         var manifest = await ManifestUtils.GetManifest(nodeApp.Resource);
 
         var expectedManifest = $$"""
             {
               "type": "executable.v0",
-              "workingDirectory": "../../../../../tests/foo",
+              "workingDirectory": ".",
               "command": "node",
               "args": [
                 "..\\foo\\app.js"
@@ -42,14 +43,14 @@ public class AddNodeAppTests
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
 
-        var npmApp = builder.AddNpmApp("npmapp", "..\\foo")
+        var npmApp = builder.AddNpmApp("npmapp", workingDirectory)
             .WithHttpEndpoint(port: 5032, env: "PORT");
         manifest = await ManifestUtils.GetManifest(npmApp.Resource);
 
         expectedManifest = $$"""
             {
               "type": "executable.v0",
-              "workingDirectory": "../../../../../tests/foo",
+              "workingDirectory": ".",
               "command": "npm",
               "args": [
                 "run",
