@@ -9,8 +9,6 @@ namespace Aspire.Hosting.Nats.Tests;
 
 public class NatsPublicApiTests
 {
-    #region NatsBuilderExtensions
-
     [Fact]
     public void AddNatsContainerShouldThrowWhenBuilderIsNull()
     {
@@ -82,10 +80,6 @@ public class NatsPublicApiTests
         Assert.Equal(nameof(source), exception.ParamName);
     }
 
-    #endregion
-
-    #region NatsServerResource
-
     [Fact]
     public void CtorNatsServerResourceShouldThrowWhenNameIsNull()
     {
@@ -96,6 +90,4 @@ public class NatsPublicApiTests
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
-
-    #endregion
 }
