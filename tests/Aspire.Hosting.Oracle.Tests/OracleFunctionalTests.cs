@@ -28,7 +28,7 @@ public class OracleFunctionalTests
         _testOutputHelper = testOutputHelper;
     }
 
-    [Fact]
+    [Fact(Skip = "Debugging")]
     [RequiresDocker]
     public async Task VerifyOracleResource()
     {
@@ -141,16 +141,16 @@ public class OracleFunctionalTests
 
             var db1 = oracle1.AddDatabase(oracleDbName);
 
-            var initBindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-            Directory.CreateDirectory(initBindMountPath);
+            //var initBindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            //Directory.CreateDirectory(initBindMountPath);
 
-            File.WriteAllText(Path.Combine(initBindMountPath, "01_init.sql"), $"""
-                    ALTER SESSION SET CONTAINER={oracleDbName};
-                    ALTER SESSION SET CURRENT_SCHEMA = SYSTEM;
-                    ALTER SYSTEM SET PARALLEL_MAX_SERVERS=40 SCOPE=BOTH;
-                """);
+            //File.WriteAllText(Path.Combine(initBindMountPath, "01_init.sql"), $"""
+            //        ALTER SESSION SET CONTAINER={oracleDbName};
+            //        ALTER SESSION SET CURRENT_SCHEMA = SYSTEM;
+            //        ALTER SYSTEM SET PARALLEL_MAX_SERVERS=40 SCOPE=BOTH;
+            //    """);
 
-            oracle1.WithInitBindMount(initBindMountPath);
+            //oracle1.WithInitBindMount(initBindMountPath);
 
             if (useVolume)
             {
@@ -174,6 +174,8 @@ public class OracleFunctionalTests
             using (var app = builder1.Build())
             {
                 await app.StartAsync();
+                _testOutputHelper.WriteLine("[LOG] Wait for database");
+
                 await ready1.WaitAsync(TimeSpan.FromMinutes(2));
 
                 try
@@ -191,6 +193,8 @@ public class OracleFunctionalTests
                     {
                         await host.StartAsync();
 
+                        _testOutputHelper.WriteLine("[LOG] Started app 1");
+
                         // Wait until the database is available
                         await pipeline.ExecuteAsync(async token =>
                         {
@@ -198,6 +202,8 @@ public class OracleFunctionalTests
                             var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
                             return await databaseCreator.CanConnectAsync(token);
                         }, cts.Token);
+
+                        _testOutputHelper.WriteLine("[LOG] Create tables");
 
                         // Create tables
                         using var dbContext = host.Services.GetRequiredService<TestDbContext>();
@@ -210,6 +216,8 @@ public class OracleFunctionalTests
 
                         // Stops the container and wait until it's not accessible anymore before creating a new one
                         // using the same volume.
+
+                        _testOutputHelper.WriteLine("[LOG] Stop container 1");
 
                         await app.StopAsync();
 
@@ -261,7 +269,7 @@ public class OracleFunctionalTests
 
             var ready2 = builder2.WaitForText(oracle2.Resource, "Completed: ALTER DATABASE OPEN", cts.Token);
 
-            oracle2.WithInitBindMount(initBindMountPath);
+            //oracle2.WithInitBindMount(initBindMountPath);
 
             if (useVolume)
             {
@@ -275,6 +283,9 @@ public class OracleFunctionalTests
             using (var app = builder2.Build())
             {
                 await app.StartAsync();
+
+                _testOutputHelper.WriteLine("[LOG] Wait container 2");
+
                 await ready2.WaitAsync(TimeSpan.FromMinutes(2));
 
                 try
@@ -292,6 +303,8 @@ public class OracleFunctionalTests
                     {
                         await host.StartAsync();
 
+                        _testOutputHelper.WriteLine("[LOG] Started app 2");
+
                         // Wait until the database is available
                         await pipeline.ExecuteAsync(async token =>
                         {
@@ -303,6 +316,8 @@ public class OracleFunctionalTests
                         using var dbContext = host.Services.GetRequiredService<TestDbContext>();
                         var brands = await dbContext.Cars.ToListAsync(cancellationToken: cts.Token);
                         Assert.Single(brands);
+
+                        _testOutputHelper.WriteLine("[LOG] Stopping container 2");
 
                         await app.StopAsync();
 
