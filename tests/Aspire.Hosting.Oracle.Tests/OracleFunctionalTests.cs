@@ -8,7 +8,6 @@ using Aspire.Hosting.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -41,9 +40,6 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         var oracleDbName = "freepdb1";
 
         var oracle = builder.AddOracle("oracle");
-        // ConfigureTestOracleDatabase(oracle);
-
-        //oracle.WithEnvironment("ORACLE_PASSWORD", oracle.Resource.PasswordParameter.Value);
 
         var db = oracle.AddDatabase(oracleDbName);
 
