@@ -17,12 +17,5 @@ public class PythonProjectResource(string name, string executablePath, string pr
     : ExecutableResource(ThrowIfNull(name), ThrowIfNull(executablePath), ThrowIfNull(projectDirectory)), IResourceWithServiceDiscovery
 {
     private static string ThrowIfNull([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-    {
-        if (argument is null)
-        {
-            throw new ArgumentNullException(paramName);
-        }
-
-        return argument;
-    }
+        => argument ?? throw new ArgumentNullException(paramName);
 }
