@@ -89,6 +89,7 @@ public class OracleFunctionalTests
                 FileName = "/usr/bin/env",
                 Arguments = "bash docker exec $(docker ps -l -q) bash -c \"cat /opt/oracle/diag/rdbms/free/FREE/trace/*.trc & cat /opt/oracle/diag/rdbms/free/FREE/trace/*.log\"",
                 RedirectStandardOutput = true,
+                RedirectStandardError = true,
             });
 
             process!.OutputDataReceived += (object sender, DataReceivedEventArgs e) =>
@@ -96,8 +97,14 @@ public class OracleFunctionalTests
                 _testOutputHelper.WriteLine($"[DOCKER] {e.Data}");
             };
 
+            process!.ErrorDataReceived += (object sender, DataReceivedEventArgs e) =>
+            {
+                _testOutputHelper.WriteLine($"[ERROR] {e.Data}");
+            };
+
             process.Start();
             process.WaitForExit();
+
         }
     }
 
@@ -133,6 +140,17 @@ public class OracleFunctionalTests
             var password = oracle1.Resource.PasswordParameter.Value;
 
             var db1 = oracle1.AddDatabase(oracleDbName);
+
+            var initBindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            Directory.CreateDirectory(initBindMountPath);
+
+            File.WriteAllText(Path.Combine(initBindMountPath, "01_init.sql"), $"""
+                    ALTER SESSION SET CONTAINER={oracleDbName};
+                    ALTER SESSION SET CURRENT_SCHEMA = SYSTEM;
+                    ALTER SYSTEM SET PARALLEL_MAX_SERVERS=40 SCOPE=BOTH;
+                """);
+
+            oracle1.WithInitBindMount(initBindMountPath);
 
             if (useVolume)
             {
@@ -211,11 +229,17 @@ public class OracleFunctionalTests
                         FileName = "/usr/bin/env",
                         Arguments = "bash docker exec $(docker ps -l -q) bash -c \"cat /opt/oracle/diag/rdbms/free/FREE/trace/*.trc & cat /opt/oracle/diag/rdbms/free/FREE/trace/*.log\"",
                         RedirectStandardOutput = true,
+                        RedirectStandardError = true,
                     });
 
                     process!.OutputDataReceived += (object sender, DataReceivedEventArgs e) =>
                     {
                         _testOutputHelper.WriteLine($"[DOCKER] {e.Data}");
+                    };
+
+                    process!.ErrorDataReceived += (object sender, DataReceivedEventArgs e) =>
+                    {
+                        _testOutputHelper.WriteLine($"[ERROR] {e.Data}");
                     };
 
                     process.Start();
@@ -236,6 +260,8 @@ public class OracleFunctionalTests
             var db2 = oracle2.AddDatabase(oracleDbName);
 
             var ready2 = builder2.WaitForText(oracle2.Resource, "Completed: ALTER DATABASE OPEN", cts.Token);
+
+            oracle2.WithInitBindMount(initBindMountPath);
 
             if (useVolume)
             {
@@ -297,11 +323,17 @@ public class OracleFunctionalTests
                         FileName = "/usr/bin/env",
                         Arguments = "bash docker exec $(docker ps -l -q) bash -c \"cat /opt/oracle/diag/rdbms/free/FREE/trace/*.trc & cat /opt/oracle/diag/rdbms/free/FREE/trace/*.log\"",
                         RedirectStandardOutput = true,
+                        RedirectStandardError = true,
                     });
 
                     process!.OutputDataReceived += (object sender, DataReceivedEventArgs e) =>
                     {
                         _testOutputHelper.WriteLine($"[DOCKER] {e.Data}");
+                    };
+
+                    process!.ErrorDataReceived += (object sender, DataReceivedEventArgs e) =>
+                    {
+                        _testOutputHelper.WriteLine($"[ERROR] {e.Data}");
                     };
 
                     process.Start();
