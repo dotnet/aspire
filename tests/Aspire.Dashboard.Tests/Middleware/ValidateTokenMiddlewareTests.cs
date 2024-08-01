@@ -8,8 +8,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
-using NSubstitute;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Middleware;
@@ -75,7 +73,18 @@ public class ValidateTokenMiddlewareTests
                     {
                         services.AddRouting();
                         services.AddAuthentication().AddCookie();
-                        services.AddSingleton(GetOptionsMonitorMock(authMode, expectedToken));
+
+                        services.Configure<DashboardOptions>(o =>
+                        {
+                            o.Frontend = new FrontendOptions
+                            {
+                                AuthMode = authMode,
+                                BrowserToken = expectedToken,
+                                EndpointUrls = "http://localhost/" // required for TryParseOptions
+                            };
+
+                            Assert.True(o.Frontend.TryParseOptions(out _));
+                        });
                     })
                     .Configure(app =>
                     {
@@ -83,25 +92,5 @@ public class ValidateTokenMiddlewareTests
                     });
             })
             .StartAsync();
-    }
-
-    private static IOptionsMonitor<DashboardOptions> GetOptionsMonitorMock(FrontendAuthMode authMode, string expectedToken)
-    {
-        var options = new DashboardOptions
-        {
-            Frontend = new FrontendOptions
-            {
-                AuthMode = authMode,
-                BrowserToken = expectedToken,
-                EndpointUrls = "http://localhost" // required for TryParseOptions
-            }
-        };
-
-        Assert.True(options.Frontend.TryParseOptions(out _));
-
-        var optionsMonitor = Substitute.For<IOptionsMonitor<DashboardOptions>>();
-        optionsMonitor.CurrentValue.Returns(options);
-
-        return optionsMonitor;
     }
 }
