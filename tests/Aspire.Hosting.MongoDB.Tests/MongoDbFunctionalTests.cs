@@ -12,6 +12,7 @@ using MongoDB.Driver;
 using Xunit;
 using Xunit.Abstractions;
 using Polly;
+using Aspire.Hosting.Testing;
 
 namespace Aspire.Hosting.MongoDB.Tests;
 
@@ -318,6 +319,8 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
         builder.Services.AddXunitLogging(testOutputHelper);
+        builder.Services.AddHostedService<ResourceLoggerForwarderService>();
+
         return builder;
     }
 }
