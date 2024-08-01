@@ -15,18 +15,32 @@ namespace Aspire.Dashboard.Components.Dialogs;
 
 public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
 {
+    // xml and json are language names supported by highlight.js
     public const string XmlFormat = "xml";
     public const string JsonFormat = "json";
     public const string PlaintextFormat = "plaintext";
 
     private readonly string _copyButtonId = $"copy-{Guid.NewGuid():N}";
     private readonly string _openSelectFormatButtonId = $"select-format-{Guid.NewGuid():N}";
+    private readonly string _logContainerId = $"log-container-{Guid.NewGuid():N}";
 
     private IJSObjectReference? _jsModule;
     private List<SelectViewModel<string>> _options = null!;
+    private string? _currentValue;
+    private string _formattedText = string.Empty;
 
     public HashSet<string?> EnabledOptions { get; } = [];
-    public string FormattedText { get; private set; } = string.Empty;
+    public string FormattedText
+    {
+        get => _formattedText;
+        private set
+        {
+            _formattedText = value;
+            FormattedLines = GetLines();
+        }
+    }
+    public ICollection<StringLogLine> FormattedLines { get; set; } = [];
+
     public string FormatKind { get; private set; } = PlaintextFormat;
 
     [Inject]
@@ -44,7 +58,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
 
         if (_jsModule is not null && FormatKind != PlaintextFormat)
         {
-            await _jsModule.InvokeVoidAsync("connectObserver");
+            await _jsModule.InvokeVoidAsync("connectObserver", _logContainerId);
         }
     }
 
@@ -69,8 +83,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
         }
         else
         {
-            FormattedText = Content.Text;
-            FormatKind = PlaintextFormat;
+            ChangeFormattedText(PlaintextFormat, Content.Text);
         }
     }
 
@@ -90,8 +103,10 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
     {
         try
         {
-            FormattedText = XDocument.Parse(Content.Text).ToString();
-            FormatKind = XmlFormat;
+            var document = XDocument.Parse(Content.Text);
+            var stringWriter = new StringWriter();
+            document.Save(stringWriter);
+            ChangeFormattedText(XmlFormat, stringWriter.ToString());
             return true;
         }
         catch (XmlException)
@@ -105,9 +120,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
         try
         {
             var formattedJson = FormatJson(Content.Text);
-
-            FormattedText = formattedJson;
-            FormatKind = JsonFormat;
+            ChangeFormattedText(JsonFormat, formattedJson);
             return true;
         }
         catch (JsonException)
@@ -116,10 +129,12 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
         }
     }
 
-    private void OnFormatOptionChanged(MenuChangeEventArgs args) => ChangeFormat(args.Id);
+    private void OnFormatOptionChanged(MenuChangeEventArgs args) => ChangeFormat(args.Id, args.Value);
 
-    public void ChangeFormat(string? newFormat)
+    public void ChangeFormat(string? newFormat, string? value)
     {
+        _currentValue = value;
+
         if (newFormat == XmlFormat)
         {
             TryFormatXml();
@@ -130,12 +145,17 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
         }
         else
         {
-            FormattedText = Content.Text;
-            FormatKind = PlaintextFormat;
+            ChangeFormattedText(PlaintextFormat, Content.Text);
         }
     }
 
-    public static string FormatJson(string jsonString)
+    private void ChangeFormattedText(string newFormatKind, string newText)
+    {
+        FormatKind = newFormatKind;
+        FormattedText = newText;
+    }
+
+    private static string FormatJson(string jsonString)
     {
         var jsonData = Encoding.UTF8.GetBytes(jsonString);
 
@@ -224,6 +244,6 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
         }
     }
 
-    private record StringLogLine(int LineNumber, string Content, bool IsFormatted);
+    public record StringLogLine(int LineNumber, string Content, bool IsFormatted);
 }
 

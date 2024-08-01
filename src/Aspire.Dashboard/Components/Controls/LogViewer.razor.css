@@ -1,6 +1,7 @@
 ::deep .console-container {
     background: var(--console-background-color);
     color: var(--console-font-color);
+    margin: 16px 0 0 0;
 }
 
 ::deep .console-line-row:hover {

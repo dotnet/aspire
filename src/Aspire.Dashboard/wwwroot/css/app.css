@@ -535,7 +535,6 @@ fluent-data-grid-cell.no-ellipsis {
 .log-container {
     font-family: 'Cascadia Mono', Consolas, monospace;
     font-size: 13px;
-    margin: 16px 0 0 0;
     padding-bottom: 24px;
     line-height: 20px;
     overflow: visible;
