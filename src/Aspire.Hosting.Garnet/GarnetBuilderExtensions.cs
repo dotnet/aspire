@@ -66,7 +66,7 @@ public static class GarnetBuilderExtensions
     /// <code lang="csharp">
     /// var cache = builder.AddGarnet("cache")
     ///                    .WithDataVolume()
-    ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
+    ///                    .WithPersistence(TimeSpan.FromSeconds(10));
     /// </code>
     /// </example>
     /// <param name="builder">The resource builder.</param>
@@ -83,7 +83,7 @@ public static class GarnetBuilderExtensions
             isReadOnly);
         if (!isReadOnly)
         {
-            builder.WithPersistence(interval: null);
+            builder.WithPersistence();
         }
 
         return builder;
@@ -97,7 +97,7 @@ public static class GarnetBuilderExtensions
     /// <code lang="csharp">
     /// var garnet = builder.AddGarnet("garnet")
     ///                    .WithDataBindMount("mydata")
-    ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
+    ///                    .WithPersistence(TimeSpan.FromSeconds(10));
     /// </code>
     /// </example>
     /// <param name="builder">The resource builder.</param>
@@ -113,7 +113,7 @@ public static class GarnetBuilderExtensions
         builder.WithBindMount(source, GarnetContainerDataDirectory, isReadOnly);
         if (!isReadOnly)
         {
-            builder.WithPersistence(interval: null);
+            builder.WithPersistence();
         }
 
         return builder;
@@ -128,7 +128,7 @@ public static class GarnetBuilderExtensions
     /// <code lang="csharp">
     /// var cache = builder.AddGarnet("cache")
     ///                    .WithDataVolume()
-    ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
+    ///                    .WithPersistence(TimeSpan.FromSeconds(10));
     /// </code>
     /// </example>
     /// <param name="builder">The resource builder.</param>
@@ -136,10 +136,8 @@ public static class GarnetBuilderExtensions
     /// <param name="keysChangedThreshold">The number of key change operations required to trigger a snapshot at the interval. Defaults to 1.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     [Obsolete("This method is obsolete and will be removed in a future version. Use the overload without the keysChangedThreshold parameter.")]
-#pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
     public static IResourceBuilder<GarnetResource> WithPersistence(this IResourceBuilder<GarnetResource> builder,
-#pragma warning restore RS0026 // Do not add multiple public overloads with optional parameters
-        TimeSpan? interval = null, long keysChangedThreshold = 1)
+        TimeSpan? interval, long keysChangedThreshold)
         => WithPersistence(builder, interval);
 
     /// <summary>
@@ -151,7 +149,7 @@ public static class GarnetBuilderExtensions
     /// <code lang="csharp">
     /// var cache = builder.AddGarnet("cache")
     ///                    .WithDataVolume()
-    ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
+    ///                    .WithPersistence(TimeSpan.FromSeconds(10));
     /// </code>
     /// </example>
     /// <param name="builder">The resource builder.</param>
