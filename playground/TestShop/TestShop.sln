@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BasketService", "BasketServ
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CatalogService", "CatalogService\CatalogService.csproj", "{F8F2A226-59D7-4023-A7BE-602B6B0366D2}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceDefaults", "ServiceDefaults\ServiceDefaults.csproj", "{938E6618-3061-4908-82AB-A2463F6B7BE8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestShop.ServiceDefaults", "TestShop.ServiceDefaults\TestShop.ServiceDefaults.csproj", "{938E6618-3061-4908-82AB-A2463F6B7BE8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MyFrontend", "MyFrontend\MyFrontend.csproj", "{A92E2CCE-5B2B-461E-80AA-1669FE2EEF2E}"
 EndProject
