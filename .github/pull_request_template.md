@@ -12,13 +12,19 @@ Fixes # (issue)
 - Are you including unit tests for the changes and scenario tests if relevant?
   - [ ] Yes
   - [ ] No
-- Did you add public API? Did you have an API Review for it?
+- Did you add public API?
   - [ ] Yes
+    - If yes, did you have an API Review for it?
+      - [ ] Yes
+      - [ ] No
   - [ ] No
-- Does the change make any security assumptions or guarantees? Have you done a threat model and had a security review?
+- Does the change make any security assumptions or guarantees?
   - [ ] Yes
+    - If yes, have you done a threat model and had a security review?
+      - [ ] Yes
+      - [ ] No
   - [ ] No
 - Does the change require an update in our Aspire docs?
   - [ ] Yes
-  - [ ] No
     - Link to aspire-docs issue: 
+  - [ ] No
