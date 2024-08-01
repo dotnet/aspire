@@ -1,6 +1,16 @@
 ﻿@using Aspire.Dashboard.Components.CustomIcons
+@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
 @inherits LayoutComponentBase
+
+@if (ThemeManager.EffectiveTheme is ThemeManager.ThemeSettingDark)
+{
+    <link rel="stylesheet" href="/css/highlight-11.10.0-a11y-dark-min.css" />
+}
+else
+{
+    <link rel="stylesheet" href="/css/highlight-11.10.0-a11y-light-min.css" />
+}
 
 <div class="layout" style="@(_isNavMenuOpen ? "overflow: hidden;" : string.Empty)">
     <div class="aspire-icon">

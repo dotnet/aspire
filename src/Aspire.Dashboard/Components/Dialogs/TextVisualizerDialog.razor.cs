@@ -3,9 +3,9 @@
 
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -31,6 +31,9 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
 
     [Inject]
     public required IJSRuntime JS { get; init; }
+
+    [Inject]
+    public required ThemeManager ThemeManager { get; init; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -73,16 +76,12 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
 
     private string GetLogContentClass()
     {
-        return $"log-content highlight-line language-{FormatKind}";
+        return $"log-content highlight-line language-{FormatKind} theme-a11y-{ThemeManager.EffectiveTheme?.ToLower()}-min";
     }
 
     private ICollection<StringLogLine> GetLines()
     {
-        var lines = Regex.Split(FormattedText, Environment.NewLine, RegexOptions.Compiled).ToList();
-        if (lines.Count > 0 && lines[0].Length == 0)
-        {
-            lines.RemoveAt(0);
-        }
+        var lines = FormattedText.Split(["\r\n", "\r", "\n"], StringSplitOptions.None).ToList();
 
         return lines.Select((line, index) => new StringLogLine(index, line, FormatKind != PlaintextFormat)).ToList();
     }

@@ -13,10 +13,16 @@ public sealed class ThemeManager
     private readonly List<ModelSubscription> _subscriptions = new List<ModelSubscription>();
 
     /// <summary>
-    /// Note: This won't have a valid value until it has been changed.
-    /// If there is a reason to get the theme before changes then the ThemeManager will need to be improved.
+    /// The actual theme key (null, System, Dark, Light) set by the user.
     /// </summary>
     public string? Theme { get; private set; }
+
+    /// <summary>
+    /// The effective theme, from app-theme.js, which is the theme that is actually applied to the browser window. If the set
+    /// theme is System or null, this will return the evaluation of the system theme.
+    /// Set after applying the theme in MainLayout
+    /// </summary>
+    public string? EffectiveTheme { get; internal set; }
 
     public IDisposable OnThemeChanged(Func<Task> callback)
     {

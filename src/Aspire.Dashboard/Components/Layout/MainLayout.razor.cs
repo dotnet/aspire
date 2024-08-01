@@ -78,6 +78,10 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
                 var newValue = ThemeManager.Theme!;
 
                 await _jsModule.InvokeVoidAsync("updateTheme", newValue);
+                var effectiveTheme = await _jsModule.InvokeAsync<string>("getCurrentTheme");
+                ThemeManager.EffectiveTheme = effectiveTheme;
+
+                await InvokeAsync(StateHasChanged);
             }
         });
 
@@ -130,6 +134,11 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             _keyboardHandlers = await JS.InvokeAsync<IJSObjectReference>("window.registerGlobalKeydownListener", _shortcutManagerReference);
             _textVisualizerHandler = await JS.InvokeAsync<IJSObjectReference>("window.registerOpenTextVisualizerOnClick", _layoutReference);
             ShortcutManager.AddGlobalKeydownListener(this);
+
+            // Get initial theme and then rerender the page to apply it.
+            await ThemeManager.RaiseThemeChangedAsync(await _jsModule.InvokeAsync<string>("getThemeCookieValue"));
+
+            await InvokeAsync(StateHasChanged);
         }
     }
 

@@ -36,6 +36,10 @@ export function getThemeCookieValue() {
     return getCookieValue(currentThemeCookieName) ?? themeSettingSystem;
 }
 
+export function getCurrentTheme() {
+    return getEffectiveTheme(getThemeCookieValue());
+}
+
 /**
  * Returns the current system theme (Light or Dark)
  * @returns {string}
@@ -72,7 +76,7 @@ function setThemeOnDocument(theme) {
 }
 
 /**
- * 
+ *
  * @param {string} theme The theme to use. Should be Light or Dark.
  */
 function setBaseLayerLuminance(theme) {
@@ -114,7 +118,7 @@ function getEffectiveTheme(specifiedTheme) {
 }
 
 /**
- * 
+ *
  * @param {string} theme The theme to use. Should be Light or Dark
  * @returns {string}
  */
@@ -165,7 +169,7 @@ function applyTheme(theme) {
 }
 
 /**
- * 
+ *
  * @param {Palette} palette
  * @param {number} baseLayerLuminance
  * @returns {number}
@@ -175,7 +179,7 @@ function neutralLayer1Index(palette, baseLayerLuminance) {
 }
 
 /**
- * 
+ *
  * @param {Palette} palette
  * @param {Swatch} reference
  * @param {number} baseLayerLuminance
@@ -193,7 +197,7 @@ function neutralLayerHoverAlgorithm(palette, reference, baseLayerLuminance, laye
 }
 
 /**
- * 
+ *
  * @param {Swatch} color
  * @returns {boolean}
  */

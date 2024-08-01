@@ -1,4 +1,6 @@
-let highlightObserver= new MutationObserver((mutations) => {
+import hljs from '/js/highlight-11.10.0.min.js'
+
+let highlightObserver = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
         if (mutation.addedNodes.length === 0) {
             return;
