@@ -124,7 +124,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
 
     protected override Task OnInitializedAsync()
     {
-        _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = $"({ControlsStringsLoc[nameof(ControlsStrings.All)]})" };
+        _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.All)] };
         PageViewModel = new TracesPageViewModel { SelectedApplication = _allApplication };
 
         UpdateApplications();
