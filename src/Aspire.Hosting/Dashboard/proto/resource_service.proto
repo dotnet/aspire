@@ -42,7 +42,7 @@ message ResourceCommand {
 
 // Represents a request to execute a command.
 // Sent by the dashboard to DashboardService.ExecuteResourceCommand.
-// Constructed with data from a corresponding 
+// Constructed with data from a corresponding ResourceCommand.
 message ResourceCommandRequest {
     // Unique identifier for the command.
     // Copied from the ResourceCommand that this request object is initialized from.
