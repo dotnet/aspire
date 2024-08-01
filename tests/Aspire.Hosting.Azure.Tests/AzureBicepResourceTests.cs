@@ -1121,115 +1121,21 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
-    [Fact]
-    public async Task AsAzureSqlDatabaseViaRunMode()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((azureSqlBuilder, _, _, _) =>
-        {
-            azureSqlBuilder.Resource.Outputs["sqlServerFqdn"] = "myserver";
-        });
-        sql.AddDatabase("db", "dbName");
-
-        var manifest = await ManifestUtils.GetManifestWithBicep(sql.Resource);
-
-        Assert.Equal("Server=tcp:myserver,1433;Encrypt=True;Authentication=\"Active Directory Default\"", await sql.Resource.GetConnectionStringAsync(default));
-        Assert.Equal("Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.ConnectionStringExpression.ValueExpression);
-
-        var expectedManifest = """
-            {
-              "type": "azure.bicep.v0",
-              "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
-              "path": "sql.module.bicep",
-              "params": {
-                "principalId": "",
-                "principalName": "",
-                "principalType": ""
-              }
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
-
-        var expectedBicep = """
-            targetScope = 'resourceGroup'
-
-            @description('')
-            param location string = resourceGroup().location
-
-            @description('')
-            param principalId string
-
-            @description('')
-            param principalName string
-
-            @description('')
-            param principalType string
-
-
-            resource sqlServer_lF9QWGqAt 'Microsoft.Sql/servers@2020-11-01-preview' = {
-              name: toLower(take('sql${uniqueString(resourceGroup().id)}', 24))
-              location: location
-              tags: {
-                'aspire-resource-name': 'sql'
-              }
-              properties: {
-                version: '12.0'
-                minimalTlsVersion: '1.3'
-                publicNetworkAccess: 'Enabled'
-                administrators: {
-                  administratorType: 'ActiveDirectory'
-                  principalType: principalType
-                  login: principalName
-                  sid: principalId
-                  tenantId: subscription().tenantId
-                  azureADOnlyAuthentication: true
-                }
-              }
-            }
-
-            resource sqlFirewallRule_vcw7qNn72 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
-              parent: sqlServer_lF9QWGqAt
-              name: 'AllowAllAzureIps'
-              properties: {
-                startIpAddress: '0.0.0.0'
-                endIpAddress: '0.0.0.0'
-              }
-            }
-
-            resource sqlFirewallRule_IgqbBC6Hr 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
-              parent: sqlServer_lF9QWGqAt
-              name: 'fw'
-              properties: {
-                startIpAddress: '0.0.0.0'
-                endIpAddress: '255.255.255.255'
-              }
-            }
-
-            resource sqlDatabase_m3U42g9Y8 'Microsoft.Sql/servers/databases@2020-11-01-preview' = {
-              parent: sqlServer_lF9QWGqAt
-              name: 'dbName'
-              location: location
-              properties: {
-              }
-            }
-
-            output sqlServerFqdn string = sqlServer_lF9QWGqAt.properties.fullyQualifiedDomainName
-
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
-    }
-
-    [Fact]
-    public async Task AsAzureSqlDatabaseViaRunModeOverrideProperties()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AsAzureSqlDatabaseViaRunMode(bool overrideDefaultTlsVersion)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((azureSqlBuilder, _, sql, _) =>
         {
             azureSqlBuilder.Resource.Outputs["sqlServerFqdn"] = "myserver";
-            sql.AssignProperty(s => s.MinimalTlsVersion, "'1.2'");
+
+            if (overrideDefaultTlsVersion)
+            {
+                sql.AssignProperty(s => s.MinimalTlsVersion, "'1.2'");
+            }
         });
         sql.AddDatabase("db", "dbName");
 
@@ -1252,7 +1158,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        var expectedBicep = """
+        var expectedBicep = $$"""
             targetScope = 'resourceGroup'
 
             @description('')
@@ -1276,7 +1182,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               properties: {
                 version: '12.0'
-                minimalTlsVersion: '1.2'
+                minimalTlsVersion: '{{(overrideDefaultTlsVersion ? "1.2" : "1.3")}}'
                 publicNetworkAccess: 'Enabled'
                 administrators: {
                   administratorType: 'ActiveDirectory'
@@ -1322,14 +1228,21 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
-    [Fact]
-    public async Task AsAzureSqlDatabaseViaPublishMode()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AsAzureSqlDatabaseViaPublishMode(bool overrideDefaultTlsVersion)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((azureSqlBuilder, _, _, _) =>
+        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((azureSqlBuilder, _, sql, _) =>
         {
             azureSqlBuilder.Resource.Outputs["sqlServerFqdn"] = "myserver";
+
+            if (overrideDefaultTlsVersion)
+            {
+                sql.AssignProperty(s => s.MinimalTlsVersion, "'1.2'");
+            }
         });
         sql.AddDatabase("db", "dbName");
 
@@ -1351,7 +1264,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        var expectedBicep = """
+        var expectedBicep = $$"""
             targetScope = 'resourceGroup'
 
             @description('')
@@ -1372,94 +1285,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               properties: {
                 version: '12.0'
-                minimalTlsVersion: '1.3'
-                publicNetworkAccess: 'Enabled'
-                administrators: {
-                  administratorType: 'ActiveDirectory'
-                  login: principalName
-                  sid: principalId
-                  tenantId: subscription().tenantId
-                  azureADOnlyAuthentication: true
-                }
-              }
-            }
-
-            resource sqlFirewallRule_vcw7qNn72 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
-              parent: sqlServer_lF9QWGqAt
-              name: 'AllowAllAzureIps'
-              properties: {
-                startIpAddress: '0.0.0.0'
-                endIpAddress: '0.0.0.0'
-              }
-            }
-
-            resource sqlDatabase_m3U42g9Y8 'Microsoft.Sql/servers/databases@2020-11-01-preview' = {
-              parent: sqlServer_lF9QWGqAt
-              name: 'dbName'
-              location: location
-              properties: {
-              }
-            }
-
-            output sqlServerFqdn string = sqlServer_lF9QWGqAt.properties.fullyQualifiedDomainName
-
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
-    }
-
-    [Fact]
-    public async Task AsAzureSqlDatabaseViaPublishModeOverrideProperties()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((azureSqlBuilder, _, server, _) =>
-        {
-            azureSqlBuilder.Resource.Outputs["sqlServerFqdn"] = "myserver";
-            server.AssignProperty(p => p.MinimalTlsVersion, "'1.2'");
-        });
-        sql.AddDatabase("db", "dbName");
-
-        var manifest = await ManifestUtils.GetManifestWithBicep(sql.Resource);
-
-        Assert.Equal("Server=tcp:myserver,1433;Encrypt=True;Authentication=\"Active Directory Default\"", await sql.Resource.GetConnectionStringAsync(default));
-        Assert.Equal("Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.ConnectionStringExpression.ValueExpression);
-
-        var expectedManifest = """
-            {
-              "type": "azure.bicep.v0",
-              "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
-              "path": "sql.module.bicep",
-              "params": {
-                "principalId": "",
-                "principalName": ""
-              }
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
-
-        var expectedBicep = """
-            targetScope = 'resourceGroup'
-
-            @description('')
-            param location string = resourceGroup().location
-
-            @description('')
-            param principalId string
-
-            @description('')
-            param principalName string
-
-
-            resource sqlServer_lF9QWGqAt 'Microsoft.Sql/servers@2020-11-01-preview' = {
-              name: toLower(take('sql${uniqueString(resourceGroup().id)}', 24))
-              location: location
-              tags: {
-                'aspire-resource-name': 'sql'
-              }
-              properties: {
-                version: '12.0'
-                minimalTlsVersion: '1.2'
+                minimalTlsVersion: '{{(overrideDefaultTlsVersion ? "1.2" : "1.3")}}'
                 publicNetworkAccess: 'Enabled'
                 administrators: {
                   administratorType: 'ActiveDirectory'
