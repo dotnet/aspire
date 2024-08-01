@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using Aspire.Components.Common.Tests;
-using Aspire.Hosting.Garnet;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.RabbitMQ;

@@ -83,12 +83,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
     app.MapRedisApi();
 }
 
-
-if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
-{
-    app.MapGarnetApi();
-}
-
 if (!resourcesToSkip.HasFlag(TestResourceNames.postgres))
 {
     app.MapPostgresApi();
