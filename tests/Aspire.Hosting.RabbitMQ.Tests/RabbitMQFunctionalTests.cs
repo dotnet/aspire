@@ -188,7 +188,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
 
     private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
     {
-        var builder = TestDistributedApplicationBuilder.Create();
+        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
         builder.Services.AddXunitLogging(testOutputHelper);
         return builder;
     }
