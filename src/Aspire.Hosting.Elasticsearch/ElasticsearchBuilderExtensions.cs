@@ -44,8 +44,8 @@ public static class ElasticsearchBuilderExtensions
         IResourceBuilder<ParameterResource>? password = null,
         int? port = null)
     {
-        ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
 
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 

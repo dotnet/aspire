@@ -26,7 +26,6 @@ public class ElasticsearchResource : ContainerResource, IResourceWithConnectionS
     /// <param name="password">A parameter that contains the Elasticsearch superuser password.</param>
     public ElasticsearchResource(string name, ParameterResource password) : base(name)
     {
-        ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(password);
         PasswordParameter = password;
     }

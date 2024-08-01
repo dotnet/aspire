@@ -9,39 +9,33 @@ namespace Aspire.Hosting.Elasticsearch.Tests;
 public class ElasticsearchPublicApiTests
 {
     [Fact]
-    public void AddElasticsearchContainerShouldThrowsWhenBuilderIsNull()
+    public void AddElasticsearchContainerShouldThrowWhenBuilderIsNull()
     {
         IDistributedApplicationBuilder builder = null!;
         const string name = "Elasticsearch";
 
         var action = () => builder.AddElasticsearch(name);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(builder), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
-    public void AddElasticsearchContainerShouldThrowsWhenNameIsNull()
+    public void AddElasticsearchContainerShouldThrowWhenNameIsNull()
     {
         IDistributedApplicationBuilder builder = new DistributedApplicationBuilder([]);
         string name = null!;
 
         var action = () => builder.AddElasticsearch(name);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(name), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
     }
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void WithDataShouldThrowsWhenBuilderIsNull(bool useVolume)
+    public void WithDataShouldThrowWhenBuilderIsNull(bool useVolume)
     {
         IResourceBuilder<ElasticsearchResource> builder = null!;
 
@@ -58,15 +52,12 @@ public class ElasticsearchPublicApiTests
             action = () => builder.WithDataBindMount(source);
         }
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(builder), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
     }
 
     [Fact]
-    public void WithDataBindMountShouldThrowsWhenSourceIsNull()
+    public void WithDataBindMountShouldThrowWhenSourceIsNull()
     {
         var builder = new DistributedApplicationBuilder([]); 
         var resourceBuilder = builder.AddElasticsearch("Elasticsearch");
@@ -75,15 +66,12 @@ public class ElasticsearchPublicApiTests
 
         var action = () => resourceBuilder.WithDataBindMount(source);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(source), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(source), exception.ParamName);
     }
 
     [Fact]
-    public void CtorElasticsearchResourceShouldThrowsWhenNameIsNull()
+    public void CtorElasticsearchResourceShouldThrowWhenNameIsNull()
     {
         var builder = new DistributedApplicationBuilder([]);
         builder.Configuration["Parameters:Password"] = "p@ssw0rd";
@@ -92,25 +80,18 @@ public class ElasticsearchPublicApiTests
 
         var action = () => new ElasticsearchResource(name, password.Resource);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(name), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
     }
     [Fact]
-    public void CtorElasticsearchResourceShouldThrowsWhenPasswordIsNull()
+    public void CtorElasticsearchResourceShouldThrowWhenPasswordIsNull()
     {
-        var builder = new DistributedApplicationBuilder([]);
         const string name = "Elasticsearch";
         ParameterResource password = null!;
 
         var action = () => new ElasticsearchResource(name, password);
 
-        Assert.Multiple(() =>
-        {
-            var exception = Assert.Throws<ArgumentNullException>(action);
-            Assert.Equal(nameof(password), exception.ParamName);
-        });
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(password), exception.ParamName);
     }
 }
