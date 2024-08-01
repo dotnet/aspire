@@ -1,14 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Utils;
 using Xunit;
 
 namespace Aspire.Hosting.Python.Tests;
 
 public class PythonPublicApiTests
 {
-    #region PythonProjectResource
-
     [Fact]
     public void CtorPythonProjectResourceShouldThrowWhenNameIsNull()
     {
@@ -32,7 +31,7 @@ public class PythonPublicApiTests
         var action = () => new PythonProjectResource(name, executablePath, projectDirectory);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal("command", exception.ParamName);
+        Assert.Equal(nameof(executablePath), exception.ParamName);
     }
 
     [Fact]
@@ -45,12 +44,8 @@ public class PythonPublicApiTests
         var action = () => new PythonProjectResource(name, executablePath, projectDirectory);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal("workingDirectory", exception.ParamName);
+        Assert.Equal(nameof(projectDirectory), exception.ParamName);
     }
-
-    #endregion
-
-    #region PythonProjectResourceBuilderExtensions
 
     [Fact]
     public void AddPythonProjectShouldThrowWhenBuilderIsNull()
@@ -74,7 +69,7 @@ public class PythonPublicApiTests
     [Fact]
     public void AddPythonProjectShouldThrowWhenNameIsNull()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        var builder = TestDistributedApplicationBuilder.Create();
         string name = null!;
         const string projectDirectory = "/src/python";
         const string scriptPath = "scripts";
@@ -93,7 +88,7 @@ public class PythonPublicApiTests
     [Fact]
     public void AddPythonProjectShouldThrowWhenProjectDirectoryIsNull()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        var builder = TestDistributedApplicationBuilder.Create();
         const string name = "Python";
         string projectDirectory = null!;
         const string scriptPath = "scripts";
@@ -112,7 +107,7 @@ public class PythonPublicApiTests
     [Fact]
     public void AddPythonProjectShouldThrowWhenScriptPathIsNull()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        var builder = TestDistributedApplicationBuilder.Create();
         const string name = "Python";
         const string projectDirectory = "/src/python";
         string scriptPath = null!;
@@ -131,7 +126,7 @@ public class PythonPublicApiTests
     [Fact]
     public void AddPythonProjectShouldThrowWhenScriptArgsIsNull()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        var builder = TestDistributedApplicationBuilder.Create();
         const string name = "Python";
         const string projectDirectory = "/src/python";
         const string scriptPath = "scripts";
@@ -171,7 +166,7 @@ public class PythonPublicApiTests
     [Fact]
     public void AddPythonProjectWithVirtualEnvironmentPathShouldThrowWhenNameIsNull()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        var builder = TestDistributedApplicationBuilder.Create();
         string name = null!;
         const string projectDirectory = "/src/python";
         const string scriptPath = "scripts";
@@ -192,7 +187,7 @@ public class PythonPublicApiTests
     [Fact]
     public void AddPythonProjectWithVirtualEnvironmentPathShouldThrowWhenProjectDirectoryIsNull()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        var builder = TestDistributedApplicationBuilder.Create();
         const string name = "Python";
         string projectDirectory = null!;
         const string scriptPath = "scripts";
@@ -213,7 +208,7 @@ public class PythonPublicApiTests
     [Fact]
     public void AddPythonProjectWithVirtualEnvironmentPathShouldThrowWhenScriptPathIsNull()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        var builder = TestDistributedApplicationBuilder.Create();
         const string name = "Python";
         const string projectDirectory = "/src/python";
         string scriptPath = null!;
@@ -234,7 +229,7 @@ public class PythonPublicApiTests
     [Fact]
     public void AddPythonProjectWithVirtualEnvironmentPathShouldThrowWhenVirtualEnvironmentPathIsNull()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        var builder = TestDistributedApplicationBuilder.Create();
         const string name = "Python";
         const string projectDirectory = "/src/python";
         const string scriptPath = "scripts";
@@ -255,7 +250,7 @@ public class PythonPublicApiTests
     [Fact]
     public void AddPythonProjectWithVirtualEnvironmentPathShouldThrowWhenScriptArgsIsNull()
     {
-        var builder = DistributedApplication.CreateBuilder();
+        var builder = TestDistributedApplicationBuilder.Create();
         const string name = "Python";
         const string projectDirectory = "/src/python";
         const string scriptPath = "scripts";
@@ -272,6 +267,4 @@ public class PythonPublicApiTests
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(scriptArgs), exception.ParamName);
     }
-
-    #endregion
 }
