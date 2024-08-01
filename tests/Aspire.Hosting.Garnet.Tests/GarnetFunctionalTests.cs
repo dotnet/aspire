@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -63,9 +64,9 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         var pipeline = new ResiliencePipelineBuilder()
-                            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(3) })
+                            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(10) })
                             .Build();
         string? volumeName = null;
         string? bindMountPath = null;
@@ -204,6 +205,8 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         var builder = TestDistributedApplicationBuilder.Create();
         builder.Services.AddXunitLogging(testOutputHelper);
+        builder.Services.AddHostedService<ResourceLoggerForwarderService>();
+
         return builder;
     }
 }
