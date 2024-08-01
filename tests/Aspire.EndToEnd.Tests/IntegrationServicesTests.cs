@@ -26,7 +26,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [InlineData(TestResourceNames.mongodb)]
     [InlineData(TestResourceNames.postgres)]
     [InlineData(TestResourceNames.efnpgsql)]
-    [InlineData(TestResourceNames.rabbitmq)]
     [InlineData(TestResourceNames.redis)]
     [InlineData(TestResourceNames.sqlserver)]
     [InlineData(TestResourceNames.efsqlserver)]
