@@ -221,10 +221,6 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
         {
             Directory.CreateDirectory(bindMountPath);
             var initFilePath = Path.Combine(bindMountPath, "mongo-init.js");
-            if (!OperatingSystem.IsWindows())
-            {
-                File.SetUnixFileMode(initFilePath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
-            }
             await File.WriteAllTextAsync(initFilePath, $$"""
                 db = db.getSiblingDB('{{dbName}}');
 
@@ -245,6 +241,11 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
                     }
                 ]);
             """);
+
+            if (!OperatingSystem.IsWindows())
+            {
+                File.SetUnixFileMode(initFilePath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
+            }
 
             var builder = CreateDistributedApplicationBuilder();
 
