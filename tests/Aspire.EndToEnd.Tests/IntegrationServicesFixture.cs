@@ -107,7 +107,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             TestResourceNames.mongodb => "mongodb",
             TestResourceNames.oracledatabase => "oracledatabase",
             TestResourceNames.postgres or TestResourceNames.efnpgsql => "postgres",
-            TestResourceNames.rabbitmq => "rabbitmq",
             TestResourceNames.redis => "redis",
             TestResourceNames.sqlserver or TestResourceNames.efsqlserver => "sqlserver",
             _ => throw new ArgumentException($"Unknown resource: {resource}")
@@ -143,7 +142,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             "cosmos" => TestResourceNames.cosmos | TestResourceNames.efcosmos,
             "eventhubs" => TestResourceNames.eventhubs,
             "basicservices" => TestResourceNames.mongodb
-                              | TestResourceNames.rabbitmq
                               | TestResourceNames.redis
                               | TestResourceNames.postgres
                               | TestResourceNames.efnpgsql
