@@ -25,6 +25,12 @@ let highlightObserver = new MutationObserver((mutations) => {
 })
 
 export function connectObserver(logContainerId) {
+    // It's possible either that
+    // 1. The elements in the log container have already been rendered by the time this method is called, in which
+    // case we need to highlight them immediately, or
+    // 2. The elements in the log container have not been rendered yet, in which case we need to observe the container
+    // for new elements that are added.
+
     highlightObserver.observe(document.getElementById(logContainerId), {
         childList: true,
         subtree: true,

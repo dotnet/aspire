@@ -89,6 +89,8 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
 
     private string GetLogContentClass()
     {
+        // we support light (a11y-light-min) and dark (a11y-dark-min) themes. syntax to force a theme for highlight.js
+        // is "theme-{themeName}"
         return $"log-content highlight-line language-{FormatKind} theme-a11y-{ThemeManager.EffectiveTheme?.ToLower()}-min";
     }
 

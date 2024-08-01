@@ -16,11 +16,34 @@ public class TextVisualizerDialogTests : TestContext
     [Fact]
     public async Task Render_TextVisualizerDialog_WithValidJson_FormatsJsonAsync()
     {
-        var cut = SetUpDialog(out var dialogService);
-        await dialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel("""{"test": 4}""", string.Empty), []);
+        var rawJson = """
+                      // line comment
+                      [
+                          /* block comment */
+                          1,
+                          { "test": {    "nested": "value" } }
+                      ]
+                      """;
+
+        var expectedJson = """
+                           /* line comment*/
+                           [
+                             /* block comment */
+                             1,
+                             {
+                               "test": {
+                                 "nested": "value"
+                               }
+                             }
+                           ]
+                           """;
+
+        var cut = SetUpDialog(out var dialogService, out _);
+        await dialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(rawJson, string.Empty), []);
 
         var instance = cut.FindComponent<TextVisualizerDialog>().Instance;
 
+        Assert.Equal(expectedJson, instance.FormattedText);
         Assert.Equal(TextVisualizerDialog.JsonFormat, instance.FormatKind);
         Assert.Equal([TextVisualizerDialog.JsonFormat, TextVisualizerDialog.PlaintextFormat], instance.EnabledOptions.ToImmutableSortedSet());
     }
@@ -29,21 +52,48 @@ public class TextVisualizerDialogTests : TestContext
     public async Task Render_TextVisualizerDialog_WithValidXml_FormatsXml_CanChangeFormatAsync()
     {
         const string rawXml = """<parent><child>text<!-- comment --></child></parent>""";
+        const string expectedXml =
+            """
+            <?xml version="1.0" encoding="utf-16"?>
+            <parent>
+              <child>text<!-- comment --></child>
+            </parent>
+            """;
 
-        var cut = SetUpDialog(out var dialogService);
+        var cut = SetUpDialog(out var dialogService, out _);
         await dialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(rawXml, string.Empty), []);
 
         var instance = cut.FindComponent<TextVisualizerDialog>().Instance;
 
         Assert.Equal(TextVisualizerDialog.XmlFormat, instance.FormatKind);
-        Assert.NotEqual(rawXml, instance.FormattedText);
+        Assert.Equal(expectedXml, instance.FormattedText);
         Assert.Equal([TextVisualizerDialog.PlaintextFormat, TextVisualizerDialog.XmlFormat], instance.EnabledOptions.ToImmutableSortedSet());
 
         // changing format works
-        instance.ChangeFormat(TextVisualizerDialog.PlaintextFormat);
+        instance.ChangeFormat(TextVisualizerDialog.PlaintextFormat, rawXml);
 
         Assert.Equal(TextVisualizerDialog.PlaintextFormat, instance.FormatKind);
         Assert.Equal(rawXml, instance.FormattedText);
+    }
+
+    [Fact]
+    public async Task Render_TextVisualizerDialog_WithValidXml_FormatsXmlWithDoctypeAsync()
+    {
+        const string rawXml = """<?xml version="1.0" encoding="utf-16"?><test>text content</test>""";
+        const string expectedXml =
+            """
+            <?xml version="1.0" encoding="utf-16"?>
+            <test>text content</test>
+            """;
+
+        var cut = SetUpDialog(out var dialogService, out _);
+        await dialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(rawXml, string.Empty), []);
+
+        var instance = cut.FindComponent<TextVisualizerDialog>().Instance;
+
+        Assert.Equal(TextVisualizerDialog.XmlFormat, instance.FormatKind);
+        Assert.Equal(expectedXml, instance.FormattedText);
+        Assert.Equal([TextVisualizerDialog.PlaintextFormat, TextVisualizerDialog.XmlFormat], instance.EnabledOptions.ToImmutableSortedSet());
     }
 
     [Fact]
@@ -51,7 +101,7 @@ public class TextVisualizerDialogTests : TestContext
     {
         const string rawText = """{{{{{{"test": 4}""";
 
-        var cut = SetUpDialog(out var dialogService);
+        var cut = SetUpDialog(out var dialogService, out _);
         await dialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(rawText, string.Empty), []);
 
         var instance = cut.FindComponent<TextVisualizerDialog>().Instance;
@@ -61,13 +111,34 @@ public class TextVisualizerDialogTests : TestContext
         Assert.Equal([TextVisualizerDialog.PlaintextFormat], instance.EnabledOptions.ToImmutableSortedSet());
     }
 
-    private IRenderedFragment SetUpDialog(out IDialogService dialogService)
+    [Fact]
+    public async Task Render_TextVisualizerDialog_WithDifferentThemes_LineClassesChange()
     {
+        var xml = @"<hello><!-- world --></hello>";
+
+        var cut = SetUpDialog(out var dialogService, out var themeManager);
+        themeManager.EffectiveTheme = "Light";
+        await dialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(xml, string.Empty), []);
+
+        Assert.NotEmpty(cut.FindAll(".theme-a11y-light-min"));
+
+        themeManager.EffectiveTheme = "Dark";
+        var instance = cut.FindComponent<TextVisualizerDialog>();
+        instance.Render();
+
+        Assert.NotEmpty(cut.FindAll(".theme-a11y-dark-min"));
+    }
+
+    private IRenderedFragment SetUpDialog(out IDialogService dialogService, out ThemeManager themeManager)
+    {
+        themeManager = new ThemeManager();
+
         Services.AddFluentUIComponents();
+        Services.AddSingleton(themeManager);
         Services.AddSingleton<LibraryConfiguration>();
         Services.AddLocalization();
         var module = JSInterop.SetupModule("/Components/Dialogs/TextVisualizerDialog.razor.js");
-        module.SetupVoid("connectObserver");
+        module.SetupVoid();
 
         var cut = Render(builder =>
         {
