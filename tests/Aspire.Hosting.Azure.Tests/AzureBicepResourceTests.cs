@@ -2724,121 +2724,10 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal("{servicebus.connectionString}", serviceManifest["env"]?["ConnectionStrings__servicebus"]?.ToString());
     }
 
-    [Fact]
-    public async Task AddAzureOpenAI()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        IEnumerable<CognitiveServicesAccountDeployment>? aiDeployments = null;
-        var openai = builder.AddAzureOpenAI("openai", (_, _, _, deployments) =>
-        {
-            aiDeployments = deployments;
-        })
-            .AddDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4))
-            .AddDeployment(new("embedding-model", "text-embedding-ada-002", "2", "Basic", 4));
-
-        var manifest = await ManifestUtils.GetManifestWithBicep(openai.Resource);
-
-        Assert.NotNull(aiDeployments);
-        Assert.Collection(
-            aiDeployments,
-            deployment => Assert.Equal("mymodel", deployment.Properties.Name),
-            deployment => Assert.Equal("embedding-model", deployment.Properties.Name));
-
-        var expectedManifest = """
-            {
-              "type": "azure.bicep.v0",
-              "connectionString": "{openai.outputs.connectionString}",
-              "path": "openai.module.bicep",
-              "params": {
-                "principalId": "",
-                "principalType": ""
-              }
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
-
-        var expectedBicep = """
-            targetScope = 'resourceGroup'
-
-            @description('')
-            param location string = resourceGroup().location
-
-            @description('')
-            param principalId string
-
-            @description('')
-            param principalType string
-
-
-            resource cognitiveServicesAccount_wXAGTFUId 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
-              name: toLower(take('openai${uniqueString(resourceGroup().id)}', 24))
-              location: location
-              kind: 'OpenAI'
-              sku: {
-                name: 'S0'
-              }
-              properties: {
-                customSubDomainName: toLower(take(concat('openai', uniqueString(resourceGroup().id)), 24))
-                publicNetworkAccess: 'Enabled'
-                disableLocalAuth: true
-              }
-            }
-
-            resource roleAssignment_Hsk8rxWY8 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              scope: cognitiveServicesAccount_wXAGTFUId
-              name: guid(cognitiveServicesAccount_wXAGTFUId.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442'))
-              properties: {
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442')
-                principalId: principalId
-                principalType: principalType
-              }
-            }
-
-            resource cognitiveServicesAccountDeployment_5K9aRgiZP 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
-              parent: cognitiveServicesAccount_wXAGTFUId
-              name: 'mymodel'
-              sku: {
-                name: 'Basic'
-                capacity: 4
-              }
-              properties: {
-                model: {
-                  format: 'OpenAI'
-                  name: 'gpt-35-turbo'
-                  version: '0613'
-                }
-              }
-            }
-
-            resource cognitiveServicesAccountDeployment_mdCAJJRlf 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
-              parent: cognitiveServicesAccount_wXAGTFUId
-              dependsOn: [
-                cognitiveServicesAccountDeployment_5K9aRgiZP
-              ]
-              name: 'embedding-model'
-              sku: {
-                name: 'Basic'
-                capacity: 4
-              }
-              properties: {
-                model: {
-                  format: 'OpenAI'
-                  name: 'text-embedding-ada-002'
-                  version: '2'
-                }
-              }
-            }
-
-            output connectionString string = 'Endpoint=${cognitiveServicesAccount_wXAGTFUId.properties.endpoint}'
-            
-            """;
-        output.WriteLine(manifest.BicepText);
-        Assert.Equal(expectedBicep, manifest.BicepText);
-    }
-
-    [Fact]
-    public async Task AddAzureOpenAIWithPropertyOverrides()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AddAzureOpenAI(bool overrideLocalAuthDefault)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -2846,7 +2735,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         var openai = builder.AddAzureOpenAI("openai", (_, _, account, deployments) =>
         {
             aiDeployments = deployments;
-            account.AssignProperty(x => x.Properties.DisableLocalAuth, "false");
+
+            if (overrideLocalAuthDefault)
+            {
+                account.AssignProperty(x => x.Properties.DisableLocalAuth, "false");
+            }
         })
             .AddDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4))
             .AddDeployment(new("embedding-model", "text-embedding-ada-002", "2", "Basic", 4));
@@ -2872,7 +2765,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        var expectedBicep = """
+        var expectedBicep = $$"""
             targetScope = 'resourceGroup'
 
             @description('')
@@ -2895,7 +2788,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               properties: {
                 customSubDomainName: toLower(take(concat('openai', uniqueString(resourceGroup().id)), 24))
                 publicNetworkAccess: 'Enabled'
-                disableLocalAuth: false
+                disableLocalAuth: {{(overrideLocalAuthDefault ? "false" : "true")}}
               }
             }
 
