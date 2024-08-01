@@ -467,8 +467,8 @@ fluent-data-grid-cell.no-ellipsis {
     overflow-x: visible !important;
 }
 
-.endpoint-overflow .fluent-overflow-more {
-    display: flex;
+.endpoint-overflow .fluent-overflow-more fluent-button {
+    vertical-align: middle;
 }
 
 .endpoint-button {
@@ -495,4 +495,16 @@ fluent-data-grid-cell.no-ellipsis {
 .page-content-container {
     height: 100%;
     overflow: auto;
+}
+
+.resource-select-application-label {
+    color: var(--accent-foreground-rest);
+}
+
+.filter-input-container {
+    width: 75%;
+}
+
+.layout fluent-toolbar > .fluent-input-label {
+    margin-bottom: 0;
 }

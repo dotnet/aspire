@@ -10,14 +10,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(SharedDir)KnownResourceNames.cs" Link="KnownResourceNames.cs" />
+    <Compile Include="..\..\KnownResourceNames.cs" Link="KnownResourceNames.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure.CognitiveServices\Aspire.Hosting.Azure.CognitiveServices.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" IsAspireProjectResource="false" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CognitiveServices" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
     <ProjectReference Include="..\OpenAIEndToEnd.WebStory\OpenAIEndToEnd.WebStory.csproj" />
   </ItemGroup>
 

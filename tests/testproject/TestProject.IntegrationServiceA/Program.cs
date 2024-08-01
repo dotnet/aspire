@@ -21,10 +21,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 {
     builder.AddKeyedRedisClient("redis");
 }
-if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
-{
-    builder.AddKeyedRedisClient("garnet");
-}
 if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
     builder.AddNpgsqlDataSource("postgresdb");
@@ -32,10 +28,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.Has
 if (!resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
     builder.AddNpgsqlDbContext<NpgsqlDbContext>("postgresdb");
-}
-if (!resourcesToSkip.HasFlag(TestResourceNames.rabbitmq))
-{
-    builder.AddRabbitMQClient("rabbitmq");
 }
 if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
 {
@@ -91,11 +83,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
     app.MapRedisApi();
 }
 
-if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
-{
-    app.MapGarnetApi();
-}
-
 if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
 {
     app.MapMongoDBApi();
@@ -118,11 +105,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.sqlserver))
 if (!resourcesToSkip.HasFlag(TestResourceNames.efsqlserver))
 {
     app.MapEFCoreSqlServerApi();
-}
-
-if (!resourcesToSkip.HasFlag(TestResourceNames.rabbitmq))
-{
-    app.MapRabbitMQApi();
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.oracledatabase))

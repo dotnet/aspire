@@ -127,7 +127,7 @@ Then, in the _Program.cs_ file of `AppHost`, add a Blob Storage connection and c
 ```csharp
 var blobs = builder.ExecutionContext.IsPublishMode
     ? builder.AddAzureStorage("storage").AddBlobs("blobs")
-    ? builder.AddConnectionString("blobs");
+    : builder.AddConnectionString("blobs");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(blobs);
