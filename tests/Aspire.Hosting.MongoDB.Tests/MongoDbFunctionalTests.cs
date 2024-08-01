@@ -3,7 +3,6 @@
 
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -106,10 +105,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-                    {
-                        [$"ConnectionStrings:{db1.Resource.Name}"] = await db1.Resource.ConnectionStringExpression.GetValueAsync(default)
-                    });
+                    hb.Configuration[$"ConnectionStrings:{db1.Resource.Name}"] = await db1.Resource.ConnectionStringExpression.GetValueAsync(default);
 
                     hb.AddMongoDBClient(db1.Resource.Name);
 
@@ -153,10 +149,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-                    {
-                        [$"ConnectionStrings:{db2.Resource.Name}"] = await db2.Resource.ConnectionStringExpression.GetValueAsync(default)
-                    });
+                    hb.Configuration[$"ConnectionStrings:{db2.Resource.Name}"] = await db2.Resource.ConnectionStringExpression.GetValueAsync(default);
 
                     hb.AddMongoDBClient(db2.Resource.Name);
 
@@ -227,8 +220,12 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
         try
         {
             Directory.CreateDirectory(bindMountPath);
-
-            File.WriteAllText(Path.Combine(bindMountPath, "mongo-init.js"), $$"""
+            var initFilePath = Path.Combine(bindMountPath, "mongo-init.js");
+            if (!OperatingSystem.IsWindows())
+            {
+                File.SetUnixFileMode(initFilePath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
+            }
+            await File.WriteAllTextAsync(initFilePath, $$"""
                 db = db.getSiblingDB('{{dbName}}');
 
                 db.createCollection('{{CollectionName}}');
@@ -261,10 +258,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
 
             var hb = Host.CreateApplicationBuilder();
 
-            hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                [$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default)
-            });
+            hb.Configuration[$"ConnectionStrings:{db.Resource.Name}"] = await db.Resource.ConnectionStringExpression.GetValueAsync(default);
 
             hb.AddMongoDBClient(db.Resource.Name);
 
