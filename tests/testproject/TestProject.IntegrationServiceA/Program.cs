@@ -29,10 +29,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
     builder.AddNpgsqlDbContext<NpgsqlDbContext>("postgresdb");
 }
-if (!resourcesToSkip.HasFlag(TestResourceNames.rabbitmq))
-{
-    builder.AddRabbitMQClient("rabbitmq");
-}
 if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
 {
     builder.AddAzureEventHubProducerClient("eventhubsns", settings => settings.EventHubName = "hub");
@@ -100,11 +96,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.sqlserver))
 if (!resourcesToSkip.HasFlag(TestResourceNames.efsqlserver))
 {
     app.MapEFCoreSqlServerApi();
-}
-
-if (!resourcesToSkip.HasFlag(TestResourceNames.rabbitmq))
-{
-    app.MapRabbitMQApi();
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.oracledatabase))

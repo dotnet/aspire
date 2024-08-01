@@ -5,7 +5,6 @@ using System.Text.Json;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Publishing;
-using Aspire.Hosting.RabbitMQ;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
@@ -284,25 +283,6 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureAllRabbitMQManifestTypesHaveVersion0Suffix()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddRabbitMQ("rabbitcontainer");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var server = resources.GetProperty("rabbitcontainer");
-        Assert.Equal("container.v0", server.GetProperty("type").GetString());
-    }
-
-    [Fact]
     public void NodeAppIsExecutableResource()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();
@@ -479,7 +459,6 @@ public class ManifestGenerationTests
                     "ConnectionStrings__tempdb": "{tempdb.connectionString}",
                     "ConnectionStrings__redis": "{redis.connectionString}",
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
-                    "ConnectionStrings__rabbitmq": "{rabbitmq.connectionString}",
                     "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
                     "ConnectionStrings__cosmos": "{cosmos.connectionString}",
                     "ConnectionStrings__eventhubns": "{eventhubns.connectionString}"
@@ -555,23 +534,6 @@ public class ManifestGenerationTests
                   "type": "value.v0",
                   "connectionString": "{postgres.connectionString};Database=postgresdb"
                 },
-                "rabbitmq": {
-                  "type": "container.v0",
-                  "connectionString": "amqp://guest:{rabbitmq-password.value}@{rabbitmq.bindings.tcp.host}:{rabbitmq.bindings.tcp.port}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{RabbitMQContainerImageTags.Image}}:{{RabbitMQContainerImageTags.Tag}}",
-                  "env": {
-                    "RABBITMQ_DEFAULT_USER": "guest",
-                    "RABBITMQ_DEFAULT_PASS": "{rabbitmq-password.value}"
-                  },
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 5672
-                    }
-                  }
-                },
                 "oracledatabase": {
                   "type": "container.v0",
                   "connectionString": "user id=system;password={oracledatabase-password.value};data source={oracledatabase.bindings.tcp.host}:{oracledatabase.bindings.tcp.port}",
@@ -637,22 +599,6 @@ public class ManifestGenerationTests
                       "default": {
                         "generate": {
                           "minLength": 22
-                        }
-                      }
-                    }
-                  }
-                },
-                "rabbitmq-password": {
-                  "type": "parameter.v0",
-                  "value": "{rabbitmq-password.inputs.value}",
-                  "inputs": {
-                    "value": {
-                      "type": "string",
-                      "secret": true,
-                      "default": {
-                        "generate": {
-                          "minLength": 22,
-                          "special": false
                         }
                       }
                     }

@@ -25,7 +25,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [Trait("scenario", "basicservices")]
     [InlineData(TestResourceNames.postgres)]
     [InlineData(TestResourceNames.efnpgsql)]
-    [InlineData(TestResourceNames.rabbitmq)]
     [InlineData(TestResourceNames.redis)]
     [InlineData(TestResourceNames.sqlserver)]
     [InlineData(TestResourceNames.efsqlserver)]
