@@ -104,12 +104,6 @@ public class TestProgram : IDisposable
                     .AddDatabase(postgresDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(postgres);
             }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.rabbitmq))
-            {
-                var rabbitmq = AppBuilder.AddRabbitMQ("rabbitmq")
-                    .WithImageRegistry(AspireTestContainerRegistry);
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(rabbitmq);
-            }
             if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
             {
                 var mongoDbName = "mymongodb";
