@@ -173,59 +173,54 @@ public class OracleFunctionalTests
                     {
                         await host.StartAsync();
 
-                        try
+                        // Wait until the database is available
+                        await pipeline.ExecuteAsync(async token =>
                         {
-                            // Wait until the database is available
-                            await pipeline.ExecuteAsync(async token =>
-                            {
-                                using var dbContext = host.Services.GetRequiredService<TestDbContext>();
-                                var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
-                                return await databaseCreator.CanConnectAsync(token);
-                            }, cts.Token);
-
-                            // Create tables
                             using var dbContext = host.Services.GetRequiredService<TestDbContext>();
                             var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
-                            await databaseCreator.CreateTablesAsync(cts.Token);
+                            return await databaseCreator.CanConnectAsync(token);
+                        }, cts.Token);
 
-                            // Seed database
-                            dbContext.Cars.Add(new TestDbContext.Car { Brand = "BatMobile" });
-                            await dbContext.SaveChangesAsync(cts.Token);
+                        // Create tables
+                        using var dbContext = host.Services.GetRequiredService<TestDbContext>();
+                        var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
+                        await databaseCreator.CreateTablesAsync(cts.Token);
 
-                            // Stops the container and wait until it's not accessible anymore before creating a new one
-                            // using the same volume.
+                        // Seed database
+                        dbContext.Cars.Add(new TestDbContext.Car { Brand = "BatMobile" });
+                        await dbContext.SaveChangesAsync(cts.Token);
 
-                            await app.StopAsync();
+                        // Stops the container and wait until it's not accessible anymore before creating a new one
+                        // using the same volume.
 
-                            await pipeline.ExecuteAsync(async token =>
-                            {
-                                using var dbContext = host.Services.GetRequiredService<TestDbContext>();
-                                var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
+                        await app.StopAsync();
 
-                                return !await databaseCreator.CanConnectAsync(token);
-                            }, cts.Token);
-                        }
-                        catch
+                        await pipeline.ExecuteAsync(async token =>
                         {
-                            var process = Process.Start(new ProcessStartInfo
-                            {
-                                FileName = "/usr/bin/env",
-                                Arguments = "bash docker exec $(docker ps -l -q) bash -c \"cat /opt/oracle/diag/rdbms/free/FREE/trace/*.trc & cat /opt/oracle/diag/rdbms/free/FREE/trace/*.log\"",
-                                RedirectStandardOutput = true,
-                            });
+                            using var dbContext = host.Services.GetRequiredService<TestDbContext>();
+                            var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
 
-                            process!.OutputDataReceived += (object sender, DataReceivedEventArgs e) =>
-                            {
-                                _testOutputHelper.WriteLine($"[DOCKER] {e.Data}");
-                            };
-
-                            process.Start();
-                            process.WaitForExit();
-                        }
+                            return !await databaseCreator.CanConnectAsync(token);
+                        }, cts.Token);
                     }
                 }
                 finally
                 {
+                    var process = Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "/usr/bin/env",
+                        Arguments = "bash docker exec $(docker ps -l -q) bash -c \"cat /opt/oracle/diag/rdbms/free/FREE/trace/*.trc & cat /opt/oracle/diag/rdbms/free/FREE/trace/*.log\"",
+                        RedirectStandardOutput = true,
+                    });
+
+                    process!.OutputDataReceived += (object sender, DataReceivedEventArgs e) =>
+                    {
+                        _testOutputHelper.WriteLine($"[DOCKER] {e.Data}");
+                    };
+
+                    process.Start();
+                    process.WaitForExit();
+
                     // Stops the container, or the Volume/mount would still be in use
                     await app.StopAsync();
                 }
@@ -271,53 +266,47 @@ public class OracleFunctionalTests
                     {
                         await host.StartAsync();
 
-                        try
+                        // Wait until the database is available
+                        await pipeline.ExecuteAsync(async token =>
                         {
-
-                            // Wait until the database is available
-                            await pipeline.ExecuteAsync(async token =>
-                            {
-                                using var dbContext = host.Services.GetRequiredService<TestDbContext>();
-                                var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
-                                return await databaseCreator.CanConnectAsync(token);
-                            });
-
                             using var dbContext = host.Services.GetRequiredService<TestDbContext>();
-                            var brands = await dbContext.Cars.ToListAsync(cancellationToken: cts.Token);
-                            Assert.Single(brands);
+                            var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
+                            return await databaseCreator.CanConnectAsync(token);
+                        });
 
-                            await app.StopAsync();
+                        using var dbContext = host.Services.GetRequiredService<TestDbContext>();
+                        var brands = await dbContext.Cars.ToListAsync(cancellationToken: cts.Token);
+                        Assert.Single(brands);
 
-                            // Wait for the database to not be available before attempting to clean the volume.
+                        await app.StopAsync();
 
-                            await pipeline.ExecuteAsync(async token =>
-                            {
-                                var dbContext = host.Services.GetRequiredService<TestDbContext>();
-                                var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
-                                return !await databaseCreator.CanConnectAsync(token);
-                            }, cts.Token);
-                        }
-                        catch
+                        // Wait for the database to not be available before attempting to clean the volume.
+
+                        await pipeline.ExecuteAsync(async token =>
                         {
-                            var process = Process.Start(new ProcessStartInfo
-                            {
-                                FileName = "/usr/bin/env",
-                                Arguments = "bash docker exec $(docker ps -l -q) bash -c \"cat /opt/oracle/diag/rdbms/free/FREE/trace/*.trc & cat /opt/oracle/diag/rdbms/free/FREE/trace/*.log\"",
-                                RedirectStandardOutput = true,
-                            });
-
-                            process!.OutputDataReceived += (object sender, DataReceivedEventArgs e) =>
-                            {
-                                _testOutputHelper.WriteLine($"[DOCKER] {e.Data}");
-                            };
-
-                            process.Start();
-                            process.WaitForExit();
-                        }
+                            var dbContext = host.Services.GetRequiredService<TestDbContext>();
+                            var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
+                            return !await databaseCreator.CanConnectAsync(token);
+                        }, cts.Token);
                     }
                 }
                 finally
                 {
+                    var process = Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "/usr/bin/env",
+                        Arguments = "bash docker exec $(docker ps -l -q) bash -c \"cat /opt/oracle/diag/rdbms/free/FREE/trace/*.trc & cat /opt/oracle/diag/rdbms/free/FREE/trace/*.log\"",
+                        RedirectStandardOutput = true,
+                    });
+
+                    process!.OutputDataReceived += (object sender, DataReceivedEventArgs e) =>
+                    {
+                        _testOutputHelper.WriteLine($"[DOCKER] {e.Data}");
+                    };
+
+                    process.Start();
+                    process.WaitForExit();
+
                     // Stops the container, or the Volume/mount would still be in use
                     await app.StopAsync();
                 }
