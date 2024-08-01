@@ -194,18 +194,23 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _logger = GetLogger();
 
-        // this needs to be explicitly enumerated for each supported language
-        // our language list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
-        var supportedLanguages = new[]
+        // our localization list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
+        var localizedLanguages = new[]
         {
             "en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant", // Standard cultures for compliance.
-            "zh-CN", // Non-standard culture but it is the default in many Chinese browsers. Adding zh-CN allows OS culture customization to flow through the dashboard.
-            "en-GB", // Support UK DateTime formatting (24-hour clock, dd/MM/yyyy)
-        };
+        }.ToHashSet();
+
+        var supportedCultures = CultureInfo.GetCultures(CultureTypes.AllCultures)
+            .Where(culture => localizedLanguages.Contains(culture.Name) || localizedLanguages.Contains(culture.TwoLetterISOLanguageName))
+            .Select(culture => culture.Name)
+            .ToList();
+
+        // Non-standard culture but it is the default in many Chinese browsers. Adding zh-CN allows OS culture customization to flow through the dashboard.
+        supportedCultures.Add("zh-CN");
 
         _app.UseRequestLocalization(new RequestLocalizationOptions()
-            .AddSupportedCultures(supportedLanguages)
-            .AddSupportedUICultures(supportedLanguages));
+            .AddSupportedCultures([.. supportedCultures])
+            .AddSupportedUICultures([.. supportedCultures]));
 
         WriteVersion(_logger);
 
