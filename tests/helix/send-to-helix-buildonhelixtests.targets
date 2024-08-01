@@ -1,0 +1,75 @@
+<Project>
+
+  <PropertyGroup>
+    <BuildHelixWorkItemsDependsOn>$(BuildHelixWorkItemsDependsOn);BuildHelixWorkItemsForBuildOnHelixTests</BuildHelixWorkItemsDependsOn>
+    <NeedsWorkload>true</NeedsWorkload>
+    <NeedsPlaywright>true</NeedsPlaywright>
+
+    <WorkItemArchiveWildCard>$(TestArchiveTestsDirForBuildOnHelixTests)**/*.zip</WorkItemArchiveWildCard>
+
+    <_CleanupProcessesCommand Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; get-ciminstance win32_process | where-object ExecutablePath -Match 'dotnet-latest|dcp.exe|dcpctrl.exe' | foreach-object { echo $_.ProcessId $_.ExecutablePath %3B stop-process -id $_.ProcessId -force -ErrorAction SilentlyContinue }"</_CleanupProcessesCommand>
+
+    <_CleanupProcessesCommand Condition="'$(OS)' != 'Windows_NT'">pgrep -lf "dotnet-latest|dcp.exe|dcpctrl.exe" | awk '{print %3B system("kill -9 "$1)}'</_CleanupProcessesCommand>
+
+    <_TestAssemblyRootDirEnvVar Condition="'$(OS)' != 'Windows_NT'">${HELIX_WORKITEM_ROOT}/test/</_TestAssemblyRootDirEnvVar>
+    <_TestAssemblyRootDirEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_WORKITEM_ROOT%\test\</_TestAssemblyRootDirEnvVar>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) SkipDashboardProjectReference=true" />
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) TestsRunningOutsideOfRepo=true" />
+
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set NUGET_PACKAGES=%HELIX_WORKITEM_ROOT%\nuget-cache\" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export NUGET_PACKAGES=$HELIX_WORKITEM_ROOT/nuget-cache/" />
+
+    <HelixPreCommand Include="$(_CleanupProcessesCommand)" />
+
+    <HelixPostCommand Include="$(_CleanupProcessesCommand)" />
+  </ItemGroup>
+
+  <!-- `dotnet build` + `dotnet test` on helix -->
+  <Target Name="BuildHelixWorkItemsForBuildOnHelixTests">
+    <ItemGroup>
+      <_TestRunCommandArguments Remove="@(_TestRunCommandArguments)" />
+
+      <!-- Using `dotnet test` for the project directly here -->
+      <_TestRunCommandArguments Include="dotnet test" />
+      <_TestRunCommandArguments Include="-s .runsettings" />
+      <_TestRunCommandArguments Include="--results-directory $(_HelixLogsPath)" />
+      <_TestRunCommandArguments Include="--blame-hang" />
+      <_TestRunCommandArguments Include="--blame-hang-dump-type" />
+      <_TestRunCommandArguments Include="full" />
+      <_TestRunCommandArguments Include="--blame-hang-timeout" />
+      <_TestRunCommandArguments Include="10m" />
+      <_TestRunCommandArguments Include="--blame-crash" />
+      <_TestRunCommandArguments Include="--blame-crash-dump-type" />
+      <_TestRunCommandArguments Include="full" />
+    </ItemGroup>
+
+    <PropertyGroup>
+      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
+      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
+
+      <_TestRunCommand>dotnet build -bl:$(_HelixLogsPath)/build.binlog $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
+
+      <_SetPathEnvVar Condition="'$(OS)' != 'Windows_NT'">PATH=${SDK_FOR_WORKLOAD_TESTING_PATH}:$PATH</_SetPathEnvVar>
+      <_SetPathEnvVar Condition="'$(OS)' == 'Windows_NT'">PATH=%SDK_FOR_WORKLOAD_TESTING_PATH%%3B%PATH%</_SetPathEnvVar>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" />
+
+      <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
+        <PayloadArchive>%(Identity)</PayloadArchive>
+
+        <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;$(_SetPathEnvVar)&quot;</PreCommands>
+
+        <Command>cd tests/%(FileName) %3B $(_TestRunCommand)</Command>
+        <Timeout>00:15:00</Timeout>
+
+        <!-- Download results file so coverage files can be extracted -->
+        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
+      </HelixWorkItem>
+    </ItemGroup>
+  </Target>
+</Project>

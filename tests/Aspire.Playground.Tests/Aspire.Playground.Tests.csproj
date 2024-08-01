@@ -10,7 +10,7 @@
 
     <DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive\</DeployOutsideOfRepoSupportFilesRelativeDir>
 
-    <TestArchiveTestsDir>$(TestArchiveTestsDirForHostingTestingTests)</TestArchiveTestsDir>
+    <TestArchiveTestsDir>$(TestArchiveTestsDirForBuildOnHelixTests)</TestArchiveTestsDir>
 
     <PlaygroundSourceDir>$(MSBuildThisFileDirectory)..\..\playground\</PlaygroundSourceDir>
     <TestsSharedDir>$(MSBuildThisFileDirectory)..\Shared\</TestsSharedDir>
