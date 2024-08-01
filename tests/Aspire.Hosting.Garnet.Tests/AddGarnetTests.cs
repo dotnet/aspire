@@ -176,7 +176,7 @@ public class AddGarnetTests
             argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
         }
 
-        Assert.Equal("--save 60 1".Split(" "), args);
+        Assert.Equal("--checkpointdir /data/checkpoints --recover --aof --aof-commit-freq 60000".Split(" "), args);
     }
 
     [Fact]
@@ -207,7 +207,7 @@ public class AddGarnetTests
             argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
         }
 
-        Assert.Equal("--save 60 1".Split(" "), args);
+        Assert.Equal("--checkpointdir /data/checkpoints --recover --aof --aof-commit-freq 60000".Split(" "), args);
     }
 
     [Fact]
@@ -239,7 +239,7 @@ public class AddGarnetTests
             argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
         }
 
-        Assert.Equal("--save 10 2".Split(" "), args);
+        Assert.Equal("--checkpointdir /data/checkpoints --recover --aof --aof-commit-freq 10000".Split(" "), args);
     }
 
     [Fact]
