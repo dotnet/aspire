@@ -9,8 +9,6 @@ namespace Aspire.Hosting.Qdrant.Tests;
 
 public class QdrantPublicApiTests
 {
-    #region QdrantBuilderExtensions
-
     [Fact]
     public void AddQdrantContainerShouldThrowWhenBuilderIsNull()
     {
@@ -97,10 +95,6 @@ public class QdrantPublicApiTests
         Assert.Equal(nameof(qdrantResource), exception.ParamName);
     }
 
-    #endregion
-
-    #region QdrantServerResource
-
     [Fact]
     public void CtorQdrantServerResourceShouldThrowWhenNameIsNull()
     {
@@ -126,6 +120,4 @@ public class QdrantPublicApiTests
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(apiKey), exception.ParamName);
     }
-
-    #endregion
 }
