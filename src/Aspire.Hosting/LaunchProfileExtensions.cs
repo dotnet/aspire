@@ -30,26 +30,34 @@ internal static class LaunchProfileExtensions
 
     internal static NamedLaunchProfile? GetEffectiveLaunchProfile(this ProjectResource projectResource, bool throwIfNotFound = false)
     {
-        string? launchProfileName = projectResource.SelectLaunchProfileName();
-        if (string.IsNullOrEmpty(launchProfileName))
+        try
         {
-            return null;
-        }
+            string? launchProfileName = projectResource.SelectLaunchProfileName();
+            if (string.IsNullOrEmpty(launchProfileName))
+            {
+                return null;
+            }
 
-        var profiles = projectResource.GetLaunchSettings()?.Profiles;
-        if (profiles is null)
+            var profiles = projectResource.GetLaunchSettings()?.Profiles;
+            if (profiles is null)
+            {
+                return null;
+            }
+
+            var found = profiles.TryGetValue(launchProfileName, out var launchProfile);
+            if (!found && throwIfNotFound)
+            {
+                var message = string.Format(CultureInfo.InvariantCulture, Resources.LaunchSettingsFileDoesNotContainProfileExceptionMessage, launchProfileName);
+                throw new DistributedApplicationException(message);
+            }
+
+            return launchProfile is not null ? new (launchProfileName, launchProfile) : default;
+        }
+        catch (JsonException ex)
         {
-            return null;
+            var message = $"Failed to get effective launch profile because of malformed launchSettings.json associated with project resource '{projectResource.Name}'";
+            throw new DistributedApplicationException(message, ex);
         }
-
-        var found = profiles.TryGetValue(launchProfileName, out var launchProfile);
-        if (!found && throwIfNotFound)
-        {
-            var message = string.Format(CultureInfo.InvariantCulture, Resources.LaunchSettingsFileDoesNotContainProfileExceptionMessage, launchProfileName);
-            throw new DistributedApplicationException(message);
-        }
-
-        return launchProfile is not null ? new (launchProfileName, launchProfile) : default;
     }
 
     private static LaunchSettings? GetLaunchSettings(this IProjectMetadata projectMetadata)

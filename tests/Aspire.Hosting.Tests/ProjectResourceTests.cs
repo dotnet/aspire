@@ -15,6 +15,46 @@ namespace Aspire.Hosting.Tests;
 public class ProjectResourceTests
 {
     [Fact]
+    public async Task AddProjectWithInvalidLaunchSettingsShouldThrowSpecificError()
+    {
+        var projectFilePath = await PrepareProjectWithMalformedLaunchSettingsAsync();
+
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            var appBuilder = CreateBuilder();
+            appBuilder.AddProject("project", projectFilePath);
+        });
+
+        Assert.Equal($"Failed to get effective launch profile because of malformed launchSettings.json associated with project resource 'project'", ex.Message);
+
+        async static Task<string> PrepareProjectWithMalformedLaunchSettingsAsync()
+        {
+            var csProjContent = """
+                                <Project Sdk="Microsoft.NET.Sdk.Web">
+                                <!-- Not a real project, just a stub for testing -->
+                                </Project>
+                                """;
+
+            var launchSettingsContent = """
+                                        this { is } { mal formed! >
+                                        """;
+
+            var projectDirectoryPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            var projectFilePath = Path.Combine(projectDirectoryPath, "Project.csproj");
+            var propertiesDirectoryPath = Path.Combine(projectDirectoryPath, "Properties");
+            var launchSettingsFilePath = Path.Combine(propertiesDirectoryPath, "launchSettings.json");
+
+            Directory.CreateDirectory(projectDirectoryPath);
+            await File.WriteAllTextAsync(projectFilePath, csProjContent);
+
+            Directory.CreateDirectory(propertiesDirectoryPath);
+            await File.WriteAllTextAsync(launchSettingsFilePath, launchSettingsContent);
+
+            return projectFilePath;
+        }
+    }
+
+    [Fact]
     public async Task AddProjectAddsEnvironmentVariablesAndServiceMetadata()
     {
         // Explicitly specify development environment and other config so it is constant.
