@@ -379,7 +379,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
         additionalMessage = null;
 
-        return ResourceEndpointHelpers.GetEndpoints(resource, includeInteralUrls: false);
+        return ResourceEndpointHelpers.GetEndpoints(resource, includeInternalUrls: false);
     }
 
     public async ValueTask DisposeAsync()
