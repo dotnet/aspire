@@ -3,6 +3,7 @@
 
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Components.Resize;
+using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.BrowserStorage;
@@ -17,7 +18,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Xunit;
 
-namespace Aspire.Dashboard.Components.Tests.Controls;
+namespace Aspire.Dashboard.Components.Tests.Pages;
 
 [UseCulture("en-US")]
 public partial class StructuredLogsTests : TestContext

@@ -34,6 +34,11 @@ public partial class ResourceSelect
 
     private FluentSelect<SelectViewModel<ResourceTypeDetails>>? _resourceSelectComponent;
 
+    private static void ValuedChanged(string value)
+    {
+        // Do nothing. Required for bunit change to trigger SelectedOptionChanged.
+    }
+
     /// <summary>
     /// Workaround for issue in fluent-select web component where the display value of the
     /// selected item doesn't update automatically when the item changes.
