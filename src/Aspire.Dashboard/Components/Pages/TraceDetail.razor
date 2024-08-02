@@ -141,8 +141,9 @@
                             <TemplateColumn>
                                 <HeaderCellItemTemplate>
                                     <div class="ticks">
+                                        @* First column starts at 0. We don't want to display the smallest unit (0μs) because that looks odd. Use the unit from the next column *@
                                         <div class="tick" style="grid-column: 1;"></div>
-                                        <span class="tick-label" style="grid-column: 1;">@DurationFormatter.FormatDuration(TimeSpan.Zero)</span>
+                                        <span class="tick-label" style="grid-column: 1;">@($"0{DurationFormatter.GetUnit(trace.Duration / 4)}")</span>
 
                                         <div class="tick" style="grid-column: 2;"></div>
                                         <span class="tick-label" style="grid-column: 2;">@DurationFormatter.FormatDuration(trace.Duration / 4)</span>
