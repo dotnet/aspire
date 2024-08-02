@@ -223,7 +223,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         return false;
     }
 
-    private async Task ShowResourceDetailsAsync(ResourceViewModel resource, string buttonId)
+    private async Task ShowResourceDetailsAsync(ResourceViewModel resource, string? buttonId)
     {
         _elementIdBeforeDetailsViewOpened = buttonId;
 
