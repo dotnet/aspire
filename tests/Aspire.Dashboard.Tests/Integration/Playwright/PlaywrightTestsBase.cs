@@ -72,7 +72,7 @@ public class PlaywrightTestsBase : IClassFixture<DashboardServerFixture>, IClass
 
     private string GetLogPath()
     {
-        var testLogPath = Path.Combine(AppContext.BaseDirectory, "logs");
+        var testLogPath = Path.Combine("artifacts", "log");
         var logRootPath = Path.Combine(testLogPath, _id.ToString());
 
         if (!Directory.Exists(logRootPath))
