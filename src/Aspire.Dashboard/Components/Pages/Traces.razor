@@ -31,7 +31,16 @@
         </ToolbarSection>
         <MainSection>
             <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
-                <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpTrace" GridTemplateColumns="0.8fr 2fr 3fr 0.8fr 0.5fr" ShowHover="true">
+                <FluentDataGrid Virtualize="true"
+                                GenerateHeader="GenerateHeaderOption.Sticky"
+                                ItemSize="46"
+                                ResizableColumns="true"
+                                ItemsProvider="@GetData"
+                                TGridItem="OtlpTrace"
+                                GridTemplateColumns="0.8fr 2fr 3fr 0.8fr 0.5fr"
+                                ShowHover="true"
+                                OnRowClick="@(r => r.ExecuteOnDefault(d => NavigationManager.NavigateTo(DashboardUrls.TraceDetailUrl(d.TraceId))))"
+                                Class="enable-row-click">
                     <ChildContent>
                         <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
                             @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Truncated)
@@ -45,32 +54,32 @@
                                 <ChildContent>
                                     @foreach (var item in context.Spans.GroupBy(s => s.Source).OrderBy(g => g.Min(s => s.StartTime)))
                                     {
-                                    <FluentOverflowItem>
-                                        <span class="trace-tag trace-service-tag" title="@(GetSpansTooltip(item))" style="border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(item.Key)));">
-                                            @if (item.Any(s => s.Status == OtlpSpanStatusCode.Error))
-                                            {
-                                            <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
-                                            }
-                                            @GetResourceName(item.Key) (@item.Count())
-                                        </span>
-                                    </FluentOverflowItem>
+                                        <FluentOverflowItem>
+                                            <span class="trace-tag trace-service-tag" title="@(GetSpansTooltip(item))" style="border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(item.Key)));">
+                                                @if (item.Any(s => s.Status == OtlpSpanStatusCode.Error))
+                                                {
+                                                    <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
+                                                }
+                                                @GetResourceName(item.Key) (@item.Count())
+                                            </span>
+                                        </FluentOverflowItem>
                                     }
                                 </ChildContent>
                                 <MoreButtonTemplate Context="overflow">
-                                <span class="trace-tag">
-                                    @($"+{overflow.ItemsOverflow.Count()}")
-                                </span>
+                                    <span class="trace-tag">
+                                        @($"+{overflow.ItemsOverflow.Count()}")
+                                    </span>
                                 </MoreButtonTemplate>
                                 <OverflowTemplate Context="overflow">
                                     @{
-                                    var items = overflow.ItemsOverflow.ToList();
+                                        var items = overflow.ItemsOverflow.ToList();
                                     }
                                     <FluentTooltip UseTooltipService="false" Anchor="@overflow.IdMoreButton">
                                         @foreach (var item in items)
                                         {
-                                        <div style="margin-top: 8px; margin-bottom: 8px;">
-                                            @item.ChildContent
-                                        </div>
+                                            <div style="margin-top: 8px; margin-bottom: 8px;">
+                                                @item.ChildContent
+                                            </div>
                                         }
                                     </FluentTooltip>
                                 </OverflowTemplate>
@@ -84,7 +93,7 @@
                                                         Min="0"
                                                         Max="@Convert.ToInt32(TracesViewModel.MaxDuration.TotalMilliseconds)"
                                                         Value="@Convert.ToInt32(context.Duration.TotalMilliseconds)"
-                                                        aria-label="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]"/>
+                                                        aria-label="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]" />
                                     <span class="trace-duration">
                                         @DurationFormatter.FormatDuration(context.Duration)
                                     </span>
@@ -97,7 +106,7 @@
                         </TemplateColumn>
 
                         <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
-                            <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.TraceDetailUrl(context.TraceId)">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentAnchor>
+                            <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.TraceDetailUrl(context.TraceId)" @onclick:stopPropagation="true">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentAnchor>
                         </TemplateColumn>
                     </ChildContent>
                     <EmptyContent>
@@ -107,7 +116,7 @@
             </div>
         </MainSection>
         <FooterSection>
-            <TotalItemsFooter @ref="_totalItemsFooter"/>
+            <TotalItemsFooter @ref="_totalItemsFooter" />
         </FooterSection>
     </AspirePageContentLayout>
 </div>

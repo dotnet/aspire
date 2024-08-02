@@ -4,7 +4,7 @@
 using Aspire.Dashboard.Model;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Aspire.Dashboard.Components.Tests.Controls;
+namespace Aspire.Dashboard.Components.Tests.Shared;
 
 public sealed class TestTimeProvider : BrowserTimeProvider
 {
@@ -19,5 +19,5 @@ public sealed class TestTimeProvider : BrowserTimeProvider
         return new DateTimeOffset(2025, 12, 20, 23, 59, 59, TimeSpan.Zero);
     }
 
-    public override TimeZoneInfo LocalTimeZone => _localTimeZone ??= TimeZoneInfo.CreateCustomTimeZone(nameof(PlotlyChartTests), TimeSpan.FromHours(1), nameof(PlotlyChartTests), nameof(PlotlyChartTests));
+    public override TimeZoneInfo LocalTimeZone => _localTimeZone ??= TimeZoneInfo.CreateCustomTimeZone(nameof(TestTimeProvider), TimeSpan.FromHours(1), nameof(TestTimeProvider), nameof(TestTimeProvider));
 }

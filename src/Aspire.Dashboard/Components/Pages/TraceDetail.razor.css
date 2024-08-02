@@ -21,10 +21,6 @@
     display: inline !important;
 }
 
-::deep fluent-data-grid.trace-view-grid fluent-data-grid-row[row-type="default"]:hover {
-    cursor: pointer;
-}
-
 ::deep .trace-view-grid fluent-data-grid-row[row-type="header"] {
     background: var(--fill-color);
     border-bottom: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-divider-rest);
