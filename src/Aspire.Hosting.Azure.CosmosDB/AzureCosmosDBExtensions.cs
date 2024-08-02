@@ -131,7 +131,7 @@ public static class AzureCosmosExtensions
     /// <param name="builder">Builder for the Cosmos emulator container</param>
     /// <param name="count">Desired partition count.</param>
     /// <returns>Cosmos emulator resource builder.</returns>
-    /// <remarks>The actual started partitions is always one more than specified.
+    /// <remarks>Not calling this method will result in the default of 25 partitions. The actual started partitions is always one more than specified.
     /// See <a href="https://learn.microsoft.com/en-us/azure/cosmos-db/emulator-windows-arguments#change-the-number-of-default-containers">this documentation</a> about setting the partition count.
     /// </remarks>
     public static IResourceBuilder<AzureCosmosDBEmulatorResource> WithPartitionCount(this IResourceBuilder<AzureCosmosDBEmulatorResource> builder, int count)
@@ -140,7 +140,7 @@ public static class AzureCosmosExtensions
         {
             throw new ArgumentOutOfRangeException(nameof(count), "Count must be between 1 and 250.");
         }
-        
+
         return builder.WithEnvironment("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", count);
     }
 
