@@ -83,14 +83,11 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         {
             var builder1 = CreateDistributedApplicationBuilder();
 
-            var password = "p@ssw0rd1";
-
-            var passwordParameter = builder1.AddParameter("pwd");
-            builder1.Configuration["Parameters:pwd"] = password;
-
-            var sqlserver1 = builder1.AddSqlServer("sqlserver", passwordParameter);
+            var sqlserver1 = builder1.AddSqlServer("sqlserver");
             var testdb1 = sqlserver1.AddDatabase(TestDbName);
             var masterDb1 = sqlserver1.AddDatabase(MasterDbName);
+
+            var password = sqlserver1.Resource.PasswordParameter.Value;
 
             if (useVolume)
             {
@@ -108,65 +105,81 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 sqlserver1.WithDataBindMount(bindMountPath);
             }
 
-            using (var app = builder1.Build())
+            using var app = builder1.Build();
+
+            await app.StartAsync();
+
+            try
             {
-                await app.StartAsync();
+                var hb = Host.CreateApplicationBuilder();
 
-                try
+                hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    var hb = Host.CreateApplicationBuilder();
+                    [$"ConnectionStrings:{testdb1.Resource.Name}"] = await testdb1.Resource.ConnectionStringExpression.GetValueAsync(default),
+                    [$"ConnectionStrings:{masterDb1.Resource.Name}"] = await masterDb1.Resource.ConnectionStringExpression.GetValueAsync(default)
+                });
 
-                    hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                hb.AddKeyedSqlServerClient(masterDb1.Resource.Name);
+                hb.AddSqlServerClient(testdb1.Resource.Name);
+
+                using var host = hb.Build();
+
+                await host.StartAsync();
+
+                await pipeline.ExecuteAsync(async token =>
+                {
+
+                    var masterDbConnection = host.Services.GetRequiredKeyedService<SqlConnection>(masterDb1.Resource.Name);
+                    var testDbConnection = host.Services.GetRequiredService<SqlConnection>();
+                    await CreateTestDb(masterDbConnection, testDbConnection, token);
+
+                    if (testDbConnection.State != System.Data.ConnectionState.Open)
                     {
-                        [$"ConnectionStrings:{testdb1.Resource.Name}"] = await testdb1.Resource.ConnectionStringExpression.GetValueAsync(default),
-                        [$"ConnectionStrings:{masterDb1.Resource.Name}"] = await masterDb1.Resource.ConnectionStringExpression.GetValueAsync(default)
-                    });
-
-                    hb.AddKeyedSqlServerClient(masterDb1.Resource.Name);
-                    hb.AddSqlServerClient(testdb1.Resource.Name);
-
-                    using (var host = hb.Build())
-                    {
-                        await host.StartAsync();
-
-                        await pipeline.ExecuteAsync(async token =>
-                        {
-
-                            var masterDbConnection = host.Services.GetRequiredKeyedService<SqlConnection>(masterDb1.Resource.Name);
-                            var testDbConnection = host.Services.GetRequiredService<SqlConnection>();
-                            await CreateTestDb(masterDbConnection, testDbConnection, token);
-
-                            if (testDbConnection.State != System.Data.ConnectionState.Open )
-                            {
-                                await testDbConnection.OpenAsync(token);
-                            }
-
-                            var command = testDbConnection.CreateCommand();
-                            command.CommandText = """
-                                DROP TABLE IF EXISTS Cars
-                                CREATE TABLE Cars (Brand VARCHAR(255));
-                                INSERT INTO Cars (Brand) VALUES ('BatMobile');
-                                SELECT * FROM Cars;
-                            """;
-
-                            var results = await command.ExecuteReaderAsync(token);
-
-                            Assert.True(results.HasRows);
-                        }, cts.Token);
+                        await testDbConnection.OpenAsync(token);
                     }
-                }
-                finally
+
+                    var command = testDbConnection.CreateCommand();
+                    command.CommandText = """
+                        DROP TABLE IF EXISTS Cars
+                        CREATE TABLE Cars (Brand VARCHAR(255));
+                        INSERT INTO Cars (Brand) VALUES ('BatMobile');
+                        SELECT * FROM Cars;
+                    """;
+
+                    var results = await command.ExecuteReaderAsync(token);
+
+                    Assert.True(results.HasRows);
+                }, cts.Token);
+
+                await app.StopAsync();
+
+                await pipeline.ExecuteAsync(async token =>
                 {
-                    // Stops the container, or the Volume/mount would still be in use
-                    await app.StopAsync();
-                }
+                    var masterDbConnection = host.Services.GetRequiredKeyedService<SqlConnection>(masterDb1.Resource.Name);
+
+                    try
+                    {
+                        await masterDbConnection.OpenAsync(token);
+                        Assert.Fail("Waiting for database to be down");
+                    }
+                    catch
+                    {
+                        // Failing means the database is correctly down
+                        return;
+                    }
+                }, cts.Token);
+            }
+            finally
+            {
+                // Stops the container, or the Volume/mount would still be in use
+                await app.StopAsync();
             }
 
             var builder2 = CreateDistributedApplicationBuilder();
-            passwordParameter = builder2.AddParameter("pwd");
+            var passwordParameter2 = builder2.AddParameter("pwd");
             builder2.Configuration["Parameters:pwd"] = password;
 
-            var sqlserver2 = builder2.AddSqlServer("sqlserver", passwordParameter);
+            var sqlserver2 = builder2.AddSqlServer("sqlserver", passwordParameter2);
             var testdb2 = sqlserver2.AddDatabase(TestDbName);
 
             if (useVolume)
@@ -178,9 +191,9 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 sqlserver2.WithDataBindMount(bindMountPath!);
             }
 
-            using (var app = builder2.Build())
+            using (var app2 = builder2.Build())
             {
-                await app.StartAsync();
+                await app2.StartAsync();
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
@@ -217,7 +230,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 finally
                 {
                     // Stops the container, or the Volume/mount would still be in use
-                    await app.StopAsync();
+                    await app2.StopAsync();
                 }
             }
 
