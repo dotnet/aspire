@@ -58,9 +58,6 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public required TelemetryRepository TelemetryRepository { get; init; }
 
     [Inject]
-    public required TracesViewModel TracesViewModel { get; init; }
-
-    [Inject]
     public required ILogger<Metrics> Logger { get; init; }
 
     protected override Task OnInitializedAsync()
@@ -102,7 +99,6 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     protected override async Task OnParametersSetAsync()
     {
         await this.InitializeViewModelAsync();
-        TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
         UpdateSubscription();
     }
 
@@ -154,9 +150,36 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     private Task HandleSelectedApplicationChangedAsync()
     {
-        PageViewModel.SelectedMeter = null;
-        PageViewModel.SelectedInstrument = null;
+        // The new resource might not have the currently selected meter/instrument.
+        // Check whether the new resource has the current values or not, and clear if they're not available.
+        if (PageViewModel.SelectedMeter != null ||
+            PageViewModel.SelectedInstrument != null)
+        {
+            var selectedInstance = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
+            var instruments = selectedInstance != null ? TelemetryRepository.GetInstrumentsSummary(selectedInstance.Value) : null;
+
+            if (instruments == null || ShouldClearSelectedMetrics(instruments))
+            {
+                PageViewModel.SelectedMeter = null;
+                PageViewModel.SelectedInstrument = null;
+            }
+        }
+
         return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
+    }
+
+    private bool ShouldClearSelectedMetrics(List<OtlpInstrument> instruments)
+    {
+        if (PageViewModel.SelectedMeter != null && !instruments.Any(i => i.Parent.MeterName == PageViewModel.SelectedMeter.MeterName))
+        {
+            return true;
+        }
+        if (PageViewModel.SelectedInstrument != null && !instruments.Any(i => i.Name == PageViewModel.SelectedInstrument.Name))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private Task HandleSelectedDurationChangedAsync()
