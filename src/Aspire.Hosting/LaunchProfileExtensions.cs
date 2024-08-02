@@ -55,7 +55,10 @@ internal static class LaunchProfileExtensions
         }
         catch (JsonException ex)
         {
-            var message = $"Failed to get effective launch profile because of malformed launchSettings.json associated with project resource '{projectResource.Name}'";
+            var metadata = projectResource.GetProjectMetadata();
+            var projectFileInfo = new FileInfo(metadata.ProjectPath);
+            var launchSettingsFilePath = Path.Combine(projectFileInfo.DirectoryName!, "Properties", "launchSettings.json");
+            var message = $"Failed to get effective launch profile because of malformed JSON in '{launchSettingsFilePath}' associated with project resource '{projectResource.Name}'. See inner exception for details.'";
             throw new DistributedApplicationException(message, ex);
         }
     }

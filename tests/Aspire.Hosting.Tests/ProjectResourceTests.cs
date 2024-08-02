@@ -17,17 +17,18 @@ public class ProjectResourceTests
     [Fact]
     public async Task AddProjectWithInvalidLaunchSettingsShouldThrowSpecificError()
     {
-        var projectFilePath = await PrepareProjectWithMalformedLaunchSettingsAsync();
+        var projectDetails = await PrepareProjectWithMalformedLaunchSettingsAsync();
 
         var ex = Assert.Throws<DistributedApplicationException>(() =>
         {
             var appBuilder = CreateBuilder();
-            appBuilder.AddProject("project", projectFilePath);
+            appBuilder.AddProject("project", projectDetails.ProjectFilePath);
         });
 
-        Assert.Equal($"Failed to get effective launch profile because of malformed launchSettings.json associated with project resource 'project'", ex.Message);
+        var expectedMessage = $"Failed to get effective launch profile because of malformed JSON in '{projectDetails.LaunchSettingsFilePath}' associated with project resource 'project'. See inner exception for details.'";
+        Assert.Equal(expectedMessage, ex.Message);
 
-        async static Task<string> PrepareProjectWithMalformedLaunchSettingsAsync()
+        async static Task<(string ProjectFilePath, string LaunchSettingsFilePath)> PrepareProjectWithMalformedLaunchSettingsAsync()
         {
             var csProjContent = """
                                 <Project Sdk="Microsoft.NET.Sdk.Web">
@@ -50,7 +51,7 @@ public class ProjectResourceTests
             Directory.CreateDirectory(propertiesDirectoryPath);
             await File.WriteAllTextAsync(launchSettingsFilePath, launchSettingsContent);
 
-            return projectFilePath;
+            return (projectFilePath, launchSettingsFilePath);
         }
     }
 
