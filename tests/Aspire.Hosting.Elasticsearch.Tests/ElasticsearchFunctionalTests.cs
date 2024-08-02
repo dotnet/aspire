@@ -4,7 +4,6 @@
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Utils;
 using Elastic.Clients.Elasticsearch;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -43,10 +42,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var hb = Host.CreateApplicationBuilder();
 
-        hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            [$"ConnectionStrings:{elasticsearch.Resource.Name}"] = await elasticsearch.Resource.ConnectionStringExpression.GetValueAsync(default)
-        });
+        hb.Configuration[$"ConnectionStrings:{elasticsearch.Resource.Name}"] = await elasticsearch.Resource.ConnectionStringExpression.GetValueAsync(default);
 
         hb.AddElasticsearchClient(elasticsearch.Resource.Name);
 
@@ -81,11 +77,11 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
         try
         {
             var builder1 = CreateDistributedApplicationBuilder();
-            var password = "passw0rd1";
+            
+            var elasticsearch1 = builder1.AddElasticsearch("elasticsearch");
 
-            var passwordParameter = builder1.AddParameter("pwd");
-            builder1.Configuration["Parameters:pwd"] = password;
-            var elasticsearch1 = builder1.AddElasticsearch("elasticsearch", passwordParameter);
+            var password = elasticsearch1.Resource.PasswordParameter.Value;
+
             if (useVolume)
             {
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
@@ -109,10 +105,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-                    {
-                        [$"ConnectionStrings:{elasticsearch1.Resource.Name}"] = await elasticsearch1.Resource.ConnectionStringExpression.GetValueAsync(default)
-                    });
+                    hb.Configuration[$"ConnectionStrings:{elasticsearch1.Resource.Name}"] = await elasticsearch1.Resource.ConnectionStringExpression.GetValueAsync(default);
 
                     hb.AddElasticsearchClient(elasticsearch1.Resource.Name);
 
@@ -134,10 +127,11 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
                     await app.StopAsync();
                 }
             }
+
             var builder2 = CreateDistributedApplicationBuilder();
-            passwordParameter = builder2.AddParameter("pwd");
+            var passwordParameter2 = builder2.AddParameter("pwd");
             builder2.Configuration["Parameters:pwd"] = password;
-            var elasticsearch2 = builder2.AddElasticsearch("elasticsearch", passwordParameter);
+            var elasticsearch2 = builder2.AddElasticsearch("elasticsearch", passwordParameter2);
 
             if (useVolume)
             {
@@ -156,10 +150,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-                    {
-                        [$"ConnectionStrings:{elasticsearch2.Resource.Name}"] = await elasticsearch2.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None)
-                    });
+                    hb.Configuration[$"ConnectionStrings:{elasticsearch2.Resource.Name}"] = await elasticsearch2.Resource.ConnectionStringExpression.GetValueAsync(default);
 
                     hb.AddElasticsearchClient(elasticsearch2.Resource.Name);
 
@@ -209,11 +200,9 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
         }
     }
 
-#pragma warning disable IDE0060 // Remove unused parameter
     private static async Task CreateTestData(ElasticsearchClient elasticsearchClient, ITestOutputHelper testOutputHelper, CancellationToken cancellationToken)
-#pragma warning restore IDE0060 // Remove unused parameter
     {
-       var indexResponse = await elasticsearchClient.IndexAsync<Person>(s_person, IndexName, s_person.Id, cancellationToken);
+        var indexResponse = await elasticsearchClient.IndexAsync<Person>(s_person, IndexName, s_person.Id, cancellationToken);
 
         var getResponse = await elasticsearchClient.GetAsync<Person>(IndexName, s_person.Id, cancellationToken);
 
@@ -224,8 +213,6 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
         Assert.True(getResponse.IsSuccess());
         Assert.NotNull(getResponse.Source);
         Assert.Equal(s_person.Id, getResponse.Source?.Id);
-
-        //Assert.True(indexResponse.IsSuccess());
     }
 
     private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
