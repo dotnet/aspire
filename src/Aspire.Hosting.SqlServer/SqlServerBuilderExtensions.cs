@@ -71,5 +71,5 @@ public static class SqlServerBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<SqlServerServerResource> WithDataBindMount(this IResourceBuilder<SqlServerServerResource> builder, string source, bool isReadOnly = false)
-        => builder.WithBindMount(source, "/var/opt/mssql", isReadOnly);
+        => builder.WithBindMount(source, "/var/opt/mssql/data", isReadOnly);
 }
