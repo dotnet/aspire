@@ -12,14 +12,63 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using Xunit;
 using Xunit.Abstractions;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 
 namespace Aspire.Hosting.SqlServer.Tests;
 
 public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 {
-    private const string TestDbName = "testdb";
-    private const string MasterDbName = "master";
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyEfSqlServer()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(10) })
+            .Build();
+
+        var builder = CreateDistributedApplicationBuilder();
+
+        var sqlserver = builder.AddSqlServer("sqlserver");
+        var tempDb = sqlserver.AddDatabase("tempdb");
+
+        using var app = builder.Build();
+
+        await app.StartAsync(cts.Token);
+
+        var hb = Host.CreateApplicationBuilder();
+
+        hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [$"ConnectionStrings:{tempDb.Resource.Name}"] = await tempDb.Resource.ConnectionStringExpression.GetValueAsync(default),
+        });
+
+        hb.AddSqlServerDbContext<TestDbContext>(tempDb.Resource.Name);
+
+        using var host = hb.Build();
+
+        await host.StartAsync();
+
+        await pipeline.ExecuteAsync(async token =>
+        {
+            var dbContext = host.Services.GetRequiredService<TestDbContext>();
+            var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
+            await databaseCreator.CreateTablesAsync(token);
+        }, cts.Token);
+
+        var dbContext = host.Services.GetRequiredService<TestDbContext>();
+        var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
+
+        dbContext.Cars.Add(new TestDbContext.Car { Brand = "BatMobile" });
+        await dbContext.SaveChangesAsync(cts.Token);
+
+        var cars = await dbContext.Cars.ToListAsync(cts.Token);
+        Assert.Single(cars);
+        Assert.Equal("BatMobile", cars[0].Brand);
+    }
 
     [Fact]
     [RequiresDocker]
@@ -33,8 +82,8 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         var builder = CreateDistributedApplicationBuilder();
 
         var sqlserver = builder.AddSqlServer("sqlserver");
-        var testDb = sqlserver.AddDatabase(TestDbName);
-        var masterDb = sqlserver.AddDatabase(MasterDbName);
+        var tempDb = sqlserver.AddDatabase("tempdb");
+
         using var app = builder.Build();
 
         await app.StartAsync();
@@ -43,12 +92,10 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
         hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            [$"ConnectionStrings:{testDb.Resource.Name}"] = await testDb.Resource.ConnectionStringExpression.GetValueAsync(default),
-            [$"ConnectionStrings:{masterDb.Resource.Name}"] = await masterDb.Resource.ConnectionStringExpression.GetValueAsync(default)
+            [$"ConnectionStrings:{tempDb.Resource.Name}"] = await tempDb.Resource.ConnectionStringExpression.GetValueAsync(default)
         });
 
-        hb.AddKeyedSqlServerClient(masterDb.Resource.Name);
-        hb.AddSqlServerClient(testDb.Resource.Name);
+        hb.AddSqlServerClient(tempDb.Resource.Name);
 
         using var host = hb.Build();
 
@@ -56,11 +103,18 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await pipeline.ExecuteAsync(async token =>
         {
-            var masterDbConnection = host.Services.GetRequiredKeyedService<SqlConnection>(masterDb.Resource.Name);
-            var testDbConnection = host.Services.GetRequiredService<SqlConnection>();
+            var conn = host.Services.GetRequiredService<SqlConnection>();
 
-            await CreateTestDb(masterDbConnection, testDbConnection, token);
+            if (conn.State != System.Data.ConnectionState.Open)
+            {
+                await conn.OpenAsync(token);
+            }
 
+            var selectCommand = conn.CreateCommand();
+            selectCommand.CommandText = $"SELECT 1";
+            var results = await selectCommand.ExecuteReaderAsync(token);
+
+            Assert.True(results.HasRows);
         }, cts.Token);
     }
 
@@ -85,8 +139,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             var builder1 = CreateDistributedApplicationBuilder();
 
             var sqlserver1 = builder1.AddSqlServer("sqlserver");
-            var testdb1 = sqlserver1.AddDatabase(TestDbName);
-            var masterDb1 = sqlserver1.AddDatabase(MasterDbName);
+            var masterdb1 = sqlserver1.AddDatabase("master");
 
             var password = sqlserver1.Resource.PasswordParameter.Value;
 
@@ -106,52 +159,48 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
                 if (OperatingSystem.IsLinux())
                 {
-                    // c.f. https://learn.microsoft.com/sql/linux/sql-server-linux-docker-container-security?view=sql-server-ver15#set-the-non-root-user-as-the-owner-of-the-files
-                    Process.Start("chown", $"-R 10001:0 {bindMountPath}");
+                    // c.f. https://learn.microsoft.com/sql/linux/sql-server-linux-docker-container-security?view=sql-server-ver15#grant-the-root-group-readwrite-access-to-the-database-files
+                    Process.Start("chgrp", $"-R 0 {bindMountPath}").WaitForExit();
+                    Process.Start("chmod", $"-R g=u {bindMountPath}").WaitForExit();
                 }
 
                 sqlserver1.WithDataBindMount(bindMountPath);
             }
 
-            using var app = builder1.Build();
+            using var app1 = builder1.Build();
 
-            await app.StartAsync();
+            await app1.StartAsync();
 
             try
             {
-                var hb = Host.CreateApplicationBuilder();
+                var hb1 = Host.CreateApplicationBuilder();
 
-                hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                hb1.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    [$"ConnectionStrings:{testdb1.Resource.Name}"] = await testdb1.Resource.ConnectionStringExpression.GetValueAsync(default),
-                    [$"ConnectionStrings:{masterDb1.Resource.Name}"] = await masterDb1.Resource.ConnectionStringExpression.GetValueAsync(default)
+                    [$"ConnectionStrings:{masterdb1.Resource.Name}"] = await masterdb1.Resource.ConnectionStringExpression.GetValueAsync(default),
                 });
 
-                hb.AddKeyedSqlServerClient(masterDb1.Resource.Name);
-                hb.AddSqlServerClient(testdb1.Resource.Name);
+                hb1.AddSqlServerClient(masterdb1.Resource.Name);
 
-                using var host = hb.Build();
+                using var host1 = hb1.Build();
 
-                await host.StartAsync();
+                await host1.StartAsync();
 
                 await pipeline.ExecuteAsync(async token =>
                 {
+                    var conn = host1.Services.GetRequiredService<SqlConnection>();
 
-                    var masterDbConnection = host.Services.GetRequiredKeyedService<SqlConnection>(masterDb1.Resource.Name);
-                    var testDbConnection = host.Services.GetRequiredService<SqlConnection>();
-                    await CreateTestDb(masterDbConnection, testDbConnection, token);
-
-                    if (testDbConnection.State != System.Data.ConnectionState.Open)
+                    if (conn.State != System.Data.ConnectionState.Open)
                     {
-                        await testDbConnection.OpenAsync(token);
+                        await conn.OpenAsync(token);
                     }
 
-                    var command = testDbConnection.CreateCommand();
+                    var command = conn.CreateCommand();
                     command.CommandText = """
-                        DROP TABLE IF EXISTS Cars
-                        CREATE TABLE Cars (Brand VARCHAR(255));
-                        INSERT INTO Cars (Brand) VALUES ('BatMobile');
-                        SELECT * FROM Cars;
+                        DROP TABLE IF EXISTS [Cars];
+                        CREATE TABLE [Cars] ([Brand] nvarchar(max) NOT NULL);
+                        INSERT INTO [Cars] ([Brand]) VALUES ('BatMobile');
+                        SELECT * FROM [Cars];
                     """;
 
                     var results = await command.ExecuteReaderAsync(token);
@@ -159,15 +208,15 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                     Assert.True(results.HasRows);
                 }, cts.Token);
 
-                await app.StopAsync();
+                await app1.StopAsync();
 
                 await pipeline.ExecuteAsync(async token =>
                 {
-                    var masterDbConnection = host.Services.GetRequiredKeyedService<SqlConnection>(masterDb1.Resource.Name);
+                    var conn = host1.Services.GetRequiredService<SqlConnection>();
 
                     try
                     {
-                        await masterDbConnection.OpenAsync(token);
+                        await conn.OpenAsync(token);
                         Assert.Fail("Waiting for database to be down");
                     }
                     catch
@@ -180,7 +229,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             finally
             {
                 // Stops the container, or the Volume/mount would still be in use
-                await app.StopAsync();
+                await app1.StopAsync();
             }
 
             var builder2 = CreateDistributedApplicationBuilder();
@@ -188,7 +237,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             builder2.Configuration["Parameters:pwd"] = password;
 
             var sqlserver2 = builder2.AddSqlServer("sqlserver", passwordParameter2);
-            var testdb2 = sqlserver2.AddDatabase(TestDbName);
+            var masterdb2 = sqlserver2.AddDatabase("master");
 
             if (useVolume)
             {
@@ -204,35 +253,37 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 await app2.StartAsync();
                 try
                 {
-                    var hb = Host.CreateApplicationBuilder();
+                    var hb2 = Host.CreateApplicationBuilder();
 
-                    hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                    hb2.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
                     {
-                        [$"ConnectionStrings:{testdb2.Resource.Name}"] = await testdb2.Resource.ConnectionStringExpression.GetValueAsync(default),
+                        [$"ConnectionStrings:{masterdb2.Resource.Name}"] = await masterdb2.Resource.ConnectionStringExpression.GetValueAsync(default),
                     });
 
-                    hb.AddSqlServerClient(testdb2.Resource.Name);
+                    hb2.AddSqlServerClient(masterdb2.Resource.Name);
 
-                    using (var host = hb.Build())
+                    using (var host2 = hb2.Build())
                     {
-                        await host.StartAsync();
+                        await host2.StartAsync();
 
                         await pipeline.ExecuteAsync(async token =>
                         {
-                            var testDbConnection = host.Services.GetRequiredService<SqlConnection>();
-                            if (testDbConnection.State == System.Data.ConnectionState.Closed)
-                            {
-                                await testDbConnection.OpenAsync(token);
-                            }
-                            var command = testDbConnection.CreateCommand();
-                            command.CommandText = $"SELECT * FROM cars;";
-                            var results = await command.ExecuteReaderAsync(token);
+                            var conn = host2.Services.GetRequiredService<SqlConnection>();
 
-                            Assert.True(await results.ReadAsync(token));
-                            Assert.Equal("BatMobile", results.GetString(0));
-                            Assert.False(await results.ReadAsync(token));
-                            await testDbConnection.CloseAsync();
+                            if (conn.State != System.Data.ConnectionState.Open)
+                            {
+                                await conn.OpenAsync(token);
+                            }
                         }, cts.Token);
+
+                        var conn = host2.Services.GetRequiredService<SqlConnection>();
+                        var command = conn.CreateCommand();
+                        command.CommandText = $"SELECT * FROM [Cars];";
+                        var results = await command.ExecuteReaderAsync(cts.Token);
+
+                        Assert.True(await results.ReadAsync(cts.Token));
+                        Assert.Equal("BatMobile", results.GetString(0));
+                        Assert.False(await results.ReadAsync(cts.Token));
                     }
                 }
                 finally
@@ -262,37 +313,6 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
         }
-    }
-
-    private static async Task CreateTestDb(SqlConnection masterDbConnection, SqlConnection testDbConnection, CancellationToken token)
-    {
-        if (masterDbConnection.State != System.Data.ConnectionState.Open)
-        {
-            await masterDbConnection.OpenAsync(token);
-        }
-
-        //drop database first previous test or command failed
-        var createCommand = masterDbConnection.CreateCommand();
-        createCommand.CommandText =
-            $"""
-                DROP DATABASE IF EXISTS {TestDbName}
-                Create Database {TestDbName}
-             """;
-        await createCommand.ExecuteNonQueryAsync(token);
-
-        if (testDbConnection.State != System.Data.ConnectionState.Open)
-        {
-            await testDbConnection.OpenAsync(token);
-        }
-
-        var selectCommand = testDbConnection.CreateCommand();
-        selectCommand.CommandText = $"SELECT 1";
-        var results = await selectCommand.ExecuteReaderAsync(token);
-
-        Assert.True(results.HasRows);
-        //close connection otherwise drop database failed
-        await masterDbConnection.CloseAsync();
-        await testDbConnection.CloseAsync();
     }
 
     private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
