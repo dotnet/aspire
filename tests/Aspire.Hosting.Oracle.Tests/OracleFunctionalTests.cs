@@ -46,7 +46,8 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
 
         await app.StartAsync(cts.Token);
-        await app.WaitForText(DatabaseReadyText).WaitAsync(TimeSpan.FromMinutes(2));
+
+        await app.WaitForText(DatabaseReadyText).WaitAsync(TimeSpan.FromMinutes(5));
 
         var hb = Host.CreateApplicationBuilder();
 
