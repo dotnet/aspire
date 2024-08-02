@@ -65,6 +65,7 @@ internal sealed class ValidateTokenMiddleware
 
         await _next(context).ConfigureAwait(false);
     }
+
     private static void RedirectAfterValidation(HttpContext context)
     {
         if (context.Request.Query.TryGetValue("returnUrl", out var returnUrl))
