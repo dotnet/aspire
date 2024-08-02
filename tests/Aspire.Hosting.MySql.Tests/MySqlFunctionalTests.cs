@@ -254,17 +254,10 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
             .Build();
 
-        var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        var bindMountPath = Directory.CreateTempSubdirectory().FullName;
 
         try
         {
-            if (Directory.Exists(bindMountPath))
-            {
-                Directory.Delete(bindMountPath);
-            }
-
-            Directory.CreateDirectory(bindMountPath);
-
             File.WriteAllText(Path.Combine(bindMountPath, "init.sql"), """
                 CREATE TABLE cars (brand VARCHAR(255));
                 INSERT INTO cars (brand) VALUES ('BatMobile');

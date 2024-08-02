@@ -168,12 +168,7 @@ public class ElasticsearchFunctionalTests
     [RequiresDocker]
     public async Task WithDataBindMountShouldPersistStateBetweenUsages()
     {
-        var bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-
-        if (!Directory.Exists(bindMountPath))
-        {
-            Directory.CreateDirectory(bindMountPath);
-        }
+        var bindMountPath = Directory.CreateTempSubdirectory().FullName;
 
         var builder1 = CreateDistributedApplicationBuilder();
         var elasticsearch1 = builder1.AddElasticsearch("elasticsearch").WithDataBindMount(bindMountPath);
