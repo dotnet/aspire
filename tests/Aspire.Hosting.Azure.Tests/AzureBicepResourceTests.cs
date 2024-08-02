@@ -1305,7 +1305,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
-    [Fact]
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/5113")]
     public async Task AsAzurePostgresFlexibleServerViaRunMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
