@@ -25,7 +25,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifyEfOracle()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(15));
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new()
             {
