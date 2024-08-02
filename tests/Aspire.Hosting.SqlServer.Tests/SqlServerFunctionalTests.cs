@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using Xunit;
 using Xunit.Abstractions;
+using System.Diagnostics;
 
 namespace Aspire.Hosting.SqlServer.Tests;
 
@@ -102,6 +103,13 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
                 Directory.CreateDirectory(bindMountPath);
+
+                if (OperatingSystem.IsLinux())
+                {
+                    // c.f. https://learn.microsoft.com/sql/linux/sql-server-linux-docker-container-security?view=sql-server-ver15#set-the-non-root-user-as-the-owner-of-the-files
+                    Process.Start("chown", $"-R 10001:0 {bindMountPath}");
+                }
+
                 sqlserver1.WithDataBindMount(bindMountPath);
             }
 
