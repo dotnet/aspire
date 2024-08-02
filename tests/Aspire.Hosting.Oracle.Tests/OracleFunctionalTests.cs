@@ -26,14 +26,6 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
     public async Task VerifyEfOracle()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(15));
-        var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new()
-            {
-                MaxRetryAttempts = int.MaxValue,
-                BackoffType = DelayBackoffType.Linear,
-                Delay = TimeSpan.FromSeconds(2)
-            })
-            .Build();
 
         var builder = CreateDistributedApplicationBuilder();
 
@@ -47,7 +39,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await app.StartAsync(cts.Token);
 
-        await app.WaitForText(DatabaseReadyText).WaitAsync(TimeSpan.FromMinutes(5));
+        await app.WaitForText(DatabaseReadyText, cancellationToken: cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
 
