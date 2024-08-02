@@ -26,11 +26,22 @@
                 }
             </FluentMenuButton>
         </div>
+
+        <FluentButton
+            Id="@_copyButtonId"
+            Class="text-visualizer-copy-button"
+            AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(FormattedText, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
+                    <span slot="start">
+                        <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
+                        <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
+                    </span>
+            @ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)]
+        </FluentButton>
     </FluentStack>
 </FluentDialogHeader>
 
 <FluentDialogBody>
-    <div class="log-overflow" style="height: 90%">
+    <div class="log-overflow">
         <div class="log-container" id="@_logContainerId">
             <Virtualize Items="@FormattedLines" ItemSize="20" OverscanCount="100">
                 <div class="log-line-row-container">
@@ -56,18 +67,6 @@
                 </div>
             </Virtualize>
         </div>
-
-        <FluentButton
-            Id="@_copyButtonId"
-            Class="text-visualizer-copy-button"
-            AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(FormattedText, ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
-        <span slot="start">
-            <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
-            <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
-        </span>
-
-            @ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)]
-        </FluentButton>
     </div>
 </FluentDialogBody>
 

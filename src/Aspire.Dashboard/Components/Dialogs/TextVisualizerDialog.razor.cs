@@ -98,7 +98,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
     {
         var lines = FormattedText.Split(["\r\n", "\r", "\n"], StringSplitOptions.None).ToList();
 
-        return lines.Select((line, index) => new StringLogLine(index, line, FormatKind != PlaintextFormat)).ToList();
+        return lines.Select((line, index) => new StringLogLine(index + 1, line, FormatKind != PlaintextFormat)).ToList();
     }
 
     private bool TryFormatXml()
