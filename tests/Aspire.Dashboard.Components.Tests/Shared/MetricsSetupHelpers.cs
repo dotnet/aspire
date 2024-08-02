@@ -31,8 +31,6 @@ internal static class MetricsSetupHelpers
         var overflowModule = context.JSInterop.SetupModule("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Overflow/FluentOverflow.razor.js?v=4.9.3.24205");
         overflowModule.SetupVoid("fluentOverflowInitialize", _ => true);
 
-        context.Services.AddSingleton<CurrentChartViewModel>();
-
         SetupPlotlyChart(context);
     }
 
