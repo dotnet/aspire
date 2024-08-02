@@ -166,5 +166,6 @@
     <PackageVersion Include="Microsoft.Orleans.Sdk" Version="8.2.0" />
     <!-- Pinned version for Component Governance - Remove when root dependencies are updated -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageVersion Include="Azure.Core" Version="1.42.0" />
   </ItemGroup>
 </Project>

@@ -18,6 +18,9 @@
     <AspireProjectOrPackageReference Include="Aspire.Azure.Storage.Blobs" />
     <ProjectReference Include="..\OrleansContracts\OrleansContracts.csproj" />
     <ProjectReference Include="..\OrleansServiceDefaults\OrleansServiceDefaults.csproj" />
+
+    <!-- Component Governance -->
+    <PackageReference Include="Azure.Core" />
   </ItemGroup>
 
 </Project>

@@ -32,6 +32,9 @@
       Newtonsoft.Json is transitive dependency from Cosmos package.
       See the following link on Cosmos repo for more detail https://github.com/Azure/azure-cosmos-dotnet-v3/pull/3313 -->
     <PackageReference Include="Newtonsoft.Json" />
+
+    <!-- Component Governance -->
+    <PackageReference Include="Azure.Core" />
   </ItemGroup>
 
 </Project>

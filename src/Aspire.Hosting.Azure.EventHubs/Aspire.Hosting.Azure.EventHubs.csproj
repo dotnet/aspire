@@ -21,6 +21,9 @@
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.EventHubs" />
+
+    <!-- Component Governance -->
+    <PackageReference Include="Azure.Core" />
   </ItemGroup>
 
 </Project>

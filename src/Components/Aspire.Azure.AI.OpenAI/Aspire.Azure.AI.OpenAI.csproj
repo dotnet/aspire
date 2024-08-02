@@ -31,6 +31,9 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+  
+    <!-- Component Governance -->
+    <PackageReference Include="Azure.Core" />
   </ItemGroup>
 
 </Project>
