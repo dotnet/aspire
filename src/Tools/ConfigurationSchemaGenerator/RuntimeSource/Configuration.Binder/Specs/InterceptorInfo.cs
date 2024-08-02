@@ -50,9 +50,9 @@ namespace Microsoft.Extensions.Configuration.Binder.SourceGeneration
 
         internal sealed class Builder
         {
-            private TypedInterceptorInfoBuildler? _configBinder_InfoBuilder_Bind_instance;
-            private TypedInterceptorInfoBuildler? _configBinder_InfoBuilder_Bind_instance_BinderOptions;
-            private TypedInterceptorInfoBuildler? _configBinder_InfoBuilder_Bind_key_instance;
+            private TypedInterceptorInfoBuilder? _configBinder_InfoBuilder_Bind_instance;
+            private TypedInterceptorInfoBuilder? _configBinder_InfoBuilder_Bind_instance_BinderOptions;
+            private TypedInterceptorInfoBuilder? _configBinder_InfoBuilder_Bind_key_instance;
 
             private List<InvocationLocationInfo>? _interceptors_configBinder;
             private List<InvocationLocationInfo>? _interceptors_OptionsBuilderExt;
@@ -79,9 +79,9 @@ namespace Microsoft.Extensions.Configuration.Binder.SourceGeneration
 
                 MethodsToGen |= overload;
 
-                void RegisterInterceptor(ref TypedInterceptorInfoBuildler? infoBuilder)
+                void RegisterInterceptor(ref TypedInterceptorInfoBuilder? infoBuilder)
                 {
-                    infoBuilder ??= new TypedInterceptorInfoBuildler();
+                    infoBuilder ??= new TypedInterceptorInfoBuilder();
                     infoBuilder.RegisterInterceptor(overload, type, invocation);
                 }
             }
@@ -129,7 +129,7 @@ namespace Microsoft.Extensions.Configuration.Binder.SourceGeneration
         }
     }
 
-    internal sealed class TypedInterceptorInfoBuildler
+    internal sealed class TypedInterceptorInfoBuilder
     {
         private readonly Dictionary<ComplexTypeSpec, TypedInterceptorInvocationInfo.Builder> _invocationInfoBuilderCache = new();
 
