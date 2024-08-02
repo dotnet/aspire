@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+
+  <PropertyGroup>
+    <TargetFramework>$(NetCurrent)</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Aspire.Hosting.NodeJs\Aspire.Hosting.NodeJs.csproj" />
+  </ItemGroup>
+
+</Project>

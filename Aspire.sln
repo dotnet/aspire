@@ -509,13 +509,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Hosting", "Hosting", "{830A
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Redis.Tests", "tests\Aspire.Hosting.Redis.Tests\Aspire.Hosting.Redis.Tests.csproj", "{1BC02557-B78B-48CE-9D3C-488A6B7672F4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Garnet.Tests", "tests\Aspire.Hosting.Garnet.Tests\Aspire.Hosting.Garnet.Tests.csproj", "{CAA4A93F-6BEB-42EB-8680-C1CF72928023}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Garnet.Tests", "tests\Aspire.Hosting.Garnet.Tests\Aspire.Hosting.Garnet.Tests.csproj", "{CAA4A93F-6BEB-42EB-8680-C1CF72928023}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.PostgreSQL.Tests", "tests\Aspire.Hosting.PostgreSQL.Tests\Aspire.Hosting.PostgreSQL.Tests.csproj", "{7425E5B2-BC47-4521-AC40-B8CECA329E08}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Qdrant.Tests", "tests\Aspire.Hosting.Qdrant.Tests\Aspire.Hosting.Qdrant.Tests.csproj", "{8E2AA85E-C351-47B4-AF91-58557FAD5840}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Milvus.Tests", "tests\Aspire.Hosting.Milvus.Tests\Aspire.Hosting.Milvus.Tests.csproj", "{986886B7-0E38-4890-92C3-5B46DE322DAF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Milvus.Tests", "tests\Aspire.Hosting.Milvus.Tests\Aspire.Hosting.Milvus.Tests.csproj", "{986886B7-0E38-4890-92C3-5B46DE322DAF}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.MySql.Tests", "tests\Aspire.Hosting.MySql.Tests\Aspire.Hosting.MySql.Tests.csproj", "{F3F33CF8-A2BB-4351-8501-A6884C5126FE}"
 EndProject
@@ -541,21 +541,23 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Keycloak.Tes
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Keycloak.Authentication.Tests", "tests\Aspire.Keycloak.Authentication.Tests\Aspire.Keycloak.Authentication.Tests.csproj", "{48FF09E9-7D33-4A3F-9FF2-4C43A219C7B7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Nats.Tests", "tests\Aspire.Hosting.Nats.Tests\Aspire.Hosting.Nats.Tests.csproj", "{F492357C-682E-4CBB-A374-1A124B3976A3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Nats.Tests", "tests\Aspire.Hosting.Nats.Tests\Aspire.Hosting.Nats.Tests.csproj", "{F492357C-682E-4CBB-A374-1A124B3976A3}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.Tests", "tests\Aspire.Hosting.Azure.Tests\Aspire.Hosting.Azure.Tests.csproj", "{8691F993-7B19-496E-B8E1-EF1199ACF2E1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestShop.AppHost", "playground\TestShop\TestShop.AppHost\TestShop.AppHost.csproj", "{DB3E1AD8-87F6-414D-B46F-A0DC334AECCD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestShop.AppHost", "playground\TestShop\TestShop.AppHost\TestShop.AppHost.csproj", "{DB3E1AD8-87F6-414D-B46F-A0DC334AECCD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dapr.AppHost", "playground\dapr\Dapr.AppHost\Dapr.AppHost.csproj", "{D537CF4D-DF30-41C7-B4F9-FEB152A19BE7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dapr.AppHost", "playground\dapr\Dapr.AppHost\Dapr.AppHost.csproj", "{D537CF4D-DF30-41C7-B4F9-FEB152A19BE7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Orleans.AppHost", "playground\orleans\Orleans.AppHost\Orleans.AppHost.csproj", "{355F724F-D24F-45C6-8914-574385F6FC89}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Orleans.AppHost", "playground\orleans\Orleans.AppHost\Orleans.AppHost.csproj", "{355F724F-D24F-45C6-8914-574385F6FC89}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignalR.AppHost", "playground\signalr\SignalR.AppHost\SignalR.AppHost.csproj", "{F1D00709-50F2-4533-B38F-3517C0EDEAEE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SignalR.AppHost", "playground\signalr\SignalR.AppHost\SignalR.AppHost.csproj", "{F1D00709-50F2-4533-B38F-3517C0EDEAEE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebPubSub.AppHost", "playground\webpubsub\WebPubSub.AppHost\WebPubSub.AppHost.csproj", "{1419BDCB-47EB-43EB-9149-C935B7208A72}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebPubSub.AppHost", "playground\webpubsub\WebPubSub.AppHost\WebPubSub.AppHost.csproj", "{1419BDCB-47EB-43EB-9149-C935B7208A72}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.RabbitMQ.Tests", "tests\Aspire.Hosting.RabbitMQ.Tests\Aspire.Hosting.RabbitMQ.Tests.csproj", "{872AC635-B880-4FAC-BB43-4FD97D7B1209}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.RabbitMQ.Tests", "tests\Aspire.Hosting.RabbitMQ.Tests\Aspire.Hosting.RabbitMQ.Tests.csproj", "{872AC635-B880-4FAC-BB43-4FD97D7B1209}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.NodeJs.Tests", "tests\Aspire.Hosting.NodeJs.Tests\Aspire.Hosting.NodeJs.Tests.csproj", "{77A82295-939C-45EE-AF2E-AC11CE3B55CA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1467,6 +1469,10 @@ Global
 		{872AC635-B880-4FAC-BB43-4FD97D7B1209}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{872AC635-B880-4FAC-BB43-4FD97D7B1209}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{872AC635-B880-4FAC-BB43-4FD97D7B1209}.Release|Any CPU.Build.0 = Release|Any CPU
+		{77A82295-939C-45EE-AF2E-AC11CE3B55CA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{77A82295-939C-45EE-AF2E-AC11CE3B55CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{77A82295-939C-45EE-AF2E-AC11CE3B55CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{77A82295-939C-45EE-AF2E-AC11CE3B55CA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1735,6 +1741,7 @@ Global
 		{F1D00709-50F2-4533-B38F-3517C0EDEAEE} = {E6985EED-47E3-4EAC-8222-074E5410CEDC}
 		{1419BDCB-47EB-43EB-9149-C935B7208A72} = {90A70EFA-F26A-49E0-A375-DB461E4E0E25}
 		{872AC635-B880-4FAC-BB43-4FD97D7B1209} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
+		{77A82295-939C-45EE-AF2E-AC11CE3B55CA} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
