@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
@@ -33,6 +34,8 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         var oracle = builder.AddOracle("oracle");
 
         var db = oracle.AddDatabase(oracleDbName);
+
+        ConfigureTestOracleDatabase(oracle);
 
         using var app = builder.Build();
 
@@ -73,5 +76,14 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         builder.Services.AddXunitLogging(testOutputHelper);
         builder.Services.AddHostedService<ResourceLoggerForwarderService>();
         return builder;
+    }
+
+    private static IResourceBuilder<OracleDatabaseServerResource> ConfigureTestOracleDatabase(IResourceBuilder<OracleDatabaseServerResource> oracle)
+    {
+        return oracle
+            .WithImage("gvenzl/oracle-free", "23-slim-faststart")
+            .WithImageRegistry("docker.io")
+            .WithEnvironment("ORACLE_PASSWORD", oracle.Resource.PasswordParameter.Value)
+            ;
     }
 }
