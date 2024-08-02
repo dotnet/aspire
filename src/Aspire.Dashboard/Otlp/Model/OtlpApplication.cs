@@ -92,11 +92,14 @@ public class OtlpApplication
                         {
                             _instruments.Add(instrumentKey, instrument = new OtlpInstrument
                             {
-                                Name = metric.Name,
-                                Description = metric.Description,
-                                Unit = metric.Unit,
-                                Type = MapMetricType(metric.DataCase),
-                                Parent = GetMeter(sm.Scope),
+                                Summary = new OtlpInstrumentSummary
+                                {
+                                    Name = metric.Name,
+                                    Description = metric.Description,
+                                    Unit = metric.Unit,
+                                    Type = MapMetricType(metric.DataCase),
+                                    Parent = GetMeter(sm.Scope)
+                                },
                                 Options = _options
                             });
                         }
@@ -156,16 +159,16 @@ public class OtlpApplication
         }
     }
 
-    public List<OtlpInstrument> GetInstrumentsSummary()
+    public List<OtlpInstrumentSummary> GetInstrumentsSummary()
     {
         _metricsLock.EnterReadLock();
 
         try
         {
-            var instruments = new List<OtlpInstrument>(_instruments.Count);
+            var instruments = new List<OtlpInstrumentSummary>(_instruments.Count);
             foreach (var instrument in _instruments)
             {
-                instruments.Add(OtlpInstrument.Clone(instrument.Value, cloneData: false, valuesStart: null, valuesEnd: null));
+                instruments.Add(instrument.Value.Summary);
             }
             return instruments;
         }

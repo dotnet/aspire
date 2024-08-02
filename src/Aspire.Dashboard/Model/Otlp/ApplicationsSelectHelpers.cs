@@ -7,14 +7,14 @@ namespace Aspire.Dashboard.Model.Otlp;
 
 public static class ApplicationsSelectHelpers
 {
-    public static SelectViewModel<ResourceTypeDetails> GetApplication(this List<SelectViewModel<ResourceTypeDetails>> applications, ILogger logger, string? name, SelectViewModel<ResourceTypeDetails> fallback)
+    public static SelectViewModel<ResourceTypeDetails> GetApplication(this List<SelectViewModel<ResourceTypeDetails>> applications, ILogger logger, string? name, bool canSelectGrouping, SelectViewModel<ResourceTypeDetails> fallback)
     {
         if (name is null)
         {
             return fallback;
         }
 
-        var matches = applications.Where(e => e.Id?.Type is OtlpApplicationType.Instance or OtlpApplicationType.Singleton && string.Equals(name, e.Name, StringComparisons.ResourceName)).ToList();
+        var matches = applications.Where(e => SupportType(e.Id?.Type, canSelectGrouping) && string.Equals(name, e.Name, StringComparisons.ResourceName)).ToList();
         if (matches.Count == 1)
         {
             return matches[0];
@@ -64,7 +64,7 @@ public static class ApplicationsSelectHelpers
             // add a disabled "Resource" as a header
             selectViewModels.Add(new SelectViewModel<ResourceTypeDetails>
             {
-                Id = ResourceTypeDetails.CreateApplicationGrouping(applicationName, isReplicaSet: false),
+                Id = ResourceTypeDetails.CreateApplicationGrouping(applicationName, isReplicaSet: true),
                 Name = applicationName
             });
 
@@ -79,5 +79,20 @@ public static class ApplicationsSelectHelpers
 
         var sortedVMs = selectViewModels.OrderBy(vm => vm.Name, StringComparers.ResourceName).ToList();
         return sortedVMs;
+    }
+
+    private static bool SupportType(OtlpApplicationType? type, bool canSelectGrouping)
+    {
+        if (type is OtlpApplicationType.Instance or OtlpApplicationType.Singleton)
+        {
+            return true;
+        }
+
+        if (canSelectGrouping && type is OtlpApplicationType.ResourceGrouping)
+        {
+            return true;
+        }
+
+        return false;
     }
 }

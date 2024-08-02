@@ -22,7 +22,7 @@ public partial class MetricTable : ChartBase
     private string _unitColumnHeader = string.Empty;
     private IJSObjectReference? _jsModule;
 
-    private OtlpInstrument? _instrument;
+    private OtlpInstrumentSummary? _instrument;
     private bool _showCount;
     private DateTimeOffset? _lastUpdate;
 

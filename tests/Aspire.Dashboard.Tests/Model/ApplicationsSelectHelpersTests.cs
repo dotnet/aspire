@@ -54,7 +54,7 @@ public sealed class ApplicationsSelectHelpersTests
             });
 
         // Act
-        var app = appVMs.GetApplication(NullLogger.Instance, "app-app-abc", null!);
+        var app = appVMs.GetApplication(NullLogger.Instance, "app-app-abc", canSelectGrouping: false, null!);
 
         // Assert
         Assert.Equal("app-abc", app.Id!.InstanceId);
@@ -95,7 +95,7 @@ public sealed class ApplicationsSelectHelpersTests
         var factory = LoggerFactory.Create(b => b.AddProvider(new TestLoggerProvider(testSink)));
 
         // Act
-        var app = appVMs.GetApplication(factory.CreateLogger("Test"), "app-app", null!);
+        var app = appVMs.GetApplication(factory.CreateLogger("Test"), "app-app", canSelectGrouping: false, null!);
 
         // Assert
         Assert.Equal("app", app.Id!.InstanceId);
@@ -119,7 +119,7 @@ public sealed class ApplicationsSelectHelpersTests
         var factory = LoggerFactory.Create(b => b.AddProvider(new TestLoggerProvider(testSink)));
 
         // Act
-        var app = appVMs.GetApplication(factory.CreateLogger("Test"), "test", null!);
+        var app = appVMs.GetApplication(factory.CreateLogger("Test"), "test", canSelectGrouping: false, null!);
 
         // Assert
         Assert.Equal("test-abc", app.Id!.InstanceId);
@@ -139,6 +139,6 @@ public sealed class ApplicationsSelectHelpersTests
         };
         var applicationKey = OtlpHelpers.GetApplicationKey(resource);
 
-        return new OtlpApplication(applicationKey.Name, applicationKey.InstanceId, resource, NullLogger.Instance, new TelemetryLimitOptions());
+        return new OtlpApplication(applicationKey.Name, applicationKey.InstanceId!, resource, NullLogger.Instance, new TelemetryLimitOptions());
     }
 }

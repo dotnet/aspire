@@ -396,7 +396,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     public void UpdateViewModelFromQuery(StructuredLogsPageViewModel viewModel)
     {
-        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
+        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _allApplication);
         ViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
 
         if (LogLevelText is not null && Enum.TryParse<LogLevel>(LogLevelText, ignoreCase: true, out var logLevel))
