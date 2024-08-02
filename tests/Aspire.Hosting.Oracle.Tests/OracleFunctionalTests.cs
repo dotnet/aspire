@@ -53,7 +53,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         var dbContext = host.Services.GetRequiredService<TestDbContext>();
         var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
 
-        Assert.True(await databaseCreator.CanConnectAsync(cts.Token));
+        // Don't invoke databaseCreator.CanConnectAsync() as it hides the actual exception when failing
 
         await databaseCreator.CreateTablesAsync(cts.Token);
 
