@@ -107,6 +107,28 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
 
     [Fact]
     [RequiresTools(["python"])]
+    public async Task PythonResourceSupportsWithReference()
+    {
+        var (projectDirectory, _, scriptName) = CreateTempPythonProject(outputHelper);
+
+        using var builder = CreateTestDistributedApplicationBuilder();
+
+        var externalResource = builder.AddConnectionString("connectionString");
+        builder.Configuration["ConnectionStrings:connectionString"] = "test";
+
+        var pyproj = builder.AddPythonProject("pyproj", projectDirectory, scriptName)
+                            .WithReference(externalResource);
+
+        var environmentVariables = await pyproj.Resource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Run);
+
+        Assert.Equal("test", environmentVariables["ConnectionStrings__connectionString"]);
+
+        // If we don't throw, clean up the directories.
+        Directory.Delete(projectDirectory, true);
+    }
+
+    [Fact]
+    [RequiresTools(["python"])]
     public async Task AddPythonProject_SetsResourcePropertiesCorrectly()
     {
         using var builder = CreateTestDistributedApplicationBuilder();

@@ -142,12 +142,12 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         _allApplication = new()
         {
             Id = null,
-            Name = Loc[nameof(Dashboard.Resources.ControlsStrings.All)]
+            Name = ControlsStringsLoc[nameof(Dashboard.Resources.ControlsStrings.All)]
         };
 
         _logLevels = new List<SelectViewModel<LogLevel?>>
         {
-            new SelectViewModel<LogLevel?> { Id = null, Name = $"({Loc[nameof(Dashboard.Resources.ControlsStrings.All)]})" },
+            new SelectViewModel<LogLevel?> { Id = null, Name = ControlsStringsLoc[nameof(Dashboard.Resources.ControlsStrings.All)] },
             new SelectViewModel<LogLevel?> { Id = LogLevel.Trace, Name = "Trace" },
             new SelectViewModel<LogLevel?> { Id = LogLevel.Debug, Name = "Debug" },
             new SelectViewModel<LogLevel?> { Id = LogLevel.Information, Name = "Information" },
@@ -214,7 +214,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
     }
 
-    private async Task OnShowPropertiesAsync(OtlpLogEntry entry, string buttonId)
+    private async Task OnShowPropertiesAsync(OtlpLogEntry entry, string? buttonId)
     {
         _elementIdBeforeDetailsViewOpened = buttonId;
 
