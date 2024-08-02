@@ -11,7 +11,7 @@ using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using Xunit;
-using static Aspire.Dashboard.Tests.TelemetryRepositoryTests.TestHelpers;
+using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
 
 namespace Aspire.Dashboard.Tests.TelemetryRepositoryTests;
 
@@ -99,7 +99,7 @@ public class MetricsTests
     }
 
     [Fact]
-    public void AddMetrics_AttributeLimits_LimitsApplied()
+    public void AddMetrics_MeterAttributeLimits_LimitsApplied()
     {
         // Arrange
         var repository = CreateRepository(maxAttributeCount: 5, maxAttributeLength: 16);
@@ -155,7 +155,7 @@ public class MetricsTests
             EndTime = DateTime.MaxValue
         })!;
 
-        Assert.Collection(MemoryMarshal.ToEnumerable(instrument.Parent.Attributes),
+        Assert.Collection(instrument.Parent.Attributes,
             p =>
             {
                 Assert.Equal("Meter_Key0", p.Key);
@@ -187,6 +187,107 @@ public class MetricsTests
         Assert.Collection(MemoryMarshal.ToEnumerable(dimensionAttributes),
             p =>
             {
+                Assert.Equal("Meter_Key0", p.Key);
+                Assert.Equal("01234", p.Value);
+            },
+            p =>
+            {
+                Assert.Equal("Meter_Key1", p.Key);
+                Assert.Equal("0123456789", p.Value);
+            },
+            p =>
+            {
+                Assert.Equal("Meter_Key2", p.Key);
+                Assert.Equal("012345678901234", p.Value);
+            },
+            p =>
+            {
+                Assert.Equal("Meter_Key3", p.Key);
+                Assert.Equal("0123456789012345", p.Value);
+            },
+            p =>
+            {
+                Assert.Equal("Meter_Key4", p.Key);
+                Assert.Equal("0123456789012345", p.Value);
+            });
+    }
+
+    [Fact]
+    public void AddMetrics_MetricAttributeLimits_LimitsApplied()
+    {
+        // Arrange
+        var repository = CreateRepository(maxAttributeCount: 5, maxAttributeLength: 16);
+
+        var metricAttributes = new List<KeyValuePair<string, string>>();
+        var meterAttributes = new List<KeyValuePair<string, string>>
+        {
+            new KeyValuePair<string, string>("Meter_Key0", GetValue(5))
+        };
+
+        for (var i = 0; i < 10; i++)
+        {
+            var value = GetValue((i + 1) * 5);
+            metricAttributes.Add(new KeyValuePair<string, string>($"Metric_Key{i}", value));
+        }
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddMetrics(addContext, new RepeatedField<ResourceMetrics>()
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter", attributes: meterAttributes),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(1), attributes: metricAttributes)
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var applications = repository.GetApplications();
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+            });
+
+        var instrument = repository.GetInstrument(new GetInstrumentRequest
+        {
+            ApplicationKey = applications[0].ApplicationKey,
+            InstrumentName = "test",
+            MeterName = "test-meter",
+            StartTime = DateTime.MinValue,
+            EndTime = DateTime.MaxValue
+        })!;
+
+        Assert.Collection(instrument.Parent.Attributes,
+            p =>
+            {
+                Assert.Equal("Meter_Key0", p.Key);
+                Assert.Equal("01234", p.Value);
+            });
+
+        var dimensionAttributes = instrument.Dimensions.Single().Key;
+
+        Assert.Collection(MemoryMarshal.ToEnumerable(dimensionAttributes),
+            p =>
+            {
+                Assert.Equal("Meter_Key0", p.Key);
+                Assert.Equal("01234", p.Value);
+            },
+            p =>
+            {
                 Assert.Equal("Metric_Key0", p.Key);
                 Assert.Equal("01234", p.Value);
             },
@@ -203,11 +304,6 @@ public class MetricsTests
             p =>
             {
                 Assert.Equal("Metric_Key3", p.Key);
-                Assert.Equal("0123456789012345", p.Value);
-            },
-            p =>
-            {
-                Assert.Equal("Metric_Key4", p.Key);
                 Assert.Equal("0123456789012345", p.Value);
             });
     }

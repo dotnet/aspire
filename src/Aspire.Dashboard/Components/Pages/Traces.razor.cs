@@ -12,7 +12,6 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -66,7 +65,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
     public required NavigationManager NavigationManager { get; set; }
 
     [Inject]
-    public required ProtectedSessionStorage SessionStorage { get; set; }
+    public required ISessionStorage SessionStorage { get; set; }
 
     [Inject]
     public required DimensionManager DimensionManager { get; set; }
@@ -125,7 +124,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
 
     protected override Task OnInitializedAsync()
     {
-        _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = $"({ControlsStringsLoc[nameof(ControlsStrings.All)]})" };
+        _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.All)] };
         PageViewModel = new TracesPageViewModel { SelectedApplication = _allApplication };
 
         UpdateApplications();
