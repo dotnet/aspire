@@ -15,7 +15,6 @@ using Xunit.Abstractions;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore;
-using System.Diagnostics;
 
 namespace Aspire.Hosting.SqlServer.Tests;
 
@@ -155,13 +154,19 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             else
             {
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-                Directory.CreateDirectory(bindMountPath);
 
                 if (OperatingSystem.IsLinux())
                 {
-                    // c.f. https://learn.microsoft.com/sql/linux/sql-server-linux-docker-container-security?view=sql-server-ver15#grant-the-root-group-readwrite-access-to-the-database-files
-                    Process.Start("chgrp", $"-R 0 {bindMountPath}").WaitForExit();
-                    Process.Start("chmod", $"-R g=u {bindMountPath}").WaitForExit();
+                    const UnixFileMode OwnershipPermissions =
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                        UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
+                    Directory.CreateDirectory(bindMountPath, OwnershipPermissions);
+                }
+                else
+                {
+                    Directory.CreateDirectory(bindMountPath);
                 }
 
                 sqlserver1.WithDataBindMount(bindMountPath);
