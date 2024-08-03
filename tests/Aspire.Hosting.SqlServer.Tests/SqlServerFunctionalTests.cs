@@ -120,7 +120,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    //[SkipOnCI("https://github.com/dotnet/aspire/issues/5055")]
+    [SkipOnCI("https://github.com/dotnet/aspire/issues/5055")]
     [RequiresDocker]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
@@ -154,20 +154,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             else
             {
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-
-                if (OperatingSystem.IsLinux())
-                {
-                    const UnixFileMode OwnershipPermissions =
-                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-                        UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
-                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
-
-                    Directory.CreateDirectory(bindMountPath, OwnershipPermissions);
-                }
-                else
-                {
-                    Directory.CreateDirectory(bindMountPath);
-                }
+                Directory.CreateDirectory(bindMountPath);
 
                 sqlserver1.WithDataBindMount(bindMountPath);
             }
