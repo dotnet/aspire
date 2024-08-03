@@ -9,14 +9,6 @@ var resourcesToSkip = !string.IsNullOrEmpty(skipResourcesValue)
                         ? TestResourceNamesExtensions.Parse(skipResourcesValue.Split(',', StringSplitOptions.RemoveEmptyEntries))
                         : TestResourceNames.None;
 
-if (!resourcesToSkip.HasFlag(TestResourceNames.sqlserver))
-{
-    builder.AddSqlServerClient("tempdb");
-}
-if (!resourcesToSkip.HasFlag(TestResourceNames.efsqlserver))
-{
-    builder.AddSqlServerDbContext<EFCoreSqlServerDbContext>("tempdb");
-}
 if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 {
     builder.AddKeyedRedisClient("redis");
@@ -95,16 +87,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.postgres))
 if (!resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
     app.MapNpgsqlEFCoreApi();
-}
-
-if (!resourcesToSkip.HasFlag(TestResourceNames.sqlserver))
-{
-    app.MapSqlServerApi();
-}
-
-if (!resourcesToSkip.HasFlag(TestResourceNames.efsqlserver))
-{
-    app.MapEFCoreSqlServerApi();
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.oracledatabase))
