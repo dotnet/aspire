@@ -35,7 +35,7 @@ public class ElasticsearchClientPublicApiTests
     }
 
     [Fact]
-    public void AddElasticsearchClientShouldThrowWhenNameEmpty()
+    public void AddElasticsearchClientShouldThrowWhenNameIsEmpty()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
