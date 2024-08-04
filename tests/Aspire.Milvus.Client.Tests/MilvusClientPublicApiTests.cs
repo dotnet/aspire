@@ -35,7 +35,7 @@ public class MilvusClientPublicApiTests
     }
 
     [Fact]
-    public void AddMilvusClientShouldThrowWhenNameEmpty()
+    public void AddMilvusClientShouldThrowWhenNameIsEmpty()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
