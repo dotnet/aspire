@@ -114,7 +114,7 @@ public partial class ResourceDetails
 
     private IEnumerable<DisplayedEndpoint> GetEndpoints()
     {
-        return ResourceEndpointHelpers.GetEndpoints(Resource, includeInteralUrls: true);
+        return ResourceEndpointHelpers.GetEndpoints(Resource, includeInternalUrls: true);
     }
 
     private IEnumerable<SummaryValue> GetResourceValues()

@@ -52,7 +52,7 @@ In the AppHost project create either a JSON or YAML CloudFormation template. Her
     "Parameters" : {
         "DefaultVisibilityTimeout" : {
             "Type" : "Number",
-            "Description" : "The default visiblity timeout for messages in SQS queue."
+            "Description" : "The default visibility timeout for messages in SQS queue."
         }
     },
     "Resources" : {
