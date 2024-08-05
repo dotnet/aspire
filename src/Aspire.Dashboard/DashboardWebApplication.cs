@@ -558,7 +558,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             .AddCertificate(options =>
             {
                 // Bind options to configuration so they can be overridden by environment variables.
-                builder.Configuration.Bind("Authentication:Schemes:Certificate", options);
+                builder.Configuration.Bind("Dashboard:Otlp:CertificateAuthOptions", options);
 
                 options.Events = new CertificateAuthenticationEvents
                 {

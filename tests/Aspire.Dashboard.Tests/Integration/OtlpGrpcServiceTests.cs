@@ -306,8 +306,8 @@ public class OtlpGrpcServiceTests
                 config[$"{DashboardConfigNames.DashboardOtlpAllowedCertificatesName.ConfigKey}:0:Thumbprint"] = allowedThumbprint;
             }
 
-            config["Authentication:Schemes:Certificate:AllowedCertificateTypes"] = "SelfSigned";
-            config["Authentication:Schemes:Certificate:ValidateValidityPeriod"] = "false";
+            config["Dashboard:Otlp:CertificateAuthOptions:AllowedCertificateTypes"] = "SelfSigned";
+            config["Dashboard:Otlp:CertificateAuthOptions:ValidateValidityPeriod"] = "false";
         });
         await app.StartAsync();
 
