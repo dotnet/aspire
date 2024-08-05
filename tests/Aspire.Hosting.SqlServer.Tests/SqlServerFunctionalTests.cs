@@ -40,10 +40,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var hb = Host.CreateApplicationBuilder();
 
-        hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            [$"ConnectionStrings:{tempDb.Resource.Name}"] = await tempDb.Resource.ConnectionStringExpression.GetValueAsync(default),
-        });
+        hb.Configuration[$"ConnectionStrings:{tempDb.Resource.Name}"] = await tempDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
         hb.AddSqlServerDbContext<TestDbContext>(tempDb.Resource.Name);
 
