@@ -124,8 +124,8 @@ public sealed class DashboardOptionsTests
         var options = GetValidOptions();
         options.ResourceServiceClient.Url = "http://localhost";
         options.ResourceServiceClient.AuthMode = ResourceClientAuthMode.Certificate;
-        options.ResourceServiceClient.ClientCertificates.Source = DashboardClientCertificateSource.File;
-        options.ResourceServiceClient.ClientCertificates.FilePath = "";
+        options.ResourceServiceClient.ClientCertificate.Source = DashboardClientCertificateSource.File;
+        options.ResourceServiceClient.ClientCertificate.FilePath = "";
 
         var result = new ValidateDashboardOptions().Validate(null, options);
 
@@ -139,8 +139,8 @@ public sealed class DashboardOptionsTests
         var options = GetValidOptions();
         options.ResourceServiceClient.Url = "http://localhost";
         options.ResourceServiceClient.AuthMode = ResourceClientAuthMode.Certificate;
-        options.ResourceServiceClient.ClientCertificates.Source = DashboardClientCertificateSource.KeyStore;
-        options.ResourceServiceClient.ClientCertificates.Subject = "";
+        options.ResourceServiceClient.ClientCertificate.Source = DashboardClientCertificateSource.KeyStore;
+        options.ResourceServiceClient.ClientCertificate.Subject = "";
 
         var result = new ValidateDashboardOptions().Validate(null, options);
 
@@ -154,7 +154,7 @@ public sealed class DashboardOptionsTests
         var options = GetValidOptions();
         options.ResourceServiceClient.Url = "http://localhost";
         options.ResourceServiceClient.AuthMode = ResourceClientAuthMode.Certificate;
-        options.ResourceServiceClient.ClientCertificates.Source = null;
+        options.ResourceServiceClient.ClientCertificate.Source = null;
 
         var result = new ValidateDashboardOptions().Validate(null, options);
 
@@ -168,12 +168,12 @@ public sealed class DashboardOptionsTests
         var options = GetValidOptions();
         options.ResourceServiceClient.Url = "http://localhost";
         options.ResourceServiceClient.AuthMode = ResourceClientAuthMode.Certificate;
-        options.ResourceServiceClient.ClientCertificates.Source = (DashboardClientCertificateSource)int.MaxValue;
+        options.ResourceServiceClient.ClientCertificate.Source = (DashboardClientCertificateSource)int.MaxValue;
 
         var result = new ValidateDashboardOptions().Validate(null, options);
 
         Assert.False(result.Succeeded);
-        Assert.Equal($"Unexpected resource service client certificate source: {options.ResourceServiceClient.ClientCertificates.Source}", result.FailureMessage);
+        Assert.Equal($"Unexpected resource service client certificate source: {options.ResourceServiceClient.ClientCertificate.Source}", result.FailureMessage);
     }
 
     [Fact]
