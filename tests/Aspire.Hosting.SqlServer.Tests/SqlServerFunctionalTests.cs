@@ -116,7 +116,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Theory]
     [InlineData(true)]
-    [InlineData(false, Skip = "https://github.com/dotnet/aspire/issues/5055")]
+    [InlineData(false)]
     [RequiresDocker]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
@@ -153,6 +153,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 Directory.CreateDirectory(bindMountPath);
 
                 sqlserver1.WithDataBindMount(bindMountPath);
+                System.Diagnostics.Process.Start("/usr/bin/env", $"sudo chmod -R a+rwx {bindMountPath}").WaitForExit();
             }
 
             using var app1 = builder1.Build();
