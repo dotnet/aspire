@@ -29,8 +29,4 @@
     <PackageReference Include="Polly.Core" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="SqlServer\" />
-  </ItemGroup>
-
 </Project>
