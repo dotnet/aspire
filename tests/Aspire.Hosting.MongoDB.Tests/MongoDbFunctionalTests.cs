@@ -220,6 +220,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
 
         if (!OperatingSystem.IsWindows())
         {
+            // Change permissions for non-root accounts (container user account)
             System.Diagnostics.Process.Start("/usr/bin/env", $"sudo chmod -R a+rwx {bindMountPath}").WaitForExit();
         }
 
