@@ -153,7 +153,12 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 Directory.CreateDirectory(bindMountPath);
 
                 sqlserver1.WithDataBindMount(bindMountPath);
-                System.Diagnostics.Process.Start("/usr/bin/env", $"sudo chmod -R a+rwx {bindMountPath}").WaitForExit();
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    // Change permissions for non-root accounts (container user account)
+                    System.Diagnostics.Process.Start("/usr/bin/env", $"sudo chmod -R a+rwx {bindMountPath}").WaitForExit();
+                }
             }
 
             using var app1 = builder1.Build();
