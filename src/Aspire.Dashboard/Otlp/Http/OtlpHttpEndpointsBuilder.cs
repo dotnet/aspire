@@ -6,6 +6,7 @@ using System.IO.Pipelines;
 using System.Net.Http.Headers;
 using System.Reflection;
 using Aspire.Dashboard.Authentication;
+using Aspire.Dashboard.Configuration;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
@@ -19,12 +20,40 @@ public static class OtlpHttpEndpointsBuilder
 {
     public const string ProtobufContentType = "application/x-protobuf";
     public const string JsonContentType = "application/json";
+    // By default, allow headers in the implicit safelist and X-Requested-With. This matches OTLP collector CORS behavior.
+    // Implicit safelist: https://developer.mozilla.org/en-US/docs/Glossary/CORS-safelisted_request_header
+    // OTLP collector: https://github.com/open-telemetry/opentelemetry-collector/blob/685625abb4703cb2e45a397f008127bbe2ba4c0e/config/confighttp/README.md#server-configuration
+    public static readonly string[] DefaultAllowedHeaders = ["X-Requested-With"];
 
-    public static void MapHttpOtlpApi(this IEndpointRouteBuilder endpoints)
+    public static void MapHttpOtlpApi(this IEndpointRouteBuilder endpoints, OtlpOptions options)
     {
+        var httpEndpoint = options.GetHttpEndpointUri();
+        if (httpEndpoint == null)
+        {
+            // Don't map OTLP HTTP endpoints if there isn't an endpoint to access them with.
+            return;
+        }
+
         var group = endpoints
             .MapGroup("/v1")
             .AddOtlpHttpMetadata();
+
+        if (options.Cors.AllowedOrigins.Count > 0)
+        {
+            group = group.RequireCors(builder =>
+            {
+                builder.WithOrigins(options.Cors.AllowedOrigins.ToArray());
+                builder.SetIsOriginAllowedToAllowWildcardSubdomains();
+
+                var allowedHeaders = (options.Cors.AllowedHeaders is { Count: > 0 } headers)
+                    ? headers.ToArray()
+                    : DefaultAllowedHeaders;
+                builder.WithHeaders(allowedHeaders);
+
+                // Hardcode to allow only POST methods. OTLP is always sent in POST request bodies.
+                builder.WithMethods(HttpMethods.Post);
+            });
+        }
 
         group.MapPost("logs", static (MessageBindable<ExportLogsServiceRequest> request, OtlpLogsService service) =>
         {
