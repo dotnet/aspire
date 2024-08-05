@@ -61,9 +61,8 @@ public static class RabbitMQBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder
-                .WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/rabbitmq", isReadOnly)
-                .RunWithStableNodeName();
+        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/rabbitmq", isReadOnly)
+                      .RunWithStableNodeName();
     }
 
     /// <summary>
