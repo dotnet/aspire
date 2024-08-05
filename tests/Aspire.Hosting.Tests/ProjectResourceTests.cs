@@ -25,7 +25,7 @@ public class ProjectResourceTests
             appBuilder.AddProject("project", projectDetails.ProjectFilePath);
         });
 
-        var expectedMessage = $"Failed to get effective launch profile because of malformed JSON in '{projectDetails.LaunchSettingsFilePath}' associated with project resource 'project'. See inner exception for details.'";
+        var expectedMessage = $"Failed to get effective launch profile for project resource 'project'. There is malformed JSON in the project's launch settings file at '{projectDetails.LaunchSettingsFilePath}'.";
         Assert.Equal(expectedMessage, ex.Message);
 
         async static Task<(string ProjectFilePath, string LaunchSettingsFilePath)> PrepareProjectWithMalformedLaunchSettingsAsync()
