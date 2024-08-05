@@ -12,10 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Testing\ResourceLoggerForwarderService.cs" Link="Utils\ResourceLoggerForwarderService.cs" />
+    <PackageReference Include="Polly.Core" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Polly.Core" />
+    <ItemGroup>
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Testing\ResourceLoggerForwarderService.cs" Link="Utils\ResourceLoggerForwarderService.cs" />
   </ItemGroup>
 </Project>
