@@ -308,6 +308,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
     private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
     {
+        // Don't use custom registry since the image is coming from mcr.microsoft.com
         var builder = TestDistributedApplicationBuilder.Create();
         builder.Services.AddXunitLogging(testOutputHelper);
         builder.Services.AddHostedService<ResourceLoggerForwarderService>();
