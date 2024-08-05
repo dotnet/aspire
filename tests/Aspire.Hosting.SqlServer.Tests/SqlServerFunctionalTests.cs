@@ -119,8 +119,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Theory]
     [InlineData(true)]
-    [InlineData(false)]
-    [SkipOnCI("https://github.com/dotnet/aspire/issues/5055")]
+    [InlineData(false, Skip = "https://github.com/dotnet/aspire/issues/5055")]
     [RequiresDocker]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
