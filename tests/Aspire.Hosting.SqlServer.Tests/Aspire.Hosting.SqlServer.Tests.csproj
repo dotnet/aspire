@@ -5,7 +5,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Aspire.Hosting.AppHost\Aspire.Hosting.AppHost.csproj" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.SqlServer\Aspire.Hosting.SqlServer.csproj" />
     <ProjectReference Include="..\..\src\Components\Aspire.Microsoft.Data.SqlClient\Aspire.Microsoft.Data.SqlClient.csproj" />
     <ProjectReference Include="..\..\src\Components\Aspire.Microsoft.EntityFrameworkCore.SqlServer\Aspire.Microsoft.EntityFrameworkCore.SqlServer.csproj" />
