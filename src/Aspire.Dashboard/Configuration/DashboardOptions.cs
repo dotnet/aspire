@@ -61,6 +61,11 @@ public sealed class ResourceServiceClientCertificateOptions
     public StoreLocation? Location { get; set; }
 }
 
+public sealed class AllowedCertificateRule
+{
+    public string? Thumbprint { get; set; }
+}
+
 // Don't set values after validating/parsing options.
 public sealed class OtlpOptions
 {
@@ -75,6 +80,8 @@ public sealed class OtlpOptions
     public string? GrpcEndpointUrl { get; set; }
 
     public string? HttpEndpointUrl { get; set; }
+
+    public List<AllowedCertificateRule> AllowedCertificates { get; set; } = new();
 
     public Uri? GetGrpcEndpointUri()
     {

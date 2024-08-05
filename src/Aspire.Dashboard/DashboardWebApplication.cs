@@ -558,12 +558,33 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             .AddCertificate(options =>
             {
                 // Bind options to configuration so they can be overridden by environment variables.
-                builder.Configuration.Bind("Dashboard:Otlp:CertificateAuthOptions", options);
+                builder.Configuration.Bind("Authentication:Schemes:Certificate", options);
 
                 options.Events = new CertificateAuthenticationEvents
                 {
                     OnCertificateValidated = context =>
                     {
+                        var options = context.HttpContext.RequestServices.GetRequiredService<IOptions<DashboardOptions>>().Value;
+                        if (options.Otlp.AllowedCertificates is { Count: > 0 } allowList)
+                        {
+                            var allowed = false;
+                            foreach (var rule in allowList)
+                            {
+                                // Thumbprint is hexadecimal and is case-insensitive.
+                                if (string.Equals(rule.Thumbprint, context.ClientCertificate.Thumbprint, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    allowed = true;
+                                    break;
+                                }
+                            }
+
+                            if (!allowed)
+                            {
+                                context.Fail("Certificate doesn't match allow list.");
+                                return Task.CompletedTask;
+                            }
+                        }
+
                         var claims = new[]
                         {
                             new Claim(ClaimTypes.NameIdentifier,
