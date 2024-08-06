@@ -2,14 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
-using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Polly;
 using Xunit;
 using Xunit.Abstractions;
@@ -33,7 +31,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(15));
 
-        var builder = CreateDistributedApplicationBuilder();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var oracleDbName = "freepdb1";
 
@@ -92,7 +90,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = CreateDistributedApplicationBuilder();
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
             var oracle1 = builder1.AddOracle("oracle");
 
@@ -177,7 +175,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            var builder2 = CreateDistributedApplicationBuilder();
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var passwordParameter2 = builder2.AddParameter("pwd");
             builder2.Configuration["Parameters:pwd"] = password;
 
@@ -304,7 +302,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
                 COMMIT;
             """);
 
-            var builder = CreateDistributedApplicationBuilder();
+            using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
             var oracle = builder.AddOracle("oracle");
             var db = oracle.AddDatabase(oracleDbName);
@@ -370,15 +368,5 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
                 // Don't fail test if we can't clean the temporary folder
             }
         }
-    }
-
-    private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
-    {
-        // Do not use the test container registry as Oracle has their own
-        var builder = TestDistributedApplicationBuilder.Create();
-        builder.Services.AddLogging(config => config.SetMinimumLevel(LogLevel.Information));
-        builder.Services.AddXunitLogging(testOutputHelper);
-        builder.Services.AddHostedService<ResourceLoggerForwarderService>();
-        return builder;
     }
 }
