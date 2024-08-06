@@ -78,7 +78,7 @@ public class AnsiParser
                     textLength = 0;
                 }
 
-                // Apppend the URL unformatted, the Url matcher will convert to link later.
+                // Append the URL unformatted, the Url matcher will convert to link later.
                 outputBuilder.Append(url);
 
                 continue;
@@ -275,7 +275,7 @@ public class AnsiParser
             return false;
         }
 
-        // Find the positon where the url section ends
+        // Find the position where the url section ends
         var urlEndEscapePosition = SubIndexOfSpan(span, EscapeChar, 4);
         if (urlEndEscapePosition < 0 || span.Length < urlEndEscapePosition + 1 || span[urlEndEscapePosition + 1] != '\\')
         {
@@ -283,7 +283,7 @@ public class AnsiParser
         }
 
         // Find the position where the url-text section ends
-        // Continue to search untill the following char is ']', could be color/mode formatting escape sequences mixed in
+        // Continue to search until the following char is ']', could be color/mode formatting escape sequences mixed in
         var linkEndEscapePosition = SubIndexOfSpan(span, EscapeChar, urlEndEscapePosition + 1);
         while (linkEndEscapePosition != -1 && span.Length > (linkEndEscapePosition + 2) && span[linkEndEscapePosition + 1] != ']')
         {

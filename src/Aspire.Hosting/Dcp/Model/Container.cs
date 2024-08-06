@@ -146,7 +146,7 @@ internal sealed class VolumeMount
 internal sealed class ContainerNetworkConnection
 {
     // DCP Resource name of a ContainerNetwork to connect to
-    // A container won't start running until it can be conneced to all specified networks
+    // A container won't start running until it can be connected to all specified networks
     [JsonPropertyName("name")]
 	public string? Name { get; set; }
 

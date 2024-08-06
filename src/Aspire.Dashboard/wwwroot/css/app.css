@@ -95,6 +95,10 @@ fluent-data-grid-row[role='row'].hover:not([row-type='header'],[row-type='sticky
     cursor: auto;
 }
 
+.enable-row-click fluent-data-grid-row[role='row'].hover:not([row-type='header'],[row-type='sticky-header']):hover {
+    cursor: pointer;
+}
+
 [data-theme="light"] {
     color-scheme: light;
 }

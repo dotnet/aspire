@@ -214,7 +214,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
     }
 
-    private async Task OnShowPropertiesAsync(OtlpLogEntry entry, string buttonId)
+    private async Task OnShowPropertiesAsync(OtlpLogEntry entry, string? buttonId)
     {
         _elementIdBeforeDetailsViewOpened = buttonId;
 

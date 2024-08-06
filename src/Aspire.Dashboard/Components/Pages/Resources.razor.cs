@@ -223,7 +223,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         return false;
     }
 
-    private async Task ShowResourceDetailsAsync(ResourceViewModel resource, string buttonId)
+    private async Task ShowResourceDetailsAsync(ResourceViewModel resource, string? buttonId)
     {
         _elementIdBeforeDetailsViewOpened = buttonId;
 
@@ -379,7 +379,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
         additionalMessage = null;
 
-        return ResourceEndpointHelpers.GetEndpoints(resource, includeInteralUrls: false);
+        return ResourceEndpointHelpers.GetEndpoints(resource, includeInternalUrls: false);
     }
 
     public async ValueTask DisposeAsync()

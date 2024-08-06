@@ -26,7 +26,7 @@ public sealed class ResourceServiceClientOptions
 
     public string? Url { get; set; }
     public ResourceClientAuthMode? AuthMode { get; set; }
-    public ResourceServiceClientCertificateOptions ClientCertificates { get; set; } = new();
+    public ResourceServiceClientCertificateOptions ClientCertificate { get; set; } = new();
     public string? ApiKey { get; set; }
 
     public Uri? GetUri() => _parsedUrl;

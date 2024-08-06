@@ -16,7 +16,7 @@ internal sealed class DistributedApplicationResourceBuilder<T>(IDistributedAppli
         ArgumentNullException.ThrowIfNull(annotation);
 
         // Some defensive code to protect against introducing a new enumeration value without first updating
-        // this code to accomodate it.
+        // this code to accommodate it.
         if (behavior != ResourceAnnotationMutationBehavior.Append && behavior != ResourceAnnotationMutationBehavior.Replace)
         {
             throw new ArgumentOutOfRangeException(nameof(behavior), behavior, "ResourceAnnotationMutationBehavior must be either Append or Replace.");

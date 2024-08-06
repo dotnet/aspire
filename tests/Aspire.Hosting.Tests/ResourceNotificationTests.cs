@@ -246,7 +246,7 @@ public class ResourceNotificationTests
     }
 
     [Fact]
-    public async Task WaitingOnResourceThrowsOperationCanceledExceptionIfResourceDoesntReachStateBeforeCancellationTokenSignalled()
+    public async Task WaitingOnResourceThrowsOperationCanceledExceptionIfResourceDoesntReachStateBeforeCancellationTokenSignaled()
     {
         var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime());
 
@@ -262,7 +262,7 @@ public class ResourceNotificationTests
     }
 
     [Fact]
-    public async Task WaitingOnResourceThrowsOperationCanceledExceptionIfResourceDoesntReachStateBeforeApplicationStoppingCancellationTokenSignalled()
+    public async Task WaitingOnResourceThrowsOperationCanceledExceptionIfResourceDoesntReachStateBeforeApplicationStoppingCancellationTokenSignaled()
     {
         using var hostApplicationLifetime = new TestHostApplicationLifetime();
         var notificationService = new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), hostApplicationLifetime);

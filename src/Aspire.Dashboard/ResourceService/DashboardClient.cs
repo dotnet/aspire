@@ -115,7 +115,7 @@ internal sealed class DashboardClient : IDashboardClient
             if (authMode == ResourceClientAuthMode.Certificate)
             {
                 // Auth hasn't been suppressed, so configure it.
-                var certificates = _dashboardOptions.ResourceServiceClient.ClientCertificates.Source switch
+                var certificates = _dashboardOptions.ResourceServiceClient.ClientCertificate.Source switch
                 {
                     DashboardClientCertificateSource.File => GetFileCertificate(),
                     DashboardClientCertificateSource.KeyStore => GetKeyStoreCertificate(),
@@ -162,11 +162,11 @@ internal sealed class DashboardClient : IDashboardClient
             X509CertificateCollection GetFileCertificate()
             {
                 Debug.Assert(
-                    _dashboardOptions.ResourceServiceClient.ClientCertificates.FilePath != null,
+                    _dashboardOptions.ResourceServiceClient.ClientCertificate.FilePath != null,
                     "FilePath is validated as not null when configuration is loaded.");
 
-                var filePath = _dashboardOptions.ResourceServiceClient.ClientCertificates.FilePath;
-                var password = _dashboardOptions.ResourceServiceClient.ClientCertificates.Password;
+                var filePath = _dashboardOptions.ResourceServiceClient.ClientCertificate.FilePath;
+                var password = _dashboardOptions.ResourceServiceClient.ClientCertificate.Password;
 
                 return [new X509Certificate2(filePath, password)];
             }
@@ -174,12 +174,12 @@ internal sealed class DashboardClient : IDashboardClient
             X509CertificateCollection GetKeyStoreCertificate()
             {
                 Debug.Assert(
-                    _dashboardOptions.ResourceServiceClient.ClientCertificates.Subject != null,
+                    _dashboardOptions.ResourceServiceClient.ClientCertificate.Subject != null,
                     "Subject is validated as not null when configuration is loaded.");
 
-                var subject = _dashboardOptions.ResourceServiceClient.ClientCertificates.Subject;
-                var storeName = _dashboardOptions.ResourceServiceClient.ClientCertificates.Store ?? "My";
-                var location = _dashboardOptions.ResourceServiceClient.ClientCertificates.Location ?? StoreLocation.CurrentUser;
+                var subject = _dashboardOptions.ResourceServiceClient.ClientCertificate.Subject;
+                var storeName = _dashboardOptions.ResourceServiceClient.ClientCertificate.Store ?? "My";
+                var location = _dashboardOptions.ResourceServiceClient.ClientCertificate.Location ?? StoreLocation.CurrentUser;
 
                 using var store = new X509Store(storeName: storeName, storeLocation: location);
 

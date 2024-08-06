@@ -10,13 +10,13 @@ internal static class ResourceEndpointHelpers
     /// <summary>
     /// A resource has services and endpoints. These can overlap. This method attempts to return a single list without duplicates.
     /// </summary>
-    public static List<DisplayedEndpoint> GetEndpoints(ResourceViewModel resource, bool includeInteralUrls = false)
+    public static List<DisplayedEndpoint> GetEndpoints(ResourceViewModel resource, bool includeInternalUrls = false)
     {
         var endpoints = new List<DisplayedEndpoint>(resource.Urls.Length);
 
         foreach (var url in resource.Urls)
         {
-            if ((includeInteralUrls && url.IsInternal) || !url.IsInternal)
+            if ((includeInternalUrls && url.IsInternal) || !url.IsInternal)
             {
                 endpoints.Add(new DisplayedEndpoint
                 {

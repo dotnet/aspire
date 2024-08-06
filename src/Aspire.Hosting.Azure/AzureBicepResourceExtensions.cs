@@ -60,7 +60,7 @@ public static class AzureBicepResourceExtensions
     /// <summary>
     /// Gets a reference to a secret output from a bicep template. This is an output that is written to a keyvault using the "keyVaultName" convention.
     /// </summary>
-    /// <param name="builder">The resource buider.</param>
+    /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the secret output.</param>
     /// <returns>A <see cref="BicepSecretOutputReference"/> that represents the output.</returns>
     public static BicepSecretOutputReference GetSecretOutput(this IResourceBuilder<AzureBicepResource> builder, string name)

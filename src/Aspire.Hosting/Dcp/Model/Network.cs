@@ -12,7 +12,7 @@ internal sealed class ContainerNetworkSpec
     [JsonPropertyName("networkName")]
     public string? NetworkName { get; set; }
 
-    // Shouild IPv6 be enabled for the network?
+    // Should IPv6 be enabled for the network?
     [JsonPropertyName("ipv6")]
     public bool? IPV6 { get; set; }
 

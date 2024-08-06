@@ -26,11 +26,13 @@
     }
     @if (EnableMasking)
     {
-        <FluentButton Appearance="Appearance.Lightweight"
-                      IconEnd="@(IsMasked ? _unmaskIcon : _maskIcon)"
-                      Title="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])"
-                      OnClick="ToggleMaskStateAsync"
-                      aria-label="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])" />
+        <div @onclick:stopPropagation="true">
+            <FluentButton Appearance="Appearance.Lightweight"
+                          IconEnd="@(IsMasked ? _unmaskIcon : _maskIcon)"
+                          Title="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])"
+                          OnClick="ToggleMaskStateAsync"
+                          aria-label="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])" />
+        </div>
     }
 
     @{
@@ -42,13 +44,15 @@
         ];
     }
 
-    <FluentButton Appearance="Appearance.Lightweight"
-                  Id="@_anchorId"
-                  Class="defaultHidden"
-                  Style="float: right; flex-shrink: 0"
-                  AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip, uncapturedAttributes)">
-        <FluentIcon Class="copy-icon" Style="display:inline;" Icon="Icons.Regular.Size16.Copy" />
-        <FluentIcon Class="checkmark-icon" Style="display:none;" Icon="Icons.Regular.Size16.Checkmark" />
-    </FluentButton>
+    <div @onclick:stopPropagation="true">
+        <FluentButton Appearance="Appearance.Lightweight"
+                      Id="@_anchorId"
+                      Class="defaultHidden"
+                      Style="float: right; flex-shrink: 0"
+                      AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(ValueToCopy ?? Value, PreCopyToolTip, PostCopyToolTip, uncapturedAttributes)">
+            <FluentIcon Class="copy-icon" Style="display:inline;" Icon="Icons.Regular.Size16.Copy" />
+            <FluentIcon Class="checkmark-icon" Style="display:none;" Icon="Icons.Regular.Size16.Checkmark" />
+        </FluentButton>
+    </div>
     <FluentTooltip @ref="_tooltipComponent" Anchor="@_anchorId" Position="TooltipPosition.Top" HideTooltipOnCursorLeave="true">@PreCopyToolTip</FluentTooltip>
 </div>

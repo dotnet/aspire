@@ -139,7 +139,7 @@ internal sealed class AzureProvisioner(
             _ = AfterProvisionAsync(r);
         }
 
-        // This is fuly async so we can just fire and forget
+        // This is fully async so we can just fire and forget
         _ = Task.Run(() => ProvisionAzureResources(
             configuration,
             logger,

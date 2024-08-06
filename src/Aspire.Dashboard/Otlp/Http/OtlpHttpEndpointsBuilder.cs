@@ -135,7 +135,7 @@ public static class OtlpHttpEndpointsBuilder
             {
                 case KnownContentType.Protobuf:
 
-                    // This isn't very efficent but OTLP Protobuf responses are small.
+                    // This isn't very efficient but OTLP Protobuf responses are small.
                     var ms = new MemoryStream();
                     _message.WriteTo(ms);
                     ms.Seek(0, SeekOrigin.Begin);

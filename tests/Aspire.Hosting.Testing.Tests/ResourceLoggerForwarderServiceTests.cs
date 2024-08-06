@@ -26,7 +26,7 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task ExecuteThowsOperationCanceledWhenAppStoppingTokenSignalled()
+    public async Task ExecuteThrowsOperationCanceledWhenAppStoppingTokenSignaled()
     {
         var hostApplicationLifetime = new TestHostApplicationLifetime();
         var resourceNotificationService = new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, hostApplicationLifetime);

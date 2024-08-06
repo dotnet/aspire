@@ -44,9 +44,9 @@ public static class AzureAppConfigurationExtensions
             var store = new AppConfigurationStore(construct, name: name, skuName: "standard");
             store.AssignProperty(x => x.DisableLocalAuth, "true");
             store.AddOutput("appConfigEndpoint", x => x.Endpoint);
-            var appConfigurationDataOwnerRoleAssignemnt = store.AssignRole(RoleDefinition.AppConfigurationDataOwner);
-            appConfigurationDataOwnerRoleAssignemnt.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
-            appConfigurationDataOwnerRoleAssignemnt.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);
+            var appConfigurationDataOwnerRoleAssignment = store.AssignRole(RoleDefinition.AppConfigurationDataOwner);
+            appConfigurationDataOwnerRoleAssignment.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
+            appConfigurationDataOwnerRoleAssignment.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);
 
             store.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
 

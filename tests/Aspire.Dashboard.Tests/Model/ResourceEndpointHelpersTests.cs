@@ -11,9 +11,9 @@ namespace Aspire.Dashboard.Tests.Model;
 
 public sealed class ResourceEndpointHelpersTests
 {
-    public static List<DisplayedEndpoint> GetEndpoints(ResourceViewModel resource, bool includeInteralUrls = false)
+    public static List<DisplayedEndpoint> GetEndpoints(ResourceViewModel resource, bool includeInternalUrls = false)
     {
-        return ResourceEndpointHelpers.GetEndpoints(resource, includeInteralUrls);
+        return ResourceEndpointHelpers.GetEndpoints(resource, includeInternalUrls);
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public sealed class ResourceEndpointHelpersTests
             new("First", new("https://localhost:8080/test"), isInternal:true),
             new("Test", new("https://localhost:8081/test2"), isInternal:false)
         ]),
-        includeInteralUrls: true);
+        includeInternalUrls: true);
 
         Assert.Collection(endpoints,
             e =>

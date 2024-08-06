@@ -19,7 +19,7 @@
         "oneOf": [
           {
             "type": "object",
-            "description": "A resource that represents a Dockerfile that will be built into a container duing deployment.",
+            "description": "A resource that represents a Dockerfile that will be built into a container during deployment.",
             "required": [ "type", "path", "context" ],
             "properties": {
               "type": {
@@ -161,7 +161,7 @@
               },
               "workingDirectory": {
                 "type": "string",
-                "description": "The path to the working directory. Should be intepreted as being relative to the AppHost directory."
+                "description": "The path to the working directory. Should be interpreted as being relative to the AppHost directory."
               },
               "command": {
                 "type": "string",

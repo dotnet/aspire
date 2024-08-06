@@ -48,6 +48,44 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
+    public async Task ContainerBuildLogsAreStreamedToAppHost()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddHostedService<ResourceLoggerForwarderService>();
+        builder.Services.AddLogging(logging =>
+        {
+            logging.AddFakeLogging();
+            logging.AddXunit(testOutputHelper);
+        });
+
+        var (tempContextPath, tempDockerfilePath) = await CreateTemporaryDockerfileAsync();
+
+        builder.AddContainer("testcontainer", "testimage")
+               .WithHttpEndpoint(targetPort: 80)
+               .WithDockerfile(tempContextPath, tempDockerfilePath);
+
+        using var app = builder.Build();
+
+        await app.StartAsync();
+
+        // Wait for the resource to come online.
+        await WaitForResourceAsync(app, "testcontainer", "Running");
+        using var client = app.CreateHttpClient("testcontainer", "http");
+        var message = await client.GetStringAsync("/aspire.html");
+
+        // By the time we can make a request to the service the logs
+        // should be streamed back to the app host.
+        var collector = app.Services.GetFakeLogCollector();
+        var logs = collector.GetSnapshot();
+
+        // Just looking for a common message in Docker build output.
+        Assert.Contains(logs, log => log.Message.Contains("load build definition from Dockerfile"));
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    [RequiresDocker]
     public async Task WithDockerfileLaunchesContainerSuccessfully()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
