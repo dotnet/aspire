@@ -7,7 +7,6 @@ using Grpc.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Milvus.Client;
 using Polly;
 using Xunit;
@@ -31,7 +30,7 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(3), ShouldHandle = new PredicateBuilder().Handle<RpcException>() })
            .Build();
 
-        var builder = CreateDistributedApplicationBuilder();
+        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         builder.Configuration["Parameters:apikey"] = MilvusToken;
         var apiKey = builder.AddParameter("apikey");
@@ -100,7 +99,7 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = CreateDistributedApplicationBuilder();
+            var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             builder1.Configuration["Parameters:apikey"] = MilvusToken;
             var apiKey1 = builder1.AddParameter("apikey");
             var milvus1 = builder1.AddMilvus("milvus1", apiKey1);
@@ -159,7 +158,7 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            var builder2 = CreateDistributedApplicationBuilder();
+            var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             builder2.Configuration["Parameters:apikey"] = MilvusToken;
             var apiKey2 = builder2.AddParameter("apikey");
             var milvus2 = builder2.AddMilvus("milvus2", apiKey2);
@@ -233,12 +232,5 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
         }
-    }
-
-    private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
-    {
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
-        builder.Services.AddXunitLogging(testOutputHelper);
-        return builder;
     }
 }
