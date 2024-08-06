@@ -72,7 +72,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Theory]
     [InlineData(true)]
-    [InlineData(false, Skip = "Takes too long to be ready.")]
+    [InlineData(false, Skip = "https://github.com/dotnet/aspire/issues/5191")]
     [RequiresDocker]
     public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
     {
