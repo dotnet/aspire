@@ -46,6 +46,8 @@ public readonly record struct ApplicationKey(string Name, string? InstanceId) : 
         }
         else
         {
+            // InstanceId is null so just match on name.
+            // This is used to match all instances of an app with the matching name.
             return string.Equals(Name, name, StringComparisons.ResourceName);
         }
 
