@@ -2,13 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using Aspire.Hosting.MongoDB;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace Aspire.Hosting.Tests.MongoDB;
+namespace Aspire.Hosting.MongoDB.Tests;
 
 public class AddMongoDBTests
 {
@@ -108,7 +108,8 @@ public class AddMongoDBTests
     public void WithMongoExpressSupportsChangingContainerImageValues()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.AddMongoDB("mongo").WithMongoExpress(c => {
+        builder.AddMongoDB("mongo").WithMongoExpress(c =>
+        {
             c.WithImageRegistry("example.mycompany.com");
             c.WithImage("customongoexpresscontainer");
             c.WithImageTag("someothertag");
@@ -125,7 +126,8 @@ public class AddMongoDBTests
     public void WithMongoExpressSupportsChangingHostPort()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.AddMongoDB("mongo").WithMongoExpress(c => {
+        builder.AddMongoDB("mongo").WithMongoExpress(c =>
+        {
             c.WithHostPort(1000);
         });
 
