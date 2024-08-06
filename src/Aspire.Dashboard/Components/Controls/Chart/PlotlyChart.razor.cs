@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Web;
 using Aspire.Dashboard.Components.Controls.Chart;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -27,6 +28,9 @@ public partial class PlotlyChart : ChartBase
 
     [Inject]
     public required IDialogService DialogService { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; init; }
 
     private DotNetObjectReference<ChartInterop>? _chartInteropReference;
     private IJSObjectReference? _jsModule;
@@ -214,6 +218,14 @@ public partial class PlotlyChart : ChartBase
                 });
             }
         }
+    }
+
+    private string GetPlotlyChartStyle()
+    {
+        var width = ViewportInformation.IsDesktop ? 650 : 487;
+        var height = ViewportInformation.IsDesktop ? 325 : 243;
+
+        return $"width:{width}px; height:{height}px";
     }
 
     private readonly record struct ExemplarGroupKey(DateTimeOffset? Start, DateTimeOffset? End);

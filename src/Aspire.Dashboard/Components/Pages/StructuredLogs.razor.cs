@@ -341,6 +341,11 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
     }
 
+    private string GetGridTemplateColumns()
+    {
+        return ViewportInformation.IsDesktop ? "1fr 1fr 1fr 5fr 0.8fr 0.8fr" : "1fr 1fr 1fr 0.8fr";
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_applicationChanged)

@@ -210,6 +210,11 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
 
     private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
 
+    private string GetGridTemplateColumns()
+    {
+        return ViewportInformation.IsDesktop ? "0.8fr 2fr 3fr 0.8fr 0.5fr" : "0.8fr 2fr 1fr";
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_applicationChanged)

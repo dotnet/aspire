@@ -159,6 +159,10 @@ h1 {
     .page-header {
         padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 0.5px) 0;
     }
+
+    .hidden-on-mobile {
+        visibility: collapse;
+    }
 }
 
  @media (min-width: 768px) {

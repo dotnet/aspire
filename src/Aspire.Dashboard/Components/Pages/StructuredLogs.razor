@@ -17,10 +17,11 @@
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.StructuredLogs.StructuredLogsPageTitle)" Loc="@Loc" /></PageTitle>
 
 <div class="page-content-container">
-    <AspirePageContentLayout @ref="@_contentLayout"
-                             AddNewlineOnToolbar="true"
-                             ShouldShowFooter="@(SelectedLogEntry is null)"
-                             IsSummaryDetailsViewOpen="@(SelectedLogEntry is not null)">
+    <AspirePageContentLayout
+        @ref="@_contentLayout"
+        AddNewlineOnToolbar="true"
+        ShouldShowFooter="@(SelectedLogEntry is null)"
+        IsSummaryDetailsViewOpen="@(SelectedLogEntry is not null)">
         <PageTitleSection>
             <h1 class="page-header">@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsHeader)]</h1>
         </PageTitleSection>
@@ -40,7 +41,7 @@
             {
                 <div title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMinimumLogFilter)]" slot="end" style="display: flex;align-items: center;">
                     <span>@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevels)]</span>
-                    <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+                    <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical"/>
 
                     <LogLevelSelect IncludeLabel="false"
                                     @bind-LogLevel="@PageViewModel.SelectedLogLevel"
@@ -77,21 +78,22 @@
             else
             {
                 <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter)]" OnClick="() => OpenFilterAsync(null)">
-                    <FluentIcon Class="align-text-bottom" Value="@(new Icons.Regular.Size16.Filter())" /> @Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter)]
+                    <FluentIcon Class="align-text-bottom" Value="@(new Icons.Regular.Size16.Filter())"/> @Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter)]
                 </FluentButton>
             }
         </ToolbarSection>
 
         <MainSection>
-            <SummaryDetailsView ShowDetails="@(SelectedLogEntry is not null)"
-                                OnDismiss="@(() => ClearSelectedLogEntryAsync(causedByUserAction: true))"
-                                ViewKey="StructuredLogsList"
-                                SelectedValue="@SelectedLogEntry">
+            <SummaryDetailsView
+                ShowDetails="@(SelectedLogEntry is not null)"
+                OnDismiss="@(() => ClearSelectedLogEntryAsync(causedByUserAction: true))"
+                ViewKey="StructuredLogsList"
+                SelectedValue="@SelectedLogEntry">
                 <DetailsTitleTemplate>
                     @{
                         var eventName = OtlpHelpers.GetValue(context!.LogEntry.Attributes, "event.name")
-                        ?? OtlpHelpers.GetValue(context!.LogEntry.Attributes, "logrecord.event.name")
-                        ?? Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)];
+                                        ?? OtlpHelpers.GetValue(context!.LogEntry.Attributes, "logrecord.event.name")
+                                        ?? Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)];
                     }
 
                     <div class="pane-details-title" title="@($"{eventName} ({context!.LogEntry.Scope.ScopeName})")">
@@ -102,17 +104,7 @@
                 <Summary>
                     <div class="logs-summary-layout">
                         <div class="logs-grid-container continuous-scroll-overflow">
-                            <FluentDataGrid Virtualize="true"
-                                            RowClass="@GetRowClass"
-                                            GenerateHeader="GenerateHeaderOption.Sticky"
-                                            ItemSize="46"
-                                            ResizableColumns="true"
-                                            ItemsProvider="@GetData"
-                                            TGridItem="OtlpLogEntry"
-                                            GridTemplateColumns="1fr 1fr 1fr 5fr 0.8fr 0.8fr"
-                                            ShowHover="true"
-                                            OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, buttonId: null)))"
-                                            Class="enable-row-click">
+                            <FluentDataGrid Virtualize="true" RowClass="@GetRowClass" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpLogEntry" GridTemplateColumns="@GetGridTemplateColumns()" ShowHover="true">
                                 <ChildContent>
                                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsResourceColumnHeader)]" Tooltip="true" TooltipText="@(e => GetResourceName(e.Application))">
                                         <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Application)));">
@@ -125,24 +117,27 @@
                                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.TimeStamp, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
                                         @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.TimeStamp, MillisecondsDisplay.Truncated)
                                     </TemplateColumn>
-                                    <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]" Tooltip="true" TooltipText="(e) => e.Message">
-                                        <LogMessageColumnDisplay FilterText="@(ViewModel.FilterText)" LogEntry="@context" />
-                                    </TemplateColumn>
-                                    <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTraceColumnHeader)]">
-                                        @if (!string.IsNullOrEmpty(context.TraceId))
-                                        {
-                                            <a href="@DashboardUrls.TraceDetailUrl(context.TraceId)" class="long-inner-content" @onclick:stopPropagation="true">
-                                                @OtlpHelpers.ToShortenedId(context.TraceId)
-                                            </a>
-                                        }
-                                    </TemplateColumn>
+
+                                    @if (ViewportInformation.IsDesktop)
+                                    {
+                                        <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]" Tooltip="true" TooltipText="(e) => e.Message">
+                                            <LogMessageColumnDisplay FilterText="@(ViewModel.FilterText)" LogEntry="@context"/>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTraceColumnHeader)]">
+                                            @if (!string.IsNullOrEmpty(context.TraceId))
+                                            {
+                                                <a href="@DashboardUrls.TraceDetailUrl(context.TraceId)" class="long-inner-content">
+                                                    @OtlpHelpers.ToShortenedId(context.TraceId)
+                                                </a>
+                                            }
+                                        </TemplateColumn>
+                                    }
+
                                     <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
                                         @{
                                             var id = $"details-button-{context.InternalId}";
                                         }
-                                        <div @onclick:stopPropagation="true">
-                                            <FluentButton Id="@id" Appearance="Appearance.Lightweight" OnClick="@(() => OnShowPropertiesAsync(context, id))">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
-                                        </div>
+                                        <FluentButton Id="@id" Appearance="Appearance.Lightweight" OnClick="@(() => OnShowPropertiesAsync(context, id))">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
                                     </TemplateColumn>
                                 </ChildContent>
                                 <EmptyContent>
