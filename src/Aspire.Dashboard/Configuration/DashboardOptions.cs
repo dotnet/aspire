@@ -26,7 +26,7 @@ public sealed class ResourceServiceClientOptions
 
     public string? Url { get; set; }
     public ResourceClientAuthMode? AuthMode { get; set; }
-    public ResourceServiceClientCertificateOptions ClientCertificates { get; set; } = new();
+    public ResourceServiceClientCertificateOptions ClientCertificate { get; set; } = new();
     public string? ApiKey { get; set; }
 
     public Uri? GetUri() => _parsedUrl;
@@ -131,6 +131,16 @@ public sealed class FrontendOptions
     public string? EndpointUrls { get; set; }
     public FrontendAuthMode? AuthMode { get; set; }
     public string? BrowserToken { get; set; }
+
+    /// <summary>
+    /// Gets and sets an optional limit on the number of console log messages to be retained in the viewer.
+    /// </summary>
+    /// <remarks>
+    /// The viewer will retain at most this number of log messages. When the limit is reached, the oldest messages will be removed.
+    /// Defaults to 10,000, which matches the default used in the app host's circular buffer, on the publish side.
+    /// </remarks>
+    public int MaxConsoleLogCount { get; set; } = 10_000;
+
     public OpenIdConnectOptions OpenIdConnect { get; set; } = new();
 
     public byte[]? GetBrowserTokenBytes() => _browserTokenBytes;

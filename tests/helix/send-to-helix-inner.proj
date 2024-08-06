@@ -47,6 +47,7 @@
     <_ShellCommandSeparator Condition="'$(OS)' != 'Windows_NT'">&amp;&amp;</_ShellCommandSeparator>
 
     <_ShutdownDockerContainersCommand Condition="'$(OS)' != 'Windows_NT'">for f in `docker ps -aq`%3B do docker stop $f%3B docker rm $f%3B done</_ShutdownDockerContainersCommand>
+    <_DeleteDockerVolumesCommand Condition="'$(OS)' != 'Windows_NT'">for f in `docker volume ls -q`%3B do docker volume rm $f%3B done</_DeleteDockerVolumesCommand>
   </PropertyGroup>
 
   <ItemGroup>
@@ -75,6 +76,10 @@
 
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="chmod +x $HELIX_WORKITEM_ROOT/.playwright/node/linux-x64/node" />
 
+    <!-- Disable playwright tests on helix/linux. Issue: https://github.com/dotnet/aspire/issues/4623 -->
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export DISABLE_PLAYWRIGHT_TESTS=true" />
+    <!--<HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="(sudo apt-get -o DPkg::Lock::Timeout=120 install -y libgbm1 libxkbcommon0 || (cat /var/lib/dkms/lttng-modules/2.13.8/build/make.log; exit 1)) || exit 1" />-->
+
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PLAYWRIGHT_BROWSERS_PATH=%HELIX_CORRELATION_PAYLOAD%\playwright-deps" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PLAYWRIGHT_BROWSERS_PATH=$HELIX_CORRELATION_PAYLOAD/playwright-deps" />
   </ItemGroup>
@@ -96,14 +101,20 @@
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export TEST_LOG_PATH=$HELIX_WORKITEM_UPLOAD_ROOT/logs" />
 
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="(cd $HELIX_CORRELATION_PAYLOAD/create-dotnet-devcert%3B chmod +x ubuntu-create-dotnet-devcert.sh %3B ./ubuntu-create-dotnet-devcert.sh)" />
+  </ItemGroup>
 
-    <HelixPreCommand Condition="'$(HasDocker)' == 'true'" Include="docker info" />
-    <HelixPreCommand Condition="'$(HasDocker)' == 'true'" Include="docker ps" />
-    <HelixPreCommand Condition="'$(HasDocker)' == 'true'" Include="docker container ls --all" />
-    <HelixPreCommand Condition="'$(HasDocker)' == 'true'" Include="$(_ShutdownDockerContainersCommand)" />
+  <ItemGroup Condition="'$(HasDocker)' == 'true'">
+    <HelixPreCommand Include="docker info" />
+    <HelixPreCommand Include="docker ps" />
+    <HelixPreCommand Include="docker container ls --all" />
+    <HelixPreCommand Include="$(_ShutdownDockerContainersCommand)" />
+    <HelixPreCommand Include="docker volume ls" />
+    <HelixPreCommand Include="$(_DeleteDockerVolumesCommand)" />
 
-    <HelixPostCommand Condition="'$(HasDocker)' == 'true'" Include="docker container ls --all" />
-    <HelixPostCommand Condition="'$(HasDocker)' == 'true'" Include="$(_ShutdownDockerContainersCommand)" />
+    <HelixPostCommand Include="docker container ls --all" />
+    <HelixPostCommand Include="$(_ShutdownDockerContainersCommand)" />
+    <HelixPostCommand Include="docker volume ls" />
+    <HelixPostCommand Include="$(_DeleteDockerVolumesCommand)" />
   </ItemGroup>
 
   <ItemGroup>

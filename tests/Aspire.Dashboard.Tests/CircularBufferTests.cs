@@ -590,4 +590,37 @@ public class CircularBufferTests
         b.RemoveAt(0);
         Assert.Empty(b);
     }
+
+    [Fact]
+    public void Insert_BeforeEnd_EndInMiddle()
+    {
+        var values = new List<string>
+        {
+            "10",
+            "12",
+            "0",
+            "2",
+            "2",
+            "4",
+            "4",
+            "6",
+            "6",
+            "8",
+        };
+
+        var buffer = new CircularBuffer<string>(values, capacity: 10, start: 2, end: 2);
+        buffer.Insert(9, "11");
+
+        Assert.Collection(buffer,
+            i => Assert.Equal("2", i),
+            i => Assert.Equal("2", i),
+            i => Assert.Equal("4", i),
+            i => Assert.Equal("4", i),
+            i => Assert.Equal("6", i),
+            i => Assert.Equal("6", i),
+            i => Assert.Equal("8", i),
+            i => Assert.Equal("10", i),
+            i => Assert.Equal("11", i),
+            i => Assert.Equal("12", i));
+    }
 }

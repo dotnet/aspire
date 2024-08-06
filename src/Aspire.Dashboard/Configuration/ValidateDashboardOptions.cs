@@ -55,6 +55,11 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
                 break;
         }
 
+        if (options.Frontend.MaxConsoleLogCount <= 0)
+        {
+            errorMessages.Add($"{DashboardConfigNames.DashboardFrontendMaxConsoleLogCountName.ConfigKey} must be greater than zero.");
+        }
+
         if (!options.Otlp.TryParseOptions(out var otlpParseErrorMessage))
         {
             errorMessages.Add(otlpParseErrorMessage);
@@ -100,25 +105,25 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
                     }
                     break;
                 case ResourceClientAuthMode.Certificate:
-                    switch (options.ResourceServiceClient.ClientCertificates.Source)
+                    switch (options.ResourceServiceClient.ClientCertificate.Source)
                     {
                         case DashboardClientCertificateSource.File:
-                            if (string.IsNullOrEmpty(options.ResourceServiceClient.ClientCertificates.FilePath))
+                            if (string.IsNullOrEmpty(options.ResourceServiceClient.ClientCertificate.FilePath))
                             {
-                                errorMessages.Add("Dashboard:ResourceServiceClient:ClientCertificate:Source is \"File\", but no Dashboard:ResourceServiceClient:ClientCertificate:FilePath is configured.");
+                                errorMessages.Add($"{DashboardConfigNames.ResourceServiceClientCertificateSourceName.ConfigKey} is \"File\", but no {DashboardConfigNames.ResourceServiceClientCertificateFilePathName.ConfigKey} is configured.");
                             }
                             break;
                         case DashboardClientCertificateSource.KeyStore:
-                            if (string.IsNullOrEmpty(options.ResourceServiceClient.ClientCertificates.Subject))
+                            if (string.IsNullOrEmpty(options.ResourceServiceClient.ClientCertificate.Subject))
                             {
-                                errorMessages.Add("Dashboard:ResourceServiceClient:ClientCertificate:Source is \"KeyStore\", but no Dashboard:ResourceServiceClient:ClientCertificate:Subject is configured.");
+                                errorMessages.Add($"{DashboardConfigNames.ResourceServiceClientCertificateSourceName.ConfigKey} is \"KeyStore\", but no {DashboardConfigNames.ResourceServiceClientCertificateSubjectName.ConfigKey} is configured.");
                             }
                             break;
                         case null:
-                            errorMessages.Add($"The resource service client is configured to use certificates, but no certificate source is specified. Specify Dashboard:ResourceServiceClient:ClientCertificate:Source. Possible values: {string.Join(", ", typeof(DashboardClientCertificateSource).GetEnumNames())}");
+                            errorMessages.Add($"The resource service client is configured to use certificates, but no certificate source is specified. Specify {DashboardConfigNames.ResourceServiceClientCertificateSourceName.ConfigKey}. Possible values: {string.Join(", ", typeof(DashboardClientCertificateSource).GetEnumNames())}");
                             break;
                         default:
-                            errorMessages.Add($"Unexpected resource service client certificate source: {options.ResourceServiceClient.ClientCertificates.Source}");
+                            errorMessages.Add($"Unexpected resource service client certificate source: {options.ResourceServiceClient.ClientCertificate.Source}");
                             break;
                     }
                     break;

@@ -109,6 +109,32 @@ public static class ConsoleStresser
         Console.WriteLine("\u001b[1mThis text is bold using ANSI escape codes.\u001b[0m");
         Console.WriteLine("\u001b[4mThis text is underlined using ANSI escape codes.\u001b[0m");
         Console.WriteLine("\u001b[31;1;4mThis text is red, bold, and underlined.\u001b[0m");
+        Console.WriteLine("\u001b[31;3;4mThis text is red, italic and underlined.\u001b[0m");
+        Console.WriteLine("\u001b[31;3;4;9mThis text is red, italic and strikethrough.\u001b[0m");
+        Console.WriteLine("\u001b[31;42;3;4mThis text is red, green background, italic and underlined.\u001b[0m");
+
+        Console.WriteLine();
+        Console.WriteLine("\u001b[38;5;221mThis text is a Xterm text color using ANSI escape codes.\u001b[0m");
+        Console.WriteLine("\u001b[48;5;95mThis text is a Xterm bakground color using ANSI escape codes.\u001b[0m");
+        Console.WriteLine("\u001b[38;5;221m\u001b[48;5;95mThis text is a Xterm text and bakground color using ANSI escape codes.\u001b[0m");
+        Console.WriteLine("\u001b[38;5;243mThis text is a Xterm gray text color using ANSI escape codes.\u001b[0m");
+        Console.WriteLine("\u001b[48;5;243mThis text is a Xterm gray background color using ANSI escape codes.\u001b[0m");
+        Console.WriteLine("\u001b[38;5;1mThis text is a Xterm red color using ANSI escape codes.\u001b[0m");
+        Console.WriteLine("\u001b[38;5;9mThis text is a Xterm bright red color using ANSI escape codes.\u001b[0m");
+        Console.WriteLine("\u001b[48;5;1mThis text is a Xterm red background color using ANSI escape codes.\u001b[0m");
+        Console.WriteLine("\u001b[48;5;9mThis text is a Xterm bright red background color using ANSI escape codes.\u001b[0m");
+        Console.WriteLine("\u001b[3;38;5;9mThis text is a Xterm bright red color and italic using ANSI escape codes.\u001b[0m");
+        Console.WriteLine("\u001b[4;38;5;9mThis text is a Xterm bright red color and underlined using ANSI escape codes.\u001b[0m");
+        Console.WriteLine("\u001b[9;38;5;9mThis text is a Xterm bright red color and strikethrough using ANSI escape codes.\u001b[0m");
+
+        Console.WriteLine();
+        Console.WriteLine("\u001b[38;5;321mThis text is a Xterm text color using invalid color value.\u001b[0m");
+        Console.WriteLine("\u001b[38;5;100This text is a Xterm text color using unfinished escape sequence (m here to finish the sequence late).\u001b[0m");
+        Console.WriteLine("\u001b[38;5;100This text is a Xterm text color using unfinished escape sequence.\u001b[0m");
+
+        Console.WriteLine();
+        Console.WriteLine("A link in escape sequence: \u001b]8;;https://example.com\u001b\\The link text\u001b]8;;\u001b\\");
+        Console.WriteLine("A link with formatted link text in escape sequnce: \u001b]8;;https://example.com\u001b\\The \u001b[38;5;100mlink\u001b[0m formatted text\u001b]8;;\u001b\\");
 
         Console.WriteLine();
         Console.WriteLine("HTML:");

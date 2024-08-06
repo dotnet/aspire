@@ -107,12 +107,6 @@ public class SchemaTests
                     }
                 },
 
-                { "CdkResourceWithChildResource", (IDistributedApplicationBuilder builder) =>
-                    {
-                        builder.AddPostgres("postgres").PublishAsAzurePostgresFlexibleServer().AddDatabase("db");
-                    }
-                },
-
                 { "BasicDockerfile", (IDistributedApplicationBuilder builder) =>
                     {
                         builder.AddExecutable("foo", "bar", "baz", "one", "two", "three").PublishAsDockerFile();
@@ -201,7 +195,8 @@ public class SchemaTests
     {
         _ = testCaseName;
 
-        var builder = TestDistributedApplicationBuilder.Create(["--publisher", "manifest", "--output-path", "not-used.json"]);
+        string manifestDir = Directory.CreateTempSubdirectory(testCaseName).FullName;
+        var builder = TestDistributedApplicationBuilder.Create(["--publisher", "manifest", "--output-path", Path.Combine(manifestDir, "not-used.json")]);
         builder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
         configurator(builder);
 

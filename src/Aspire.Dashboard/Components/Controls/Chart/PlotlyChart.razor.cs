@@ -17,7 +17,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components;
 
-public partial class PlotlyChart : ChartBase, IAsyncDisposable
+public partial class PlotlyChart : ChartBase
 {
     [Inject]
     public required IJSRuntime JS { get; init; }
@@ -45,7 +45,7 @@ public partial class PlotlyChart : ChartBase, IAsyncDisposable
                 """;
     }
 
-    protected override async Task OnChartUpdated(List<ChartTrace> traces, List<DateTimeOffset> xValues, List<ChartExemplar> exemplars, bool tickUpdate, DateTimeOffset inProgressDataTime)
+    protected override async Task OnChartUpdatedAsync(List<ChartTrace> traces, List<DateTimeOffset> xValues, List<ChartExemplar> exemplars, bool tickUpdate, DateTimeOffset inProgressDataTime, CancellationToken cancellationToken)
     {
         Debug.Assert(_jsModule != null, "The module should be initialized before chart data is sent to control.");
 
@@ -171,34 +171,27 @@ public partial class PlotlyChart : ChartBase, IAsyncDisposable
     // The first data is used to initialize the chart. The module needs to be ready first.
     protected override bool ReadyForData() => _jsModule != null;
 
-    public async ValueTask DisposeAsync()
+    protected override async ValueTask DisposeAsync(bool disposing)
     {
-        if (_chartInteropReference != null)
-        {
-            _chartInteropReference.Value.Dispose();
-            _chartInteropReference.Dispose();
-        }
+        await base.DisposeAsync(disposing);
 
-        await JSInteropHelpers.SafeDisposeAsync(_jsModule);
+        if (disposing)
+        {
+            _chartInteropReference?.Dispose();
+            await JSInteropHelpers.SafeDisposeAsync(_jsModule);
+        }
     }
 
     /// <summary>
     /// Handle user clicking on a trace point in the browser.
     /// </summary>
-    private sealed class ChartInterop : IDisposable
+    private sealed class ChartInterop
     {
         private readonly PlotlyChart _plotlyChart;
-        private readonly CancellationTokenSource _cts;
 
         public ChartInterop(PlotlyChart plotlyChart)
         {
             _plotlyChart = plotlyChart;
-            _cts = new CancellationTokenSource();
-        }
-
-        public void Dispose()
-        {
-            _cts.Cancel();
         }
 
         [JSInvokable]
@@ -207,11 +200,11 @@ public partial class PlotlyChart : ChartBase, IAsyncDisposable
             var available = await MetricsHelpers.WaitForSpanToBeAvailableAsync(
                 traceId,
                 spanId,
-                _plotlyChart.GetSpan,
+                _plotlyChart.TelemetryRepository.GetSpan,
                 _plotlyChart.DialogService,
                 _plotlyChart.InvokeAsync,
                 _plotlyChart.DialogsLoc,
-                _cts.Token).ConfigureAwait(false);
+                _plotlyChart.CancellationToken).ConfigureAwait(false);
 
             if (available)
             {

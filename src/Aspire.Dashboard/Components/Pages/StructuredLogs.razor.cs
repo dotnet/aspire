@@ -1,7 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Dashboard.Components.Dialogs;
+using Aspire.Dashboard.Components.Layout;
+using Aspire.Dashboard.Components.Resize;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -9,7 +13,7 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -28,13 +32,12 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private bool _applicationChanged;
     private CancellationTokenSource? _filterCts;
     private string? _elementIdBeforeDetailsViewOpened;
+    private AspirePageContentLayout? _contentLayout;
+    private string _filter = string.Empty;
 
     public string BasePath => DashboardUrls.StructuredLogsBasePath;
     public string SessionStorageKey => "StructuredLogs_PageState";
     public StructuredLogsPageViewModel PageViewModel { get; set; } = null!;
-
-    [Parameter]
-    public string? ApplicationName { get; set; }
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
@@ -46,7 +49,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     public required IDialogService DialogService { get; init; }
 
     [Inject]
-    public required ProtectedSessionStorage SessionStorage { get; init; }
+    public required ISessionStorage SessionStorage { get; init; }
 
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
@@ -55,7 +58,22 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     public required BrowserTimeProvider TimeProvider { get; init; }
 
     [Inject]
-    public required ILogger<Traces> Logger { get; init; }
+    public required ILogger<StructuredLogs> Logger { get; init; }
+
+    [Inject]
+    public required DimensionManager DimensionManager { get; set; }
+
+    [Inject]
+    public required IOptions<DashboardOptions> DashboardOptions { get; init; }
+
+    [Inject]
+    public required IMessageService MessageService { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
+
+    [Parameter]
+    public string? ApplicationName { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery]
@@ -75,12 +93,25 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     public StructureLogsDetailsViewModel? SelectedLogEntry { get; set; }
 
-    private ValueTask<GridItemsProviderResult<OtlpLogEntry>> GetData(GridItemsProviderRequest<OtlpLogEntry> request)
+    private async ValueTask<GridItemsProviderResult<OtlpLogEntry>> GetData(GridItemsProviderRequest<OtlpLogEntry> request)
     {
         ViewModel.StartIndex = request.StartIndex;
         ViewModel.Count = request.Count;
 
         var logs = ViewModel.GetLogs();
+
+        if (DashboardOptions.Value.TelemetryLimits.MaxLogCount == logs.TotalItemCount && !TelemetryRepository.HasDisplayedMaxLogLimitMessage)
+        {
+            await MessageService.ShowMessageBarAsync(options =>
+            {
+                options.Title = Loc[nameof(Dashboard.Resources.StructuredLogs.MessageExceededLimitTitle)];
+                options.Body = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.StructuredLogs.MessageExceededLimitBody)], DashboardOptions.Value.TelemetryLimits.MaxLogCount);
+                options.Intent = MessageIntent.Info;
+                options.Section = "MessagesTop";
+                options.AllowDismiss = true;
+            });
+            TelemetryRepository.HasDisplayedMaxLogLimitMessage = true;
+        }
 
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.
         // The workaround is to put the count inside a control and explicitly update and refresh the control.
@@ -88,29 +119,35 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
         TelemetryRepository.MarkViewedErrorLogs(ViewModel.ApplicationKey);
 
-        return ValueTask.FromResult(GridItemsProviderResult.From(logs.Items, logs.TotalItemCount));
+        return GridItemsProviderResult.From(logs.Items, logs.TotalItemCount);
     }
 
     protected override Task OnInitializedAsync()
     {
         if (!string.IsNullOrEmpty(TraceId))
         {
-            ViewModel.AddFilter(new LogFilter { Field = "TraceId", Condition = FilterCondition.Equals, Value = TraceId });
+            ViewModel.AddFilter(new LogFilter
+            {
+                Field = LogFilter.KnownTraceIdField, Condition = FilterCondition.Equals, Value = TraceId
+            });
         }
         if (!string.IsNullOrEmpty(SpanId))
         {
-            ViewModel.AddFilter(new LogFilter { Field = "SpanId", Condition = FilterCondition.Equals, Value = SpanId });
+            ViewModel.AddFilter(new LogFilter
+            {
+                Field = LogFilter.KnownSpanIdField, Condition = FilterCondition.Equals, Value = SpanId
+            });
         }
 
         _allApplication = new()
         {
             Id = null,
-            Name = Loc[nameof(Dashboard.Resources.ControlsStrings.All)]
+            Name = ControlsStringsLoc[nameof(Dashboard.Resources.ControlsStrings.All)]
         };
 
         _logLevels = new List<SelectViewModel<LogLevel?>>
         {
-            new SelectViewModel<LogLevel?> { Id = null, Name = $"({Loc[nameof(Dashboard.Resources.ControlsStrings.All)]})" },
+            new SelectViewModel<LogLevel?> { Id = null, Name = ControlsStringsLoc[nameof(Dashboard.Resources.ControlsStrings.All)] },
             new SelectViewModel<LogLevel?> { Id = LogLevel.Trace, Name = "Trace" },
             new SelectViewModel<LogLevel?> { Id = LogLevel.Debug, Name = "Debug" },
             new SelectViewModel<LogLevel?> { Id = LogLevel.Information, Name = "Information" },
@@ -119,7 +156,11 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             new SelectViewModel<LogLevel?> { Id = LogLevel.Critical, Name = "Critical" },
         };
 
-        PageViewModel = new StructuredLogsPageViewModel { SelectedLogLevel = _logLevels[0], SelectedApplication = _allApplication };
+        PageViewModel = new StructuredLogsPageViewModel
+        {
+            SelectedLogLevel = _logLevels[0],
+            SelectedApplication = _allApplication
+        };
 
         UpdateApplications();
         _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
@@ -148,7 +189,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         _applicationChanged = true;
 
-        return this.AfterViewModelChangedAsync();
+        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
     private async Task HandleSelectedLogLevelChangedAsync()
@@ -156,7 +197,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         _applicationChanged = true;
 
         await ClearSelectedLogEntryAsync();
-        await this.AfterViewModelChangedAsync();
+        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
     private void UpdateSubscription()
@@ -173,7 +214,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
     }
 
-    private async Task OnShowPropertiesAsync(OtlpLogEntry entry, string buttonId)
+    private async Task OnShowPropertiesAsync(OtlpLogEntry entry, string? buttonId)
     {
         _elementIdBeforeDetailsViewOpened = buttonId;
 
@@ -206,6 +247,11 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     private async Task OpenFilterAsync(LogFilter? entry)
     {
+        if (_contentLayout is not null)
+        {
+            await _contentLayout.CloseMobileToolbarAsync();
+        }
+
         var logPropertyKeys = TelemetryRepository.GetLogPropertyKeys(PageViewModel.SelectedApplication.Id?.GetApplicationKey());
 
         var title = entry is not null ? Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEditFilter)] : Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter)];
@@ -219,8 +265,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         };
         var data = new FilterDialogViewModel
         {
-            Filter = entry,
-            LogPropertyKeys = logPropertyKeys
+            Filter = entry, LogPropertyKeys = logPropertyKeys
         };
         await DialogService.ShowPanelAsync<FilterDialog>(data, parameters);
     }
@@ -241,14 +286,13 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             await ClearSelectedLogEntryAsync();
         }
 
-        await this.AfterViewModelChangedAsync();
+        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
     private void HandleFilter(ChangeEventArgs args)
     {
         if (args.Value is string newFilter)
         {
-            PageViewModel.Filter = newFilter;
             _filterCts?.Cancel();
 
             // Debouncing logic. Apply the filter after a delay.
@@ -264,16 +308,23 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
     }
 
-    private async Task HandleClearAsync()
+    private async Task HandleAfterFilterBindAsync()
     {
+        if (!string.IsNullOrEmpty(_filter))
+        {
+            return;
+        }
+
         if (_filterCts is not null)
         {
             await _filterCts.CancelAsync();
         }
 
         ViewModel.FilterText = string.Empty;
+
         await ClearSelectedLogEntryAsync();
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
+        await this.AfterViewModelChangedAsync(_contentLayout, true);
     }
 
     private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
@@ -300,7 +351,17 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         if (firstRender)
         {
             await JS.InvokeVoidAsync("initializeContinuousScroll");
+            DimensionManager.OnBrowserDimensionsChanged += OnBrowserResize;
         }
+    }
+
+    private void OnBrowserResize(object? o, EventArgs args)
+    {
+        InvokeAsync(async () =>
+        {
+            await JS.InvokeVoidAsync("resetContinuousScrollPosition");
+            await JS.InvokeVoidAsync("initializeContinuousScroll");
+        });
     }
 
     public void Dispose()
@@ -308,6 +369,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         _applicationsSubscription?.Dispose();
         _logsSubscription?.Dispose();
         _filterCts?.Dispose();
+        DimensionManager.OnBrowserDimensionsChanged -= OnBrowserResize;
     }
 
     public string GetUrlFromSerializableViewModel(StructuredLogsPageState serializable)
@@ -326,7 +388,6 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         return new StructuredLogsPageState
         {
-            Filter = PageViewModel.Filter,
             LogLevelText = PageViewModel.SelectedLogLevel.Id?.ToString().ToLowerInvariant(),
             SelectedApplication = PageViewModel.SelectedApplication.Id is not null ? PageViewModel.SelectedApplication.Name : null,
             Filters = ViewModel.Filters
@@ -335,7 +396,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     public void UpdateViewModelFromQuery(StructuredLogsPageViewModel viewModel)
     {
-        PageViewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
+        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
         ViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
 
         if (LogLevelText is not null && Enum.TryParse<LogLevel>(LogLevelText, ignoreCase: true, out var logLevel))
@@ -368,14 +429,12 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     public class StructuredLogsPageViewModel
     {
-        public string Filter { get; set; } = string.Empty;
         public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }
         public SelectViewModel<LogLevel?> SelectedLogLevel { get; set; } = default!;
     }
 
     public class StructuredLogsPageState
     {
-        public required string Filter { get; set; }
         public string? SelectedApplication { get; set; }
         public string? LogLevelText { get; set; }
         public required IReadOnlyCollection<LogFilter> Filters { get; set; }

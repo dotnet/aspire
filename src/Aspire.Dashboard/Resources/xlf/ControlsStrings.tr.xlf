@@ -3,8 +3,13 @@
   <file datatype="xml" source-language="en" target-language="tr" original="../ControlsStrings.resx">
     <body>
       <trans-unit id="All">
-        <source>All</source>
-        <target state="translated">Tümü</target>
+        <source>(All)</source>
+        <target state="needs-review-translation">Tümü</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ApplicationLower">
+        <source>application</source>
+        <target state="new">application</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerAllTags">
@@ -30,11 +35,6 @@
       <trans-unit id="ChartContainerGraphTab">
         <source>Graph</source>
         <target state="translated">Graph</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ChartContainerNoneSelected">
-        <source>(None)</source>
-        <target state="translated">(Yok)</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">
@@ -177,6 +177,16 @@
         <target state="translated">Ad</target>
         <note />
       </trans-unit>
+      <trans-unit id="None">
+        <source>(None)</source>
+        <target state="new">(None)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PageToolbarLandmark">
+        <source>Page toolbar</source>
+        <target state="new">Page toolbar</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlotlyChartCount">
         <source>Count</source>
         <target state="translated">Sayı</target>
@@ -212,11 +222,6 @@
         <target state="translated">Değer</target>
         <note />
       </trans-unit>
-      <trans-unit id="ReplicaSetLower">
-        <source>replica set</source>
-        <target state="translated">çoğaltma kümesi</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceDetailsEndpointsHeader">
         <source>Endpoints</source>
         <target state="translated">Uç Noktalar</target>
@@ -237,9 +242,9 @@
         <target state="translated">{0} ({1} çoğaltması)</target>
         <note>{0} is a resource name, {1} is a replica set name</note>
       </trans-unit>
-      <trans-unit id="SelectAResource">
-        <source>Select a resource</source>
-        <target state="translated">Kaynak seçin</target>
+      <trans-unit id="ResourceLabel">
+        <source>Resource</source>
+        <target state="new">Resource</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">
@@ -247,9 +252,19 @@
         <target state="translated">Uygulama seçin</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanDetailsBacklinksHeader">
+        <source>Backlinks</source>
+        <target state="new">Backlinks</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanDetailsContextHeader">
         <source>Context</source>
         <target state="new">Context</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsDetailsColumnHeader">
+        <source>Details</source>
+        <target state="new">Details</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsDuration">
@@ -262,6 +277,11 @@
         <target state="translated">Etkinlikler</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanDetailsLinksHeader">
+        <source>Links</source>
+        <target state="new">Links</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanDetailsResource">
         <source>Resource &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="translated">Kaynak &lt;strong&gt;{0}&lt;/strong&gt;</target>
@@ -272,9 +292,19 @@
         <target state="translated">Kaynak</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanDetailsSpanColumnHeader">
+        <source>Span</source>
+        <target state="new">Span</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanDetailsSpanHeader">
         <source>Span</source>
         <target state="translated">Yayılma</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsSpanPrefix">
+        <source>Span</source>
+        <target state="new">Span</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsStartTime">

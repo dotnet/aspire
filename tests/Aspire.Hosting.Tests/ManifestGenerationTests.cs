@@ -3,16 +3,12 @@
 
 using System.Text.Json;
 using Aspire.Components.Common.Tests;
-using Aspire.Hosting.Garnet;
 using Aspire.Hosting.MongoDB;
-using Aspire.Hosting.MySql;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Publishing;
-using Aspire.Hosting.RabbitMQ;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
-using Aspire.Hosting.Valkey;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -264,7 +260,7 @@ public class ManifestGenerationTests
         Assert.Equal("container.v0", container.GetProperty("type").GetString());
         Assert.Equal("{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port}", container.GetProperty("connectionString").GetString());
     }
-    
+
     [Fact]
     public void EnsureAllPostgresManifestTypesHaveVersion0Suffix()
     {
@@ -285,44 +281,6 @@ public class ManifestGenerationTests
 
         var db = resources.GetProperty("postgresdatabase");
         Assert.Equal("value.v0", db.GetProperty("type").GetString());
-    }
-
-    [Fact]
-    public void EnsureAllRabbitMQManifestTypesHaveVersion0Suffix()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddRabbitMQ("rabbitcontainer");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var server = resources.GetProperty("rabbitcontainer");
-        Assert.Equal("container.v0", server.GetProperty("type").GetString());
-    }
-
-    [Fact]
-    public void EnsureAllKafkaManifestTypesHaveVersion0Suffix()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddKafka("kafkacontainer");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var server = resources.GetProperty("kafkacontainer");
-        Assert.Equal("container.v0", server.GetProperty("type").GetString());
     }
 
     [Fact]
@@ -500,18 +458,12 @@ public class ManifestGenerationTests
                     "HTTP_PORTS": "{integrationservicea.bindings.http.targetPort}",
                     "SKIP_RESOURCES": "None",
                     "ConnectionStrings__tempdb": "{tempdb.connectionString}",
-                    "ConnectionStrings__mysqldb": "{mysqldb.connectionString}",
                     "ConnectionStrings__redis": "{redis.connectionString}",
-                    "ConnectionStrings__garnet": "{garnet.connectionString}",
-                    "ConnectionStrings__valkey": "{valkey.connectionString}",
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
-                    "ConnectionStrings__rabbitmq": "{rabbitmq.connectionString}",
                     "ConnectionStrings__mymongodb": "{mymongodb.connectionString}",
                     "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
-                    "ConnectionStrings__kafka": "{kafka.connectionString}",
                     "ConnectionStrings__cosmos": "{cosmos.connectionString}",
-                    "ConnectionStrings__eventhubns": "{eventhubns.connectionString}",
-                    "ConnectionStrings__milvus": "{milvus.connectionString}"
+                    "ConnectionStrings__eventhubns": "{eventhubns.connectionString}"
                   },
                   "bindings": {
                     "http": {
@@ -547,57 +499,10 @@ public class ManifestGenerationTests
                   "type": "value.v0",
                   "connectionString": "{sqlserver.connectionString};Database=tempdb"
                 },
-                "mysql": {
-                  "type": "container.v0",
-                  "connectionString": "Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql-password.value}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{MySqlContainerImageTags.Image}}:{{MySqlContainerImageTags.Tag}}",
-                  "env": {
-                    "MYSQL_ROOT_PASSWORD": "{mysql-password.value}",
-                    "MYSQL_DATABASE": "mysqldb"
-                  },
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 3306
-                    }
-                  }
-                },
-                "mysqldb": {
-                  "type": "value.v0",
-                  "connectionString": "{mysql.connectionString};Database=mysqldb"
-                },
                 "redis": {
                   "type": "container.v0",
                   "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
                   "image": "{{TestConstants.AspireTestContainerRegistry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 6379
-                    }
-                  }
-                },
-                "garnet": {
-                  "type": "container.v0",
-                  "connectionString": "{garnet.bindings.tcp.host}:{garnet.bindings.tcp.port}",
-                  "image": "{{GarnetContainerImageTags.Registry}}/{{GarnetContainerImageTags.Image}}:{{GarnetContainerImageTags.Tag}}",
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 6379
-                    }
-                  }
-                },
-                "valkey": {
-                  "type": "container.v0",
-                  "connectionString": "{valkey.bindings.tcp.host}:{valkey.bindings.tcp.port}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{ValkeyContainerImageTags.Image}}:{{ValkeyContainerImageTags.Tag}}",
                   "bindings": {
                     "tcp": {
                       "scheme": "tcp",
@@ -630,23 +535,6 @@ public class ManifestGenerationTests
                 "postgresdb": {
                   "type": "value.v0",
                   "connectionString": "{postgres.connectionString};Database=postgresdb"
-                },
-                "rabbitmq": {
-                  "type": "container.v0",
-                  "connectionString": "amqp://guest:{rabbitmq-password.value}@{rabbitmq.bindings.tcp.host}:{rabbitmq.bindings.tcp.port}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{RabbitMQContainerImageTags.Image}}:{{RabbitMQContainerImageTags.Tag}}",
-                  "env": {
-                    "RABBITMQ_DEFAULT_USER": "guest",
-                    "RABBITMQ_DEFAULT_PASS": "{rabbitmq-password.value}"
-                  },
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 5672
-                    }
-                  }
                 },
                 "mongodb": {
                   "type": "container.v0",
@@ -685,30 +573,6 @@ public class ManifestGenerationTests
                   "type": "value.v0",
                   "connectionString": "{oracledatabase.connectionString}/freepdb1"
                 },
-                "kafka": {
-                  "type": "container.v0",
-                  "connectionString": "{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{KafkaContainerImageTags.Image}}:{{KafkaContainerImageTags.Tag}}",
-                  "env": {
-                    "KAFKA_LISTENERS": "PLAINTEXT://localhost:29092,CONTROLLER://localhost:29093,PLAINTEXT_HOST://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:9093",
-                    "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT",
-                    "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://{kafka.bindings.tcp.host}:29092,PLAINTEXT_HOST://{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port},PLAINTEXT_INTERNAL://{kafka.bindings.internal.host}:{kafka.bindings.internal.port}"
-                  },
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 9092
-                    },
-                    "internal": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 9093
-                    }
-                  }
-                },
                 "cosmos": {
                   "type": "azure.bicep.v0",
                   "connectionString": "{cosmos.secretOutputs.connectionString}",
@@ -724,39 +588,6 @@ public class ManifestGenerationTests
                   "params": {
                     "principalId": "",
                     "principalType": ""
-                  }
-                },
-                "milvusApiKey": {
-                  "type": "parameter.v0",
-                  "value": "{milvusApiKey.inputs.value}",
-                  "inputs": {
-                    "value": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "milvus": {
-                  "type": "container.v0",
-                  "connectionString": "Endpoint={milvus.bindings.grpc.url};Key={milvusApiKey.value}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/milvusdb/milvus:2.3-latest",
-                  "args": [
-                    "milvus",
-                    "run",
-                    "standalone"
-                  ],
-                  "env": {
-                    "COMMON_STORAGETYPE": "local",
-                    "ETCD_USE_EMBED": "true",
-                    "ETCD_DATA_DIR": "/var/lib/milvus/etcd",
-                    "COMMON_SECURITY_AUTHORIZATIONENABLED": "true"
-                  },
-                  "bindings": {
-                    "grpc": {
-                      "scheme": "http",
-                      "protocol": "tcp",
-                      "transport": "http2",
-                      "targetPort": 19530
-                    }
                   }
                 },
                 "sqlserver-password": {
@@ -777,21 +608,6 @@ public class ManifestGenerationTests
                     }
                   }
                 },
-                "mysql-password": {
-                  "type": "parameter.v0",
-                  "value": "{mysql-password.inputs.value}",
-                  "inputs": {
-                    "value": {
-                      "type": "string",
-                      "secret": true,
-                      "default": {
-                        "generate": {
-                          "minLength": 22
-                        }
-                      }
-                    }
-                  }
-                },
                 "postgres-password": {
                   "type": "parameter.v0",
                   "value": "{postgres-password.inputs.value}",
@@ -802,22 +618,6 @@ public class ManifestGenerationTests
                       "default": {
                         "generate": {
                           "minLength": 22
-                        }
-                      }
-                    }
-                  }
-                },
-                "rabbitmq-password": {
-                  "type": "parameter.v0",
-                  "value": "{rabbitmq-password.inputs.value}",
-                  "inputs": {
-                    "value": {
-                      "type": "string",
-                      "secret": true,
-                      "default": {
-                        "generate": {
-                          "minLength": 22,
-                          "special": false
                         }
                       }
                     }
