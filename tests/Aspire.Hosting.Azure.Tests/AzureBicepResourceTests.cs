@@ -1434,6 +1434,39 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task AsAzurePostgresFlexibleServerMultipleConfigurationPasses()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        builder.Configuration["Parameters:usr"] = "user";
+        builder.Configuration["Parameters:pwd"] = "password";
+
+        var usr = builder.AddParameter("usr");
+        var pwd = builder.AddParameter("pwd", secret: true);
+
+        IResourceBuilder<AzurePostgresResource>? azurePostgres = null;
+        var callbackCount = 0;
+        var postgres = builder.AddPostgres("postgres", usr, pwd).AsAzurePostgresFlexibleServer((resource, _, _) =>
+        {
+            Assert.NotNull(resource);
+            callbackCount += 1;
+        });
+
+        postgres.ConfigureAzurePostgreFlexibleServer((resource, _, _) =>
+        {
+            Assert.NotNull(resource);
+            azurePostgres = resource;
+            callbackCount += 1;
+        });
+
+        _ = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
+
+        Assert.Equal(2, callbackCount);
+        // Only set on the second callback call
+        Assert.NotNull(azurePostgres);
+    }
+
+    [Fact]
     public async Task AsAzurePostgresFlexibleServerViaPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);

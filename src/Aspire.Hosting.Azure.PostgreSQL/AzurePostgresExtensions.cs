@@ -89,10 +89,20 @@ public static class AzurePostgresExtensions
 
             var azureResource = (AzurePostgresResource)construct.Resource;
             var azureResourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(azureResource);
-            configureResource?.Invoke(azureResourceBuilder, construct, postgres);
+
+            foreach (var configureResource in azureResource.ResourceConfigurations)
+            {
+                configureResource.Invoke(azureResourceBuilder, construct, postgres);
+            }
         };
 
         var resource = new AzurePostgresResource(builder.Resource, configureConstruct);
+
+        if (configureResource is not null)
+        {
+            resource.AddResourceConfiguration(configureResource);
+        }
+
         var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource)
                                                         .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
                                                         .WithManifestPublishingCallback(resource.WriteToManifest)
@@ -170,5 +180,25 @@ public static class AzurePostgresExtensions
         return builder.PublishAsAzurePostgresFlexibleServerInternal(
             configureResource,
             useProvisioner: true);
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="configureResource"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    public static IResourceBuilder<PostgresServerResource> ConfigureAzurePostgreFlexibleServer(
+        this IResourceBuilder<PostgresServerResource> builder,
+#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer> configureResource)
+#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    {
+        var bicepAnnotation = builder.Resource.Annotations.OfType<AzureBicepResourceAnnotation>().SingleOrDefault()
+            ?? throw new InvalidOperationException("The resource must be configured as an Azure Postgres Flexible Server to use this method.");
+        var resource = (AzurePostgresResource)bicepAnnotation.Resource;
+        resource.AddResourceConfiguration(configureResource);
+        return builder;
     }
 }

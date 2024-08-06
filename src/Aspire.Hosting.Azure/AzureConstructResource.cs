@@ -213,3 +213,30 @@ public class ResourceModuleConstruct : Infrastructure
     /// </summary>
     public Parameter PrincipalNameParameter => new Parameter("principalName");
 }
+
+/// <summary>
+/// 
+/// </summary>
+/// <typeparam name="TResource"></typeparam>
+/// <typeparam name="TAzureResource"></typeparam>
+/// <param name="name"></param>
+/// <param name="configureConstruct"></param>
+public class AzureConstructResource<TResource, TAzureResource>(string name, Action<ResourceModuleConstruct> configureConstruct) :
+    AzureConstructResource(name, configureConstruct)
+    where TResource : IResource
+    where TAzureResource : global::Azure.Provisioning.Resource
+{
+    /// <summary>
+    /// 
+    /// </summary>
+    public List<Action<IResourceBuilder<TResource>, ResourceModuleConstruct, TAzureResource>> ResourceConfigurations { get; } = [];
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="configuration"></param>
+    public void AddResourceConfiguration(Action<IResourceBuilder<TResource>, ResourceModuleConstruct, TAzureResource> configuration)
+    {
+        ResourceConfigurations.Add(configuration);
+    }
+}

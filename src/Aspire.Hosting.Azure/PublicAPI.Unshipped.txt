@@ -1,2 +1,6 @@
 #nullable enable
+Aspire.Hosting.AzureConstructResource<TResource, TAzureResource>
+Aspire.Hosting.AzureConstructResource<TResource, TAzureResource>.AddResourceConfiguration(System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<TResource>!, Aspire.Hosting.ResourceModuleConstruct!, TAzureResource!>! configuration) -> void
+Aspire.Hosting.AzureConstructResource<TResource, TAzureResource>.AzureConstructResource(string! name, System.Action<Aspire.Hosting.ResourceModuleConstruct!>! configureConstruct) -> void
+Aspire.Hosting.AzureConstructResource<TResource, TAzureResource>.ResourceConfigurations.get -> System.Collections.Generic.List<System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<TResource>!, Aspire.Hosting.ResourceModuleConstruct!, TAzureResource!>!>!
 static Aspire.Hosting.AzureConstructResourceExtensions.ConfigureConstruct<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, System.Action<Aspire.Hosting.ResourceModuleConstruct!>! configure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
