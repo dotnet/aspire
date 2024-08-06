@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using Aspire.Components.Common.Tests;
-using Aspire.Hosting.MongoDB;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Redis;
@@ -459,7 +458,6 @@ public class ManifestGenerationTests
                     "SKIP_RESOURCES": "None",
                     "ConnectionStrings__redis": "{redis.connectionString}",
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
-                    "ConnectionStrings__mymongodb": "{mymongodb.connectionString}",
                     "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
                     "ConnectionStrings__cosmos": "{cosmos.connectionString}",
                     "ConnectionStrings__eventhubns": "{eventhubns.connectionString}"
@@ -513,23 +511,6 @@ public class ManifestGenerationTests
                 "postgresdb": {
                   "type": "value.v0",
                   "connectionString": "{postgres.connectionString};Database=postgresdb"
-                },
-                "mongodb": {
-                  "type": "container.v0",
-                  "connectionString": "mongodb://{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{MongoDBContainerImageTags.Image}}:{{MongoDBContainerImageTags.Tag}}",
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 27017
-                    }
-                  }
-                },
-                "mymongodb": {
-                  "type": "value.v0",
-                  "connectionString": "{mongodb.connectionString}/mymongodb"
                 },
                 "oracledatabase": {
                   "type": "container.v0",

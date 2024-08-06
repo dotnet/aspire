@@ -21,10 +21,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
 {
     builder.AddNpgsqlDbContext<NpgsqlDbContext>("postgresdb");
 }
-if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
-{
-    builder.AddMongoDBClient("mymongodb");
-}
 if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
 {
     builder.AddAzureEventHubProducerClient("eventhubsns", settings => settings.EventHubName = "hub");
@@ -73,11 +69,6 @@ app.MapGet("/pid", () => Environment.ProcessId);
 if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
 {
     app.MapRedisApi();
-}
-
-if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
-{
-    app.MapMongoDBApi();
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.postgres))
