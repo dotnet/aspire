@@ -2,14 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
-using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Polly;
 using Xunit;
 using Xunit.Abstractions;
@@ -27,7 +25,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             .AddRetry(new() { MaxRetryAttempts = int.MaxValue, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
             .Build();
 
-        var builder = CreateDistributedApplicationBuilder();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var sqlserver = builder.AddSqlServer("sqlserver");
         var tempDb = sqlserver.AddDatabase("tempdb");
@@ -92,7 +90,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = CreateDistributedApplicationBuilder();
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
             var sqlserver1 = builder1.AddSqlServer("sqlserver");
             var masterdb1 = sqlserver1.AddDatabase("master");
@@ -197,8 +195,9 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 await app1.StopAsync();
             }
 
-            var builder2 = CreateDistributedApplicationBuilder();
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var passwordParameter2 = builder2.AddParameter("pwd");
+
             builder2.Configuration["Parameters:pwd"] = password;
 
             var sqlserver2 = builder2.AddSqlServer("sqlserver", passwordParameter2);
@@ -278,15 +277,5 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
         }
-    }
-
-    private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
-    {
-        // Don't use custom registry since the image is coming from mcr.microsoft.com
-        var builder = TestDistributedApplicationBuilder.Create();
-        builder.Services.AddXunitLogging(testOutputHelper);
-        builder.Services.AddHostedService<ResourceLoggerForwarderService>();
-
-        return builder;
     }
 }
