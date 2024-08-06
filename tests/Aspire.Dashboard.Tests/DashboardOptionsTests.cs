@@ -130,7 +130,7 @@ public sealed class DashboardOptionsTests
         var result = new ValidateDashboardOptions().Validate(null, options);
 
         Assert.False(result.Succeeded);
-        Assert.Equal("Dashboard:ResourceServiceClient:ClientCertificate:Source is \"File\", but no Dashboard:ResourceServiceClient:ClientCertificate:FilePath is configured.", result.FailureMessage);
+        Assert.Equal($"{DashboardConfigNames.ResourceServiceClientCertificateSourceName.ConfigKey} is \"File\", but no {DashboardConfigNames.ResourceServiceClientCertificateFilePathName.ConfigKey} is configured.", result.FailureMessage);
     }
 
     [Fact]
@@ -145,7 +145,7 @@ public sealed class DashboardOptionsTests
         var result = new ValidateDashboardOptions().Validate(null, options);
 
         Assert.False(result.Succeeded);
-        Assert.Equal("Dashboard:ResourceServiceClient:ClientCertificate:Source is \"KeyStore\", but no Dashboard:ResourceServiceClient:ClientCertificate:Subject is configured.", result.FailureMessage);
+        Assert.Equal($"{DashboardConfigNames.ResourceServiceClientCertificateSourceName.ConfigKey} is \"KeyStore\", but no {DashboardConfigNames.ResourceServiceClientCertificateSubjectName.ConfigKey} is configured.", result.FailureMessage);
     }
 
     [Fact]
@@ -159,7 +159,7 @@ public sealed class DashboardOptionsTests
         var result = new ValidateDashboardOptions().Validate(null, options);
 
         Assert.False(result.Succeeded);
-        Assert.Equal($"The resource service client is configured to use certificates, but no certificate source is specified. Specify Dashboard:ResourceServiceClient:ClientCertificate:Source. Possible values: {string.Join(", ", typeof(DashboardClientCertificateSource).GetEnumNames())}", result.FailureMessage);
+        Assert.Equal($"The resource service client is configured to use certificates, but no certificate source is specified. Specify {DashboardConfigNames.ResourceServiceClientCertificateSourceName.ConfigKey}. Possible values: {string.Join(", ", typeof(DashboardClientCertificateSource).GetEnumNames())}", result.FailureMessage);
     }
 
     [Fact]
