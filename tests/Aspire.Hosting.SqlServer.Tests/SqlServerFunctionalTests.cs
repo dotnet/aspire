@@ -2,9 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
-using Aspire.Hosting.Utils;
 using Aspire.Hosting.Testing;
+using Aspire.Hosting.Utils;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -12,9 +15,6 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using Xunit;
 using Xunit.Abstractions;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.EntityFrameworkCore;
 
 namespace Aspire.Hosting.SqlServer.Tests;
 
@@ -22,7 +22,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     [RequiresDocker]
-    public async Task VerifyEfSqlServer()
+    public async Task VerifySqlServerResource()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         var pipeline = new ResiliencePipelineBuilder()
@@ -43,10 +43,28 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         hb.Configuration[$"ConnectionStrings:{tempDb.Resource.Name}"] = await tempDb.Resource.ConnectionStringExpression.GetValueAsync(default);
 
         hb.AddSqlServerDbContext<TestDbContext>(tempDb.Resource.Name);
+        hb.AddSqlServerClient(tempDb.Resource.Name);
 
         using var host = hb.Build();
 
         await host.StartAsync();
+
+        // Test SqlConnection
+        await pipeline.ExecuteAsync(async token =>
+        {
+            var conn = host.Services.GetRequiredService<SqlConnection>();
+
+            if (conn.State != System.Data.ConnectionState.Open)
+            {
+                await conn.OpenAsync(token);
+            }
+
+            var selectCommand = conn.CreateCommand();
+            selectCommand.CommandText = $"SELECT 1";
+            var results = await selectCommand.ExecuteReaderAsync(token);
+
+            Assert.True(results.HasRows);
+        }, cts.Token);
 
         await pipeline.ExecuteAsync(async token =>
         {
@@ -64,54 +82,6 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         var cars = await dbContext.Cars.ToListAsync(cts.Token);
         Assert.Single(cars);
         Assert.Equal("BatMobile", cars[0].Brand);
-    }
-
-    [Fact]
-    [RequiresDocker]
-    public async Task VerifySqlServerResource()
-    {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-        var pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(10) })
-            .Build();
-
-        var builder = CreateDistributedApplicationBuilder();
-
-        var sqlserver = builder.AddSqlServer("sqlserver");
-        var tempDb = sqlserver.AddDatabase("tempdb");
-
-        using var app = builder.Build();
-
-        await app.StartAsync();
-
-        var hb = Host.CreateApplicationBuilder();
-
-        hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            [$"ConnectionStrings:{tempDb.Resource.Name}"] = await tempDb.Resource.ConnectionStringExpression.GetValueAsync(default)
-        });
-
-        hb.AddSqlServerClient(tempDb.Resource.Name);
-
-        using var host = hb.Build();
-
-        await host.StartAsync();
-
-        await pipeline.ExecuteAsync(async token =>
-        {
-            var conn = host.Services.GetRequiredService<SqlConnection>();
-
-            if (conn.State != System.Data.ConnectionState.Open)
-            {
-                await conn.OpenAsync(token);
-            }
-
-            var selectCommand = conn.CreateCommand();
-            selectCommand.CommandText = $"SELECT 1";
-            var results = await selectCommand.ExecuteReaderAsync(token);
-
-            Assert.True(results.HasRows);
-        }, cts.Token);
     }
 
     [Theory]
