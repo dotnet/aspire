@@ -5,7 +5,6 @@ using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -17,6 +16,7 @@ namespace Aspire.Hosting.NodeJs.Tests;
 /// </summary>
 public class NodeAppFixture(IMessageSink diagnosticMessageSink) : IAsyncLifetime
 {
+    private TestDistributedApplicationBuilder? _builder;
     private DistributedApplication? _app;
     private string? _nodeAppPath;
 
@@ -27,29 +27,31 @@ public class NodeAppFixture(IMessageSink diagnosticMessageSink) : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        var builder = TestDistributedApplicationBuilder.Create();
-        builder.Services.AddXunitLogging(new TestOutputWrapper(diagnosticMessageSink));
+        _builder = TestDistributedApplicationBuilder.Create()
+            .WithTestAndResourceLogging(new TestOutputWrapper(diagnosticMessageSink));
 
         _nodeAppPath = CreateNodeApp();
         var scriptPath = Path.Combine(_nodeAppPath, "app.js");
 
-        NodeAppBuilder = builder.AddNodeApp("nodeapp", scriptPath)
+        NodeAppBuilder = _builder.AddNodeApp("nodeapp", scriptPath)
             .WithHttpEndpoint(port: 5031, env: "PORT");
 
-        NpmAppBuilder = builder.AddNpmApp("npmapp", _nodeAppPath)
+        NpmAppBuilder = _builder.AddNpmApp("npmapp", _nodeAppPath)
             .WithHttpEndpoint(port: 5032, env: "PORT");
 
-        _app = builder.Build();
+        _app = _builder.Build();
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
         await _app.StartAsync(cts.Token);
 
-        await WaitReadyStateAsync(cts.Token);      
+        await WaitReadyStateAsync(cts.Token);
     }
 
     public async Task DisposeAsync()
     {
+        _builder?.Dispose();
+
         if (_app is not null)
         {
             await _app.StopAsync();
@@ -58,7 +60,14 @@ public class NodeAppFixture(IMessageSink diagnosticMessageSink) : IAsyncLifetime
 
         if (_nodeAppPath is not null)
         {
-            Directory.Delete(_nodeAppPath, recursive: true);
+            try
+            {
+                Directory.Delete(_nodeAppPath, recursive: true);
+            }
+            catch
+            {
+                // Don't fail test if we can't clean the temporary folder
+            }
         }
     }
 
