@@ -147,7 +147,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
                         await pipeline.ExecuteAsync(async token =>
                         {
                             using var dbContext = host.Services.GetRequiredService<TestDbContext>();
-                            await dbContext.Database.CanConnectAsync(cts.Token);
+                            return await dbContext.Database.CanConnectAsync(cts.Token);
                         }, cts.Token);
 
                         // Create tables
