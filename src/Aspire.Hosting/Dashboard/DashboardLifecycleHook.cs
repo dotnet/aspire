@@ -12,6 +12,7 @@ using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -160,6 +161,32 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             if (otlpHttpEndpointUrl != null)
             {
                 context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName] = otlpHttpEndpointUrl;
+
+                var model = context.ExecutionContext.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
+                var allResourceEndpoints = model.Resources
+                    .Where(r => !string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName))
+                    .SelectMany(r => r.Annotations)
+                    .OfType<EndpointAnnotation>()
+                    .ToList();
+
+                var corsOrigins = new HashSet<string>();
+                foreach (var endpoint in allResourceEndpoints)
+                {
+                    if (endpoint.UriScheme is "http" or "https")
+                    {
+                        if (endpoint.Port != null)
+                        {
+                            corsOrigins.Add($"{endpoint.UriScheme}://localhost:{endpoint.Port}");
+                        }
+                        if (endpoint.TargetPort != null)
+                        {
+                            corsOrigins.Add($"{endpoint.UriScheme}://localhost:{endpoint.TargetPort}");
+                        }
+                    }
+                }
+
+                context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName] = string.Join(',', corsOrigins);
+                context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.EnvVarName] = "*";
             }
 
             // Configure frontend browser token

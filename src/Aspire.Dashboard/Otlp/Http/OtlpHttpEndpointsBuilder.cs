@@ -20,10 +20,6 @@ public static class OtlpHttpEndpointsBuilder
 {
     public const string ProtobufContentType = "application/x-protobuf";
     public const string JsonContentType = "application/json";
-    // By default, allow headers in the implicit safelist and X-Requested-With. This matches OTLP collector CORS behavior.
-    // Implicit safelist: https://developer.mozilla.org/en-US/docs/Glossary/CORS-safelisted_request_header
-    // OTLP collector: https://github.com/open-telemetry/opentelemetry-collector/blob/685625abb4703cb2e45a397f008127bbe2ba4c0e/config/confighttp/README.md#server-configuration
-    public static readonly string[] DefaultAllowedHeaders = ["X-Requested-With"];
 
     public static void MapHttpOtlpApi(this IEndpointRouteBuilder endpoints, OtlpOptions options)
     {
@@ -40,19 +36,7 @@ public static class OtlpHttpEndpointsBuilder
 
         if (!string.IsNullOrEmpty(options.Cors.AllowedOrigins))
         {
-            group = group.RequireCors(builder =>
-            {
-                builder.WithOrigins(options.Cors.AllowedOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
-                builder.SetIsOriginAllowedToAllowWildcardSubdomains();
-
-                var allowedHeaders = !string.IsNullOrEmpty(options.Cors.AllowedHeaders)
-                    ? options.Cors.AllowedHeaders.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    : DefaultAllowedHeaders;
-                builder.WithHeaders(allowedHeaders);
-
-                // Hardcode to allow only POST methods. OTLP is always sent in POST request bodies.
-                builder.WithMethods(HttpMethods.Post);
-            });
+            group = group.RequireCors("OtlpHttp");
         }
 
         group.MapPost("logs", static (MessageBindable<ExportLogsServiceRequest> request, OtlpLogsService service) =>

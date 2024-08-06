@@ -148,7 +148,39 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             // See https://learn.microsoft.com/aspnet/core/performance/response-compression#compression-with-https for more information
             options.MimeTypes = ["text/javascript", "application/javascript", "text/css", "image/svg+xml"];
         });
-        builder.Services.AddCors();
+        if (!string.IsNullOrEmpty(dashboardOptions.Otlp.Cors.AllowedOrigins))
+        {
+            builder.Services.AddCors(options =>
+            {
+                // Default policy allows the dashboard's origins.
+                // This is added so CORS middleware doesn't report failure for dashboard browser requests that include an origin header.
+                options.AddDefaultPolicy(builder =>
+                {
+                    builder.WithOrigins(dashboardOptions.Frontend.GetEndpointUris().Select(uri => uri.OriginalString).ToArray());
+                    builder.AllowAnyHeader();
+                    builder.AllowAnyMethod();
+                });
+
+                options.AddPolicy("OtlpHttp", builder =>
+                {
+                    var corsOptions = dashboardOptions.Otlp.Cors;
+
+                    builder.WithOrigins(corsOptions.AllowedOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+                    builder.SetIsOriginAllowedToAllowWildcardSubdomains();
+
+                    // By default, allow headers in the implicit safelist and X-Requested-With. This matches OTLP collector CORS behavior.
+                    // Implicit safelist: https://developer.mozilla.org/en-US/docs/Glossary/CORS-safelisted_request_header
+                    // OTLP collector: https://github.com/open-telemetry/opentelemetry-collector/blob/685625abb4703cb2e45a397f008127bbe2ba4c0e/config/confighttp/README.md#server-configuration
+                    var allowedHeaders = !string.IsNullOrEmpty(corsOptions.AllowedHeaders)
+                        ? corsOptions.AllowedHeaders.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        : ["X-Requested-With"];
+                    builder.WithHeaders(allowedHeaders);
+
+                    // Hardcode to allow only POST methods. OTLP is always sent in POST request bodies.
+                    builder.WithMethods(HttpMethods.Post);
+                });
+            });
+        }
 
         // Data from the server.
         builder.Services.AddScoped<IDashboardClient, DashboardClient>();
@@ -261,7 +293,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         if (!string.IsNullOrEmpty(dashboardOptions.Otlp.Cors.AllowedOrigins))
         {
             // Only add CORS middleware when there is CORS configuration.
-            // Because there isn't a default policy, CORS isn't enabled except on certain endpoints, e.g. OTLP HTTP endpoints.
+            // The default policy only allows the dashboard origin. Certain endpoints expose CORS for external origins, e.g. OTLP HTTP endpoints.
             _app.UseCors();
         }
 
@@ -301,6 +333,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             }
         });
 
+        _app.UseAuthentication();
         _app.UseAuthorization();
 
         _app.UseMiddleware<BrowserSecurityHeadersMiddleware>();
