@@ -127,7 +127,13 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 if (!OperatingSystem.IsWindows())
                 {
                     // Change permissions for non-root accounts (container user account)
-                    System.Diagnostics.Process.Start("/usr/bin/env", $"sudo chmod -R a+rwx {bindMountPath}").WaitForExit();
+                    const UnixFileMode OwnershipPermissions =
+                       UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                       UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                       UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
+                    File.SetUnixFileMode(bindMountPath, OwnershipPermissions);
+                    //System.Diagnostics.Process.Start("/usr/bin/env", $"sudo chmod -R a+rwx {bindMountPath}").WaitForExit();
                 }
             }
 
