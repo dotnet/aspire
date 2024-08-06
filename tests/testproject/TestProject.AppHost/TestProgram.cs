@@ -104,14 +104,6 @@ public class TestProgram : IDisposable
                     .AddDatabase(postgresDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(postgres);
             }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
-            {
-                var mongoDbName = "mymongodb";
-                var mongodb = AppBuilder.AddMongoDB("mongodb")
-                    .WithImageRegistry(AspireTestContainerRegistry)
-                    .AddDatabase(mongoDbName);
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(mongodb);
-            }
             if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos) || !resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
             {
                 var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
