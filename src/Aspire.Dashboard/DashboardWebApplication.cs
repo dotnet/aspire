@@ -258,7 +258,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             await next(context).ConfigureAwait(false);
         });
 
-        if (dashboardOptions.Otlp.Cors.AllowedOrigins.Count > 0)
+        if (!string.IsNullOrEmpty(dashboardOptions.Otlp.Cors.AllowedOrigins))
         {
             // Only add CORS middleware when there is CORS configuration.
             // Because there isn't a default policy, CORS isn't enabled expect on certain endpoints, e.g. OTLP HTTP endpoints.

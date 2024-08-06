@@ -444,7 +444,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             additionalConfiguration: data =>
             {
                 data.Remove(DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey);
-                data[$"{DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.ConfigKey}:0"] = "https://localhost:666";
+                data[DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.ConfigKey] = "https://localhost:666";
             });
 
         // Assert

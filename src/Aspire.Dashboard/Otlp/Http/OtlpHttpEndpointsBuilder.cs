@@ -38,15 +38,15 @@ public static class OtlpHttpEndpointsBuilder
             .MapGroup("/v1")
             .AddOtlpHttpMetadata();
 
-        if (options.Cors.AllowedOrigins.Count > 0)
+        if (!string.IsNullOrEmpty(options.Cors.AllowedOrigins))
         {
             group = group.RequireCors(builder =>
             {
-                builder.WithOrigins(options.Cors.AllowedOrigins.ToArray());
+                builder.WithOrigins(options.Cors.AllowedOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
                 builder.SetIsOriginAllowedToAllowWildcardSubdomains();
 
-                var allowedHeaders = (options.Cors.AllowedHeaders is { Count: > 0 } headers)
-                    ? headers.ToArray()
+                var allowedHeaders = !string.IsNullOrEmpty(options.Cors.AllowedHeaders)
+                    ? options.Cors.AllowedHeaders.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                     : DefaultAllowedHeaders;
                 builder.WithHeaders(allowedHeaders);
 

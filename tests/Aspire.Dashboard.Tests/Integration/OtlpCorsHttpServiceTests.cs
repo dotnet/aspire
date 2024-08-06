@@ -44,25 +44,39 @@ public class OtlpCorsHttpServiceTests
         // Arrange
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
         {
-            config[$"{DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.ConfigKey}:0"] = "http://localhost:8000";
+            config[DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.ConfigKey] = "http://localhost:8000, http://localhost:8001";
         });
         await app.StartAsync();
 
         using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.OtlpServiceHttpEndPointAccessor().EndPoint}");
 
-        var preflightRequest = new HttpRequestMessage(HttpMethod.Options, "/v1/logs");
-        preflightRequest.Headers.TryAddWithoutValidation("Access-Control-Request-Method", "POST");
-        preflightRequest.Headers.TryAddWithoutValidation("Access-Control-Request-Headers", "x-requested-with,x-custom,Content-Type");
-        preflightRequest.Headers.TryAddWithoutValidation("Origin", "http://localhost:8000");
+        // Act 1
+        var preflightRequest1 = new HttpRequestMessage(HttpMethod.Options, "/v1/logs");
+        preflightRequest1.Headers.TryAddWithoutValidation("Access-Control-Request-Method", "POST");
+        preflightRequest1.Headers.TryAddWithoutValidation("Access-Control-Request-Headers", "x-requested-with,x-custom,Content-Type");
+        preflightRequest1.Headers.TryAddWithoutValidation("Origin", "http://localhost:8000");
 
-        // Act
-        var responseMessage = await httpClient.SendAsync(preflightRequest);
+        var responseMessage1 = await httpClient.SendAsync(preflightRequest1);
 
-        // Assert
-        Assert.Equal(HttpStatusCode.NoContent, responseMessage.StatusCode);
-        Assert.Equal("http://localhost:8000", responseMessage.Headers.GetValues("Access-Control-Allow-Origin").Single());
-        Assert.Equal("POST", responseMessage.Headers.GetValues("Access-Control-Allow-Methods").Single());
-        Assert.Equal("X-Requested-With", responseMessage.Headers.GetValues("Access-Control-Allow-Headers").Single());
+        // Assert 1
+        Assert.Equal(HttpStatusCode.NoContent, responseMessage1.StatusCode);
+        Assert.Equal("http://localhost:8000", responseMessage1.Headers.GetValues("Access-Control-Allow-Origin").Single());
+        Assert.Equal("POST", responseMessage1.Headers.GetValues("Access-Control-Allow-Methods").Single());
+        Assert.Equal("X-Requested-With", responseMessage1.Headers.GetValues("Access-Control-Allow-Headers").Single());
+
+        // Act 2
+        var preflightRequest2 = new HttpRequestMessage(HttpMethod.Options, "/v1/logs");
+        preflightRequest2.Headers.TryAddWithoutValidation("Access-Control-Request-Method", "POST");
+        preflightRequest2.Headers.TryAddWithoutValidation("Access-Control-Request-Headers", "x-requested-with,x-custom,Content-Type");
+        preflightRequest2.Headers.TryAddWithoutValidation("Origin", "http://localhost:8001");
+
+        var responseMessage2 = await httpClient.SendAsync(preflightRequest2);
+
+        // Assert 2
+        Assert.Equal(HttpStatusCode.NoContent, responseMessage2.StatusCode);
+        Assert.Equal("http://localhost:8001", responseMessage2.Headers.GetValues("Access-Control-Allow-Origin").Single());
+        Assert.Equal("POST", responseMessage2.Headers.GetValues("Access-Control-Allow-Methods").Single());
+        Assert.Equal("X-Requested-With", responseMessage2.Headers.GetValues("Access-Control-Allow-Headers").Single());
     }
 
     [Fact]
@@ -71,7 +85,7 @@ public class OtlpCorsHttpServiceTests
         // Arrange
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
         {
-            config[$"{DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.ConfigKey}:0"] = "http://localhost:8000";
+            config[DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.ConfigKey] = "http://localhost:8000";
         });
         await app.StartAsync();
 
@@ -98,8 +112,8 @@ public class OtlpCorsHttpServiceTests
         // Arrange
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
         {
-            config[$"{DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.ConfigKey}:0"] = "*";
-            config[$"{DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.ConfigKey}:0"] = "*";
+            config[DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.ConfigKey] = "*";
+            config[DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.ConfigKey] = "*";
         });
         await app.StartAsync();
 
