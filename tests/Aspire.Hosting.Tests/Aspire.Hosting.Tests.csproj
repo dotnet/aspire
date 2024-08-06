@@ -2,10 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
-    <!--
-      CS8002: Referenced assembly does not have a strong name. MongoDB.Driver package is unsigned, we ignore that warning on purpose
-    -->
-    <NoWarn>$(NoWarn);CS8002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,14 +12,12 @@
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\testproject\TestProject.AppHost\TestProject.AppHost.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Components\Aspire.Microsoft.Data.SqlClient\Aspire.Microsoft.Data.SqlClient.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\..\src\Components\Aspire.MongoDB.Driver\Aspire.MongoDB.Driver.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\src\Components\Aspire.Oracle.EntityFrameworkCore\Aspire.Oracle.EntityFrameworkCore.csproj" IsAspireProjectResource="false" />
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
 
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting.MongoDB\MongoDBContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Oracle\OracleContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.PostgreSQL\PostgresContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Redis\RedisContainerImageTags.cs" />
