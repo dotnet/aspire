@@ -28,7 +28,7 @@
                               IconEnd="@(new Icons.Regular.Size24.Filter())"
                               @onclick="() => _isTypeFilterVisible = !_isTypeFilterVisible"
                               Title="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])"
-                              aria-label="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])"/>
+                              aria-label="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])" />
             }
             else
             {
@@ -49,7 +49,7 @@
                           @bind-Value="_filter"
                           slot="end"
                           Label="@(ViewportInformation.IsDesktop ? null : ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)].Value)"
-                          @bind-Value:after="HandleSearchFilterChangedAsync"/>
+                          @bind-Value:after="HandleSearchFilterChangedAsync" />
         </ToolbarSection>
 
         <MainSection>
@@ -81,8 +81,8 @@
                                     Loading="_isLoading"
                                     ShowHover="true">
                         <ChildContent>
-                            <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeColumnHeader)]" Property="@(c => c.ResourceType)" Sortable="true" Tooltip="true" TooltipText="@(c => c.ResourceType)"/>
-                            <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort" Tooltip="true" TooltipText="@(c => GetResourceName(c))" >
+                            <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeColumnHeader)]" Property="@(c => c.ResourceType)" Sortable="true" Tooltip="true" TooltipText="@(c => c.ResourceType)" />
+                            <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort" Tooltip="true" TooltipText="@(c => GetResourceName(c))">
                                 <ResourceNameDisplay Resource="context" FilterText="@_filter" FormatName="GetResourceName" />
                             </TemplateColumn>
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStateColumnHeader)]" Sortable="true" SortBy="@_stateSort" Tooltip="true" TooltipText="@(c => c.State.Humanize())">

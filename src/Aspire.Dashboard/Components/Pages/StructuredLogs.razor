@@ -40,7 +40,7 @@
             {
                 <div title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMinimumLogFilter)]" slot="end" style="display: flex;align-items: center;">
                     <span>@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevels)]</span>
-                    <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical"/>
+                    <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
 
                     <LogLevelSelect IncludeLabel="false"
                                     @bind-LogLevel="@PageViewModel.SelectedLogLevel"
@@ -77,7 +77,7 @@
             else
             {
                 <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter)]" OnClick="() => OpenFilterAsync(null)">
-                    <FluentIcon Class="align-text-bottom" Value="@(new Icons.Regular.Size16.Filter())"/> @Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter)]
+                    <FluentIcon Class="align-text-bottom" Value="@(new Icons.Regular.Size16.Filter())" /> @Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter)]
                 </FluentButton>
             }
         </ToolbarSection>
@@ -103,7 +103,15 @@
                 <Summary>
                     <div class="logs-summary-layout">
                         <div class="logs-grid-container continuous-scroll-overflow">
-                            <FluentDataGrid Virtualize="true" RowClass="@GetRowClass" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpLogEntry" GridTemplateColumns="@GetGridTemplateColumns()" ShowHover="true">
+                            <FluentDataGrid Virtualize="true"
+                                            RowClass="@GetRowClass"
+                                            GenerateHeader="GenerateHeaderOption.Sticky"
+                                            ItemSize="46"
+                                            ResizableColumns="true"
+                                            ItemsProvider="@GetData"
+                                            TGridItem="OtlpLogEntry"
+                                            GridTemplateColumns="@GetGridTemplateColumns()"
+                                            ShowHover="true">
                                 <ChildContent>
                                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsResourceColumnHeader)]" Tooltip="true" TooltipText="@(e => GetResourceName(e.Application))">
                                         <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Application)));">
