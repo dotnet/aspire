@@ -6,7 +6,6 @@ using Aspire.Hosting.Utils;
 using Elastic.Clients.Elasticsearch;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Polly;
 using Xunit;
 using Xunit.Abstractions;
@@ -32,7 +31,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(10) })
            .Build();
 
-        var builder = CreateDistributedApplicationBuilder();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var elasticsearch = builder.AddElasticsearch("elasticsearch");
 
@@ -76,8 +75,8 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = CreateDistributedApplicationBuilder();
-            
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
             var elasticsearch1 = builder1.AddElasticsearch("elasticsearch");
 
             var password = elasticsearch1.Resource.PasswordParameter.Value;
@@ -128,7 +127,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            var builder2 = CreateDistributedApplicationBuilder();
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var passwordParameter2 = builder2.AddParameter("pwd");
             builder2.Configuration["Parameters:pwd"] = password;
             var elasticsearch2 = builder2.AddElasticsearch("elasticsearch", passwordParameter2);
@@ -213,13 +212,6 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
         Assert.True(getResponse.IsSuccess());
         Assert.NotNull(getResponse.Source);
         Assert.Equal(s_person.Id, getResponse.Source?.Id);
-    }
-
-    private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
-    {
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
-        builder.Services.AddXunitLogging(testOutputHelper);
-        return builder;
     }
 
     private sealed class Person

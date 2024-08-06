@@ -5,7 +5,6 @@ using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Utils;
 using Xunit;
 using Xunit.Abstractions;
-using Microsoft.Extensions.Logging;
 using Polly;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,7 +27,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
                             .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<NatsException>() })
                             .Build();
 
-        var builder = CreateDistributedApplicationBuilder();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var nats = builder.AddNats("nats")
             .WithJetStream();
@@ -77,7 +76,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = CreateDistributedApplicationBuilder();
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var nats1 = builder1.AddNats("nats")
                 .WithJetStream();
 
@@ -133,7 +132,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            var builder2 = CreateDistributedApplicationBuilder();
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var nats2 = builder2.AddNats("nats")
                 .WithJetStream();
 
@@ -236,12 +235,5 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
             var ack = await jetStream.PublishAsync(appEvent.Subject, appEvent, cancellationToken: token);
             ack.EnsureSuccess();
         }
-    }
-
-    private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
-    {
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
-        builder.Services.AddXunitLogging(testOutputHelper);
-        return builder;
     }
 }
