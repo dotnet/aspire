@@ -195,7 +195,8 @@ public class SchemaTests
     {
         _ = testCaseName;
 
-        var builder = TestDistributedApplicationBuilder.Create(["--publisher", "manifest", "--output-path", "not-used.json"]);
+        string manifestDir = Directory.CreateTempSubdirectory(testCaseName).FullName;
+        var builder = TestDistributedApplicationBuilder.Create(["--publisher", "manifest", "--output-path", Path.Combine(manifestDir, "not-used.json")]);
         builder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
         configurator(builder);
 
