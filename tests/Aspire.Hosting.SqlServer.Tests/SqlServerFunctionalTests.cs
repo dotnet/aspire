@@ -6,8 +6,6 @@ using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -66,20 +64,13 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             Assert.True(results.HasRows);
         }, cts.Token);
 
-        await pipeline.ExecuteAsync(async token =>
-        {
-            var dbContext = host.Services.GetRequiredService<TestDbContext>();
-            var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
-            await databaseCreator.CreateTablesAsync(token);
-        }, cts.Token);
-
         var dbContext = host.Services.GetRequiredService<TestDbContext>();
-        var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
 
+        await dbContext.Database.EnsureCreatedAsync(cts.Token);
         dbContext.Cars.Add(new TestDbContext.Car { Brand = "BatMobile" });
         await dbContext.SaveChangesAsync(cts.Token);
-
         var cars = await dbContext.Cars.ToListAsync(cts.Token);
+
         Assert.Single(cars);
         Assert.Equal("BatMobile", cars[0].Brand);
     }
