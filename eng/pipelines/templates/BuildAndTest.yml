@@ -52,6 +52,8 @@ steps:
         DOCKER_BUILDKIT: 1
         # Disable on Linux - https://github.com/dotnet/aspire/issues/4623
         DISABLE_PLAYWRIGHT_TESTS: ${{ ne(parameters.isWindows, 'true') }}
+        # https://github.com/dotnet/aspire/issues/5195#issuecomment-2271687822
+        DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
 
       displayName: Run non-helix tests
 
