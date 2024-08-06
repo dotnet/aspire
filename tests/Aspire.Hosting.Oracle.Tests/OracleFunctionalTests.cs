@@ -21,6 +21,11 @@ namespace Aspire.Hosting.Oracle.Tests;
 
 public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 {
+    private const UnixFileMode OwnershipPermissions =
+       UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+       UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+       UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
     private const string DatabaseReadyText = "Completed: ALTER DATABASE OPEN";
 
     [Fact]
@@ -119,7 +124,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
                 if (!OperatingSystem.IsWindows())
                 {
                     // Change permissions for non-root accounts (container user account)
-                    System.Diagnostics.Process.Start("/usr/bin/env", $"sudo chmod -R a+rwx {bindMountPath}").WaitForExit();
+                    File.SetUnixFileMode(bindMountPath, OwnershipPermissions);
                 }
 
                 oracle1.WithDataBindMount(bindMountPath);
@@ -298,7 +303,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         if (!OperatingSystem.IsWindows())
         {
             // Change permissions for non-root accounts (container user account)
-            System.Diagnostics.Process.Start("/usr/bin/env", $"sudo chmod -R a+rwx {bindMountPath}").WaitForExit();
+            File.SetUnixFileMode(bindMountPath, OwnershipPermissions);
         }
 
         var oracleDbName = "freepdb1";
