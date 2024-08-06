@@ -133,7 +133,6 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
 
                     File.SetUnixFileMode(bindMountPath, OwnershipPermissions);
-                    //System.Diagnostics.Process.Start("/usr/bin/env", $"sudo chmod -R a+rwx {bindMountPath}").WaitForExit();
                 }
             }
 
