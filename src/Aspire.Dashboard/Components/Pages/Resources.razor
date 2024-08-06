@@ -71,7 +71,15 @@
                                 SelectedValue="@SelectedResource"
                                 ViewKey="ResourcesList">
                 <Summary>
-                    <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="@GetGridTemplateColumns()" RowClass="GetRowClass" Loading="_isLoading" ShowHover="true">
+                    <FluentDataGrid Virtualize="true"
+                                    GenerateHeader="GenerateHeaderOption.Sticky"
+                                    ItemSize="46"
+                                    Items="@FilteredResources"
+                                    ResizableColumns="true"
+                                    GridTemplateColumns="@GetGridTemplateColumns()"
+                                    RowClass="GetRowClass"
+                                    Loading="_isLoading"
+                                    ShowHover="true">
                         <ChildContent>
                             <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeColumnHeader)]" Property="@(c => c.ResourceType)" Sortable="true" Tooltip="true" TooltipText="@(c => c.ResourceType)"/>
                             <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort" Tooltip="true" TooltipText="@(c => GetResourceName(c))" >
@@ -106,7 +114,7 @@
 
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesDetailsColumnHeader)]" Sortable="false" Class="no-ellipsis">
                                 @{
-                                var id = $"details-button-{context.Uid}";
+                                    var id = $"details-button-{context.Uid}";
                                 }
                                 <FluentButton Appearance="Appearance.Lightweight"
                                               Id="@id"

@@ -17,11 +17,10 @@
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.StructuredLogs.StructuredLogsPageTitle)" Loc="@Loc" /></PageTitle>
 
 <div class="page-content-container">
-    <AspirePageContentLayout
-        @ref="@_contentLayout"
-        AddNewlineOnToolbar="true"
-        ShouldShowFooter="@(SelectedLogEntry is null)"
-        IsSummaryDetailsViewOpen="@(SelectedLogEntry is not null)">
+    <AspirePageContentLayout @ref="@_contentLayout"
+                             AddNewlineOnToolbar="true"
+                             ShouldShowFooter="@(SelectedLogEntry is null)"
+                             IsSummaryDetailsViewOpen="@(SelectedLogEntry is not null)">
         <PageTitleSection>
             <h1 class="page-header">@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsHeader)]</h1>
         </PageTitleSection>
