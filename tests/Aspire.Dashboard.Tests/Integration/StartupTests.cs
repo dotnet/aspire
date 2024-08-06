@@ -43,8 +43,24 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         // Assert
         Assert.Collection(app.ValidationFailures,
-            s => s.Contains("Dashboard:Frontend:EndpointUrls"),
-            s => s.Contains("Dashboard:Otlp:EndpointUrl"));
+            s => Assert.Contains("ASPNETCORE_URLS", s),
+            s => Assert.Contains("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL", s));
+    }
+
+    [Fact]
+    public async Task Configuration_EmptyAllowedCertificateRule_Error()
+    {
+        // Arrange & Act
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data["Dashboard:Otlp:AuthMode"] = nameof(OtlpAuthMode.ClientCertificate);
+                data["Dashboard:Otlp:AllowedCertificates:0"] = string.Empty;
+            });
+
+        // Assert
+        Assert.Collection(app.ValidationFailures,
+            s => Assert.Contains("Dashboard:Otlp:AllowedCertificates:0:Thumbprint", s));
     }
 
     [Fact]

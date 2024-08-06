@@ -176,7 +176,7 @@ public sealed class FrontendOptions
     {
         if (string.IsNullOrEmpty(EndpointUrls))
         {
-            errorMessage = "One or more frontend endpoint URLs are not configured. Specify a Dashboard:Frontend:EndpointUrls value.";
+            errorMessage = $"One or more frontend endpoint URLs are not configured. Specify a {DashboardConfigNames.DashboardFrontendUrlName.ConfigKey} value.";
             return false;
         }
         else
