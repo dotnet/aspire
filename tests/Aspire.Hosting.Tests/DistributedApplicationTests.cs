@@ -258,7 +258,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task SpecifyingEnvPortInEndpointFlowsToEnv()
     {
         using var testProgram = CreateTestProgram(includeNodeApp: true, randomizePorts: false);
@@ -534,7 +533,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task KubernetesHasResourceNameForContainersAndExes()
     {
         using var testProgram = CreateTestProgram(includeIntegrationServices: true, includeNodeApp: true);
