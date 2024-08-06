@@ -31,7 +31,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(10) })
            .Build();
 
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var elasticsearch = builder.AddElasticsearch("elasticsearch");
 
@@ -75,7 +75,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
             var elasticsearch1 = builder1.AddElasticsearch("elasticsearch");
 
@@ -127,7 +127,7 @@ public class ElasticsearchFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var passwordParameter2 = builder2.AddParameter("pwd");
             builder2.Configuration["Parameters:pwd"] = password;
             var elasticsearch2 = builder2.AddElasticsearch("elasticsearch", passwordParameter2);

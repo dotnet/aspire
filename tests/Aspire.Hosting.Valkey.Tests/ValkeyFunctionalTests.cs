@@ -18,7 +18,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifyValkeyResource()
     {
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var valkey = builder.AddValkey("valkey");
 
@@ -61,7 +61,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var valkey1 = builder1.AddValkey("valkey");
 
             if (useVolume)
@@ -117,7 +117,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var valkey2 = builder2.AddValkey("valkey");
 
             if (useVolume)

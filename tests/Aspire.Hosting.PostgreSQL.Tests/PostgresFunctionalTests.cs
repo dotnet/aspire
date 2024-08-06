@@ -25,7 +25,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<NpgsqlException>() })
             .Build();
 
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var postgresDbName = "db1";
 
@@ -80,7 +80,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
             var username = "postgres";
             var password = "p@ssw0rd1";
@@ -152,7 +152,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             usernameParameter = builder2.AddParameter("user");
             passwordParameter = builder2.AddParameter("pwd");
             builder2.Configuration["Parameters:user"] = username;
@@ -254,7 +254,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                 INSERT INTO cars (brand) VALUES ('BatMobile');
             """);
 
-            var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
             var postgresDbName = "db1";
 

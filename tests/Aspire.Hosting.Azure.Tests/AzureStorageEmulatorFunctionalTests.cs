@@ -17,7 +17,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
     [RequiresDocker]
     public async Task VerifyAzureStorageEmulatorResource()
     {
-        var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("storage").RunAsEmulator().AddBlobs("BlobConnection");
 
         using var app = builder.Build();

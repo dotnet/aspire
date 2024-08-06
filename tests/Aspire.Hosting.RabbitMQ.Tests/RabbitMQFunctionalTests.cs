@@ -18,7 +18,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifyRabbitMQResource()
     {
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var rabbitMQ = builder.AddRabbitMQ("rabbitMQ");
 
@@ -62,7 +62,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var rabbitMQ1 = builder1.AddRabbitMQ("rabbitMQ");
             var password = rabbitMQ1.Resource.PasswordParameter.Value;
 
@@ -119,7 +119,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var passwordParameter2 = builder2.AddParameter("pwd");
             builder2.Configuration["Parameters:pwd"] = password;
 

@@ -29,7 +29,7 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
             .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<RpcException>() })
             .Build();
 
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var qdrant = builder.AddQdrant("qdrant");
 
@@ -98,7 +98,7 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var qdrant1 = builder1.AddQdrant("qdrant");
 
             if (useVolume)
@@ -149,7 +149,7 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var qdrant2 = builder2.AddQdrant("qdrant");
 
             if (useVolume)

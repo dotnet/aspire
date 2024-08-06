@@ -28,7 +28,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             .AddRetry(new() { MaxRetryAttempts = 10, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2), ShouldHandle = new PredicateBuilder().Handle<MySqlException>() })
             .Build();
 
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var mySqlDbName = "db1";
 
@@ -82,7 +82,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
             var mysql1 = builder1.AddMySql("mysql").WithEnvironment("MYSQL_DATABASE", mySqlDbName);
             var password = mysql1.Resource.PasswordParameter.Value;
@@ -156,7 +156,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var passwordParameter2 = builder2.AddParameter("pwd");
             builder2.Configuration["Parameters:pwd"] = password;
 
@@ -268,7 +268,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
                 INSERT INTO cars (brand) VALUES ('BatMobile');
             """);
 
-            var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
             var mySqlDbName = "db1";
 

@@ -27,7 +27,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
                             .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<NatsException>() })
                             .Build();
 
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var nats = builder.AddNats("nats")
             .WithJetStream();
@@ -76,7 +76,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var nats1 = builder1.AddNats("nats")
                 .WithJetStream();
 
@@ -132,7 +132,7 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var nats2 = builder2.AddNats("nats")
                 .WithJetStream();
 

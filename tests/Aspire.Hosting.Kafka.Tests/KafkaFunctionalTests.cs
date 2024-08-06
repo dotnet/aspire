@@ -21,7 +21,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
 
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var kafka = builder.AddKafka("kafka");
 
@@ -86,7 +86,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var kafka1 = builder1.AddKafka("kafka");
 
             if (useVolume)
@@ -142,7 +142,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var kafka2 = builder2.AddKafka("kafka");
 
             if (useVolume)
