@@ -30,7 +30,7 @@ public static class OtlpHttpEndpointsBuilder
         var httpEndpoint = options.GetHttpEndpointUri();
         if (httpEndpoint == null)
         {
-            // Don't map OTLP HTTP endpoints if there isn't an endpoint to access them with.
+            // Don't map OTLP HTTP route endpoints if there isn't a Kestrel endpoint to access them with.
             return;
         }
 
