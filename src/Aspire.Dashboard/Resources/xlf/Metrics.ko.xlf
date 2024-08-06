@@ -87,6 +87,11 @@
         <target state="translated">계측을 선택합니다.</target>
         <note />
       </trans-unit>
+      <trans-unit id="MetricsSelectorMobileToolbarLabel">
+        <source>Metric</source>
+        <target state="new">Metric</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

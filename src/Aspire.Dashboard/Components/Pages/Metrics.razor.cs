@@ -169,7 +169,10 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             }
         }
 
-        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
+        // On mobile, we actually *do* want to update this immediately, since it will affect the tree of possible
+        // metrics to select from. This will immediately close the window but that behavior is not changeable
+        var isChangeInToolbar = ViewportInformation.IsDesktop;
+        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: isChangeInToolbar);
     }
 
     private bool ShouldClearSelectedMetrics(List<OtlpInstrument> instruments)

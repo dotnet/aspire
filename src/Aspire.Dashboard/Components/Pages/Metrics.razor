@@ -37,7 +37,7 @@
             {
                 // Show metric selector in the toolbar for mobile, since we don't have enough room to show both
                 // panels on a mobile viewport.
-                <FluentInputLabel Label="Test" ForId="metric-selector" />
+                <FluentInputLabel Label="@Loc[Dashboard.Resources.Metrics.MetricsSelectorMobileToolbarLabel]" ForId="metric-selector" />
                 <TreeMetricSelector
                     PageViewModel="@PageViewModel"
                     HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync"/>
@@ -47,6 +47,9 @@
             <div style="width: 100%; height: 100%; overflow: auto;">
                 @if (PageViewModel.Instruments?.Count > 0)
                 {
+                    // Collapsed property only allows us to show Panel1 (which is the metric selector)
+                    // but we want to only show Panel2 on mobile. So, hide the bar handle and reduce width to 0
+                    // on mobile.
                     <FluentSplitter BarHandle="@ViewportInformation.IsDesktop"
                                     Style="height:100%"
                                     Panel1Size="@(ViewportInformation.IsDesktop ? "2fr" : "0")"

@@ -87,6 +87,11 @@
         <target state="translated">Выберите инструмент.</target>
         <note />
       </trans-unit>
+      <trans-unit id="MetricsSelectorMobileToolbarLabel">
+        <source>Metric</source>
+        <target state="new">Metric</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>
