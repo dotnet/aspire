@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -11,8 +10,8 @@ namespace Aspire.Hosting.Testing;
 /// A background service that watches resource logs and forwards them to the host's <see cref="ILogger"/> infrastructure.
 /// </summary>
 internal sealed class ResourceLoggerForwarderService(
-    ResourceNotificationService resourceNotificationService,
-    ResourceLoggerService resourceLoggerService,
+    ApplicationModel.ResourceNotificationService resourceNotificationService,
+    ApplicationModel.ResourceLoggerService resourceLoggerService,
     IHostEnvironment hostEnvironment,
     ILoggerFactory loggerFactory)
     : BackgroundService
@@ -49,7 +48,7 @@ internal sealed class ResourceLoggerForwarderService(
         await Task.WhenAll(logWatchTasks).ConfigureAwait(false);
     }
 
-    private async Task WatchResourceLogs(IResource resource, string resourceId, CancellationToken cancellationToken)
+    private async Task WatchResourceLogs(ApplicationModel.IResource resource, string resourceId, CancellationToken cancellationToken)
     {
         var applicationName = hostEnvironment.ApplicationName;
         var logger = loggerFactory.CreateLogger($"{applicationName}.Resources.{resource.Name}");
