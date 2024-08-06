@@ -5,8 +5,6 @@
 
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Resources
-@using Aspire.Dashboard.Otlp.Model
-@using Aspire.Dashboard.Utils
 @inject IStringLocalizer<Dashboard.Resources.Metrics> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
@@ -49,30 +47,23 @@
             <div style="width: 100%; height: 100%; overflow: auto;">
                 @if (PageViewModel.Instruments?.Count > 0)
                 {
-                    @if (ViewportInformation.IsDesktop)
-                    {
-                        <FluentSplitter Style="height:100%" Panel1Size="2fr" Panel2Size="8fr" BarSize="5">
-                            <Panel1>
-                                <TreeMetricSelector
-                                    PageViewModel="@PageViewModel"
-                                    HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync" />
-                            </Panel1>
-                            <Panel2>
-                                <MetricMainSection
-                                    Applications="@_applications"
-                                    PageViewModel="@PageViewModel"
-                                    OnViewChangedAsync="@OnViewChangedAsync" />
-                            </Panel2>
-                        </FluentSplitter>
-
-                    }
-                    else
-                    {
-                        <MetricMainSection
-                            Applications="@_applications"
-                            PageViewModel="@PageViewModel"
-                            OnViewChangedAsync="@OnViewChangedAsync" />
-                    }
+                    <FluentSplitter BarHandle="@ViewportInformation.IsDesktop"
+                                    Style="height:100%"
+                                    Panel1Size="@(ViewportInformation.IsDesktop ? "2fr" : "0")"
+                                    Panel2Size="8fr"
+                                    BarSize="@(ViewportInformation.IsDesktop ? 5 : 0)">
+                        <Panel1>
+                            <TreeMetricSelector
+                                PageViewModel="@PageViewModel"
+                                HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync" />
+                        </Panel1>
+                        <Panel2>
+                            <MetricMainSection
+                                Applications="@_applications"
+                                PageViewModel="@PageViewModel"
+                                OnViewChangedAsync="@OnViewChangedAsync" />
+                        </Panel2>
+                    </FluentSplitter>
                 }
                 else if (PageViewModel.Instruments == null)
                 {

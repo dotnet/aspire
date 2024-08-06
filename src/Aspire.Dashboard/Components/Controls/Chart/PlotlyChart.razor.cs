@@ -223,7 +223,7 @@ public partial class PlotlyChart : ChartBase
     private string GetPlotlyChartStyle()
     {
         var width = ViewportInformation.IsDesktop ? 650 : 487;
-        var height = ViewportInformation.IsDesktop ? 325 : 243;
+        var height = 325;
 
         return $"width:{width}px; height:{height}px";
     }
