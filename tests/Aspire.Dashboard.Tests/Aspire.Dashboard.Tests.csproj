@@ -15,11 +15,13 @@
   <ItemGroup>
     <PackageReference Include="Grpc.Tools" />
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" />
 
     <ProjectReference Include="..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
 
     <Compile Include="$(TestsSharedDir)TestCertificateLoader.cs" Link="shared/TestCertificateLoader.cs" />
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
+    <Compile Include="$(TestsSharedDir)Telemetry\*.cs" LinkBase="shared/Telemetry" />
     <Content Include="$(TestsSharedDir)TestCertificates\*.pfx" LinkBase="shared/TestCertificates" CopyToOutputDirectory="PreserveNewest" />
 
     <Content Include="..\..\src\Aspire.Dashboard\wwwroot\**\*.*" LinkBase="wwwroot" CopyToOutputDirectory="PreserveNewest" />

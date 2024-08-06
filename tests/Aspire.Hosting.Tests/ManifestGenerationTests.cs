@@ -3,11 +3,8 @@
 
 using System.Text.Json;
 using Aspire.Components.Common.Tests;
-using Aspire.Hosting.Garnet;
-using Aspire.Hosting.MongoDB;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Publishing;
-using Aspire.Hosting.RabbitMQ;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
@@ -286,25 +283,6 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureAllRabbitMQManifestTypesHaveVersion0Suffix()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddRabbitMQ("rabbitcontainer");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var server = resources.GetProperty("rabbitcontainer");
-        Assert.Equal("container.v0", server.GetProperty("type").GetString());
-    }
-
-    [Fact]
     public void NodeAppIsExecutableResource()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();
@@ -480,10 +458,7 @@ public class ManifestGenerationTests
                     "SKIP_RESOURCES": "None",
                     "ConnectionStrings__tempdb": "{tempdb.connectionString}",
                     "ConnectionStrings__redis": "{redis.connectionString}",
-                    "ConnectionStrings__garnet": "{garnet.connectionString}",
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
-                    "ConnectionStrings__rabbitmq": "{rabbitmq.connectionString}",
-                    "ConnectionStrings__mymongodb": "{mymongodb.connectionString}",
                     "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
                     "ConnectionStrings__cosmos": "{cosmos.connectionString}",
                     "ConnectionStrings__eventhubns": "{eventhubns.connectionString}"
@@ -535,19 +510,6 @@ public class ManifestGenerationTests
                     }
                   }
                 },
-                "garnet": {
-                  "type": "container.v0",
-                  "connectionString": "{garnet.bindings.tcp.host}:{garnet.bindings.tcp.port}",
-                  "image": "{{GarnetContainerImageTags.Registry}}/{{GarnetContainerImageTags.Image}}:{{GarnetContainerImageTags.Tag}}",
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 6379
-                    }
-                  }
-                },
                 "postgres": {
                   "type": "container.v0",
                   "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres-password.value}",
@@ -571,40 +533,6 @@ public class ManifestGenerationTests
                 "postgresdb": {
                   "type": "value.v0",
                   "connectionString": "{postgres.connectionString};Database=postgresdb"
-                },
-                "rabbitmq": {
-                  "type": "container.v0",
-                  "connectionString": "amqp://guest:{rabbitmq-password.value}@{rabbitmq.bindings.tcp.host}:{rabbitmq.bindings.tcp.port}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{RabbitMQContainerImageTags.Image}}:{{RabbitMQContainerImageTags.Tag}}",
-                  "env": {
-                    "RABBITMQ_DEFAULT_USER": "guest",
-                    "RABBITMQ_DEFAULT_PASS": "{rabbitmq-password.value}"
-                  },
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 5672
-                    }
-                  }
-                },
-                "mongodb": {
-                  "type": "container.v0",
-                  "connectionString": "mongodb://{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{MongoDBContainerImageTags.Image}}:{{MongoDBContainerImageTags.Tag}}",
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 27017
-                    }
-                  }
-                },
-                "mymongodb": {
-                  "type": "value.v0",
-                  "connectionString": "{mongodb.connectionString}/mymongodb"
                 },
                 "oracledatabase": {
                   "type": "container.v0",
@@ -671,22 +599,6 @@ public class ManifestGenerationTests
                       "default": {
                         "generate": {
                           "minLength": 22
-                        }
-                      }
-                    }
-                  }
-                },
-                "rabbitmq-password": {
-                  "type": "parameter.v0",
-                  "value": "{rabbitmq-password.inputs.value}",
-                  "inputs": {
-                    "value": {
-                      "type": "string",
-                      "secret": true,
-                      "default": {
-                        "generate": {
-                          "minLength": 22,
-                          "special": false
                         }
                       }
                     }

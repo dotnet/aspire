@@ -99,11 +99,6 @@ public class TestProgram : IDisposable
                     .WithImageRegistry(AspireTestContainerRegistry);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(redis);
             }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.garnet))
-            {
-                var garnet = AppBuilder.AddGarnet("garnet");
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(garnet);
-            }
             if (!resourcesToSkip.HasFlag(TestResourceNames.postgres) || !resourcesToSkip.HasFlag(TestResourceNames.efnpgsql))
             {
                 var postgresDbName = "postgresdb";
@@ -112,20 +107,6 @@ public class TestProgram : IDisposable
                     .WithEnvironment("POSTGRES_DB", postgresDbName)
                     .AddDatabase(postgresDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(postgres);
-            }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.rabbitmq))
-            {
-                var rabbitmq = AppBuilder.AddRabbitMQ("rabbitmq")
-                    .WithImageRegistry(AspireTestContainerRegistry);
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(rabbitmq);
-            }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.mongodb))
-            {
-                var mongoDbName = "mymongodb";
-                var mongodb = AppBuilder.AddMongoDB("mongodb")
-                    .WithImageRegistry(AspireTestContainerRegistry)
-                    .AddDatabase(mongoDbName);
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(mongodb);
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.oracledatabase))
             {

@@ -112,13 +112,14 @@ internal class ConfigureDefaultDcpOptions(
     public void Configure(DcpOptions options)
     {
         var dcpPublisherConfiguration = configuration.GetSection(DcpPublisher);
+        var assemblyMetadata = appOptions.Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
 
         Console.WriteLine ($"------------- ConfigureDefaultDcpOptions.Configure --------------");
         if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.CliPath)]))
         {
             // If an explicit path to DCP was provided from configuration, don't try to resolve via assembly attributes
             options.CliPath = dcpPublisherConfiguration[nameof(options.CliPath)];
-            // FIXME: dashboard path is not set in this case!
+            // FIXME: try setting this from the appsettings.json
         }
         else
         {
@@ -132,7 +133,15 @@ internal class ConfigureDefaultDcpOptions(
                 options.ExtensionsPath = Path.Combine(dcpDir, "ext");
                 options.BinPath = Path.Combine(options.ExtensionsPath, "bin");
             }
+        }
 
+        if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.DashboardPath)]))
+        {
+            // If an explicit path to DCP was provided from configuration, don't try to resolve via assembly attributes
+            options.DashboardPath = dcpPublisherConfiguration[nameof(options.DashboardPath)];
+        }
+        else
+        {
             options.DashboardPath = GetFromEnvironmentVariableOrAssemblyMetadata("ASPIRE_DASHBOARD_PATH", assemblyMetadata, DashboardPathMetadataKey);
             Console.WriteLine ($"options.dashboard: {options.DashboardPath}");
         }
@@ -154,7 +163,7 @@ internal class ConfigureDefaultDcpOptions(
             }
             else
             {
-                throw new InvalidOperationException($"Invalid value \"{dcpPublisherConfiguration[nameof(options.DependencyCheckTimeout)]}\" for \"--dependency-check-timeout\". Exepcted an integer value.");
+                throw new InvalidOperationException($"Invalid value \"{dcpPublisherConfiguration[nameof(options.DependencyCheckTimeout)]}\" for \"--dcp-dependency-check-timeout\". Expected an integer value.");
             }
         }
         else

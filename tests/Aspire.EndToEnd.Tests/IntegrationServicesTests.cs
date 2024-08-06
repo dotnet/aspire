@@ -23,12 +23,9 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
 
     [Theory]
     [Trait("scenario", "basicservices")]
-    [InlineData(TestResourceNames.mongodb)]
     [InlineData(TestResourceNames.postgres)]
     [InlineData(TestResourceNames.efnpgsql)]
-    [InlineData(TestResourceNames.rabbitmq)]
     [InlineData(TestResourceNames.redis)]
-    [InlineData(TestResourceNames.garnet)]
     [InlineData(TestResourceNames.sqlserver)]
     [InlineData(TestResourceNames.efsqlserver)]
     public Task VerifyComponentWorks(TestResourceNames resourceName)

@@ -50,6 +50,7 @@
 
     <_SdkForWorkloadTestingPathEnvValue Condition="'$(OS)' == 'Windows_NT'">%HELIX_CORRELATION_PAYLOAD%\%SDK_DIR_NAME%</_SdkForWorkloadTestingPathEnvValue>
     <_SdkForWorkloadTestingPathEnvValue Condition="'$(OS)' != 'Windows_NT'">$HELIX_CORRELATION_PAYLOAD/$SDK_DIR_NAME</_SdkForWorkloadTestingPathEnvValue>
+    <_DeleteDockerVolumesCommand Condition="'$(OS)' != 'Windows_NT'">for f in `docker volume ls -q`%3B do docker volume rm $f%3B done</_DeleteDockerVolumesCommand>
   </PropertyGroup>
 
   <ItemGroup>
@@ -103,14 +104,20 @@
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export TEST_LOG_PATH=$HELIX_WORKITEM_UPLOAD_ROOT/logs" />
 
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="(cd $HELIX_CORRELATION_PAYLOAD/create-dotnet-devcert%3B chmod +x ubuntu-create-dotnet-devcert.sh %3B ./ubuntu-create-dotnet-devcert.sh)" />
+  </ItemGroup>
 
-    <HelixPreCommand Condition="'$(HasDocker)' == 'true'" Include="docker info" />
-    <HelixPreCommand Condition="'$(HasDocker)' == 'true'" Include="docker ps" />
-    <HelixPreCommand Condition="'$(HasDocker)' == 'true'" Include="docker container ls --all" />
-    <HelixPreCommand Condition="'$(HasDocker)' == 'true'" Include="$(_ShutdownDockerContainersCommand)" />
+  <ItemGroup Condition="'$(HasDocker)' == 'true'">
+    <HelixPreCommand Include="docker info" />
+    <HelixPreCommand Include="docker ps" />
+    <HelixPreCommand Include="docker container ls --all" />
+    <HelixPreCommand Include="$(_ShutdownDockerContainersCommand)" />
+    <HelixPreCommand Include="docker volume ls" />
+    <HelixPreCommand Include="$(_DeleteDockerVolumesCommand)" />
 
-    <HelixPostCommand Condition="'$(HasDocker)' == 'true'" Include="docker container ls --all" />
-    <HelixPostCommand Condition="'$(HasDocker)' == 'true'" Include="$(_ShutdownDockerContainersCommand)" />
+    <HelixPostCommand Include="docker container ls --all" />
+    <HelixPostCommand Include="$(_ShutdownDockerContainersCommand)" />
+    <HelixPostCommand Include="docker volume ls" />
+    <HelixPostCommand Include="$(_DeleteDockerVolumesCommand)" />
   </ItemGroup>
 
   <ItemGroup>
