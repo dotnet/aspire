@@ -72,7 +72,211 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Theory]
     [InlineData(true)]
-    [InlineData(false)]
+    [InlineData(false, Skip = "Takes too long to be ready.")]
+    [RequiresDocker]
+    public async Task WithDataShouldPersistStateBetweenUsages(bool useVolume)
+    {
+        var oracleDbName = "freepdb1";
+
+        string? volumeName = null;
+        string? bindMountPath = null;
+
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new()
+            {
+                MaxRetryAttempts = int.MaxValue,
+                BackoffType = DelayBackoffType.Linear,
+                ShouldHandle = new PredicateBuilder().HandleResult(false),
+                Delay = TimeSpan.FromSeconds(2)
+            })
+            .Build();
+
+        try
+        {
+            var builder1 = CreateDistributedApplicationBuilder();
+
+            var oracle1 = builder1.AddOracle("oracle");
+            ConfigureTestOracleDatabase(oracle1);
+
+            var password = oracle1.Resource.PasswordParameter.Value;
+
+            var db1 = oracle1.AddDatabase(oracleDbName);
+
+            if (useVolume)
+            {
+                // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
+                volumeName = VolumeNameGenerator.CreateVolumeName(oracle1, nameof(WithDataShouldPersistStateBetweenUsages));
+
+                // If the volume already exists (because of a crashing previous run), try to delete it
+                DockerUtils.AttemptDeleteDockerVolume(volumeName);
+                oracle1.WithDataVolume(volumeName);
+            }
+            else
+            {
+                bindMountPath = Directory.CreateTempSubdirectory().FullName;
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    // Change permissions for non-root accounts (container user account)
+                    System.Diagnostics.Process.Start("/usr/bin/env", $"sudo chmod -R a+rwx {bindMountPath}").WaitForExit();
+                }
+
+                oracle1.WithDataBindMount(bindMountPath);
+            }
+
+            using (var app = builder1.Build())
+            {
+                await app.StartAsync();
+
+                await app.WaitForText("Completed: ALTER DATABASE OPEN", cancellationToken: cts.Token);
+
+                try
+                {
+                    var hb = Host.CreateApplicationBuilder();
+
+                    hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                    {
+                        [$"ConnectionStrings:{db1.Resource.Name}"] = await db1.Resource.ConnectionStringExpression.GetValueAsync(default)
+                    });
+
+                    hb.AddOracleDatabaseDbContext<TestDbContext>(db1.Resource.Name);
+
+                    using (var host = hb.Build())
+                    {
+                        await host.StartAsync();
+
+                        // Wait until the database is available
+                        await pipeline.ExecuteAsync(async token =>
+                        {
+                            using var dbContext = host.Services.GetRequiredService<TestDbContext>();
+                            var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
+                            return await databaseCreator.CanConnectAsync(token);
+                        }, cts.Token);
+
+                        // Create tables
+                        using var dbContext = host.Services.GetRequiredService<TestDbContext>();
+                        var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
+                        await databaseCreator.CreateTablesAsync(cts.Token);
+
+                        // Seed database
+                        dbContext.Cars.Add(new TestDbContext.Car { Brand = "BatMobile" });
+                        await dbContext.SaveChangesAsync(cts.Token);
+
+                        // Stops the container and wait until it's not accessible anymore before creating a new one
+                        // using the same volume.
+
+                        await app.StopAsync();
+
+                        await pipeline.ExecuteAsync(async token =>
+                        {
+                            using var dbContext = host.Services.GetRequiredService<TestDbContext>();
+                            var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
+                            return !await databaseCreator.CanConnectAsync(token);
+                        }, cts.Token);
+                    }
+                }
+                finally
+                {
+                    // Stops the container, or the Volume/mount would still be in use
+                    await app.StopAsync();
+                }
+            }
+
+            var builder2 = CreateDistributedApplicationBuilder();
+            var passwordParameter2 = builder2.AddParameter("pwd");
+            builder2.Configuration["Parameters:pwd"] = password;
+
+            var oracle2 = builder2.AddOracle("oracle", passwordParameter2);
+            ConfigureTestOracleDatabase(oracle2);
+
+            var db2 = oracle2.AddDatabase(oracleDbName);
+
+            if (useVolume)
+            {
+                oracle2.WithDataVolume(volumeName);
+            }
+            else
+            {
+                oracle2.WithDataBindMount(bindMountPath!);
+            }
+
+            using (var app = builder2.Build())
+            {
+                await app.StartAsync();
+
+                await app.WaitForText("Completed: ALTER DATABASE OPEN", cancellationToken: cts.Token);
+
+                try
+                {
+                    var hb = Host.CreateApplicationBuilder();
+
+                    hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                    {
+                        [$"ConnectionStrings:{db2.Resource.Name}"] = await db2.Resource.ConnectionStringExpression.GetValueAsync(default)
+                    });
+
+                    hb.AddOracleDatabaseDbContext<TestDbContext>(db2.Resource.Name);
+
+                    using (var host = hb.Build())
+                    {
+                        await host.StartAsync();
+
+                        // Wait until the database is available
+                        await pipeline.ExecuteAsync(async token =>
+                        {
+                            using var dbContext = host.Services.GetRequiredService<TestDbContext>();
+                            var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
+                            return await databaseCreator.CanConnectAsync(token);
+                        });
+
+                        using var dbContext = host.Services.GetRequiredService<TestDbContext>();
+                        var brands = await dbContext.Cars.ToListAsync(cancellationToken: cts.Token);
+                        Assert.Single(brands);
+
+                        await app.StopAsync();
+
+                        // Wait for the database to not be available before attempting to clean the volume.
+
+                        await pipeline.ExecuteAsync(async token =>
+                        {
+                            var dbContext = host.Services.GetRequiredService<TestDbContext>();
+                            var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
+                            return !await databaseCreator.CanConnectAsync(token);
+                        }, cts.Token);
+                    }
+                }
+                finally
+                {
+                    // Stops the container, or the Volume/mount would still be in use
+                    await app.StopAsync();
+                }
+            }
+        }
+        finally
+        {
+            if (volumeName is not null)
+            {
+                DockerUtils.AttemptDeleteDockerVolume(volumeName);
+            }
+
+            if (bindMountPath is not null)
+            {
+                try
+                {
+                    Directory.Delete(bindMountPath, true);
+                }
+                catch
+                {
+                    // Don't fail test if we can't clean the temporary folder
+                }
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false, Skip = "https://github.com/dotnet/aspire/issues/5190")]
     [RequiresDocker]
     public async Task VerifyWithInitBindMount(bool init)
     {
