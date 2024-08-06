@@ -10,7 +10,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting.Tests.Utils;
 
-internal static class LoggerNotificationExtensions
+public static class LoggerNotificationExtensions
 {
     /// <summary>
     /// Waits for the specified text to be logged.

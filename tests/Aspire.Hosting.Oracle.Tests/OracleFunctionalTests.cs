@@ -2,13 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -21,9 +18,11 @@ namespace Aspire.Hosting.Oracle.Tests;
 
 public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 {
-    private const UnixFileMode OwnershipPermissions =
+    // Folders created for mounted folders need to be granted specific permissions
+    // for the non-root user in the container to be able to access them.
+
+    private const UnixFileMode MountFilePermissions =
        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
-       UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
 
     private const string DatabaseReadyText = "Completed: ALTER DATABASE OPEN";
@@ -42,8 +41,6 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var db = oracle.AddDatabase(oracleDbName);
 
-        ConfigureTestOracleDatabase(oracle);
-
         using var app = builder.Build();
 
         await app.StartAsync(cts.Token);
@@ -61,11 +58,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         await host.StartAsync();
 
         var dbContext = host.Services.GetRequiredService<TestDbContext>();
-        var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
-
-        // Don't invoke databaseCreator.CanConnectAsync() as it hides the actual exception when failing
-
-        await databaseCreator.CreateTablesAsync(cts.Token);
+        await dbContext.Database.EnsureCreatedAsync(cts.Token);
 
         dbContext.Cars.Add(new TestDbContext.Car { Brand = "BatMobile" });
         await dbContext.SaveChangesAsync(cts.Token);
@@ -102,7 +95,6 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
             var builder1 = CreateDistributedApplicationBuilder();
 
             var oracle1 = builder1.AddOracle("oracle");
-            ConfigureTestOracleDatabase(oracle1);
 
             var password = oracle1.Resource.PasswordParameter.Value;
 
@@ -124,7 +116,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
                 if (!OperatingSystem.IsWindows())
                 {
                     // Change permissions for non-root accounts (container user account)
-                    File.SetUnixFileMode(bindMountPath, OwnershipPermissions);
+                    File.SetUnixFileMode(bindMountPath, MountFilePermissions);
                 }
 
                 oracle1.WithDataBindMount(bindMountPath);
@@ -155,14 +147,12 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
                         await pipeline.ExecuteAsync(async token =>
                         {
                             using var dbContext = host.Services.GetRequiredService<TestDbContext>();
-                            var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
-                            return await databaseCreator.CanConnectAsync(token);
+                            await dbContext.Database.CanConnectAsync(cts.Token);
                         }, cts.Token);
 
                         // Create tables
                         using var dbContext = host.Services.GetRequiredService<TestDbContext>();
-                        var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
-                        await databaseCreator.CreateTablesAsync(cts.Token);
+                        await dbContext.Database.EnsureCreatedAsync(cts.Token);
 
                         // Seed database
                         dbContext.Cars.Add(new TestDbContext.Car { Brand = "BatMobile" });
@@ -176,8 +166,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
                         await pipeline.ExecuteAsync(async token =>
                         {
                             using var dbContext = host.Services.GetRequiredService<TestDbContext>();
-                            var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
-                            return !await databaseCreator.CanConnectAsync(token);
+                            return !await dbContext.Database.CanConnectAsync(token);
                         }, cts.Token);
                     }
                 }
@@ -193,7 +182,6 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
             builder2.Configuration["Parameters:pwd"] = password;
 
             var oracle2 = builder2.AddOracle("oracle", passwordParameter2);
-            ConfigureTestOracleDatabase(oracle2);
 
             var db2 = oracle2.AddDatabase(oracleDbName);
 
@@ -231,8 +219,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
                         await pipeline.ExecuteAsync(async token =>
                         {
                             using var dbContext = host.Services.GetRequiredService<TestDbContext>();
-                            var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
-                            return await databaseCreator.CanConnectAsync(token);
+                            return await dbContext.Database.CanConnectAsync(token);
                         });
 
                         using var dbContext = host.Services.GetRequiredService<TestDbContext>();
@@ -246,8 +233,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
                         await pipeline.ExecuteAsync(async token =>
                         {
                             var dbContext = host.Services.GetRequiredService<TestDbContext>();
-                            var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
-                            return !await databaseCreator.CanConnectAsync(token);
+                            return !await dbContext.Database.CanConnectAsync(token);
                         }, cts.Token);
                     }
                 }
@@ -303,7 +289,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         if (!OperatingSystem.IsWindows())
         {
             // Change permissions for non-root accounts (container user account)
-            File.SetUnixFileMode(bindMountPath, OwnershipPermissions);
+            File.SetUnixFileMode(bindMountPath, MountFilePermissions);
         }
 
         var oracleDbName = "freepdb1";
@@ -359,8 +345,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
                 await pipeline.ExecuteAsync(async token =>
                 {
                     var dbContext = host.Services.GetRequiredService<TestDbContext>();
-                    var databaseCreator = (RelationalDatabaseCreator)dbContext.Database.GetService<IDatabaseCreator>();
-                    return await databaseCreator.CanConnectAsync(token);
+                    return await dbContext.Database.CanConnectAsync(token);
                 }, cts.Token);
 
                 var dbContext = host.Services.GetRequiredService<TestDbContext>();
@@ -395,14 +380,5 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         builder.Services.AddXunitLogging(testOutputHelper);
         builder.Services.AddHostedService<ResourceLoggerForwarderService>();
         return builder;
-    }
-
-    private static IResourceBuilder<OracleDatabaseServerResource> ConfigureTestOracleDatabase(IResourceBuilder<OracleDatabaseServerResource> oracle)
-    {
-        return oracle
-            .WithImage("gvenzl/oracle-free", "23-slim-faststart")
-            .WithImageRegistry("docker.io")
-            .WithEnvironment("ORACLE_PASSWORD", oracle.Resource.PasswordParameter.Value)
-            ;
     }
 }
