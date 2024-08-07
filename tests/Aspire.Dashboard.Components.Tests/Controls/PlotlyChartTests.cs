@@ -31,7 +31,7 @@ public class PlotlyChartTests : TestContext
         var cut = RenderComponent<PlotlyChart>(builder =>
         {
             builder.Add(p => p.InstrumentViewModel, model);
-            builder.Add(p => p.ViewportInformation, new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false));
+            builder.Add(p => p.ViewportInformation, new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
         });
 
         // Assert
@@ -84,7 +84,7 @@ public class PlotlyChartTests : TestContext
         {
             builder.Add(p => p.InstrumentViewModel, model);
             builder.Add(p => p.Duration, TimeSpan.FromSeconds(1));
-            builder.Add(p => p.ViewportInformation, new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false));
+            builder.Add(p => p.ViewportInformation, new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
         });
 
         // Assert

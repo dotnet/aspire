@@ -37,7 +37,7 @@ public partial class StructuredLogsTests : TestContext
         });
         navigationManager.NavigateTo(uri);
 
-        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false);
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
 
         // Act
         var cut = RenderComponent<StructuredLogs>(builder =>

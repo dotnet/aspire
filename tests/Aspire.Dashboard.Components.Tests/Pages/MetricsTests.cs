@@ -87,7 +87,7 @@ public partial class MetricsTests : TestContext
         var cut = RenderComponent<Metrics>(builder =>
         {
             builder.Add(m => m.ApplicationName, "TestApp");
-            builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false));
+            builder.AddCascadingValue(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
         });
 
         var viewModel = cut.Instance.PageViewModel;
