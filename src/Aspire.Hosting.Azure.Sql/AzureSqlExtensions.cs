@@ -28,6 +28,7 @@ public static class AzureSqlExtensions
             sqlServer.AssignProperty(x => x.Administrators.Sid, construct.PrincipalIdParameter);
             sqlServer.AssignProperty(x => x.Administrators.Login, construct.PrincipalNameParameter);
             sqlServer.AssignProperty(x => x.Administrators.TenantId, "subscription().tenantId");
+            sqlServer.AssignProperty(x => x.MinimalTlsVersion, "'1.3'");
 
             sqlServer.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
 
