@@ -79,7 +79,7 @@
             </FluentDataGrid>
         </div>
     }
-    @if (Instrument.Type == OtlpInstrumentType.Histogram)
+    @if (Instrument.Summary.Type == OtlpInstrumentType.Histogram)
     {
         <div class="metrics-filters-section">
             <h5>@Loc[nameof(ControlsStrings.ChartContainerOptionsHeader)]</h5>
@@ -92,14 +92,3 @@
         </div>
     }
 </div>
-
-@code {
-    [Parameter, EditorRequired]
-    public required OtlpInstrument Instrument { get; set; }
-
-    [Parameter, EditorRequired]
-    public required InstrumentViewModel InstrumentViewModel { get; set; }
-
-    [Parameter, EditorRequired]
-    public required List<DimensionFilterViewModel> DimensionFilters { get; set; }
-}

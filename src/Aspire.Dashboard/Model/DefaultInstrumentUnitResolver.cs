@@ -11,7 +11,7 @@ namespace Aspire.Dashboard.Model;
 
 public sealed class DefaultInstrumentUnitResolver(IStringLocalizer<ControlsStrings> loc) : IInstrumentUnitResolver
 {
-    public string ResolveDisplayedUnit(OtlpInstrument instrument, bool titleCase, bool pluralize)
+    public string ResolveDisplayedUnit(OtlpInstrumentSummary instrument, bool titleCase, bool pluralize)
     {
         if (!string.IsNullOrEmpty(instrument.Unit))
         {
