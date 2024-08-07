@@ -527,13 +527,13 @@ fluent-data-grid-cell.no-ellipsis {
     --console-background-color-hover: #1D1D1D;
     --console-font-color: var(--console-theme-white);
 
-    height: 100%;
     width: 100%;
     overflow: auto;
 }
 
 .console-overflow {
     background-color: var(--console-background-color);
+    height: 100%;
 }
 
 .log-container {
