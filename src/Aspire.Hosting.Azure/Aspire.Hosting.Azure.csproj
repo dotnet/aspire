@@ -25,6 +25,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="**/*.targets;AspireAzureConfigurationSchema.json" Pack="true" PackagePath="%(RecursiveDir)%(Filename)%(Extension)"  />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
     <PackageReference Include="System.IO.Hashing" />
     <PackageReference Include="Azure.Provisioning" />
