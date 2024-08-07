@@ -455,6 +455,22 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         Assert.NotEmpty(response.Headers.GetValues(HeaderNames.ContentSecurityPolicy).Single());
     }
 
+    [Fact]
+    public async Task Configuration_CorsNoOtlpHttpEndpoint_Error()
+    {
+        // Arrange & Act
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data.Remove(DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey);
+                data[DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.ConfigKey] = "https://localhost:666";
+            });
+
+        // Assert
+        Assert.Collection(app.ValidationFailures,
+            s => Assert.Contains(DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey, s));
+    }
+
     private static void AssertDynamicIPEndpoint(Func<EndpointInfo> endPointAccessor)
     {
         // Check that the specified dynamic port of 0 is overridden with the actual port number.

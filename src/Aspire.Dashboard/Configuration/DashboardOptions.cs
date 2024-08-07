@@ -94,6 +94,8 @@ public sealed class OtlpOptions
 
     public byte[]? GetSecondaryApiKeyBytes() => _secondaryApiKeyBytes;
 
+    public OtlpCors Cors { get; set; } = new();
+
     internal bool TryParseOptions([NotNullWhen(false)] out string? errorMessage)
     {
         if (string.IsNullOrEmpty(GrpcEndpointUrl) && string.IsNullOrEmpty(HttpEndpointUrl))
@@ -114,12 +116,24 @@ public sealed class OtlpOptions
             return false;
         }
 
+        if (string.IsNullOrEmpty(HttpEndpointUrl) && !string.IsNullOrEmpty(Cors.AllowedOrigins))
+        {
+            errorMessage = $"CORS configured without an OTLP HTTP endpoint. Either remove CORS configuration or specify a {DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName} value.";
+            return false;
+        }
+
         _primaryApiKeyBytes = PrimaryApiKey != null ? Encoding.UTF8.GetBytes(PrimaryApiKey) : null;
         _secondaryApiKeyBytes = SecondaryApiKey != null ? Encoding.UTF8.GetBytes(SecondaryApiKey) : null;
 
         errorMessage = null;
         return true;
     }
+}
+
+public sealed class OtlpCors
+{
+    public string? AllowedOrigins { get; set; }
+    public string? AllowedHeaders { get; set; }
 }
 
 // Don't set values after validating/parsing options.
