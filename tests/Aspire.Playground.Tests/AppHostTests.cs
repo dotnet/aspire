@@ -112,7 +112,7 @@ public class AppHostTests
         var theoryData = new TheoryData<string>();
         foreach (var asm in appHostAssemblies)
         {
-            if (string.IsNullOrEmpty(s_appHostNameFilter) || !asm.Contains(s_appHostNameFilter, StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrEmpty(s_appHostNameFilter) || asm.Contains(s_appHostNameFilter, StringComparison.OrdinalIgnoreCase))
             {
                 theoryData.Add(Path.GetRelativePath(AppContext.BaseDirectory, asm));
             }
