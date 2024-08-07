@@ -47,7 +47,7 @@ public sealed class DashboardOptionsTests
         var result = new ValidateDashboardOptions().Validate(null, options);
 
         Assert.False(result.Succeeded);
-        Assert.Equal("One or more frontend endpoint URLs are not configured. Specify a Dashboard:Frontend:EndpointUrls value.", result.FailureMessage);
+        Assert.Equal("One or more frontend endpoint URLs are not configured. Specify an ASPNETCORE_URLS value.", result.FailureMessage);
     }
 
     [Fact]

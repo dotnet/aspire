@@ -72,10 +72,18 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
             case OtlpAuthMode.ApiKey:
                 if (string.IsNullOrEmpty(options.Otlp.PrimaryApiKey))
                 {
-                    errorMessages.Add("PrimaryApiKey is required when OTLP authentication mode is API key. Specify a Dashboard:Otlp:PrimaryApiKey value.");
+                    errorMessages.Add($"PrimaryApiKey is required when OTLP authentication mode is API key. Specify a {DashboardConfigNames.DashboardOtlpPrimaryApiKeyName.ConfigKey} value.");
                 }
                 break;
             case OtlpAuthMode.ClientCertificate:
+                for (var i = 0; i < options.Otlp.AllowedCertificates.Count; i++)
+                {
+                    var allowedCertRule = options.Otlp.AllowedCertificates[i];
+                    if (string.IsNullOrEmpty(allowedCertRule.Thumbprint))
+                    {
+                        errorMessages.Add($"Thumbprint on allow certificate rule is not configured. Specify a {DashboardConfigNames.DashboardOtlpAllowedCertificatesName.ConfigKey}:{i}:Thumbprint value.");
+                    }
+                }
                 break;
             case null:
                 errorMessages.Add($"OTLP endpoint authentication is not configured. Either specify {DashboardConfigNames.DashboardUnsecuredAllowAnonymousName.ConfigKey}=true, or specify {DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey}. Possible values: {string.Join(", ", typeof(OtlpAuthMode).GetEnumNames())}");
