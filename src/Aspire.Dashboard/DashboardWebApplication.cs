@@ -333,7 +333,6 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             }
         });
 
-        _app.UseAuthentication();
         _app.UseAuthorization();
 
         _app.UseMiddleware<BrowserSecurityHeadersMiddleware>();
