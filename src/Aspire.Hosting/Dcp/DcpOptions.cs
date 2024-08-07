@@ -101,9 +101,7 @@ internal class ConfigureDefaultDcpOptions(
     DistributedApplicationOptions appOptions,
     IConfiguration configuration) : IConfigureOptions<DcpOptions>
 {
-    private const string DcpCliPathMetadataKey = "DcpCliPath";
-    private const string DcpExtensionsPathMetadataKey = "DcpExtensionsPath";
-    private const string DcpBinPathMetadataKey = "DcpBinPath";
+    private const string DcpDirMetadataKey = "DcpDir";
     private const string DashboardPathMetadataKey = "aspiredashboardpath";
 
     public static string DcpPublisher = nameof(DcpPublisher);
@@ -113,16 +111,22 @@ internal class ConfigureDefaultDcpOptions(
         var dcpPublisherConfiguration = configuration.GetSection(DcpPublisher);
         var assemblyMetadata = appOptions.Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
 
-        if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.CliPath)]))
+        // Find dcp tools path in the following order:
+        // 1. Environment variable ASPIRE_DCP_DIR
+        // 2. Configuration value
+        // 3. Assembly metadata
+        if (Environment.GetEnvironmentVariable("ASPIRE_DCP_DIR") is var dcpDirEnvVar && !string.IsNullOrEmpty(dcpDirEnvVar))
+        {
+            SetDcpPathsFromDcpDir(dcpDirEnvVar);
+        }
+        else if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.CliPath)]))
         {
             // If an explicit path to DCP was provided from configuration, don't try to resolve via assembly attributes
             options.CliPath = dcpPublisherConfiguration[nameof(options.CliPath)];
         }
-        else
+        else if (GetMetadataValue(assemblyMetadata, DcpDirMetadataKey) is var dcpDir && !string.IsNullOrEmpty(dcpDir))
         {
-            options.CliPath = GetMetadataValue(assemblyMetadata, DcpCliPathMetadataKey);
-            options.ExtensionsPath = GetMetadataValue(assemblyMetadata, DcpExtensionsPathMetadataKey);
-            options.BinPath = GetMetadataValue(assemblyMetadata, DcpBinPathMetadataKey);
+            SetDcpPathsFromDcpDir(dcpDir);
         }
 
         if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.DashboardPath)]))
@@ -171,6 +175,13 @@ internal class ConfigureDefaultDcpOptions(
         options.DeleteResourcesOnShutdown = dcpPublisherConfiguration.GetValue(nameof(options.DeleteResourcesOnShutdown), options.DeleteResourcesOnShutdown);
         options.RandomizePorts = dcpPublisherConfiguration.GetValue(nameof(options.RandomizePorts), options.RandomizePorts);
         options.ServiceStartupWatchTimeout = configuration.GetValue("DOTNET_ASPIRE_SERVICE_STARTUP_WATCH_TIMEOUT", options.ServiceStartupWatchTimeout);
+
+        void SetDcpPathsFromDcpDir(string dcpDir)
+        {
+            options.CliPath = Path.Combine(dcpDir, "dcp") + (OperatingSystem.IsWindows() ? ".exe" : "");
+            options.ExtensionsPath = Path.Combine(dcpDir, "ext");
+            options.BinPath = Path.Combine(options.ExtensionsPath, "bin");
+        }
     }
 
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)
