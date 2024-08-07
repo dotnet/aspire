@@ -112,10 +112,10 @@ internal class ConfigureDefaultDcpOptions(
         var assemblyMetadata = appOptions.Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
 
         // Find dcp tools path in the following order:
-        // 1. Environment variable ASPIRE_DCP_DIR
+        // 1. Environment variable DOTNET_ASPIRE_DCP_DIR
         // 2. Configuration value
         // 3. Assembly metadata
-        if (Environment.GetEnvironmentVariable("ASPIRE_DCP_DIR") is var dcpDirEnvVar && !string.IsNullOrEmpty(dcpDirEnvVar))
+        if (Environment.GetEnvironmentVariable("DOTNET_ASPIRE_DCP_DIR") is var dcpDirEnvVar && !string.IsNullOrEmpty(dcpDirEnvVar))
         {
             SetDcpPathsFromDcpDir(dcpDirEnvVar);
         }
