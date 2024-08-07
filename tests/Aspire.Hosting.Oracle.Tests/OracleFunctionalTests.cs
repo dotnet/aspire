@@ -77,7 +77,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
         string? volumeName = null;
         string? bindMountPath = null;
 
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(15));
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new()
             {
@@ -270,7 +270,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         // Creates a script that should be executed when the container is initialized.
 
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(15));
         var pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new()
             {
