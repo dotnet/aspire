@@ -6,6 +6,8 @@
       CS8002: Referenced assembly does not have a strong name. KubernetesClient package is unsigned, we ignore that warning on purpose
     -->
     <NoWarn>$(NoWarn);CS8002</NoWarn>
+    <RunTestsOnHelix>true</RunTestsOnHelix>
+    <IsHostingTestingTest>true</IsHostingTestingTest>
   </PropertyGroup>
 
   <ItemGroup>
@@ -33,6 +35,10 @@
     <Content Include="$(RepoRoot)src\Schema\aspire-8.0.json" Link="Schema\aspire-8.0.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(ArchiveTests)' == 'true'">
+    <None Include="..\testproject\**\*" Link="testassets\testproject\%(RecursiveDir)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

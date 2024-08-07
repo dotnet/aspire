@@ -67,7 +67,8 @@ public sealed class DistributedApplicationOptions
     private string? ResolveProjectDirectory()
     {
         var assemblyMetadata = Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
-        return GetMetadataValue(assemblyMetadata, "AppHostProjectPath");
+        string? projectPath = ApplicationModel.ProjectResource.FindMatchingProjectPath(GetMetadataValue(assemblyMetadata, "AppHostProjectPath"));
+        return projectPath != null ? Path.GetDirectoryName(projectPath) : null;
     }
 
     private Assembly? ResolveAssembly()

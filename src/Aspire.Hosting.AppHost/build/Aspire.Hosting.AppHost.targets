@@ -43,9 +43,20 @@ namespace Projects%3B
 [global::System.CodeDom.Compiler.GeneratedCode("Aspire.Hosting", null)]
 [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage(Justification = "Generated code.")]
 [global::System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
+
+#nullable enable
 ]]>$(AspireGeneratedClassesVisibility)<![CDATA[ class ]]>%(ClassName)<![CDATA[ : global::Aspire.Hosting.IProjectMetadata
 {
-    public string ProjectPath => """]]>%(ProjectPath)<![CDATA["""%3B
+    private static string? _fixedupProjectPath%3B
+    public string ProjectPath
+    {
+        get
+        {
+            string originalProjectPath = """]]>%(ProjectPath)<![CDATA["""%3B
+            _fixedupProjectPath ??= Aspire.Hosting.ApplicationModel.ProjectResource.FindMatchingProjectPath(originalProjectPath)!%3B
+            return _fixedupProjectPath%3B
+        }
+    }
 }]]>
         </Source>
       </AspireProjectMetadataSource>
@@ -67,7 +78,7 @@ namespace Projects%3B
     <ItemGroup>
       <AspireHostProjectMetadataSource Include="$(MSBuildProjectDirectory)">
         <ClassName>$([System.Text.RegularExpressions.Regex]::Replace($([System.IO.Path]::GetFileNameWithoutExtension($(MSBuildProjectFile))), $(_GeneratedClassNameFixupRegex), '_'))</ClassName>
-        <ProjectPath>$(MSBuildProjectDirectory)</ProjectPath>
+        <ProjectPath>$(MSBuildProjectFullPath)</ProjectPath>
       </AspireHostProjectMetadataSource>
     </ItemGroup>
   </Target>
@@ -83,10 +94,21 @@ namespace Projects%3B
 [global::System.CodeDom.Compiler.GeneratedCode("Aspire.Hosting", null)]
 [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage(Justification = "Generated code.")]
 [global::System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
+
+#nullable enable
 ]]>$(AspireGeneratedClassesVisibility)<![CDATA[ class ]]>%(ClassName)<![CDATA[
 {
+    private static string? _fixedupProjectPath%3B
     private ]]>%(ClassName)<![CDATA[() { }
-    public static string ProjectPath => """]]>%(ProjectPath)<![CDATA["""%3B
+    public static string ProjectPath
+  {
+      get
+      {
+          string originalProjectPath = """]]>%(ProjectPath)<![CDATA["""%3B
+          _fixedupProjectPath ??= Aspire.Hosting.ApplicationModel.ProjectResource.FindMatchingProjectPath(originalProjectPath)!%3B
+          return _fixedupProjectPath%3B
+      }
+    }
 }]]>
         </Source>
       </AspireHostProjectMetadataSource>
@@ -198,20 +220,12 @@ namespace Projects%3B
 
     <ItemGroup>
       <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
-        <_Parameter1>dcpclipath</_Parameter1>
-        <_Parameter2>$(DcpCliPath)</_Parameter2>
-      </AssemblyAttribute>
-      <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
-        <_Parameter1>dcpextensionpaths</_Parameter1>
-        <_Parameter2>$(DcpExtensionsDir)</_Parameter2>
-      </AssemblyAttribute>
-      <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
-        <_Parameter1>dcpbinpath</_Parameter1>
-        <_Parameter2>$(DcpBinDir)</_Parameter2>
+        <_Parameter1>dcpdir</_Parameter1>
+        <_Parameter2>$(DcpDir)</_Parameter2>
       </AssemblyAttribute>
       <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
         <_Parameter1>apphostprojectpath</_Parameter1>
-        <_Parameter2>$(MSBuildProjectDirectory)</_Parameter2>
+        <_Parameter2>$(MSBuildProjectFullPath)</_Parameter2>
       </AssemblyAttribute>
     </ItemGroup>
   </Target>

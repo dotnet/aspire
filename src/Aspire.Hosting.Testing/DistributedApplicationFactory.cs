@@ -183,7 +183,14 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
     private static string? ResolveProjectPath(Assembly? assembly)
     {
         var assemblyMetadata = assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
-        return GetMetadataValue(assemblyMetadata, "AppHostProjectPath");
+
+        string? projectPath = GetProjectPath(GetMetadataValue(assemblyMetadata, "AppHostProjectPath"));
+        return projectPath != null ? Path.GetDirectoryName(projectPath) : null;
+
+        static string? GetProjectPath(string? _originalProjectPath)
+        {
+            return ApplicationModel.ProjectResource.FindMatchingProjectPath(_originalProjectPath);
+        }
     }
 
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)

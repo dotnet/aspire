@@ -25,5 +25,14 @@ public interface IProjectMetadata : IResourceAnnotation
 [DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
 internal sealed class ProjectMetadata(string projectPath) : IProjectMetadata
 {
-    public string ProjectPath { get; } = projectPath;
+    private readonly string _originalProjectPath = projectPath;
+    private string? _fixedupProjectPath;
+    public string ProjectPath
+    {
+        get
+        {
+            _fixedupProjectPath ??= Aspire.Hosting.ApplicationModel.ProjectResource.FindMatchingProjectPath(_originalProjectPath)!;
+            return _fixedupProjectPath!;
+        }
+    }
 }

@@ -101,9 +101,10 @@ internal class ConfigureDefaultDcpOptions(
     DistributedApplicationOptions appOptions,
     IConfiguration configuration) : IConfigureOptions<DcpOptions>
 {
-    private const string DcpCliPathMetadataKey = "DcpCliPath";
-    private const string DcpExtensionsPathMetadataKey = "DcpExtensionsPath";
-    private const string DcpBinPathMetadataKey = "DcpBinPath";
+    // private const string DcpCliPathMetadataKey = "DcpCliPath";
+    // private const string DcpExtensionsPathMetadataKey = "DcpExtensionsPath";
+    // private const string DcpBinPathMetadataKey = "DcpBinPath";
+    private const string DcpDirMetadataKey = "DcpDir";
     private const string DashboardPathMetadataKey = "aspiredashboardpath";
 
     public static string DcpPublisher = nameof(DcpPublisher);
@@ -113,16 +114,24 @@ internal class ConfigureDefaultDcpOptions(
         var dcpPublisherConfiguration = configuration.GetSection(DcpPublisher);
         var assemblyMetadata = appOptions.Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
 
+        // Console.WriteLine ($"------------- ConfigureDefaultDcpOptions.Configure --------------");
         if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.CliPath)]))
         {
             // If an explicit path to DCP was provided from configuration, don't try to resolve via assembly attributes
             options.CliPath = dcpPublisherConfiguration[nameof(options.CliPath)];
+            // FIXME: try setting this from the appsettings.json
         }
         else
         {
-            options.CliPath = GetMetadataValue(assemblyMetadata, DcpCliPathMetadataKey);
-            options.ExtensionsPath = GetMetadataValue(assemblyMetadata, DcpExtensionsPathMetadataKey);
-            options.BinPath = GetMetadataValue(assemblyMetadata, DcpBinPathMetadataKey);
+            // Console.WriteLine ($"Setting via assembly attributes");
+            string? dcpDir = GetFromEnvironmentVariableOrAssemblyMetadata("ASPIRE_DCP_DIR", assemblyMetadata, DcpDirMetadataKey);
+            Console.WriteLine ($"Using dcpDir: {dcpDir}");
+            if (!string.IsNullOrEmpty(dcpDir))
+            {
+                options.CliPath = Path.Combine(dcpDir, "dcp") + (OperatingSystem.IsWindows() ? ".exe" : "");
+                options.ExtensionsPath = Path.Combine(dcpDir, "ext");
+                options.BinPath = Path.Combine(options.ExtensionsPath, "bin");
+            }
         }
 
         if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.DashboardPath)]))
@@ -132,7 +141,8 @@ internal class ConfigureDefaultDcpOptions(
         }
         else
         {
-            options.DashboardPath = GetMetadataValue(assemblyMetadata, DashboardPathMetadataKey);
+            options.DashboardPath = GetFromEnvironmentVariableOrAssemblyMetadata("ASPIRE_DASHBOARD_PATH", assemblyMetadata, DashboardPathMetadataKey);
+            Console.WriteLine ($"options.dashboard: {options.DashboardPath}");
         }
 
         if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.ContainerRuntime)]))
@@ -171,6 +181,14 @@ internal class ConfigureDefaultDcpOptions(
         options.DeleteResourcesOnShutdown = dcpPublisherConfiguration.GetValue(nameof(options.DeleteResourcesOnShutdown), options.DeleteResourcesOnShutdown);
         options.RandomizePorts = dcpPublisherConfiguration.GetValue(nameof(options.RandomizePorts), options.RandomizePorts);
         options.ServiceStartupWatchTimeout = configuration.GetValue("DOTNET_ASPIRE_SERVICE_STARTUP_WATCH_TIMEOUT", options.ServiceStartupWatchTimeout);
+
+        static string? GetFromEnvironmentVariableOrAssemblyMetadata(string envVarName, IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)
+        {
+            string? envVarValue = Environment.GetEnvironmentVariable(envVarName);
+            return string.IsNullOrEmpty(envVarValue)
+                    ? GetMetadataValue(assemblyMetadata, key)
+                    : envVarValue;
+        }
     }
 
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)

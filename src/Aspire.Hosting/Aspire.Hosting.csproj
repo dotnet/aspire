@@ -8,6 +8,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting</PackageTags>
     <Description>Core abstractions for the .NET Aspire application model.</Description>
+    <RunTestsOnHelix>true</RunTestsOnHelix>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -68,6 +69,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
     <InternalsVisibleTo Include="Aspire.Hosting.Containers.Tests" />
+    <InternalsVisibleTo Include="TestProject.AppHost" />
   </ItemGroup>
 
 </Project>

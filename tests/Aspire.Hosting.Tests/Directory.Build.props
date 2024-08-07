@@ -3,5 +3,9 @@
     <IsAspireHost>true</IsAspireHost>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <IsWorkloadTestProject>true</IsWorkloadTestProject>
+  </PropertyGroup>
+
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 </Project>
