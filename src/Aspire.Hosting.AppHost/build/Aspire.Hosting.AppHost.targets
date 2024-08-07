@@ -186,16 +186,6 @@ namespace Projects%3B
 
   <!-- This target registers the location of the Aspire orchestration dependencies -->
   <Target Name="SetOrchestrationDiscoveryAttributes" BeforeTargets="GetAssemblyAttributes" Condition=" '$(DcpDir)' != '' ">
-    <PropertyGroup>
-      <DcpDir>$([MSBuild]::EnsureTrailingSlash('$(DcpDir)'))</DcpDir>
-      <DcpExtensionsDir Condition=" '$(DcpExtensionsDir)' == '' ">$([MSBuild]::NormalizePath($(DcpDir), 'ext'))</DcpExtensionsDir>
-      <DcpExtensionsDir>$([MSBuild]::EnsureTrailingSlash('$(DcpExtensionsDir)'))</DcpExtensionsDir>
-      <DcpBinDir Condition=" '$(DcpBinDir)' == '' ">$([MSBuild]::NormalizePath($(DcpExtensionsDir), 'bin'))</DcpBinDir>
-      <DcpBinDir>$([MSBuild]::EnsureTrailingSlash('$(DcpBinDir)'))</DcpBinDir>
-      <DcpCliPath Condition=" '$(DcpCliPath)'  == '' ">$([MSBuild]::NormalizePath($(DcpDir), 'dcp'))</DcpCliPath>
-      <DcpCliPath Condition=" '$(OS)' == 'Windows_NT' and !$(DcpCliPath.EndsWith('.exe')) ">$(DcpCliPath).exe</DcpCliPath>
-    </PropertyGroup>
-
     <ItemGroup>
       <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
         <_Parameter1>dcpdir</_Parameter1>
