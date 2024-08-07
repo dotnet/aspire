@@ -6,15 +6,18 @@ Fixes # (issue)
 
 ## Checklist
 
-- Is this feature complete or do we expect follow-up changes before this code can ship?
-  - [ ] Yes
-  - [ ] No
+- Is this feature complete?
+  - [ ] Yes. Ready to ship.
+  - [ ] No. Follow-up changes expected.
 - Are you including unit tests for the changes and scenario tests if relevant?
   - [ ] Yes
   - [ ] No
 - Did you add public API?
   - [ ] Yes
     - If yes, did you have an API Review for it?
+      - [ ] Yes
+      - [ ] No
+    - Did you add `<remarks />` and `<code />` elements on your triple slash comments?
       - [ ] Yes
       - [ ] No
   - [ ] No
