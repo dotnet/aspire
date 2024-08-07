@@ -156,7 +156,8 @@
 
       <HelixCorrelationPayload Include="@(_DcpInWorkloadPack -> '%(RootDir)%(Directory)')" Destination="dcp" />
 
-      <HelixPreCommand Include="$(_EnvVarSetKeyword) DOTNET_ASPIRE_DCP_DIR=$(_HelixCorrelationPayloadEnvVar)/dcp" />
+      <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="$(_EnvVarSetKeyword) DcpPublisher__CliPath=$(_HelixCorrelationPayloadEnvVar)/dcp" />
+      <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="$(_EnvVarSetKeyword) DcpPublisher__CliPath=$(_HelixCorrelationPayloadEnvVar)/dcp.exe" />
     </ItemGroup>
 
     <PropertyGroup>

@@ -111,20 +111,17 @@ internal class ConfigureDefaultDcpOptions(
         var dcpPublisherConfiguration = configuration.GetSection(DcpPublisher);
         var assemblyMetadata = appOptions.Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
 
-        // Find dcp tools path in the following order:
-        // 1. Environment variable DOTNET_ASPIRE_DCP_DIR
-        // 2. Configuration value
-        // 3. Assembly metadata
-        if (Environment.GetEnvironmentVariable("DOTNET_ASPIRE_DCP_DIR") is var dcpDirEnvVar && !string.IsNullOrEmpty(dcpDirEnvVar))
-        {
-            SetDcpPathsFromDcpDir(dcpDirEnvVar);
-        }
-        else if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.CliPath)]))
+        string? dcpDir;
+        if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.CliPath)]))
         {
             // If an explicit path to DCP was provided from configuration, don't try to resolve via assembly attributes
-            options.CliPath = dcpPublisherConfiguration[nameof(options.CliPath)];
+            dcpDir = Path.GetDirectoryName(dcpPublisherConfiguration[nameof(options.CliPath)]);
         }
-        else if (GetMetadataValue(assemblyMetadata, DcpDirMetadataKey) is var dcpDir && !string.IsNullOrEmpty(dcpDir))
+        else
+        {
+            dcpDir = GetMetadataValue(assemblyMetadata, DcpDirMetadataKey);
+        }
+        if (!string.IsNullOrEmpty(dcpDir))
         {
             SetDcpPathsFromDcpDir(dcpDir);
         }
