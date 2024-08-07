@@ -6,7 +6,8 @@
       CS8002: Referenced assembly does not have a strong name
     -->
     <NoWarn>$(NoWarn);CS8002</NoWarn>
-    <RunTestsOnHelix>true</RunTestsOnHelix>
+    <!-- playwright failures on helix -->
+    <!--<RunTestsOnHelix>true</RunTestsOnHelix>-->
 
     <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(CODESPACES)' == 'true'">true</InstallBrowsersForPlaywright>
     <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</InstallBrowsersForPlaywright>

@@ -77,7 +77,7 @@
 
   <PropertyGroup>
     <!-- FIXME: override can be down without workload -->
-    <NeedsWorkload Condition="'$(NeedsWorkload)' == '' and '$(NeedsDcpPathOverride)' == 'true'">true</NeedsWorkload>
+    <!--<NeedsWorkload Condition="'$(NeedsWorkload)' == '' and '$(NeedsDcpPathOverride)' == 'true'">true</NeedsWorkload>-->
   </PropertyGroup>
 
   <ItemGroup Condition="'$(NeedsPlaywright)' == 'true'">
@@ -156,6 +156,8 @@
            Text="Could not find dotnet-coverage tool. %24(_DotNetCoverageToolDir)=$(_DotNetCoverageToolDir)" />
 
     <!-- FIXME: error out if workload isn't installed -->
+    <Error Condition="'$(NeedsDcpPathOverride)' == 'true' and !Exists('$(ArtifactsBinDir)dotnet-latest')"
+           Text="Could not find workload installed in $(ArtifactsBinDir)dotnet-latest required for %24(NeedsDcpPathOverride)==true" />
 
     <ItemGroup Condition="'$(NeedsDcpPathOverride)' == 'true'">
       <_DashboardPathInWorkloadPack Condition="'$(OS)' != 'Windows_NT'" Include="$(ArtifactsBinDir)dotnet-latest\packs\**\Aspire.Dashboard.dll" />
@@ -164,7 +166,7 @@
       <_DcpInWorkloadPack Condition="'$(OS)' != 'Windows_NT'" Include="$(ArtifactsBinDir)dotnet-latest\packs\**\dcp" />
       <_DcpInWorkloadPack Condition="'$(OS)' == 'Windows_NT'" Include="$(ArtifactsBinDir)dotnet-latest\packs\**\dcp.exe" />
 
-      <HelixCorrelationPayload Include="$(DcpDir)" Destination="dcp" />
+      <HelixCorrelationPayload Include="@(_DcpInWorkloadPack -> '%(RootDir)%(Directory)')" Destination="dcp" />
       <HelixCorrelationPayload Include="@(_DashboardPathInWorkloadPack -> '%(RootDir)%(Directory)')" Destination="dashboard" />
     </ItemGroup>
 

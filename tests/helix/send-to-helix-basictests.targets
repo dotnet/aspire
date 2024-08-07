@@ -8,6 +8,11 @@
   </PropertyGroup>
 
   <Target Name="BuildHelixWorkItemsForDefaultTests">
+    <ItemGroup>
+      <!-- needed for Aspire.Hosting.Container.Tests -->
+      <HelixPreCommand Include="$(_EnvVarSetKeyword) DOCKER_BUILDKIT=1" />
+    </ItemGroup>
+
     <PropertyGroup>
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
