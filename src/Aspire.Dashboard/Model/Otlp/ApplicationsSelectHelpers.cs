@@ -14,7 +14,7 @@ public static class ApplicationsSelectHelpers
             return fallback;
         }
 
-        var matches = applications.Where(e => e.Id?.Type is OtlpApplicationType.ReplicaInstance or OtlpApplicationType.Singleton && string.Equals(name, e.Name, StringComparisons.ResourceName)).ToList();
+        var matches = applications.Where(e => e.Id?.Type is OtlpApplicationType.Instance or OtlpApplicationType.Singleton && string.Equals(name, e.Name, StringComparisons.ResourceName)).ToList();
         if (matches.Count == 1)
         {
             return matches[0];
@@ -27,9 +27,13 @@ public static class ApplicationsSelectHelpers
         {
             // There are multiple matches. Log as much information as possible about applications.
             logger.LogWarning(
-                $"Multiple matches found when getting application '{name}'. " +
-                $"Available applications: {string.Join(Environment.NewLine, applications)} " +
-                $"Matched applications: {string.Join(Environment.NewLine, matches)}");
+                """
+                Multiple matches found when getting application '{Name}'.
+                Available applications:
+                {AvailableApplications}
+                Matched applications:
+                {MatchedApplications}
+                """, name, string.Join(Environment.NewLine, applications), string.Join(Environment.NewLine, matches));
 
             // Return first match to not break app. Make the UI resilient to unexpectedly bad data.
             return matches[0];
@@ -50,7 +54,7 @@ public static class ApplicationsSelectHelpers
                 var app = replicas.Single();
                 selectViewModels.Add(new SelectViewModel<ResourceTypeDetails>
                 {
-                    Id = ResourceTypeDetails.CreateSingleton(app.InstanceId),
+                    Id = ResourceTypeDetails.CreateSingleton(app.InstanceId, applicationName),
                     Name = applicationName
                 });
 
@@ -60,7 +64,7 @@ public static class ApplicationsSelectHelpers
             // add a disabled "Resource" as a header
             selectViewModels.Add(new SelectViewModel<ResourceTypeDetails>
             {
-                Id = ResourceTypeDetails.CreateReplicaSet(applicationName),
+                Id = ResourceTypeDetails.CreateApplicationGrouping(applicationName, isReplicaSet: false),
                 Name = applicationName
             });
 
@@ -69,10 +73,11 @@ public static class ApplicationsSelectHelpers
                 new SelectViewModel<ResourceTypeDetails>
                 {
                     Id = ResourceTypeDetails.CreateReplicaInstance(replica.InstanceId, applicationName),
-                    Name = replica.InstanceId
+                    Name = OtlpApplication.GetResourceName(replica, applications)
                 }));
         }
 
-        return selectViewModels;
+        var sortedVMs = selectViewModels.OrderBy(vm => vm.Name, StringComparers.ResourceName).ToList();
+        return sortedVMs;
     }
 }

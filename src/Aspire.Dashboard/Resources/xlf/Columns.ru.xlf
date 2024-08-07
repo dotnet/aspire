@@ -7,6 +7,11 @@
         <target state="translated">Нет</target>
         <note />
       </trans-unit>
+      <trans-unit id="EndpointsColumnDisplayOverflowTitle">
+        <source>Endpoints</source>
+        <target state="new">Endpoints</target>
+        <note />
+      </trans-unit>
       <trans-unit id="EndpointsColumnDisplayPlaceholder">
         <source>Starting...</source>
         <target state="translated">Производится запуск…</target>
@@ -89,7 +94,7 @@
       </trans-unit>
       <trans-unit id="UnknownStateLabel">
         <source>Unknown</source>
-        <target state="new">Unknown</target>
+        <target state="translated">Неизвестно</target>
         <note>This term is displayed in the "state" column of a grid, and reflects the case where we don't know what state a given resource is in.</note>
       </trans-unit>
       <trans-unit id="UnreadLogErrorsBadgeErrorLogs">

@@ -73,6 +73,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
+    // A random suffix added to every DCP object name ensures that those names (and derived object names, for example container names)
+    // are unique machine-wide with a high level of probability.
+    // The length of 8 achieves that while keeping the names relatively short and readable.
+    // The second purpose of the suffix is to play a role of a unique OpenTelemetry service instance ID.
+    private const int RandomNameSuffixLength = 8;
+
     private readonly ILogger<ApplicationExecutor> _logger = logger;
     private readonly DistributedApplicationModel _model = model;
     private readonly Dictionary<string, IResource> _applicationModel = model.Resources.ToDictionary(r => r.Name);
@@ -448,8 +454,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     {
         IAsyncEnumerable<IReadOnlyList<(string, bool)>>? enumerable = resource switch
         {
-            Container c when c.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, resource),
-            Executable e when e.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, resource),
+            Container c when c.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, _dcpInfo?.Version, resource),
+            Executable e when e.LogsAvailable => new ResourceLogSource<T>(_logger, kubernetesService, _dcpInfo?.Version, resource),
             _ => null
         };
 
@@ -971,14 +977,16 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         foreach (var executable in modelExecutableResources)
         {
-            var exeName = GetObjectNameForResource(executable);
+            var nameSuffix = GetRandomNameSuffix();
+            var exeName = GetObjectNameForResource(executable, nameSuffix);
             var exePath = executable.Command;
             var exe = Executable.Create(exeName, exePath);
 
             // The working directory is always relative to the app host project directory (if it exists).
             exe.Spec.WorkingDirectory = executable.WorkingDirectory;
             exe.Spec.ExecutionType = ExecutionType.Process;
-            exe.Annotate(CustomResource.OtelServiceNameAnnotation, exe.Metadata.Name);
+            exe.Annotate(CustomResource.OtelServiceNameAnnotation, executable.Name);
+            exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, nameSuffix);
             exe.Annotate(CustomResource.ResourceNameAnnotation, executable.Name);
             SetInitialResourceState(executable, exe);
 
@@ -1006,7 +1014,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             exeSpec.WorkingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath);
 
             IAnnotationHolder annotationHolder = ers.Spec.Template;
-            annotationHolder.Annotate(CustomResource.OtelServiceNameAnnotation, ers.Metadata.Name);
+            annotationHolder.Annotate(CustomResource.OtelServiceNameAnnotation, (replicas > 1) ? ers.Metadata.Name : project.Name);
+            // The OTEL service instance ID annotation will be generated and applied automatically by DCP.
             annotationHolder.Annotate(CustomResource.ResourceNameAnnotation, project.Name);
 
             SetInitialResourceState(project, annotationHolder);
@@ -1018,29 +1027,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 exeSpec.ExecutionType = ExecutionType.IDE;
 
-                if (_dcpInfo?.Version?.CompareTo(DcpVersion.MinimumVersionIdeProtocolV1) >= 0)
+                projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
+                if (!projectLaunchConfiguration.DisableLaunchProfile && project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
                 {
-                    projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
-                    if (!projectLaunchConfiguration.DisableLaunchProfile && project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
-                    {
-                        projectLaunchConfiguration.LaunchProfile = lpa.LaunchProfileName;
-                    }
-                }
-                else
-                {
-#pragma warning disable CS0612 // These annotations are obsolete; remove after Aspire GA
-                    annotationHolder.Annotate(Executable.CSharpProjectPathAnnotation, projectMetadata.ProjectPath);
-
-                    // ExcludeLaunchProfileAnnotation takes precedence over LaunchProfileAnnotation.
-                    if (project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
-                    {
-                        annotationHolder.Annotate(Executable.CSharpDisableLaunchProfileAnnotation, "true");
-                    }
-                    else if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
-                    {
-                        annotationHolder.Annotate(Executable.CSharpLaunchProfileAnnotation, lpa.LaunchProfileName);
-                    }
-#pragma warning restore CS0612
+                    projectLaunchConfiguration.LaunchProfile = lpa.LaunchProfileName;
                 }
             }
             else
@@ -1327,10 +1317,14 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 throw new InvalidOperationException();
             }
 
-            var ctr = Container.Create(GetObjectNameForResource(container), containerImageName);
+            var nameSuffix = GetRandomNameSuffix();
+            var containerObjectName = GetObjectNameForResource(container, nameSuffix);
+            var ctr = Container.Create(containerObjectName, containerImageName);
 
+            ctr.Spec.ContainerName = containerObjectName; // Use the same name for container orchestrator (Docker, Podman) resource and DCP object name.
             ctr.Annotate(CustomResource.ResourceNameAnnotation, container.Name);
             ctr.Annotate(CustomResource.OtelServiceNameAnnotation, container.Name);
+            ctr.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, nameSuffix);
             SetInitialResourceState(container, ctr);
 
             if (container.TryGetContainerMounts(out var containerMounts))
@@ -1739,9 +1733,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             => (string.IsNullOrWhiteSpace(localSuffix), string.IsNullOrWhiteSpace(globalSuffix)) switch
             {
                 (true, true) => s,
-                (false, true) => $"{s}_{localSuffix}",
-                (true, false) => $"{s}_{globalSuffix}",
-                (false, false) => $"{s}_{localSuffix}_{globalSuffix}"
+                (false, true) => $"{s}-{localSuffix}",
+                (true, false) => $"{s}-{globalSuffix}",
+                (false, false) => $"{s}-{localSuffix}-{globalSuffix}"
             };
         return maybeWithSuffix(resource.Name, suffix, _options.Value.ResourceNameSuffix);
     }
@@ -1753,7 +1747,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         while (!serviceNames.Add(uniqueName))
         {
-            uniqueName = $"{candidateName}_{suffix}";
+            uniqueName = $"{candidateName}-{suffix}";
             suffix++;
             if (suffix == 100)
             {
@@ -1763,6 +1757,13 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
 
         return uniqueName;
+    }
+
+    private static string GetRandomNameSuffix()
+    {
+        // RandomNameSuffixLength of lowercase characters
+        var suffix = PasswordGenerator.Generate(RandomNameSuffixLength, true, false, false, false, RandomNameSuffixLength, 0, 0, 0);
+        return suffix;
     }
 
     public async Task DeleteResourcesAsync(CancellationToken cancellationToken = default)

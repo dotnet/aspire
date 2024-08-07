@@ -12,6 +12,7 @@ using Aspire.Dashboard.Authentication.OpenIdConnect;
 using Aspire.Dashboard.Authentication.OtlpApiKey;
 using Aspire.Dashboard.Authentication.OtlpConnection;
 using Aspire.Dashboard.Components;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp;
@@ -69,18 +70,29 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     /// <summary>
     /// Create a new instance of the <see cref="DashboardWebApplication"/> class.
     /// </summary>
-    /// <param name="configureBuilder">Configuration the internal app builder. This is for unit testing.</param>
-    public DashboardWebApplication(Action<WebApplicationBuilder>? configureBuilder = null)
+    /// <param name="preConfigureBuilder">Configuration for the internal app builder *before* normal dashboard configuration is done. This is for unit testing.</param>
+    /// <param name="postConfigureBuilder">Configuration for the internal app builder *after* normal dashboard configuration is done. This is for unit testing.</param>
+    /// <param name="options">Environment configuration for the internal app builder. This is for unit testing</param>
+    public DashboardWebApplication(
+        Action<WebApplicationBuilder>? preConfigureBuilder = null,
+        Action<WebApplicationBuilder>? postConfigureBuilder = null,
+        WebApplicationOptions? options = null)
     {
-        var builder = WebApplication.CreateBuilder();
+        var builder = options is not null ? WebApplication.CreateBuilder(options) : WebApplication.CreateBuilder();
 
-        configureBuilder?.Invoke(builder);
+        preConfigureBuilder?.Invoke(builder);
 
 #if !DEBUG
         builder.Logging.AddFilter("Default", LogLevel.Information);
         builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
         builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
         builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
+#else
+        // Don't log routine dashboard HTTP request info or static file access
+        // These logs generate a lot of noise when locally debugging.
+        builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning);
+        builder.Logging.AddFilter("Microsoft.AspNetCore.Routing.EndpointMiddleware", LogLevel.Warning);
+        builder.Logging.AddFilter("Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware", LogLevel.Warning);
 #endif
 
         // Allow for a user specified JSON config file on disk. Throw an error if the specified file doesn't exist.
@@ -136,6 +148,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             // See https://learn.microsoft.com/aspnet/core/performance/response-compression#compression-with-https for more information
             options.MimeTypes = ["text/javascript", "application/javascript", "text/css", "image/svg+xml"];
         });
+        builder.Services.AddCors();
 
         // Data from the server.
         builder.Services.AddScoped<IDashboardClient, DashboardClient>();
@@ -162,6 +175,10 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         // Time zone is set by the browser.
         builder.Services.AddScoped<BrowserTimeProvider>();
+        builder.Services.AddScoped<ILocalStorage, LocalBrowserStorage>();
+        builder.Services.AddScoped<ISessionStorage, SessionBrowserStorage>();
+
+        builder.Services.AddScoped<DimensionManager>();
 
         builder.Services.AddLocalization();
 
@@ -169,6 +186,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         {
             options.Cookie.Name = DashboardAntiForgeryCookieName;
         });
+
+        postConfigureBuilder?.Invoke(builder);
 
         _app = builder.Build();
 
@@ -181,7 +200,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         var supportedLanguages = new[]
         {
             "en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant", // Standard cultures for compliance.
-            "zh-CN" // Non-standard culture but it is the default in many Chinese browsers. Adding zh-CN allows OS culture customization to flow through the dashboard.
+            "zh-CN", // Non-standard culture but it is the default in many Chinese browsers. Adding zh-CN allows OS culture customization to flow through the dashboard.
+            "en-GB", // Support UK DateTime formatting (24-hour clock, dd/MM/yyyy)
         };
 
         _app.UseRequestLocalization(new RequestLocalizationOptions()
@@ -238,6 +258,13 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             await next(context).ConfigureAwait(false);
         });
 
+        if (!string.IsNullOrEmpty(dashboardOptions.Otlp.Cors.AllowedOrigins))
+        {
+            // Only add CORS middleware when there is CORS configuration.
+            // Because there isn't a default policy, CORS isn't enabled except on certain endpoints, e.g. OTLP HTTP endpoints.
+            _app.UseCors();
+        }
+
         _app.UseMiddleware<ValidateTokenMiddleware>();
 
         // Configure the HTTP request pipeline.
@@ -282,11 +309,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
         // OTLP HTTP services.
-        var httpEndpoint = dashboardOptions.Otlp.GetHttpEndpointUri();
-        if (httpEndpoint != null)
-        {
-            _app.MapHttpOtlpApi();
-        }
+        _app.MapHttpOtlpApi(dashboardOptions.Otlp);
 
         // OTLP gRPC services.
         _app.MapGrpcService<OtlpGrpcMetricsService>();
@@ -541,6 +564,27 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 {
                     OnCertificateValidated = context =>
                     {
+                        var options = context.HttpContext.RequestServices.GetRequiredService<IOptions<DashboardOptions>>().Value;
+                        if (options.Otlp.AllowedCertificates is { Count: > 0 } allowList)
+                        {
+                            var allowed = false;
+                            foreach (var rule in allowList)
+                            {
+                                // Thumbprint is hexadecimal and is case-insensitive.
+                                if (string.Equals(rule.Thumbprint, context.ClientCertificate.Thumbprint, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    allowed = true;
+                                    break;
+                                }
+                            }
+
+                            if (!allowed)
+                            {
+                                context.Fail("Certificate doesn't match allow list.");
+                                return Task.CompletedTask;
+                            }
+                        }
+
                         var claims = new[]
                         {
                             new Claim(ClaimTypes.NameIdentifier,
@@ -678,13 +722,13 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
     public Task StartAsync(CancellationToken cancellationToken = default)
     {
-        Debug.Assert(_validationFailures.Count == 0);
+        Debug.Assert(_validationFailures.Count == 0, "Validation failures: " + Environment.NewLine + string.Join(Environment.NewLine, _validationFailures));
         return _app.StartAsync(cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken = default)
     {
-        Debug.Assert(_validationFailures.Count == 0);
+        Debug.Assert(_validationFailures.Count == 0, "Validation failures: " + Environment.NewLine + string.Join(Environment.NewLine, _validationFailures));
         return _app.StopAsync(cancellationToken);
     }
 

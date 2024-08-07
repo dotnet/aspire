@@ -56,10 +56,10 @@ public class ResourceNotificationService
     /// <remarks>
     /// This method returns a task that will complete when the resource reaches the specified target state. If the resource
     /// is already in the target state, the method will return immediately.<br/>
-    /// If the resource doesn't reach one of the target states before <paramref name="cancellationToken"/> is signalled, this method
+    /// If the resource doesn't reach one of the target states before <paramref name="cancellationToken"/> is signaled, this method
     /// will throw <see cref="OperationCanceledException"/>.
     /// </remarks>
-    /// <param name="resourceName">The name of the resouce.</param>
+    /// <param name="resourceName">The name of the resource.</param>
     /// <param name="targetState"></param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> </param>
     /// <returns>A <see cref="Task"/> representing the wait operation.</returns>
@@ -77,12 +77,12 @@ public class ResourceNotificationService
     /// <remarks>
     /// This method returns a task that will complete when the resource reaches one of the specified target states. If the resource
     /// is already in the target state, the method will return immediately.<br/>
-    /// If the resource doesn't reach one of the target states before <paramref name="cancellationToken"/> is signalled, this method
+    /// If the resource doesn't reach one of the target states before <paramref name="cancellationToken"/> is signaled, this method
     /// will throw <see cref="OperationCanceledException"/>.
     /// </remarks>
     /// <param name="resourceName">The name of the resource.</param>
     /// <param name="targetStates">The set of states to wait for the resource to transition to one of. See <see cref="KnownResourceStates"/> for common states.</param>
-    /// <param name="cancellationToken">A cancellation token that cancels the wait operation when signalled.</param>
+    /// <param name="cancellationToken">A cancellation token that cancels the wait operation when signaled.</param>
     /// <returns>A <see cref="Task{String}"/> representing the wait operation and which of the target states the resource reached.</returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
                                                      Justification = "targetState(s) parameters are mutually exclusive.")]
@@ -162,17 +162,31 @@ public class ResourceNotificationService
 
             OnResourceUpdated?.Invoke(new ResourceEvent(resource, resourceId, newState));
 
-            if (_logger.IsEnabled(LogLevel.Debug))
+            if (_logger.IsEnabled(LogLevel.Debug) && newState.State?.Text is { Length: > 0 } newStateText && !string.IsNullOrWhiteSpace(newStateText))
             {
                 var previousStateText = previousState?.State?.Text;
-                if (!string.IsNullOrEmpty(previousStateText))
+                if (!string.IsNullOrWhiteSpace(previousStateText) && !string.Equals(previousStateText, newStateText, StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogDebug("Resource {Resource}/{ResourceId} changed state: {PreviousState} -> {NewState}", resource.Name, resourceId, previousStateText, newState.State?.Text);
+                    // The state text has changed from the previous state
+                    _logger.LogDebug("Resource {Resource}/{ResourceId} changed state: {PreviousState} -> {NewState}", resource.Name, resourceId, previousStateText, newStateText);
                 }
-                else
+                else if (string.IsNullOrWhiteSpace(previousStateText))
                 {
-                    _logger.LogDebug("Resource {Resource}/{ResourceId} changed state: {NewState}", resource.Name, resourceId, newState.State?.Text);
+                    // There was no previous state text so just log the new state
+                    _logger.LogDebug("Resource {Resource}/{ResourceId} changed state: {NewState}", resource.Name, resourceId, newStateText);
                 }
+            }
+
+            if (_logger.IsEnabled(LogLevel.Trace))
+            {
+                _logger.LogTrace("Resource {Resource}/{ResourceId} update published: " +
+                    "ResourceType = {ResourceType}, CreationTimeStamp = {CreationTimeStamp:s}, State = {{ Text = {StateText}, Style = {StateStyle} }}, " +
+                    "ExitCode = {ExitCode}, EnvironmentVariables = {{ {EnvironmentVariables} }}, Urls = {{ {Urls} }}, " +
+                    "Properties = {{ {Properties} }}",
+                    resource.Name, resourceId,
+                    newState.ResourceType, newState.CreationTimeStamp, newState.State?.Text, newState.State?.Style,
+                    newState.ExitCode, string.Join(", ", newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")), string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
+                    string.Join(", ", newState.Properties.Select(p => $"{p.Name} = {p.Value}")));
             }
 
             return Task.CompletedTask;

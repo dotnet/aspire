@@ -52,7 +52,7 @@ internal sealed class VirtualEnvironment(string virtualEnvironmentPath)
     public string GetRequiredExecutable(string name)
     {
         return GetExecutable(name) ?? throw new DistributedApplicationException(
-            $"The executable {name} could not be found in the virtual environment. " +
+            $"The executable {name} could not be found in the virtual environment at '{virtualEnvironmentPath}' . " +
             "Make sure the virtual environment is initialized and the executable is installed.");
     }
 }

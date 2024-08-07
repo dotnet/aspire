@@ -16,7 +16,7 @@ parameters:
     type: string
   - name: dotnetScript
     type: string
-  - name: skipTests
+  - name: runHelixTests
     type: boolean
     default: false
 
@@ -30,7 +30,7 @@ steps:
             $(_OfficialBuildIdArgs)
     displayName: Build
 
-  - ${{ if ne(parameters.skipTests, 'true') }}:
+  - ${{ if or(ne(parameters.runAsPublic, 'true'), ne(parameters.runHelixTests, 'true')) }}:
     - ${{ if ne(parameters.isWindows, 'true') }}:
       - script: mkdir ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
                 cd ${{ parameters.repoArtifactsPath }}/devcert-scripts &&
@@ -41,8 +41,8 @@ steps:
         displayName: Install devcerts
 
     - ${{ if eq(parameters.isWindows, 'true') }}:
-      - script: dotnet dev-certs https --check --verbose
-        displayName: Check dev-certs are installed
+      - script: dotnet dev-certs https
+        displayName: Install dev-certs
 
     - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
               --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
@@ -50,8 +50,14 @@ steps:
               "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog $(_OfficialBuildIdArgs)"
       env:
         DOCKER_BUILDKIT: 1
+        # Disable on Linux - https://github.com/dotnet/aspire/issues/4623
+        DISABLE_PLAYWRIGHT_TESTS: ${{ ne(parameters.isWindows, 'true') }}
+        # https://github.com/dotnet/aspire/issues/5195#issuecomment-2271687822
+        DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
+
       displayName: Run non-helix tests
 
+  - ${{ if or(ne(parameters.runAsPublic, 'true'), eq(parameters.runHelixTests, 'true')) }}:
     - script: ${{ parameters.buildScript }}
               /p:Configuration=${{ parameters.buildConfig }}
               $(_OfficialBuildIdArgs)
@@ -83,29 +89,30 @@ steps:
         HelixBuild: $(Build.BuildNumber)
         HelixAccessToken: $(HelixApiAccessToken)
 
-    - task: CopyFiles@2
+  - task: CopyFiles@2
+    inputs:
+      Contents: '${{ parameters.repoArtifactsPath }}/**/*.cobertura.xml'
+      TargetFolder: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
+      flattenFolders: true
+    displayName: Gather code coverage results
+
+  - ${{ if eq(parameters.runAsPublic, 'true') }}:
+    - task: PublishPipelineArtifact@1
+      displayName: Publish coverage results (cobertura.xml)
       inputs:
-        Contents: '${{ parameters.repoArtifactsPath }}/**/*.cobertura.xml'
-        TargetFolder: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
-        flattenFolders: true
-      displayName: Gather code coverage results
+        targetPath: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
+        artifactName: '$(Agent.JobName)_CodeCoverageResults'
+        publishLocation: 'pipeline'
 
-    - ${{ if eq(parameters.runAsPublic, 'true') }}:
-      - task: PublishPipelineArtifact@1
-        displayName: Publish coverage results (cobertura.xml)
-        inputs:
-          targetPath: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
-          artifactName: '$(Agent.JobName)_CodeCoverageResults'
-          publishLocation: 'pipeline'
+  - ${{ if ne(parameters.runAsPublic, 'true') }}:
+    - task: 1ES.PublishPipelineArtifact@1
+      displayName: Publish code coverage results
+      inputs:
+        targetPath: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
+        artifactName: '$(Agent.JobName)_CodeCoverageResults'
 
-    - ${{ if ne(parameters.runAsPublic, 'true') }}:
-      - task: 1ES.PublishPipelineArtifact@1
-        displayName: Publish code coverage results
-        inputs:
-          targetPath: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
-          artifactName: '$(Agent.JobName)_CodeCoverageResults'
-
-  - ${{ if eq(parameters.isWindows, 'true') }}:
+  # Run on windows, for internal pipeline, or public+non-helix-tests job
+  - ${{ if and(eq(parameters.isWindows, 'true'), or(ne(parameters.runAsPublic, 'true'), ne(parameters.runHelixTests, 'true'))) }}:
     - script: ${{ parameters.buildScript }}
               -pack
               -sign $(_SignArgs)

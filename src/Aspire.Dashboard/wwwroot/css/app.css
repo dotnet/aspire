@@ -47,8 +47,17 @@ fluent-toolbar[orientation=horizontal] {
 
     --messagebar-warning-background-color: #FDF6F3;
     --messagebar-warning-border-color: #f4bfab;
+    --messagebar-info-background-color: #f5f5f5;
+    --messagebar-info-border-color: #d1d1d1;
 
     --layout-toolbar-padding: calc(var(--design-unit) * 1.5px);
+
+    /*
+        --neutral-layer-2 is the background for the body of most of the site so
+        we can default the datagrid hover color to that and just override it as
+        necessary elsewhere (e.g. in the details view)
+    */
+    --datagrid-hover-color: var(--neutral-layer-2-hover);
 }
 
 [data-theme="dark"] {
@@ -66,11 +75,28 @@ fluent-toolbar[orientation=horizontal] {
 
     --messagebar-warning-background-color: #411200;
     --messagebar-warning-border-color: #DA3B01;
+    --messagebar-info-background-color: #141414;
+    --messagebar-info-border-color: #666;
 
     /* overrides of default fluentui-blazor styling */
     --error: #E10B11 !important;
 
     color-scheme: dark;
+}
+
+/*
+    Override the `cursor: pointer` in the default styles from fluentui-blazor since
+    we don't have selection implemented and the pointer doesn't really make sense.
+    The `fluent-data-grid-row[role='row']` part added to the beginning is a bit of
+    a hack to get the specificity higher than the default style to avoid using
+    `!important` just in case there's a reason to to override further later.
+*/
+fluent-data-grid-row[role='row'].hover:not([row-type='header'],[row-type='sticky-header']):hover {
+    cursor: auto;
+}
+
+.enable-row-click fluent-data-grid-row[role='row'].hover:not([row-type='header'],[row-type='sticky-header']):hover {
+    cursor: pointer;
 }
 
 [data-theme="light"] {
@@ -94,33 +120,57 @@ h1 {
     margin-bottom: 0.5rem;
 }
 
- #components-reconnect-modal :is(h5, p) {
-     color: var(--error-ui-foreground-color);
- }
+#components-reconnect-modal :is(h5, p) {
+    color: var(--error-ui-foreground-color);
+}
 
- #components-reconnect-modal a {
-     color: var(--error-ui-accent-foreground-color);
- }
+#components-reconnect-modal a {
+    color: var(--error-ui-accent-foreground-color);
+}
 
- #components-reconnect-modal {
-     /* avoid making modal take the entire screen dimensions */
-     inset: unset !important;
+#components-reconnect-modal {
+    /* avoid making modal take the entire screen dimensions */
+    inset: unset !important;
 
-     /* force modal to be compact, centered, slightly padded, and towards the top */
-     top: 5% !important;
-     left: 30% !important;
-     right: 30% !important;
-     height: 105px;
-     padding: 2px;
+    /* force modal to be compact, centered, slightly padded, and towards the top - media queries below adjust the width and height of the modal for
+     mobile and desktop screens
+    */
+    top: 5% !important;
+    padding: 2px;
 
-     /* add a slight shadow */
-     box-shadow: 2px 2px 2px var(--neutral-fill-secondary-rest);
+    /* add a slight shadow */
+    box-shadow: 2px 2px 2px var(--neutral-fill-secondary-rest);
 
-     /* avoid modal being see-through */
-     opacity: 1 !important;
+    /* avoid modal being see-through */
+    opacity: 1 !important;
 
-     /* ensure sufficient contrast between all elements in the modal and its background */
-     background-color: var(--reconnection-ui-bg) !important;
+    /* ensure sufficient contrast between all elements in the modal and its background */
+    background-color: var(--reconnection-ui-bg) !important;
+}
+
+@media (max-width: 768px) {
+    #components-reconnect-modal {
+         left: 15% !important;
+         right: 15% !important;
+         height: 130px;
+    }
+
+    /* we want less padding on mobile screens to preserve screen height for other elements */
+    .page-header {
+        padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 0.5px) 0;
+    }
+}
+
+ @media (min-width: 768px) {
+    #components-reconnect-modal {
+        left: 30% !important;
+        right: 30% !important;
+        height: 105px;
+    }
+
+     .page-header {
+         padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 2.5px);
+     }
  }
 
 .datagrid-overflow-area,
@@ -165,6 +215,11 @@ fluent-data-grid .loading-content-cell .stack-horizontal {
     border: 1px solid var(--messagebar-warning-border-color) !important;
 }
 
+.fluent-messagebar.intent-info {
+    background-color: var(--messagebar-info-background-color) !important;
+    border: 1px solid var(--messagebar-info-border-color) !important;
+}
+
 /* The fluent dialog's default fill color is too dark in our current dark theme.
    Setting it to the floating layer allows it to stand out more and doesn't impact light theme. */
 fluent-dialog::part(control) {
@@ -188,25 +243,6 @@ fluent-dialog fluent-anchor[appearance=lightweight]:not(:hover)::part(control) {
    now have the wrong background. So change that back */
 fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appearance=stealth]:not(:hover)::part(control) {
     background: var(--fill-layer);
-}
-
-.content-layout-with-toolbar {
-    height: 100%;
-    width: 100%;
-    display: grid;
-    grid-template-rows: auto 1fr;
-    grid-template-areas:
-        "toolbar"
-        "main";
-}
-
-.content-layout-with-toolbar > fluent-toolbar {
-    grid-area: toolbar;
-}
-
-.content-layout-with-toolbar > .datagrid-overflow-area,
-.content-layout-with-toolbar > .parent-details-container {
-    grid-area: main;
 }
 
 .pane-details-subtext {
@@ -262,10 +298,6 @@ fluent-data-grid-cell .long-inner-content {
 
 .validation-message {
     color: var(--error);
-}
-
-.page-header {
-    padding: calc(var(--design-unit) * 1.5px) calc(var(--design-unit) * 2.5px);
 }
 
 .selected-row,
@@ -328,6 +360,24 @@ fluent-switch.table-switch::part(label) {
      width: 160px;
 }
 
+/*
+    If ShowHover is enabled on a FluentDataGrid, we need to tweak the way anchors and buttons
+    are colored when a row is hovered
+*/
+fluent-data-grid-row[row-type=default].hover:hover fluent-anchor[appearance=lightweight]::part(control):not(:hover),
+fluent-data-grid-row[row-type=default].hover:hover fluent-anchor[appearance=stealth]::part(control):not(:hover),
+fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=lightweight]::part(control):not(:hover),
+fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=stealth]::part(control):not(:hover) {
+    background-color: var(--datagrid-hover-color);
+}
+
+fluent-data-grid-row[row-type=default].hover:hover fluent-anchor[appearance=lightweight]::part(control):hover,
+fluent-data-grid-row[row-type=default].hover:hover fluent-anchor[appearance=stealth]::part(control):hover,
+fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=lightweight]::part(control):hover,
+fluent-data-grid-row[row-type=default].hover:hover fluent-button[appearance=stealth]::part(control):hover {
+    background-color: var(--fill-color);
+}
+
 .property-grid-container {
     grid-area: main;
     overflow: auto;
@@ -342,8 +392,12 @@ fluent-switch.table-switch::part(label) {
     --fill-color: var(--neutral-layer-1);
 }
 
+.property-grid-container fluent-accordion fluent-data-grid {
+    --datagrid-hover-color: var(--neutral-layer-1-hover);
+}
+
 /* Under the current light theme, --neutral-layer-1 is too white, so we'll
-   use something that's halfway between --neutral-layer-2 and --neutral-layer1.
+   use something that's halfway between --neutral-layer-2 and --neutral-layer-1.
 */
 [data-theme="light"] .property-grid-container fluent-accordion {
     --fill-color: var(--neutral-fill-rest);
@@ -375,13 +429,13 @@ fluent-switch.table-switch::part(label) {
     border-bottom: none;
 }
 
-.property-grid-container fluent-accordion fluent-data-grid fluent-button[appearance=stealth]:not(:hover)::part(control),
-.property-grid-container fluent-accordion fluent-data-grid fluent-button[appearance=lightweight]:not(:hover)::part(control) {
+.property-grid-container fluent-accordion fluent-data-grid-row fluent-button[appearance=stealth]::part(control):not(:hover),
+.property-grid-container fluent-accordion fluent-data-grid-row fluent-button[appearance=lightweight]::part(control):not(:hover) {
     background-color: var(--fill-color);
 }
 
-.property-grid-container fluent-accordion fluent-data-grid fluent-button[appearance=stealth]:hover::part(control),
-.property-grid-container fluent-accordion fluent-data-grid fluent-button[appearance=lightweight]:hover::part(control) {
+.property-grid-container fluent-accordion fluent-data-grid-row:not([row-type=default]) fluent-button[appearance=stealth]::part(control):hover,
+.property-grid-container fluent-accordion fluent-data-grid-row:not([row-type=default]) fluent-button[appearance=lightweight]::part(control):hover {
     background-color: var(--neutral-fill-stealth-hover-on-neutral-fill-layer-rest);
 }
 
@@ -391,6 +445,7 @@ fluent-switch.table-switch::part(label) {
 }
 
 .total-items-footer {
+    padding-top: calc(var(--design-unit) * 2.5px);
     padding-left: calc(var(--design-unit) * 2.5px);
     padding-bottom: calc(var(--design-unit) * 2.5px);
 }
@@ -416,8 +471,8 @@ fluent-data-grid-cell.no-ellipsis {
     overflow-x: visible !important;
 }
 
-.endpoint-overflow .fluent-overflow-more {
-    display: flex;
+.endpoint-overflow .fluent-overflow-more fluent-button {
+    vertical-align: middle;
 }
 
 .endpoint-button {
@@ -428,4 +483,32 @@ fluent-data-grid-cell.no-ellipsis {
 
 .endpoint-button::part(control) {
     padding: calc(((var(--design-unit) * 0.5) - var(--stroke-width)) * 1px) calc((var(--design-unit) - var(--stroke-width)) * 1px);
+}
+
+.mobile-toolbar {
+    width: 100%;
+    height: max(5vh, 30px);
+}
+
+.mobile-absolute-toolbar {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+}
+
+.page-content-container {
+    height: 100%;
+    overflow: auto;
+}
+
+.resource-select-application-label {
+    color: var(--accent-foreground-rest);
+}
+
+.filter-input-container {
+    width: 75%;
+}
+
+.layout fluent-toolbar > .fluent-input-label {
+    margin-bottom: 0;
 }

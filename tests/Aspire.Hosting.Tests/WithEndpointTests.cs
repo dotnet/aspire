@@ -211,7 +211,7 @@ public class WithEndpointTests
 
         var resource = Assert.Single(exeResources);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Equal("foo", resource.Name);
         var endpoints = resource.Annotations.OfType<EndpointAnnotation>().ToArray();
@@ -459,7 +459,8 @@ public class WithEndpointTests
             .WithHttpEndpoint(name: "hp")       // Won't get targetPort since it's the first http
             .WithHttpEndpoint(name: "hp2")      // Will get a targetPort
             .WithHttpsEndpoint(name: "hps")     // Won't get targetPort since it's the first https
-            .WithHttpsEndpoint(name: "hps2");   // Will get a targetPort
+            .WithHttpsEndpoint(name: "hps2")   // Will get a targetPort
+            .WithEndpoint(scheme: "tcp", name: "tcp0");  // Will get a targetPort
 
         var manifest = await ManifestUtils.GetManifest(project.Resource);
 
@@ -498,6 +499,12 @@ public class WithEndpointTests
                   "protocol": "tcp",
                   "transport": "http",
                   "targetPort": 8001
+                },
+                "tcp0": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "targetPort": 8002
                 }
               }
             }
@@ -516,11 +523,14 @@ public class WithEndpointTests
             .WithHttpEndpoint(name: "hp2", port: 5002, targetPort: 5003)
             .WithHttpEndpoint(name: "hp3", targetPort: 5004)
             .WithHttpEndpoint(name: "hp4")
+            .WithHttpEndpoint(name: "dontinjectme")
             .WithHttpsEndpoint()
             .WithHttpsEndpoint(name: "hps1", port: 7001)
             .WithHttpsEndpoint(name: "hps2", port: 7002, targetPort: 7003)
             .WithHttpsEndpoint(name: "hps3", targetPort: 7004)
-            .WithHttpsEndpoint(name: "hps4", targetPort: 7005);
+            .WithHttpsEndpoint(name: "hps4", targetPort: 7005)
+            // Should not be included in HTTP_PORTS
+            .WithEndpointsInEnvironment(e => e.Name != "dontinjectme");
 
         var manifest = await ManifestUtils.GetManifest(project.Resource);
 
