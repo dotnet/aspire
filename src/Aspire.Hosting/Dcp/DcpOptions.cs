@@ -111,19 +111,24 @@ internal class ConfigureDefaultDcpOptions(
         var dcpPublisherConfiguration = configuration.GetSection(DcpPublisher);
         var assemblyMetadata = appOptions.Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
 
-        string? dcpDir;
         if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.CliPath)]))
         {
             // If an explicit path to DCP was provided from configuration, don't try to resolve via assembly attributes
-            dcpDir = Path.GetDirectoryName(dcpPublisherConfiguration[nameof(options.CliPath)]);
+            options.CliPath = dcpPublisherConfiguration[nameof(options.CliPath)];
         }
         else
         {
-            dcpDir = GetMetadataValue(assemblyMetadata, DcpDirMetadataKey);
+            var dcpDirFromMetadata = GetMetadataValue(assemblyMetadata, DcpDirMetadataKey);
+            if (!string.IsNullOrEmpty(dcpDirFromMetadata))
+            {
+                options.CliPath = Path.Combine(dcpDirFromMetadata, "dcp") + (OperatingSystem.IsWindows() ? ".exe" : "");
+            }
         }
-        if (!string.IsNullOrEmpty(dcpDir))
+
+        if (Path.GetDirectoryName(options.CliPath) is string dcpDir && !string.IsNullOrEmpty(dcpDir))
         {
-            SetDcpPathsFromDcpDir(dcpDir);
+            options.ExtensionsPath = Path.Combine(dcpDir, "ext");
+            options.BinPath = Path.Combine(options.ExtensionsPath, "bin");
         }
 
         if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.DashboardPath)]))
@@ -172,13 +177,6 @@ internal class ConfigureDefaultDcpOptions(
         options.DeleteResourcesOnShutdown = dcpPublisherConfiguration.GetValue(nameof(options.DeleteResourcesOnShutdown), options.DeleteResourcesOnShutdown);
         options.RandomizePorts = dcpPublisherConfiguration.GetValue(nameof(options.RandomizePorts), options.RandomizePorts);
         options.ServiceStartupWatchTimeout = configuration.GetValue("DOTNET_ASPIRE_SERVICE_STARTUP_WATCH_TIMEOUT", options.ServiceStartupWatchTimeout);
-
-        void SetDcpPathsFromDcpDir(string dcpDir)
-        {
-            options.CliPath = Path.Combine(dcpDir, "dcp") + (OperatingSystem.IsWindows() ? ".exe" : "");
-            options.ExtensionsPath = Path.Combine(dcpDir, "ext");
-            options.BinPath = Path.Combine(options.ExtensionsPath, "bin");
-        }
     }
 
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)
