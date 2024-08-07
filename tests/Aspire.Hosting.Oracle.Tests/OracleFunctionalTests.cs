@@ -141,15 +141,15 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
+                        using var dbContext = host.Services.GetRequiredService<TestDbContext>();
+
                         // Wait until the database is available
                         await pipeline.ExecuteAsync(async token =>
                         {
-                            using var dbContext = host.Services.GetRequiredService<TestDbContext>();
                             return await dbContext.Database.CanConnectAsync(cts.Token);
                         }, cts.Token);
 
                         // Create tables
-                        using var dbContext = host.Services.GetRequiredService<TestDbContext>();
                         await dbContext.Database.EnsureCreatedAsync(cts.Token);
 
                         // Seed database
@@ -163,7 +163,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
                         await pipeline.ExecuteAsync(async token =>
                         {
-                            using var dbContext = host.Services.GetRequiredService<TestDbContext>();
+                            var dbContext = host.Services.GetRequiredService<TestDbContext>();
                             return !await dbContext.Database.CanConnectAsync(token);
                         }, cts.Token);
                     }
@@ -213,14 +213,14 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
+                        using var dbContext = host.Services.GetRequiredService<TestDbContext>();
+
                         // Wait until the database is available
                         await pipeline.ExecuteAsync(async token =>
                         {
-                            using var dbContext = host.Services.GetRequiredService<TestDbContext>();
                             return await dbContext.Database.CanConnectAsync(token);
                         });
 
-                        using var dbContext = host.Services.GetRequiredService<TestDbContext>();
                         var brands = await dbContext.Cars.ToListAsync(cancellationToken: cts.Token);
                         Assert.Single(brands);
 
@@ -230,7 +230,6 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
                         await pipeline.ExecuteAsync(async token =>
                         {
-                            var dbContext = host.Services.GetRequiredService<TestDbContext>();
                             return !await dbContext.Database.CanConnectAsync(token);
                         }, cts.Token);
                     }
@@ -339,14 +338,13 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 await host.StartAsync();
 
+                var dbContext = host.Services.GetRequiredService<TestDbContext>();
+
                 // Wait until the database is available
                 await pipeline.ExecuteAsync(async token =>
                 {
-                    var dbContext = host.Services.GetRequiredService<TestDbContext>();
                     return await dbContext.Database.CanConnectAsync(token);
                 }, cts.Token);
-
-                var dbContext = host.Services.GetRequiredService<TestDbContext>();
 
                 var brands = await dbContext.Cars.ToListAsync(cancellationToken: cts.Token);
                 Assert.Single(brands);
