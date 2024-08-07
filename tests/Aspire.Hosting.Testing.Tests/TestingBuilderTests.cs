@@ -3,11 +3,11 @@
 
 using System.Net.Http.Json;
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.Tests.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
-using Aspire.Hosting.Tests.Utils;
 
 namespace Aspire.Hosting.Testing.Tests;
 
@@ -67,7 +67,7 @@ public class TestingBuilderTests
         await app.StartAsync();
 
         // Wait for the application to be ready
-        await app.WaitForText("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
 
         var httpClient = app.CreateHttpClientWithResilience("mywebapp1");
         var result1 = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
@@ -119,7 +119,7 @@ public class TestingBuilderTests
         Assert.Equal("https", profileName);
 
         // Wait for the application to be ready
-        await app.WaitForText("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
 
         // Explicitly get the HTTPS endpoint - this is only available on the "https" launch profile.
         var httpClient = app.CreateHttpClient("mywebapp1", "https");

@@ -49,7 +49,7 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
         await rns.WaitForResourceAsync("mywebapp1").WaitAsync(TimeSpan.FromSeconds(60));
 
         // Wait for the application to be ready
-        await _app.WaitForText("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+        await _app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
 
         var httpClient = _app.CreateHttpClientWithResilience("mywebapp1");
         var result1 = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
