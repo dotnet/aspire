@@ -53,7 +53,7 @@ namespace Projects%3B
         get
         {
             string originalProjectPath = """]]>%(ProjectPath)<![CDATA["""%3B
-            _fixedupProjectPath ??= Aspire.Hosting.ApplicationModel.ProjectResource.FindMatchingProjectPath(originalProjectPath, "_CSharpWriteProjectMetadataSources-]]>%(ClassName)<![CDATA[")!%3B
+            _fixedupProjectPath ??= Aspire.Hosting.ApplicationModel.ProjectResource.FindMatchingProjectPath(originalProjectPath)!%3B
             return _fixedupProjectPath%3B
         }
     }
@@ -105,7 +105,7 @@ namespace Projects%3B
       get
       {
           string originalProjectPath = """]]>%(ProjectPath)<![CDATA["""%3B
-          _fixedupProjectPath ??= Aspire.Hosting.ApplicationModel.ProjectResource.FindMatchingProjectPath(originalProjectPath, "_CSharpWriteHostProjectMetadataSources-]]>%(ClassName)<![CDATA[")!%3B
+          _fixedupProjectPath ??= Aspire.Hosting.ApplicationModel.ProjectResource.FindMatchingProjectPath(originalProjectPath)!%3B
           return _fixedupProjectPath%3B
       }
     }

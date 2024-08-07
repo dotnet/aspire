@@ -31,7 +31,7 @@ internal sealed class ProjectMetadata(string projectPath) : IProjectMetadata
     {
         get
         {
-            _fixedupProjectPath ??= Aspire.Hosting.ApplicationModel.ProjectResource.FindMatchingProjectPath(_originalProjectPath, "ProjectMetadata")!;
+            _fixedupProjectPath ??= Aspire.Hosting.ApplicationModel.ProjectResource.FindMatchingProjectPath(_originalProjectPath)!;
             return _fixedupProjectPath!;
         }
     }

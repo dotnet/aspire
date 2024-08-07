@@ -114,7 +114,7 @@ internal class ConfigureDefaultDcpOptions(
         var dcpPublisherConfiguration = configuration.GetSection(DcpPublisher);
         var assemblyMetadata = appOptions.Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
 
-        Console.WriteLine ($"------------- ConfigureDefaultDcpOptions.Configure --------------");
+        // Console.WriteLine ($"------------- ConfigureDefaultDcpOptions.Configure --------------");
         if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.CliPath)]))
         {
             // If an explicit path to DCP was provided from configuration, don't try to resolve via assembly attributes
@@ -123,7 +123,7 @@ internal class ConfigureDefaultDcpOptions(
         }
         else
         {
-            Console.WriteLine ($"Setting via assembly attributes");
+            // Console.WriteLine ($"Setting via assembly attributes");
             string? dcpDir = GetFromEnvironmentVariableOrAssemblyMetadata("ASPIRE_DCP_DIR", assemblyMetadata, DcpDirMetadataKey);
             Console.WriteLine ($"Using dcpDir: {dcpDir}");
             if (!string.IsNullOrEmpty(dcpDir))

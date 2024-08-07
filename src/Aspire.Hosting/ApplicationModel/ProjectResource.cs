@@ -35,20 +35,19 @@ public class ProjectResource(string name) : Resource(name), IResourceWithEnviron
     }
 
     private static readonly string? s_aspireProjectRootEnvVar = Environment.GetEnvironmentVariable("ASPIRE_PROJECT_ROOT");
+    private static readonly bool s_canChangeProjectRoot = !string.IsNullOrEmpty(s_aspireProjectRootEnvVar) && Directory.Exists(s_aspireProjectRootEnvVar);
 
     /// <summary>
     /// FIXME
     /// </summary>
     /// <param name="originalProjectPath"></param>
-    /// <param name="label"></param>
     /// <returns></returns>
 #pragma warning disable RS0016
-    public static string? FindMatchingProjectPath(string? originalProjectPath, string label = "")
+    public static string? FindMatchingProjectPath(string? originalProjectPath)
 #pragma warning restore RS0016
     {
-        if (string.IsNullOrEmpty(s_aspireProjectRootEnvVar) || !Directory.Exists(s_aspireProjectRootEnvVar) || string.IsNullOrEmpty(originalProjectPath) || File.Exists(originalProjectPath))
+        if (string.IsNullOrEmpty(originalProjectPath) || !s_canChangeProjectRoot)
         {
-            //Console.WriteLine($"[{label}] root: {s_aspireProjectRootEnvVar}, originalProjectPath: {originalProjectPath}");
             return originalProjectPath;
         }
 
@@ -80,7 +79,7 @@ public class ProjectResource(string name) : Resource(name), IResourceWithEnviron
                 break;
             }
 
-            string projectPathToTry = Path.Combine(s_aspireProjectRootEnvVar, relativeParentPath, filename);
+            string projectPathToTry = Path.Combine(s_aspireProjectRootEnvVar!, relativeParentPath, filename);
             //Console.WriteLine($"\t%% [{label}] projectPathToTry: {projectPathToTry}");
 
             if (File.Exists(projectPathToTry))

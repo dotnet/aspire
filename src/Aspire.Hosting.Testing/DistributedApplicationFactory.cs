@@ -189,7 +189,7 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
 
         static string? GetProjectPath(string? _originalProjectPath)
         {
-            return Aspire.Hosting.ApplicationModel.ProjectResource.FindMatchingProjectPath(_originalProjectPath, nameof(DistributedApplicationFactory));
+            return ApplicationModel.ProjectResource.FindMatchingProjectPath(_originalProjectPath);
         }
     }
 
