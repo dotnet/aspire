@@ -67,6 +67,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
     public IReadOnlyList<string> ValidationFailures => _validationFailures;
 
+    internal static HashSet<string> LocalizedCultures { get; } = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant", // Standard cultures for compliance.
+    };
+
     /// <summary>
     /// Create a new instance of the <see cref="DashboardWebApplication"/> class.
     /// </summary>
@@ -194,19 +199,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _logger = GetLogger();
 
-        // our localization list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
-        var localizedLanguages = new[]
-        {
-            "en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant", // Standard cultures for compliance.
-        }.ToHashSet();
-
-        var supportedCultures = CultureInfo.GetCultures(CultureTypes.AllCultures)
-            .Where(culture => localizedLanguages.Contains(culture.Name) || localizedLanguages.Contains(culture.TwoLetterISOLanguageName))
-            .Select(culture => culture.Name)
-            .ToList();
-
-        // Non-standard culture but it is the default in many Chinese browsers. Adding zh-CN allows OS culture customization to flow through the dashboard.
-        supportedCultures.Add("zh-CN");
+        var supportedCultures = GetSupportedCultures();
 
         _app.UseRequestLocalization(new RequestLocalizationOptions()
             .AddSupportedCultures([.. supportedCultures])
@@ -339,6 +332,19 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         {
             _app.MapPost("/authentication/logout", () => TypedResults.SignOut(authenticationSchemes: [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]));
         }
+    }
+
+    internal static List<string> GetSupportedCultures()
+    {
+        // our localization list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
+        var supportedCultures = CultureInfo.GetCultures(CultureTypes.AllCultures)
+            .Where(culture => LocalizedCultures.Contains(culture.Name) || LocalizedCultures.Contains(culture.TwoLetterISOLanguageName))
+            .Select(culture => culture.Name)
+            .ToList();
+
+        // Non-standard culture but it is the default in many Chinese browsers. Adding zh-CN allows OS culture customization to flow through the dashboard.
+        supportedCultures.Add("zh-CN");
+        return supportedCultures;
     }
 
     private ILogger<DashboardWebApplication> GetLogger()
