@@ -3,6 +3,8 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <NoWarn>$(NoWarn);CS8002</NoWarn> <!-- Milvus.Client packages are not signed -->
+    <!-- Cannot be moved to helix as this uses TestProject -->
+    <!--<RunTestsOnHelix>true</RunTestsOnHelix>-->
   </PropertyGroup>
 
   <ItemGroup>

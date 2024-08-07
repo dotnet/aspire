@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
+    <!-- Cannot be moved to helix as this uses TestProject -->
+    <!--<RunTestsOnHelix>true</RunTestsOnHelix>-->
   </PropertyGroup>
 
   <ItemGroup>

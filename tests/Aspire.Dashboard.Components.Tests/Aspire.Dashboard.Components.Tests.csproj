@@ -6,11 +6,12 @@
       CS8002: Referenced assembly does not have a strong name
     -->
     <NoWarn>$(NoWarn);CS8002</NoWarn>
+    <RunTestsOnHelix>true</RunTestsOnHelix>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
-    
+
     <PackageReference Include="bUnit" />
   </ItemGroup>
 
