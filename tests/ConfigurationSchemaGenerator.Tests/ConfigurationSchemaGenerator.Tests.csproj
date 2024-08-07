@@ -4,14 +4,13 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <PreserveCompilationContext>true</PreserveCompilationContext>
     <CopyDocumentationFilesFromPackages>true</CopyDocumentationFilesFromPackages>
-    <RunTestsOnHelix>true</RunTestsOnHelix>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="..\..\src\Components\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Compile>
-
+    
     <Content Include="Baselines\**\*;">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
