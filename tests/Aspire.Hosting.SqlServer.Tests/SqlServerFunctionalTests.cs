@@ -180,13 +180,14 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                     try
                     {
                         await conn.OpenAsync(token);
-                        Assert.Fail("Waiting for database to be down");
                     }
                     catch
                     {
                         // Failing means the database is correctly down
                         return;
                     }
+
+                    Assert.Fail("Waiting for database to be down");
                 }, cts.Token);
             }
             finally
