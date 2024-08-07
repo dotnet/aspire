@@ -39,7 +39,9 @@ public class BrowserDimensionWatcher : ComponentBase
     {
         var newViewportInformation = GetViewportInformation(viewportSize);
 
-        if (newViewportInformation.IsDesktop != ViewportInformation!.IsDesktop || newViewportInformation.IsUltraLowHeight != ViewportInformation.IsUltraLowHeight)
+        if (newViewportInformation.IsDesktop != ViewportInformation!.IsDesktop
+            || newViewportInformation.IsUltraLowHeight != ViewportInformation.IsUltraLowHeight
+            || newViewportInformation.IsUltraLowWidth != ViewportInformation.IsUltraLowWidth)
         {
             ViewportInformation = newViewportInformation;
             DimensionManager.IsResizing = true;
@@ -53,13 +55,10 @@ public class BrowserDimensionWatcher : ComponentBase
 
     private static ViewportInformation GetViewportInformation(ViewportSize viewportSize)
     {
-        return new ViewportInformation(IsDesktop: viewportSize.Width > 768, IsUltraLowHeight: viewportSize.Height < 400);
+        return new ViewportInformation(
+            IsDesktop: viewportSize.Width > 768,
+            IsUltraLowHeight: viewportSize.Height < 400,
+            IsUltraLowWidth: viewportSize.Width < 350);
     }
-
-    public static ViewportInformation Create(int height, int width)
-    {
-        return new ViewportInformation(IsDesktop: width > 768, IsUltraLowHeight: height < 400);
-    }
-
     public record ViewportSize(int Width, int Height);
 }
