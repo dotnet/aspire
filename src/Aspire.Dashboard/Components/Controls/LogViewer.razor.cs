@@ -3,11 +3,13 @@
 
 using System.Globalization;
 using Aspire.Dashboard.Components.Resize;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components;
@@ -25,10 +27,19 @@ public sealed partial class LogViewer
     public required BrowserTimeProvider TimeProvider { get; init; }
 
     [Inject]
-    public required LogViewerViewModel ViewModel { get; init; }
+    public required DimensionManager DimensionManager { get; set; }
 
     [Inject]
-    public required DimensionManager DimensionManager { get; set; }
+    public required IOptions<DashboardOptions> Options { get; set; }
+
+    public LogEntries LogEntries { get; set; } = null!;
+
+    public string? ResourceName { get; set; }
+
+    protected override void OnInitialized()
+    {
+        LogEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -55,9 +66,9 @@ public sealed partial class LogViewer
 
     internal async Task SetLogSourceAsync(string resourceName, IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> batches, bool convertTimestampsFromUtc)
     {
-        ViewModel.ResourceName = resourceName;
+        ResourceName = resourceName;
 
-        System.Diagnostics.Debug.Assert(ViewModel.LogEntries.GetEntries().Count == 0, "Expecting zero log entries");
+        System.Diagnostics.Debug.Assert(LogEntries.GetEntries().Count == 0, "Expecting zero log entries");
 
         _convertTimestampsFromUtc = convertTimestampsFromUtc;
 
@@ -74,7 +85,7 @@ public sealed partial class LogViewer
 
             foreach (var (lineNumber, content, isErrorOutput) in batch)
             {
-                ViewModel.LogEntries.InsertSorted(logParser.CreateLogEntry(content, isErrorOutput), lineNumber);
+                LogEntries.InsertSorted(logParser.CreateLogEntry(content, isErrorOutput), lineNumber);
             }
 
             StateHasChanged();
@@ -96,15 +107,14 @@ public sealed partial class LogViewer
         await _cancellationSeries.ClearAsync();
 
         _applicationChanged = true;
-        ViewModel.LogEntries.Clear();
-        ViewModel.ResourceName = null;
+        LogEntries.Clear();
+        ResourceName = null;
         StateHasChanged();
     }
 
     public async ValueTask DisposeAsync()
     {
         await _cancellationSeries.ClearAsync();
-        ViewModel.LogEntries.Clear(); // TODO can be removed after #4961
         DimensionManager.OnBrowserDimensionsChanged -= OnBrowserResize;
     }
 }

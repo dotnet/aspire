@@ -2724,15 +2724,22 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal("{servicebus.connectionString}", serviceManifest["env"]?["ConnectionStrings__servicebus"]?.ToString());
     }
 
-    [Fact]
-    public async Task AddAzureOpenAI()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AddAzureOpenAI(bool overrideLocalAuthDefault)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         IEnumerable<CognitiveServicesAccountDeployment>? aiDeployments = null;
-        var openai = builder.AddAzureOpenAI("openai", (_, _, _, deployments) =>
+        var openai = builder.AddAzureOpenAI("openai", (_, _, account, deployments) =>
         {
             aiDeployments = deployments;
+
+            if (overrideLocalAuthDefault)
+            {
+                account.AssignProperty(x => x.Properties.DisableLocalAuth, "false");
+            }
         })
             .AddDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4))
             .AddDeployment(new("embedding-model", "text-embedding-ada-002", "2", "Basic", 4));
@@ -2758,7 +2765,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        var expectedBicep = """
+        var expectedBicep = $$"""
             targetScope = 'resourceGroup'
 
             @description('')
@@ -2781,6 +2788,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               properties: {
                 customSubDomainName: toLower(take(concat('openai', uniqueString(resourceGroup().id)), 24))
                 publicNetworkAccess: 'Enabled'
+                disableLocalAuth: {{(overrideLocalAuthDefault ? "false" : "true")}}
               }
             }
 
