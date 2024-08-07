@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
-using Aspire.Common.Internal;
 
 namespace Aspire.Hosting;
 
@@ -73,7 +72,7 @@ public sealed class DistributedApplicationOptions
 
         static string? GetProjectPath(string? _originalProjectPath)
         {
-            return ProjectPathUtils.FindMatchingProjectPath(_originalProjectPath, nameof(DistributedApplicationOptions))!;
+            return ApplicationModel.ProjectResource.FindMatchingProjectPath(_originalProjectPath, nameof(DistributedApplicationOptions))!;
         }
     }
 

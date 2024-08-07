@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using Aspire.Common.Internal;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Configuration;
 
@@ -32,7 +31,7 @@ internal sealed class ProjectMetadata(string projectPath) : IProjectMetadata
     {
         get
         {
-            _fixedupProjectPath ??= ProjectPathUtils.FindMatchingProjectPath(_originalProjectPath, "ProjectMetadata")!;
+            _fixedupProjectPath ??= Aspire.Hosting.ApplicationModel.ProjectResource.FindMatchingProjectPath(_originalProjectPath, "ProjectMetadata")!;
             return _fixedupProjectPath!;
         }
     }
