@@ -158,7 +158,7 @@ public class MongoDBPublicApiTests
         var databaseName = "db1";
         var parent = new MongoDBServerResource("mongodb");
 
-        var action = () => new MongoDBDatabaseResource(name,databaseName,parent);
+        var action = () => new MongoDBDatabaseResource(name, databaseName, parent);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
