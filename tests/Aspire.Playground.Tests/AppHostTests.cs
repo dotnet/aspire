@@ -152,11 +152,11 @@ public class AppHostTests
             {
                 theoryData.Add(candidateTestEndpoint);
             }
+        }
 
-            if (!theoryData.Any() && !string.IsNullOrEmpty(s_appHostNameFilter))
-            {
-                throw new InvalidOperationException($"No test endpoints found matching filter '{s_appHostNameFilter}'");
-            }
+        if (!theoryData.Any() && !string.IsNullOrEmpty(s_appHostNameFilter))
+        {
+            throw new InvalidOperationException($"No test endpoints found matching filter '{s_appHostNameFilter}'");
         }
 
         return theoryData;
