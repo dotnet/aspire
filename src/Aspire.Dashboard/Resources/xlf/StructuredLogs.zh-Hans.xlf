@@ -28,8 +28,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsFilters">
-        <source>Filters: </source>
-        <target state="translated">筛选器: </target>
+        <source>Filters</source>
+        <target state="needs-review-translation">筛选器: </target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
@@ -43,8 +43,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsLevels">
-        <source>Level:</source>
-        <target state="translated">级别:</target>
+        <source>Level</source>
+        <target state="needs-review-translation">级别:</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsMessageColumnHeader">

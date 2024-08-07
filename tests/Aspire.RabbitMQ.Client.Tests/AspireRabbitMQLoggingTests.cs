@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.RabbitMQ;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -27,7 +28,9 @@ public class AspireRabbitMQLoggingTests
     [RequiresDocker]
     public async Task EndToEndLoggingTest()
     {
-        await using var rabbitMqContainer = new RabbitMqBuilder().Build();
+        await using var rabbitMqContainer = new RabbitMqBuilder()
+            .WithImage($"{TestConstants.AspireTestContainerRegistry}/{RabbitMQContainerImageTags.Image}:{RabbitMQContainerImageTags.Tag}")
+            .Build();
         await rabbitMqContainer.StartAsync();
 
         var builder = Host.CreateEmptyApplicationBuilder(null);

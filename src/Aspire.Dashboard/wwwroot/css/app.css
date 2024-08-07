@@ -95,6 +95,10 @@ fluent-data-grid-row[role='row'].hover:not([row-type='header'],[row-type='sticky
     cursor: auto;
 }
 
+.enable-row-click fluent-data-grid-row[role='row'].hover:not([row-type='header'],[row-type='sticky-header']):hover {
+    cursor: pointer;
+}
+
 [data-theme="light"] {
     color-scheme: light;
 }
@@ -467,8 +471,8 @@ fluent-data-grid-cell.no-ellipsis {
     overflow-x: visible !important;
 }
 
-.endpoint-overflow .fluent-overflow-more {
-    display: flex;
+.endpoint-overflow .fluent-overflow-more fluent-button {
+    vertical-align: middle;
 }
 
 .endpoint-button {
@@ -495,4 +499,16 @@ fluent-data-grid-cell.no-ellipsis {
 .page-content-container {
     height: 100%;
     overflow: auto;
+}
+
+.resource-select-application-label {
+    color: var(--accent-foreground-rest);
+}
+
+.filter-input-container {
+    width: 75%;
+}
+
+.layout fluent-toolbar > .fluent-input-label {
+    margin-bottom: 0;
 }

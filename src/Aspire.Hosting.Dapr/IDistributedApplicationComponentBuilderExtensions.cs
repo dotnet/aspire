@@ -51,7 +51,7 @@ public static class IDistributedApplicationResourceBuilderExtensions
     /// <returns>The resource builder instance.</returns>
     public static IResourceBuilder<T> WithDaprSidecar<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<IDaprSidecarResource>> configureSidecar) where T : IResource
     {
-        // Add Dapr is idempoent, so we can call it multiple times.
+        // Add Dapr is idempotent, so we can call it multiple times.
         builder.ApplicationBuilder.AddDapr();
 
         var sidecarBuilder = builder.ApplicationBuilder.AddResource(new DaprSidecarResource($"{builder.Resource.Name}-dapr"))
