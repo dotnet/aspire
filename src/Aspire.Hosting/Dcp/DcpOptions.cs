@@ -124,7 +124,6 @@ internal class ConfigureDefaultDcpOptions(
         else
         {
             Console.WriteLine ($"Setting via assembly attributes");
-            var assemblyMetadata = appOptions.Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
             string? dcpDir = GetFromEnvironmentVariableOrAssemblyMetadata("ASPIRE_DCP_DIR", assemblyMetadata, DcpDirMetadataKey);
             Console.WriteLine ($"Using dcpDir: {dcpDir}");
             if (!string.IsNullOrEmpty(dcpDir))
