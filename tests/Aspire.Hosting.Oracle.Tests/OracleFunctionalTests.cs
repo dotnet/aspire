@@ -31,7 +31,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(15));
 
-        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
 
         var oracleDbName = "freepdb1";
 
@@ -90,7 +90,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder1 = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
 
             var oracle1 = builder1.AddOracle("oracle");
 
@@ -175,7 +175,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder2 = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
             var passwordParameter2 = builder2.AddParameter("pwd");
             builder2.Configuration["Parameters:pwd"] = password;
 
@@ -302,7 +302,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
                 COMMIT;
             """);
 
-            using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
 
             var oracle = builder.AddOracle("oracle");
             var db = oracle.AddDatabase(oracleDbName);
