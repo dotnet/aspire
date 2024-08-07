@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using System.Text.Json.Serialization;
+using Aspire.Hosting.ApplicationModel;
 using k8s.Models;
 
 namespace Aspire.Hosting.Dcp.Model;
@@ -326,9 +327,10 @@ internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
     [JsonConstructor]
     public Container(ContainerSpec spec) : base(spec) { }
 
-    public static Container Create(string name, string image)
+    // the container annotations default value is null in order not to break any existing code that relies on this method
+    public static Container Create(string name, string image, ResourceAnnotationCollection? containerAnnotations = null)
     {
-        var c = new Container(new ContainerSpec { Image = image });
+        var c = new Container(new ContainerSpec { Image = image, RestartPolicy = GetRestartPolicy(containerAnnotations) });
 
         c.Kind = Dcp.ContainerKind;
         c.ApiVersion = Dcp.GroupVersion.ToString();
@@ -346,5 +348,28 @@ internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
         || this.Status?.State == ContainerState.Stopping
         || this.Status?.State == ContainerState.Exited
         || (this.Status?.State == ContainerState.FailedToStart && this.Status?.ContainerId is not null);
-}
 
+    private static string GetRestartPolicy(ResourceAnnotationCollection? containerAnnotations)
+    {
+        if (containerAnnotations is null)
+        {
+            return ContainerRestartPolicy.None;
+        }
+        var policy =
+            (RestartPolicyAnnotation?)containerAnnotations.FirstOrDefault(x =>
+                x.GetType().Name == "RestartPolicyAnnotation");
+        return policy is null ? ContainerRestartPolicy.None : GetRestartPolicyValue(policy);
+    }
+
+    private static string GetRestartPolicyValue(RestartPolicyAnnotation annotation)
+    {
+        return annotation.RestartPolicy switch
+        {
+            RestartPolicy.Always => ContainerRestartPolicy.Always,
+            RestartPolicy.Never => ContainerRestartPolicy.None,
+            RestartPolicy.OnFailure => ContainerRestartPolicy.OnFailure,
+            RestartPolicy.UnlessStopped => ContainerRestartPolicy.UnlessStopped,
+            _ => ContainerRestartPolicy.None
+        };
+    }
+}
