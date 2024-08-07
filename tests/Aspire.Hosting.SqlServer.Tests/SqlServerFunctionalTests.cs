@@ -25,7 +25,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
             .AddRetry(new() { MaxRetryAttempts = int.MaxValue, BackoffType = DelayBackoffType.Linear, Delay = TimeSpan.FromSeconds(2) })
             .Build();
 
-        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
 
         var sqlserver = builder.AddSqlServer("sqlserver");
         var tempDb = sqlserver.AddDatabase("tempdb");
@@ -90,7 +90,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder1 = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
 
             var sqlserver1 = builder1.AddSqlServer("sqlserver");
             var masterdb1 = sqlserver1.AddDatabase("master");
@@ -195,7 +195,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 await app1.StopAsync();
             }
 
-            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            using var builder2 = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
             var passwordParameter2 = builder2.AddParameter("pwd");
 
             builder2.Configuration["Parameters:pwd"] = password;
