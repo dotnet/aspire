@@ -4,6 +4,7 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <RunTestsOnHelix>true</RunTestsOnHelix>
   </PropertyGroup>
 
   <ItemGroup>

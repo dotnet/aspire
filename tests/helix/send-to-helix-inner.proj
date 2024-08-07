@@ -75,6 +75,11 @@
   <Import Project="$(MSBuildThisFileDirectory)send-to-helix-$(TestCategory).targets" />
   <Import Project="$(TestArchiveTestsDir)**\*.helix.targets" />
 
+  <PropertyGroup>
+    <!-- FIXME: override can be down without workload -->
+    <NeedsWorkload Condition="'$(NeedsWorkload)' == '' and '$(NeedsDcpPathOverride)' == 'true'">true</NeedsWorkload>
+  </PropertyGroup>
+
   <ItemGroup Condition="'$(NeedsPlaywright)' == 'true'">
     <HelixCorrelationPayload Include="$(PlaywrightDependenciesDirectory)" Destination="playwright-deps" />
 
@@ -150,7 +155,7 @@
     <Error Condition="'$(_DotNetCoverageToolDir)' == '' or !Exists($(_DotNetCoverageToolDir))"
            Text="Could not find dotnet-coverage tool. %24(_DotNetCoverageToolDir)=$(_DotNetCoverageToolDir)" />
 
-    <ItemGroup><!-- Condition="'$(NeedsWorkload)' == 'true' and '$(NeedsHostingTestingSupport)' == 'true'" -->
+    <ItemGroup Condition="'$(NeedsDcpPathOverride)' == 'true'">
       <_DashboardPathInWorkloadPack Condition="'$(OS)' != 'Windows_NT'" Include="$(ArtifactsBinDir)dotnet-latest\packs\**\Aspire.Dashboard.dll" />
       <_DashboardPathInWorkloadPack Condition="'$(OS)' == 'Windows_NT'" Include="$(ArtifactsBinDir)dotnet-latest\packs\**\Aspire.Dashboard.exe" />
 
@@ -158,12 +163,12 @@
       <_DcpInWorkloadPack Condition="'$(OS)' == 'Windows_NT'" Include="$(ArtifactsBinDir)dotnet-latest\packs\**\dcp.exe" />
     </ItemGroup>
 
-    <PropertyGroup>
+    <PropertyGroup Condition="'$(NeedsDcpPathOverride)' == 'true'">
       <_DcpDirInWorkloadPackRelativeDir>@(_DcpInWorkloadPack->'%(RecursiveDir)')</_DcpDirInWorkloadPackRelativeDir>
       <_DashboardPathInWorkloadPackRelativeDir>@(_DashboardPathInWorkloadPack->'%(RecursiveDir)')</_DashboardPathInWorkloadPackRelativeDir>
     </PropertyGroup>
 
-    <ItemGroup> <!-- Condition="'$(NeedsWorkload)' == 'true' and '$(NeedsHostingTestingSupport)' == 'true'" -->
+    <ItemGroup Condition="'$(NeedsDcpPathOverride)' == 'true'">
       <!-- FIXME: change aspire_ to tests_ -->
       <HelixPreCommand Include="$(_EnvVarSetKeyword) ASPIRE_DCP_DIR=$(_SdkForWorkloadTestingPathEnvValue)/packs/$(_DcpDirInWorkloadPackRelativeDir)" />
       <HelixPreCommand Include="$(_EnvVarSetKeyword) ASPIRE_DASHBOARD_PATH=$(_SdkForWorkloadTestingPathEnvValue)/packs/$(_DashboardPathInWorkloadPackRelativeDir)" />
