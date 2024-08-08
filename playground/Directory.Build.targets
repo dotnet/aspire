@@ -1,10 +1,6 @@
 <Project>
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
 
-  <PropertyGroup>
-    <IncludeTestPackages Condition="'$(IncludeTestPackages)' == '' and ('$(IsTestProject)' == 'true' or '$(IsTestSupportProject)' == 'true') and '$(SkipDashboardProjectReference)' == 'true'">true</IncludeTestPackages>
-  </PropertyGroup>
-
   <ItemGroup Condition="'$(IsAspireHost)' == 'true' and '$(SkipDashboardProjectReference)' != 'true'">
     <ProjectReference Include="$(RepoRoot)src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
   </ItemGroup>
