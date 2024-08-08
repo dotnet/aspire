@@ -112,8 +112,24 @@ public static class RedisBuilderExtensions
     /// </summary>
     /// <param name="builder">The resource builder for Redis Commander.</param>
     /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
-    /// <returns>The resource builder for PGAdmin.</returns>
+    /// <returns>The resource builder for RedisCommander.</returns>
     public static IResourceBuilder<RedisCommanderResource> WithHostPort(this IResourceBuilder<RedisCommanderResource> builder, int? port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithEndpoint("http", endpoint =>
+        {
+            endpoint.Port = port;
+        });
+    }
+
+    /// <summary>
+    /// Configures the host port that the Redis Insight resource is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">The resource builder for Redis Insight.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    /// <returns>The resource builder for RedisInsight.</returns>
+    public static IResourceBuilder<RedisInsightResource> WithHostPort(this IResourceBuilder<RedisInsightResource> builder, int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);
 

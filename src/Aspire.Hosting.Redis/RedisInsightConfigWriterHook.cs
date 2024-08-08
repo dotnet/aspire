@@ -44,8 +44,6 @@ internal sealed class RedisInsightConfigWriterHook(IHttpClientFactory httpClient
                 File.SetUnixFileMode(connectionFilePath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
             }
 
-            var serverIndex = 1;
-
             writer.WriteStartArray();
 
             foreach (var redisResource in redisInstances)
@@ -64,7 +62,6 @@ internal sealed class RedisInsightConfigWriterHook(IHttpClientFactory httpClient
                     writer.WriteEndObject();
                 }
 
-                serverIndex++;
             }
 
             writer.WriteEndArray();
