@@ -526,9 +526,12 @@ public class AddPostgresTests
                 Assert.Equal(".toml", Path.GetExtension(filePath));
             });
 
-        var bookmarkFilesContent = bookMarkFiles
-            .Select(File.ReadAllText)
-            .ToList();
+        var bookmarkFilesContent = new List<string>();
+
+        foreach (var filePath in bookMarkFiles)
+        {
+            bookmarkFilesContent.Add(File.ReadAllText(filePath));
+        }
 
         Assert.NotEmpty(bookmarkFilesContent);
         Assert.Collection(bookmarkFilesContent,
