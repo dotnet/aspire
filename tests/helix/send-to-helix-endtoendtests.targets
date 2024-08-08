@@ -42,8 +42,8 @@
         <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;TEST_SCENARIO=%(Identity)&quot;</PreCommands>
         <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=-%(Identity)&quot;</PreCommands>
 
-        <PostCommands Condition="'$(OS)' != 'Windows_NT'" Include="cp $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/Aspire.EndToEnd.Tests-%(Identity).trx" />
-        <PostCommands Condition="'$(OS)' == 'Windows_NT'" Include="copy $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/Aspire.EndToEnd.Tests-%(Identity).trx" />
+        <PostCommands Condition="'$(OS)' != 'Windows_NT'">cp $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/Aspire.EndToEnd.Tests-%(Identity).trx</PostCommands>
+        <PostCommands Condition="'$(OS)' == 'Windows_NT'">copy $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/Aspire.EndToEnd.Tests-%(Identity).trx</PostCommands>
 
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>

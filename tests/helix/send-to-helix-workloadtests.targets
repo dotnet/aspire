@@ -52,8 +52,8 @@
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) set &quot;TEST_ARGS=--filter category^^!=failing^&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) export &quot;TEST_ARGS=--filter category!=failing&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
 
-        <PostCommands Condition="'$(OS)' != 'Windows_NT'" Include="cp $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/$(TestProjectName)-%(TestNameSuffix).trx" />
-        <PostCommands Condition="'$(OS)' == 'Windows_NT'" Include="copy $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/$(TestProjectName)-%(TestNameSuffix).trx" />
+        <PostCommands Condition="'$(OS)' != 'Windows_NT'">cp $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/$(TestProjectName)-%(TestNameSuffix).trx</PostCommands>
+        <PostCommands Condition="'$(OS)' == 'Windows_NT'">copy $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/$(TestProjectName)-%(TestNameSuffix).trx</PostCommands>
 
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>
