@@ -268,7 +268,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         var parameters = new DialogParameters
         {
             Title = valueDescription,
-            Width = $"min(600px, {width})",
+            Width = $"min(1000px, {width})",
             TrapFocus = true,
             Modal = true,
             PreventScroll = true,
