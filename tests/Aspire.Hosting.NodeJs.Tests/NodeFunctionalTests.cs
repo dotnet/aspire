@@ -5,10 +5,9 @@ using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Testing;
 using Xunit;
 
-namespace Aspire.Hosting.Tests.Node;
+namespace Aspire.Hosting.NodeJs.Tests;
 
-[Collection("NodeApp")]
-public class NodeFunctionalTests
+public class NodeFunctionalTests : IClassFixture<NodeAppFixture>
 {
     private readonly NodeAppFixture _nodeJsFixture;
 
@@ -22,13 +21,11 @@ public class NodeFunctionalTests
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4508", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyNodeAppWorks()
     {
-        var testProgram = _nodeJsFixture.TestProgram;
-
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-        using var nodeClient = testProgram.App!.CreateHttpClient(testProgram.NodeAppBuilder!.Resource.Name, "http");
-        var response0 = await nodeClient.GetStringAsync("/", cts.Token);
+        using var nodeClient = _nodeJsFixture.App.CreateHttpClient(_nodeJsFixture.NodeAppBuilder!.Resource.Name, "http");
+        var response = await nodeClient.GetStringAsync("/", cts.Token);
 
-        Assert.Equal("Hello from node!", response0);
+        Assert.Equal("Hello from node!", response);
     }
 
     [Fact]
@@ -36,12 +33,10 @@ public class NodeFunctionalTests
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4508", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyNpmAppWorks()
     {
-        var testProgram = _nodeJsFixture.TestProgram;
-
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-        using var npmClient = testProgram.App!.CreateHttpClient(testProgram.NpmAppBuilder!.Resource.Name, "http");
-        var response0 = await npmClient.GetStringAsync("/", cts.Token);
+        using var npmClient = _nodeJsFixture.App.CreateHttpClient(_nodeJsFixture.NpmAppBuilder!.Resource.Name, "http");
+        var response = await npmClient.GetStringAsync("/", cts.Token);
 
-        Assert.Equal("Hello from npm!", response0);
+        Assert.Equal("Hello from npm!", response);
     }
 }
