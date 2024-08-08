@@ -10,7 +10,7 @@
     <DeployRunSettingsFile Condition="'$(DeployRunSettingsFile)' == ''">true</DeployRunSettingsFile>
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == ''">$(RepositoryEngineeringDir)testing\xunit.runner.json</XunitRunnerJson>
 
-    <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == ''">true</RunTestsOnHelix>
+    <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == '' and '$(IsTestSupportProject)' != 'true'">true</RunTestsOnHelix>
     <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestSupportProject)' == 'true' or '$(RunTestsOnHelix)' == 'true')">true</SkipTests>
   </PropertyGroup>
 
