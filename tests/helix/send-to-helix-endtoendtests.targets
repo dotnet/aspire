@@ -43,7 +43,7 @@
         <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=-%(Identity)&quot;</PreCommands>
 
         <PostCommands Condition="'$(OS)' != 'Windows_NT'">cp $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/Aspire.EndToEnd.Tests-%(Identity).trx</PostCommands>
-        <PostCommands Condition="'$(OS)' == 'Windows_NT'">copy $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/Aspire.EndToEnd.Tests-%(Identity).trx</PostCommands>
+        <PostCommands Condition="'$(OS)' == 'Windows_NT'">copy &quot;$(_HelixLogsPath)\TestResults.trx&quot; &quot;$(_HelixLogsPath)\Aspire.EndToEnd.Tests-%(Identity).trx&quot;</PostCommands>
 
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>
