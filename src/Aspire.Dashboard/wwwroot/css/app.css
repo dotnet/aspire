@@ -539,7 +539,6 @@ fluent-data-grid-cell.no-ellipsis {
 .log-container {
     font-family: 'Cascadia Mono', Consolas, monospace;
     font-size: 13px;
-    padding-bottom: 24px;
     line-height: 20px;
     overflow: visible;
     display: flex;
@@ -554,7 +553,7 @@ fluent-data-grid-cell.no-ellipsis {
 
 .log-line-row {
     cursor: text;
-    padding: 0 12px 0 12px;
+    padding: 0 12px 0 0;
     white-space: pre-wrap;
 
     display: flex;
@@ -569,15 +568,15 @@ fluent-data-grid-cell.no-ellipsis {
     flex-direction: row;
 }
 
-.line-number {
-    padding-left: 10px;
-    min-width: 43px;
+.log-line-number {
+    min-width: 53px;
     text-align: right;
     align-self: flex-start;
     flex-shrink: 0;
     color: var(--line-number-color);
     user-select: none;
     cursor: default;
+    height: 100%;
 }
 
 .log-content {

@@ -1,5 +1,5 @@
 ::deep .text-visualizer-line-number {
-    user-select: none;
+    min-width: 33px;
 }
 
 ::deep .highlight-line {
