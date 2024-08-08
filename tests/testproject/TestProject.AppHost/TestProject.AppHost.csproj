@@ -6,7 +6,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsAspireHost>true</IsAspireHost>
-    <IsTestSupportProject>true</IsTestSupportProject>
   </PropertyGroup>
 
   <ItemGroup>
