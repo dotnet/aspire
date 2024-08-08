@@ -7,10 +7,6 @@
 
     <WorkItemArchiveWildCard>$(TestArchiveTestsDirForBuildOnHelixTests)**/*.zip</WorkItemArchiveWildCard>
 
-    <_CleanupProcessesCommand Condition="'$(OS)' == 'Windows_NT'">powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; get-ciminstance win32_process | where-object ExecutablePath -Match 'dotnet-latest|dcp.exe|dcpctrl.exe' | foreach-object { echo $_.ProcessId $_.ExecutablePath %3B stop-process -id $_.ProcessId -force -ErrorAction SilentlyContinue }"</_CleanupProcessesCommand>
-
-    <_CleanupProcessesCommand Condition="'$(OS)' != 'Windows_NT'">pgrep -lf "dotnet-latest|dcp.exe|dcpctrl.exe" | awk '{print %3B system("kill -9 "$1)}'</_CleanupProcessesCommand>
-
     <_TestAssemblyRootDirEnvVar Condition="'$(OS)' != 'Windows_NT'">${HELIX_WORKITEM_ROOT}/test/</_TestAssemblyRootDirEnvVar>
     <_TestAssemblyRootDirEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_WORKITEM_ROOT%\test\</_TestAssemblyRootDirEnvVar>
   </PropertyGroup>
@@ -21,10 +17,6 @@
 
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set NUGET_PACKAGES=%HELIX_WORKITEM_ROOT%\nuget-cache\" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export NUGET_PACKAGES=$HELIX_WORKITEM_ROOT/nuget-cache/" />
-
-    <HelixPreCommand Include="$(_CleanupProcessesCommand)" />
-
-    <HelixPostCommand Include="$(_CleanupProcessesCommand)" />
   </ItemGroup>
 
   <!-- `dotnet build` + `dotnet test` on helix -->
@@ -33,17 +25,8 @@
       <_TestRunCommandArguments Remove="@(_TestRunCommandArguments)" />
 
       <!-- Using `dotnet test` for the project directly here -->
-      <_TestRunCommandArguments Include="dotnet test" />
-      <_TestRunCommandArguments Include="-s .runsettings" />
-      <_TestRunCommandArguments Include="--results-directory $(_HelixLogsPath)" />
-      <_TestRunCommandArguments Include="--blame-hang" />
-      <_TestRunCommandArguments Include="--blame-hang-dump-type" />
-      <_TestRunCommandArguments Include="full" />
-      <_TestRunCommandArguments Include="--blame-hang-timeout" />
-      <_TestRunCommandArguments Include="10m" />
-      <_TestRunCommandArguments Include="--blame-crash" />
-      <_TestRunCommandArguments Include="--blame-crash-dump-type" />
-      <_TestRunCommandArguments Include="full" />
+      <_TestRunCommandArguments Include="dotnet test -s .runsettings --results-directory $(_HelixLogsPath)" />
+      <_TestRunCommandArguments Include="@(_TestBlameArguments, ' ')" />
     </ItemGroup>
 
     <PropertyGroup>
