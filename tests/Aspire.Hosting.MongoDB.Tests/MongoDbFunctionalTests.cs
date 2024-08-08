@@ -5,14 +5,12 @@ using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Xunit;
 using Xunit.Abstractions;
 using Polly;
-using Aspire.Hosting.Testing;
 
 namespace Aspire.Hosting.MongoDB.Tests;
 
@@ -37,7 +35,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1) })
             .Build();
 
-        var builder = CreateDistributedApplicationBuilder();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var mongodb = builder.AddMongoDB("mongodb");
         var db = mongodb.AddDatabase("testdb");
@@ -80,7 +78,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = CreateDistributedApplicationBuilder();
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var mongodb1 = builder1.AddMongoDB("mongodb");
             var db1 = mongodb1.AddDatabase(dbName);
 
@@ -128,7 +126,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            var builder2 = CreateDistributedApplicationBuilder();
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var mongodb2 = builder2.AddMongoDB("mongodb");
             var db2 = mongodb2.AddDatabase(dbName);
 
@@ -258,7 +256,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
                 File.SetUnixFileMode(initFilePath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
             }
 
-            var builder = CreateDistributedApplicationBuilder();
+            using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
             var mongodb = builder.AddMongoDB("mongodb")
                 .WithInitBindMount(bindMountPath);
@@ -323,15 +321,6 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
                         item => Assert.Contains("The Dark Knight", item.Name),
                         item => Assert.Contains("Schindler's List", item.Name)
                         );
-    }
-
-    private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
-    {
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
-        builder.Services.AddXunitLogging(testOutputHelper);
-        builder.Services.AddHostedService<ResourceLoggerForwarderService>();
-
-        return builder;
     }
 }
 
