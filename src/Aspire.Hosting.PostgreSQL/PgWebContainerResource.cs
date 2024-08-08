@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Postgres;
 /// Represents a container resource for pgweb.
 /// </summary>
 /// <param name="name">The name of the container resource.</param>
-public class PgWebContainerResource(string name) : ContainerResource(name)
+public sealed class PgWebContainerResource(string name) : ContainerResource(name)
 {
     internal const string PrimaryEndpointName = "http";
 
