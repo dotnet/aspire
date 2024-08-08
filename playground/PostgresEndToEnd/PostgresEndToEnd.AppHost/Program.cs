@@ -21,11 +21,7 @@ var db9 = pg6.AddDatabase("db9", "db8"); // different connection string (db9) on
 // External resources.
 var db10 = builder.AddPostgres("pg10").WithPgAdmin().PublishAsConnectionString().AddDatabase("db10");
 
-builder.Configuration["Parameters:pass"] = "p!ssw0rd1";
-
-var pass = builder.AddParameter("pass");
-
-var db11 = builder.AddPostgres("pg11", password: pass).WithPgWeb().AddDatabase("postgres");
+var db11 = builder.AddPostgres("pg11").WithPgWeb().AddDatabase("postgres");
 var db12 = builder.AddPostgres("pg12").WithPgWeb().AddDatabase("db12");
 
 builder.AddProject<Projects.PostgresEndToEnd_ApiService>("api")

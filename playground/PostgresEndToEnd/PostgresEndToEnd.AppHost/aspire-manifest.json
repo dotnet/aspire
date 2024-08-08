@@ -185,9 +185,9 @@
         }
       }
     },
-    "db11": {
+    "postgres": {
       "type": "value.v0",
-      "connectionString": "{pg11.connectionString};Database=db11"
+      "connectionString": "{pg11.connectionString};Database=postgres"
     },
     "pg12": {
       "type": "container.v0",
@@ -231,7 +231,7 @@
         "ConnectionStrings__db8": "{db8.connectionString}",
         "ConnectionStrings__db9": "{db9.connectionString}",
         "ConnectionStrings__db10": "{db10.connectionString}",
-        "ConnectionStrings__db11": "{db11.connectionString}",
+        "ConnectionStrings__postgres": "{postgres.connectionString}",
         "ConnectionStrings__db12": "{db12.connectionString}"
       },
       "bindings": {

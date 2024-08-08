@@ -377,6 +377,48 @@ public class AddPostgresTests
     }
 
     [Fact]
+    public void WithPgWebAddsWithPgWebResource()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddPostgres("mypostgres1").WithPgWeb();
+        builder.AddPostgres("mypostgres2").WithPgWeb();
+
+        Assert.Single(builder.Resources.OfType<PgWebContainerResource>());
+    }
+
+    [Fact]
+    public void WithRedisInsightSupportsChangingContainerImageValues()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddPostgres("mypostgres").WithPgWeb(c =>
+        {
+            c.WithImageRegistry("example.mycompany.com");
+            c.WithImage("customrediscommander");
+            c.WithImageTag("someothertag");
+        });
+
+        var resource = Assert.Single(builder.Resources.OfType<PgWebContainerResource>());
+        var containerAnnotation = Assert.Single(resource.Annotations.OfType<ContainerImageAnnotation>());
+        Assert.Equal("example.mycompany.com", containerAnnotation.Registry);
+        Assert.Equal("customrediscommander", containerAnnotation.Image);
+        Assert.Equal("someothertag", containerAnnotation.Tag);
+    }
+
+    [Fact]
+    public void WithRedisInsightSupportsChangingHostPort()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddPostgres("mypostgres").WithPgWeb(c =>
+        {
+            c.WithHostPort(1000);
+        });
+
+        var resource = Assert.Single(builder.Resources.OfType<PgWebContainerResource>());
+        var endpoint = Assert.Single(resource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(1000, endpoint.Port);
+    }
+
+    [Fact]
     public void WithPgAdminWithCallbackMutatesImage()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
