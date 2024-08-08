@@ -171,7 +171,7 @@ namespace Projects%3B
     </GetNonExecutableReferences>
 
     <Warning Code="ASPIRE004"
-             Condition="'@(_AspireNonExecutableProjectResource)' != ''"
+             Condition="'@(_AspireNonExecutableProjectResource)' != '' AND (%(_AspireNonExecutableProjectResource.NoWarn)!='ASPIRE004')"
              Text="'%(_AspireNonExecutableProjectResource.OriginalItemSpec)' is referenced by an Aspire Host project, but it is not an executable. Did you mean to set IsAspireProjectResource=&quot;false&quot;?" />
   </Target>
 
