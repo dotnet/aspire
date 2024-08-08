@@ -67,6 +67,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
     public IReadOnlyList<string> ValidationFailures => _validationFailures;
 
+    // our localization list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
     internal static HashSet<string> LocalizedCultures { get; } = new(StringComparer.OrdinalIgnoreCase)
     {
         "en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant", // Standard cultures for compliance.
@@ -202,8 +203,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         var supportedCultures = GetSupportedCultures();
 
         _app.UseRequestLocalization(new RequestLocalizationOptions()
-            .AddSupportedCultures([.. supportedCultures])
-            .AddSupportedUICultures([.. supportedCultures]));
+            .AddSupportedCultures(supportedCultures)
+            .AddSupportedUICultures(supportedCultures));
 
         WriteVersion(_logger);
 
@@ -334,17 +335,16 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
     }
 
-    internal static List<string> GetSupportedCultures()
+    internal static string[] GetSupportedCultures()
     {
-        // our localization list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
         var supportedCultures = CultureInfo.GetCultures(CultureTypes.AllCultures)
-            .Where(culture => LocalizedCultures.Contains(culture.Name) || LocalizedCultures.Contains(culture.TwoLetterISOLanguageName))
+            .Where(culture => LocalizedCultures.Contains(culture.TwoLetterISOLanguageName) || LocalizedCultures.Contains(culture.Name))
             .Select(culture => culture.Name)
             .ToList();
 
         // Non-standard culture but it is the default in many Chinese browsers. Adding zh-CN allows OS culture customization to flow through the dashboard.
         supportedCultures.Add("zh-CN");
-        return supportedCultures;
+        return supportedCultures.ToArray();
     }
 
     private ILogger<DashboardWebApplication> GetLogger()
