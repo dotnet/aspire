@@ -17,7 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting\Utils\PasswordGenerator.cs" />
+    <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)src\Aspire.Hosting\Utils\PasswordGenerator.cs" />
     <Compile Include="$(TestsSharedDir)WorkloadTesting\TestOutputWrapper.cs" />
     <Compile Include="$(TestsSharedDir)WorkloadTesting\EnvironmentVariables.cs" />
     <Compile Include="$(TestsSharedDir)Logging\*.cs" />
@@ -43,6 +43,7 @@
 
   <ItemGroup Condition="'$(ArchiveTests)' == 'true'" Label="Prepare archive dir for helix">
     <None Include="$(MSBuildProjectDirectory)\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)src\Aspire.Hosting\Utils\PasswordGenerator.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\PasswordGenerator.cs" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)src\Shared\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)src\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)playground\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)playground\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
