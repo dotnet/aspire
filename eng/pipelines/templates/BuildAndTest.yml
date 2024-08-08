@@ -93,11 +93,22 @@ steps:
     - task: CopyFiles@2
       inputs:
         Contents: '${{ parameters.repoArtifactsPath }}/**/*.trx'
-        TargetFolder: '${{ parameters.repoArtifactsPath }}/TestResults'
+        TargetFolder: '${{ parameters.repoArtifactsPath }}/TestResults/$(_BuildConfig)'
         flattenFolders: true
+        OverWrite: true
       displayName: Gather helix test results
       continueOnError: true
       condition: always()
+
+  - task: CopyFiles@2
+    inputs:
+      Contents: '${{ parameters.repoArtifactsPath }}/TestResults/**/*.trx'
+      TargetFolder: '${{ parameters.repoArtifactsPath }}/log/$(_BuildConfig)/TestResults'
+      flattenFolders: true
+      OverWrite: true
+    displayName: Gather trx files
+    continueOnError: true
+    condition: always()
 
   - task: CopyFiles@2
     inputs:
