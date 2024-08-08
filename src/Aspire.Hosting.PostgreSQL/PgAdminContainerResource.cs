@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Postgres;
@@ -9,6 +11,8 @@ namespace Aspire.Hosting.Postgres;
 /// Represents a container resource for PGAdmin.
 /// </summary>
 /// <param name="name">The name of the container resource.</param>
-public sealed class PgAdminContainerResource(string name) : ContainerResource(name)
+public sealed class PgAdminContainerResource(string name) : ContainerResource(ThrowIfNull(name))
 {
+    private static string ThrowIfNull([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
+        => argument ?? throw new ArgumentNullException(paramName);
 }
