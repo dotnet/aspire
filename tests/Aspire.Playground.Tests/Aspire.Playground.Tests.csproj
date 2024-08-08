@@ -17,6 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting\Utils\PasswordGenerator.cs" />
     <Compile Include="$(TestsSharedDir)WorkloadTesting\TestOutputWrapper.cs" />
     <Compile Include="$(TestsSharedDir)WorkloadTesting\EnvironmentVariables.cs" />
     <Compile Include="$(TestsSharedDir)Logging\*.cs" />
