@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using Aspire.Components.Common.Tests;
-using Aspire.Hosting.MongoDB;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Redis;
@@ -110,9 +109,13 @@ public class ManifestGenerationTests
     [Fact]
     public void EnsureExecutablesWithDockerfileProduceDockerfilev0Manifest()
     {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);
-        program.NodeAppBuilder!.WithHttpsEndpoint(targetPort: 3000, env: "HTTPS_PORT")
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
+        program.AppBuilder
+            .AddNodeApp("nodeapp", "fakePath")
+            .WithHttpsEndpoint(targetPort: 3000, env: "HTTPS_PORT")
             .PublishAsDockerFile();
+        program.AppBuilder
+            .AddNpmApp("npmapp", "fakeDirectory");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -284,50 +287,6 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void NodeAppIsExecutableResource()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddNodeApp("nodeapp", "..\\foo\\app.js")
-            .WithHttpEndpoint(port: 5031, env: "PORT");
-        program.AppBuilder.AddNpmApp("npmapp", "..\\foo")
-            .WithHttpEndpoint(port: 5032, env: "PORT");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var nodeApp = resources.GetProperty("nodeapp");
-        var npmApp = resources.GetProperty("npmapp");
-
-        static void AssertNodeResource(TestProgram program, string resourceName, JsonElement jsonElement, string expectedCommand, string[] expectedArgs)
-        {
-            var s = jsonElement.ToString();
-            Assert.Equal("executable.v0", jsonElement.GetProperty("type").GetString());
-
-            var bindings = jsonElement.GetProperty("bindings");
-            var httpBinding = bindings.GetProperty("http");
-
-            Assert.Equal("http", httpBinding.GetProperty("scheme").GetString());
-
-            var env = jsonElement.GetProperty("env");
-            Assert.Equal($$"""{{{resourceName}}.bindings.http.targetPort}""", env.GetProperty("PORT").GetString());
-            Assert.Equal(program.AppBuilder.Environment.EnvironmentName.ToLowerInvariant(), env.GetProperty("NODE_ENV").GetString());
-
-            var command = jsonElement.GetProperty("command");
-            Assert.Equal(expectedCommand, command.GetString());
-            Assert.Equal(expectedArgs, jsonElement.GetProperty("args").EnumerateArray().Select(e => e.GetString()).ToArray());
-        }
-
-        AssertNodeResource(program, "nodeapp", nodeApp, "node", ["..\\foo\\app.js"]);
-        AssertNodeResource(program, "npmapp", npmApp, "npm", ["run", "start"]);
-    }
-
-    [Fact]
     public void MetadataPropertyNotEmittedWhenMetadataNotAdded()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();
@@ -460,7 +419,6 @@ public class ManifestGenerationTests
                     "ConnectionStrings__tempdb": "{tempdb.connectionString}",
                     "ConnectionStrings__redis": "{redis.connectionString}",
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
-                    "ConnectionStrings__mymongodb": "{mymongodb.connectionString}",
                     "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
                     "ConnectionStrings__cosmos": "{cosmos.connectionString}",
                     "ConnectionStrings__eventhubns": "{eventhubns.connectionString}"
@@ -535,23 +493,6 @@ public class ManifestGenerationTests
                 "postgresdb": {
                   "type": "value.v0",
                   "connectionString": "{postgres.connectionString};Database=postgresdb"
-                },
-                "mongodb": {
-                  "type": "container.v0",
-                  "connectionString": "mongodb://{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}",
-                  "image": "{{TestConstants.AspireTestContainerRegistry}}/{{MongoDBContainerImageTags.Image}}:{{MongoDBContainerImageTags.Tag}}",
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 27017
-                    }
-                  }
-                },
-                "mymongodb": {
-                  "type": "value.v0",
-                  "connectionString": "{mongodb.connectionString}/mymongodb"
                 },
                 "oracledatabase": {
                   "type": "container.v0",
