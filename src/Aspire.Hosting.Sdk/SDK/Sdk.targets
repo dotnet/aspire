@@ -1,9 +1,11 @@
 <Project>
 
   <!--
-  A property-based workload cannot import props files (except AutoImport.props, which has very tight limitations.
+  A property-based workload cannot import props files (except AutoImport.props, which has very tight
+  limitations.
   Instead, we copy everything from Aspire.Hosting.AppHost.props into these targets.
-  This means they cannot be overridden in the csproj, and may cause ordering issues, particularly StaticWebAssets.
+  This means they cannot be overridden in the csproj, and may cause ordering issues, particularly
+  StaticWebAssets.
   -->
 
   <ItemGroup>
@@ -13,41 +15,58 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <!-- Aspire hosting projects aren't publishable right now until https://github.com/dotnet/aspire/issues/147 is good -->
+    <!-- Aspire hosting projects aren't publishable right now until
+    https://github.com/dotnet/aspire/issues/147 is good -->
     <IsPublishable Condition="'$(IsPublishable)' == ''">false</IsPublishable>
     <IsPackable Condition="'$(IsPackable)' == ''">false</IsPackable>
   </PropertyGroup>
 
   <!--
-  Default AppHost ProjectReference items to not be referenced in the AppHost, unless it is IsAspireProjectResource=false.
+  Default AppHost ProjectReference items to not be referenced in the AppHost, unless it is
+  IsAspireProjectResource=false.
   This defaulting needs to happen in the SDK targets so this metadata affects NuGet Restore.
   -->
   <ItemGroup Condition="'$(IsAspireHost)' == 'true'">
-    
+
     <ProjectReference Update="@(ProjectReference)">
       <IsAspireProjectResource Condition="'%(IsAspireProjectResource)' != 'false'">true</IsAspireProjectResource>
 
-      <ReferenceOutputAssembly Condition="'%(ReferenceOutputAssembly)' == '' and '%(IsAspireProjectResource)' == 'true'">false</ReferenceOutputAssembly>
-      <SkipGetTargetFrameworkProperties Condition="'%(SkipGetTargetFrameworkProperties)' == '' and '%(IsAspireProjectResource)' == 'true'">true</SkipGetTargetFrameworkProperties>
-      <ExcludeAssets Condition="'%(ExcludeAssets)' == '' and '%(IsAspireProjectResource)' == 'true'">all</ExcludeAssets>
+      <ReferenceOutputAssembly
+        Condition="'%(ReferenceOutputAssembly)' == '' and '%(IsAspireProjectResource)' == 'true'">
+        false</ReferenceOutputAssembly>
+      <SkipGetTargetFrameworkProperties
+        Condition="'%(SkipGetTargetFrameworkProperties)' == '' and '%(IsAspireProjectResource)' == 'true'">
+        true</SkipGetTargetFrameworkProperties>
+      <ExcludeAssets Condition="'%(ExcludeAssets)' == '' and '%(IsAspireProjectResource)' == 'true'">
+        all</ExcludeAssets>
       <Private Condition="'%(Private)' == '' and '%(IsAspireProjectResource)' == 'true'">false</Private>
     </ProjectReference>
-    
+
   </ItemGroup>
 
-  <Target Name="__WarnOnAspireCapabilityMissing" BeforeTargets="PrepareForBuild" Condition="!@(ProjectCapability->AnyHaveMetadataValue('Identity', 'Aspire'))">
-    <Warning Code="ASPIRE002" Text="$(MSBuildProjectName) is an Aspire AppHost project but necessary dependencies aren't present. Are you missing an Aspire.Hosting.AppHost PackageReference?" />
+  <Target Name="__WarnOnAspireCapabilityMissing" BeforeTargets="PrepareForBuild"
+    Condition="!@(ProjectCapability->AnyHaveMetadataValue('Identity', 'Aspire'))">
+    <Warning Code="ASPIRE002"
+      Text="$(MSBuildProjectName) is an Aspire AppHost project but necessary dependencies aren't present. Are you missing an Aspire.Hosting.AppHost PackageReference?" />
   </Target>
 
-  <Target Name="__WarnOnMininumVsVersionMissing" BeforeTargets="PrepareForBuild" Condition="'$(BuildingInsideVisualStudio)' == 'true' and $([MSBuild]::VersionLessThan('$(MSBuildVersion)', '17.10.0'))">
-    <Warning Code="ASPIRE003" Text="$(MSBuildProjectName) is a .NET Aspire AppHost project that requires Visual Studio version 17.10 or above to work correctly. You are using version $(MSBuildVersion)." />
+  <Target Name="__WarnOnMininumVsVersionMissing" BeforeTargets="PrepareForBuild"
+    Condition="'$(BuildingInsideVisualStudio)' == 'true' and $([MSBuild]::VersionLessThan('$(MSBuildVersion)', '17.10.0'))">
+    <Warning Code="ASPIRE003"
+      Text="$(MSBuildProjectName) is a .NET Aspire AppHost project that requires Visual Studio version 17.10 or above to work correctly. You are using version $(MSBuildVersion)." />
   </Target>
 
-  <Target Name="AddReferenceToDashboardAndDCP" BeforeTargets="Restore">
-    <!-- Analyze all PackageReference items -->
+  <!-- This target extracts the version of Aspire.Hosting.AppHost referenced by the project, and adds
+       a reference to Aspire.Dashboard.Sdk and Aspire.Hosting.Orchestration for the build-time platform using
+       the same version. This is done here dynamically to avoid having to pull in DCP and Dashboard packages
+       for all of the platforms. -->
+  <Target Name="AddReferenceToDashboardAndDCP" BeforeTargets="Restore;CollectPackageReferences">
+
+    <!-- First, we assume project is not using Central Package Management, and we try to extract the version
+         from PackageReference Items. -->
     <ItemGroup>
-      <!-- Find the PackageReference with Identity Aspire.Hosting.AppHost -->
-      <AppHostPackageReference Include="@(PackageReference)" Condition="'%(Identity)' == 'Aspire.Hosting.AppHost'" />
+      <AppHostPackageReference Include="@(PackageReference)" Condition="'%(Identity)' ==
+  'Aspire.Hosting.AppHost'" />
     </ItemGroup>
 
     <!-- Extract the Version metadata -->
@@ -55,13 +74,41 @@
       <AppHostVersion>%(AppHostPackageReference.Version)</AppHostVersion>
     </PropertyGroup>
 
-    <!-- Validate that the version isn't empty -->
-    <Error Condition=" '$(AppHostVersion)' == '' " Text="You must have a reference to Aspire.Hosting.AppHost in your AppHost project." />
+    <!-- If the version is still empty, then we assume the project is using Central Package Management, 
+         and we try to extract the PackageVersion Items. -->
+    <ItemGroup Condition="'$(AppHostVersion)' == ''">
+      <AppHostPackageReference />
+      <AppHostPackageReference Include="@(PackageVersion)" Condition="'%(Identity)' ==
+  'Aspire.Hosting.AppHost'" />
+    </ItemGroup>
 
-    <!-- Add additional PackageReference if version isn't empty -->
-    <ItemGroup Condition=" '$(AppHostVersion)' != '' ">
-      <PackageReference Include="Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier)" Version="$(AppHostVersion)" />
-      <PackageReference Include="Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier)" Version="$(AppHostVersion)" />
+    <PropertyGroup Condition="'$(AppHostVersion)' == ''">
+      <AppHostVersion>%(AppHostPackageReference.Version)</AppHostVersion>
+      <_UsingCentralPackageManagement>true</_UsingCentralPackageManagement>
+    </PropertyGroup>
+
+    <!-- At this point, we should have the version either by CPM or PackageReference, so we fail if not.  -->
+    <Error Condition=" '$(AppHostVersion)' == '' " Text="You must have a reference to
+  Aspire.Hosting.AppHost in your AppHost project." />
+
+    <!-- If not using CPM, then directly add the two PackageReferences -->
+    <ItemGroup Condition=" '$(AppHostVersion)' != '' and '$(_UsingCentralPackageManagement)' != 'true' ">
+      <PackageReference Include="Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier)"
+  Version="$(AppHostVersion)" />
+      <PackageReference Include="Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier)"
+  Version="$(AppHostVersion)" />
+    </ItemGroup>
+
+    <!-- If using CPM, then we need to define the PackageVersion items, and then add the versionless PackageReferences
+         to avoid NuGet restore complaining about using CPM but having versioned PackageReferences. -->
+    <ItemGroup Condition=" '$(AppHostVersion)' != '' and '$(_UsingCentralPackageManagement)' == 'true' ">
+      <PackageVersion Include="Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier)"
+  Version="$(AppHostVersion)" />
+      <PackageVersion Include="Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier)"
+  Version="$(AppHostVersion)" />
+
+      <PackageReference Include="Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier)" />
+      <PackageReference Include="Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier)" />
     </ItemGroup>
   </Target>
 
