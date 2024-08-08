@@ -36,7 +36,8 @@ internal sealed class RedisInsightConfigWriterHook(IHttpClientFactory httpClient
         }
         var connectionFilePath = Path.Combine(connectionFileDirectoryPath, "RedisInsight_connections.json");
 
-        using (var stream = new FileStream(connectionFilePath, FileMode.OpenOrCreate)) {
+        using (var stream = new FileStream(connectionFilePath, FileMode.OpenOrCreate))
+        {
             using var writer = new Utf8JsonWriter(stream);
             // Need to grant read access to the config file on unix like systems.
             if (!OperatingSystem.IsWindows())
@@ -66,31 +67,38 @@ internal sealed class RedisInsightConfigWriterHook(IHttpClientFactory httpClient
 
             writer.WriteEndArray();
         };
-        
-        await resourceNotificationService.WaitForResourceAsync(redisInsightResource.Name,KnownResourceStates.Running, cancellationToken).ConfigureAwait(false);
+
+        await resourceNotificationService.WaitForResourceAsync(redisInsightResource.Name, KnownResourceStates.Running, cancellationToken).ConfigureAwait(false);
 
         var client = httpClientFactory.CreateClient();
 
         var content = new MultipartFormDataContent();
-        var fileContent = new StreamContent(File.OpenRead(connectionFilePath));
 
-        content.Add(fileContent, "file", "RedisInsight_connections.json");
-
-        var insightEndpoint = redisInsightResource.PrimaryEndpoint;
-        var apiUrl = $"{insightEndpoint.Scheme}://{insightEndpoint.Host}:{insightEndpoint.Port}/api/databases/import";
-
-        var pipeline = new ResiliencePipelineBuilder().AddRetry(new Polly.Retry.RetryStrategyOptions
+        using (var file = File.OpenRead(connectionFilePath))
         {
-            Delay = TimeSpan.FromSeconds(2),
-            MaxRetryAttempts = 5,
-        }).Build();
+            var fileContent = new StreamContent(file);
 
-        await pipeline.ExecuteAsync(async (ctx) =>
-         {
-             var response = await client.PostAsync(apiUrl, content, ctx)
-             .ConfigureAwait(false);
-             response.EnsureSuccessStatusCode();
+            content.Add(fileContent, "file", "RedisInsight_connections.json");
 
-         }, cancellationToken).ConfigureAwait(false);
+            var insightEndpoint = redisInsightResource.PrimaryEndpoint;
+            var apiUrl = $"{insightEndpoint.Scheme}://{insightEndpoint.Host}:{insightEndpoint.Port}/api/databases/import";
+
+            var pipeline = new ResiliencePipelineBuilder().AddRetry(new Polly.Retry.RetryStrategyOptions
+            {
+                Delay = TimeSpan.FromSeconds(2),
+                MaxRetryAttempts = 5,
+            }).Build();
+
+            await pipeline.ExecuteAsync(async (ctx) =>
+            {
+                var response = await client.PostAsync(apiUrl, content, ctx)
+                .ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+
+            }, cancellationToken).ConfigureAwait(false);
+
+        }
+
+        Directory.Delete(connectionFileDirectoryPath, true);
     }
 }
