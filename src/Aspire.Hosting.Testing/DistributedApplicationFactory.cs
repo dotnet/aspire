@@ -212,8 +212,16 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         }
 
         using var stream = File.OpenRead(launchSettingsFilePath);
-        var settings = JsonSerializer.Deserialize(stream, LaunchSettingsSerializerContext.Default.LaunchSettings);
-        return settings;
+        try
+        {
+            var settings = JsonSerializer.Deserialize(stream, LaunchSettingsSerializerContext.Default.LaunchSettings);
+            return settings;
+        }
+        catch (JsonException ex)
+        {
+            var message = $"Failed to get effective launch profile for project '{appHostPath}'. There is malformed JSON in the project's launch settings file at '{launchSettingsFilePath}'.";
+            throw new DistributedApplicationException(message, ex);
+        }
     }
 
     private void OnBuilderCreatedCore(DistributedApplicationBuilder applicationBuilder)

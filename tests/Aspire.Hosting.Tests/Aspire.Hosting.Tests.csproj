@@ -6,6 +6,7 @@
       CS8002: Referenced assembly does not have a strong name. KubernetesClient package is unsigned, we ignore that warning on purpose
     -->
     <NoWarn>$(NoWarn);CS8002</NoWarn>
+    <RunTestsOnHelix>false</RunTestsOnHelix>
   </PropertyGroup>
 
   <ItemGroup>

@@ -43,7 +43,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await app.StartAsync(cts.Token);
 
-        await app.WaitForText(DatabaseReadyText, cancellationToken: cts.Token);
+        await app.WaitForTextAsync(DatabaseReadyText, cancellationToken: cts.Token);
 
         var hb = Host.CreateApplicationBuilder();
 
@@ -124,7 +124,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 await app.StartAsync();
 
-                await app.WaitForText(DatabaseReadyText, cancellationToken: cts.Token);
+                await app.WaitForTextAsync(DatabaseReadyText, cancellationToken: cts.Token);
 
                 try
                 {
@@ -196,7 +196,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 await app.StartAsync();
 
-                await app.WaitForText(DatabaseReadyText, cancellationToken: cts.Token);
+                await app.WaitForTextAsync(DatabaseReadyText, cancellationToken: cts.Token);
 
                 try
                 {
@@ -321,7 +321,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
             await app.StartAsync();
 
-            await app.WaitForText(DatabaseReadyText, cancellationToken: cts.Token);
+            await app.WaitForTextAsync(DatabaseReadyText, cancellationToken: cts.Token);
 
             var hb = Host.CreateApplicationBuilder();
 

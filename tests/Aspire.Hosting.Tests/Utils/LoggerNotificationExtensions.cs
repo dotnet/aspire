@@ -7,6 +7,7 @@ using ResourceNotificationService = Aspire.Hosting.ApplicationModel.ResourceNoti
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Tests.Utils;
 
@@ -20,12 +21,12 @@ public static class LoggerNotificationExtensions
     /// <param name="resource">An optional <see cref="IResource"/> instance to filter the logs for.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns></returns>
-    public static Task WaitForText(this DistributedApplication app, string logText, IResource? resource = null, CancellationToken cancellationToken = default)
+    public static Task WaitForTextAsync(this DistributedApplication app, string logText, IResource? resource = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(app);
         ArgumentException.ThrowIfNullOrEmpty(logText);
 
-        return WaitForText(app, [logText], resource, cancellationToken);
+        return WaitForTextAsync(app, [logText], resource, cancellationToken);
     }
 
     /// <summary>
@@ -36,14 +37,14 @@ public static class LoggerNotificationExtensions
     /// <param name="resource">An optional <see cref="IResource"/> instance to filter the logs for.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns></returns>
-    public static Task WaitForText(this DistributedApplication app, IEnumerable<string> logTexts, IResource? resource = null, CancellationToken cancellationToken = default)
+    public static Task WaitForTextAsync(this DistributedApplication app, IEnumerable<string> logTexts, IResource? resource = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(app);
         ArgumentNullException.ThrowIfNull(logTexts);
 
         var hostApplicationLifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
 
-        using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping, cancellationToken);
+        var watchCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping, cancellationToken);
         var watchToken = watchCts.Token;
 
         var tcs = new TaskCompletionSource();
@@ -57,27 +58,35 @@ public static class LoggerNotificationExtensions
     {
         var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
         var resourceLoggerService = app.Services.GetRequiredService<ResourceLoggerService>();
+        var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger(nameof(LoggerNotificationExtensions));
 
         var loggingResourceIds = new HashSet<string>();
         var logWatchTasks = new List<Task>();
 
-        await foreach (var resourceEvent in resourceNotificationService.WatchAsync(cancellationToken).ConfigureAwait(false))
+        try
         {
-            if (resource != null && resourceEvent.Resource != resource)
+            await foreach (var resourceEvent in resourceNotificationService.WatchAsync(cancellationToken).ConfigureAwait(false))
             {
-                continue;
+                if (resource != null && resourceEvent.Resource != resource)
+                {
+                    continue;
+                }
+
+                var resourceId = resourceEvent.ResourceId;
+
+                if (loggingResourceIds.Add(resourceId))
+                {
+                    // Start watching the logs for this resource ID
+                    logWatchTasks.Add(WatchResourceLogs(tcs, resourceId, logTexts, resourceLoggerService, cancellationToken));
+                }
             }
 
-            var resourceId = resourceEvent.ResourceId;
-
-            if (loggingResourceIds.Add(resourceId))
-            {
-                // Start watching the logs for this resource ID
-                logWatchTasks.Add(WatchResourceLogs(tcs, resourceId, logTexts, resourceLoggerService, cancellationToken));
-            }
+            await Task.WhenAny(logWatchTasks).ConfigureAwait(false);
         }
-
-        await Task.WhenAny(logWatchTasks).ConfigureAwait(false);
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "An error occurred while watching for resource notifications.");
+        }
     }
 
     private static async Task WatchResourceLogs(TaskCompletionSource tcs, string resourceId, IEnumerable<string> logTexts, ResourceLoggerService resourceLoggerService, CancellationToken cancellationToken)
