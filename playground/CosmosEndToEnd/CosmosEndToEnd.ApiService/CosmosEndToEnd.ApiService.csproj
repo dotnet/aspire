@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Microsoft.Azure.Cosmos\Aspire.Microsoft.Azure.Cosmos.csproj" />
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Microsoft.EntityFrameworkCore.Cosmos\Aspire.Microsoft.EntityFrameworkCore.Cosmos.csproj" />
+    <AspireProjectOrPackageReference Include="Aspire.Microsoft.Azure.Cosmos" />
+    <AspireProjectOrPackageReference Include="Aspire.Microsoft.EntityFrameworkCore.Cosmos" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
 

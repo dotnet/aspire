@@ -43,8 +43,24 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         // Assert
         Assert.Collection(app.ValidationFailures,
-            s => s.Contains("Dashboard:Frontend:EndpointUrls"),
-            s => s.Contains("Dashboard:Otlp:EndpointUrl"));
+            s => Assert.Contains("ASPNETCORE_URLS", s),
+            s => Assert.Contains("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL", s));
+    }
+
+    [Fact]
+    public async Task Configuration_EmptyAllowedCertificateRule_Error()
+    {
+        // Arrange & Act
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data["Dashboard:Otlp:AuthMode"] = nameof(OtlpAuthMode.ClientCertificate);
+                data["Dashboard:Otlp:AllowedCertificates:0"] = string.Empty;
+            });
+
+        // Assert
+        Assert.Collection(app.ValidationFailures,
+            s => Assert.Contains("Dashboard:Otlp:AllowedCertificates:0:Thumbprint", s));
     }
 
     [Fact]
@@ -285,6 +301,25 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public async Task Configuration_ResourceClientCertificates()
+    {
+        // Arrange & Act
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data[DashboardConfigNames.ResourceServiceClientAuthModeName.ConfigKey] = nameof(ResourceClientAuthMode.Certificate);
+                data[DashboardConfigNames.ResourceServiceClientCertificateSourceName.ConfigKey] = nameof(DashboardClientCertificateSource.KeyStore);
+                data[DashboardConfigNames.ResourceServiceClientCertificateSubjectName.ConfigKey] = "MySubject";
+            });
+
+        // Assert
+        Assert.Equal(ResourceClientAuthMode.Certificate, app.DashboardOptionsMonitor.CurrentValue.ResourceServiceClient.AuthMode);
+        Assert.Equal(DashboardClientCertificateSource.KeyStore, app.DashboardOptionsMonitor.CurrentValue.ResourceServiceClient.ClientCertificate.Source);
+        Assert.Equal("MySubject", app.DashboardOptionsMonitor.CurrentValue.ResourceServiceClient.ClientCertificate.Subject);
+        Assert.Empty(app.ValidationFailures);
+    }
+
+    [Fact]
     public async Task LogOutput_DynamicPort_PortResolvedInLogs()
     {
         // Arrange
@@ -434,6 +469,22 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         // Assert
         response.EnsureSuccessStatusCode();
         Assert.NotEmpty(response.Headers.GetValues(HeaderNames.ContentSecurityPolicy).Single());
+    }
+
+    [Fact]
+    public async Task Configuration_CorsNoOtlpHttpEndpoint_Error()
+    {
+        // Arrange & Act
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data.Remove(DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey);
+                data[DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.ConfigKey] = "https://localhost:666";
+            });
+
+        // Assert
+        Assert.Collection(app.ValidationFailures,
+            s => Assert.Contains(DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey, s));
     }
 
     private static void AssertDynamicIPEndpoint(Func<EndpointInfo> endPointAccessor)

@@ -102,7 +102,7 @@
 
 <FluentStack Orientation="Orientation.Vertical" Style="margin-bottom: 20px;">
     <FluentSwitch Class="table-switch"
-                  @bind-Value="@ChartViewModel.OnlyShowValueChangesInTable"
+                  @bind-Value="@OnlyShowValueChangesInTable"
                   @bind-Value:after="SettingsChangedAsync"
                   Label="@Loc[nameof(ControlsStrings.MetricTableShowOnlyValueChanges)]"/>
 </FluentStack>
