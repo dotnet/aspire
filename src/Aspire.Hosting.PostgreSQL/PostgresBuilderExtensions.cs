@@ -5,6 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Utils;
+using Npgsql;
 
 namespace Aspire.Hosting;
 
