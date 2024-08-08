@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text;
@@ -22,11 +22,12 @@ internal sealed class PgWebConfigWriterHook : IDistributedApplicationLifecycleHo
             var user = postgresDatabase.Parent.UserNameParameter?.Value ?? "postgres";
 
             var fileContent = $"""
-                host = "{postgresDatabase.Parent.PrimaryEndpoint.Host}"
+                host = "{postgresDatabase.Parent.PrimaryEndpoint.ContainerHost}"
                 port = {postgresDatabase.Parent.PrimaryEndpoint.Port}
                 user = "{user}"
+                password = "{postgresDatabase.Parent.PasswordParameter.Value}"
                 database = "{postgresDatabase.DatabaseName}"
-                sslmode = "require"
+                sslmode = "disable"
                 """;
 
             if (!Directory.Exists(serverFileMount.Source!))
