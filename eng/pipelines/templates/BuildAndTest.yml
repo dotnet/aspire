@@ -89,6 +89,16 @@ steps:
         HelixBuild: $(Build.BuildNumber)
         HelixAccessToken: $(HelixApiAccessToken)
 
+  - ${{ if eq(parameters.runHelixTests, 'true') }}:
+    - task: CopyFiles@2
+      inputs:
+        Contents: '${{ parameters.repoArtifactsPath }}/**/*.trx'
+        TargetFolder: '${{ parameters.repoArtifactsPath }}/TestResults'
+        flattenFolders: true
+      displayName: Gather helix test results
+      continueOnError: true
+      condition: always()
+
   - task: CopyFiles@2
     inputs:
       Contents: '${{ parameters.repoArtifactsPath }}/**/*.cobertura.xml'
