@@ -174,13 +174,23 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                 {
                     if (endpoint.UriScheme is "http" or "https")
                     {
-                        if (endpoint.Port != null)
+                        // Prefer allocated endpoint over EndpointAnnotation.Port.
+                        var origin = endpoint.AllocatedEndpoint?.UriString;
+                        if (origin == null && endpoint.Port != null)
                         {
-                            corsOrigins.Add($"{endpoint.UriScheme}://localhost:{endpoint.Port}");
+                            origin = $"{endpoint.UriScheme}://localhost:{endpoint.Port}";
                         }
-                        if (endpoint.TargetPort != null)
+                        var targetOrigin = (endpoint.TargetPort != null)
+                            ? $"{endpoint.UriScheme}://localhost:{endpoint.TargetPort}"
+                            : null;
+
+                        if (origin != null)
                         {
-                            corsOrigins.Add($"{endpoint.UriScheme}://localhost:{endpoint.TargetPort}");
+                            corsOrigins.Add(origin);
+                        }
+                        if (targetOrigin != null)
+                        {
+                            corsOrigins.Add(targetOrigin);
                         }
                     }
                 }

@@ -264,6 +264,68 @@ public class DashboardResourceTests
     }
 
     [Fact]
+    public async Task DashboardResource_OtlpHttpEndpoint_CorsEnvVarSet()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(options => options.DisableDashboard = false);
+        builder.AddContainer("my-container", "my-image").WithHttpEndpoint(port: 8080, targetPort: 58080);
+
+        builder.Services.AddSingleton<IDashboardEndpointProvider, MockDashboardEndpointProvider>();
+
+        builder.Configuration.Sources.Clear();
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ASPNETCORE_URLS"] = "http://localhost",
+            ["DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL"] = "http://localhost"
+        });
+
+        using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var dashboard = Assert.Single(model.Resources.Where(r => r.Name == "aspire-dashboard"));
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, app.Services);
+
+        Assert.Equal("http://localhost:8080,http://localhost:58080", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName).Value);
+        Assert.Equal("*", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.EnvVarName).Value);
+    }
+
+    [Fact]
+    public async Task DashboardResource_OtlpGrpcEndpoint_CorsEnvVarSet()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(options => options.DisableDashboard = false);
+        builder.AddContainer("my-container", "my-image").WithHttpEndpoint(port: 8080, targetPort: 58080);
+
+        builder.Services.AddSingleton<IDashboardEndpointProvider, MockDashboardEndpointProvider>();
+
+        builder.Configuration.Sources.Clear();
+
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ASPNETCORE_URLS"] = "http://localhost",
+            ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://localhost"
+        });
+
+        using var app = builder.Build();
+
+        await app.ExecuteBeforeStartHooksAsync(default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var dashboard = Assert.Single(model.Resources.Where(r => r.Name == "aspire-dashboard"));
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, app.Services);
+
+        Assert.DoesNotContain(config, e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName);
+        Assert.DoesNotContain(config, e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.EnvVarName);
+    }
+
+    [Fact]
     public async Task DashboardIsNotAddedInPublishMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(options =>
