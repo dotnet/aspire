@@ -101,7 +101,9 @@ internal class ConfigureDefaultDcpOptions(
     DistributedApplicationOptions appOptions,
     IConfiguration configuration) : IConfigureOptions<DcpOptions>
 {
-    private const string DcpDirMetadataKey = "DcpDir";
+    private const string DcpCliPathMetadataKey = "DcpCliPath";
+    private const string DcpExtensionsPathMetadataKey = "DcpExtensionsPath";
+    private const string DcpBinPathMetadataKey = "DcpBinPath";
     private const string DashboardPathMetadataKey = "aspiredashboardpath";
 
     public static string DcpPublisher = nameof(DcpPublisher);
@@ -115,20 +117,17 @@ internal class ConfigureDefaultDcpOptions(
         {
             // If an explicit path to DCP was provided from configuration, don't try to resolve via assembly attributes
             options.CliPath = dcpPublisherConfiguration[nameof(options.CliPath)];
+            if (Path.GetDirectoryName(options.CliPath) is string dcpDir && !string.IsNullOrEmpty(dcpDir))
+            {
+                options.ExtensionsPath = Path.Combine(dcpDir, "ext");
+                options.BinPath = Path.Combine(options.ExtensionsPath, "bin");
+            }
         }
         else
         {
-            var dcpDirFromMetadata = GetMetadataValue(assemblyMetadata, DcpDirMetadataKey);
-            if (!string.IsNullOrEmpty(dcpDirFromMetadata))
-            {
-                options.CliPath = Path.Combine(dcpDirFromMetadata, "dcp") + (OperatingSystem.IsWindows() ? ".exe" : "");
-            }
-        }
-
-        if (Path.GetDirectoryName(options.CliPath) is string dcpDir && !string.IsNullOrEmpty(dcpDir))
-        {
-            options.ExtensionsPath = Path.Combine(dcpDir, "ext");
-            options.BinPath = Path.Combine(options.ExtensionsPath, "bin");
+            options.CliPath = GetMetadataValue(assemblyMetadata, DcpCliPathMetadataKey);
+            options.ExtensionsPath = GetMetadataValue(assemblyMetadata, DcpExtensionsPathMetadataKey);
+            options.BinPath = GetMetadataValue(assemblyMetadata, DcpBinPathMetadataKey);
         }
 
         if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(options.DashboardPath)]))
