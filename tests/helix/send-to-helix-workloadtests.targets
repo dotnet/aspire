@@ -52,11 +52,14 @@
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) set &quot;TEST_ARGS=--filter category^^!=failing^&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) export &quot;TEST_ARGS=--filter category!=failing&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
 
+        <PostCommands Condition="'$(OS)' != 'Windows_NT'" Include="cp $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/$(TestProjectName)-%(TestNameSuffix).trx" />
+        <PostCommands Condition="'$(OS)' == 'Windows_NT'" Include="copy $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/$(TestProjectName)-%(TestNameSuffix).trx" />
+
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
-        <DownloadFilesFromResults>logs/$(TestProjectName)-%(TestNameSuffix).cobertura.xml</DownloadFilesFromResults>
+        <DownloadFilesFromResults>logs/$(TestProjectName)-%(TestNameSuffix).cobertura.xml;logs/$(TestProjectName)-%(TestNameSuffix).trx</DownloadFilesFromResults>
       </HelixWorkItem>
     </ItemGroup>
   </Target>
