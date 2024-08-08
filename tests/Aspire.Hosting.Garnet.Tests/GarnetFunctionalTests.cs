@@ -6,7 +6,6 @@ using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Polly;
 using StackExchange.Redis;
 using Xunit;
@@ -25,7 +24,7 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(3) })
            .Build();
 
-        var builder = CreateDistributedApplicationBuilder();
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
 
         var garnet = builder.AddGarnet("garnet");
 

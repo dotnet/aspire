@@ -16,9 +16,9 @@ using OpenTelemetry.Proto.Resource.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
 
-namespace Aspire.Dashboard.Tests.TelemetryRepositoryTests;
+namespace Aspire.Tests.Shared.Telemetry;
 
-internal static class TestHelpers
+internal static class TelemetryTestHelpers
 {
     public static void AssertId(string expected, string actual)
     {

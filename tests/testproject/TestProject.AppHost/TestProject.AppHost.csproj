@@ -15,10 +15,8 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.MongoDB" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.MySql" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.NodeJs" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Oracle" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.PostgreSQL" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.RabbitMQ" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Redis" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.SqlServer" />
   </ItemGroup>
