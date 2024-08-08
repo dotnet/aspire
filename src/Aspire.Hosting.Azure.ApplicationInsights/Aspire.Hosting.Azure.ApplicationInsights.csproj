@@ -17,9 +17,6 @@
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.ApplicationInsights" />
-
-    <!-- Component Governance -->
-    <PackageReference Include="Azure.Core" />
   </ItemGroup>
 
 </Project>

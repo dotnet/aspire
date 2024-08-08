@@ -30,12 +30,6 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
-
-    <!-- Component Governance -->
-    <PackageReference Include="Microsoft.Data.SqlClient" />
-    <PackageReference Include="Azure.Identity" />
-    <PackageReference Include="Azure.Core" />
-
   </ItemGroup>
   
 </Project>

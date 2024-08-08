@@ -17,9 +17,6 @@
     <ProjectReference Include="..\Aspire.Hosting.Redis\Aspire.Hosting.Redis.csproj" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.Redis" />
-
-    <!-- Component Governance -->
-    <PackageReference Include="Azure.Core" />
   </ItemGroup>
 
 </Project>
