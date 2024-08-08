@@ -14,11 +14,36 @@ if (firstUndefinedElement) {
     document.body.classList.remove("before-upgrade");
 }
 
+function isElementTagName(element, tagName) {
+    return element.tagName.toLowerCase() === tagName;
+}
+
+function getFluentMenuItemForTarget(element) {
+    // User could have clicked on either a path or svg (the image on the item) or the item itself
+    if (isElementTagName(element, "path")) {
+        return getFluentMenuItemForTarget(element.parentElement);
+    }
+
+    // in between the svg and fluent-menu-item is a span for the icon slot
+    const possibleMenuItem = element.parentElement?.parentElement;
+    if (isElementTagName(element, "svg") && possibleMenuItem && isElementTagName(possibleMenuItem, "fluent-menu-item")) {
+        return element.parentElement.parentElement;
+    }
+
+    if (isElementTagName(element, "fluent-menu-item")) {
+        return element;
+    }
+
+    return null;
+}
+
 // Register a global click event listener to handle copy button clicks.
 // Required because an "onclick" attribute is denied by CSP.
 document.addEventListener("click", function (e) {
-    if ((e.target.tagName.toLowerCase() === "fluent-menu-item" || e.target.tagName.toLowerCase() === "fluent-button") && e.target.getAttribute("data-copybutton")) {
-        buttonCopyTextToClipboard(e.target);
+    // The copy 'button' could either be a button or a menu item.
+    const targetElement = isElementTagName(e.target, "fluent-button") ? e.target : getFluentMenuItemForTarget(e.target)
+    if (targetElement && targetElement.getAttribute("data-copybutton")) {
+        buttonCopyTextToClipboard(targetElement);
         e.stopPropagation();
     }
 });
@@ -302,10 +327,16 @@ window.listenToWindowResize = function(dotnetHelper) {
 
 window.registerOpenTextVisualizerOnClick = function(layout) {
     const onClickListener = function (e) {
-        const text = e.target.getAttribute("data-text");
-        const description = e.target.getAttribute("data-textvisualizer-description");
+        const fluentMenuItem = getFluentMenuItemForTarget(e.target);
 
-        if (e.target.tagName.toLowerCase() === "fluent-menu-item" && text && description) {
+        if (!fluentMenuItem) {
+            return;
+        }
+
+        const text = fluentMenuItem.getAttribute("data-text");
+        const description = fluentMenuItem.getAttribute("data-textvisualizer-description");
+
+        if (text && description) {
             e.stopPropagation();
 
             // data-text may be larger than the max Blazor message size limit for very large strings
