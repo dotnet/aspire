@@ -91,6 +91,15 @@ steps:
 
   - task: CopyFiles@2
     inputs:
+      Contents: '${{ parameters.repoArtifactsPath }}/**/*.trx'
+      TargetFolder: '${{ parameters.repoArtifactsPath }}/TestResults'
+      flattenFolders: true
+    displayName: Gather helix test results
+    continueOnError: true
+    condition: always()
+
+  - task: CopyFiles@2
+    inputs:
       Contents: '${{ parameters.repoArtifactsPath }}/**/*.cobertura.xml'
       TargetFolder: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
       flattenFolders: true
