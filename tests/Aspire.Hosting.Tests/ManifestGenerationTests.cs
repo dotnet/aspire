@@ -109,9 +109,13 @@ public class ManifestGenerationTests
     [Fact]
     public void EnsureExecutablesWithDockerfileProduceDockerfilev0Manifest()
     {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);
-        program.NodeAppBuilder!.WithHttpsEndpoint(targetPort: 3000, env: "HTTPS_PORT")
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
+        program.AppBuilder
+            .AddNodeApp("nodeapp", "fakePath")
+            .WithHttpsEndpoint(targetPort: 3000, env: "HTTPS_PORT")
             .PublishAsDockerFile();
+        program.AppBuilder
+            .AddNpmApp("npmapp", "fakeDirectory");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -280,50 +284,6 @@ public class ManifestGenerationTests
 
         var db = resources.GetProperty("postgresdatabase");
         Assert.Equal("value.v0", db.GetProperty("type").GetString());
-    }
-
-    [Fact]
-    public void NodeAppIsExecutableResource()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddNodeApp("nodeapp", "..\\foo\\app.js")
-            .WithHttpEndpoint(port: 5031, env: "PORT");
-        program.AppBuilder.AddNpmApp("npmapp", "..\\foo")
-            .WithHttpEndpoint(port: 5032, env: "PORT");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var nodeApp = resources.GetProperty("nodeapp");
-        var npmApp = resources.GetProperty("npmapp");
-
-        static void AssertNodeResource(TestProgram program, string resourceName, JsonElement jsonElement, string expectedCommand, string[] expectedArgs)
-        {
-            var s = jsonElement.ToString();
-            Assert.Equal("executable.v0", jsonElement.GetProperty("type").GetString());
-
-            var bindings = jsonElement.GetProperty("bindings");
-            var httpBinding = bindings.GetProperty("http");
-
-            Assert.Equal("http", httpBinding.GetProperty("scheme").GetString());
-
-            var env = jsonElement.GetProperty("env");
-            Assert.Equal($$"""{{{resourceName}}.bindings.http.targetPort}""", env.GetProperty("PORT").GetString());
-            Assert.Equal(program.AppBuilder.Environment.EnvironmentName.ToLowerInvariant(), env.GetProperty("NODE_ENV").GetString());
-
-            var command = jsonElement.GetProperty("command");
-            Assert.Equal(expectedCommand, command.GetString());
-            Assert.Equal(expectedArgs, jsonElement.GetProperty("args").EnumerateArray().Select(e => e.GetString()).ToArray());
-        }
-
-        AssertNodeResource(program, "nodeapp", nodeApp, "node", ["..\\foo\\app.js"]);
-        AssertNodeResource(program, "npmapp", npmApp, "npm", ["run", "start"]);
     }
 
     [Fact]

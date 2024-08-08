@@ -25,7 +25,7 @@ internal static class LaunchProfileExtensions
             return null;
         }
 
-        return projectMetadata.GetLaunchSettings();
+        return projectMetadata.GetLaunchSettings(projectResource.Name);
     }
 
     internal static NamedLaunchProfile? GetEffectiveLaunchProfile(this ProjectResource projectResource, bool throwIfNotFound = false)
@@ -52,7 +52,7 @@ internal static class LaunchProfileExtensions
         return launchProfile is not null ? new (launchProfileName, launchProfile) : default;
     }
 
-    private static LaunchSettings? GetLaunchSettings(this IProjectMetadata projectMetadata)
+    private static LaunchSettings? GetLaunchSettings(this IProjectMetadata projectMetadata, string resourceName)
     {
         // For testing
         if (projectMetadata.LaunchSettings is { } launchSettings)
@@ -80,8 +80,18 @@ internal static class LaunchProfileExtensions
         }
 
         using var stream = File.OpenRead(launchSettingsFilePath);
-        var settings = JsonSerializer.Deserialize(stream, LaunchSettingsSerializerContext.Default.LaunchSettings);
-        return settings;
+
+        try
+        {
+            var settings = JsonSerializer.Deserialize(stream, LaunchSettingsSerializerContext.Default.LaunchSettings);
+            return settings;
+        }
+        catch (JsonException ex)
+        {
+            var message = $"Failed to get effective launch profile for project resource '{resourceName}'. There is malformed JSON in the project's launch settings file at '{launchSettingsFilePath}'.";
+            throw new DistributedApplicationException(message, ex);
+        }
+
     }
 
     private static readonly LaunchProfileSelector[] s_launchProfileSelectors =

@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable IDE0005 // Using directive is unnecessary. This warning happens when building this file in Aspire.Hosting.Tests.csproj
 using Aspire.Hosting.ApplicationModel;
+#pragma warning restore IDE0005 // Using directive is unnecessary.
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 

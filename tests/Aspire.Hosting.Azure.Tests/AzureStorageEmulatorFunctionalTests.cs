@@ -6,7 +6,6 @@ using Aspire.Hosting.Utils;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -18,7 +17,7 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
     [RequiresDocker]
     public async Task VerifyAzureStorageEmulatorResource()
     {
-        using var builder = CreateDistributedApplicationBuilder();
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
         var storage = builder.AddAzureStorage("storage").RunAsEmulator().AddBlobs("BlobConnection");
 
         using var app = builder.Build();
@@ -39,12 +38,5 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
 
         var downloadResult = (await blobClient.DownloadContentAsync()).Value;
         Assert.Equal("testValue", downloadResult.Content.ToString());
-    }
-
-    private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
-    {
-        var builder = TestDistributedApplicationBuilder.Create();
-        builder.Services.AddXunitLogging(testOutputHelper);
-        return builder;
     }
 }
