@@ -11,6 +11,7 @@ using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Testing.Tests;
 using Aspire.Hosting.Tests.Helpers;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using k8s.Models;
 using Microsoft.Extensions.DependencyInjection;
@@ -755,6 +756,9 @@ public class DistributedApplicationTests
 
         using var app = builder.Build();
         await app.StartAsync();
+
+        // Wait for the application to be ready
+        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
 
         // Wait until the service itself starts.
         using var clientA = app.CreateHttpClient(servicea.Resource.Name, "http");
