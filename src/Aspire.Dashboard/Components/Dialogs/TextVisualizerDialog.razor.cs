@@ -43,6 +43,9 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
 
     public string FormatKind { get; private set; } = PlaintextFormat;
 
+    [Parameter, EditorRequired]
+    public required TextVisualizerDialogViewModel Content { get; set; }
+
     [Inject]
     public required IJSRuntime JS { get; init; }
 
@@ -61,9 +64,16 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
             _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/Components/Dialogs/TextVisualizerDialog.razor.js");
         }
 
-        if (_jsModule is not null && FormatKind != PlaintextFormat)
+        if (_jsModule is not null)
         {
-            await _jsModule.InvokeVoidAsync("connectObserver", _logContainerId);
+            if (FormatKind is not PlaintextFormat)
+            {
+                await _jsModule.InvokeVoidAsync("connectObserver", _logContainerId);
+            }
+            else
+            {
+                await _jsModule.InvokeVoidAsync("disconnectObserver", _logContainerId);
+            }
         }
     }
 

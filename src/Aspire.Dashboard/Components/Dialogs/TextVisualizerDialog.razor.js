@@ -30,6 +30,7 @@ export function connectObserver(logContainerId) {
     // case we need to highlight them immediately, or
     // 2. The elements in the log container have not been rendered yet, in which case we need to observe the container
     // for new elements that are added.
+    disconnectObserver();
 
     highlightObserver.observe(document.getElementById(logContainerId), {
         childList: true,
