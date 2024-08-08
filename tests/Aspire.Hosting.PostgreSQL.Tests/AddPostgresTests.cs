@@ -488,6 +488,60 @@ public class AddPostgresTests
         Assert.Equal($"echo '{pg2.Resource.PasswordParameter.Value}'", servers.GetProperty("2").GetProperty("PasswordExecCommand").GetString());
     }
 
+    [Theory]
+    [InlineData("host.docker.internal")]
+    [InlineData("host.containers.internal")]
+    public async Task WithPgwebProducesValidBookmarkFiles(string containerHost)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var pg1 = builder.AddPostgres("mypostgres1").WithPgWeb(pga => pga.WithHostPort(8081));
+        var pg2 = builder.AddPostgres("mypostgres2").WithPgWeb(pga => pga.WithHostPort(8081));
+
+        // Add fake allocated endpoints.
+        pg1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
+        pg2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002, "host2"));
+
+        var db1 = pg1.AddDatabase("db1");
+        var db2 = pg2.AddDatabase("db2");
+
+        var pgadmin = builder.Resources.Single(r => r.Name.EndsWith("-pgweb"));
+        var volume = pgadmin.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var hook = new PgWebConfigWriterHook();
+        await hook.AfterEndpointsAllocatedAsync(appModel, CancellationToken.None);
+
+        var bookMarkFiles = Directory
+            .GetFiles(volume.Source!);
+
+        Assert.Collection(bookMarkFiles,
+            filePath =>
+            {
+                Assert.Equal(".toml", Path.GetExtension(filePath)) ;
+            },
+            filePath =>
+            {
+                Assert.Equal(".toml", Path.GetExtension(filePath));
+            });
+
+        var bookmarkFilesContent = bookMarkFiles
+            .Select(File.ReadAllText)
+            .ToList();
+
+        Assert.NotEmpty(bookmarkFilesContent);
+        Assert.Collection(bookmarkFilesContent,
+            content =>
+            {
+                Assert.Equal(CreatePgWebBookmarkfileContent(db1.Resource), content);
+            },
+            content =>
+            {
+                Assert.Equal(CreatePgWebBookmarkfileContent(db2.Resource), content);
+            });
+    }
+
     [Fact]
     public void ThrowsWithIdenticalChildResourceNames()
     {
@@ -544,5 +598,21 @@ public class AddPostgresTests
 
         Assert.Equal("{postgres1.connectionString};Database=imports", db1.Resource.ConnectionStringExpression.ValueExpression);
         Assert.Equal("{postgres2.connectionString};Database=imports", db2.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    private static string CreatePgWebBookmarkfileContent(PostgresDatabaseResource postgresDatabase)
+    {
+        var user = postgresDatabase.Parent.UserNameParameter?.Value ?? "postgres";
+
+        var fileContent = $"""
+                host = "{postgresDatabase.Parent.PrimaryEndpoint.ContainerHost}"
+                port = {postgresDatabase.Parent.PrimaryEndpoint.Port}
+                user = "{user}"
+                password = "{postgresDatabase.Parent.PasswordParameter.Value}"
+                database = "{postgresDatabase.DatabaseName}"
+                sslmode = "disable"
+                """;
+
+        return fileContent;
     }
 }
