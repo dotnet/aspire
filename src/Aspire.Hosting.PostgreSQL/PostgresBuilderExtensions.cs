@@ -5,6 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Utils;
+using Npgsql;
 
 namespace Aspire.Hosting;
 
@@ -154,4 +155,37 @@ public static class PostgresBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<PostgresServerResource> WithInitBindMount(this IResourceBuilder<PostgresServerResource> builder, string source, bool isReadOnly = true)
         => builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
+
+    /// <summary>
+    /// Results in the database being initialized when the AppHost is running locally.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <remarks>
+    /// This initialization logic is only used when the AppHost is being debugged locally. When the Aspire application is being deployed this
+    /// extension has no effect as it is expected that the database is already created.
+    /// </remarks>
+    /// <returns></returns>
+    public static IResourceBuilder<PostgresDatabaseResource> WithDatabaseInitialization(this IResourceBuilder<PostgresDatabaseResource> builder)
+    {
+        builder.ApplicationBuilder.Eventing.Subscribe<ContainerResourceStartedEvent>(async (@event, cancellationToken) =>
+        {
+            if (@event.Resource != builder.Resource.Parent)
+            {
+                return;
+            }
+
+            var connectionString = await builder.Resource.Parent.ConnectionStringExpression.GetValueAsync(cancellationToken).ConfigureAwait(false);
+            var connection = new NpgsqlConnection(connectionString);
+
+            // TODO: Replace with Polly retry loop.
+            await Task.Delay(10000, cancellationToken).ConfigureAwait(false);
+
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            var createDatabaseCommand = connection.CreateCommand();
+            createDatabaseCommand.CommandText = $"CREATE DATABASE {builder.Resource.DatabaseName};";
+            await createDatabaseCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        });
+
+        return builder;
+    }
 }
