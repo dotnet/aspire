@@ -493,14 +493,6 @@ public class ManifestGenerationTests
                   "type": "value.v0",
                   "connectionString": "{postgres.connectionString};Database=postgresdb"
                 },
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                    }
-                  }
-                },
                 "cosmos": {
                   "type": "azure.bicep.v0",
                   "connectionString": "{cosmos.secretOutputs.connectionString}",
