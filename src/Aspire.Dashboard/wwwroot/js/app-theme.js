@@ -26,6 +26,8 @@ export function updateTheme(specifiedTheme) {
 
     applyTheme(effectiveTheme);
     setThemeCookie(specifiedTheme);
+
+    return effectiveTheme;
 }
 
 /**

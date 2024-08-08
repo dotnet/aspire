@@ -49,6 +49,11 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
 
+    protected override async Task OnInitializedAsync()
+    {
+        await ThemeManager.EnsureEffectiveThemeAsync();
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -91,7 +96,7 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
     {
         // we support light (a11y-light-min) and dark (a11y-dark-min) themes. syntax to force a theme for highlight.js
         // is "theme-{themeName}"
-        return $"log-content highlight-line language-{FormatKind} theme-a11y-{ThemeManager.EffectiveTheme?.ToLower()}-min";
+        return $"log-content highlight-line language-{FormatKind} theme-a11y-{ThemeManager.EffectiveTheme.ToLower()}-min";
     }
 
     private ICollection<StringLogLine> GetLines()

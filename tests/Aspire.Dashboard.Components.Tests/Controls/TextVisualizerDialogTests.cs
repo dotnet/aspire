@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using Aspire.Dashboard.Components.Dialogs;
+using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Model;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
@@ -129,9 +130,20 @@ public class TextVisualizerDialogTests : TestContext
         Assert.NotEmpty(cut.FindAll(".theme-a11y-dark-min"));
     }
 
+    [Fact]
+    public async Task Render_TextVisualizerDialog_ResolveTheme_LineClassesChange()
+    {
+        var xml = @"<hello><!-- world --></hello>";
+
+        var cut = SetUpDialog(out var dialogService, out var _);
+        await dialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(xml, string.Empty), []);
+
+        Assert.NotEmpty(cut.FindAll(".theme-a11y-dark-min"));
+    }
+
     private IRenderedFragment SetUpDialog(out IDialogService dialogService, out ThemeManager themeManager)
     {
-        themeManager = new ThemeManager();
+        themeManager = new ThemeManager(new TestEffectiveThemeResolver());
 
         Services.AddFluentUIComponents();
         Services.AddSingleton(themeManager);
