@@ -3,8 +3,13 @@
   <file datatype="xml" source-language="en" target-language="ru" original="../ControlsStrings.resx">
     <body>
       <trans-unit id="All">
-        <source>All</source>
-        <target state="translated">Все</target>
+        <source>(All)</source>
+        <target state="needs-review-translation">Все</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ApplicationLower">
+        <source>application</source>
+        <target state="new">application</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerAllTags">
@@ -30,11 +35,6 @@
       <trans-unit id="ChartContainerGraphTab">
         <source>Graph</source>
         <target state="translated">Граф</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ChartContainerNoneSelected">
-        <source>(None)</source>
-        <target state="translated">(Нет)</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">
@@ -177,6 +177,16 @@
         <target state="translated">Имя</target>
         <note />
       </trans-unit>
+      <trans-unit id="None">
+        <source>(None)</source>
+        <target state="new">(None)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PageToolbarLandmark">
+        <source>Page toolbar</source>
+        <target state="new">Page toolbar</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlotlyChartCount">
         <source>Count</source>
         <target state="translated">Количество</target>
@@ -212,11 +222,6 @@
         <target state="translated">Значение</target>
         <note />
       </trans-unit>
-      <trans-unit id="ReplicaSetLower">
-        <source>replica set</source>
-        <target state="translated">набор реплик</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourceDetailsEndpointsHeader">
         <source>Endpoints</source>
         <target state="translated">Конечные точки</target>
@@ -237,9 +242,9 @@
         <target state="translated">{0} (реплика {1})</target>
         <note>{0} is a resource name, {1} is a replica set name</note>
       </trans-unit>
-      <trans-unit id="SelectAResource">
-        <source>Select a resource</source>
-        <target state="translated">Выберите ресурс</target>
+      <trans-unit id="ResourceLabel">
+        <source>Resource</source>
+        <target state="new">Resource</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">

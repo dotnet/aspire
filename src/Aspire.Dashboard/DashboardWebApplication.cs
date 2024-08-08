@@ -148,6 +148,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             // See https://learn.microsoft.com/aspnet/core/performance/response-compression#compression-with-https for more information
             options.MimeTypes = ["text/javascript", "application/javascript", "text/css", "image/svg+xml"];
         });
+        builder.Services.AddCors();
 
         // Data from the server.
         builder.Services.AddScoped<IDashboardClient, DashboardClient>();
@@ -176,9 +177,6 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddScoped<BrowserTimeProvider>();
         builder.Services.AddScoped<ILocalStorage, LocalBrowserStorage>();
         builder.Services.AddScoped<ISessionStorage, SessionBrowserStorage>();
-
-        builder.Services.AddScoped<LogViewerViewModel>();
-        builder.Services.AddScoped<CurrentChartViewModel>();
 
         builder.Services.AddScoped<DimensionManager>();
 
@@ -260,6 +258,13 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             await next(context).ConfigureAwait(false);
         });
 
+        if (!string.IsNullOrEmpty(dashboardOptions.Otlp.Cors.AllowedOrigins))
+        {
+            // Only add CORS middleware when there is CORS configuration.
+            // Because there isn't a default policy, CORS isn't enabled except on certain endpoints, e.g. OTLP HTTP endpoints.
+            _app.UseCors();
+        }
+
         _app.UseMiddleware<ValidateTokenMiddleware>();
 
         // Configure the HTTP request pipeline.
@@ -304,11 +309,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
         // OTLP HTTP services.
-        var httpEndpoint = dashboardOptions.Otlp.GetHttpEndpointUri();
-        if (httpEndpoint != null)
-        {
-            _app.MapHttpOtlpApi();
-        }
+        _app.MapHttpOtlpApi(dashboardOptions.Otlp);
 
         // OTLP gRPC services.
         _app.MapGrpcService<OtlpGrpcMetricsService>();
@@ -563,6 +564,27 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 {
                     OnCertificateValidated = context =>
                     {
+                        var options = context.HttpContext.RequestServices.GetRequiredService<IOptions<DashboardOptions>>().Value;
+                        if (options.Otlp.AllowedCertificates is { Count: > 0 } allowList)
+                        {
+                            var allowed = false;
+                            foreach (var rule in allowList)
+                            {
+                                // Thumbprint is hexadecimal and is case-insensitive.
+                                if (string.Equals(rule.Thumbprint, context.ClientCertificate.Thumbprint, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    allowed = true;
+                                    break;
+                                }
+                            }
+
+                            if (!allowed)
+                            {
+                                context.Fail("Certificate doesn't match allow list.");
+                                return Task.CompletedTask;
+                            }
+                        }
+
                         var claims = new[]
                         {
                             new Claim(ClaimTypes.NameIdentifier,
@@ -700,13 +722,13 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
     public Task StartAsync(CancellationToken cancellationToken = default)
     {
-        Debug.Assert(_validationFailures.Count == 0);
+        Debug.Assert(_validationFailures.Count == 0, "Validation failures: " + Environment.NewLine + string.Join(Environment.NewLine, _validationFailures));
         return _app.StartAsync(cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken = default)
     {
-        Debug.Assert(_validationFailures.Count == 0);
+        Debug.Assert(_validationFailures.Count == 0, "Validation failures: " + Environment.NewLine + string.Join(Environment.NewLine, _validationFailures));
         return _app.StopAsync(cancellationToken);
     }
 

@@ -32,10 +32,9 @@ public partial class MetricTable : ChartBase
     public required IJSRuntime JS { get; init; }
 
     [Inject]
-    public required CurrentChartViewModel ChartViewModel { get; init; }
-
-    [Inject]
     public required IDialogService DialogService { get; init; }
+
+    public bool OnlyShowValueChangesInTable { get; set; } = true;
 
     protected override async Task OnChartUpdatedAsync(List<ChartTrace> traces, List<DateTimeOffset> xValues, List<ChartExemplar> exemplars, bool tickUpdate, DateTimeOffset inProgressDataTime, CancellationToken cancellationToken)
     {
@@ -143,7 +142,7 @@ public partial class MetricTable : ChartBase
                     continue;
                 }
 
-                if (ChartViewModel.OnlyShowValueChangesInTable && valueDiffs.All(diff => DoubleEquals(diff, 0)))
+                if (OnlyShowValueChangesInTable && valueDiffs.All(diff => DoubleEquals(diff, 0)))
                 {
                     continue;
                 }
@@ -178,7 +177,7 @@ public partial class MetricTable : ChartBase
                     continue;
                 }
 
-                if (ChartViewModel.OnlyShowValueChangesInTable && DoubleEquals(valueDiff, 0d))
+                if (OnlyShowValueChangesInTable && DoubleEquals(valueDiff, 0d))
                 {
                     continue;
                 }

@@ -47,14 +47,19 @@
         <target state="translated">취소</target>
         <note />
       </trans-unit>
-      <trans-unit id="FilterDialogConditionSelectLabel">
-        <source>Select a filter condition</source>
-        <target state="translated">필터 조건 선택</target>
+      <trans-unit id="FilterDialogConditionInputLabel">
+        <source>Condition</source>
+        <target state="new">Condition</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
         <source>Field</source>
         <target state="translated">필드</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogParameterInputLabel">
+        <source>Parameter</source>
+        <target state="new">Parameter</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogRemoveFilterButtonText">

@@ -42,7 +42,7 @@ message ResourceCommand {
 
 // Represents a request to execute a command.
 // Sent by the dashboard to DashboardService.ExecuteResourceCommand.
-// Constructed with data from a corresponding 
+// Constructed with data from a corresponding ResourceCommand.
 message ResourceCommandRequest {
     // Unique identifier for the command.
     // Copied from the ResourceCommand that this request object is initialized from.
@@ -99,17 +99,6 @@ message EnvironmentVariable {
     bool is_from_spec = 3;
 }
 
-message Endpoint {
-    string endpoint_url = 1;
-    string proxy_url = 2;
-}
-
-message Service {
-    string name = 1;
-    optional string allocated_address = 2;
-    optional int32 allocated_port = 3;
-}
-
 message Url {
     // The name of the url
     string name = 1;
@@ -132,6 +121,7 @@ message ResourceProperty {
 
 // Models the full state of an resource (container, executable, project, etc) at a particular point in time.
 message Resource {
+    reserved 8, 9, 10;
     string name = 1;
     string resource_type = 2;
     string display_name = 3;
@@ -139,11 +129,6 @@ message Resource {
     optional string state = 5;
     optional google.protobuf.Timestamp created_at = 6;
     repeated EnvironmentVariable environment = 7;
-
-    // Deprecated and replaced with urls
-    optional int32 expected_endpoints_count = 8 [deprecated = true];
-    repeated Endpoint endpoints = 9 [deprecated = true];
-    repeated Service services = 10 [deprecated = true];
 
     repeated ResourceCommand commands = 11;
 
