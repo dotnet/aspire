@@ -20,25 +20,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- 
+        Note that this package won't add a transitive dependency to DCP and Dashboard, as those will dynamically be added by the SDK.
+        This is done so that we don't pull in DCP and Dashboard packages for all of the platforms. 
+    -->
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
-
-    
-    <!-- <ProjectReference Include="..\..\eng\dashboardpack\Aspire.Dashboard.Sdk.win-x86.csproj" />
-    <ProjectReference Include="..\..\eng\dashboardpack\Aspire.Dashboard.Sdk.win-x64.csproj" />
-    <ProjectReference Include="..\..\eng\dashboardpack\Aspire.Dashboard.Sdk.win-arm64.csproj" />
-    <ProjectReference Include="..\..\eng\dashboardpack\Aspire.Dashboard.Sdk.linux-x64.csproj" />
-    <ProjectReference Include="..\..\eng\dashboardpack\Aspire.Dashboard.Sdk.linux-arm64.csproj" />
-    <ProjectReference Include="..\..\eng\dashboardpack\Aspire.Dashboard.Sdk.osx-x64.csproj" />
-    <ProjectReference Include="..\..\eng\dashboardpack\Aspire.Dashboard.Sdk.osx-arm64.csproj" />
-
-    
-    <ProjectReference Include="..\..\eng\dcppack\Aspire.Hosting.Orchestration.win-x86.csproj" />
-    <ProjectReference Include="..\..\eng\dcppack\Aspire.Hosting.Orchestration.win-x64.csproj" />
-    <ProjectReference Include="..\..\eng\dcppack\Aspire.Hosting.Orchestration.win-arm64.csproj" />
-    <ProjectReference Include="..\..\eng\dcppack\Aspire.Hosting.Orchestration.linux-x64.csproj" />
-    <ProjectReference Include="..\..\eng\dcppack\Aspire.Hosting.Orchestration.linux-arm64.csproj" />
-    <ProjectReference Include="..\..\eng\dcppack\Aspire.Hosting.Orchestration.osx-x64.csproj" />
-    <ProjectReference Include="..\..\eng\dcppack\Aspire.Hosting.Orchestration.osx-arm64.csproj" /> -->
   </ItemGroup>
 
   <!-- Download DCP orchestrator components for local development -->
