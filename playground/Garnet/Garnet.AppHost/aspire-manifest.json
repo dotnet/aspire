@@ -7,13 +7,15 @@
       "image": "ghcr.io/microsoft/garnet:1.0",
       "args": [
         "--checkpointdir",
-        "/data/checkpoint",
+        "/data/checkpoints",
         "--recover",
-        "--aof"
+        "--aof",
+        "--aof-commit-freq",
+        "60000"
       ],
-      "bindMounts": [
+      "volumes": [
         {
-          "source": "C:/ProgramData/aspire-garnet-data",
+          "name": "garnet-data",
           "target": "/data",
           "readOnly": false
         }
