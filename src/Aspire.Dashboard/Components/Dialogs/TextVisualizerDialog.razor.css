@@ -1,0 +1,8 @@
+::deep .text-visualizer-line-number {
+    min-width: 33px;
+}
+
+::deep .highlight-line {
+    width: 100%;
+    background: transparent;
+}

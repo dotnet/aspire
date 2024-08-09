@@ -7,6 +7,7 @@
 @inject IJSRuntime JS
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 @inject IStringLocalizer<Columns> Loc
+@inject IStringLocalizer<StructuredLogs> StructuredLogsLoc
 
 <FluentStack Orientation="Orientation.Horizontal" Style="align-items: center;" HorizontalGap="0">
     @if (_hasErrorInfo)
@@ -49,6 +50,7 @@
     }
 
     <GridValue Value="@LogEntry.Message"
+               ValueDescription="@StructuredLogsLoc[nameof(StructuredLogs.StructuredLogsMessageColumnHeader)]"
                EnableHighlighting="true"
                HighlightText="@FilterText"/>
 </FluentStack>

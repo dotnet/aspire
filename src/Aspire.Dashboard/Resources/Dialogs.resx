@@ -233,4 +233,19 @@
   <data name="OpenTraceDialogCancelButtonText" xml:space="preserve">
     <value>Cancel</value>
   </data>
+  <data name="TextVisualizerDialogPlaintextFormat" xml:space="preserve">
+    <value>Unformatted</value>
+  </data>
+  <data name="TextVisualizerDialogJsonFormat" xml:space="preserve">
+    <value>Format JSON</value>
+  </data>
+  <data name="TextVisualizerDialogXmlFormat" xml:space="preserve">
+    <value>Format XML</value>
+  </data>
+  <data name="TextVisualizerSelectFormatType" xml:space="preserve">
+    <value>Select format</value>
+  </data>
+  <data name="OpenInTextVisualizer" xml:space="preserve">
+    <value>Open in text visualizer</value>
+  </data>
 </root>

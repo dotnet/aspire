@@ -1,117 +1,33 @@
-.log-overflow {
-    --console-theme-black: #0C0C0C;
-    --console-theme-blue: #0037DA;
-    --console-theme-cyan: #3A96DD;
-    --console-theme-green: #13A10E;
-    --console-theme-magenta: #CD13E8;
-    --console-theme-bg-red: #F80F24;
-    --console-theme-fg-red: #C50F1F;
-    --console-theme-white: #CCCCCC;
-    --console-theme-yellow: #C19C00;
-
-    --console-theme-bright-black: #767676;
-    --console-theme-bright-blue: #3B78FF;
-    --console-theme-bright-cyan: #61D6D6;
-    --console-theme-bright-green: #16C60C;
-    --console-theme-bright-magenta: #DA01FA;
-    --console-theme-bright-red: #E74856;
-    --console-theme-bright-white: #F2F2F2;
-    --console-theme-bright-yellow: #F9F1A5;
-
-    --line-number-color: #848484;
-    --timestamp-color: var(--line-number-color);
-    --console-background-color: var(--console-theme-black);
-    --console-background-color-hover: #1D1D1D;
-    --console-font-color: var(--console-theme-white);
-
-    height: 100%;
-    width: 100%;
-    overflow: auto;
-    background-color: var(--console-background-color);
-}
-
-::deep .log-container {
+::deep .console-container {
     background: var(--console-background-color);
     color: var(--console-font-color);
-    font-family: 'Cascadia Mono', Consolas, monospace;
-    font-size: 13px;
-    margin: 16px 0 0 0;
-    padding-bottom: 24px;
-    line-height: 20px;
-    overflow: visible;
-    display: flex;
-    flex-direction: column;
-    width: 100%;
+    margin: 16px 0;
 }
 
-::deep .line-row-container {
-    width: 100%;
-    overflow: hidden;
-}
-
-::deep .line-row {
-    cursor: text;
-    padding: 0 12px 0 12px;
-    white-space: pre-wrap;
-
-    display: flex;
-    flex-direction: row;
-    flex-grow: 1;
-}
-
-::deep .line-row:hover {
+::deep .console-line-row:hover {
     background-color: var(--console-background-color-hover);
 }
 
-::deep .line-area {
-    flex-grow: 1;
-    justify-content: flex-start;
-    display: flex;
-    flex-direction: row;
-}
-
-::deep .line-number {
-    padding-left: 10px;
-    min-width: 43px;
-    text-align: right;
-    align-self: flex-start;
-    flex-shrink: 0;
-    color: var(--line-number-color);
-    user-select: none;
-    cursor: default;
-}
-
-::deep .content {
-    word-break: break-all;
-    margin-left: 20px;
-    position: relative;
-    margin-right: 6px;
-    user-select: text;
-    cursor: text;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-}
-
-::deep .content .timestamp {
+::deep .log-content .timestamp {
     color: var(--timestamp-color);
 }
 
-::deep .content a,
-::deep .content a:active,
-::deep .content a:visited {
+::deep .log-content a,
+::deep .log-content a:active,
+::deep .log-content a:visited {
     color: var(--console-font-color);
     text-decoration: none;
 }
 
-::deep .content a:hover {
+::deep .log-content a:hover {
     text-decoration: underline;
 }
 
-::deep .content > fluent-badge {
+::deep .log-content > fluent-badge {
     user-select: none;
 }
 
-::deep .content > .timestamp + fluent-badge {
+::deep .log-content > .timestamp + fluent-badge {
     margin-left: 1ch;
 }
 
