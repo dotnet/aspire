@@ -3,6 +3,7 @@
 
 using Microsoft.Playwright;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright;
 
@@ -11,12 +12,16 @@ public class PlaywrightTestsBase : IClassFixture<DashboardServerFixture>, IClass
     public DashboardServerFixture DashboardServerFixture { get; }
     public PlaywrightFixture PlaywrightFixture { get; }
 
+    private readonly ITestOutputHelper _output;
     private IBrowserContext? _context;
+    private readonly Guid _id;
 
-    public PlaywrightTestsBase(DashboardServerFixture dashboardServerFixture, PlaywrightFixture playwrightFixture)
+    public PlaywrightTestsBase(DashboardServerFixture dashboardServerFixture, PlaywrightFixture playwrightFixture, ITestOutputHelper output)
     {
         DashboardServerFixture = dashboardServerFixture;
         PlaywrightFixture = playwrightFixture;
+        _output = output;
+        _id = Guid.NewGuid();
     }
 
     public async Task RunTestAsync(Func<IPage, Task> test)
@@ -25,6 +30,13 @@ public class PlaywrightTestsBase : IClassFixture<DashboardServerFixture>, IClass
         try
         {
             await test(page);
+
+        }
+        catch (PlaywrightException e)
+        {
+            _output.WriteLine($"Test setup failed: {e}");
+            await TakeScreenshotAsync("dashboard-fail.png", page);
+            throw;
         }
         finally
         {
@@ -49,5 +61,25 @@ public class PlaywrightTestsBase : IClassFixture<DashboardServerFixture>, IClass
         {
             await _context.DisposeAsync();
         }
+    }
+
+    private async Task TakeScreenshotAsync(string path, IPage page)
+    {
+        var screenshotPath = Path.Combine(GetLogPath(), path);
+        await page.ScreenshotAsync(new PageScreenshotOptions { Path = screenshotPath });
+        _output.WriteLine($"Dashboard screenshot saved to {screenshotPath}");
+    }
+
+    private string GetLogPath()
+    {
+        var testLogPath = Path.Combine("artifacts", "log");
+        var logRootPath = Path.Combine(testLogPath, _id.ToString());
+
+        if (!Directory.Exists(logRootPath))
+        {
+            Directory.CreateDirectory(logRootPath);
+        }
+
+        return logRootPath;
     }
 }
