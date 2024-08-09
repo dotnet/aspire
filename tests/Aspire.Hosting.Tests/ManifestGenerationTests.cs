@@ -420,7 +420,8 @@ public class ManifestGenerationTests
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
                     "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
                     "ConnectionStrings__cosmos": "{cosmos.connectionString}",
-                    "ConnectionStrings__eventhubns": "{eventhubns.connectionString}"
+                    "ConnectionStrings__eventhubns": "{eventhubns.connectionString}",
+                    "ConnectionStrings__milvus": "{milvus.connectionString}"
                   },
                   "bindings": {
                     "http": {
@@ -511,7 +512,7 @@ public class ManifestGenerationTests
                 },
                 "milvus": {
                   "type": "container.v0",
-                  "connectionString": "Endpoint={milvus.bindings.grpc.url};Key=root:{milvus-Key.value}",
+                  "connectionString": "Endpoint={milvus.bindings.grpc.url};Key=root:{milvus-key.value}",
                   "image": "{{TestConstants.AspireTestContainerRegistry}}/milvusdb/milvus:v2.4.7",
                   "args": [
                     "milvus",
@@ -523,7 +524,7 @@ public class ManifestGenerationTests
                     "ETCD_USE_EMBED": "true",
                     "ETCD_DATA_DIR": "/var/lib/milvus/etcd",
                     "COMMON_SECURITY_AUTHORIZATIONENABLED": "true",
-                    "COMMON_SECURITY_DEFAULTROOTPASSWORD": "{milvus-Key.value}"
+                    "COMMON_SECURITY_DEFAULTROOTPASSWORD": "{milvus-key.value}"
                   },
                   "bindings": {
                     "grpc": {
@@ -566,7 +567,7 @@ public class ManifestGenerationTests
                 },
                 "milvus-key": {
                   "type": "parameter.v0",
-                  "value": "{milvus-Key.inputs.value}",
+                  "value": "{milvus-key.inputs.value}",
                   "inputs": {
                     "value": {
                       "type": "string",
@@ -574,6 +575,7 @@ public class ManifestGenerationTests
                       "default": {
                         "generate": {
                           "minLength": 22
+                        }
                       }
                     }
                   }

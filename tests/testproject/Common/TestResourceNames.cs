@@ -14,8 +14,9 @@ public enum TestResourceNames
     redis = 1 << 9,
     efnpgsql = 1 << 11,
     eventhubs = 1 << 13,
+    milvus = 1 << 14,
     efcosmos = 1 << 17,
-    All = cosmos | dashboard | oracledatabase | postgres | redis | efnpgsql | eventhubs | efcosmos
+    All = cosmos | dashboard | oracledatabase | postgres | redis | efnpgsql | eventhubs | milvus | efcosmos
 }
 
 public static class TestResourceNamesExtensions
