@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.CosmosDB;
 using Azure.Provisioning.KeyVaults;
@@ -146,12 +147,12 @@ public static class AzureCosmosExtensions
     /// </remarks>
     public static IResourceBuilder<AzureCosmosDBEmulatorResource> WithPartitionCount(this IResourceBuilder<AzureCosmosDBEmulatorResource> builder, int count)
     {
-        if (count < 1 or count > 250)
+        if (count < 1 || count > 250)
         {
             throw new ArgumentOutOfRangeException(nameof(count), "Count must be between 1 and 250.");
         }
 
-        return builder.WithEnvironment("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", count);
+        return builder.WithEnvironment("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", count.ToString(CultureInfo.InvariantCulture));
     }
 
     /// <summary>

@@ -13,7 +13,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\Shared\Cosmos\CosmosConstants.cs" Link="Shared\CosmosConstants.cs" />
+    <Compile Include="$(SharedDir)\Cosmos\CosmosConstants.cs" Link="Shared\CosmosConstants.cs" />
+    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
   </ItemGroup>
 
   <ItemGroup>
