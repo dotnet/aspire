@@ -114,6 +114,75 @@ public static class PostgresBuilderExtensions
         });
     }
 
+    /// <summary>
+    /// Configures the host port that the pgweb resource is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">The resource builder for pgweb.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    /// <returns>The resource builder for pgweb.</returns>
+    public static IResourceBuilder<PgWebContainerResource> WithHostPort(this IResourceBuilder<PgWebContainerResource> builder, int? port)
+    {
+        return builder.WithEndpoint("http", endpoint =>
+        {
+            endpoint.Port = port;
+        });
+    }
+
+    /// <summary>
+    /// Adds an administration and development platform for PostgreSQL to the application model using pgweb.
+    /// </summary>
+    /// <param name="builder">The Postgres server resource builder.</param>
+    /// <param name="configureContainer">Configuration callback for pgweb container resource.</param>
+    /// <param name="containerName">The name of the container (Optional).</param>
+    /// <example>
+    /// Use in application host with a Postgres resource
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var postgres = builder.AddPostgres("postgres")
+    ///    .WithPgWeb();
+    /// var db = postgres.AddDatabase("db");
+    ///   
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithReference(db);
+    ///  
+    /// builder.Build().Run(); 
+    /// </code>
+    /// </example>
+    /// <remarks>
+    /// This version the package defaults to the latest tag of the sosedoff/pgweb container image.
+    /// </remarks>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithPgWeb<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<PgWebContainerResource>>? configureContainer = null, string? containerName = null) where T : PostgresServerResource
+    {
+
+        if (builder.ApplicationBuilder.Resources.OfType<PgWebContainerResource>().SingleOrDefault() is { } existingPgWebResource)
+        {
+            var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingPgWebResource);
+            configureContainer?.Invoke(builderForExistingResource);
+            return builder;
+        }
+        else
+        {
+            builder.ApplicationBuilder.Services.TryAddLifecycleHook<PgWebConfigWriterHook>();
+
+            containerName ??= $"{builder.Resource.Name}-pgweb";
+            var dir = Directory.CreateTempSubdirectory().FullName;
+            var pgwebContainer = new PgWebContainerResource(containerName);
+            var pgwebContainerBuilder = builder.ApplicationBuilder.AddResource(pgwebContainer)
+                                               .WithImage(PostgresContainerImageTags.PgWebImage, PostgresContainerImageTags.PgWebTag)
+                                               .WithImageRegistry(PostgresContainerImageTags.PgWebRegistry)
+                                               .WithHttpEndpoint(targetPort: 8081, name: "http")
+                                               .WithBindMount(dir, "/.pgweb/bookmarks")
+                                               .WithArgs("--bookmarks-dir=/.pgweb/bookmarks")
+                                               .WithArgs("--sessions")
+                                               .ExcludeFromManifest();
+
+            configureContainer?.Invoke(pgwebContainerBuilder);
+            return builder;
+        }
+    }
+
     private static void SetPgAdminEnvironmentVariables(EnvironmentCallbackContext context)
     {
         // Disables pgAdmin authentication.
