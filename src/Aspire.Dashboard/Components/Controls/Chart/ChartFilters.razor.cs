@@ -5,19 +5,19 @@ namespace Aspire.Dashboard.Components;
 
 public partial class ChartFilters
 {
-    private bool _showCount;
+    public bool ShowCounts { get; set; }
 
     protected override void OnInitialized()
     {
         InstrumentViewModel.DataUpdateSubscriptions.Add(() =>
         {
-            _showCount = InstrumentViewModel.ShowCount;
+            ShowCounts = InstrumentViewModel.ShowCount;
             return Task.CompletedTask;
         });
     }
 
     private void ShowCountChanged()
     {
-        InstrumentViewModel.ShowCount = _showCount;
+        InstrumentViewModel.ShowCount = ShowCounts;
     }
 }

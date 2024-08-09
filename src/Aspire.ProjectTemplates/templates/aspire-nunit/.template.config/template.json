@@ -25,12 +25,6 @@
   "identity": "Aspire.Tests.NUnit.CSharp.8.0",
   "thirdPartyNotices": "https://aka.ms/dotnet/aspire/8.0-third-party-notices",
   "groupIdentity": "Aspire.Tests.NUnit",
-  "constraints": {
-    "aspire": {
-      "type": "workload",
-      "args": [ "aspire" ]
-    }
-  },
   "symbols": {
     "Framework": {
       "type": "parameter",

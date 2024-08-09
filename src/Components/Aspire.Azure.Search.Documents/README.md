@@ -1,17 +1,17 @@
 # Aspire.Azure.Search.Documents library
 
-Registers [SearchIndexClient](https://learn.microsoft.com/dotnet/api/azure.search.documents.indexes.searchindexclient) as a singleton in the DI container for connecting to Azure Search. Enables corresponding logging and telemetry.
+Registers [SearchIndexClient](https://learn.microsoft.com/dotnet/api/azure.search.documents.indexes.searchindexclient) as a singleton in the DI container for connecting to Azure AI Search. Enables corresponding logging and telemetry.
 
 ## Getting started
 
 ### Prerequisites
 
 - Azure subscription - [create one for free](https://azure.microsoft.com/free/)
-- Azure Search Service - [create an Azure Search Service resource](https://learn.microsoft.com/azure/search/search-create-service-portal)
+- Azure AI Search Service - [create an Azure AI Search Service resource](https://learn.microsoft.com/azure/search/search-create-service-portal)
 
 ### Install the package
 
-Install the .NET Aspire Azure Search library with [NuGet](https://www.nuget.org):
+Install the .NET Aspire Azure AI Search library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Azure.Search.Documents
@@ -54,11 +54,11 @@ public async Task<long> GetDocumentCountAsync(string indexName, CancellationToke
 }
 ```
 
-See the [Azure Search Service Getting Started](https://learn.microsoft.com/dotnet/api/overview/azure/search.documents-readme) for examples on using the `SearchIndexClient`.
+See the [Azure AI Search client library for .NET](https://learn.microsoft.com/dotnet/api/overview/azure/search.documents-readme) for examples on using the `SearchIndexClient`.
 
 ## Configuration
 
-The .NET Aspire Azure Azure Search library provides multiple options to configure the Azure Search Service based on the requirements and conventions of your project. Note that either an `Endpoint` or a `ConnectionString` is required to be supplied.
+The .NET Aspire Azure AI Search library provides multiple options to configure the Azure AI Search Service based on the requirements and conventions of your project. Note that either an `Endpoint` or a `ConnectionString` is required to be supplied.
 
 ### Use a connection string
 
@@ -96,7 +96,7 @@ Alternatively, a custom connection string can be used.
 
 ### Use configuration providers
 
-The .NET Aspire Azure Search library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureSearchSettings` and `SearchClientOptions` from configuration by using the `Aspire:Azure:Search:Documents` key. Example `appsettings.json` that configures some of the options:
+The .NET Aspire Azure AI Search library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureSearchSettings` and `SearchClientOptions` from configuration by using the `Aspire:Azure:Search:Documents` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
@@ -128,13 +128,13 @@ builder.AddAzureSearchClient("searchConnectionName", configureClientBuilder: bui
 
 ## AppHost extensions
 
-In your AppHost project, install the Aspire Azure Search Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire Azure AI Search Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.Azure.Search
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, add an Azure Search service and consume the connection using the following methods:
+Then, in the _Program.cs_ file of `AppHost`, add an Azure AI Search service and consume the connection using the following methods:
 
 ```csharp
 var search = builder.ExecutionContext.IsPublishMode

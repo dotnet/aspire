@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <RunTestsOnHelix>false</RunTestsOnHelix>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,6 +22,10 @@
     <ProjectReference Include="..\..\src\Aspire.Hosting.Testing\Aspire.Hosting.Testing.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\Aspire.Hosting.Tests\Aspire.Hosting.Tests.csproj" />
     <ProjectReference Include="..\TestingAppHost1\TestingAppHost1.AppHost\TestingAppHost1.AppHost.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
   </ItemGroup>
 
 </Project>

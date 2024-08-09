@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
@@ -41,6 +41,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private const string BuilderConstructingEventName = "DistributedApplicationBuilderConstructing";
     private const string BuilderConstructedEventName = "DistributedApplicationBuilderConstructed";
 
+    private readonly DistributedApplicationOptions _options;
+
     private readonly HostApplicationBuilder _innerBuilder;
 
     /// <inheritdoc />
@@ -54,6 +56,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     /// <inheritdoc />
     public string AppHostDirectory { get; }
+
+    /// <inheritdoc />
+    public Assembly? AppHostAssembly => _options.Assembly;
 
     /// <inheritdoc />
     public DistributedApplicationExecutionContext ExecutionContext { get; }
@@ -77,6 +82,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         ArgumentNullException.ThrowIfNull(args);
     }
 
+    // This is here because in the constructor of DistributedApplicationBuilder we inject
+    // DistributedApplicationExecutionContext. This is a class that is used to expose contextual
+    // values in various callbacks and is a central location to access useful services like IServiceProvider.
+    private readonly DistributedApplicationExecutionContextOptions _executionContextOptions;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
     /// </summary>
@@ -99,6 +109,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     {
         ArgumentNullException.ThrowIfNull(options);
 
+        _options = options;
+
         var innerBuilderOptions = new HostApplicationBuilderSettings();
 
         // Args are set later in config with switch mappings. But specify them when creating the builder
@@ -110,7 +122,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
         _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
-        _innerBuilder.Logging.AddFilter("Aspire.Hosting.Dashboard", LogLevel.None);
+        _innerBuilder.Logging.AddFilter("Aspire.Hosting.Dashboard", LogLevel.Error);
 
         // This is so that we can see certificate errors in the resource server in the console logs.
         // See: https://github.com/dotnet/aspire/issues/2914
@@ -129,11 +141,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             ["AppHost:Directory"] = AppHostDirectory
         });
 
-        ExecutionContext = _innerBuilder.Configuration["Publishing:Publisher"] switch
+        _executionContextOptions = _innerBuilder.Configuration["Publishing:Publisher"] switch
         {
-            "manifest" => new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish),
-            _ => new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
+            "manifest" => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish),
+            _ => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
         };
+
+        ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
 
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
@@ -246,8 +260,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             { "--publisher", "Publishing:Publisher" },
             { "--output-path", "Publishing:OutputPath" },
             { "--dcp-cli-path", "DcpPublisher:CliPath" },
-            { "--container-runtime", "DcpPublisher:ContainerRuntime" },
-            { "--dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },
+            { "--dcp-container-runtime", "DcpPublisher:ContainerRuntime" },
+            { "--dcp-dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },
+            { "--dcp-dashboard-path", "DcpPublisher:DashboardPath" },
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
         _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
@@ -271,6 +286,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             }
 
             var application = new DistributedApplication(_innerBuilder.Build());
+
+            _executionContextOptions.ServiceProvider = application.Services.GetRequiredService<IServiceProvider>();
+
             LogAppBuilt(application);
             return application;
         }
@@ -309,7 +327,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         if (diagnosticListener.IsEnabled() && diagnosticListener.IsEnabled(BuilderConstructingEventName))
         {
-            Write(diagnosticListener, BuilderConstructingEventName, (appBuilderOptions, hostBuilderOptions));
+            diagnosticListener.Write(BuilderConstructingEventName, (appBuilderOptions, hostBuilderOptions));
         }
 
         return diagnosticListener;
@@ -321,7 +339,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         if (diagnosticListener.IsEnabled() && diagnosticListener.IsEnabled(BuilderConstructedEventName))
         {
-            Write(diagnosticListener, BuilderConstructedEventName, builder);
+            diagnosticListener.Write(BuilderConstructedEventName, builder);
         }
 
         return diagnosticListener;
@@ -333,7 +351,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         if (diagnosticListener.IsEnabled() && diagnosticListener.IsEnabled(ApplicationBuildingEventName))
         {
-            Write(diagnosticListener, ApplicationBuildingEventName, appBuilder);
+            diagnosticListener.Write(ApplicationBuildingEventName, appBuilder);
         }
 
         return diagnosticListener;
@@ -345,24 +363,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         if (diagnosticListener.IsEnabled() && diagnosticListener.IsEnabled(ApplicationBuiltEventName))
         {
-            Write(diagnosticListener, ApplicationBuiltEventName, app);
+            diagnosticListener.Write(ApplicationBuiltEventName, app);
         }
 
         return diagnosticListener;
-    }
-
-    // Remove when https://github.com/dotnet/runtime/pull/78532 is merged and consumed by the used SDK.
-#if NET7_0
-        [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
-            Justification = "DiagnosticSource is used here to pass objects in-memory to code using HostFactoryResolver. This won't require creating new generic types.")]
-#endif
-    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:UnrecognizedReflectionPattern",
-        Justification = "The values being passed into Write are being consumed by the application already.")]
-    private static void Write<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
-        DiagnosticListener diagnosticSource,
-        string name,
-        T value)
-    {
-        diagnosticSource.Write(name, value);
     }
 }

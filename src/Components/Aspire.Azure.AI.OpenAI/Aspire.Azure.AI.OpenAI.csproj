@@ -9,6 +9,12 @@
     <Description>A client for Azure OpenAI that integrates with Aspire, including logging and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzureOpenAI_256x.png</PackageIconFullPath>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
+    <!-- Disable package validation as this package hasn't shipped stable yet. -->
+    <EnablePackageValidation>false</EnablePackageValidation>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>70</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>

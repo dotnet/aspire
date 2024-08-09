@@ -20,6 +20,11 @@ internal sealed class PgAdminConfigWriterHook : IDistributedApplicationLifecycle
 
         using var stream = new FileStream(serverFileMount.Source!, FileMode.Create);
         using var writer = new Utf8JsonWriter(stream);
+        // Need to grant read access to the config file on unix like systems.
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(serverFileMount.Source!, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
+        }
 
         var serverIndex = 1;
 

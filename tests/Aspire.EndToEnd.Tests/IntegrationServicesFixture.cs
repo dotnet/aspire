@@ -17,7 +17,7 @@ namespace Aspire.EndToEnd.Tests;
 /// </summary>
 public sealed class IntegrationServicesFixture : IAsyncLifetime
 {
-#if TESTS_RUNNING_OUTSIDE_OF_REPO
+#if BUILD_FOR_TESTS_RUNNING_OUTSIDE_OF_REPO
     public static bool TestsRunningOutsideOfRepo = true;
 #else
     public static bool TestsRunningOutsideOfRepo;
@@ -29,6 +29,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     private readonly IMessageSink _diagnosticMessageSink;
     private readonly TestOutputWrapper _testOutput;
     private AspireProject? _project;
+    private readonly string _testProjectPath;
 
     public BuildEnvironment BuildEnvironment { get; init; }
     public ProjectInfo IntegrationServiceA => Projects["integrationservicea"];
@@ -38,18 +39,30 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     {
         _diagnosticMessageSink = diagnosticMessageSink;
         _testOutput = new TestOutputWrapper(messageSink: _diagnosticMessageSink);
-        BuildEnvironment = new(TestsRunningOutsideOfRepo, (probePath, solutionRoot) =>
-            $"Running outside-of-repo: Could not find {probePath} computed from solutionRoot={solutionRoot}. ");
-        if (BuildEnvironment.HasSdkWithWorkload)
+        BuildEnvironment = new(useSystemDotNet: !TestsRunningOutsideOfRepo);
+        if (TestsRunningOutsideOfRepo)
         {
+            if (!BuildEnvironment.HasWorkloadFromArtifacts)
+            {
+                throw new InvalidOperationException("Expected to have sdk+workload from artifacts when running tests outside of the repo");
+            }
             BuildEnvironment.EnvVars["TestsRunningOutsideOfRepo"] = "true";
+            _testProjectPath = Path.Combine(BuildEnvironment.TestAssetsPath, "testproject");
         }
-        BuildEnvironment.EnvVars.Add("ASPIRE_ALLOW_UNSECURED_TRANSPORT", "true");
+        else
+        {
+            // inside the repo
+            if (BuildEnvironment.RepoRoot is null)
+            {
+                throw new InvalidOperationException("These tests should be run from inside the repo when using `TestsRunningOutsideOfRepo=false`");
+            }
+            _testProjectPath = Path.Combine(BuildEnvironment.RepoRoot.FullName, "tests", "testproject");
+        }
     }
 
     public async Task InitializeAsync()
     {
-        _project = new AspireProject("TestProject", BuildEnvironment.TestProjectPath, _testOutput, BuildEnvironment);
+        _project = new AspireProject("TestProject", _testProjectPath, _testOutput, BuildEnvironment);
         if (TestsRunningOutsideOfRepo)
         {
             _testOutput.WriteLine("");
@@ -68,7 +81,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         {
             extraArgs += $"--skip-resources {skipArg}";
         }
-        await Project.StartAsync([extraArgs]);
+        await Project.StartAppHostAsync([extraArgs]);
 
         foreach (var project in Projects.Values)
         {
@@ -89,16 +102,11 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
         string component = resource switch
         {
-            TestResourceNames.cosmos => "cosmos",
-            TestResourceNames.kafka => "kafka",
-            TestResourceNames.mongodb => "mongodb",
-            TestResourceNames.mysql or TestResourceNames.efmysql => "mysql",
+            TestResourceNames.cosmos or TestResourceNames.efcosmos => "cosmos",
+            TestResourceNames.eventhubs => "eventhubs",
             TestResourceNames.oracledatabase => "oracledatabase",
             TestResourceNames.postgres or TestResourceNames.efnpgsql => "postgres",
-            TestResourceNames.rabbitmq => "rabbitmq",
             TestResourceNames.redis => "redis",
-            TestResourceNames.garnet => "garnet",
-            TestResourceNames.sqlserver => "sqlserver",
             _ => throw new ArgumentException($"Unknown resource: {resource}")
         };
 
@@ -107,13 +115,9 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        if (Project?.AppHostProcess is not null)
+        if (_project is not null)
         {
-            await Project.DumpDockerInfoAsync(new TestOutputWrapper(null));
-        }
-        if (Project is not null)
-        {
-            await Project.DisposeAsync();
+            await _project.DisposeAsync();
         }
     }
 
@@ -133,17 +137,11 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         TestResourceNames resourcesToInclude = TestScenario switch
         {
             "oracle" => TestResourceNames.oracledatabase,
-            "cosmos" => TestResourceNames.cosmos,
-            "basicservices" => TestResourceNames.kafka
-                              | TestResourceNames.mongodb
-                              | TestResourceNames.rabbitmq
-                              | TestResourceNames.redis
-                              | TestResourceNames.garnet
+            "cosmos" => TestResourceNames.cosmos | TestResourceNames.efcosmos,
+            "eventhubs" => TestResourceNames.eventhubs,
+            "basicservices" => TestResourceNames.redis
                               | TestResourceNames.postgres
-                              | TestResourceNames.efnpgsql
-                              | TestResourceNames.mysql
-                              | TestResourceNames.efmysql
-                              | TestResourceNames.sqlserver,
+                              | TestResourceNames.efnpgsql,
             "" or null => TestResourceNames.All,
             _ => throw new ArgumentException($"Unknown test scenario '{TestScenario}'")
         };

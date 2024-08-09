@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting;
 
@@ -16,8 +17,9 @@ public interface IProjectMetadata : IResourceAnnotation
     /// </summary>
     public string ProjectPath { get; }
 
-    // This is for testing
+    // These are for testing
     internal LaunchSettings? LaunchSettings => null;
+    internal IConfiguration? Configuration => null;
 }
 
 [DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]

@@ -19,7 +19,19 @@
     },
     {
       "placeholder": "p@ssw0rd1",
-      "_justification": "This is fake password, used in integration tests."
+      "_justification": "This is a fake password, used in integration, and other tests."
+    },
+    {
+      "placeholder": "thisIsAFakeSecret",
+      "_justification": "This isn't a real secret, it's used in one of the playground applications for testing purposes."
+    },
+    {
+      "file": "\\tests\\Shared\\TestCertificates\\eku.client.pfx",
+      "_justification": "Legitimate UT certificate file with private key, from dotnet/aspnetcore"
+    },
+    {
+      "file": "\\tests\\Shared\\TestCertificates\\testCert.pfx",
+      "_justification": "Legitimate UT certificate file with private key, from dotnet/aspnetcore"
     }
   ]
 }

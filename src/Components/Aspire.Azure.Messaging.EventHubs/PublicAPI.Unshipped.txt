@@ -26,12 +26,12 @@ Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsSettings.ConnectionStrin
 Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsSettings.ConnectionString.set -> void
 Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsSettings.Credential.get -> Azure.Core.TokenCredential?
 Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsSettings.Credential.set -> void
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsSettings.DisableTracing.get -> bool
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsSettings.DisableTracing.set -> void
 Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsSettings.EventHubName.get -> string?
 Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsSettings.EventHubName.set -> void
 Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsSettings.FullyQualifiedNamespace.get -> string?
 Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsSettings.FullyQualifiedNamespace.set -> void
-Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsSettings.DisableTracing.get -> bool
-Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsSettings.DisableTracing.set -> void
 Microsoft.Extensions.Hosting.AspireEventHubsExtensions
 static Microsoft.Extensions.Hosting.AspireEventHubsExtensions.AddAzureEventHubConsumerClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsConsumerSettings!>? configureSettings = null, System.Action<Azure.Core.Extensions.IAzureClientBuilder<Azure.Messaging.EventHubs.Consumer.EventHubConsumerClient!, Azure.Messaging.EventHubs.Consumer.EventHubConsumerClientOptions!>!>? configureClientBuilder = null) -> void
 static Microsoft.Extensions.Hosting.AspireEventHubsExtensions.AddAzureEventHubProducerClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsProducerSettings!>? configureSettings = null, System.Action<Azure.Core.Extensions.IAzureClientBuilder<Azure.Messaging.EventHubs.Producer.EventHubProducerClient!, Azure.Messaging.EventHubs.Producer.EventHubProducerClientOptions!>!>? configureClientBuilder = null) -> void

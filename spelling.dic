@@ -15,6 +15,7 @@ brightwhite
 brightyellow
 chmod
 consolelogs
+cors
 csproj
 dbug
 dcpctrl
@@ -36,8 +37,10 @@ nats
 noreferrer
 noopener
 npgsql
+oauth
 oninput
 openai
+openid
 orleans
 otel
 otlp

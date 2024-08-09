@@ -137,19 +137,10 @@ See https://aka.ms/dotnet/aspire/containers for more details on supported contai
     <value>Container runtime '{0}' was found but appears to be unresponsive. The command '{0}' did not return after {1} seconds.</value>
   </data>
   <data name="DcpDependencyCheckFailedMessage" xml:space="preserve">
-    <value>Application orchestrator dependency check had an unexpected error {0}.</value>
-  </data>
-  <data name="DcpVersionCheckFailedMessage" xml:space="preserve">
-    <value>The application orchestrator version could not be determined. Continuing.</value>
-  </data>
-  <data name="DcpVersionCheckTooHighMessage" xml:space="preserve">
-    <value>Found incompatible version of .NET Aspire workload (need application orchestrator version {0} to run the application).</value>
+    <value>Application orchestrator dependency check returned an error: {0}</value>
   </data>
   <data name="DcpVersionCheckTooLowMessage" xml:space="preserve">
     <value>Newer version of .NET Aspire workload is required to run the application. Run 'dotnet workload update' to get it.</value>
-  </data>
-  <data name="LaunchProfileIsSpecifiedButLaunchSettingsFileIsNotPresentExceptionMessage" xml:space="preserve">
-    <value>Launch profile is specified but launch settings file is not present.</value>
   </data>
   <data name="LaunchSettingsFileDoesNotContainProfileExceptionMessage" xml:space="preserve">
     <value>Launch settings file does not contain '{0}' profile.</value>

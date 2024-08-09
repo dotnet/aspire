@@ -56,6 +56,14 @@ public static class AzureStorageExtensions
 
             storageAccount.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
 
+            // Set the minimum TLS version to 1.2 to ensure resources provisioned are compliant
+            // with the pending deprecation of TLS 1.0 and 1.1.
+            storageAccount.AssignProperty(p => p.MinimumTlsVersion, "'TLS1_2'");
+
+            // Disable shared key access to the storage account as managed identity is configured
+            // to access the storage account by default.
+            storageAccount.AssignProperty(p => p.AllowSharedKeyAccess, "false");
+
             var blobService = new BlobService(construct);
 
             var blobRole = storageAccount.AssignRole(RoleDefinition.StorageBlobDataContributor);
@@ -107,7 +115,7 @@ public static class AzureStorageExtensions
                {
                    Registry = "mcr.microsoft.com",
                    Image = "azure-storage/azurite",
-                   Tag = "3.29.0"
+                   Tag = "3.31.0"
                });
 
         if (configureContainer != null)

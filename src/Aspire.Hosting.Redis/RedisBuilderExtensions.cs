@@ -26,6 +26,8 @@ public static class RedisBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name, int? port = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         var redis = new RedisResource(name);
         return builder.AddResource(redis)
                       .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
@@ -42,6 +44,8 @@ public static class RedisBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<RedisResource> WithRedisCommander(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<RedisCommanderResource>>? configureContainer = null, string? containerName = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         if (builder.ApplicationBuilder.Resources.OfType<RedisCommanderResource>().SingleOrDefault() is { } existingRedisCommanderResource)
         {
             var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingRedisCommanderResource);
@@ -74,6 +78,8 @@ public static class RedisBuilderExtensions
     /// <returns>The resource builder for PGAdmin.</returns>
     public static IResourceBuilder<RedisCommanderResource> WithHostPort(this IResourceBuilder<RedisCommanderResource> builder, int? port)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.WithEndpoint("http", endpoint =>
         {
             endpoint.Port = port;
@@ -85,7 +91,7 @@ public static class RedisBuilderExtensions
     /// </summary>
     /// <remarks>
     /// Use <see cref="WithPersistence(IResourceBuilder{RedisResource}, TimeSpan?, long)"/> to adjust Redis persistence configuration, e.g.:
-    /// <code>
+    /// <code lang="csharp">
     /// var cache = builder.AddRedis("cache")
     ///                    .WithDataVolume()
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
@@ -100,6 +106,8 @@ public static class RedisBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RedisResource> WithDataVolume(this IResourceBuilder<RedisResource> builder, string? name = null, bool isReadOnly = false)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data", isReadOnly);
         if (!isReadOnly)
         {
@@ -113,9 +121,9 @@ public static class RedisBuilderExtensions
     /// </summary>
     /// <remarks>
     /// Use <see cref="WithPersistence(IResourceBuilder{RedisResource}, TimeSpan?, long)"/> to adjust Redis persistence configuration, e.g.:
-    /// <code>
+    /// <code lang="csharp">
     /// var cache = builder.AddRedis("cache")
-    ///                    .WithDataBindMount()
+    ///                    .WithDataBindMount("myredisdata")
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
     /// </code>
     /// </remarks>
@@ -128,6 +136,9 @@ public static class RedisBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RedisResource> WithDataBindMount(this IResourceBuilder<RedisResource> builder, string source, bool isReadOnly = false)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+
         builder.WithBindMount(source, "/data", isReadOnly);
         if (!isReadOnly)
         {
@@ -142,7 +153,7 @@ public static class RedisBuilderExtensions
     /// <remarks>
     /// Use with <see cref="WithDataBindMount(IResourceBuilder{RedisResource}, string, bool)"/>
     /// or <see cref="WithDataVolume(IResourceBuilder{RedisResource}, string?, bool)"/> to persist Redis data across sessions with custom persistence configuration, e.g.:
-    /// <code>
+    /// <code lang="csharp">
     /// var cache = builder.AddRedis("cache")
     ///                    .WithDataVolume()
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
@@ -153,11 +164,16 @@ public static class RedisBuilderExtensions
     /// <param name="keysChangedThreshold">The number of key change operations required to trigger a snapshot at the interval. Defaults to 1.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RedisResource> WithPersistence(this IResourceBuilder<RedisResource> builder, TimeSpan? interval = null, long keysChangedThreshold = 1)
-        => builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
         {
             context.Args.Add("--save");
-            context.Args.Add((interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
+            context.Args.Add(
+                (interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
             context.Args.Add(keysChangedThreshold.ToString(CultureInfo.InvariantCulture));
             return Task.CompletedTask;
         }), ResourceAnnotationMutationBehavior.Replace);
+    }
 }

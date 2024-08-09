@@ -12,6 +12,7 @@ public sealed class DistributedApplicationOptions
 {
     private readonly Lazy<Assembly?> _assembly;
     private readonly Lazy<string?> _projectDirectoryLazy;
+    private readonly Lazy<string?> _configurationLazy;
     // This is for testing
     private string? _projectDirectory;
 
@@ -22,6 +23,7 @@ public sealed class DistributedApplicationOptions
     {
         _assembly = new(ResolveAssembly);
         _projectDirectoryLazy = new(ResolveProjectDirectory);
+        _configurationLazy = new(ResolveConfiguration);
     }
 
     /// <summary>
@@ -46,6 +48,8 @@ public sealed class DistributedApplicationOptions
     public bool DisableDashboard { get; set; }
 
     internal Assembly? Assembly => _assembly.Value;
+
+    internal string? Configuration => _configurationLazy.Value;
 
     internal string? ProjectDirectory
     {
@@ -87,6 +91,11 @@ public sealed class DistributedApplicationOptions
             }
         }
         return appHostAssembly;
+    }
+
+    private string? ResolveConfiguration()
+    {
+        return Assembly?.GetCustomAttribute<AssemblyConfigurationAttribute>()?.Configuration;
     }
 
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)
