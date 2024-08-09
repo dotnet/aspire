@@ -81,7 +81,7 @@ public class GarnetPublicApiTests
     }
 
     [Fact]
-    public void WithPersistenceMountShouldThrowWhenSourceIsNull()
+    public void WithPersistenceShouldThrowWhenBuilderIsNull()
     {
         IResourceBuilder<GarnetResource> builder = null!;
 
