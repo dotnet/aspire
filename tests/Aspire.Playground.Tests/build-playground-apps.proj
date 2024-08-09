@@ -9,7 +9,7 @@
 
     <Message Text="proj: %(_AppHostProject.Identity)" Importance="High" />
     <MSBuild Projects="@(_AppHostProject)" Targets="Restore" Properties="@(AdditionalProperties)" />
-    <MSBuild Projects="@(_AppHostProject)" Targets="Build" Properties="@(AdditionalProperties);__RANDOM_PROPERTY_TO_FORCE_PROJECT_REEVALUATION=234" />
+    <MSBuild Projects="@(_AppHostProject)" Targets="Build" Properties="@(AdditionalProperties);__RANDOM_PROPERTY_TO_FORCE_PROJECT_REEVALUATION__=234" />
   </Target>
 
 </Project>
