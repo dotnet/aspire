@@ -1,13 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Sockets;
 using Xunit;
 
-namespace Aspire.Hosting.Tests.SqlServer;
+namespace Aspire.Hosting.SqlServer.Tests;
 
 public class AddSqlServerTests
 {
@@ -18,7 +19,7 @@ public class AddSqlServerTests
 
         var sql = appBuilder.AddSqlServer("sql");
 
-        Assert.IsType<UserSecretsParameterDefault>(sql.Resource.PasswordParameter.Default);
+        Assert.Equal("Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault", sql.Resource.PasswordParameter.Default?.GetType().FullName);
     }
 
     [Fact]
@@ -28,7 +29,7 @@ public class AddSqlServerTests
 
         var sql = appBuilder.AddSqlServer("sql");
 
-        Assert.IsNotType<UserSecretsParameterDefault>(sql.Resource.PasswordParameter.Default);
+        Assert.NotEqual("Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault", sql.Resource.PasswordParameter.Default?.GetType().FullName);
     }
 
     [Fact]

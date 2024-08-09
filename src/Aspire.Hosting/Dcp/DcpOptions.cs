@@ -117,6 +117,11 @@ internal class ConfigureDefaultDcpOptions(
         {
             // If an explicit path to DCP was provided from configuration, don't try to resolve via assembly attributes
             options.CliPath = dcpPublisherConfiguration[nameof(options.CliPath)];
+            if (Path.GetDirectoryName(options.CliPath) is string dcpDir && !string.IsNullOrEmpty(dcpDir))
+            {
+                options.ExtensionsPath = Path.Combine(dcpDir, "ext");
+                options.BinPath = Path.Combine(options.ExtensionsPath, "bin");
+            }
         }
         else
         {

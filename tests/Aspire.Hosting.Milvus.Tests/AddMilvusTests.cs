@@ -95,7 +95,6 @@ public class AddMilvusTests
     [Fact]
     public async Task MilvusClientAppWithReferenceContainsConnectionStrings()
     {
-        using var testProgram = CreateTestProgram();
         var appBuilder = DistributedApplication.CreateBuilder();
 
         appBuilder.Configuration["Parameters:apikey"] = "pass";
@@ -203,8 +202,6 @@ public class AddMilvusTests
         Assert.Equal("http2", grpcEndpoint.Transport);
         Assert.Equal("http", grpcEndpoint.UriScheme);
     }
-
-    private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<AddMilvusTests>(args);
 
     private sealed class ProjectA : IProjectMetadata
     {

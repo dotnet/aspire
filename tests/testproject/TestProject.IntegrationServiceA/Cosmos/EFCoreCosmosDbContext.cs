@@ -7,3 +7,8 @@ public class EFCoreCosmosDbContext(DbContextOptions<EFCoreCosmosDbContext> optio
 {
     public DbSet<Entry> Entries { get; set; }
 }
+
+public record Entry
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+}

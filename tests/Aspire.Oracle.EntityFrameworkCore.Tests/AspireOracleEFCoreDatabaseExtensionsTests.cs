@@ -300,6 +300,38 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
         Assert.Null(exception);
     }
 
+    [Fact]
+    public void CanPassNoInstrumentationSettingsToDbContext()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:orclconnection", ConnectionString)
+        ]);
+
+        builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection", o => o.InstrumentationOptions = null);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+        Assert.NotNull(context);
+    }
+
+    [Fact]
+    public void CanPassSettingsToDbContext()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:orclconnection", ConnectionString)
+        ]);
+
+        builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection", o => o.InstrumentationOptions = s => s.SetDbStatementForText = true);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+        Assert.NotNull(context);
+    }
+
     public class TestDbContext2 : DbContext
     {
         public TestDbContext2(DbContextOptions<TestDbContext2> options) : base(options)

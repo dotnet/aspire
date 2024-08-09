@@ -1,23 +1,32 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
+using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OpenTelemetry.Trace;
+using Oracle.ManagedDataAccess.OpenTelemetry;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Oracle.EntityFrameworkCore.Tests;
 
+[Collection("Oracle Database collection")]
 public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFrameworkCoreSettings>
 {
-    protected const string ConnectionString = "Data Source=fake;";
+    private readonly OracleContainerFixture? _containerFixture;
+    private readonly ITestOutputHelper? _testOutputHelper;
+
+    protected string ConnectionString { get; private set; }
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
-    protected override string ActivitySourceName => throw new NotImplementedException();
+    protected override string ActivitySourceName => "Oracle.ManagedDataAccess.Core";
 
     protected override string[] RequiredLogCategories => new string[]
     {
@@ -34,13 +43,16 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
         "Microsoft.EntityFrameworkCore.Migrations"
     };
 
+    protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
+
     protected override string ValidJsonConfig => """
         {
           "Aspire": {
             "Oracle": {
               "EntityFrameworkCore": {
                 "ConnectionString": "YOUR_CONNECTION_STRING",
-                "DisableHealthChecks": true
+                "DisableHealthChecks": true,
+                "DisableTracing": false
               }
             }
           }
@@ -51,6 +63,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
         {
             ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "DisableRetry": "5"}}}}""", "Value is \"string\" but should be \"boolean\""),
             ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "DisableHealthChecks": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "DisableTracing": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
@@ -66,7 +79,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
         => options.DisableHealthChecks = !enabled;
 
     protected override void SetTracing(OracleEntityFrameworkCoreSettings options, bool enabled)
-        => throw new NotImplementedException();
+        => options.DisableTracing = !enabled;
 
     protected override void SetMetrics(OracleEntityFrameworkCoreSettings options, bool enabled)
         => throw new NotImplementedException();
@@ -77,6 +90,19 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
         {
             service.Database.EnsureCreated();
         }
+        else
+        {
+            Assert.Fail($"Cannot connect to database: {ConnectionString}");
+        }
+    }
+
+    public ConformanceTests(OracleContainerFixture? containerFixture, ITestOutputHelper? testOutputHelper)
+    {
+        _containerFixture = containerFixture;
+        _testOutputHelper = testOutputHelper;
+        ConnectionString = (_containerFixture is not null && RequiresDockerAttribute.IsSupported)
+                                        ? _containerFixture.GetConnectionString()
+                                        : "Server=localhost;User ID=oracle;Password=oracle;Database=FREEPDB1";
     }
 
     [Fact]
@@ -100,4 +126,60 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
 
         Assert.NotNull(dbContext);
     }
+
+    [Fact]
+    [RequiresDocker]
+    public void TracingEnablesTheRightActivitySource()
+    {
+        RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySourceTest(key: null)),
+                             ConnectionString).Dispose();
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public void TracingHasSemanticConventions()
+    {
+        RemoteExecutor.Invoke(static connectionStringToUse => RunWithConnectionString(connectionStringToUse, obj => obj.ActivitySemanticsTest()),
+                             ConnectionString).Dispose();
+    }
+
+    private void ActivitySemanticsTest()
+    {
+        HostApplicationBuilder builder = CreateHostBuilder();
+        RegisterComponent(builder, options => SetTracing(options, true));
+
+        List<Activity> exportedActivities = new();
+        builder.Services.AddOpenTelemetry().WithTracing(builder =>
+        {
+            builder.AddInMemoryExporter(exportedActivities);
+            builder.AddOracleDataProviderInstrumentation(o => o.EnableConnectionLevelAttributes = true);
+        });
+
+        using (IHost host = builder.Build())
+        {
+            // We start the host to make it build TracerProvider.
+            // If we don't, nothing gets reported!
+            host.Start();
+
+            var service = host.Services.GetRequiredService<TestDbContext>();
+
+            Assert.Empty(exportedActivities);
+
+            try
+            {
+                TriggerActivity(service);
+            }
+            catch (Exception) when (!CanConnectToServer)
+            {
+            }
+
+            Assert.NotEmpty(exportedActivities);
+            //Test runner doesn't have the server port set
+            Assert.Contains(exportedActivities, activity => activity.Tags.Any(x => x.Key == "server.address"));
+            Assert.Contains(exportedActivities, activity => activity.Tags.Any(x => x.Key == "db.system"));
+        }
+    }
+
+    private static void RunWithConnectionString(string connectionString, Action<ConformanceTests> test)
+    => test(new ConformanceTests(null, null) { ConnectionString = connectionString });
 }
