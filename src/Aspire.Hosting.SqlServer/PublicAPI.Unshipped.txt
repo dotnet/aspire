@@ -1,2 +1,3 @@
 #nullable enable
-
+Aspire.Hosting.ApplicationModel.SqlServerDatabaseResource.DatabaseName.init -> void
+Aspire.Hosting.ApplicationModel.SqlServerDatabaseResource.Parent.init -> void
