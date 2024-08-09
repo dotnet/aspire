@@ -29,6 +29,7 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.NodeJs" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Testing" />
 
+    <ProjectReference Include="$(PlaygroundSourceDir)Keycloak/Keycloak.AppHost/Keycloak.AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
     <ProjectReference Include="$(PlaygroundSourceDir)ProxylessEndToEnd/ProxylessEndToEnd.AppHost/ProxylessEndToEnd.AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
     <ProjectReference Include="$(PlaygroundSourceDir)Qdrant/Qdrant.AppHost/Qdrant.AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
     <ProjectReference Include="$(PlaygroundSourceDir)TestShop/TestShop.AppHost/TestShop.AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
