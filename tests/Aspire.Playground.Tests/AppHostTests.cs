@@ -180,8 +180,9 @@ public class AppHostTests
 
     private static IEnumerable<string> GetPlaygroundAppHostAssemblyPaths()
     {
-        return Directory.GetFiles(s_appHostBasePath, "*.AppHost.dll")
-            .Where(fileName => !fileName.EndsWith("Aspire.Hosting.AppHost.dll", StringComparison.OrdinalIgnoreCase));
+        return Directory
+                    .EnumerateFiles(s_appHostBasePath, "*.AppHost.dll", SearchOption.AllDirectories)
+                    .Where(fileName => !fileName.EndsWith("Aspire.Hosting.AppHost.dll", StringComparison.OrdinalIgnoreCase));
     }
 }
 
