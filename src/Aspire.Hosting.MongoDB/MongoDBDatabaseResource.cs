@@ -32,10 +32,10 @@ public class MongoDBDatabaseResource : Resource, IResourceWithParent<MongoDBServ
     /// <summary>
     /// Gets the parent MongoDB container resource.
     /// </summary>
-    public MongoDBServerResource Parent { get; init; }
+    public MongoDBServerResource Parent { get; }
 
     /// <summary>
     /// Gets the database name.
     /// </summary>
-    public string DatabaseName { get; init; }
+    public string DatabaseName { get; }
 }

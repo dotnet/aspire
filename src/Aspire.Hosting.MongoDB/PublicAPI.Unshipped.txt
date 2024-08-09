@@ -1,3 +1,2 @@
 #nullable enable
-Aspire.Hosting.ApplicationModel.MongoDBDatabaseResource.DatabaseName.init -> void
-Aspire.Hosting.ApplicationModel.MongoDBDatabaseResource.Parent.init -> void
+
