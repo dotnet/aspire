@@ -71,5 +71,21 @@ public static class SqlServerBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<SqlServerServerResource> WithDataBindMount(this IResourceBuilder<SqlServerServerResource> builder, string source, bool isReadOnly = false)
-        => builder.WithBindMount(source, "/var/opt/mssql", isReadOnly);
+    {
+        // c.f. https://learn.microsoft.com/sql/linux/sql-server-linux-docker-container-configure?view=sql-server-ver15&pivots=cs1-bash#mount-a-host-directory-as-data-volume
+
+        foreach (var dir in new string[] { "data", "log", "secrets" })
+        {
+            var path = Path.Combine(source, dir);
+
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+
+            builder.WithBindMount(path, $"/var/opt/mssql/{dir}", isReadOnly);
+        }
+
+        return builder;
+    }
 }

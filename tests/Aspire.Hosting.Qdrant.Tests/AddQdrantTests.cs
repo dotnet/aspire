@@ -167,7 +167,6 @@ public class AddQdrantTests
     [Fact]
     public async Task QdrantClientAppWithReferenceContainsConnectionStrings()
     {
-        using var testProgram = CreateTestProgram();
         var appBuilder = DistributedApplication.CreateBuilder();
 
         appBuilder.Configuration["Parameters:pass"] = "pass";
@@ -308,8 +307,6 @@ public class AddQdrantTests
         Assert.Equal("http", httpEndpoint.Transport);
         Assert.Equal("http", httpEndpoint.UriScheme);
     }
-
-    private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<AddQdrantTests>(args);
 
     private sealed class ProjectA : IProjectMetadata
     {

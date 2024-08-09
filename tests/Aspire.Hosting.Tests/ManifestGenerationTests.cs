@@ -109,9 +109,13 @@ public class ManifestGenerationTests
     [Fact]
     public void EnsureExecutablesWithDockerfileProduceDockerfilev0Manifest()
     {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);
-        program.NodeAppBuilder!.WithHttpsEndpoint(targetPort: 3000, env: "HTTPS_PORT")
+        using var program = CreateTestProgramJsonDocumentManifestPublisher();
+        program.AppBuilder
+            .AddNodeApp("nodeapp", "fakePath")
+            .WithHttpsEndpoint(targetPort: 3000, env: "HTTPS_PORT")
             .PublishAsDockerFile();
+        program.AppBuilder
+            .AddNpmApp("npmapp", "fakeDirectory");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -283,50 +287,6 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void NodeAppIsExecutableResource()
-    {
-        using var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddNodeApp("nodeapp", "..\\foo\\app.js")
-            .WithHttpEndpoint(port: 5031, env: "PORT");
-        program.AppBuilder.AddNpmApp("npmapp", "..\\foo")
-            .WithHttpEndpoint(port: 5032, env: "PORT");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var nodeApp = resources.GetProperty("nodeapp");
-        var npmApp = resources.GetProperty("npmapp");
-
-        static void AssertNodeResource(TestProgram program, string resourceName, JsonElement jsonElement, string expectedCommand, string[] expectedArgs)
-        {
-            var s = jsonElement.ToString();
-            Assert.Equal("executable.v0", jsonElement.GetProperty("type").GetString());
-
-            var bindings = jsonElement.GetProperty("bindings");
-            var httpBinding = bindings.GetProperty("http");
-
-            Assert.Equal("http", httpBinding.GetProperty("scheme").GetString());
-
-            var env = jsonElement.GetProperty("env");
-            Assert.Equal($$"""{{{resourceName}}.bindings.http.targetPort}""", env.GetProperty("PORT").GetString());
-            Assert.Equal(program.AppBuilder.Environment.EnvironmentName.ToLowerInvariant(), env.GetProperty("NODE_ENV").GetString());
-
-            var command = jsonElement.GetProperty("command");
-            Assert.Equal(expectedCommand, command.GetString());
-            Assert.Equal(expectedArgs, jsonElement.GetProperty("args").EnumerateArray().Select(e => e.GetString()).ToArray());
-        }
-
-        AssertNodeResource(program, "nodeapp", nodeApp, "node", ["..\\foo\\app.js"]);
-        AssertNodeResource(program, "npmapp", npmApp, "npm", ["run", "start"]);
-    }
-
-    [Fact]
     public void MetadataPropertyNotEmittedWhenMetadataNotAdded()
     {
         using var program = CreateTestProgramJsonDocumentManifestPublisher();
@@ -456,7 +416,6 @@ public class ManifestGenerationTests
                     "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
                     "HTTP_PORTS": "{integrationservicea.bindings.http.targetPort}",
                     "SKIP_RESOURCES": "None",
-                    "ConnectionStrings__tempdb": "{tempdb.connectionString}",
                     "ConnectionStrings__redis": "{redis.connectionString}",
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
                     "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
@@ -475,27 +434,6 @@ public class ManifestGenerationTests
                       "transport": "http"
                     }
                   }
-                },
-                "sqlserver": {
-                  "type": "container.v0",
-                  "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver-password.value};TrustServerCertificate=true",
-                  "image": "{{SqlServerContainerImageTags.Registry}}/{{SqlServerContainerImageTags.Image}}:{{SqlServerContainerImageTags.Tag}}",
-                  "env": {
-                    "ACCEPT_EULA": "Y",
-                    "MSSQL_SA_PASSWORD": "{sqlserver-password.value}"
-                  },
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 1433
-                    }
-                  }
-                },
-                "tempdb": {
-                  "type": "value.v0",
-                  "connectionString": "{sqlserver.connectionString};Database=tempdb"
                 },
                 "redis": {
                   "type": "container.v0",
@@ -569,24 +507,6 @@ public class ManifestGenerationTests
                   "params": {
                     "principalId": "",
                     "principalType": ""
-                  }
-                },
-                "sqlserver-password": {
-                  "type": "parameter.v0",
-                  "value": "{sqlserver-password.inputs.value}",
-                  "inputs": {
-                    "value": {
-                      "type": "string",
-                      "secret": true,
-                      "default": {
-                        "generate": {
-                          "minLength": 22,
-                          "minLower": 1,
-                          "minUpper": 1,
-                          "minNumeric": 1
-                        }
-                      }
-                    }
                   }
                 },
                 "postgres-password": {
