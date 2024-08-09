@@ -30,10 +30,10 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Testing" />
 
     <ProjectReference Include="$(PlaygroundSourceDir)CosmosEndToEnd/CosmosEndToEnd.AppHost/CosmosEndToEnd.AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
-    <ProjectReference Include="$(PlaygroundSourceDir)Keycloak/Keycloak.AppHost/Keycloak.AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
     <ProjectReference Include="$(PlaygroundSourceDir)ProxylessEndToEnd/ProxylessEndToEnd.AppHost/ProxylessEndToEnd.AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
     <ProjectReference Include="$(PlaygroundSourceDir)Qdrant/Qdrant.AppHost/Qdrant.AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
     <ProjectReference Include="$(PlaygroundSourceDir)TestShop/TestShop.AppHost/TestShop.AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
+    <ProjectReference Include="$(PlaygroundSourceDir)keycloak/Keycloak.AppHost/Keycloak.AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
     <ProjectReference Include="$(PlaygroundSourceDir)mongo/Mongo.AppHost/Mongo.AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
     <ProjectReference Include="$(PlaygroundSourceDir)mysql/MySqlDb.AppHost/MySqlDb.AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
     <ProjectReference Include="$(PlaygroundSourceDir)nats/Nats.AppHost/Nats.AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
