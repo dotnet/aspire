@@ -419,7 +419,6 @@ public class ManifestGenerationTests
                     "ConnectionStrings__tempdb": "{tempdb.connectionString}",
                     "ConnectionStrings__redis": "{redis.connectionString}",
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
-                    "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
                     "ConnectionStrings__cosmos": "{cosmos.connectionString}",
                     "ConnectionStrings__eventhubns": "{eventhubns.connectionString}"
                   },
@@ -494,26 +493,6 @@ public class ManifestGenerationTests
                   "type": "value.v0",
                   "connectionString": "{postgres.connectionString};Database=postgresdb"
                 },
-                "oracledatabase": {
-                  "type": "container.v0",
-                  "connectionString": "user id=system;password={oracledatabase-password.value};data source={oracledatabase.bindings.tcp.host}:{oracledatabase.bindings.tcp.port}",
-                  "image": "{{OracleContainerImageTags.Registry}}/{{OracleContainerImageTags.Image}}:{{OracleContainerImageTags.Tag}}",
-                  "env": {
-                    "ORACLE_PWD": "{oracledatabase-password.value}"
-                  },
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 1521
-                    }
-                  }
-                },
-                "freepdb1": {
-                  "type": "value.v0",
-                  "connectionString": "{oracledatabase.connectionString}/freepdb1"
-                },
                 "cosmos": {
                   "type": "azure.bicep.v0",
                   "connectionString": "{cosmos.secretOutputs.connectionString}",
@@ -552,21 +531,6 @@ public class ManifestGenerationTests
                 "postgres-password": {
                   "type": "parameter.v0",
                   "value": "{postgres-password.inputs.value}",
-                  "inputs": {
-                    "value": {
-                      "type": "string",
-                      "secret": true,
-                      "default": {
-                        "generate": {
-                          "minLength": 22
-                        }
-                      }
-                    }
-                  }
-                },
-                "oracledatabase-password": {
-                  "type": "parameter.v0",
-                  "value": "{oracledatabase-password.inputs.value}",
                   "inputs": {
                     "value": {
                       "type": "string",

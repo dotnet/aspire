@@ -34,10 +34,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
     builder.AddAzureEventHubProducerClient("eventhubsns", settings => settings.EventHubName = "hub");
     builder.AddAzureEventHubConsumerClient("eventhubsns", settings => settings.EventHubName = "hub");
 }
-if (!resourcesToSkip.HasFlag(TestResourceNames.oracledatabase))
-{
-    builder.AddOracleDatabaseDbContext<MyDbContext>("freepdb1");
-}
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos) || !resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
 {
@@ -96,11 +92,6 @@ if (!resourcesToSkip.HasFlag(TestResourceNames.sqlserver))
 if (!resourcesToSkip.HasFlag(TestResourceNames.efsqlserver))
 {
     app.MapEFCoreSqlServerApi();
-}
-
-if (!resourcesToSkip.HasFlag(TestResourceNames.oracledatabase))
-{
-    app.MapOracleDatabaseApi();
 }
 
 if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos))
