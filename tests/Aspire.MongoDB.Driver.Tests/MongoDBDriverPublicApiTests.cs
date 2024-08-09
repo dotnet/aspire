@@ -12,7 +12,6 @@ public class MongoDBClientPublicApiTests
     public void AddMongoDBClientShouldThrowWhenBuilderIsNull()
     {
         IHostApplicationBuilder builder = null!;
-
         var connectionName = "mongodb";
 
         var action = () => builder.AddMongoDBClient(connectionName);
@@ -25,7 +24,6 @@ public class MongoDBClientPublicApiTests
     public void AddMongoDBClientShouldThrowWhenNameIsNull()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
-
         string connectionName = null!;
 
         var action = () => builder.AddMongoDBClient(connectionName);
@@ -38,7 +36,6 @@ public class MongoDBClientPublicApiTests
     public void AddMongoDBClientShouldThrowWhenNameIsEmpty()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
-
         string connectionName = "";
 
         var action = () => builder.AddMongoDBClient(connectionName);
@@ -51,7 +48,6 @@ public class MongoDBClientPublicApiTests
     public void AddKeyedMongoDBClientShouldThrowWhenBuilderIsNull()
     {
         IHostApplicationBuilder builder = null!;
-
         var connectionName = "mongodb";
 
         var action = () => builder.AddKeyedMongoDBClient(connectionName);
@@ -64,7 +60,6 @@ public class MongoDBClientPublicApiTests
     public void AddKeyedMongoDBClientShouldThrowWhenNameIsNull()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
-
         string name = null!;
 
         var action = () => builder.AddKeyedMongoDBClient(name);
@@ -77,7 +72,6 @@ public class MongoDBClientPublicApiTests
     public void AddKeyedMongoDBClientShouldThrowWhenNameIsEmpty()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
-
         string name = "";
 
         var action = () => builder.AddKeyedMongoDBClient(name);
