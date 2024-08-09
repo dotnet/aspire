@@ -259,7 +259,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task SpecifyingEnvPortInEndpointFlowsToEnv()
     {
         using var testProgram = CreateTestProgram(randomizePorts: false);
@@ -269,7 +268,7 @@ public class DistributedApplicationTests
         testProgram.ServiceABuilder
             .WithHttpEndpoint(name: "http0", env: "PORT0");
 
-        testProgram.AppBuilder.AddContainer("redis0", "redis")
+        var redis = testProgram.AppBuilder.AddContainer("redis0", "redis")
             .WithEndpoint(targetPort: 6379, name: "tcp", env: "REDIS_PORT");
 
         testProgram.AppBuilder.AddNodeApp("nodeapp", "fakePath")
@@ -283,6 +282,11 @@ public class DistributedApplicationTests
 
         using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromMinutes(1));
         var token = cts.Token;
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceAsync(testProgram.ServiceABuilder.Resource.Name, "Running", token);
+        await rns.WaitForResourceAsync(redis.Resource.Name, "Running", token);
+        await rns.WaitForResourceAsync(testProgram.NodeAppBuilder!.Resource.Name, "Running", token);
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
         var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, $"redis0-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null, token);
@@ -533,7 +537,6 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task KubernetesHasResourceNameForContainersAndExes()
     {
         using var testProgram = CreateTestProgram(includeIntegrationServices: true);
@@ -547,6 +550,16 @@ public class DistributedApplicationTests
 
         using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromMinutes(1));
         var token = cts.Token;
+
+        // Wait for everything to start up.
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceAsync(testProgram.ServiceABuilder.Resource.Name, "Running", token);
+        await rns.WaitForResourceAsync(testProgram.ServiceBBuilder.Resource.Name, "Running", token);
+        await rns.WaitForResourceAsync(testProgram.ServiceCBuilder.Resource.Name, "Running", token);
+        await rns.WaitForResourceAsync(testProgram.WorkerABuilder.Resource.Name, "Running", token);
+        await rns.WaitForResourceAsync(testProgram.NodeAppBuilder!.Resource.Name, "Running", token);
+        await rns.WaitForResourceAsync(testProgram.NpmAppBuilder!.Resource.Name, "Running", token);
+        await rns.WaitForResourceAsync(testProgram.IntegrationServiceABuilder!.Resource.Name, "Running", token);
 
         var expectedExeResources = new HashSet<string>()
         {
