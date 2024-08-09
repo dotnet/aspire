@@ -13,6 +13,7 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CosmosDB" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.EventHubs" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Milvus" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.MongoDB" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.MySql" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Oracle" />

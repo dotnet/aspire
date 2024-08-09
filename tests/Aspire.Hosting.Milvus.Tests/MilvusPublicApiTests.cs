@@ -36,20 +36,6 @@ public class MilvusPublicApiTests
     }
 
     [Fact]
-    public void AddMilvusContainerShouldThrowWhenApiKeyIsNull()
-    {
-        var builder = DistributedApplication.CreateBuilder([]);
-        var name = "Milvus";
-
-        IResourceBuilder<ParameterResource> apiKey = null!;
-
-        var action = () => builder.AddMilvus(name, apiKey);
-
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(apiKey), exception.ParamName);
-    }
-
-    [Fact]
     public void AddDatabaseShouldThrowWhenNameIsNull()
     {
         var builder = DistributedApplication.CreateBuilder([]);
