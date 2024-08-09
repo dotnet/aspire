@@ -23,6 +23,7 @@ builder.AddNpgsqlDbContext<MyDb9Context>("db9");
 
 var app = builder.Build();
 
+app.MapDefaultEndpoints();
 app.MapGet("/", async (MyDb1Context db1Context, MyDb2Context db2Context, MyDb3Context db3Context, MyDb4Context db4Context, MyDb5Context db5Context, MyDb6Context db6Context, MyDb7Context db7Context, MyDb8Context db8Context, MyDb9Context db9Context) =>
 {
     // You wouldn't normally do this on every call,

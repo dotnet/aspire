@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
 
-    <RunTestsOnHelix>true</RunTestsOnHelix>
     <TestUsingWorkloads>true</TestUsingWorkloads>
     <InstallWorkloadForTesting>true</InstallWorkloadForTesting>
 

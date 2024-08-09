@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
-    <RunTestsOnHelix>true</RunTestsOnHelix>
   </PropertyGroup>
 
   <ItemGroup>
