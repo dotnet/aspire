@@ -564,7 +564,6 @@ public class DistributedApplicationTests
             "mongodb",
             "oracledatabase",
             "cosmos",
-            "sqlserver",
             "mysql",
             "rabbitmq",
             "kafka"

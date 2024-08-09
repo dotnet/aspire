@@ -70,7 +70,7 @@
     margin-left: 10px;
 }
 
-::deep #plotly-chart-container {
+::deep .plotly-chart-container {
     margin-left: -40px;
 }
 
