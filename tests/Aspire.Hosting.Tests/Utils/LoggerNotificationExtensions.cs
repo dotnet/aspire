@@ -4,8 +4,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using ResourceLoggerService = Aspire.Hosting.ApplicationModel.ResourceLoggerService;
-using ResourceNotificationService = Aspire.Hosting.ApplicationModel.ResourceNotificationService;
 
 namespace Aspire.Hosting.Tests.Utils;
 
