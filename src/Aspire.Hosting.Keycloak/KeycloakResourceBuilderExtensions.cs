@@ -138,13 +138,7 @@ public static class KeycloakResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(importDirectory);
 
-        if (!Directory.Exists(importDirectory))
-        {
-            throw new DirectoryNotFoundException($"The realm import directory {importDirectory} does not exist.");
-        }
-
         builder.WithBindMount(importDirectory, RealmImportDirectory, isReadOnly);
-
         return builder;
     }
 }
