@@ -11,10 +11,8 @@ namespace Aspire.Hosting.ApplicationModel;
 /// in a container launching. This is the reason why the the <see cref="ContainerResourceStartedEvent.Resource"/>
 /// property is of type <see cref="IResource"/> and not <see cref="ContainerResource"/>.
 /// </remarks>
-public class ContainerResourceStartedEvent(IResource resource) : IDistributedApplicationEvent
+public class ContainerResourceStartedEvent(IResource resource) : IDistributedApplicationResourceEvent
 {
-    /// <summary>
-    /// The resource which is the subject of this event.
-    /// </summary>
+    /// <inheritdoc />
     public IResource Resource { get; } = resource;
 }

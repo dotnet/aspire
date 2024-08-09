@@ -1,3 +1,5 @@
+using Aspire.Hosting.ApplicationModel;
+
 namespace Aspire.Hosting.Eventing;
 
 /// <summary>
@@ -12,6 +14,15 @@ public interface IDistributedApplicationEventing
     /// <param name="callback">A callback to handle the event.</param>
     /// <returns>A subscription instance which can be used to unsubscribe </returns>
     DistributedApplicationEventSubscription Subscribe<T>(Func<T, CancellationToken, Task> callback) where T : IDistributedApplicationEvent;
+
+    /// <summary>
+    /// Subscribes a callback to a specific event type 
+    /// </summary>
+    /// <typeparam name="T">The type of the event.</typeparam>
+    /// <param name="resource">The resource instance associated with the event.</param>
+    /// <param name="callback">A callback to handle the event.</param>
+    /// <returns>A subscription instance which can be used to unsubscribe.</returns>
+    DistributedApplicationEventSubscription Subscribe<T>(IResource resource, Func<T, CancellationToken, Task> callback) where T : IDistributedApplicationResourceEvent;
 
     /// <summary>
     /// Unsubscribe from an event.
