@@ -107,7 +107,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             TestResourceNames.oracledatabase => "oracledatabase",
             TestResourceNames.postgres or TestResourceNames.efnpgsql => "postgres",
             TestResourceNames.redis => "redis",
-            TestResourceNames.milvus => "milvus",
             _ => throw new ArgumentException($"Unknown resource: {resource}")
         };
 
@@ -142,8 +141,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             "eventhubs" => TestResourceNames.eventhubs,
             "basicservices" => TestResourceNames.redis
                               | TestResourceNames.postgres
-                              | TestResourceNames.efnpgsql
-                              | TestResourceNames.milvus,
+                              | TestResourceNames.efnpgsql,
             "" or null => TestResourceNames.All,
             _ => throw new ArgumentException($"Unknown test scenario '{TestScenario}'")
         };
