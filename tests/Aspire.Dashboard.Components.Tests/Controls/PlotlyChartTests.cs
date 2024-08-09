@@ -17,7 +17,7 @@ namespace Aspire.Dashboard.Components.Tests.Controls;
 [UseCulture("en-US")]
 public class PlotlyChartTests : TestContext
 {
-    private const string ContainerHtml = "<div id=\"plotly-chart-container\" style=\"width:650px; height:450px;\"></div>";
+    private static string GetContainerHtml(string divId) => $"""<div id="{divId}" class="plotly-chart-container" style="width:650px; height:450px;"></div>""";
 
     [Fact]
     public void Render_NoInstrument_NoPlotlyInvocations()
@@ -35,7 +35,7 @@ public class PlotlyChartTests : TestContext
         });
 
         // Assert
-        cut.MarkupMatches(ContainerHtml);
+        cut.MarkupMatches(GetContainerHtml(cut.Instance.ChartDivId));
 
         Assert.Collection(JSInterop.Invocations,
             i =>
@@ -74,10 +74,7 @@ public class PlotlyChartTests : TestContext
             TimeUnixNano = long.MaxValue
         }, options);
 
-        await model.UpdateDataAsync(instrument, new List<DimensionScope>
-        {
-            dimension
-        });
+        await model.UpdateDataAsync(instrument, [dimension]);
 
         // Act
         var cut = RenderComponent<PlotlyChart>(builder =>
@@ -88,7 +85,7 @@ public class PlotlyChartTests : TestContext
         });
 
         // Assert
-        cut.MarkupMatches(ContainerHtml);
+        cut.MarkupMatches(GetContainerHtml(cut.Instance.ChartDivId));
 
         Assert.Collection(JSInterop.Invocations,
             i =>
@@ -99,7 +96,7 @@ public class PlotlyChartTests : TestContext
             i =>
             {
                 Assert.Equal("initializeChart", i.Identifier);
-                Assert.Equal("plotly-chart-container", i.Arguments[0]);
+                Assert.Equal(cut.Instance.ChartDivId, i.Arguments[0]);
                 Assert.Collection((IEnumerable<PlotlyTrace>)i.Arguments[1]!, trace =>
                 {
                     Assert.Equal("Unit-&lt;b&gt;Bold&lt;/b&gt;", trace.Name);

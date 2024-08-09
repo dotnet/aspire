@@ -18,8 +18,11 @@
             MobileToolbarButtonText="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailMobileToolbarButtonText)]"
             IsSummaryDetailsViewOpen="@(SelectedSpan is not null)">
             <PageTitleSection>
+                @{
+                    var headerSpan = trace.RootSpan ?? trace.FirstSpan;
+                }
                 <div class="page-header">
-                    <h1 style="display:inline-block">@GetResourceName(trace.FirstSpan.Source): @trace.FirstSpan.Name</h1>
+                    <h1 style="display:inline-block">@GetResourceName(headerSpan.Source): @headerSpan.Name</h1>
                     <span class="trace-id">@OtlpHelpers.ToShortenedId(trace.TraceId)</span>
                 </div>
             </PageTitleSection>
