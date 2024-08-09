@@ -387,7 +387,7 @@ public class AddPostgresTests
     }
 
     [Fact]
-    public void WithRedisInsightSupportsChangingContainerImageValues()
+    public void WithPgWebSupportsChangingContainerImageValues()
     {
         var builder = DistributedApplication.CreateBuilder();
         builder.AddPostgres("mypostgres").WithPgWeb(c =>

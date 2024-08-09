@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 
@@ -15,7 +14,10 @@ internal sealed class PgWebConfigWriterHook : IDistributedApplicationLifecycleHo
         var serverFileMount = adminResource.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == "/.pgweb/bookmarks");
         var postgresInstances = appModel.Resources.OfType<PostgresDatabaseResource>();
 
-        var serverFileBuilder = new StringBuilder();
+        if (!Directory.Exists(serverFileMount.Source!))
+        {
+            Directory.CreateDirectory(serverFileMount.Source!);
+        }
 
         foreach (var postgresDatabase in postgresInstances)
         {
@@ -30,10 +32,6 @@ internal sealed class PgWebConfigWriterHook : IDistributedApplicationLifecycleHo
                 sslmode = "disable"
                 """;
 
-            if (!Directory.Exists(serverFileMount.Source!))
-            {
-                Directory.CreateDirectory(serverFileMount.Source!);
-            }
             var filePath = Path.Combine(serverFileMount.Source!, $"{postgresDatabase.Name}.toml");
             await File.WriteAllTextAsync(filePath, fileContent, cancellationToken).ConfigureAwait(false);
         }

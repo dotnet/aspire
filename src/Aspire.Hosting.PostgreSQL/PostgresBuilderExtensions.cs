@@ -153,7 +153,7 @@ public static class PostgresBuilderExtensions
     /// This version the package defaults to the latest tag of the sosedoff/pgweb container image.
     /// </remarks>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithPgWeb<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<PgWebContainerResource>>? configureContainer = null, string? containerName = null) where T : PostgresServerResource
+    public static IResourceBuilder<PostgresServerResource> WithPgWeb(this IResourceBuilder<PostgresServerResource> builder, Action<IResourceBuilder<PgWebContainerResource>>? configureContainer = null, string? containerName = null)
     {
 
         if (builder.ApplicationBuilder.Resources.OfType<PgWebContainerResource>().SingleOrDefault() is { } existingPgWebResource)
