@@ -47,7 +47,8 @@
 
         <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;$(_SetPathEnvVar)&quot;</PreCommands>
 
-        <Command>cd tests/%(FileName) %3B $(_TestRunCommand)</Command>
+        <!--<Command>cd tests/%(FileName) %3B $(_TestRunCommand)</Command>-->
+        <Command>chmod +x RunTests.sh; ./RunTests.sh</Command>
         <Timeout>00:15:00</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
