@@ -12,6 +12,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using k8s;
@@ -69,7 +70,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           DistributedApplicationExecutionContext executionContext,
                                           ResourceNotificationService notificationService,
                                           ResourceLoggerService loggerService,
-                                          IDcpDependencyCheckService dcpDependencyCheckService)
+                                          IDcpDependencyCheckService dcpDependencyCheckService,
+                                          IDistributedApplicationEventing eventing)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
@@ -1567,6 +1569,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
 
         await kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
+
+        var containerStartedEvent = new ContainerResourceStartedEvent(modelContainerResource);
+        await eventing.PublishAsync(containerStartedEvent, cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task ApplyBuildArgumentsAsync(Container dcpContainerResource, IResource modelContainerResource, CancellationToken cancellationToken)
