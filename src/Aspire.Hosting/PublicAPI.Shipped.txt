@@ -299,6 +299,9 @@ Aspire.Hosting.ApplicationModel.ResourceNotificationService
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.PublishUpdateAsync(Aspire.Hosting.ApplicationModel.IResource! resource, string! resourceId, System.Func<Aspire.Hosting.ApplicationModel.CustomResourceSnapshot!, Aspire.Hosting.ApplicationModel.CustomResourceSnapshot!>! stateFactory) -> System.Threading.Tasks.Task!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.PublishUpdateAsync(Aspire.Hosting.ApplicationModel.IResource! resource, System.Func<Aspire.Hosting.ApplicationModel.CustomResourceSnapshot!, Aspire.Hosting.ApplicationModel.CustomResourceSnapshot!>! stateFactory) -> System.Threading.Tasks.Task!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger) -> void
+Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
+Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, string? targetState = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, System.Collections.Generic.IEnumerable<string!>! targetStates, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WatchAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Aspire.Hosting.ApplicationModel.ResourceEvent!>!
 Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot
 Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot.Name.get -> string!
@@ -332,6 +335,7 @@ Aspire.Hosting.DistributedApplication.Run() -> void
 Aspire.Hosting.DistributedApplication.Services.get -> System.IServiceProvider!
 Aspire.Hosting.DistributedApplicationBuilder
 Aspire.Hosting.DistributedApplicationBuilder.AddResource<T>(T resource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+Aspire.Hosting.DistributedApplicationBuilder.AppHostAssembly.get -> System.Reflection.Assembly?
 Aspire.Hosting.DistributedApplicationBuilder.AppHostDirectory.get -> string!
 Aspire.Hosting.DistributedApplicationBuilder.Build() -> Aspire.Hosting.DistributedApplication!
 Aspire.Hosting.DistributedApplicationBuilder.Configuration.get -> Microsoft.Extensions.Configuration.ConfigurationManager!
@@ -347,10 +351,17 @@ Aspire.Hosting.DistributedApplicationException.DistributedApplicationException()
 Aspire.Hosting.DistributedApplicationException.DistributedApplicationException(string! message) -> void
 Aspire.Hosting.DistributedApplicationException.DistributedApplicationException(string! message, System.Exception! inner) -> void
 Aspire.Hosting.DistributedApplicationExecutionContext
+Aspire.Hosting.DistributedApplicationExecutionContext.DistributedApplicationExecutionContext(Aspire.Hosting.DistributedApplicationExecutionContextOptions! options) -> void
 Aspire.Hosting.DistributedApplicationExecutionContext.DistributedApplicationExecutionContext(Aspire.Hosting.DistributedApplicationOperation operation) -> void
 Aspire.Hosting.DistributedApplicationExecutionContext.IsPublishMode.get -> bool
 Aspire.Hosting.DistributedApplicationExecutionContext.IsRunMode.get -> bool
 Aspire.Hosting.DistributedApplicationExecutionContext.Operation.get -> Aspire.Hosting.DistributedApplicationOperation
+Aspire.Hosting.DistributedApplicationExecutionContext.ServiceProvider.get -> System.IServiceProvider!
+Aspire.Hosting.DistributedApplicationExecutionContextOptions
+Aspire.Hosting.DistributedApplicationExecutionContextOptions.DistributedApplicationExecutionContextOptions(Aspire.Hosting.DistributedApplicationOperation operation) -> void
+Aspire.Hosting.DistributedApplicationExecutionContextOptions.Operation.get -> Aspire.Hosting.DistributedApplicationOperation
+Aspire.Hosting.DistributedApplicationExecutionContextOptions.ServiceProvider.get -> System.IServiceProvider?
+Aspire.Hosting.DistributedApplicationExecutionContextOptions.ServiceProvider.set -> void
 Aspire.Hosting.DistributedApplicationOperation
 Aspire.Hosting.DistributedApplicationOperation.Publish = 1 -> Aspire.Hosting.DistributedApplicationOperation
 Aspire.Hosting.DistributedApplicationOperation.Run = 0 -> Aspire.Hosting.DistributedApplicationOperation
@@ -370,6 +381,7 @@ Aspire.Hosting.ExecutableResourceBuilderExtensions
 Aspire.Hosting.ExecutableResourceExtensions
 Aspire.Hosting.IDistributedApplicationBuilder
 Aspire.Hosting.IDistributedApplicationBuilder.AddResource<T>(T resource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+Aspire.Hosting.IDistributedApplicationBuilder.AppHostAssembly.get -> System.Reflection.Assembly?
 Aspire.Hosting.IDistributedApplicationBuilder.AppHostDirectory.get -> string!
 Aspire.Hosting.IDistributedApplicationBuilder.Build() -> Aspire.Hosting.DistributedApplication!
 Aspire.Hosting.IDistributedApplicationBuilder.Configuration.get -> Microsoft.Extensions.Configuration.ConfigurationManager!
@@ -389,6 +401,14 @@ Aspire.Hosting.Lifecycle.LifecycleHookServiceCollectionExtensions
 Aspire.Hosting.OtlpConfigurationExtensions
 Aspire.Hosting.ParameterResourceBuilderExtensions
 Aspire.Hosting.ProjectResourceBuilderExtensions
+Aspire.Hosting.ProjectResourceOptions
+Aspire.Hosting.ProjectResourceOptions.ExcludeKestrelEndpoints.get -> bool
+Aspire.Hosting.ProjectResourceOptions.ExcludeKestrelEndpoints.set -> void
+Aspire.Hosting.ProjectResourceOptions.ExcludeLaunchProfile.get -> bool
+Aspire.Hosting.ProjectResourceOptions.ExcludeLaunchProfile.set -> void
+Aspire.Hosting.ProjectResourceOptions.LaunchProfileName.get -> string?
+Aspire.Hosting.ProjectResourceOptions.LaunchProfileName.set -> void
+Aspire.Hosting.ProjectResourceOptions.ProjectResourceOptions() -> void
 Aspire.Hosting.Publishing.IDistributedApplicationPublisher
 Aspire.Hosting.Publishing.IDistributedApplicationPublisher.PublishAsync(Aspire.Hosting.ApplicationModel.DistributedApplicationModel! model, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 Aspire.Hosting.Publishing.ManifestPublishingContext
@@ -422,6 +442,7 @@ static Aspire.Hosting.ApplicationModel.ProjectResourceExtensions.GetProjectResou
 static Aspire.Hosting.ApplicationModel.ReferenceExpression.Create(in Aspire.Hosting.ApplicationModel.ReferenceExpression.ExpressionInterpolatedStringHandler handler) -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.GetEndpoint(this Aspire.Hosting.ApplicationModel.IResourceWithEndpoints! resource, string! endpointName) -> Aspire.Hosting.ApplicationModel.EndpointReference!
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.GetEndpoints(this Aspire.Hosting.ApplicationModel.IResourceWithEndpoints! resource) -> System.Collections.Generic.IEnumerable<Aspire.Hosting.ApplicationModel.EndpointReference!>!
+static Aspire.Hosting.ApplicationModel.ResourceExtensions.GetEnvironmentVariableValuesAsync(this Aspire.Hosting.ApplicationModel.IResourceWithEnvironment! resource, Aspire.Hosting.DistributedApplicationOperation applicationOperation = Aspire.Hosting.DistributedApplicationOperation.Run) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.Dictionary<string!, string!>!>
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.GetReplicaCount(this Aspire.Hosting.ApplicationModel.IResource! resource) -> int
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetAnnotationsOfType<T>(this Aspire.Hosting.ApplicationModel.IResource! resource, out System.Collections.Generic.IEnumerable<T>? result) -> bool
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetContainerImageName(this Aspire.Hosting.ApplicationModel.IResource! resource, out string? imageName) -> bool
@@ -432,11 +453,16 @@ static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetLastAnnotation<T
 static Aspire.Hosting.ApplicationModel.ResourceStateSnapshot.implicit operator Aspire.Hosting.ApplicationModel.ResourceStateSnapshot?(string? s) -> Aspire.Hosting.ApplicationModel.ResourceStateSnapshot?
 static Aspire.Hosting.ContainerResourceBuilderExtensions.AddContainer(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! image) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ContainerResource!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.AddContainer(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! image, string! tag) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ContainerResource!>!
+static Aspire.Hosting.ContainerResourceBuilderExtensions.AddDockerfile(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! contextPath, string? dockerfilePath = null, string? stage = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ContainerResource!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.PublishAsContainer<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithBindMount<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! source, string! target, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+static Aspire.Hosting.ContainerResourceBuilderExtensions.WithBuildArg<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+static Aspire.Hosting.ContainerResourceBuilderExtensions.WithBuildArg<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, object! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+static Aspire.Hosting.ContainerResourceBuilderExtensions.WithBuildSecret<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithContainerRuntimeArgs<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, params string![]! args) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithContainerRuntimeArgs<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, System.Action<Aspire.Hosting.ApplicationModel.ContainerRuntimeArgsCallbackContext!>! callback) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithContainerRuntimeArgs<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, System.Func<Aspire.Hosting.ApplicationModel.ContainerRuntimeArgsCallbackContext!, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+static Aspire.Hosting.ContainerResourceBuilderExtensions.WithDockerfile<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! contextPath, string? dockerfilePath = null, string? stage = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithEntrypoint<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! entrypoint) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithImage<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! image, string! tag = "latest") -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithImageRegistry<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! registry) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
@@ -467,9 +493,12 @@ static Aspire.Hosting.ParameterResourceBuilderExtensions.CreateGeneratedParamete
 static Aspire.Hosting.ParameterResourceBuilderExtensions.PublishAsConnectionString<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ProjectResourceBuilderExtensions.AddProject(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! projectPath) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
 static Aspire.Hosting.ProjectResourceBuilderExtensions.AddProject(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! projectPath, string? launchProfileName) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
+static Aspire.Hosting.ProjectResourceBuilderExtensions.AddProject(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! projectPath, System.Action<Aspire.Hosting.ProjectResourceOptions!>! configure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
 static Aspire.Hosting.ProjectResourceBuilderExtensions.AddProject<TProject>(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
 static Aspire.Hosting.ProjectResourceBuilderExtensions.AddProject<TProject>(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string? launchProfileName) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
+static Aspire.Hosting.ProjectResourceBuilderExtensions.AddProject<TProject>(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.ProjectResourceOptions!>! configure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
 static Aspire.Hosting.ProjectResourceBuilderExtensions.DisableForwardedHeaders(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>! builder) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
+static Aspire.Hosting.ProjectResourceBuilderExtensions.WithEndpointsInEnvironment(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>! builder, System.Func<Aspire.Hosting.ApplicationModel.EndpointAnnotation!, bool>! filter) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
 static Aspire.Hosting.ProjectResourceBuilderExtensions.WithReplicas(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>! builder, int replicas) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
 static Aspire.Hosting.ResourceBuilderExtensions.AsHttp2Service<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.ExcludeFromManifest<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
@@ -498,7 +527,13 @@ static Aspire.Hosting.ResourceBuilderExtensions.WithReference<TDestination>(this
 static Aspire.Hosting.ResourceBuilderExtensions.WithReference<TDestination>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>! builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IResourceWithConnectionString!>! source, string? connectionName = null, bool optional = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithReference<TDestination>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>! builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.IResourceWithServiceDiscovery!>! source) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithReference<TDestination>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>! builder, string! name, System.Uri! uri) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>!
+static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Exited -> string!
+static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.FailedToStart -> string!
+static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Finished -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Hidden -> string!
+static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Running -> string!
+static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Starting -> string!
+static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Stopping -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStateStyles.Error -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStateStyles.Info -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStateStyles.Success -> string!

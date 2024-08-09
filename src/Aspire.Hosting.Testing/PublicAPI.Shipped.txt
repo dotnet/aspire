@@ -2,6 +2,7 @@
 Aspire.Hosting.Testing.DistributedApplicationFactory
 Aspire.Hosting.Testing.DistributedApplicationFactory.CreateHttpClient(string! resourceName, string? endpointName = null) -> System.Net.Http.HttpClient!
 Aspire.Hosting.Testing.DistributedApplicationFactory.DistributedApplicationFactory(System.Type! entryPoint) -> void
+Aspire.Hosting.Testing.DistributedApplicationFactory.DistributedApplicationFactory(System.Type! entryPoint, string![]! args) -> void
 Aspire.Hosting.Testing.DistributedApplicationFactory.GetConnectionString(string! resourceName) -> System.Threading.Tasks.ValueTask<string?>
 Aspire.Hosting.Testing.DistributedApplicationFactory.GetEndpoint(string! resourceName, string? endpointName = null) -> System.Uri!
 Aspire.Hosting.Testing.DistributedApplicationFactory.StartAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -9,6 +10,7 @@ Aspire.Hosting.Testing.DistributedApplicationHostingTestingExtensions
 Aspire.Hosting.Testing.DistributedApplicationTestingBuilder
 Aspire.Hosting.Testing.IDistributedApplicationTestingBuilder
 Aspire.Hosting.Testing.IDistributedApplicationTestingBuilder.AddResource<T>(T resource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+Aspire.Hosting.Testing.IDistributedApplicationTestingBuilder.AppHostAssembly.get -> System.Reflection.Assembly?
 Aspire.Hosting.Testing.IDistributedApplicationTestingBuilder.AppHostDirectory.get -> string!
 Aspire.Hosting.Testing.IDistributedApplicationTestingBuilder.BuildAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Aspire.Hosting.DistributedApplication!>!
 Aspire.Hosting.Testing.IDistributedApplicationTestingBuilder.Configuration.get -> Microsoft.Extensions.Configuration.ConfigurationManager!
@@ -20,7 +22,9 @@ Aspire.Hosting.Testing.IDistributedApplicationTestingBuilder.Services.get -> Mic
 static Aspire.Hosting.Testing.DistributedApplicationHostingTestingExtensions.CreateHttpClient(this Aspire.Hosting.DistributedApplication! app, string! resourceName, string? endpointName = null) -> System.Net.Http.HttpClient!
 static Aspire.Hosting.Testing.DistributedApplicationHostingTestingExtensions.GetConnectionStringAsync(this Aspire.Hosting.DistributedApplication! app, string! resourceName, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<string?>
 static Aspire.Hosting.Testing.DistributedApplicationHostingTestingExtensions.GetEndpoint(this Aspire.Hosting.DistributedApplication! app, string! resourceName, string? endpointName = null) -> System.Uri!
+static Aspire.Hosting.Testing.DistributedApplicationTestingBuilder.CreateAsync(System.Type! entryPoint, string![]! args, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Aspire.Hosting.Testing.IDistributedApplicationTestingBuilder!>!
 static Aspire.Hosting.Testing.DistributedApplicationTestingBuilder.CreateAsync(System.Type! entryPoint, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Aspire.Hosting.Testing.IDistributedApplicationTestingBuilder!>!
+static Aspire.Hosting.Testing.DistributedApplicationTestingBuilder.CreateAsync<TEntryPoint>(string![]! args, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Aspire.Hosting.Testing.IDistributedApplicationTestingBuilder!>!
 static Aspire.Hosting.Testing.DistributedApplicationTestingBuilder.CreateAsync<TEntryPoint>(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Aspire.Hosting.Testing.IDistributedApplicationTestingBuilder!>!
 virtual Aspire.Hosting.Testing.DistributedApplicationFactory.Dispose() -> void
 virtual Aspire.Hosting.Testing.DistributedApplicationFactory.DisposeAsync() -> System.Threading.Tasks.ValueTask
