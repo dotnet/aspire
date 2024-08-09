@@ -295,7 +295,7 @@ public class DashboardResourceTests
     }
 
     [Fact]
-    public async Task DashboardResource_OtlpGrpcEndpoint_CorsEnvVarSet()
+    public async Task DashboardResource_OtlpGrpcEndpoint_CorsEnvVarNotSet()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(options => options.DisableDashboard = false);
