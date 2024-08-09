@@ -87,9 +87,13 @@
       <_UsingCentralPackageManagement>true</_UsingCentralPackageManagement>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(AppHostVersion)' != ''">
+      <__CurrentAppHostVersionMessage> You are using version $(AppHostVersion).</__CurrentAppHostVersionMessage>
+    </PropertyGroup>
+
     <!-- At this point, we should have the version either by CPM or PackageReference, so we fail if not.  -->
-    <Error Condition=" '$(AppHostVersion)' == '' " Text="You must have a reference to
-  Aspire.Hosting.AppHost in your AppHost project." />
+    <Error Condition="'$(AppHostVersion)' == '' or $([MSBuild]::VersionLessThan('$(AppHostVersion)', '8.2.0'))" 
+    Text="$(MSBuildProjectName) is a .NET Aspire AppHost project that needs a package reference to Aspire.Hosting.AppHost version 8.2.0 or above to work correctly.$(__CurrentAppHostVersionMessage)" />
 
     <!-- If not using CPM, then directly add the two PackageReferences -->
     <ItemGroup Condition=" '$(AppHostVersion)' != '' and '$(_UsingCentralPackageManagement)' != 'true' ">
