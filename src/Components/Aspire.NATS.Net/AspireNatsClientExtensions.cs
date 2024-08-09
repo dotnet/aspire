@@ -35,6 +35,7 @@ public static class AspireNatsClientExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(connectionName);
+        
         AddNatsClient(builder, configurationSectionName: DefaultConfigSectionName, connectionName: connectionName, serviceKey: null, configureSettings: configureSettings, configureOptions: configureOptions);
     }
 
