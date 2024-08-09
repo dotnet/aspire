@@ -36,7 +36,7 @@ Vedere https://aka.ms/dotnet/aspire/containers per altri dettagli sui runtime de
       </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
         <source>Application orchestrator dependency check returned an error: {0}</source>
-        <target state="needs-review-translation">Si è verificato un errore imprevisto durante il controllo delle dipendenze dell'agente di orchestrazione dell'applicazione: {0}.</target>
+        <target state="translated">Il controllo delle dipendenze dell'agente di orchestrazione dell'applicazione ha restituito un errore: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">
