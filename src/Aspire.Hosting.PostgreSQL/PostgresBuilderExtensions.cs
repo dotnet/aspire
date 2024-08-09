@@ -167,23 +167,23 @@ public static class PostgresBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<PostgresDatabaseResource> WithDatabaseInitialization(this IResourceBuilder<PostgresDatabaseResource> builder)
     {
-        builder.ApplicationBuilder.Eventing.Subscribe<ContainerResourceStartedEvent>(async (@event, cancellationToken) =>
+        builder.ApplicationBuilder.Eventing.Subscribe<ContainerResourceStartedEvent>(builder.Resource.Parent, async (@event, cancellationToken) =>
         {
-            if (@event.Resource != builder.Resource.Parent)
-            {
-                return;
-            }
-
             var connectionString = await builder.Resource.Parent.ConnectionStringExpression.GetValueAsync(cancellationToken).ConfigureAwait(false);
             var connection = new NpgsqlConnection(connectionString);
 
-            // TODO: Replace with Polly retry loop.
+            // TODO: Use Polly.
             await Task.Delay(10000, cancellationToken).ConfigureAwait(false);
 
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
             var createDatabaseCommand = connection.CreateCommand();
             createDatabaseCommand.CommandText = $"CREATE DATABASE {builder.Resource.DatabaseName};";
             await createDatabaseCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        });
+
+        builder.ApplicationBuilder.Eventing.Subscribe<ContainerResourceStartedEvent>((@event, cancellationToken) =>
+        {
+            return Task.CompletedTask;
         });
 
         return builder;

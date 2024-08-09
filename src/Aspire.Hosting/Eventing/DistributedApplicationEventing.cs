@@ -1,3 +1,5 @@
+using Aspire.Hosting.ApplicationModel;
+
 namespace Aspire.Hosting.Eventing;
 
 internal class DistributedApplicationEventing : IDistributedApplicationEventing
@@ -33,6 +35,19 @@ internal class DistributedApplicationEventing : IDistributedApplicationEventing
         }
 
         return subscription;
+    }
+
+    public DistributedApplicationEventSubscription Subscribe<T>(IResource resource, Func<T, CancellationToken, Task> callback) where T : IDistributedApplicationResourceEvent
+    {
+        var resourceFilteredCallback = async (T @event, CancellationToken cancellationToken) =>
+        {
+            if (@event.Resource == resource)
+            {
+                await callback(@event, cancellationToken).ConfigureAwait(false);
+            }
+        };
+
+        return Subscribe(resourceFilteredCallback);
     }
 
     public void Unsubscribe(DistributedApplicationEventSubscription subscription)
