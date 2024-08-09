@@ -16,7 +16,7 @@
     <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Yarp" />
     <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
     <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Dns" />
-    <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
+    <ProjectReference Include="..\TestShop.ServiceDefaults\TestShop.ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>

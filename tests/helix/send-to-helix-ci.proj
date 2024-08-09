@@ -5,6 +5,8 @@
       <!-- no docker on windows -->
       <TestCategory Condition="'$(OS)' != 'Windows_NT'" Include="endtoendtests" />
       <TestCategory Include="workloadtests" />
+      <!-- no docker on windows -->
+      <TestCategory Condition="'$(OS)' != 'Windows_NT'" Include="buildonhelixtests" />
 
       <AdditionalProperties Condition="'$(Configuration)' != ''" Include="Configuration=$(Configuration)" />
       <_ProjectsToBuild Include="send-to-helix-inner.proj"
