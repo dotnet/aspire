@@ -52,9 +52,9 @@ public static class ProjectResourceBuilderExtensions
     /// Example of adding a project to the application model.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice");
-    /// 
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
@@ -64,7 +64,7 @@ public static class ProjectResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a .NET project to the application model. 
+    /// Adds a .NET project to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
@@ -82,9 +82,9 @@ public static class ProjectResourceBuilderExtensions
     /// Add a project to the app model via a project path.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// builder.AddProject("inventoryservice", @"..\InventoryService\InventoryService.csproj");
-    /// 
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
@@ -125,9 +125,9 @@ public static class ProjectResourceBuilderExtensions
     /// Example of adding a project to the application model.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice", launchProfileName: "otherLaunchProfile");
-    /// 
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
@@ -160,9 +160,9 @@ public static class ProjectResourceBuilderExtensions
     /// Add a project to the app model via a project path.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// builder.AddProject("inventoryservice", @"..\InventoryService\InventoryService.csproj", launchProfileName: "otherLaunchProfile");
-    /// 
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
@@ -205,9 +205,9 @@ public static class ProjectResourceBuilderExtensions
     /// Example of adding a project to the application model.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice", options => { options.LaunchProfileName = "otherLaunchProfile"; });
-    /// 
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
@@ -241,9 +241,9 @@ public static class ProjectResourceBuilderExtensions
     /// Add a project to the app model via a project path.
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// builder.AddProject("inventoryservice", @"..\InventoryService\InventoryService.csproj", options => { options.LaunchProfileName = "otherLaunchProfile"; });
-    /// 
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
@@ -295,6 +295,11 @@ public static class ProjectResourceBuilderExtensions
                     context.EnvironmentVariables[AspNetCoreForwardedHeadersEnabledVariableName] = "true";
                 }
             });
+        }
+
+        if (builder.ApplicationBuilder.Configuration.GetBool("DOTNET_WATCH") is true)
+        {
+            builder.WithAnnotation(new DotnetWatchAnnotation(false));
         }
 
         if (options.ExcludeLaunchProfile)
