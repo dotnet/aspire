@@ -1,8 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
+
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -20,7 +23,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         ArgumentNullException.ThrowIfNull(valueProviders);
         ArgumentNullException.ThrowIfNull(manifestExpressions);
 
-        Format = format;
+        Format = ReferenceExpressionParser.ParseFormat(format);
         ValueProviders = valueProviders;
         _manifestExpressions = manifestExpressions;
     }
