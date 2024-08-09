@@ -276,8 +276,20 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         return false;
     }
 
-    private string? GetRowClass(ResourceViewModel resource)
+    private string GetRowClass(ResourceViewModel resource)
         => resource == SelectedResource ? "selected-row resource-row" : "resource-row";
+
+    private string GetGridTemplateColumns()
+    {
+        if (ViewportInformation.IsDesktop)
+        {
+            return HasResourcesWithCommands ? "1fr 1.5fr 1.25fr 1.5fr 2.5fr 2.5fr 1fr 1fr 1fr" : "1fr 1.5fr 1.25fr 1.5fr 2.5fr 2.5fr 1fr 1fr";
+        }
+        else
+        {
+            return HasResourcesWithCommands ? "1fr 1.5fr 1.25fr 1fr 1fr" : "1fr 1.5fr 1.25fr 1fr";
+        }
+    }
 
     private async Task ExecuteResourceCommandAsync(ResourceViewModel resource, CommandViewModel command)
     {

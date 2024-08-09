@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -45,6 +46,9 @@ public partial class TraceDetail : ComponentBase
 
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; init; }
 
     protected override void OnInitialized()
     {
@@ -244,6 +248,11 @@ public partial class TraceDetail : ComponentBase
         }
 
         return string.Empty;
+    }
+
+    private string GetGridTemplateColumns()
+    {
+        return ViewportInformation.IsDesktop ? "4fr 12fr 85px" : "4fr 12fr";
     }
 
     public SpanDetailsViewModel? SelectedSpan { get; set; }
