@@ -116,11 +116,15 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
                             var db = redisClient.GetDatabase();
 
                             await db.StringSetAsync("key", "value");
+                            var value = await db.StringGetAsync("key");
 
+                            Assert.Equal("value", value);
                             // Force Redis to save the keys (snapshotting)
                             // c.f. https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/
 
-                            await redisClient.GetServers().First().SaveAsync(SaveType.BackgroundSave);
+#pragma warning disable CS0618 // Type or member is obsolete
+                            await redisClient.GetServers().First().SaveAsync(SaveType.ForegroundSave);
+#pragma warning restore CS0618 // Type or member is obsolete
 
                         }, cts.Token);
                     }
@@ -151,7 +155,7 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration[$"ConnectionStrings:{garnet2.Resource.Name}"] = $"{await garnet2.Resource.ConnectionStringExpression.GetValueAsync(default)},allowAdmin = true";
+                    hb.Configuration[$"ConnectionStrings:{garnet2.Resource.Name}"] = $"{await garnet2.Resource.ConnectionStringExpression.GetValueAsync(default)}";
 
                     hb.AddRedisClient("garnet");
 
