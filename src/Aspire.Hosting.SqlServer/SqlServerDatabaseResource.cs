@@ -11,7 +11,7 @@ public class SqlServerDatabaseResource : Resource, IResourceWithParent<SqlServer
     /// <summary>
     /// Gets the parent SQL Server container resource.
     /// </summary>
-    public SqlServerServerResource Parent { get; init; }
+    public SqlServerServerResource Parent { get; }
 
     /// <summary>
     /// Gets the connection string expression for the SQL Server database.
@@ -22,7 +22,7 @@ public class SqlServerDatabaseResource : Resource, IResourceWithParent<SqlServer
     /// <summary>
     /// Gets the database name.
     /// </summary>
-    public string DatabaseName { get; init; }
+    public string DatabaseName { get; }
 
     /// <param name="name">The name of the resource.</param>
     /// <param name="databaseName">The database name.</param>
