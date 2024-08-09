@@ -6,10 +6,14 @@ using Microsoft.Extensions.Hosting;
 var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddRedis("redis1");
+var keycloak = builder.AddKeycloak("keycloak", 8080)
+                      .WithDataVolume()
+                      .WithRealmImport("../realms");
 builder.AddProject<Projects.TestingAppHost1_MyWebApp>("mywebapp1")
     .WithEndpoint("http", ea => ea.IsProxied = false)
     .WithEndpoint("https", ea => ea.IsProxied = false)
-    .WithExternalHttpEndpoints();
+    .WithExternalHttpEndpoints()
+    .WithReference(keycloak);
 builder.AddProject<Projects.TestingAppHost1_MyWorker>("myworker1")
     .WithEndpoint(name: "myendpoint1");
 builder.AddPostgres("postgres1");
