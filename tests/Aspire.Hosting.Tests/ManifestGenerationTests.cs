@@ -420,7 +420,8 @@ public class ManifestGenerationTests
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
                     "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
                     "ConnectionStrings__cosmos": "{cosmos.connectionString}",
-                    "ConnectionStrings__eventhubns": "{eventhubns.connectionString}"
+                    "ConnectionStrings__eventhubns": "{eventhubns.connectionString}",
+                    "ConnectionStrings__milvus": "{milvus.connectionString}"
                   },
                   "bindings": {
                     "http": {
@@ -509,6 +510,31 @@ public class ManifestGenerationTests
                     "principalType": ""
                   }
                 },
+                "milvus": {
+                  "type": "container.v0",
+                  "connectionString": "Endpoint={milvus.bindings.grpc.url};Key=root:{milvus-key.value}",
+                  "image": "{{TestConstants.AspireTestContainerRegistry}}/milvusdb/milvus:v2.4.7",
+                  "args": [
+                    "milvus",
+                    "run",
+                    "standalone"
+                  ],
+                  "env": {
+                    "COMMON_STORAGETYPE": "local",
+                    "ETCD_USE_EMBED": "true",
+                    "ETCD_DATA_DIR": "/var/lib/milvus/etcd",
+                    "COMMON_SECURITY_AUTHORIZATIONENABLED": "true",
+                    "COMMON_SECURITY_DEFAULTROOTPASSWORD": "{milvus-key.value}"
+                  },
+                  "bindings": {
+                    "grpc": {
+                      "scheme": "http",
+                      "protocol": "tcp",
+                      "transport": "http2",
+                      "targetPort": 19530
+                    }
+                  }
+                },
                 "postgres-password": {
                   "type": "parameter.v0",
                   "value": "{postgres-password.inputs.value}",
@@ -527,6 +553,21 @@ public class ManifestGenerationTests
                 "oracledatabase-password": {
                   "type": "parameter.v0",
                   "value": "{oracledatabase-password.inputs.value}",
+                  "inputs": {
+                    "value": {
+                      "type": "string",
+                      "secret": true,
+                      "default": {
+                        "generate": {
+                          "minLength": 22
+                        }
+                      }
+                    }
+                  }
+                },
+                "milvus-key": {
+                  "type": "parameter.v0",
+                  "value": "{milvus-key.inputs.value}",
                   "inputs": {
                     "value": {
                       "type": "string",
