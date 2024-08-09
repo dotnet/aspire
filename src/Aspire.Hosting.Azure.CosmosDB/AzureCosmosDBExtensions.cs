@@ -149,7 +149,7 @@ public static class AzureCosmosExtensions
     {
         if (count < 1 || count > 250)
         {
-            throw new ArgumentOutOfRangeException(nameof(count), "Count must be between 1 and 250.");
+            throw new ArgumentOutOfRangeException(nameof(count), count, "Count must be between 1 and 250.");
         }
 
         return builder.WithEnvironment("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", count.ToString(CultureInfo.InvariantCulture));
