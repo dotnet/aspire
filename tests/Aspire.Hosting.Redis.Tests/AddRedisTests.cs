@@ -122,6 +122,16 @@ public class AddRedisTests
     }
 
     [Fact]
+    public void WithRedisInsightAddsWithRedisInsightResource()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddRedis("myredis1").WithRedisInsight();
+        builder.AddRedis("myredis2").WithRedisInsight();
+
+        Assert.Single(builder.Resources.OfType<RedisInsightResource>());
+    }
+
+    [Fact]
     public void WithRedisCommanderSupportsChangingContainerImageValues()
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -140,6 +150,24 @@ public class AddRedisTests
     }
 
     [Fact]
+    public void WithRedisInsightSupportsChangingContainerImageValues()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddRedis("myredis").WithRedisInsight(c =>
+        {
+            c.WithImageRegistry("example.mycompany.com");
+            c.WithImage("customrediscommander");
+            c.WithImageTag("someothertag");
+        });
+
+        var resource = Assert.Single(builder.Resources.OfType<RedisInsightResource>());
+        var containerAnnotation = Assert.Single(resource.Annotations.OfType<ContainerImageAnnotation>());
+        Assert.Equal("example.mycompany.com", containerAnnotation.Registry);
+        Assert.Equal("customrediscommander", containerAnnotation.Image);
+        Assert.Equal("someothertag", containerAnnotation.Tag);
+    }
+
+    [Fact]
     public void WithRedisCommanderSupportsChangingHostPort()
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -149,6 +177,20 @@ public class AddRedisTests
         });
 
         var resource = Assert.Single(builder.Resources.OfType<RedisCommanderResource>());
+        var endpoint = Assert.Single(resource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(1000, endpoint.Port);
+    }
+
+    [Fact]
+    public void WithRedisInsightSupportsChangingHostPort()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddRedis("myredis").WithRedisInsight(c =>
+        {
+            c.WithHostPort(1000);
+        });
+
+        var resource = Assert.Single(builder.Resources.OfType<RedisInsightResource>());
         var endpoint = Assert.Single(resource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(1000, endpoint.Port);
     }

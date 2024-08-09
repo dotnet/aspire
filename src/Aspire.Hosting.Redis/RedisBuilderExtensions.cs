@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -71,12 +72,64 @@ public static class RedisBuilderExtensions
     }
 
     /// <summary>
+    /// Configures a container resource for Redis Insight which is pre-configured to connect to the <see cref="RedisResource"/> that this method is used on.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the <see cref="RedisResource"/>.</param>
+    /// <param name="configureContainer">Configuration callback for Redis Insight container resource.</param>
+    /// <param name="containerName">Override the container name used for Redis Insight.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<RedisResource> WithRedisInsight(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<RedisInsightResource>>? configureContainer = null, string? containerName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        if (builder.ApplicationBuilder.Resources.OfType<RedisInsightResource>().SingleOrDefault() is { } existingRedisCommanderResource)
+        {
+            var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingRedisCommanderResource);
+            configureContainer?.Invoke(builderForExistingResource);
+            return builder;
+        }
+        else
+        {
+            builder.ApplicationBuilder.Services.AddHttpClient();
+            builder.ApplicationBuilder.Services.TryAddLifecycleHook<RedisInsightConfigWriterHook>();
+            containerName ??= $"{builder.Resource.Name}-insight";
+
+            var resource = new RedisInsightResource(containerName);
+            var resourceBuilder = builder.ApplicationBuilder.AddResource(resource)
+                                      .WithImage(RedisContainerImageTags.RedisInsightImage, RedisContainerImageTags.RedisInsightTag)
+                                      .WithImageRegistry(RedisContainerImageTags.RedisInsightRegistry)
+                                      .WithHttpEndpoint(targetPort: 5540, name: "http")
+                                      .ExcludeFromManifest();
+
+            configureContainer?.Invoke(resourceBuilder);
+
+            return builder;
+        }
+    }
+
+    /// <summary>
     /// Configures the host port that the Redis Commander resource is exposed on instead of using randomly assigned port.
     /// </summary>
     /// <param name="builder">The resource builder for Redis Commander.</param>
     /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
-    /// <returns>The resource builder for PGAdmin.</returns>
+    /// <returns>The resource builder for RedisCommander.</returns>
     public static IResourceBuilder<RedisCommanderResource> WithHostPort(this IResourceBuilder<RedisCommanderResource> builder, int? port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithEndpoint("http", endpoint =>
+        {
+            endpoint.Port = port;
+        });
+    }
+
+    /// <summary>
+    /// Configures the host port that the Redis Insight resource is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">The resource builder for Redis Insight.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    /// <returns>The resource builder for RedisInsight.</returns>
+    public static IResourceBuilder<RedisInsightResource> WithHostPort(this IResourceBuilder<RedisInsightResource> builder, int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);
 

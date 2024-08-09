@@ -11,4 +11,7 @@ internal static class RedisContainerImageTags
     public const string RedisCommanderRegistry = "docker.io";
     public const string RedisCommanderImage = "rediscommander/redis-commander";
     public const string RedisCommanderTag = "latest";
+    public const string RedisInsightRegistry = "docker.io";
+    public const string RedisInsightImage = "redis/redisinsight";
+    public const string RedisInsightTag = "2.54";
 }
