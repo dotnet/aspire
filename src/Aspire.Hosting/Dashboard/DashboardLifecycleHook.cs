@@ -169,17 +169,13 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                     .OfType<EndpointAnnotation>()
                     .ToList();
 
-                var corsOrigins = new HashSet<string>();
+                var corsOrigins = new HashSet<string>(StringComparers.UrlHost);
                 foreach (var endpoint in allResourceEndpoints)
                 {
                     if (endpoint.UriScheme is "http" or "https")
                     {
                         // Prefer allocated endpoint over EndpointAnnotation.Port.
                         var origin = endpoint.AllocatedEndpoint?.UriString;
-                        if (origin == null && endpoint.Port != null)
-                        {
-                            origin = $"{endpoint.UriScheme}://localhost:{endpoint.Port}";
-                        }
                         var targetOrigin = (endpoint.TargetPort != null)
                             ? $"{endpoint.UriScheme}://localhost:{endpoint.TargetPort}"
                             : null;
@@ -195,8 +191,11 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
                     }
                 }
 
-                context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName] = string.Join(',', corsOrigins);
-                context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.EnvVarName] = "*";
+                if (corsOrigins.Count > 0)
+                {
+                    context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName] = string.Join(',', corsOrigins);
+                    context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.EnvVarName] = "*";
+                }
             }
 
             // Configure frontend browser token

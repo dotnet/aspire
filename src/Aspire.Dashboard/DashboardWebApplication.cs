@@ -161,7 +161,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     builder.AllowAnyMethod();
                 });
 
-                options.AddPolicy("OtlpHttp", builder =>
+                options.AddPolicy(OtlpHttpEndpointsBuilder.CorsPolicyName, builder =>
                 {
                     var corsOptions = dashboardOptions.Otlp.Cors;
 

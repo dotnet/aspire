@@ -286,11 +286,16 @@ public class DashboardResourceTests
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
+        // Hack in an AllocatedEndpoint. This is what is used to build the list of CORS endpoints.
+        var container = Assert.Single(model.Resources.Where(r => r.Name == "my-container"));
+        var endpointAnnotation = Assert.Single(container.Annotations.OfType<EndpointAnnotation>());
+        endpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(endpointAnnotation, "localhost", 8081);
+
         var dashboard = Assert.Single(model.Resources.Where(r => r.Name == "aspire-dashboard"));
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(dashboard, DistributedApplicationOperation.Run, app.Services);
 
-        Assert.Equal("http://localhost:8080,http://localhost:58080", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName).Value);
+        Assert.Equal("http://localhost:8081,http://localhost:58080", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName).Value);
         Assert.Equal("*", config.Single(e => e.Key == DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.EnvVarName).Value);
     }
 

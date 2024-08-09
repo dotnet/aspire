@@ -20,6 +20,7 @@ public static class OtlpHttpEndpointsBuilder
 {
     public const string ProtobufContentType = "application/x-protobuf";
     public const string JsonContentType = "application/json";
+    public const string CorsPolicyName = "OtlpHttpCors";
 
     public static void MapHttpOtlpApi(this IEndpointRouteBuilder endpoints, OtlpOptions options)
     {
@@ -36,7 +37,7 @@ public static class OtlpHttpEndpointsBuilder
 
         if (!string.IsNullOrEmpty(options.Cors.AllowedOrigins))
         {
-            group = group.RequireCors("OtlpHttp");
+            group = group.RequireCors(CorsPolicyName);
         }
 
         group.MapPost("logs", static (MessageBindable<ExportLogsServiceRequest> request, OtlpLogsService service) =>
