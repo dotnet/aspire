@@ -152,7 +152,14 @@ public static class KeycloakResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(importDirectory);
 
+        var importDirectoryFullPath = Path.GetFullPath(importDirectory, builder.ApplicationBuilder.AppHostDirectory);
+        if (!Directory.Exists(importDirectoryFullPath))
+        {
+            throw new DirectoryNotFoundException($"The realm import directory {importDirectory} does not exist under {builder.ApplicationBuilder.AppHostDirectory} .");
+        }
+
         builder.WithBindMount(importDirectory, RealmImportDirectory, isReadOnly);
+
         return builder;
     }
 }
