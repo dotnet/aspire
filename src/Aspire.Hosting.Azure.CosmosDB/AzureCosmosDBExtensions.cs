@@ -3,11 +3,13 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.CosmosDB;
 using Azure.Provisioning.KeyVaults;
 using Azure.ResourceManager.CosmosDB.Models;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 
 namespace Aspire.Hosting;
 
@@ -111,6 +113,16 @@ public static class AzureCosmosExtensions
     }
 
     /// <summary>
+    /// Adds a named volume for the data folder to an Azure Cosmos DB emulator resource.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="AzureCosmosDBEmulatorResource"/>.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
+    /// <returns>A builder for the <see cref="AzureCosmosDBEmulatorResource"/>.</returns>
+    public static IResourceBuilder<AzureCosmosDBEmulatorResource> WithDataVolume(this IResourceBuilder<AzureCosmosDBEmulatorResource> builder, string? name = null)
+        => builder.WithEnvironment("AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE", "true")
+                  .WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/tmp/cosmos/appdata", isReadOnly: false);
+
+    /// <summary>
     /// Configures the gateway port for the Azure Cosmos DB emulator.
     /// </summary>
     /// <param name="builder">Builder for the Cosmos emulator container</param>
@@ -122,6 +134,25 @@ public static class AzureCosmosExtensions
         {
             endpoint.Port = port;
         });
+    }
+
+    /// <summary>
+    /// Configures the partition count for the Azure Cosmos DB emulator.
+    /// </summary>
+    /// <param name="builder">Builder for the Cosmos emulator container</param>
+    /// <param name="count">Desired partition count.</param>
+    /// <returns>Cosmos emulator resource builder.</returns>
+    /// <remarks>Not calling this method will result in the default of 25 partitions. The actual started partitions is always one more than specified.
+    /// See <a href="https://learn.microsoft.com/en-us/azure/cosmos-db/emulator-windows-arguments#change-the-number-of-default-containers">this documentation</a> about setting the partition count.
+    /// </remarks>
+    public static IResourceBuilder<AzureCosmosDBEmulatorResource> WithPartitionCount(this IResourceBuilder<AzureCosmosDBEmulatorResource> builder, int count)
+    {
+        if (count < 1 || count > 250)
+        {
+            throw new ArgumentOutOfRangeException(nameof(count), count, "Count must be between 1 and 250.");
+        }
+
+        return builder.WithEnvironment("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", count.ToString(CultureInfo.InvariantCulture));
     }
 
     /// <summary>
