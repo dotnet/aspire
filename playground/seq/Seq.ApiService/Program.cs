@@ -13,6 +13,8 @@ var app = builder.Build();
 
 ActivitySource source = new("MyApp.Source");
 
+app.MapDefaultEndpoints();
+
 app.MapGet("/", () =>
 {
     var min = 1;

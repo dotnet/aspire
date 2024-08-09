@@ -12,6 +12,7 @@ builder.AddMongoDBClient("mongo");
 
 var app = builder.Build();
 
+app.MapDefaultEndpoints();
 app.MapGet("/", async (IMongoClient mongoClient) =>
 {
     const string collectionName = "entries";
