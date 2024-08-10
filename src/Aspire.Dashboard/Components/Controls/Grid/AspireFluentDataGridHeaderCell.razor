@@ -9,18 +9,18 @@
             {
                 if (Grid.SortByAscending == true)
                 {
-                    <FluentIcon Value="@(new Icons.Regular.Size16.ArrowSortUp())" Slot="@(Column.Align == Align.End ? "start" : "end")" Style="opacity: 0.5; margin-left: -10px;"/>
+                    <FluentIcon Value="@(new Icons.Regular.Size16.ArrowSortUp())" Slot="@(Column.Align == Align.End ? "start" : "end")" Style="opacity: 0.5; margin-left: -5px;"/>
                 }
                 else
                 {
-                    <FluentIcon Value="@(new Icons.Regular.Size16.ArrowSortDown())" Slot="@(Column.Align == Align.End ? "start" : "end")" Style="opacity: 0.5; margin-left: -10px;"/>
+                    <FluentIcon Value="@(new Icons.Regular.Size16.ArrowSortDown())" Slot="@(Column.Align == Align.End ? "start" : "end")" Style="opacity: 0.5; margin-left: -5px;"/>
                 }
             }
             @if (Grid.ResizeType is not null && Column.ColumnOptions is not null)
             {
                 @if (Column.Filtered.GetValueOrDefault())
                 {
-                    <FluentIcon Value="@(new Icons.Regular.Size16.Filter())" Slot="@(Column.Align == Align.End ? "start" : "end")" Style="opacity: 0.5; margin-left: -10px;"/>
+                    <FluentIcon Value="@(new Icons.Regular.Size16.Filter())" Slot="@(Column.Align == Align.End ? "start" : "end")" Style="opacity: 0.5; margin-left: -5px;"/>
                 }
             }
         </FluentButton>

@@ -14,6 +14,9 @@ public partial class AspireFluentDataGridHeaderCell<T> : ComponentBase
     [Parameter]
     public required FluentDataGrid<T> Grid { get; set; }
 
+    [Inject]
+    public required IStringLocalizer<ControlsStrings> Loc { get; init; }
+
     private bool _isMenuOpen;
     private readonly string _columnId = $"column-header{Guid.NewGuid():N}";
 
@@ -32,21 +35,21 @@ public partial class AspireFluentDataGridHeaderCell<T> : ComponentBase
         _isMenuOpen = !_isMenuOpen;
     }
 
-    private string GetSortOptionText(IStringLocalizer<ControlsStrings> loc)
+    private string GetSortOptionText()
     {
         if (Grid.SortByAscending.HasValue && Column.ShowSortIcon)
         {
             if (Grid.SortByAscending is true)
             {
-                return loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortDescendingLabel)];
+                return Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortDescendingLabel)];
             }
             else
             {
-                return loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortAscendingLabel)];
+                return Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortAscendingLabel)];
             }
         }
 
-        return loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortLabel)];
+        return Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortLabel)];
     }
 }
 

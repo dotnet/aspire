@@ -102,6 +102,26 @@
         <target state="translated">Afficher les valeurs</target>
         <note />
       </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellResizeLabel">
+        <source>Column width (in pixels)</source>
+        <target state="new">Column width (in pixels)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellSortAscendingLabel">
+        <source>Sort (ascending)</source>
+        <target state="new">Sort (ascending)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellSortDescendingLabel">
+        <source>Sort (descending)</source>
+        <target state="new">Sort (descending)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FluentDataGridHeaderCellSortLabel">
+        <source>Sort</source>
+        <target state="new">Sort</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GridValueCopied">
         <source>Copied!</source>
         <target state="translated">Copié !</target>
