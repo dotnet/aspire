@@ -506,5 +506,29 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("PageToolbarLandmark", resourceCulture);
             }
         }
+        
+        public static string FluentDataGridHeaderCellResizeLabel {
+            get {
+                return ResourceManager.GetString("FluentDataGridHeaderCellResizeLabel", resourceCulture);
+            }
+        }
+        
+        public static string FluentDataGridHeaderCellSortLabel {
+            get {
+                return ResourceManager.GetString("FluentDataGridHeaderCellSortLabel", resourceCulture);
+            }
+        }
+        
+        public static string FluentDataGridHeaderCellSortAscendingLabel {
+            get {
+                return ResourceManager.GetString("FluentDataGridHeaderCellSortAscendingLabel", resourceCulture);
+            }
+        }
+        
+        public static string FluentDataGridHeaderCellSortDescendingLabel {
+            get {
+                return ResourceManager.GetString("FluentDataGridHeaderCellSortDescendingLabel", resourceCulture);
+            }
+        }
     }
 }
