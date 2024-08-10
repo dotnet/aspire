@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Azure.Messaging.EventHubs;
@@ -35,7 +35,7 @@ internal sealed class EventHubBufferedProducerClientComponent : EventHubsCompone
 
                     return !string.IsNullOrEmpty(settings.ConnectionString)
                         ? new EventHubBufferedProducerClient(settings.ConnectionString, options)
-                        : new EventHubBufferedProducerClient(settings.Namespace, settings.EventHubName, cred, options);
+                        : new EventHubBufferedProducerClient(settings.FullyQualifiedNamespace, settings.EventHubName, cred, options);
                 }, requiresCredential: false);
     }
 }
