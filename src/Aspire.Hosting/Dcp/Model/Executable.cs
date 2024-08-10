@@ -113,10 +113,6 @@ internal static class ExecutableState
 
 internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStatus>
 {
-    [Obsolete] public const string CSharpProjectPathAnnotation = "csharp-project-path";
-    [Obsolete] public const string CSharpLaunchProfileAnnotation = "csharp-launch-profile";
-    [Obsolete] public const string CSharpDisableLaunchProfileAnnotation = "csharp-disable-launch-profile";
-
     public const string LaunchConfigurationsAnnotation = "executable.usvc-dev.developer.microsoft.com/launch-configurations";
 
     [JsonConstructor]
