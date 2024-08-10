@@ -1,4 +1,5 @@
-﻿@using Aspire.Dashboard.Model
+﻿@using Aspire.Dashboard.Components.Controls.Grid
+@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
@@ -115,7 +116,10 @@
                         @FilteredSpanLinks.Count()
                     </FluentBadge>
                 </div>
-                <FluentDataGrid TGridItem="SpanLinkViewModel"
+                <FluentDataGrid @ref="_linksGrid"
+                                ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
+                                ResizeType="DataGridResizeType.Exact"
+                                TGridItem="SpanLinkViewModel"
                                 Items="@FilteredSpanLinks"
                                 Style="width:100%"
                                 GenerateHeader="GenerateHeaderOption.Sticky"
@@ -135,7 +139,10 @@
                         @FilteredSpanBacklinks.Count()
                     </FluentBadge>
                 </div>
-                <FluentDataGrid TGridItem="SpanLinkViewModel"
+                <FluentDataGrid @ref="_backlinksGrid"
+                                ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
+                                ResizeType="DataGridResizeType.Exact"
+                                TGridItem="SpanLinkViewModel"
                                 Items="@FilteredSpanBacklinks"
                                 Style="width:100%"
                                 GenerateHeader="GenerateHeaderOption.Sticky"

@@ -5,6 +5,7 @@
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using System.Globalization
+@using Aspire.Dashboard.Components.Controls.Grid
 @inject IJSRuntime JS
 @inject IStringLocalizer<Dashboard.Resources.Traces> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
@@ -31,7 +32,10 @@
         </ToolbarSection>
         <MainSection>
             <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
-                <FluentDataGrid Virtualize="true"
+                <FluentDataGrid @ref="_grid"
+                                ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
+                                ResizeType="DataGridResizeType.Exact"
+                                Virtualize="true"
                                 GenerateHeader="GenerateHeaderOption.Sticky"
                                 ItemSize="46"
                                 ResizableColumns="true"

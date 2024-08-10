@@ -24,6 +24,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     private List<SelectViewModel<ResourceTypeDetails>> _applicationViewModels = default!;
     private Subscription? _applicationsSubscription;
     private Subscription? _metricsSubscription;
+    private FluentDataGrid<OtlpInstrument> _selectMeterGrid;
+
 
     public string BasePath => DashboardUrls.MetricsBasePath;
     public string SessionStorageKey => "Metrics_PageState";

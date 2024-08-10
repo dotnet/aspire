@@ -4,6 +4,7 @@
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using System.Globalization
+@using Aspire.Dashboard.Components.Controls.Grid
 @using Humanizer
 @inject IStringLocalizer<Dashboard.Resources.Resources> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
@@ -73,7 +74,10 @@
                     @{
                         var gridTemplateColumns = HasResourcesWithCommands ? "1fr 1.5fr 1.25fr 1.5fr 2.5fr 2.5fr 1fr 1fr 1fr" : "1fr 1.5fr 1.25fr 1.5fr 2.5fr 2.5fr 1fr 1fr";
                     }
-                    <FluentDataGrid Virtualize="true"
+                    <FluentDataGrid @ref="_grid"
+                                    ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
+                                    ResizeType="DataGridResizeType.Exact"
+                                    Virtualize="true"
                                     GenerateHeader="GenerateHeaderOption.Sticky"
                                     ItemSize="46"
                                     Items="@FilteredResources"
@@ -86,32 +90,32 @@
                                     OnRowClick="@(r => r.ExecuteOnDefault(d => ShowResourceDetailsAsync(d, buttonId: null)))"
                                     Class="enable-row-click">
                         <ChildContent>
-                            <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeColumnHeader)]" Property="@(c => c.ResourceType)" Sortable="true" Tooltip="true" TooltipText="@(c => c.ResourceType)" />
-                            <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort" Tooltip="true" TooltipText="@(c => GetResourceName(c))">
+                            <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeColumnHeader)]" Property="@(c => c.ResourceType)" Sortable="true" Tooltip="true" TooltipText="@(c => c.ResourceType)" HeaderCellItemTemplate="@AspireFluentDataGridHeaderCell.RenderHeaderContent(_grid)" />
+                            <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort" Tooltip="true" TooltipText="@(c => GetResourceName(c))" HeaderCellItemTemplate="@AspireFluentDataGridHeaderCell.RenderHeaderContent(_grid)">
                                 <ResourceNameDisplay Resource="context" FilterText="@_filter" FormatName="GetResourceName" />
                             </TemplateColumn>
-                            <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStateColumnHeader)]" Sortable="true" SortBy="@_stateSort" Tooltip="true" TooltipText="@(c => c.State.Humanize())">
+                            <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStateColumnHeader)]" Sortable="true" SortBy="@_stateSort" Tooltip="true" TooltipText="@(c => c.State.Humanize())" HeaderCellItemTemplate="@AspireFluentDataGridHeaderCell.RenderHeaderContent(_grid)">
                                 <StateColumnDisplay Resource="@context" UnviewedErrorCounts="@_applicationUnviewedErrorCounts" />
                             </TemplateColumn>
-                            <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStartTimeColumnHeader)]" Sortable="true" SortBy="@_startTimeSort" TooltipText="@(context => context.CreationTimeStamp != null ? FormatHelpers.FormatDateTime(TimeProvider, context.CreationTimeStamp.Value, MillisecondsDisplay.None, CultureInfo.CurrentCulture) : null)" Tooltip="true">
+                            <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStartTimeColumnHeader)]" Sortable="true" SortBy="@_startTimeSort" TooltipText="@(context => context.CreationTimeStamp != null ? FormatHelpers.FormatDateTime(TimeProvider, context.CreationTimeStamp.Value, MillisecondsDisplay.None, CultureInfo.CurrentCulture) : null)" Tooltip="true" HeaderCellItemTemplate="@AspireFluentDataGridHeaderCell.RenderHeaderContent(_grid)">
                                 <StartTimeColumnDisplay Resource="@context" />
                             </TemplateColumn>
-                            <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesSourceColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetSourceColumnValueAndTooltip(ctx)?.Tooltip)">
+                            <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesSourceColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetSourceColumnValueAndTooltip(ctx)?.Tooltip)" HeaderCellItemTemplate="@AspireFluentDataGridHeaderCell.RenderHeaderContent(_grid)">
                                 @if (GetSourceColumnValueAndTooltip(context) is { } columnDisplay)
                                 {
                                     <SourceColumnDisplay Resource="context" FilterText="@_filter" Value="@columnDisplay.Value" ContentAfterValue="@columnDisplay.ContentAfterValue" ValueToCopy="@columnDisplay.ValueToCopy" Tooltip="@columnDisplay.Tooltip" />
                                 }
                             </TemplateColumn>
-                            <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEndpointsColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetEndpointsTooltip(ctx))">
+                            <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEndpointsColumnHeader)]" Tooltip="true" TooltipText="@(ctx => GetEndpointsTooltip(ctx))" HeaderCellItemTemplate="@AspireFluentDataGridHeaderCell.RenderHeaderContent(_grid)">
                                 <EndpointsColumnDisplay Resource="context"
                                                         HasMultipleReplicas="HasMultipleReplicas(context)"
                                                         DisplayedEndpoints="@GetDisplayedEndpoints(context, out var additionalMessage)"
                                                         AdditionalMessage="@additionalMessage" />
                             </TemplateColumn>
-                            <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesLogsColumnHeader)]" Class="no-ellipsis">
+                            <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesLogsColumnHeader)]" Class="no-ellipsis" HeaderCellItemTemplate="@AspireFluentDataGridHeaderCell.RenderHeaderContent(_grid)">
                                 <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(resource: context.Name)" @onclick:stopPropagation="true">@ControlsStringsLoc[ControlsStrings.ViewAction]</FluentAnchor>
                             </TemplateColumn>
-                            <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesDetailsColumnHeader)]" Sortable="false" Class="no-ellipsis">
+                            <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesDetailsColumnHeader)]" Sortable="false" Class="no-ellipsis" HeaderCellItemTemplate="@AspireFluentDataGridHeaderCell.RenderHeaderContent(_grid)">
                                 @{
                                     var id = $"details-button-{context.Uid}";
                                 }
@@ -124,7 +128,7 @@
                             </TemplateColumn>
                             @if (HasResourcesWithCommands)
                             {
-                                <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesCommandsColumnHeader)]">
+                                <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesCommandsColumnHeader)]" HeaderCellItemTemplate="@AspireFluentDataGridHeaderCell.RenderHeaderContent(_grid)">
                                     <div @onclick:stopPropagation="true">
                                         <ResourceCommands Commands="@context.Commands"
                                                           CommandSelected="async (command) => await ExecuteResourceCommandAsync(context, command)" />

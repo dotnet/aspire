@@ -61,6 +61,8 @@ public partial class PropertyGrid<TItem>
     [Parameter]
     public GenerateHeaderOption GenerateHeader { get; set; } = GenerateHeaderOption.Sticky;
 
+    private FluentDataGrid<TItem>? _grid;
+
     public readonly record struct PropertyGridIsMaskedChangedArgs(TItem Item, bool NewValue);
 
     private async Task OnIsMaskedChanged(TItem item, bool newValue)

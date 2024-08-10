@@ -32,6 +32,8 @@ public partial class ResourceDetails
 
     private bool _showAll;
     private ResourceViewModel? _resource;
+    private FluentDataGrid<SummaryValue>? _resourceDetailsGrid;
+    private FluentDataGrid<DisplayedEndpoint>? _resourceEndpointsGrid;
 
     private IQueryable<EnvironmentVariableViewModel> FilteredItems =>
         Resource.Environment.Where(vm =>

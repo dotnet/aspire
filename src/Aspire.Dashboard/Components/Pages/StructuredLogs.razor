@@ -7,6 +7,7 @@
 @using Microsoft.Extensions.Logging
 @using Aspire.Dashboard.Resources
 @using System.Globalization
+@using Aspire.Dashboard.Components.Controls.Grid
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -102,7 +103,10 @@
                 <Summary>
                     <div class="logs-summary-layout">
                         <div class="logs-grid-container continuous-scroll-overflow">
-                            <FluentDataGrid Virtualize="true"
+                            <FluentDataGrid @ref="_grid"
+                                            ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
+                                            ResizeType="DataGridResizeType.Exact"
+                                            Virtualize="true"
                                             RowClass="@GetRowClass"
                                             GenerateHeader="GenerateHeaderOption.Sticky"
                                             ItemSize="46"

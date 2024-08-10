@@ -3,6 +3,7 @@
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using System.Globalization
+@using Aspire.Dashboard.Components.Controls.Grid
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @inject IStringLocalizer<Dashboard.Resources.TraceDetail> Loc
@@ -62,7 +63,10 @@
                         </div>
                     </DetailsTitleTemplate>
                     <Summary>
-                        <FluentDataGrid Virtualize="true"
+                        <FluentDataGrid @ref="_grid"
+                                        ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlStringsLoc)"
+                                        ResizeType="DataGridResizeType.Exact"
+                                        Virtualize="true"
                                         GenerateHeader="GenerateHeaderOption.Sticky"
                                         Class="trace-view-grid enable-row-click"
                                         ResizableColumns="true"

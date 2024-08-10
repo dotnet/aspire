@@ -1,5 +1,6 @@
 ﻿@namespace Aspire.Dashboard.Components
 
+@using Aspire.Dashboard.Components.Controls.Grid
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Model
@@ -10,7 +11,12 @@
     {
         <div class="metrics-filters-section">
             <h5>@Loc[nameof(ControlsStrings.ChartContainerFiltersHeader)]</h5>
-            <FluentDataGrid Items="@Queryable.AsQueryable(DimensionFilters)" GridTemplateColumns="200px 1fr auto" GenerateHeader="GenerateHeaderOption.None">
+            <FluentDataGrid @ref="_grid"
+                            ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
+                            ResizeType="DataGridResizeType.Exact"
+                            Items="@Queryable.AsQueryable(DimensionFilters)"
+                            GridTemplateColumns="200px 1fr auto"
+                            GenerateHeader="GenerateHeaderOption.None">
                 <ChildContent>
                     <PropertyColumn Tooltip="true" TooltipText="@(c => c.Name)" Property="@(c => c.Name)"/>
                     <TemplateColumn Tooltip="true" TooltipText="@(c => c.SelectedValues.Count == 0 ? Loc[nameof(ControlsStrings.None)] : string.Join(", ", c.SelectedValues.Select(v => v.Name)))">

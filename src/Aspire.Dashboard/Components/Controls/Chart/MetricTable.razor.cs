@@ -27,6 +27,7 @@ public partial class MetricTable : ChartBase
     private DateTimeOffset? _lastUpdate;
 
     private IQueryable<MetricViewBase> _metricsView => _metrics.Values.AsEnumerable().Reverse().ToList().AsQueryable();
+    private FluentDataGrid<MetricViewBase>? _grid;
 
     [Inject]
     public required IJSRuntime JS { get; init; }

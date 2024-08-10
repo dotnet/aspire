@@ -35,6 +35,7 @@ public partial class ExemplarsDialog : IDisposable
 
     public IQueryable<ChartExemplar> MetricView => Content.Exemplars.AsQueryable();
 
+    private FluentDataGrid<ChartExemplar>? _grid;
     private readonly CancellationTokenSource _cts = new();
 
     public async Task OnViewDetailsAsync(ChartExemplar exemplar)

@@ -1,10 +1,12 @@
 ﻿@namespace Aspire.Dashboard.Components.Controls
 
-@using Aspire.Dashboard.Extensions
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using System.Globalization
+@using Aspire.Dashboard.Components.Controls.Grid
+
 @inherits Aspire.Dashboard.Components.Controls.Chart.ChartBase
+@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
 @{
     // these colors line up with P50/P90/P99 colors for the plotly graph
@@ -19,6 +21,9 @@
 <div id="metric-table-container" style="height: 40vh; overflow-y: auto; margin-bottom: 20px; max-width:1200px;">
     @* ItemKey is to preserve row focus by associating rows with their associated time *@
     <FluentDataGrid
+        @ref="_grid"
+        ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
+        ResizeType="DataGridResizeType.Exact"
         Items="@_metricsView"
         ItemSize="46"
         Virtualize="true"

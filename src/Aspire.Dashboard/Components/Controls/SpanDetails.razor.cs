@@ -46,6 +46,9 @@ public partial class SpanDetails : IDisposable
 
     private string _filter = "";
     private List<KeyValuePair<string, string>> _contextAttributes = null!;
+    private FluentDataGrid<SpanLinkViewModel>? _linksGrid;
+    private FluentDataGrid<SpanLinkViewModel>? _backlinksGrid;
+
     private readonly CancellationTokenSource _cts = new();
 
     private readonly GridSort<SpanPropertyViewModel> _nameSort = GridSort<SpanPropertyViewModel>.ByAscending(vm => vm.Name);

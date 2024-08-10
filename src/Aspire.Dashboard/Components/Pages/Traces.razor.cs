@@ -32,6 +32,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
     private CancellationTokenSource? _filterCts;
     private string _filter = string.Empty;
     private AspirePageContentLayout? _contentLayout;
+    private FluentDataGrid<OtlpTrace>? _grid;
 
     public string SessionStorageKey => "Traces_PageState";
     public string BasePath => DashboardUrls.TracesBasePath;
