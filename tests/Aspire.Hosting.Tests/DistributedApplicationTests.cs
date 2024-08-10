@@ -4,12 +4,15 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Utils;
 using Aspire.Hosting.Testing;
+using Aspire.Hosting.Testing.Tests;
 using Aspire.Hosting.Tests.Helpers;
+using Aspire.Hosting.Tests.Utils;
+using Aspire.Hosting.Utils;
 using k8s.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -18,8 +21,6 @@ using Microsoft.Extensions.Options;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
-using Aspire.Components.Common.Tests;
-using Aspire.Hosting.Testing.Tests;
 
 namespace Aspire.Hosting.Tests;
 
@@ -261,7 +262,7 @@ public class DistributedApplicationTests
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task SpecifyingEnvPortInEndpointFlowsToEnv()
     {
-        using var testProgram = CreateTestProgram(includeNodeApp: true, randomizePorts: false);
+        using var testProgram = CreateTestProgram(randomizePorts: false);
 
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
@@ -270,6 +271,9 @@ public class DistributedApplicationTests
 
         testProgram.AppBuilder.AddContainer("redis0", "redis")
             .WithEndpoint(targetPort: 6379, name: "tcp", env: "REDIS_PORT");
+
+        testProgram.AppBuilder.AddNodeApp("nodeapp", "fakePath")
+            .WithHttpEndpoint(port: 5031, env: "PORT");
 
         await using var app = testProgram.Build();
 
@@ -532,7 +536,7 @@ public class DistributedApplicationTests
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task KubernetesHasResourceNameForContainersAndExes()
     {
-        using var testProgram = CreateTestProgram(includeIntegrationServices: true, includeNodeApp: true);
+        using var testProgram = CreateTestProgram(includeIntegrationServices: true);
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         await using var app = testProgram.Build();
@@ -550,8 +554,6 @@ public class DistributedApplicationTests
             "serviceb",
             "servicec",
             "workera",
-            "nodeapp",
-            "npmapp",
             "integrationservicea"
         };
 
@@ -562,7 +564,6 @@ public class DistributedApplicationTests
             "mongodb",
             "oracledatabase",
             "cosmos",
-            "sqlserver",
             "mysql",
             "rabbitmq",
             "kafka"
@@ -755,6 +756,9 @@ public class DistributedApplicationTests
         using var app = builder.Build();
         await app.StartAsync();
 
+        // Wait for the application to be ready
+        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+
         // Wait until the service itself starts.
         using var clientA = app.CreateHttpClient(servicea.Resource.Name, "http");
         await clientA.GetStringAsync("/");
@@ -845,13 +849,11 @@ public class DistributedApplicationTests
     private static TestProgram CreateTestProgram(
         string[]? args = null,
         bool includeIntegrationServices = false,
-        bool includeNodeApp = false,
         bool disableDashboard = true,
         bool randomizePorts = true) =>
         TestProgram.Create<DistributedApplicationTests>(
             args,
             includeIntegrationServices: includeIntegrationServices,
-            includeNodeApp: includeNodeApp,
             disableDashboard: disableDashboard,
             randomizePorts: randomizePorts);
 }

@@ -65,7 +65,7 @@ public static class ElasticsearchBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a named volume for the data folder to a Elasticseach container resource.
+    /// Adds a named volume for the data folder to a Elasticsearch container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
@@ -92,7 +92,7 @@ public static class ElasticsearchBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a bind mount for the data folder to a Elasticseach container resource.
+    /// Adds a bind mount for the data folder to a Elasticsearch container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>

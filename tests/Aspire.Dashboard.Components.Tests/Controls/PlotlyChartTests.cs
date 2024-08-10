@@ -1,14 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
-using Aspire.Dashboard.Otlp.Storage;
 using Bunit;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.FluentUI.AspNetCore.Components;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using Xunit;
@@ -18,19 +16,13 @@ namespace Aspire.Dashboard.Components.Tests.Controls;
 [UseCulture("en-US")]
 public class PlotlyChartTests : TestContext
 {
-    private const string ContainerHtml = "<div id=\"plotly-chart-container\" style=\"width:650px; height:450px;\"></div>";
+    private static string GetContainerHtml(string divId) => $"""<div id="{divId}" class="plotly-chart-container" style="width:650px; height:450px;"></div>""";
 
     [Fact]
     public void Render_NoInstrument_NoPlotlyInvocations()
     {
         // Arrange
-        JSInterop.SetupModule("/js/app-metrics.js");
-
-        Services.AddLocalization();
-        Services.AddSingleton<IInstrumentUnitResolver, TestInstrumentUnitResolver>();
-        Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
-        Services.AddSingleton<TelemetryRepository>();
-        Services.AddSingleton<IDialogService, DialogService>();
+        MetricsSetupHelpers.SetupPlotlyChart(this);
 
         var model = new InstrumentViewModel();
 
@@ -41,7 +33,7 @@ public class PlotlyChartTests : TestContext
         });
 
         // Assert
-        cut.MarkupMatches(ContainerHtml);
+        cut.MarkupMatches(GetContainerHtml(cut.Instance.ChartDivId));
 
         Assert.Collection(JSInterop.Invocations,
             i =>
@@ -55,14 +47,7 @@ public class PlotlyChartTests : TestContext
     public async Task Render_HasInstrument_InitializeChartInvocation()
     {
         // Arrange
-        var module = JSInterop.SetupModule("/js/app-metrics.js");
-        module.SetupVoid("initializeChart", _ => true);
-
-        Services.AddLocalization();
-        Services.AddSingleton<IInstrumentUnitResolver, TestInstrumentUnitResolver>();
-        Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
-        Services.AddSingleton<TelemetryRepository>();
-        Services.AddSingleton<IDialogService, DialogService>();
+        MetricsSetupHelpers.SetupPlotlyChart(this);
 
         var options = new TelemetryLimitOptions();
         var instrument = new OtlpInstrument
@@ -87,10 +72,7 @@ public class PlotlyChartTests : TestContext
             TimeUnixNano = long.MaxValue
         }, options);
 
-        await model.UpdateDataAsync(instrument, new List<DimensionScope>
-        {
-            dimension
-        });
+        await model.UpdateDataAsync(instrument, [dimension]);
 
         // Act
         var cut = RenderComponent<PlotlyChart>(builder =>
@@ -100,7 +82,7 @@ public class PlotlyChartTests : TestContext
         });
 
         // Assert
-        cut.MarkupMatches(ContainerHtml);
+        cut.MarkupMatches(GetContainerHtml(cut.Instance.ChartDivId));
 
         Assert.Collection(JSInterop.Invocations,
             i =>
@@ -111,7 +93,7 @@ public class PlotlyChartTests : TestContext
             i =>
             {
                 Assert.Equal("initializeChart", i.Identifier);
-                Assert.Equal("plotly-chart-container", i.Arguments[0]);
+                Assert.Equal(cut.Instance.ChartDivId, i.Arguments[0]);
                 Assert.Collection((IEnumerable<PlotlyTrace>)i.Arguments[1]!, trace =>
                 {
                     Assert.Equal("Unit-&lt;b&gt;Bold&lt;/b&gt;", trace.Name);
