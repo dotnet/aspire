@@ -29,6 +29,7 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.NodeJs" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Testing" />
 
+    <ProjectReference Include="$(PlaygroundSourceDir)ParameterEndToEnd/**/*AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
     <ProjectReference Include="$(PlaygroundSourceDir)SqlServerEndToEnd/**/*AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
     <ProjectReference Include="$(PlaygroundSourceDir)Elasticsearch/**/*AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
     <ProjectReference Include="$(PlaygroundSourceDir)PostgresEndToEnd/**/*AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
