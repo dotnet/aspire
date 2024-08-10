@@ -59,7 +59,7 @@ var serviceBus = builder.AddAzureServiceBus("sb")
                         .AddTopic("topic1", ["subscription1", "subscription2"])
                         .AddTopic("topic2", ["subscription1"]);
 var signalr = builder.AddAzureSignalR("signalr");
-
+var webpubsub = builder.AddAzureWebPubSub("wps");
 builder.AddProject<Projects.BicepSample_ApiService>("api")
        .WithExternalHttpEndpoints()
        .WithReference(sqlServer)
@@ -74,6 +74,7 @@ builder.AddProject<Projects.BicepSample_ApiService>("api")
        .WithReference(redis)
        .WithReference(serviceBus)
        .WithReference(signalr)
+       .WithReference(webpubsub)
        .WithEnvironment("bicepValue_test", bicep1.GetOutput("test"))
        .WithEnvironment("bicepValue0", bicep1.GetOutput("val0"))
        .WithEnvironment("bicepValue1", bicep1.GetOutput("val1"));

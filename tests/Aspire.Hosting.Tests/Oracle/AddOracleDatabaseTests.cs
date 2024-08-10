@@ -12,6 +12,26 @@ namespace Aspire.Hosting.Tests.Oracle;
 public class AddOracleTests
 {
     [Fact]
+    public void AddOracleAddsGeneratedPasswordParameterWithUserSecretsParameterDefaultInRunMode()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create();
+
+        var orcl = appBuilder.AddOracle("orcl");
+
+        Assert.IsType<UserSecretsParameterDefault>(orcl.Resource.PasswordParameter.Default);
+    }
+
+    [Fact]
+    public void AddOracleDoesNotAddGeneratedPasswordParameterWithUserSecretsParameterDefaultInPublishMode()
+    {
+        using var appBuilder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var orcl = appBuilder.AddOracle("orcl");
+
+        Assert.IsNotType<UserSecretsParameterDefault>(orcl.Resource.PasswordParameter.Default);
+    }
+
+    [Fact]
     public async Task AddOracleWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
@@ -38,7 +58,7 @@ public class AddOracleTests
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Collection(config,
             env =>
@@ -78,7 +98,7 @@ public class AddOracleTests
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Collection(config,
             env =>
@@ -161,7 +181,7 @@ public class AddOracleTests
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Collection(config,
             env =>

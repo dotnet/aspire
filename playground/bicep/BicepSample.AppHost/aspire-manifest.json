@@ -165,6 +165,15 @@
         "principalType": ""
       }
     },
+    "wps": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{wps.outputs.endpoint}",
+      "path": "wps.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": ""
+      }
+    },
     "api": {
       "type": "project.v0",
       "path": "../BicepSample.ApiService/BicepSample.ApiService.csproj",
@@ -173,6 +182,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{api.bindings.http.targetPort}",
         "ConnectionStrings__db": "{db.connectionString}",
         "ConnectionStrings__db2": "{db2.connectionString}",
         "ConnectionStrings__cosmos": "{cosmos.connectionString}",
@@ -185,6 +195,7 @@
         "ConnectionStrings__redis": "{redis.connectionString}",
         "ConnectionStrings__sb": "{sb.connectionString}",
         "ConnectionStrings__signalr": "{signalr.connectionString}",
+        "ConnectionStrings__wps": "{wps.connectionString}",
         "bicepValue_test": "{test.outputs.test}",
         "bicepValue0": "{test.outputs.val0}",
         "bicepValue1": "{test.outputs.val1}"

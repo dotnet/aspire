@@ -16,7 +16,7 @@ public static class RabbitMQBuilderExtensions
     /// Adds a RabbitMQ container to the application model.
     /// </summary>
     /// <remarks>
-    /// The default image and tag are "rabbitmq" and "3".
+    /// The default image and tag are "rabbitmq" and "3.13".
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -30,6 +30,9 @@ public static class RabbitMQBuilderExtensions
         IResourceBuilder<ParameterResource>? password = null,
         int? port = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         // don't use special characters in the password, since it goes into a URI
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special: false);
 
@@ -55,9 +58,12 @@ public static class RabbitMQBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RabbitMQServerResource> WithDataVolume(this IResourceBuilder<RabbitMQServerResource> builder, string? name = null, bool isReadOnly = false)
-        => builder
-            .WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/rabbitmq", isReadOnly)
-            .RunWithStableNodeName();
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/rabbitmq", isReadOnly)
+                      .RunWithStableNodeName();
+    }
 
     /// <summary>
     /// Adds a bind mount for the data folder to a RabbitMQ container resource.
@@ -67,8 +73,13 @@ public static class RabbitMQBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RabbitMQServerResource> WithDataBindMount(this IResourceBuilder<RabbitMQServerResource> builder, string source, bool isReadOnly = false)
-        => builder.WithBindMount(source, "/var/lib/rabbitmq", isReadOnly)
-                  .RunWithStableNodeName();
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+
+        return builder.WithBindMount(source, "/var/lib/rabbitmq", isReadOnly)
+                      .RunWithStableNodeName();
+    }
 
     /// <summary>
     /// Configures the RabbitMQ container resource to enable the RabbitMQ management plugin.
@@ -82,6 +93,26 @@ public static class RabbitMQBuilderExtensions
     /// <exception cref="DistributedApplicationException">Thrown when the current container image and tag do not match the defaults for <see cref="RabbitMQServerResource"/>.</exception>
     public static IResourceBuilder<RabbitMQServerResource> WithManagementPlugin(this IResourceBuilder<RabbitMQServerResource> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithManagementPlugin(port: null);
+    }
+
+    /// <inheritdoc cref="WithManagementPlugin(IResourceBuilder{RabbitMQServerResource})" />
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="port">The host port that can be used to access the management UI page when running locally.</param>
+    /// <example>
+    /// Use <see cref="WithManagementPlugin(IResourceBuilder{RabbitMQServerResource}, int?)"/> to specify a port to access the RabbitMQ management UI page.
+    /// <code>
+    /// var rabbitmq = builder.AddRabbitMQ("rabbitmq")
+    ///                       .WithDataVolume()
+    ///                       .WithManagementPlugin(port: 15672);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<RabbitMQServerResource> WithManagementPlugin(this IResourceBuilder<RabbitMQServerResource> builder, int? port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
         var handled = false;
         var containerAnnotations = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().ToList();
 
@@ -128,7 +159,7 @@ public static class RabbitMQBuilderExtensions
 
         if (handled)
         {
-            builder.WithHttpEndpoint(targetPort: 15672, name: RabbitMQServerResource.ManagementEndpointName);
+            builder.WithHttpEndpoint(port: port, targetPort: 15672, name: RabbitMQServerResource.ManagementEndpointName);
             return builder;
         }
 
@@ -166,7 +197,7 @@ public static class RabbitMQBuilderExtensions
         for (var i = 1; i < tag.Length; i++)
         {
             var c = tag[i];
-            
+
             if (!(char.IsAsciiDigit(c) || c == '.') // Interim chars must be digits or a period
                 || !lastCharIsDigit && c == '.') // '.' can only follow a digit
             {

@@ -4,6 +4,8 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Text;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Model;
 using Google.Protobuf.Collections;
@@ -27,7 +29,7 @@ public sealed class TelemetryRepository
     private readonly List<Subscription> _metricsSubscriptions = new();
     private readonly List<Subscription> _tracesSubscriptions = new();
 
-    private readonly ConcurrentDictionary<string, OtlpApplication> _applications = new();
+    private readonly ConcurrentDictionary<ApplicationKey, OtlpApplication> _applications = new();
 
     private readonly ReaderWriterLockSlim _logsLock = new();
     private readonly Dictionary<string, OtlpScope> _logScopes = new();
@@ -38,7 +40,14 @@ public sealed class TelemetryRepository
     private readonly ReaderWriterLockSlim _tracesLock = new();
     private readonly Dictionary<string, OtlpScope> _traceScopes = new();
     private readonly CircularBuffer<OtlpTrace> _traces;
+    private readonly List<OtlpSpanLink> _spanLinks = new();
     private readonly DashboardOptions _dashboardOptions;
+
+    public bool HasDisplayedMaxLogLimitMessage { get; set; }
+    public bool HasDisplayedMaxTraceLimitMessage { get; set; }
+
+    // For testing.
+    internal List<OtlpSpanLink> SpanLinks => _spanLinks;
 
     public TelemetryRepository(ILoggerFactory loggerFactory, IOptions<DashboardOptions> dashboardOptions)
     {
@@ -47,6 +56,19 @@ public sealed class TelemetryRepository
 
         _logs = new(_dashboardOptions.TelemetryLimits.MaxLogCount);
         _traces = new(_dashboardOptions.TelemetryLimits.MaxTraceCount);
+        _traces.ItemRemovedForCapacity += TracesItemRemovedForCapacity;
+    }
+
+    private void TracesItemRemovedForCapacity(OtlpTrace trace)
+    {
+        // Remove links from central collection when the span is removed.
+        foreach (var span in trace.Spans)
+        {
+            foreach (var link in span.Links)
+            {
+                _spanLinks.Remove(link);
+            }
+        }
     }
 
     public List<OtlpApplication> GetApplications()
@@ -56,13 +78,26 @@ public sealed class TelemetryRepository
         {
             applications.Add(kvp.Value);
         }
-        applications.Sort((a, b) => string.Compare(a.ApplicationName, b.ApplicationName, StringComparison.OrdinalIgnoreCase));
+        applications.Sort((a, b) => a.ApplicationKey.CompareTo(b.ApplicationKey));
         return applications;
     }
 
-    public OtlpApplication? GetApplication(string instanceId)
+    public OtlpApplication? GetApplicationByCompositeName(string compositeName)
     {
-        _applications.TryGetValue(instanceId, out var application);
+        foreach (var kvp in _applications)
+        {
+            if (kvp.Key.EqualsCompositeName(compositeName))
+            {
+                return kvp.Value;
+            }
+        }
+
+        return null;
+    }
+
+    public OtlpApplication? GetApplication(ApplicationKey key)
+    {
+        _applications.TryGetValue(key, out var application);
         return application;
     }
 
@@ -80,40 +115,13 @@ public sealed class TelemetryRepository
         }
     }
 
-    public int GetUnviewedErrorLogsCount(string? instanceId)
-    {
-        _logsLock.EnterReadLock();
-
-        try
-        {
-            if (string.IsNullOrEmpty(instanceId))
-            {
-                return _applicationUnviewedErrorLogs.Sum(kvp => kvp.Value);
-            }
-            var application = GetApplications().FirstOrDefault(a => a.InstanceId == instanceId);
-            if (application is not null)
-            {
-                _applicationUnviewedErrorLogs.TryGetValue(application, out var count);
-                return count;
-            }
-            else
-            {
-                return 0;
-            }
-        }
-        finally
-        {
-            _logsLock.ExitReadLock();
-        }
-    }
-
-    internal void MarkViewedErrorLogs(string? instanceId)
+    internal void MarkViewedErrorLogs(ApplicationKey? key)
     {
         _logsLock.EnterWriteLock();
 
         try
         {
-            if (string.IsNullOrEmpty(instanceId))
+            if (key == null)
             {
                 // Mark all logs as viewed.
                 if (_applicationUnviewedErrorLogs.Count > 0)
@@ -123,7 +131,7 @@ public sealed class TelemetryRepository
                 }
                 return;
             }
-            var application = GetApplication(instanceId);
+            var application = GetApplication(key.Value);
             if (application is not null)
             {
                 // Mark one application logs as viewed.
@@ -144,20 +152,16 @@ public sealed class TelemetryRepository
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        var serviceInstanceId = resource.GetServiceId();
-        if (serviceInstanceId is null)
-        {
-            throw new InvalidOperationException($"Resource does not have a '{OtlpApplication.SERVICE_INSTANCE_ID}' attribute.");
-        }
+        var key = resource.GetApplicationKey();
 
         // Fast path.
-        if (_applications.TryGetValue(serviceInstanceId, out var application))
+        if (_applications.TryGetValue(key, out var application))
         {
             return application;
         }
 
         // Slower get or add path.
-        (application, var isNew) = GetOrAddApplication(serviceInstanceId, resource);
+        (application, var isNew) = GetOrAddApplication(key, resource);
         if (isNew)
         {
             RaiseSubscriptionChanged(_applicationSubscriptions);
@@ -165,14 +169,14 @@ public sealed class TelemetryRepository
 
         return application;
 
-        (OtlpApplication, bool) GetOrAddApplication(string serviceId, Resource resource)
+        (OtlpApplication, bool) GetOrAddApplication(ApplicationKey key, Resource resource)
         {
             // This GetOrAdd allocates a closure, so we avoid it if possible.
             var newApplication = false;
-            var application = _applications.GetOrAdd(serviceId, _ =>
+            var application = _applications.GetOrAdd(key, _ =>
             {
                 newApplication = true;
-                return new OtlpApplication(resource, _applications, _logger, _dashboardOptions.TelemetryLimits);
+                return new OtlpApplication(key.Name, key.InstanceId, resource, _logger, _dashboardOptions.TelemetryLimits);
             });
             return (application, newApplication);
         }
@@ -180,28 +184,28 @@ public sealed class TelemetryRepository
 
     public Subscription OnNewApplications(Func<Task> callback)
     {
-        return AddSubscription(nameof(OnNewApplications), string.Empty, SubscriptionType.Read, callback, _applicationSubscriptions);
+        return AddSubscription(nameof(OnNewApplications), null, SubscriptionType.Read, callback, _applicationSubscriptions);
     }
 
-    public Subscription OnNewLogs(string? applicationId, SubscriptionType subscriptionType, Func<Task> callback)
+    public Subscription OnNewLogs(ApplicationKey? applicationKey, SubscriptionType subscriptionType, Func<Task> callback)
     {
-        return AddSubscription(nameof(OnNewLogs), applicationId, subscriptionType, callback, _logSubscriptions);
+        return AddSubscription(nameof(OnNewLogs), applicationKey, subscriptionType, callback, _logSubscriptions);
     }
 
-    public Subscription OnNewMetrics(string? applicationId, SubscriptionType subscriptionType, Func<Task> callback)
+    public Subscription OnNewMetrics(ApplicationKey? applicationKey, SubscriptionType subscriptionType, Func<Task> callback)
     {
-        return AddSubscription(nameof(OnNewMetrics), applicationId, subscriptionType, callback, _metricsSubscriptions);
+        return AddSubscription(nameof(OnNewMetrics), applicationKey, subscriptionType, callback, _metricsSubscriptions);
     }
 
-    public Subscription OnNewTraces(string? applicationId, SubscriptionType subscriptionType, Func<Task> callback)
+    public Subscription OnNewTraces(ApplicationKey? applicationKey, SubscriptionType subscriptionType, Func<Task> callback)
     {
-        return AddSubscription(nameof(OnNewTraces), applicationId, subscriptionType, callback, _tracesSubscriptions);
+        return AddSubscription(nameof(OnNewTraces), applicationKey, subscriptionType, callback, _tracesSubscriptions);
     }
 
-    private Subscription AddSubscription(string name, string? applicationId, SubscriptionType subscriptionType, Func<Task> callback, List<Subscription> subscriptions)
+    private Subscription AddSubscription(string name, ApplicationKey? applicationKey, SubscriptionType subscriptionType, Func<Task> callback, List<Subscription> subscriptions)
     {
         Subscription? subscription = null;
-        subscription = new Subscription(name, applicationId, subscriptionType, callback, () =>
+        subscription = new Subscription(name, applicationKey, subscriptionType, callback, () =>
         {
             lock (_lock)
             {
@@ -306,7 +310,7 @@ public sealed class TelemetryRepository
                         // Notifying the user there are errors and then immediately clearing the notification is confusing.
                         if (logEntry.Severity >= LogLevel.Error)
                         {
-                            if (!_logSubscriptions.Any(s => s.SubscriptionType == SubscriptionType.Read && (s.ApplicationId == application.InstanceId || s.ApplicationId == null)))
+                            if (!_logSubscriptions.Any(s => s.SubscriptionType == SubscriptionType.Read && (s.ApplicationKey == application.ApplicationKey || s.ApplicationKey == null)))
                             {
                                 if (_applicationUnviewedErrorLogs.TryGetValue(application, out var count))
                                 {
@@ -341,7 +345,7 @@ public sealed class TelemetryRepository
     public PagedResult<OtlpLogEntry> GetLogs(GetLogsContext context)
     {
         OtlpApplication? application = null;
-        if (context.ApplicationServiceId != null && !_applications.TryGetValue(context.ApplicationServiceId, out application))
+        if (context.ApplicationKey != null && !_applications.TryGetValue(context.ApplicationKey.Value, out application))
         {
             return PagedResult<OtlpLogEntry>.Empty;
         }
@@ -369,16 +373,16 @@ public sealed class TelemetryRepository
         }
     }
 
-    public List<string> GetLogPropertyKeys(string? applicationServiceId)
+    public List<string> GetLogPropertyKeys(ApplicationKey? applicationKey)
     {
         _logsLock.EnterReadLock();
 
         try
         {
             var applicationKeys = _logPropertyKeys.AsEnumerable();
-            if (applicationServiceId != null)
+            if (applicationKey != null)
             {
-                applicationKeys = applicationKeys.Where(keys => keys.Application.InstanceId == applicationServiceId);
+                applicationKeys = applicationKeys.Where(keys => keys.Application.ApplicationKey == applicationKey);
             }
 
             var keys = applicationKeys.Select(keys => keys.PropertyKey).Distinct();
@@ -397,9 +401,9 @@ public sealed class TelemetryRepository
         try
         {
             var results = _traces.AsEnumerable();
-            if (context.ApplicationServiceId != null)
+            if (context.ApplicationKey != null)
             {
-                results = results.Where(t => HasApplication(t, context.ApplicationServiceId));
+                results = results.Where(t => HasApplication(t, context.ApplicationKey.Value));
             }
             if (!string.IsNullOrWhiteSpace(context.FilterText))
             {
@@ -430,6 +434,20 @@ public sealed class TelemetryRepository
 
         try
         {
+            return GetTraceUnsynchronized(traceId);
+        }
+        finally
+        {
+            _tracesLock.ExitReadLock();
+        }
+    }
+
+    private OtlpTrace? GetTraceUnsynchronized(string traceId)
+    {
+        Debug.Assert(_tracesLock.IsReadLockHeld || _tracesLock.IsWriteLockHeld, $"Must get lock before calling {nameof(GetTraceUnsynchronized)}.");
+
+        try
+        {
             var results = _traces.Where(t => t.TraceId.StartsWith(traceId, StringComparison.Ordinal));
             var trace = results.SingleOrDefault();
             return trace is not null ? OtlpTrace.Clone(trace) : null;
@@ -438,17 +456,46 @@ public sealed class TelemetryRepository
         {
             throw new InvalidOperationException($"Multiple traces found with trace id '{traceId}'.", ex);
         }
+    }
+
+    private OtlpSpan? GetSpanUnsynchronized(string traceId, string spanId)
+    {
+        Debug.Assert(_tracesLock.IsReadLockHeld || _tracesLock.IsWriteLockHeld, $"Must get lock before calling {nameof(GetSpanUnsynchronized)}.");
+
+        var trace = GetTraceUnsynchronized(traceId);
+        if (trace != null)
+        {
+            foreach (var span in trace.Spans)
+            {
+                if (span.SpanId == spanId)
+                {
+                    return span;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public OtlpSpan? GetSpan(string traceId, string spanId)
+    {
+        _tracesLock.EnterReadLock();
+
+        try
+        {
+            return GetSpanUnsynchronized(traceId, spanId);
+        }
         finally
         {
             _tracesLock.ExitReadLock();
         }
     }
 
-    private static bool HasApplication(OtlpTrace t, string applicationServiceId)
+    private static bool HasApplication(OtlpTrace t, ApplicationKey applicationKey)
     {
         foreach (var span in t.Spans)
         {
-            if (span.Source.InstanceId == applicationServiceId)
+            if (span.Source.ApplicationKey == applicationKey)
             {
                 return true;
             }
@@ -571,12 +618,31 @@ public sealed class TelemetryRepository
                         }
                         else if (!TryGetTraceById(_traces, span.TraceId.Memory, out trace))
                         {
-                            trace = new OtlpTrace(span.TraceId.Memory, scope);
+                            trace = new OtlpTrace(span.TraceId.Memory);
                             newTrace = true;
                         }
 
-                        var newSpan = CreateSpan(application, span, trace, _dashboardOptions.TelemetryLimits);
+                        var newSpan = CreateSpan(application, span, trace, scope, _dashboardOptions.TelemetryLimits);
                         trace.AddSpan(newSpan);
+
+                        // The new span might be linked to by an existing span.
+                        // Check current links to see if a backlink should be created.
+                        foreach (var existingLink in _spanLinks)
+                        {
+                            if (existingLink.SpanId == newSpan.SpanId && existingLink.TraceId == newSpan.TraceId)
+                            {
+                                newSpan.BackLinks.Add(existingLink);
+                            }
+                        }
+
+                        // Add links to central collection. Add backlinks to existing spans.
+                        foreach (var link in newSpan.Links)
+                        {
+                            _spanLinks.Add(link);
+
+                            var linkedSpan = GetSpanUnsynchronized(link.TraceId, link.SpanId);
+                            linkedSpan?.BackLinks.Add(link);
+                        }
 
                         // Traces are sorted by the start time of the first span.
                         // We need to ensure traces are in the correct order if we're:
@@ -642,6 +708,7 @@ public sealed class TelemetryRepository
                     }
 
                     AssertTraceOrder();
+                    AssertSpanLinks();
                 }
 
             }
@@ -684,7 +751,43 @@ public sealed class TelemetryRepository
         }
     }
 
-    private static OtlpSpan CreateSpan(OtlpApplication application, Span span, OtlpTrace trace, TelemetryLimitOptions options)
+    [Conditional("DEBUG")]
+    private void AssertSpanLinks()
+    {
+        // Create a local copy of span links.
+        var currentSpanLinks = _spanLinks.ToList();
+
+        // Remove span links that match span links on spans.
+        // Throw an error if an expected span link doesn't exist.
+        foreach (var trace in _traces)
+        {
+            foreach (var span in trace.Spans)
+            {
+                foreach (var link in span.Links)
+                {
+                    if (!currentSpanLinks.Remove(link))
+                    {
+                        throw new InvalidOperationException($"Couldn't find expected link from span {span.SpanId} to span {link.SpanId}.");
+                    }
+                }
+            }
+        }
+
+        // Throw error if there are orphaned span links.
+        if (currentSpanLinks.Count > 0)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine(CultureInfo.InvariantCulture, $"There are {currentSpanLinks.Count} orphaned span links.");
+            foreach (var link in currentSpanLinks)
+            {
+                sb.AppendLine(CultureInfo.InvariantCulture, $"\tSource span ID: {link.SourceSpanId}, Target span ID: {link.SpanId}");
+            }
+
+            throw new InvalidOperationException(sb.ToString());
+        }
+    }
+
+    private static OtlpSpan CreateSpan(OtlpApplication application, Span span, OtlpTrace trace, OtlpScope scope, TelemetryLimitOptions options)
     {
         var id = span.SpanId?.ToHexString();
         if (id is null)
@@ -695,7 +798,7 @@ public sealed class TelemetryRepository
         var events = new List<OtlpSpanEvent>();
         foreach (var e in span.Events.OrderBy(e => e.TimeUnixNano))
         {
-            events.Add(new OtlpSpanEvent()
+            events.Add(new OtlpSpanEvent
             {
                 Name = e.Name,
                 Time = OtlpHelpers.UnixNanoSecondsToDateTime(e.TimeUnixNano),
@@ -708,7 +811,21 @@ public sealed class TelemetryRepository
             }
         }
 
-        var newSpan = new OtlpSpan(application, trace)
+        var links = new List<OtlpSpanLink>();
+        foreach (var e in span.Links)
+        {
+            links.Add(new OtlpSpanLink
+            {
+                SourceSpanId = id,
+                SourceTraceId = trace.TraceId,
+                TraceState = e.TraceState,
+                SpanId = e.SpanId.ToHexString(),
+                TraceId = e.TraceId.ToHexString(),
+                Attributes = e.Attributes.ToKeyValuePairs(options)
+            });
+        }
+
+        var newSpan = new OtlpSpan(application, trace, scope)
         {
             SpanId = id,
             ParentSpanId = span.ParentSpanId?.ToHexString(),
@@ -720,14 +837,16 @@ public sealed class TelemetryRepository
             StatusMessage = span.Status?.Message,
             Attributes = span.Attributes.ToKeyValuePairs(options),
             State = span.TraceState,
-            Events = events
+            Events = events,
+            Links = links,
+            BackLinks = new()
         };
         return newSpan;
     }
 
-    public List<OtlpInstrument> GetInstrumentsSummary(string applicationServiceId)
+    public List<OtlpInstrument> GetInstrumentsSummary(ApplicationKey key)
     {
-        if (!_applications.TryGetValue(applicationServiceId, out var application))
+        if (!_applications.TryGetValue(key, out var application))
         {
             return new List<OtlpInstrument>();
         }
@@ -737,7 +856,7 @@ public sealed class TelemetryRepository
 
     public OtlpInstrument? GetInstrument(GetInstrumentRequest request)
     {
-        if (!_applications.TryGetValue(request.ApplicationServiceId, out var application))
+        if (!_applications.TryGetValue(request.ApplicationKey, out var application))
         {
             return null;
         }

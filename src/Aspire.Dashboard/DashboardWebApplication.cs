@@ -12,9 +12,12 @@ using Aspire.Dashboard.Authentication.OpenIdConnect;
 using Aspire.Dashboard.Authentication.OtlpApiKey;
 using Aspire.Dashboard.Authentication.OtlpConnection;
 using Aspire.Dashboard.Components;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Otlp;
 using Aspire.Dashboard.Otlp.Grpc;
+using Aspire.Dashboard.Otlp.Http;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Hosting;
 using Microsoft.AspNetCore.Authentication.Certificate;
@@ -34,45 +37,68 @@ namespace Aspire.Dashboard;
 
 public sealed class DashboardWebApplication : IAsyncDisposable
 {
-    internal const string DashboardOtlpUrlDefaultValue = "http://localhost:18889";
-    internal const string DashboardUrlDefaultValue = "http://localhost:18888";
+    private const string DashboardAuthCookieName = ".Aspire.Dashboard.Auth";
+    private const string DashboardAntiForgeryCookieName = ".Aspire.Dashboard.Antiforgery";
 
     private readonly WebApplication _app;
     private readonly ILogger<DashboardWebApplication> _logger;
     private readonly IOptionsMonitor<DashboardOptions> _dashboardOptionsMonitor;
     private readonly IReadOnlyList<string> _validationFailures;
     private Func<EndpointInfo>? _frontendEndPointAccessor;
-    private Func<EndpointInfo>? _otlpServiceEndPointAccessor;
+    private Func<EndpointInfo>? _otlpServiceGrpcEndPointAccessor;
+    private Func<EndpointInfo>? _otlpServiceHttpEndPointAccessor;
 
     public Func<EndpointInfo> FrontendEndPointAccessor
     {
         get => _frontendEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
     }
 
-    public Func<EndpointInfo> OtlpServiceEndPointAccessor
+    public Func<EndpointInfo> OtlpServiceGrpcEndPointAccessor
     {
-        get => _otlpServiceEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
+        get => _otlpServiceGrpcEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
+    }
+
+    public Func<EndpointInfo> OtlpServiceHttpEndPointAccessor
+    {
+        get => _otlpServiceHttpEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
     }
 
     public IOptionsMonitor<DashboardOptions> DashboardOptionsMonitor => _dashboardOptionsMonitor;
 
     public IReadOnlyList<string> ValidationFailures => _validationFailures;
 
+    // our localization list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
+    internal static HashSet<string> LocalizedCultures { get; } = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant", // Standard cultures for compliance.
+    };
+
     /// <summary>
     /// Create a new instance of the <see cref="DashboardWebApplication"/> class.
     /// </summary>
-    /// <param name="configureBuilder">Configuration the internal app builder. This is for unit testing.</param>
-    public DashboardWebApplication(Action<WebApplicationBuilder>? configureBuilder = null)
+    /// <param name="preConfigureBuilder">Configuration for the internal app builder *before* normal dashboard configuration is done. This is for unit testing.</param>
+    /// <param name="postConfigureBuilder">Configuration for the internal app builder *after* normal dashboard configuration is done. This is for unit testing.</param>
+    /// <param name="options">Environment configuration for the internal app builder. This is for unit testing</param>
+    public DashboardWebApplication(
+        Action<WebApplicationBuilder>? preConfigureBuilder = null,
+        Action<WebApplicationBuilder>? postConfigureBuilder = null,
+        WebApplicationOptions? options = null)
     {
-        var builder = WebApplication.CreateBuilder();
+        var builder = options is not null ? WebApplication.CreateBuilder(options) : WebApplication.CreateBuilder();
 
-        configureBuilder?.Invoke(builder);
+        preConfigureBuilder?.Invoke(builder);
 
 #if !DEBUG
         builder.Logging.AddFilter("Default", LogLevel.Information);
         builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
         builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
         builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
+#else
+        // Don't log routine dashboard HTTP request info or static file access
+        // These logs generate a lot of noise when locally debugging.
+        builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning);
+        builder.Logging.AddFilter("Microsoft.AspNetCore.Routing.EndpointMiddleware", LogLevel.Warning);
+        builder.Logging.AddFilter("Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware", LogLevel.Warning);
 #endif
 
         // Allow for a user specified JSON config file on disk. Throw an error if the specified file doesn't exist.
@@ -107,8 +133,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         ConfigureKestrelEndpoints(builder, dashboardOptions);
 
-        var browserHttpsPort = dashboardOptions.Frontend.GetEndpointUris().FirstOrDefault(IsHttps)?.Port;
-        var isAllHttps = browserHttpsPort is not null && IsHttps(dashboardOptions.Otlp.GetEndpointUri());
+        var browserHttpsPort = dashboardOptions.Frontend.GetEndpointUris().FirstOrDefault(IsHttpsOrNull)?.Port;
+        var isAllHttps = browserHttpsPort is not null && IsHttpsOrNull(dashboardOptions.Otlp.GetGrpcEndpointUri()) && IsHttpsOrNull(dashboardOptions.Otlp.GetHttpEndpointUri());
         if (isAllHttps)
         {
             // Explicitly configure the HTTPS redirect port as we're possibly listening on multiple HTTPS addresses
@@ -128,6 +154,39 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             // See https://learn.microsoft.com/aspnet/core/performance/response-compression#compression-with-https for more information
             options.MimeTypes = ["text/javascript", "application/javascript", "text/css", "image/svg+xml"];
         });
+        if (!string.IsNullOrEmpty(dashboardOptions.Otlp.Cors.AllowedOrigins))
+        {
+            builder.Services.AddCors(options =>
+            {
+                // Default policy allows the dashboard's origins.
+                // This is added so CORS middleware doesn't report failure for dashboard browser requests that include an origin header.
+                options.AddDefaultPolicy(builder =>
+                {
+                    builder.WithOrigins(dashboardOptions.Frontend.GetEndpointUris().Select(uri => uri.OriginalString).ToArray());
+                    builder.AllowAnyHeader();
+                    builder.AllowAnyMethod();
+                });
+
+                options.AddPolicy(OtlpHttpEndpointsBuilder.CorsPolicyName, builder =>
+                {
+                    var corsOptions = dashboardOptions.Otlp.Cors;
+
+                    builder.WithOrigins(corsOptions.AllowedOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+                    builder.SetIsOriginAllowedToAllowWildcardSubdomains();
+
+                    // By default, allow headers in the implicit safelist and X-Requested-With. This matches OTLP collector CORS behavior.
+                    // Implicit safelist: https://developer.mozilla.org/en-US/docs/Glossary/CORS-safelisted_request_header
+                    // OTLP collector: https://github.com/open-telemetry/opentelemetry-collector/blob/685625abb4703cb2e45a397f008127bbe2ba4c0e/config/confighttp/README.md#server-configuration
+                    var allowedHeaders = !string.IsNullOrEmpty(corsOptions.AllowedHeaders)
+                        ? corsOptions.AllowedHeaders.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        : ["X-Requested-With"];
+                    builder.WithHeaders(allowedHeaders);
+
+                    // Hardcode to allow only POST methods. OTLP is always sent in POST request bodies.
+                    builder.WithMethods(HttpMethods.Post);
+                });
+            });
+        }
 
         // Data from the server.
         builder.Services.AddScoped<IDashboardClient, DashboardClient>();
@@ -136,6 +195,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddGrpc();
         builder.Services.AddSingleton<TelemetryRepository>();
         builder.Services.AddTransient<StructuredLogsViewModel>();
+
+        builder.Services.AddTransient<OtlpLogsService>();
+        builder.Services.AddTransient<OtlpTraceService>();
+        builder.Services.AddTransient<OtlpMetricsService>();
+
         builder.Services.AddTransient<TracesViewModel>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Scoped<IOutgoingPeerResolver, ResourceOutgoingPeerResolver>());
         builder.Services.TryAddEnumerable(ServiceDescriptor.Scoped<IOutgoingPeerResolver, BrowserLinkOutgoingPeerResolver>());
@@ -149,8 +213,19 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         // Time zone is set by the browser.
         builder.Services.AddScoped<BrowserTimeProvider>();
+        builder.Services.AddScoped<ILocalStorage, LocalBrowserStorage>();
+        builder.Services.AddScoped<ISessionStorage, SessionBrowserStorage>();
+
+        builder.Services.AddScoped<DimensionManager>();
 
         builder.Services.AddLocalization();
+
+        builder.Services.AddAntiforgery(options =>
+        {
+            options.Cookie.Name = DashboardAntiForgeryCookieName;
+        });
+
+        postConfigureBuilder?.Invoke(builder);
 
         _app = builder.Build();
 
@@ -158,16 +233,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _logger = GetLogger();
 
-        // this needs to be explicitly enumerated for each supported language
-        // our language list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
-        var supportedLanguages = new[]
-        {
-            "en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant"
-        };
+        var supportedCultures = GetSupportedCultures();
 
         _app.UseRequestLocalization(new RequestLocalizationOptions()
-            .AddSupportedCultures(supportedLanguages)
-            .AddSupportedUICultures(supportedLanguages));
+            .AddSupportedCultures(supportedCultures)
+            .AddSupportedUICultures(supportedCultures));
 
         WriteVersion(_logger);
 
@@ -185,10 +255,15 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 }
             }
 
-            if (_otlpServiceEndPointAccessor != null)
+            if (_otlpServiceGrpcEndPointAccessor != null)
             {
                 // This isn't used by dotnet watch but still useful to have for debugging
-                _logger.LogInformation("OTLP server running at: {OtlpEndpointUri}", _otlpServiceEndPointAccessor().Address);
+                _logger.LogInformation("OTLP/gRPC listening on: {OtlpEndpointUri}", _otlpServiceGrpcEndPointAccessor().Address);
+            }
+            if (_otlpServiceHttpEndPointAccessor != null)
+            {
+                // This isn't used by dotnet watch but still useful to have for debugging
+                _logger.LogInformation("OTLP/HTTP listening on: {OtlpEndpointUri}", _otlpServiceHttpEndPointAccessor().Address);
             }
 
             if (_dashboardOptionsMonitor.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
@@ -213,6 +288,13 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
             await next(context).ConfigureAwait(false);
         });
+
+        if (!string.IsNullOrEmpty(dashboardOptions.Otlp.Cors.AllowedOrigins))
+        {
+            // Only add CORS middleware when there is CORS configuration.
+            // The default policy only allows the dashboard origin. Certain endpoints expose CORS for external origins, e.g. OTLP HTTP endpoints.
+            _app.UseCors();
+        }
 
         _app.UseMiddleware<ValidateTokenMiddleware>();
 
@@ -257,10 +339,13 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
+        // OTLP HTTP services.
+        _app.MapHttpOtlpApi(dashboardOptions.Otlp);
+
         // OTLP gRPC services.
-        _app.MapGrpcService<OtlpMetricsService>();
-        _app.MapGrpcService<OtlpTraceService>();
-        _app.MapGrpcService<OtlpLogsService>();
+        _app.MapGrpcService<OtlpGrpcMetricsService>();
+        _app.MapGrpcService<OtlpGrpcTraceService>();
+        _app.MapGrpcService<OtlpGrpcLogsService>();
 
         if (dashboardOptions.Frontend.AuthMode == FrontendAuthMode.BrowserToken)
         {
@@ -284,6 +369,18 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         {
             _app.MapPost("/authentication/logout", () => TypedResults.SignOut(authenticationSchemes: [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]));
         }
+    }
+
+    internal static string[] GetSupportedCultures()
+    {
+        var supportedCultures = CultureInfo.GetCultures(CultureTypes.AllCultures)
+            .Where(culture => LocalizedCultures.Contains(culture.TwoLetterISOLanguageName) || LocalizedCultures.Contains(culture.Name))
+            .Select(culture => culture.Name)
+            .ToList();
+
+        // Non-standard culture but it is the default in many Chinese browsers. Adding zh-CN allows OS culture customization to flow through the dashboard.
+        supportedCultures.Add("zh-CN");
+        return supportedCultures.ToArray();
     }
 
     private ILogger<DashboardWebApplication> GetLogger()
@@ -338,8 +435,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     {
         // A single endpoint is configured if URLs are the same and the port isn't dynamic.
         var frontendUris = dashboardOptions.Frontend.GetEndpointUris();
-        var otlpUri = dashboardOptions.Otlp.GetEndpointUri();
-        var hasSingleEndpoint = frontendUris.Count == 1 && frontendUris[0] == otlpUri && otlpUri.Port != 0;
+        var otlpGrpcUri = dashboardOptions.Otlp.GetGrpcEndpointUri();
+        var otlpHttpUri = dashboardOptions.Otlp.GetHttpEndpointUri();
+        var hasSingleEndpoint = frontendUris.Count == 1 && IsSameOrNull(frontendUris[0], otlpGrpcUri) && IsSameOrNull(frontendUris[0], otlpHttpUri);
 
         var initialValues = new Dictionary<string, string?>();
         var browserEndpointNames = new List<string>(capacity: frontendUris.Count);
@@ -348,7 +446,15 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         {
             // Translate high-level config settings such as DOTNET_DASHBOARD_OTLP_ENDPOINT_URL and ASPNETCORE_URLS
             // to Kestrel's schema for loading endpoints from configuration.
-            AddEndpointConfiguration(initialValues, "Otlp", otlpUri.OriginalString, HttpProtocols.Http2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
+            if (otlpGrpcUri != null)
+            {
+                AddEndpointConfiguration(initialValues, "OtlpGrpc", otlpGrpcUri.OriginalString, HttpProtocols.Http2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
+            }
+            if (otlpHttpUri != null)
+            {
+                AddEndpointConfiguration(initialValues, "OtlpHttp", otlpHttpUri.OriginalString, HttpProtocols.Http1AndHttp2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
+            }
+
             if (frontendUris.Count == 1)
             {
                 browserEndpointNames.Add("Browser");
@@ -366,7 +472,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
         else
         {
-            AddEndpointConfiguration(initialValues, "Otlp", otlpUri.OriginalString, HttpProtocols.Http1AndHttp2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
+            // At least one gRPC endpoint must be present.
+            var url = otlpGrpcUri?.OriginalString ?? otlpHttpUri?.OriginalString;
+            AddEndpointConfiguration(initialValues, "OtlpGrpc", url!, HttpProtocols.Http1AndHttp2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
         }
 
         static void AddEndpointConfiguration(Dictionary<string, string?> values, string endpointName, string url, HttpProtocols? protocols = null, bool requiredClientCertificate = false)
@@ -378,7 +486,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 values[$"Kestrel:Endpoints:{endpointName}:Protocols"] = protocols.ToString();
             }
 
-            if (requiredClientCertificate)
+            if (requiredClientCertificate && IsHttpsOrNull(new Uri(url)))
             {
                 values[$"Kestrel:Endpoints:{endpointName}:ClientCertificateMode"] = ClientCertificateMode.RequireCertificate.ToString();
             }
@@ -405,9 +513,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 });
             }
 
-            configurationLoader.Endpoint("Otlp", endpointConfiguration =>
+            configurationLoader.Endpoint("OtlpGrpc", endpointConfiguration =>
             {
-                _otlpServiceEndPointAccessor ??= CreateEndPointAccessor(endpointConfiguration);
+                _otlpServiceGrpcEndPointAccessor ??= CreateEndPointAccessor(endpointConfiguration);
                 if (hasSingleEndpoint)
                 {
                     logger.LogDebug("Browser and OTLP accessible on a single endpoint.");
@@ -419,7 +527,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                             "The endpoint doesn't use TLS so browser access is only possible via a TLS terminating proxy.");
                     }
 
-                    _frontendEndPointAccessor = _otlpServiceEndPointAccessor;
+                    _frontendEndPointAccessor = _otlpServiceGrpcEndPointAccessor;
                 }
 
                 endpointConfiguration.ListenOptions.UseOtlpConnection();
@@ -431,6 +539,32 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     {
                         return true;
                     };
+                }
+            });
+
+            configurationLoader.Endpoint("OtlpHttp", endpointConfiguration =>
+            {
+                _otlpServiceHttpEndPointAccessor ??= CreateEndPointAccessor(endpointConfiguration);
+                if (hasSingleEndpoint)
+                {
+                    logger.LogDebug("Browser and OTLP accessible on a single endpoint.");
+
+                    if (!endpointConfiguration.IsHttps)
+                    {
+                        logger.LogWarning(
+                            "The dashboard is configured with a shared endpoint for browser access and the OTLP service. " +
+                            "The endpoint doesn't use TLS so browser access is only possible via a TLS terminating proxy.");
+                    }
+
+                    _frontendEndPointAccessor = _otlpServiceGrpcEndPointAccessor;
+                }
+
+                endpointConfiguration.ListenOptions.UseOtlpConnection();
+
+                if (endpointConfiguration.HttpsOptions.ClientCertificateMode == ClientCertificateMode.RequireCertificate)
+                {
+                    // Allow invalid certificates when creating the connection. Certificate validation is done in the auth middleware.
+                    endpointConfiguration.HttpsOptions.ClientCertificateValidation = (certificate, chain, sslPolicyErrors) => { return true; };
                 }
             });
         });
@@ -452,6 +586,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
     }
 
+    private static bool IsSameOrNull(Uri frontendUri, Uri? otlpUrl)
+    {
+        return otlpUrl == null || (frontendUri == otlpUrl && otlpUrl.Port != 0);
+    }
+
     private static void ConfigureAuthentication(WebApplicationBuilder builder, DashboardOptions dashboardOptions)
     {
         var authentication = builder.Services
@@ -468,6 +607,27 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 {
                     OnCertificateValidated = context =>
                     {
+                        var options = context.HttpContext.RequestServices.GetRequiredService<IOptions<DashboardOptions>>().Value;
+                        if (options.Otlp.AllowedCertificates is { Count: > 0 } allowList)
+                        {
+                            var allowed = false;
+                            foreach (var rule in allowList)
+                            {
+                                // Thumbprint is hexadecimal and is case-insensitive.
+                                if (string.Equals(rule.Thumbprint, context.ClientCertificate.Thumbprint, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    allowed = true;
+                                    break;
+                                }
+                            }
+
+                            if (!allowed)
+                            {
+                                context.Fail("Certificate doesn't match allow list.");
+                                return Task.CompletedTask;
+                            }
+                        }
+
                         var claims = new[]
                         {
                             new Claim(ClaimTypes.NameIdentifier,
@@ -496,7 +656,10 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     o.ForwardChallenge = OpenIdConnectDefaults.AuthenticationScheme;
                 });
 
-                authentication.AddCookie();
+                authentication.AddCookie(options =>
+                {
+                    options.Cookie.Name = DashboardAuthCookieName;
+                });
 
                 authentication.AddOpenIdConnect(options =>
                 {
@@ -543,6 +706,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                         claimsIdentity.AddClaim(new Claim(FrontendAuthorizationDefaults.BrowserTokenClaimName, bool.TrueString));
                         return Task.CompletedTask;
                     };
+                    options.Cookie.Name = DashboardAuthCookieName;
                 });
                 break;
         }
@@ -601,13 +765,13 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
     public Task StartAsync(CancellationToken cancellationToken = default)
     {
-        Debug.Assert(_validationFailures.Count == 0);
+        Debug.Assert(_validationFailures.Count == 0, "Validation failures: " + Environment.NewLine + string.Join(Environment.NewLine, _validationFailures));
         return _app.StartAsync(cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken = default)
     {
-        Debug.Assert(_validationFailures.Count == 0);
+        Debug.Assert(_validationFailures.Count == 0, "Validation failures: " + Environment.NewLine + string.Join(Environment.NewLine, _validationFailures));
         return _app.StopAsync(cancellationToken);
     }
 
@@ -616,7 +780,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         return _app.DisposeAsync();
     }
 
-    private static bool IsHttps(Uri uri) => string.Equals(uri.Scheme, "https", StringComparison.Ordinal);
+    private static bool IsHttpsOrNull(Uri? uri) => uri == null || string.Equals(uri.Scheme, "https", StringComparison.Ordinal);
 
     public static class FrontendAuthenticationDefaults
     {

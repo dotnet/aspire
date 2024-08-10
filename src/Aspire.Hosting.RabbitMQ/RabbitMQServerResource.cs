@@ -28,7 +28,7 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
     }
 
     /// <summary>
-    /// Gets the primary endpoint for the Redis server.
+    /// Gets the primary endpoint for the RabbitMQ server.
     /// </summary>
     public EndpointReference PrimaryEndpoint { get; }
 

@@ -13,6 +13,7 @@ builder.AddCosmosDbContext<TestCosmosContext>("cosmos", "ef");
 
 var app = builder.Build();
 
+app.MapDefaultEndpoints();
 app.MapGet("/", async (CosmosClient cosmosClient) =>
 {
     var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync("db")).Database;

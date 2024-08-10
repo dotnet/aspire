@@ -60,6 +60,69 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Close.
+        /// </summary>
+        public static string ExemplarsDialogCloseButtonText {
+            get {
+                return ResourceManager.GetString("ExemplarsDialogCloseButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Details.
+        /// </summary>
+        public static string ExemplarsDialogDetailsColumnHeader {
+            get {
+                return ResourceManager.GetString("ExemplarsDialogDetailsColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Timestamp.
+        /// </summary>
+        public static string ExemplarsDialogTimestampColumnHeader {
+            get {
+                return ResourceManager.GetString("ExemplarsDialogTimestampColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Exemplars.
+        /// </summary>
+        public static string ExemplarsDialogTitle {
+            get {
+                return ResourceManager.GetString("ExemplarsDialogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Trace.
+        /// </summary>
+        public static string ExemplarsDialogTrace {
+            get {
+                return ResourceManager.GetString("ExemplarsDialogTrace", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Trace.
+        /// </summary>
+        public static string ExemplarsDialogTraceColumnHeader {
+            get {
+                return ResourceManager.GetString("ExemplarsDialogTraceColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Value.
+        /// </summary>
+        public static string ExemplarsDialogValueColumnHeader {
+            get {
+                return ResourceManager.GetString("ExemplarsDialogValueColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Apply filter.
         /// </summary>
         public static string FilterDialogApplyFilterButtonText {
@@ -78,11 +141,11 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Select a filter condition.
+        ///   Looks up a localized string similar to Condition.
         /// </summary>
-        public static string FilterDialogConditionSelectLabel {
+        public static string FilterDialogConditionInputLabel {
             get {
-                return ResourceManager.GetString("FilterDialogConditionSelectLabel", resourceCulture);
+                return ResourceManager.GetString("FilterDialogConditionInputLabel", resourceCulture);
             }
         }
         
@@ -92,6 +155,15 @@ namespace Aspire.Dashboard.Resources {
         public static string FilterDialogFieldPlaceholder {
             get {
                 return ResourceManager.GetString("FilterDialogFieldPlaceholder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Parameter.
+        /// </summary>
+        public static string FilterDialogParameterInputLabel {
+            get {
+                return ResourceManager.GetString("FilterDialogParameterInputLabel", resourceCulture);
             }
         }
         
@@ -263,6 +335,24 @@ namespace Aspire.Dashboard.Resources {
         public static string HelpDialogTogglePanelOrientation {
             get {
                 return ResourceManager.GetString("HelpDialogTogglePanelOrientation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cancel.
+        /// </summary>
+        public static string OpenTraceDialogCancelButtonText {
+            get {
+                return ResourceManager.GetString("OpenTraceDialogCancelButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Waiting for trace {0} to load....
+        /// </summary>
+        public static string OpenTraceDialogMessage {
+            get {
+                return ResourceManager.GetString("OpenTraceDialogMessage", resourceCulture);
             }
         }
         

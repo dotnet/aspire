@@ -5,6 +5,11 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting MySQL</PackageTags>
     <Description>MySQL support for .NET Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)MySQL_logo.png</PackageIconFullPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>47</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,7 +22,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
+    <!-- Required for PhpMyAdminConfigWriterHook -->
+    <InternalsVisibleTo Include="Aspire.Hosting.MySql.Tests" />
   </ItemGroup>
 
 </Project>

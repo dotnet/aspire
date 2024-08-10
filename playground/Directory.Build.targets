@@ -1,0 +1,14 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
+
+  <ItemGroup Condition="'$(IsAspireHost)' == 'true' and '$(SkipDashboardProjectReference)' != 'true'">
+    <ProjectReference Include="$(RepoRoot)src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
+  </ItemGroup>
+
+  <!-- Import only when in-repo. For the out-of-repo case a parent Directory.Build.targets does the import -->
+  <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.targets" Condition="'$(RepoRoot)' != ''" />
+
+  <PropertyGroup Condition="'$(SkipDashboardProjectReference)' == 'true'">
+    <DefineConstants>SKIP_DASHBOARD_REFERENCE;$(DefineConstants)</DefineConstants>
+  </PropertyGroup>
+</Project>

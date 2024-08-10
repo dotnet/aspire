@@ -33,7 +33,8 @@ Example JSON configuration file:
 ### Common configuration
 
 - `ASPNETCORE_URLS` specifies one or more HTTP endpoints through which the dashboard frontend is served. The frontend endpoint is used to view the dashboard in a browser. Defaults to http://localhost:18888.
-- `DOTNET_DASHBOARD_OTLP_ENDPOINT_URL` specifies the OTLP endpoint. OTLP endpoint hosts an OTLP service and receives telemetry. Defaults to http://localhost:18889.
+- `DOTNET_DASHBOARD_OTLP_ENDPOINT_URL` specifies the OTLP/gRPC endpoint. OTLP/gRPC endpoint hosts an OTLP service and receives telemetry using gRPC. Defaults to http://localhost:18889.
+- `DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL` specifies the OTLP/HTTP endpoint. OTLP/HTTP endpoint hosts an OTLP service and receives telemetry using Protobuf over HTTP. Defaults to http://localhost:18890.
 - `DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS` specifies the dashboard doesn't use authentication and accepts anonymous access. This setting is a shortcut to configuring `Dashboard:Frontend:AuthMode` and `Dashboard:Otlp:AuthMode` to `Unsecured`.
 - `DOTNET_DASHBOARD_CONFIG_FILE_PATH` specifies the path for an optional JSON configuration file.
 
@@ -61,6 +62,10 @@ Set `Dashboard:Frontend:AuthMode` to `OpenIdConnect`, then add the following con
 - `Dashboard:Frontend:OpenIdConnect:UsernameClaimType` specifies the claim type(s) that should be used to display the authenticated user's username. Can be a single claim type or a comma-delimited list of claim types. Defaults to `preferred_username`.
 - `Dashboard:Frontend:OpenIdConnect:RequiredClaimType` specifies the (optional) claim that be present for authorized users. Defaults to empty.
 - `Dashboard:Frontend:OpenIdConnect:RequiredClaimValue` specifies the (optional) value of the required claim. Only used if `Dashboard:Frontend:OpenIdConnect:RequireClaimType` is also specified. Defaults to empty.
+
+#### Memory limits
+
+- `Dashboard:Frontend:MaxConsoleLogCount` specifies the (optional) maximum number of console log messages to keep in memory. Defaults to 10,000. When the limit is reached, the oldest messages are removed.
 
 ### OTLP authentication
 

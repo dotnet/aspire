@@ -32,16 +32,24 @@
 
       <_E2ETestScenarios Include="basicservices" />
       <_E2ETestScenarios Include="cosmos" />
+      <!-- needed for batching below -->
+      <_E2ETestScenarios PreCommands="" />
 
       <HelixWorkItem Include="@(_E2ETestScenarios -> '$(_WorkItemName)-%(Identity)')">
         <PayloadArchive>$(_E2ETestsArchivePath)</PayloadArchive>
-        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=$(_WorkItemName)&quot; &amp; set TEST_SCENARIO=%(Identity) &amp; set &quot;CODE_COV_FILE_SUFFIX=-%(Identity)&quot;</PreCommands>
-        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=$(_WorkItemName)&quot; &amp;&amp; export TEST_SCENARIO=%(Identity) &amp;&amp; export &quot;CODE_COV_FILE_SUFFIX=-%(Identity)&quot;</PreCommands>
+
+        <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=$(_WorkItemName)&quot;</PreCommands>
+        <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;TEST_SCENARIO=%(Identity)&quot;</PreCommands>
+        <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=-%(Identity)&quot;</PreCommands>
+
+        <PostCommands Condition="'$(OS)' != 'Windows_NT'">cp $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/Aspire.EndToEnd.Tests-%(Identity).trx</PostCommands>
+        <PostCommands Condition="'$(OS)' == 'Windows_NT'">copy &quot;$(_HelixLogsPath)\TestResults.trx&quot; &quot;$(_HelixLogsPath)\Aspire.EndToEnd.Tests-%(Identity).trx&quot;</PostCommands>
+
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
-        <DownloadFilesFromResults>logs/Aspire.EndToEnd.Tests-%(Identity).cobertura.xml</DownloadFilesFromResults>
+        <DownloadFilesFromResults>logs/Aspire.EndToEnd.Tests-%(Identity).cobertura.xml;logs/Aspire.EndToEnd.Tests-%(Identity).trx</DownloadFilesFromResults>
       </HelixWorkItem>
     </ItemGroup>
   </Target>

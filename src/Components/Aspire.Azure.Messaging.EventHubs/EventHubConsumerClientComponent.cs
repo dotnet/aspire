@@ -32,11 +32,26 @@ internal sealed class EventHubConsumerClientComponent : EventHubsComponent<Azure
         {
             EnsureConnectionStringOrNamespaceProvided(settings, connectionName, configurationSectionName);
 
-            return !string.IsNullOrEmpty(settings.ConnectionString) ?
-                new EventHubConsumerClient(settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName,
-                    settings.ConnectionString, options) :
-                new EventHubConsumerClient(settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName,
-                    settings.FullyQualifiedNamespace, settings.EventHubName, cred, options);
+            var consumerGroup = settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName;
+
+            // If no connection is provided use TokenCredential
+            if (string.IsNullOrEmpty(settings.ConnectionString))
+            {
+                return new EventHubConsumerClient(consumerGroup, settings.FullyQualifiedNamespace, settings.EventHubName, cred, options);
+            }
+            else
+            {
+                // If no specific EventHubName is provided, it has to be in the connection string
+                if (string.IsNullOrEmpty(settings.EventHubName))
+                {
+                    return new EventHubConsumerClient(consumerGroup, settings.ConnectionString, options);
+                }
+                else
+                {
+                    return new EventHubConsumerClient(consumerGroup, settings.ConnectionString, settings.EventHubName, options);
+                }
+            }
+
         }, requiresCredential: false);
     }
 }

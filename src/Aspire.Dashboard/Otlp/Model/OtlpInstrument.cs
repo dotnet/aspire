@@ -31,19 +31,19 @@ public class OtlpInstrument
             case Metric.DataOneofCase.Gauge:
                 foreach (var d in metric.Gauge.DataPoints)
                 {
-                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d);
+                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Options);
                 }
                 break;
             case Metric.DataOneofCase.Sum:
                 foreach (var d in metric.Sum.DataPoints)
                 {
-                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d);
+                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Options);
                 }
                 break;
             case Metric.DataOneofCase.Histogram:
                 foreach (var d in metric.Histogram.DataPoints)
                 {
-                    FindScope(d.Attributes, ref tempAttributes).AddHistogramValue(d);
+                    FindScope(d.Attributes, ref tempAttributes).AddHistogramValue(d, Options);
                 }
                 break;
         }
@@ -55,7 +55,9 @@ public class OtlpInstrument
     {
         // We want to find the dimension scope that matches the attributes, but we don't want to allocate.
         // Copy values to a temporary reusable array.
-        OtlpHelpers.CopyKeyValuePairs(attributes, Options, out var copyCount, ref tempAttributes);
+        //
+        // A meter can have attributes. Merge these with the data point attributes when creating a dimension.
+        OtlpHelpers.CopyKeyValuePairs(attributes, Parent.Attributes, Options, out var copyCount, ref tempAttributes);
         Array.Sort(tempAttributes, 0, copyCount, KeyValuePairComparer.Instance);
 
         var comparableAttributes = tempAttributes.AsMemory(0, copyCount);

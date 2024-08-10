@@ -1,6 +1,8 @@
 <Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
-  <Import Project="..\Directory.Build.props" />
+  <!-- Import only when in-repo. For out-of-repo a parent Directory.Build.props does the import -->
+  <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.props" Condition="'$(RepoRoot)' != ''" />
 
   <PropertyGroup>
     <!--
@@ -13,7 +15,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <AddPublicApiAnalyzers>false</AddPublicApiAnalyzers>
+    <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
   </PropertyGroup>
 
   <!-- Enable Azure ActivitySources so Azure Components participate in tracing. -->

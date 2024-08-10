@@ -8,6 +8,10 @@
     <PackageIconFullPath>$(SharedDir)AzureCosmosDB_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <MinCodeCoverage>98</MinCodeCoverage>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Include="..\Shared\Cosmos\CosmosConstants.cs" Link="Shared\CosmosConstants.cs" />
   </ItemGroup>
@@ -16,10 +20,6 @@
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.CosmosDB" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
   </ItemGroup>
 
 </Project>
