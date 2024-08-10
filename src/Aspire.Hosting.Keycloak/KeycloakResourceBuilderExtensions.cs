@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
@@ -46,6 +46,9 @@ public static class KeycloakResourceBuilderExtensions
         IResourceBuilder<ParameterResource>? adminUsername = null,
         IResourceBuilder<ParameterResource>? adminPassword = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         var passwordParameter = adminPassword?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 
         var resource = new KeycloakResource(name, adminUsername?.Resource, passwordParameter);
@@ -93,7 +96,12 @@ public static class KeycloakResourceBuilderExtensions
     /// </code>
     /// </example>
     public static IResourceBuilder<KeycloakResource> WithDataVolume(this IResourceBuilder<KeycloakResource> builder, string? name = null)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/opt/keycloak/data", false);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/opt/keycloak/data",
+            false);
+    }
 
     /// <summary>
     /// Adds a bind mount for the data folder to a Keycloak container resource.
@@ -112,7 +120,12 @@ public static class KeycloakResourceBuilderExtensions
     /// </code>
     /// </example>
     public static IResourceBuilder<KeycloakResource> WithDataBindMount(this IResourceBuilder<KeycloakResource> builder, string source)
-        => builder.WithBindMount(source, "/opt/keycloak/data", false);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+
+        return builder.WithBindMount(source, "/opt/keycloak/data", false);
+    }
 
     /// <summary>
     /// Adds a realm import to a Keycloak container resource.
@@ -136,6 +149,7 @@ public static class KeycloakResourceBuilderExtensions
         string importDirectory,
         bool isReadOnly = false)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(importDirectory);
 
         if (!Directory.Exists(importDirectory))
