@@ -23,6 +23,7 @@
     <!-- on helix, the file will be in the source directory, so it will get
          picked up by msbuild by default -->
     <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)src\Aspire.Hosting\Utils\PasswordGenerator.cs" />
+    <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.Hosting.Tests\Utils\LoggerNotificationExtensions.cs" />
     <Compile Include="$(TestsSharedDir)Logging\*.cs" />
 
     <AspireProjectOrPackageReference Include="Aspire.Hosting" />

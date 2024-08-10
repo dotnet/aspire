@@ -5,6 +5,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+// Necessary when LoggerNotificationExtensions is included directly in some projects
+using ResourceNotificationService = Aspire.Hosting.ApplicationModel.ResourceNotificationService;
+using ResourceLoggerService = Aspire.Hosting.ApplicationModel.ResourceLoggerService;
+
 namespace Aspire.Hosting.Tests.Utils;
 
 public static class LoggerNotificationExtensions
@@ -22,7 +26,7 @@ public static class LoggerNotificationExtensions
         ArgumentNullException.ThrowIfNull(app);
         ArgumentException.ThrowIfNullOrEmpty(logText);
 
-        return WaitForTextAsync(app, [logText], resourceName, cancellationToken);
+        return WaitForTextAsync(app, (log) => log.Contains(logText), resourceName, cancellationToken);
     }
 
     /// <summary>
@@ -38,18 +42,34 @@ public static class LoggerNotificationExtensions
         ArgumentNullException.ThrowIfNull(app);
         ArgumentNullException.ThrowIfNull(logTexts);
 
+        return app.WaitForTextAsync((log) => logTexts.Any(x => log.Contains(x)), resourceName, cancellationToken);
+    }
+
+    /// <summary>
+    /// Waits for the specified text to be logged.
+    /// </summary>
+    /// <param name="app">The <see cref="DistributedApplication" /> instance to watch.</param>
+    /// <param name="predicate">A predicate checking the text to wait for.</param>
+    /// <param name="resourceName">An optional resource name to filter the logs for.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns></returns>
+    public static Task WaitForTextAsync(this DistributedApplication app, Predicate<string> predicate, string? resourceName = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(app);
+        ArgumentNullException.ThrowIfNull(predicate);
+
         var hostApplicationLifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
 
         var watchCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping, cancellationToken);
 
         var tcs = new TaskCompletionSource();
 
-        _ = Task.Run(() => WatchNotifications(app, resourceName, logTexts, tcs, watchCts), watchCts.Token);
+        _ = Task.Run(() => WatchNotifications(app, resourceName, predicate, tcs, watchCts), watchCts.Token);
 
         return tcs.Task;
     }
 
-    private static async Task WatchNotifications(DistributedApplication app, string? resourceName, IEnumerable<string> logTexts, TaskCompletionSource tcs, CancellationTokenSource cancellationTokenSource)
+    private static async Task WatchNotifications(DistributedApplication app, string? resourceName, Predicate<string> predicate, TaskCompletionSource tcs, CancellationTokenSource cancellationTokenSource)
     {
         var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
         var resourceLoggerService = app.Services.GetRequiredService<ResourceLoggerService>();
@@ -62,7 +82,7 @@ public static class LoggerNotificationExtensions
         {
             await foreach (var resourceEvent in resourceNotificationService.WatchAsync(cancellationTokenSource.Token).ConfigureAwait(false))
             {
-                if (resourceName != null && !string.Equals(resourceEvent.Resource.Name, resourceName, StringComparisons.ResourceName))
+                if (resourceName != null && !string.Equals(resourceEvent.Resource.Name, resourceName, StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
@@ -72,7 +92,7 @@ public static class LoggerNotificationExtensions
                 if (loggingResourceIds.Add(resourceId))
                 {
                     // Start watching the logs for this resource ID
-                    logWatchTasks.Add(WatchResourceLogs(tcs, resourceId, logTexts, resourceLoggerService, cancellationTokenSource));
+                    logWatchTasks.Add(WatchResourceLogs(tcs, resourceId, predicate, resourceLoggerService, cancellationTokenSource));
                 }
             }
         }
@@ -86,20 +106,17 @@ public static class LoggerNotificationExtensions
         }
     }
 
-    private static async Task WatchResourceLogs(TaskCompletionSource tcs, string resourceId, IEnumerable<string> logTexts, ResourceLoggerService resourceLoggerService, CancellationTokenSource cancellationTokenSource)
+    private static async Task WatchResourceLogs(TaskCompletionSource tcs, string resourceId, Predicate<string> predicate, ResourceLoggerService resourceLoggerService, CancellationTokenSource cancellationTokenSource)
     {
         await foreach (var logEvent in resourceLoggerService.WatchAsync(resourceId).WithCancellation(cancellationTokenSource.Token).ConfigureAwait(false))
         {
             foreach (var line in logEvent)
             {
-                foreach (var log in logTexts)
+                if (predicate(line.Content))
                 {
-                    if (line.Content.Contains(log))
-                    {
-                        tcs.SetResult();
-                        cancellationTokenSource.Cancel();
-                        return;
-                    }
+                    tcs.SetResult();
+                    cancellationTokenSource.Cancel();
+                    return;
                 }
             }
         }
