@@ -129,6 +129,7 @@ public class AppHostTests
     {
         IList<TestEndpoints> candidates =
         [
+            new TestEndpoints("Elasticsearch.AppHost", new() { { "elasticsearch-apiservice", ["/alive", "/health", "/create", "/get"] } }),
             new TestEndpoints("PostgresEndToEnd.AppHost", new() {
                 // Invoking "/" first as that *creates* the databases
                 { "api", ["/", "/alive", "/health"] }
