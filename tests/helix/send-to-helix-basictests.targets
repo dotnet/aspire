@@ -6,6 +6,11 @@
     <NeedsDcpPathOverride>true</NeedsDcpPathOverride>
   </PropertyGroup>
 
+  <ItemGroup>
+    <HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="mv $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/$(_TestNameEnvVar).trx" />
+    <HelixPostCommand Condition="'$(OS)' == 'Windows_NT'" Include="move &quot;$(_HelixLogsPath)\TestResults.trx&quot; &quot;$(_HelixLogsPath)\$(_TestNameEnvVar).trx&quot;" />
+  </ItemGroup>
+
   <Target Name="BuildHelixWorkItemsForDefaultTests">
     <ItemGroup>
       <!-- needed for Aspire.Hosting.Container.Tests -->
@@ -25,9 +30,6 @@
       <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
         <PayloadArchive>%(Identity)</PayloadArchive>
         <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
-
-        <PostCommands Condition="'$(OS)' != 'Windows_NT'">cp $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/$(_TestNameEnvVar).trx</PostCommands>
-        <PostCommands Condition="'$(OS)' == 'Windows_NT'">copy &quot;$(_HelixLogsPath)\TestResults.trx&quot; &quot;$(_HelixLogsPath)\$(_TestNameEnvVar).trx&quot;</PostCommands>
 
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>
