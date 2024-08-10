@@ -53,10 +53,10 @@
                                 GenerateHeader="GenerateHeaderOption.Sticky"
                                 GridTemplateColumns="1fr 1.5fr"
                                 ShowHover="true">
-                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">
+                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn" HeaderCellItemTemplate="@AspireFluentDataGridHeaderCell.RenderHeaderContent(_resourceDetailsGrid)">
                         <GridValue Value="@(context.KnownProperty?.DisplayName ?? context.Key)" ToolTip="@context.Key" />
                     </TemplateColumn>
-                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn">
+                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn" HeaderCellItemTemplate="@AspireFluentDataGridHeaderCell.RenderHeaderContent(_resourceDetailsGrid)">
                         <GridValue Value="@GetDisplayedValue(TimeProvider, context)" ToolTip="@context.Tooltip" />
                     </TemplateColumn>
                 </FluentDataGrid>
@@ -76,10 +76,10 @@
                                 GenerateHeader="GenerateHeaderOption.Sticky"
                                 GridTemplateColumns="1fr 1.5fr"
                                 ShowHover="true">
-                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">
+                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn" HeaderCellItemTemplate="@AspireFluentDataGridHeaderCell.RenderHeaderContent(_resourceEndpointsGrid)">
                         <GridValue Value="@context.Name" />
                     </TemplateColumn>
-                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn">
+                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn" HeaderCellItemTemplate="@AspireFluentDataGridHeaderCell.RenderHeaderContent(_resourceEndpointsGrid)">
                         <GridValue Value="@context.Text" MaxDisplayLength="0">
                             <ContentAfterValue>
                                 @if (context.Url != null)
