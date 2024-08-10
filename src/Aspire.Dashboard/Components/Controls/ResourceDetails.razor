@@ -44,8 +44,7 @@
                         @FilteredResourceValues.Count()
                     </FluentBadge>
                 </div>
-                <FluentDataGrid @ref="_resourceDetailsGrid"
-                                ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlStringsLoc)"
+                <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlStringsLoc)"
                                 ResizeType="DataGridResizeType.Exact"
                                 Items="@FilteredResourceValues"
                                 ResizableColumns="true"
@@ -53,12 +52,12 @@
                                 GenerateHeader="GenerateHeaderOption.Sticky"
                                 GridTemplateColumns="1fr 1.5fr"
                                 ShowHover="true">
-                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn" HeaderCellItemTemplate="@AspireFluentDataGridHeaderCell.RenderHeaderContent(_resourceDetailsGrid)">
+                    <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">
                         <GridValue Value="@(context.KnownProperty?.DisplayName ?? context.Key)" ToolTip="@context.Key" />
-                    </TemplateColumn>
-                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn" HeaderCellItemTemplate="@AspireFluentDataGridHeaderCell.RenderHeaderContent(_resourceDetailsGrid)">
+                    </AspireTemplateColumn>
+                    <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn">
                         <GridValue Value="@GetDisplayedValue(TimeProvider, context)" ToolTip="@context.Tooltip" />
-                    </TemplateColumn>
+                    </AspireTemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
             <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsEndpointsHeader)]" Expanded="true">
@@ -67,8 +66,7 @@
                         @FilteredEndpoints.Count()
                     </FluentBadge>
                 </div>
-                <FluentDataGrid @ref="_resourceEndpointsGrid"
-                                ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlStringsLoc)"
+                <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlStringsLoc)"
                                 ResizeType="DataGridResizeType.Exact"
                                 Items="@FilteredEndpoints"
                                 ResizableColumns="true"
@@ -76,10 +74,10 @@
                                 GenerateHeader="GenerateHeaderOption.Sticky"
                                 GridTemplateColumns="1fr 1.5fr"
                                 ShowHover="true">
-                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn" HeaderCellItemTemplate="@AspireFluentDataGridHeaderCell.RenderHeaderContent(_resourceEndpointsGrid)">
+                    <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">
                         <GridValue Value="@context.Name" />
-                    </TemplateColumn>
-                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn" HeaderCellItemTemplate="@AspireFluentDataGridHeaderCell.RenderHeaderContent(_resourceEndpointsGrid)">
+                    </AspireTemplateColumn>
+                    <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn">
                         <GridValue Value="@context.Text" MaxDisplayLength="0">
                             <ContentAfterValue>
                                 @if (context.Url != null)
@@ -92,7 +90,7 @@
                                 }
                             </ContentAfterValue>
                         </GridValue>
-                    </TemplateColumn>
+                    </AspireTemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
             <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsEnvironmentVariablesHeader)]" Expanded="true">

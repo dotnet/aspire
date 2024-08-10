@@ -1,3 +1,5 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 using System.Diagnostics;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
@@ -30,9 +32,22 @@ public partial class AspireFluentDataGridHeaderCell<T> : ComponentBase
         }
     }
 
-    private void HandleColumnHeaderClicked()
+    public bool AnyColumnActionEnabled => Column.Sortable is true || Grid.ResizableColumns;
+
+    private async Task HandleColumnHeaderClickedAsync()
     {
-        _isMenuOpen = !_isMenuOpen;
+        if (Column.Sortable is true && Grid.ResizableColumns)
+        {
+            _isMenuOpen = !_isMenuOpen;
+        }
+        else if (Column.Sortable is true && !Grid.ResizableColumns)
+        {
+            await Grid.SortByColumnAsync(Column);
+        }
+        else if (Column.Sortable is not true && Grid.ResizableColumns)
+        {
+            await Grid.ShowColumnOptionsAsync(Column);
+        }
     }
 
     private string GetSortOptionText()

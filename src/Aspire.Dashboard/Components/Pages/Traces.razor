@@ -32,8 +32,7 @@
         </ToolbarSection>
         <MainSection>
             <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
-                <FluentDataGrid @ref="_grid"
-                                ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
+                <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
                                 ResizeType="DataGridResizeType.Exact"
                                 Virtualize="true"
                                 GenerateHeader="GenerateHeaderOption.Sticky"
@@ -46,14 +45,14 @@
                                 OnRowClick="@(r => r.ExecuteOnDefault(d => NavigationManager.NavigateTo(DashboardUrls.TraceDetailUrl(d.TraceId))))"
                                 Class="enable-row-click">
                     <ChildContent>
-                        <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
+                        <AspireTemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
                             @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Truncated)
-                        </TemplateColumn>
-                        <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Tooltip="true" TooltipText="@(trace => GetNameTooltip(trace))">
+                        </AspireTemplateColumn>
+                        <AspireTemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Tooltip="true" TooltipText="@(trace => GetNameTooltip(trace))">
                             <span><FluentHighlighter HighlightedText="@(TracesViewModel.FilterText)" Text="@(context.FullName)" /></span>
                             <span class="trace-id">@OtlpHelpers.ToShortenedId(context.TraceId)</span>
-                        </TemplateColumn>
-                        <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Traces.TracesSpansColumnHeader)]">
+                        </AspireTemplateColumn>
+                        <AspireTemplateColumn Title="@Loc[nameof(Dashboard.Resources.Traces.TracesSpansColumnHeader)]">
                             <FluentOverflow>
                                 <ChildContent>
                                     @foreach (var item in context.Spans.GroupBy(s => s.Source).OrderBy(g => g.Min(s => s.StartTime)))
@@ -88,8 +87,8 @@
                                     </FluentTooltip>
                                 </OverflowTemplate>
                             </FluentOverflow>
-                        </TemplateColumn>
-                        <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]">
+                        </AspireTemplateColumn>
+                        <AspireTemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]">
                             <div class="duration-container">
                                 @if (ViewportInformation.IsDesktop)
                                 {
@@ -107,11 +106,11 @@
                                     @DurationFormatter.FormatDuration(context.Duration)
                                 }
                             </div>
-                        </TemplateColumn>
+                        </AspireTemplateColumn>
 
-                        <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
+                        <AspireTemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
                             <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.TraceDetailUrl(context.TraceId)" @onclick:stopPropagation="true">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentAnchor>
-                        </TemplateColumn>
+                        </AspireTemplateColumn>
                     </ChildContent>
                     <EmptyContent>
                         <FluentIcon Icon="Icons.Regular.Size24.GanttChart" />&nbsp;@Loc[nameof(Dashboard.Resources.Traces.TracesNoTraces)]

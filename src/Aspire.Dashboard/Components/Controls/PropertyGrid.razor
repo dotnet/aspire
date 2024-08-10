@@ -3,8 +3,7 @@
 @typeparam TItem
 @inject IStringLocalizer<ControlsStrings> Loc
 
-<FluentDataGrid @ref="_grid"
-                ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
+<FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
                 ResizeType="DataGridResizeType.Exact"
                 Items="@Items"
                 ResizableColumns="true"
@@ -12,14 +11,14 @@
                 GenerateHeader="@GenerateHeader"
                 GridTemplateColumns="@GridTemplateColumns"
                 ShowHover="true">
-    <TemplateColumn Title="@(NameColumnTitle ?? Loc[nameof(ControlsStrings.NameColumnHeader)])" Class="nameColumn" SortBy="@NameSort" Sortable="@IsNameSortable">
+    <AspireTemplateColumn Title="@(NameColumnTitle ?? Loc[nameof(ControlsStrings.NameColumnHeader)])" Class="nameColumn" SortBy="@NameSort" Sortable="@IsNameSortable">
         <GridValue Value="@NameColumnValue(context)" HighlightText="@HighlightText" />
-    </TemplateColumn>
-    <TemplateColumn Title="@(ValueColumnTitle ?? Loc[nameof(ControlsStrings.PropertyGridValueColumnHeader)])" Class="valueColumn" SortBy="@ValueSort" Sortable="@IsValueSortable">
+    </AspireTemplateColumn>
+    <AspireTemplateColumn Title="@(ValueColumnTitle ?? Loc[nameof(ControlsStrings.PropertyGridValueColumnHeader)])" Class="valueColumn" SortBy="@ValueSort" Sortable="@IsValueSortable">
         <GridValue Value="@ValueColumnValue(context)" HighlightText="@HighlightText"
                    EnableMasking="@EnableValueMasking" IsMasked="@GetIsItemMasked(context)"
                    IsMaskedChanged="(newValue) => OnIsMaskedChanged(context, newValue)" />
         @ExtraValueContent(context)
-    </TemplateColumn>
+    </AspireTemplateColumn>
 </FluentDataGrid>
 

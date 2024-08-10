@@ -34,7 +34,6 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private string? _elementIdBeforeDetailsViewOpened;
     private AspirePageContentLayout? _contentLayout;
     private string _filter = string.Empty;
-    private FluentDataGrid<OtlpLogEntry>? _grid;
 
     public string BasePath => DashboardUrls.StructuredLogsBasePath;
     public string SessionStorageKey => "StructuredLogs_PageState";

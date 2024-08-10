@@ -11,15 +11,14 @@
     {
         <div class="metrics-filters-section">
             <h5>@Loc[nameof(ControlsStrings.ChartContainerFiltersHeader)]</h5>
-            <FluentDataGrid @ref="_grid"
-                            ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
+            <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
                             ResizeType="DataGridResizeType.Exact"
                             Items="@Queryable.AsQueryable(DimensionFilters)"
                             GridTemplateColumns="200px 1fr auto"
                             GenerateHeader="GenerateHeaderOption.None">
                 <ChildContent>
-                    <PropertyColumn Tooltip="true" TooltipText="@(c => c.Name)" Property="@(c => c.Name)"/>
-                    <TemplateColumn Tooltip="true" TooltipText="@(c => c.SelectedValues.Count == 0 ? Loc[nameof(ControlsStrings.None)] : string.Join(", ", c.SelectedValues.Select(v => v.Name)))">
+                    <AspirePropertyColumn Tooltip="true" TooltipText="@(c => c.Name)" Property="@(c => c.Name)"/>
+                    <AspireTemplateColumn Tooltip="true" TooltipText="@(c => c.SelectedValues.Count == 0 ? Loc[nameof(ControlsStrings.None)] : string.Join(", ", c.SelectedValues.Select(v => v.Name)))">
                         <FluentOverflow Class="dimension-overflow">
                             <ChildContent>
                                 @if (context.SelectedValues.Count == 0)
@@ -49,8 +48,8 @@
                                 @* Intentionally empty. Don't display an overflow template here. *@
                             </OverflowTemplate>
                         </FluentOverflow>
-                    </TemplateColumn>
-                    <TemplateColumn>
+                    </AspireTemplateColumn>
+                    <AspireTemplateColumn>
                         @{
                             var id = $"typeFilterButton-{context.SanitizedHtmlId}-{Guid.NewGuid()}";
                         }
@@ -80,7 +79,7 @@
                             </FluentStack>
                             </Body>
                         </FluentPopover>
-                    </TemplateColumn>
+                    </AspireTemplateColumn>
                 </ChildContent>
             </FluentDataGrid>
         </div>

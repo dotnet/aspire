@@ -63,10 +63,7 @@
                         </div>
                     </DetailsTitleTemplate>
                     <Summary>
-                        <FluentDataGrid @ref="_grid"
-                                        ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlStringsLoc)"
-                                        ResizeType="DataGridResizeType.Exact"
-                                        Virtualize="true"
+                        <FluentDataGrid Virtualize="true"
                                         GenerateHeader="GenerateHeaderOption.Sticky"
                                         Class="trace-view-grid enable-row-click"
                                         ResizableColumns="true"

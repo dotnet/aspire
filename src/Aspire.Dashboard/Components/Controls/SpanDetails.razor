@@ -116,8 +116,7 @@
                         @FilteredSpanLinks.Count()
                     </FluentBadge>
                 </div>
-                <FluentDataGrid @ref="_linksGrid"
-                                ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
+                <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
                                 ResizeType="DataGridResizeType.Exact"
                                 TGridItem="SpanLinkViewModel"
                                 Items="@FilteredSpanLinks"
@@ -125,12 +124,12 @@
                                 GenerateHeader="GenerateHeaderOption.Sticky"
                                 GridTemplateColumns="4fr 1fr"
                                 ShowHover="true">
-                    <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">
+                    <AspireTemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">
                         @WriteSpanLink(context)
-                    </TemplateColumn>
-                    <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsDetailsColumnHeader)]">
+                    </AspireTemplateColumn>
+                    <AspireTemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsDetailsColumnHeader)]">
                         <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewDetailsAsync(context))">@Loc[nameof(ControlsStrings.ViewAction)]</FluentButton>
-                    </TemplateColumn>
+                    </AspireTemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
             <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsBacklinksHeader)]" Expanded="true">
@@ -139,8 +138,7 @@
                         @FilteredSpanBacklinks.Count()
                     </FluentBadge>
                 </div>
-                <FluentDataGrid @ref="_backlinksGrid"
-                                ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
+                <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
                                 ResizeType="DataGridResizeType.Exact"
                                 TGridItem="SpanLinkViewModel"
                                 Items="@FilteredSpanBacklinks"
@@ -148,12 +146,12 @@
                                 GenerateHeader="GenerateHeaderOption.Sticky"
                                 GridTemplateColumns="4fr 1fr"
                                 ShowHover="true">
-                    <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">
+                    <AspireTemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">
                         @WriteSpanLink(context)
-                    </TemplateColumn>
-                    <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsDetailsColumnHeader)]">
+                    </AspireTemplateColumn>
+                    <AspireTemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsDetailsColumnHeader)]">
                         <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewDetailsAsync(context))">@Loc[nameof(ControlsStrings.ViewAction)]</FluentButton>
-                    </TemplateColumn>
+                    </AspireTemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
         </FluentAccordion>

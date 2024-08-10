@@ -23,7 +23,6 @@ public partial class TraceDetail : ComponentBase
     private List<OtlpApplication> _applications = default!;
     private readonly List<string> _collapsedSpanIds = [];
     private string? _elementIdBeforeDetailsViewOpened;
-    private FluentDataGrid<SpanWaterfallViewModel>? _grid;
 
     [Parameter]
     public required string TraceId { get; set; }

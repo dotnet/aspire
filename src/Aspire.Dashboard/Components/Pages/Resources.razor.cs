@@ -59,7 +59,6 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private Task? _resourceSubscriptionTask;
     private bool _isLoading = true;
     private string? _elementIdBeforeDetailsViewOpened;
-    private FluentDataGrid<ResourceViewModel>? _grid;
 
     private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter)) && !resource.IsHiddenState();
 

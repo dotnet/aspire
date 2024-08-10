@@ -2,7 +2,7 @@
 
 <FluentKeyCode Only="@(new[] { KeyCode.Ctrl, KeyCode.Enter })" OnKeyDown="HandleKeyDown" class="keycapture">
     <span class="col-sort-container" @oncontextmenu="@(() => Grid.RemoveSortByColumnAsync(Column))" @oncontextmenu:preventDefault>
-        <FluentButton Id="@_columnId" Appearance="Appearance.Stealth" class="col-sort-button" @onclick="@HandleColumnHeaderClicked" aria-label="@Tooltip" title="@Tooltip">
+        <FluentButton Disabled="@(!AnyColumnActionEnabled)" Id="@_columnId" Appearance="Appearance.Stealth" class="col-sort-button" @onclick="@HandleColumnHeaderClickedAsync" aria-label="@Tooltip" title="@Tooltip">
             <div class="col-title-text" title="@Tooltip">@Column.Title</div>
 
             @if (Grid.SortByAscending.HasValue && Column.ShowSortIcon)
