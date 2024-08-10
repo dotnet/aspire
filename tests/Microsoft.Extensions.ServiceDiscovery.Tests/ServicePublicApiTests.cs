@@ -1,9 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Tests;
@@ -155,5 +159,54 @@ public class ServicePublicApiTests
 
         var exception = await Assert.ThrowsAsync<ArgumentNullException>(action);
         Assert.Equal(nameof(serviceName), exception.ParamName);
+    }
+
+    [Fact]
+    public void CreateShouldThrowWhenEndPointIsNull()
+    {
+        EndPoint endPoint = null!;
+
+        var action = () => ServiceEndpoint.Create(endPoint);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(endPoint), exception.ParamName);
+    }
+
+    [Fact]
+    public void TryParseShouldThrowWhenEndPointIsNull()
+    {
+        string input = null!;
+
+        var action = () =>
+        {
+            _ = ServiceEndpointQuery.TryParse(input, out _);
+        };
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(input), exception.ParamName);
+    }
+
+    [Fact]
+    public void CtorServiceEndpointSourceShouldThrowWhenChangeTokenIsNull()
+    {
+        IChangeToken changeToken = null!;
+        var features = new FeatureCollection();
+
+        var action = () => new ServiceEndpointSource(default(List<ServiceEndpoint>?), changeToken, features);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(changeToken), exception.ParamName);
+    }
+
+    [Fact]
+    public void CtorServiceEndpointSourceShouldThrowWhenFeaturesIsNull()
+    {
+        var changeToken = NullChangeToken.Singleton;
+        IFeatureCollection features = null!;
+
+        var action = () => new ServiceEndpointSource(default(List<ServiceEndpoint>?), changeToken, features);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(features), exception.ParamName);
     }
 }

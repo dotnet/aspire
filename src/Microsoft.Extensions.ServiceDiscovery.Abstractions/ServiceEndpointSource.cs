@@ -25,6 +25,7 @@ public sealed class ServiceEndpointSource
     public ServiceEndpointSource(List<ServiceEndpoint>? endpoints, IChangeToken changeToken, IFeatureCollection features)
     {
         ArgumentNullException.ThrowIfNull(changeToken);
+        ArgumentNullException.ThrowIfNull(features);
 
         _endpoints = endpoints;
         Features = features;
