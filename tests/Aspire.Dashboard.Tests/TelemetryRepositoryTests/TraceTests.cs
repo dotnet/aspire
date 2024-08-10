@@ -825,4 +825,53 @@ public class TraceTests
 
         Assert.Equal(0, addContext.FailureCount);
     }
+
+    [Fact]
+    public void AddTraces_MultipleRootSpans_RootSpanIsEarliestWithoutParent()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10)),
+                            CreateSpan(traceId: "1", spanId: "1-2", startTime: s_testTime.AddMinutes(3), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1"),
+                            CreateSpan(traceId: "1", spanId: "1-3", startTime: s_testTime.AddMinutes(4), endTime: s_testTime.AddMinutes(10))
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = null,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10
+        });
+        Assert.Collection(traces.PagedResult.Items,
+            trace =>
+            {
+                AssertId("1", trace.TraceId);
+                AssertId("1-2", trace.FirstSpan.SpanId); // First by time
+                AssertId("1-3", trace.RootSpan!.SpanId); // First by time and without a parent
+                Assert.Equal(3, trace.Spans.Count);
+            });
+    }
 }

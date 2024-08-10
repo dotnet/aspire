@@ -12,6 +12,7 @@ builder.AddSqlServerDbContext<MyDb2Context>("db2");
 
 var app = builder.Build();
 
+app.MapDefaultEndpoints();
 app.MapGet("/", async (MyDb1Context db1Context, MyDb2Context db2Context) =>
 {
     // You wouldn't normally do this on every call,
