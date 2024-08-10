@@ -4,7 +4,6 @@
 using System.Net;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Workload.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using SamplesIntegrationTests;
 using SamplesIntegrationTests.Infrastructure;
@@ -15,12 +14,12 @@ namespace Aspire.Playground.Tests;
 
 public class AppHostTests
 {
-    private readonly TestOutputWrapper _testOutput;
+    private readonly ITestOutputHelper _testOutput;
     private static readonly string? s_appHostNameFilter = Environment.GetEnvironmentVariable("TEST_PLAYGROUND_APPHOST_FILTER");
 
     public AppHostTests(ITestOutputHelper testOutput)
     {
-        this._testOutput = new TestOutputWrapper(testOutput);
+        _testOutput = testOutput;
     }
 
     [Theory]
