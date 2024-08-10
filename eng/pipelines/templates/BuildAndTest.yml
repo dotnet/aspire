@@ -52,6 +52,8 @@ steps:
         DOCKER_BUILDKIT: 1
         # Disable on Linux - https://github.com/dotnet/aspire/issues/4623
         DISABLE_PLAYWRIGHT_TESTS: ${{ ne(parameters.isWindows, 'true') }}
+        # https://github.com/dotnet/aspire/issues/5195#issuecomment-2271687822
+        DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
 
       displayName: Run non-helix tests
 
@@ -86,6 +88,17 @@ steps:
           Creator: $(Build.DefinitionName)
         HelixBuild: $(Build.BuildNumber)
         HelixAccessToken: $(HelixApiAccessToken)
+
+  - ${{ if eq(parameters.runHelixTests, 'true') }}:
+    - task: CopyFiles@2
+      inputs:
+        Contents: '${{ parameters.repoArtifactsPath }}/helixresults/**/*.trx'
+        TargetFolder: '${{ parameters.repoArtifactsPath }}/log/$(_BuildConfig)/TestResults'
+        flattenFolders: true
+        OverWrite: true
+      displayName: Gather helix trx files
+      continueOnError: true
+      condition: always()
 
   - task: CopyFiles@2
     inputs:

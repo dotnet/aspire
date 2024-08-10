@@ -17,7 +17,6 @@ public class TestProgram : IDisposable
         string assemblyName,
         bool disableDashboard,
         bool includeIntegrationServices,
-        bool includeNodeApp,
         bool allowUnsecuredTransport,
         bool randomizePorts)
     {
@@ -63,32 +62,11 @@ public class TestProgram : IDisposable
         ServiceCBuilder = AppBuilder.AddProject<Projects.ServiceC>("servicec", launchProfileName: "http");
         WorkerABuilder = AppBuilder.AddProject<Projects.WorkerA>("workera");
 
-        if (includeNodeApp)
-        {
-            // Relative to this project so that it doesn't changed based on
-            // where this code is referenced from.
-            var path = Path.Combine(Projects.TestProject_AppHost.ProjectPath, "..", "nodeapp");
-            var scriptPath = Path.Combine(path, "app.js");
-
-            NodeAppBuilder = AppBuilder.AddNodeApp("nodeapp", scriptPath)
-                .WithHttpEndpoint(port: 5031, env: "PORT");
-
-            NpmAppBuilder = AppBuilder.AddNpmApp("npmapp", path)
-                .WithHttpEndpoint(port: 5032, env: "PORT");
-        }
-
         if (includeIntegrationServices)
         {
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea");
             IntegrationServiceABuilder = IntegrationServiceABuilder.WithEnvironment("SKIP_RESOURCES", string.Join(',', resourcesToSkip));
 
-            if (!resourcesToSkip.HasFlag(TestResourceNames.sqlserver) || !resourcesToSkip.HasFlag(TestResourceNames.efsqlserver))
-            {
-                var sqlserverDbName = "tempdb";
-                var sqlserver = AppBuilder.AddSqlServer("sqlserver")
-                    .AddDatabase(sqlserverDbName);
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(sqlserver);
-            }
             if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
             {
                 var redis = AppBuilder.AddRedis("redis")
@@ -130,7 +108,6 @@ public class TestProgram : IDisposable
     public static TestProgram Create<T>(
         string[]? args = null,
         bool includeIntegrationServices = false,
-        bool includeNodeApp = false,
         bool disableDashboard = true,
         bool allowUnsecuredTransport = true,
         bool randomizePorts = true)
@@ -140,7 +117,6 @@ public class TestProgram : IDisposable
             assemblyName: typeof(T).Assembly.FullName!,
             disableDashboard: disableDashboard,
             includeIntegrationServices: includeIntegrationServices,
-            includeNodeApp: includeNodeApp,
             allowUnsecuredTransport: allowUnsecuredTransport,
             randomizePorts: randomizePorts);
     }
@@ -151,8 +127,6 @@ public class TestProgram : IDisposable
     public IResourceBuilder<ProjectResource> ServiceCBuilder { get; private set; }
     public IResourceBuilder<ProjectResource> WorkerABuilder { get; private set; }
     public IResourceBuilder<ProjectResource>? IntegrationServiceABuilder { get; private set; }
-    public IResourceBuilder<NodeAppResource>? NodeAppBuilder { get; private set; }
-    public IResourceBuilder<NodeAppResource>? NpmAppBuilder { get; private set; }
     public DistributedApplication? App { get; private set; }
 
     public List<IResourceBuilder<ProjectResource>> ServiceProjectBuilders => [ServiceABuilder, ServiceBBuilder, ServiceCBuilder];

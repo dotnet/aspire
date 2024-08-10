@@ -67,6 +67,12 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
     public IReadOnlyList<string> ValidationFailures => _validationFailures;
 
+    // our localization list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
+    internal static HashSet<string> LocalizedCultures { get; } = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant", // Standard cultures for compliance.
+    };
+
     /// <summary>
     /// Create a new instance of the <see cref="DashboardWebApplication"/> class.
     /// </summary>
@@ -148,6 +154,39 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             // See https://learn.microsoft.com/aspnet/core/performance/response-compression#compression-with-https for more information
             options.MimeTypes = ["text/javascript", "application/javascript", "text/css", "image/svg+xml"];
         });
+        if (!string.IsNullOrEmpty(dashboardOptions.Otlp.Cors.AllowedOrigins))
+        {
+            builder.Services.AddCors(options =>
+            {
+                // Default policy allows the dashboard's origins.
+                // This is added so CORS middleware doesn't report failure for dashboard browser requests that include an origin header.
+                options.AddDefaultPolicy(builder =>
+                {
+                    builder.WithOrigins(dashboardOptions.Frontend.GetEndpointUris().Select(uri => uri.OriginalString).ToArray());
+                    builder.AllowAnyHeader();
+                    builder.AllowAnyMethod();
+                });
+
+                options.AddPolicy(OtlpHttpEndpointsBuilder.CorsPolicyName, builder =>
+                {
+                    var corsOptions = dashboardOptions.Otlp.Cors;
+
+                    builder.WithOrigins(corsOptions.AllowedOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+                    builder.SetIsOriginAllowedToAllowWildcardSubdomains();
+
+                    // By default, allow headers in the implicit safelist and X-Requested-With. This matches OTLP collector CORS behavior.
+                    // Implicit safelist: https://developer.mozilla.org/en-US/docs/Glossary/CORS-safelisted_request_header
+                    // OTLP collector: https://github.com/open-telemetry/opentelemetry-collector/blob/685625abb4703cb2e45a397f008127bbe2ba4c0e/config/confighttp/README.md#server-configuration
+                    var allowedHeaders = !string.IsNullOrEmpty(corsOptions.AllowedHeaders)
+                        ? corsOptions.AllowedHeaders.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        : ["X-Requested-With"];
+                    builder.WithHeaders(allowedHeaders);
+
+                    // Hardcode to allow only POST methods. OTLP is always sent in POST request bodies.
+                    builder.WithMethods(HttpMethods.Post);
+                });
+            });
+        }
 
         // Data from the server.
         builder.Services.AddScoped<IDashboardClient, DashboardClient>();
@@ -194,18 +233,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _logger = GetLogger();
 
-        // this needs to be explicitly enumerated for each supported language
-        // our language list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
-        var supportedLanguages = new[]
-        {
-            "en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant", // Standard cultures for compliance.
-            "zh-CN", // Non-standard culture but it is the default in many Chinese browsers. Adding zh-CN allows OS culture customization to flow through the dashboard.
-            "en-GB", // Support UK DateTime formatting (24-hour clock, dd/MM/yyyy)
-        };
+        var supportedCultures = GetSupportedCultures();
 
         _app.UseRequestLocalization(new RequestLocalizationOptions()
-            .AddSupportedCultures(supportedLanguages)
-            .AddSupportedUICultures(supportedLanguages));
+            .AddSupportedCultures(supportedCultures)
+            .AddSupportedUICultures(supportedCultures));
 
         WriteVersion(_logger);
 
@@ -257,6 +289,13 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             await next(context).ConfigureAwait(false);
         });
 
+        if (!string.IsNullOrEmpty(dashboardOptions.Otlp.Cors.AllowedOrigins))
+        {
+            // Only add CORS middleware when there is CORS configuration.
+            // The default policy only allows the dashboard origin. Certain endpoints expose CORS for external origins, e.g. OTLP HTTP endpoints.
+            _app.UseCors();
+        }
+
         _app.UseMiddleware<ValidateTokenMiddleware>();
 
         // Configure the HTTP request pipeline.
@@ -301,11 +340,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         _app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
         // OTLP HTTP services.
-        var httpEndpoint = dashboardOptions.Otlp.GetHttpEndpointUri();
-        if (httpEndpoint != null)
-        {
-            _app.MapHttpOtlpApi();
-        }
+        _app.MapHttpOtlpApi(dashboardOptions.Otlp);
 
         // OTLP gRPC services.
         _app.MapGrpcService<OtlpGrpcMetricsService>();
@@ -334,6 +369,18 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         {
             _app.MapPost("/authentication/logout", () => TypedResults.SignOut(authenticationSchemes: [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]));
         }
+    }
+
+    internal static string[] GetSupportedCultures()
+    {
+        var supportedCultures = CultureInfo.GetCultures(CultureTypes.AllCultures)
+            .Where(culture => LocalizedCultures.Contains(culture.TwoLetterISOLanguageName) || LocalizedCultures.Contains(culture.Name))
+            .Select(culture => culture.Name)
+            .ToList();
+
+        // Non-standard culture but it is the default in many Chinese browsers. Adding zh-CN allows OS culture customization to flow through the dashboard.
+        supportedCultures.Add("zh-CN");
+        return supportedCultures.ToArray();
     }
 
     private ILogger<DashboardWebApplication> GetLogger()
@@ -560,6 +607,27 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 {
                     OnCertificateValidated = context =>
                     {
+                        var options = context.HttpContext.RequestServices.GetRequiredService<IOptions<DashboardOptions>>().Value;
+                        if (options.Otlp.AllowedCertificates is { Count: > 0 } allowList)
+                        {
+                            var allowed = false;
+                            foreach (var rule in allowList)
+                            {
+                                // Thumbprint is hexadecimal and is case-insensitive.
+                                if (string.Equals(rule.Thumbprint, context.ClientCertificate.Thumbprint, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    allowed = true;
+                                    break;
+                                }
+                            }
+
+                            if (!allowed)
+                            {
+                                context.Fail("Certificate doesn't match allow list.");
+                                return Task.CompletedTask;
+                            }
+                        }
+
                         var claims = new[]
                         {
                             new Claim(ClaimTypes.NameIdentifier,
@@ -697,13 +765,13 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
     public Task StartAsync(CancellationToken cancellationToken = default)
     {
-        Debug.Assert(_validationFailures.Count == 0);
+        Debug.Assert(_validationFailures.Count == 0, "Validation failures: " + Environment.NewLine + string.Join(Environment.NewLine, _validationFailures));
         return _app.StartAsync(cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken = default)
     {
-        Debug.Assert(_validationFailures.Count == 0);
+        Debug.Assert(_validationFailures.Count == 0, "Validation failures: " + Environment.NewLine + string.Join(Environment.NewLine, _validationFailures));
         return _app.StopAsync(cancellationToken);
     }
 
