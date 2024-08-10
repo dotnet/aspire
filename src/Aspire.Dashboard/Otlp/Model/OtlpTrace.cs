@@ -64,12 +64,21 @@ public class OtlpTrace
         if (!added)
         {
             Spans.Insert(0, span);
-            FullName = $"{span.Source.ApplicationName}: {span.Name}";
         }
 
         if (string.IsNullOrEmpty(span.ParentSpanId))
         {
-            _rootSpan = span;
+            // There should only be one span with no parent span ID.
+            // Incase there isn't, the first span with no parent span ID is considered to be the root.
+            foreach (var existingSpan in Spans)
+            {
+                if (string.IsNullOrEmpty(existingSpan.ParentSpanId))
+                {
+                    _rootSpan = existingSpan;
+                    FullName = $"{existingSpan.Source.ApplicationName}: {existingSpan.Name}";
+                    break;
+                }
+            }
         }
 
         AssertSpanOrder();
