@@ -129,6 +129,10 @@ public class AppHostTests
     {
         IList<TestEndpoints> candidates =
         [
+            new TestEndpoints("PostgresEndToEnd.AppHost", new() {
+                // Invoking "/" first as that *creates* the databases
+                { "api", ["/", "/alive", "/health"] }
+            }),
             new TestEndpoints("CosmosEndToEnd.AppHost", new() { { "api", ["/alive", "/health", "/", "/ef"] } }),
             new TestEndpoints("Mongo.AppHost", new() { { "api", ["/alive", "/health", "/"] } }),
             new TestEndpoints("MySqlDb.AppHost", new() { { "apiservice", ["/alive", "/health", "/catalog"] }, }),
