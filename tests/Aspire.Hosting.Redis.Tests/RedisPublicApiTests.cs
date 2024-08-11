@@ -9,8 +9,6 @@ namespace Aspire.Hosting.Redis.Tests;
 
 public class RedisPublicApiTests
 {
-    #region RedisBuilderExtensions
-
     [Fact]
     public void AddRedisContainerShouldThrowWhenBuilderIsNull()
     {
@@ -105,10 +103,6 @@ public class RedisPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    #endregion
-
-    #region RedisCommanderConfigWriterHook
-
     [Fact]
     public async Task AfterEndpointsAllocatedAsyncShouldThrowWhenDistributedApplicationModelIsNull()
     {
@@ -123,10 +117,6 @@ public class RedisPublicApiTests
         Assert.Equal(nameof(appModel), exception.ParamName);
     }
 
-    #endregion
-
-    #region RedisCommanderResource
-
     [Fact]
     public void CtorRedisCommanderResourceShouldThrowWhenNameIsNull()
     {
@@ -138,10 +128,6 @@ public class RedisPublicApiTests
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
-    #endregion
-
-    #region RedisResource
-
     [Fact]
     public void CtorRedisResourceShouldThrowWhenNameIsNull()
     {
@@ -152,6 +138,4 @@ public class RedisPublicApiTests
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
-
-    #endregion
 }
