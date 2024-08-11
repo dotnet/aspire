@@ -27,7 +27,11 @@ public static class AspireKeycloakExtensions
     /// For example, if <paramref name="serviceName"/> is "keycloak" and <paramref name="realm"/> is "myrealm", the authority URL will be "https+http://keycloak/realms/myrealm".
     /// </remarks>
     public static AuthenticationBuilder AddKeycloakJwtBearer(this AuthenticationBuilder builder, string serviceName, string realm)
-        => builder.AddKeycloakJwtBearer(serviceName, realm, JwtBearerDefaults.AuthenticationScheme, null);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.AddKeycloakJwtBearer(serviceName, realm, JwtBearerDefaults.AuthenticationScheme, null);
+    }
 
     /// <summary>
     /// Adds Keycloak JWT Bearer authentication to the application.
@@ -41,7 +45,11 @@ public static class AspireKeycloakExtensions
     /// For example, if <paramref name="serviceName"/> is "keycloak" and <paramref name="realm"/> is "myrealm", the authority URL will be "https+http://keycloak/realms/myrealm".
     /// </remarks>
     public static AuthenticationBuilder AddKeycloakJwtBearer(this AuthenticationBuilder builder, string serviceName, string realm, string authenticationScheme)
-        => builder.AddKeycloakJwtBearer(serviceName, realm, authenticationScheme, null);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.AddKeycloakJwtBearer(serviceName, realm, authenticationScheme, null);
+    }
 
     /// <summary>
     /// Adds Keycloak JWT Bearer authentication to the application.
@@ -55,7 +63,12 @@ public static class AspireKeycloakExtensions
     /// For example, if <paramref name="serviceName"/> is "keycloak" and <paramref name="realm"/> is "myrealm", the authority URL will be "https+http://keycloak/realms/myrealm".
     /// </remarks>
     public static AuthenticationBuilder AddKeycloakJwtBearer(this AuthenticationBuilder builder, string serviceName, string realm, Action<JwtBearerOptions>? configureOptions)
-        => builder.AddKeycloakJwtBearer(serviceName, realm, JwtBearerDefaults.AuthenticationScheme, configureOptions);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.AddKeycloakJwtBearer(serviceName, realm, JwtBearerDefaults.AuthenticationScheme,
+            configureOptions);
+    }
 
     /// <summary>
     /// Adds Keycloak JWT Bearer authentication to the application.
@@ -77,6 +90,9 @@ public static class AspireKeycloakExtensions
         Action<JwtBearerOptions>? configureOptions)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(serviceName);
+        ArgumentNullException.ThrowIfNull(realm);
+        ArgumentNullException.ThrowIfNull(authenticationScheme);
 
         builder.AddJwtBearer(authenticationScheme);
 
@@ -106,7 +122,11 @@ public static class AspireKeycloakExtensions
     /// For example, if <paramref name="serviceName"/> is "keycloak" and <paramref name="realm"/> is "myrealm", the authority URL will be "https+http://keycloak/realms/myrealm".
     /// </remarks>
     public static AuthenticationBuilder AddKeycloakOpenIdConnect(this AuthenticationBuilder builder, string serviceName, string realm)
-        => builder.AddKeycloakOpenIdConnect(serviceName, realm, OpenIdConnectDefaults.AuthenticationScheme, null);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.AddKeycloakOpenIdConnect(serviceName, realm, OpenIdConnectDefaults.AuthenticationScheme, null);
+    }
 
     /// <summary>
     /// Adds Keycloak OpenID Connect authentication to the application.
@@ -120,7 +140,11 @@ public static class AspireKeycloakExtensions
     /// For example, if <paramref name="serviceName"/> is "keycloak" and <paramref name="realm"/> is "myrealm", the authority URL will be "https+http://keycloak/realms/myrealm".
     /// </remarks>
     public static AuthenticationBuilder AddKeycloakOpenIdConnect(this AuthenticationBuilder builder, string serviceName, string realm, string authenticationScheme)
-        => builder.AddKeycloakOpenIdConnect(serviceName, realm, authenticationScheme, null);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.AddKeycloakOpenIdConnect(serviceName, realm, authenticationScheme, null);
+    }
 
     /// <summary>
     /// Adds Keycloak OpenID Connect authentication to the application.
@@ -134,7 +158,11 @@ public static class AspireKeycloakExtensions
     /// For example, if <paramref name="serviceName"/> is "keycloak" and <paramref name="realm"/> is "myrealm", the authority URL will be "https+http://keycloak/realms/myrealm".
     /// </remarks>
     public static AuthenticationBuilder AddKeycloakOpenIdConnect(this AuthenticationBuilder builder, string serviceName, string realm, Action<OpenIdConnectOptions>? configureOptions)
-        => builder.AddKeycloakOpenIdConnect(serviceName, realm, OpenIdConnectDefaults.AuthenticationScheme, configureOptions);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.AddKeycloakOpenIdConnect(serviceName, realm, OpenIdConnectDefaults.AuthenticationScheme, configureOptions);
+    }
 
     /// <summary>
     /// Adds Keycloak OpenID Connect authentication to the application.
@@ -156,6 +184,9 @@ public static class AspireKeycloakExtensions
         Action<OpenIdConnectOptions>? configureOptions)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(serviceName);
+        ArgumentNullException.ThrowIfNull(realm);
+        ArgumentNullException.ThrowIfNull(authenticationScheme);
 
         builder.AddOpenIdConnect(authenticationScheme, options => { });
 
