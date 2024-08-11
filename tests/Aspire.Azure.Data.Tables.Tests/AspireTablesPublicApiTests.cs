@@ -24,31 +24,19 @@ public class AspireTablesPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddAzureTableClientShouldThrowWhenConnectionNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddAzureTableClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
         var builder = new HostApplicationBuilder();
-        string connectionName = null!;
+        var connectionName = isNull ? null! : string.Empty;
         Action<AzureDataTablesSettings>? configureSettings = null;
         Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>>? configureClientBuilder = null;
 
         var action = () => builder.AddAzureTableClient(connectionName, configureSettings, configureClientBuilder);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(connectionName), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddAzureTableClientShouldThrowWhenConnectionNameIsEmpty()
-    {
-        var builder = new HostApplicationBuilder();
-        var connectionName = string.Empty;
-        Action<AzureDataTablesSettings>? configureSettings = null;
-        Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>>? configureClientBuilder = null;
-
-        var action = () => builder.AddAzureTableClient(connectionName, configureSettings, configureClientBuilder);
-
-        var exception = Assert.Throws<ArgumentException>(action);
+        var exception = isNull ? Assert.Throws<ArgumentNullException>(action) : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(connectionName), exception.ParamName);
     }
 
@@ -66,31 +54,19 @@ public class AspireTablesPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKeyedAzureTableClientShouldThrowWhenConnectionNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddKeyedAzureTableClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
         var builder = new HostApplicationBuilder();
-        string name = null!;
+        var name = isNull ? null! : string.Empty;
         Action<AzureDataTablesSettings>? configureSettings = null;
         Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>>? configureClientBuilder = null;
 
         var action = () => builder.AddKeyedAzureTableClient(name, configureSettings, configureClientBuilder);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
-        Assert.Equal(nameof(name), exception.ParamName);
-    }
-
-    [Fact]
-    public void AddKeyedAzureTableClientShouldThrowWhenConnectionNameIsEmpty()
-    {
-        var builder = new HostApplicationBuilder();
-        var name = string.Empty;
-        Action<AzureDataTablesSettings>? configureSettings = null;
-        Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>>? configureClientBuilder = null;
-
-        var action = () => builder.AddKeyedAzureTableClient(name, configureSettings, configureClientBuilder);
-
-        var exception = Assert.Throws<ArgumentException>(action);
+        var exception = isNull ? Assert.Throws<ArgumentNullException>(action) : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 }
