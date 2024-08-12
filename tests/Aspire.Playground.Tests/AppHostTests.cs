@@ -63,7 +63,6 @@ public class AppHostTests
         {
             var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
             var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
-            var tasks = testEndpoints.WaitForTexts?.Select(x => app.WaitForTextAsync(log => new Regex(x.Pattern).IsMatch(log), x.ResourceName)) ?? [];
 
             await app.WaitForResources().WaitAsync(TimeSpan.FromMinutes(2));
 
