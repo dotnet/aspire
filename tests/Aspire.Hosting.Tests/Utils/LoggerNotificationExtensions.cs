@@ -1,13 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable IDE0005 // Using directive is unnecessary. This using is required when building this file in Aspire.Playground.Tests.csproj.
+using Aspire.Hosting.ApplicationModel;
+#pragma warning restore IDE0005 // Using directive is unnecessary.
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-
-// Necessary when LoggerNotificationExtensions is included directly in some projects
-using ResourceNotificationService = Aspire.Hosting.ApplicationModel.ResourceNotificationService;
-using ResourceLoggerService = Aspire.Hosting.ApplicationModel.ResourceLoggerService;
 
 namespace Aspire.Hosting.Tests.Utils;
 
