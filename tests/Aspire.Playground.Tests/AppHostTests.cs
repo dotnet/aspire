@@ -141,27 +141,66 @@ public class AppHostTests
     {
         IList<TestEndpoints> candidates =
         [
-            new TestEndpoints("CosmosEndToEnd.AppHost", new() { { "api", ["/alive", "/health", "/", "/ef"] } }) { WaitForTexts = [new ("cosmos", "Started$"), new ("api", "Application started")] },
-            new TestEndpoints("Mongo.AppHost", new() { { "api", ["/alive", "/health", "/"] } }) { WaitForTexts = [ new ("mongo", "Waiting for connections"), new ("mongo-mongoexpress", "Mongo Express server listening"), new("api", "Application started.")] },
-            new TestEndpoints("MySqlDb.AppHost", new() { { "apiservice", ["/alive", "/health", "/catalog"] } }){ WaitForTexts = [new ("mysql", "ready for connections.* port: 33060"), new ("apiservice", "Application started")] },
-            new TestEndpoints("Nats.AppHost", new() {
-                { "api", ["/alive", "/health"] },
-                { "backend", ["/alive", "/health"] }
-            }) { WaitForTexts = [new ("nats", "Server is ready"), new ("api", "Application started")] },
-            new TestEndpoints("ProxylessEndToEnd.AppHost", new() { { "api", ["/alive", "/health", "/redis"] } }) { WaitForTexts = [new ("redis", "Ready to accept connections"), new("api", "Application started"), new("api2", "Application started")] },
-            new TestEndpoints("Qdrant.AppHost", new() { { "apiservice", ["/alive", "/health"] } }) { WaitForTexts = [new ("qdrant", "Qdrant HTTP listening"), new ("apiservice", "Application started")] },
-            new TestEndpoints("Seq.AppHost", new() { { "api", ["/alive", "/health"] } }) { WaitForTexts = [new ("seq", "Seq listening"), new ("api", "Application started")] },
-            new TestEndpoints("TestShop.AppHost", new() {
-                { "catalogdbapp", ["/alive", "/health"] },
-                { "frontend", ["/alive", "/health"] }
-            }){ WaitForTexts = [
-                new ("messaging", "started TCP listener"),
-                new ("basketcache", "Ready to accept connections"),
-                new ("frontend", "Application started"),
-                new ("catalogdbapp", "Application started"),
-                new ("basketservice", "Application started"),
-                new ("postgres", "database system is ready to accept connections"),
-            ] },
+            new TestEndpoints("CosmosEndToEnd.AppHost",
+                resourceEndpoints: new() { { "api", ["/alive", "/health", "/", "/ef"] } },
+                waitForTexts: [
+                    new ("cosmos", "Started$"),
+                    new ("api", "Application started")
+                ]),
+            new TestEndpoints("Mongo.AppHost",
+                resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
+                waitForTexts: [
+                    new ("mongo", "Waiting for connections"),
+                    new ("mongo-mongoexpress", "Mongo Express server listening"),
+                    new("api", "Application started.")
+                ]),
+            new TestEndpoints("MySqlDb.AppHost",
+                resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/catalog"] } },
+                waitForTexts: [
+                    new ("mysql", "ready for connections.* port: 33060"),
+                    new ("apiservice", "Application started")
+                ]),
+            new TestEndpoints("Nats.AppHost",
+                resourceEndpoints: new() {
+                    { "api", ["/alive", "/health"] },
+                    { "backend", ["/alive", "/health"] }
+                },
+                waitForTexts: [
+                    new ("nats", "Server is ready"),
+                    new("api", "Application started")
+                ]),
+            new TestEndpoints("ProxylessEndToEnd.AppHost",
+                resourceEndpoints: new() { { "api", ["/alive", "/health", "/redis"] } },
+                waitForTexts: [
+                    new ("redis", "Ready to accept connections"),
+                    new("api", "Application started"),
+                    new("api2", "Application started")
+                ]),
+            new TestEndpoints("Qdrant.AppHost",
+                resourceEndpoints: new() { { "apiservice", ["/alive", "/health"] } },
+                waitForTexts: [
+                    new ("qdrant", "Qdrant HTTP listening"),
+                    new ("apiservice", "Application started")
+                ]),
+            new TestEndpoints("Seq.AppHost",
+                resourceEndpoints: new() { { "api", ["/alive", "/health"] } },
+                waitForTexts: [
+                    new ("seq", "Seq listening"),
+                    new ("api", "Application started")
+                ]),
+            new TestEndpoints("TestShop.AppHost",
+                resourceEndpoints: new() {
+                    { "catalogdbapp", ["/alive", "/health"] },
+                    { "frontend", ["/alive", "/health"] }
+                },
+                waitForTexts: [
+                    new ("messaging", "started TCP listener"),
+                    new ("basketcache", "Ready to accept connections"),
+                    new ("frontend", "Application started"),
+                    new ("catalogdbapp", "Application started"),
+                    new ("basketservice", "Application started"),
+                    new ("postgres", "database system is ready to accept connections"),
+                ])
         ];
 
         TheoryData<TestEndpoints> theoryData = new();
@@ -194,10 +233,11 @@ public class TestEndpoints : IXunitSerializable
     // Required for deserialization
     public TestEndpoints() { }
 
-    public TestEndpoints(string appHost, Dictionary<string, List<string>> resourceEndpoints)
+    public TestEndpoints(string appHost, Dictionary<string, List<string>> resourceEndpoints, List<ReadyStateText>? waitForTexts = null)
     {
         AppHost = appHost;
         ResourceEndpoints = resourceEndpoints;
+        WaitForTexts = waitForTexts;
     }
 
     public string? AppHost { get; set; }
