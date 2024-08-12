@@ -53,10 +53,16 @@
                                 GridTemplateColumns="1fr 1.5fr"
                                 ShowHover="true">
                     <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">
-                        <GridValue Value="@(context.KnownProperty?.DisplayName ?? context.Key)" ToolTip="@context.Key" />
+                        <GridValue
+                            Value="@(context.KnownProperty?.DisplayName ?? context.Key)"
+                            ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]"
+                            ToolTip="@context.Key" />
                     </AspireTemplateColumn>
                     <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn">
-                        <GridValue Value="@GetDisplayedValue(TimeProvider, context)" ToolTip="@context.Tooltip" />
+                        <GridValue
+                            Value="@GetDisplayedValue(TimeProvider, context)"
+                            ValueDescription="@(context.KnownProperty?.DisplayName ?? context.Key)"
+                            ToolTip="@context.Tooltip" />
                     </AspireTemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
@@ -75,10 +81,13 @@
                                 GridTemplateColumns="1fr 1.5fr"
                                 ShowHover="true">
                     <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">
-                        <GridValue Value="@context.Name" />
+                        <GridValue Value="@context.Name" ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" />
                     </AspireTemplateColumn>
                     <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn">
-                        <GridValue Value="@context.Text" MaxDisplayLength="0">
+                        <GridValue
+                            Value="@context.Text"
+                            ValueDescription="@context.Name"
+                            MaxDisplayLength="0">
                             <ContentAfterValue>
                                 @if (context.Url != null)
                                 {
