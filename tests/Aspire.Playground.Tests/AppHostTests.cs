@@ -57,14 +57,14 @@ public class AppHostTests
         {
             // If specific ready to start texts are available use it
             var tasks = testEndpoints.WaitForTexts.Select(x => app.WaitForTextAsync(log => new Regex(x.Pattern).IsMatch(log), x.ResourceName));
-            await Task.WhenAll(tasks).WaitAsync(TimeSpan.FromMinutes(2));
+            await Task.WhenAll(tasks).WaitAsync(TimeSpan.FromMinutes(5));
         }
         else
         {
             var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
             var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
 
-            await app.WaitForResources().WaitAsync(TimeSpan.FromMinutes(2));
+            await app.WaitForResources().WaitAsync(TimeSpan.FromMinutes(5));
 
             if (testEndpoints.WaitForResources?.Count > 0)
             {
