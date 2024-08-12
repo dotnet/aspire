@@ -56,15 +56,15 @@ public partial class AspireFluentDataGridHeaderCell<T> : ComponentBase
         {
             if (Grid.SortByAscending is true)
             {
-                return Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortDescendingLabel)];
+                return Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortDescendingButtonText)];
             }
             else
             {
-                return Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortAscendingLabel)];
+                return Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortAscendingButtonText)];
             }
         }
 
-        return Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortLabel)];
+        return Loc[nameof(ControlsStrings.FluentDataGridHeaderCellSortButtonText)];
     }
 }
 

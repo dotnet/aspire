@@ -513,21 +513,27 @@ namespace Aspire.Dashboard.Resources {
             }
         }
         
-        public static string FluentDataGridHeaderCellSortLabel {
+        public static string FluentDataGridHeaderCellSortButtonText {
             get {
-                return ResourceManager.GetString("FluentDataGridHeaderCellSortLabel", resourceCulture);
+                return ResourceManager.GetString("FluentDataGridHeaderCellSortButtonText", resourceCulture);
             }
         }
         
-        public static string FluentDataGridHeaderCellSortAscendingLabel {
+        public static string FluentDataGridHeaderCellSortAscendingButtonText {
             get {
-                return ResourceManager.GetString("FluentDataGridHeaderCellSortAscendingLabel", resourceCulture);
+                return ResourceManager.GetString("FluentDataGridHeaderCellSortAscendingButtonText", resourceCulture);
             }
         }
         
-        public static string FluentDataGridHeaderCellSortDescendingLabel {
+        public static string FluentDataGridHeaderCellSortDescendingButtonText {
             get {
-                return ResourceManager.GetString("FluentDataGridHeaderCellSortDescendingLabel", resourceCulture);
+                return ResourceManager.GetString("FluentDataGridHeaderCellSortDescendingButtonText", resourceCulture);
+            }
+        }
+        
+        public static string FluentDataGridHeaderCellResizeButtonText {
+            get {
+                return ResourceManager.GetString("FluentDataGridHeaderCellResizeButtonText", resourceCulture);
             }
         }
     }

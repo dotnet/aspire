@@ -362,13 +362,16 @@
   <data name="FluentDataGridHeaderCellResizeLabel" xml:space="preserve">
     <value>Column width (in pixels)</value>
   </data>
-  <data name="FluentDataGridHeaderCellSortLabel" xml:space="preserve">
+  <data name="FluentDataGridHeaderCellSortButtonText" xml:space="preserve">
     <value>Sort</value>
   </data>
-  <data name="FluentDataGridHeaderCellSortAscendingLabel" xml:space="preserve">
+  <data name="FluentDataGridHeaderCellSortAscendingButtonText" xml:space="preserve">
     <value>Sort (ascending)</value>
   </data>
-  <data name="FluentDataGridHeaderCellSortDescendingLabel" xml:space="preserve">
+  <data name="FluentDataGridHeaderCellSortDescendingButtonText" xml:space="preserve">
     <value>Sort (descending)</value>
+  </data>
+  <data name="FluentDataGridHeaderCellResizeButtonText" xml:space="preserve">
+    <value>Resize</value>
   </data>
 </root>

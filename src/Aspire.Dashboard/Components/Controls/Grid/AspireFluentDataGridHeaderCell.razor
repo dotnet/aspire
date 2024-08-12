@@ -1,3 +1,4 @@
+@using Aspire.Dashboard.Resources
 @typeparam T
 
 <FluentKeyCode Only="@(new[] { KeyCode.Ctrl, KeyCode.Enter })" OnKeyDown="HandleKeyDown" class="keycapture">
@@ -29,7 +30,7 @@
             <FluentMenuItem OnClick="@(async () => await Grid.SortByColumnAsync(Column))">
                @GetSortOptionText()
             </FluentMenuItem>
-            <FluentMenuItem OnClick="@(async () => await Grid.ShowColumnOptionsAsync(Column))">Resize</FluentMenuItem>
+            <FluentMenuItem OnClick="@(async () => await Grid.ShowColumnOptionsAsync(Column))">@Loc[nameof(ControlsStrings.FluentDataGridHeaderCellResizeButtonText)]</FluentMenuItem>
         </FluentMenu>
     </span>
 </FluentKeyCode>
