@@ -59,6 +59,7 @@ public class Class1
       the Aspire.Hosting.SDK targets that will automatically add these references to projects. 
     -->
     <SkipAddReferenceToDashboardAndDCP>true</SkipAddReferenceToDashboardAndDCP>
+    <AspireHostingSDKVersion>8.2.0</AspireHostingSDKVersion>
   </PropertyGroup>
 
   <ItemGroup>
