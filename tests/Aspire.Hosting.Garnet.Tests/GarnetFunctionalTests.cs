@@ -89,7 +89,14 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
 
                 if (!Directory.Exists(bindMountPath))
                 {
-                    Directory.CreateDirectory(bindMountPath);
+                    if (OperatingSystem.IsWindows())
+                    {
+                        Directory.CreateDirectory(bindMountPath);
+                    }
+                    else
+                    {
+                        Directory.CreateDirectory(bindMountPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
+                    }
                 }
                 garnet1.WithDataBindMount(bindMountPath);
             }
