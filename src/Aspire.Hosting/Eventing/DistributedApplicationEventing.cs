@@ -1,14 +1,17 @@
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Eventing;
 
 /// <inheritdoc cref="IDistributedApplicationEventing" />
+[Experimental("ASPIREEVENTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
 public class DistributedApplicationEventing : IDistributedApplicationEventing
 {
     private readonly Dictionary<Type, List<DistributedApplicationEventSubscription>> _eventSubscriptionListLookup = new();
     private readonly Dictionary<DistributedApplicationEventSubscription, Type> _subscriptionEventTypeLookup = new();
 
     /// <inheritdoc cref="IDistributedApplicationEventing.PublishAsync{T}(T, CancellationToken)" />
+    [Experimental("ASPIREEVENTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public async Task PublishAsync<T>(T @event, CancellationToken cancellationToken) where T : IDistributedApplicationEvent
     {
         if (_eventSubscriptionListLookup.TryGetValue(typeof(T), out var subscriptions))
@@ -24,6 +27,7 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
     }
 
     /// <inheritdoc cref="IDistributedApplicationEventing.Subscribe{T}(Func{T, CancellationToken, Task})" />
+    [Experimental("ASPIREEVENTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public DistributedApplicationEventSubscription Subscribe<T>(Func<T, CancellationToken, Task> callback) where T : IDistributedApplicationEvent
     {
         var subscription = new DistributedApplicationEventSubscription(async (@event, ct) =>
@@ -47,6 +51,7 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
     }
 
     /// <inheritdoc cref="IDistributedApplicationEventing.Subscribe{T}(Func{T, CancellationToken, Task})" />
+    [Experimental("ASPIREEVENTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public DistributedApplicationEventSubscription Subscribe<T>(IResource resource, Func<T, CancellationToken, Task> callback) where T : IDistributedApplicationResourceEvent
     {
         var resourceFilteredCallback = async (T @event, CancellationToken cancellationToken) =>
@@ -61,6 +66,7 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
     }
 
     /// <inheritdoc cref="IDistributedApplicationEventing.Unsubscribe(DistributedApplicationEventSubscription)" />
+    [Experimental("ASPIREEVENTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public void Unsubscribe(DistributedApplicationEventSubscription subscription)
     {
         if (_subscriptionEventTypeLookup.TryGetValue(subscription, out var eventType))

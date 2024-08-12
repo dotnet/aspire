@@ -68,7 +68,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     public IResourceCollection Resources { get; } = new ResourceCollection();
 
     /// <inheritdoc />
+#pragma warning disable ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     public IDistributedApplicationEventing Eventing { get; } = new DistributedApplicationEventing();
+#pragma warning restore ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.

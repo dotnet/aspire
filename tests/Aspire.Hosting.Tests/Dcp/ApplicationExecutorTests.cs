@@ -745,6 +745,7 @@ public class ApplicationExecutorTests
             configuration = builder.Build();
         }
 
+#pragma warning disable ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return new ApplicationExecutor(
             NullLogger<ApplicationExecutor>.Instance,
             NullLogger<DistributedApplication>.Instance,
@@ -764,6 +765,7 @@ public class ApplicationExecutorTests
             new DistributedApplicationEventing(),
             serviceProvider
         );
+#pragma warning restore ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     private sealed class TestHostApplicationLifetime : IHostApplicationLifetime
