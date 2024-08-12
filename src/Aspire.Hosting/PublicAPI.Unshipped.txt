@@ -1,7 +1,13 @@
 #nullable enable
-Aspire.Hosting.ApplicationModel.ContainerResourceStartedEvent
-Aspire.Hosting.ApplicationModel.ContainerResourceStartedEvent.ContainerResourceStartedEvent(Aspire.Hosting.ApplicationModel.IResource! resource) -> void
-Aspire.Hosting.ApplicationModel.ContainerResourceStartedEvent.Resource.get -> Aspire.Hosting.ApplicationModel.IResource!
+Aspire.Hosting.ApplicationModel.AfterEndpointsAllocatedEvent
+Aspire.Hosting.ApplicationModel.AfterEndpointsAllocatedEvent.AfterEndpointsAllocatedEvent(System.IServiceProvider! services) -> void
+Aspire.Hosting.ApplicationModel.AfterEndpointsAllocatedEvent.Services.get -> System.IServiceProvider!
+Aspire.Hosting.ApplicationModel.AfterResourcesCreatedEvent
+Aspire.Hosting.ApplicationModel.AfterResourcesCreatedEvent.AfterResourcesCreatedEvent(System.IServiceProvider! services) -> void
+Aspire.Hosting.ApplicationModel.AfterResourcesCreatedEvent.Services.get -> System.IServiceProvider!
+Aspire.Hosting.ApplicationModel.BeforeStartEvent
+Aspire.Hosting.ApplicationModel.BeforeStartEvent.BeforeStartEvent(System.IServiceProvider! services) -> void
+Aspire.Hosting.ApplicationModel.BeforeStartEvent.Services.get -> System.IServiceProvider!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
 Aspire.Hosting.DistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!
 Aspire.Hosting.Eventing.DistributedApplicationEventing

@@ -71,7 +71,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           ResourceNotificationService notificationService,
                                           ResourceLoggerService loggerService,
                                           IDcpDependencyCheckService dcpDependencyCheckService,
-                                          IDistributedApplicationEventing eventing)
+                                          IDistributedApplicationEventing eventing,
+                                          IServiceProvider serviceProvider
+                                          )
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
@@ -130,6 +132,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
 
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
+
+#pragma warning disable ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            var afterResourcesCreatedEvent = new AfterResourcesCreatedEvent(serviceProvider);
+            await eventing.PublishAsync(afterResourcesCreatedEvent, cancellationToken).ConfigureAwait(false);
+#pragma warning restore ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
             foreach (var lifecycleHook in _lifecycleHooks)
             {
@@ -888,6 +895,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         var toCreate = _appResources.Where(r => r.DcpResource is Container || r.DcpResource is Executable || r.DcpResource is ExecutableReplicaSet);
         AddAllocatedEndpointInfo(toCreate);
 
+#pragma warning disable ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        var afterEndpointsAllocatedEvent = new AfterEndpointsAllocatedEvent(serviceProvider);
+        await eventing.PublishAsync(afterEndpointsAllocatedEvent, cancellationToken).ConfigureAwait(false);
+#pragma warning restore ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
         foreach (var lifecycleHook in _lifecycleHooks)
         {
             await lifecycleHook.AfterEndpointsAllocatedAsync(_model, cancellationToken).ConfigureAwait(false);
@@ -1569,9 +1581,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
 
         await kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
-
-        var containerStartedEvent = new ContainerResourceStartedEvent(modelContainerResource);
-        await eventing.PublishAsync(containerStartedEvent, cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task ApplyBuildArgumentsAsync(Container dcpContainerResource, IResource modelContainerResource, CancellationToken cancellationToken)

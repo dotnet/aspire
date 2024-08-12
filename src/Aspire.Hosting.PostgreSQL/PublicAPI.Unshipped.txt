@@ -1,2 +1,1 @@
 #nullable enable
-static Aspire.Hosting.PostgresBuilderExtensions.WithDatabaseInitialization(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.PostgresDatabaseResource!>! builder) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.PostgresDatabaseResource!>!
