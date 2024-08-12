@@ -41,12 +41,6 @@ public sealed class FrontendCompositeAuthenticationHandler(
 
     protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
     {
-        // If the connection type is wrong then always return unauthorized.
-        if (properties.GetParameter<bool>(SuppressChallengeKey))
-        {
-            return;
-        }
-
         var scheme = GetRelevantAuthenticationScheme();
         if (scheme != null)
         {
