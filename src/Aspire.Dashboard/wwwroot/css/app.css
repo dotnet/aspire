@@ -1,4 +1,11 @@
- fluent-toolbar fluent-switch,
+.visualizer-title-grid {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: "dialog-icon dialog-title dialog-format";
+    grid-column-gap: 8px;
+}
+
+fluent-toolbar fluent-switch,
 fluent-toolbar p {
     margin-inline-end: 15px;
 }
@@ -28,36 +35,39 @@ fluent-toolbar[orientation=horizontal] {
     --log-critical: #F8ECEB;
     --log-error: #F8ECEB;
     --log-warning: #FBF3DD;
-
     --info: #717171 !important;
     --warning: #E85E36 !important;
     --success: #108310 !important;
-
     --badge-fill-error: var(--error);
     --badge-fill-warning: var(--warning);
     --badge-color-error: var(--foreground-on-accent-rest);
     --foreground-subtext-rest: #5D5D5D;
     --foreground-subtext-hover: #6C6C6C;
-
     --error-ui-foreground-color: #131313;
     --error-ui-accent-foreground-color: #1d00d0;
     --reconnection-ui-bg: rgb(255, 255, 255);
     --error-counter-badge-foreground-color: var(--neutral-fill-rest);
     --kbd-background-color: var(--neutral-layer-4);
-
     --messagebar-warning-background-color: #FDF6F3;
     --messagebar-warning-border-color: #f4bfab;
     --messagebar-info-background-color: #f5f5f5;
     --messagebar-info-border-color: #d1d1d1;
-
     --layout-toolbar-padding: calc(var(--design-unit) * 1.5px);
-
     /*
         --neutral-layer-2 is the background for the body of most of the site so
         we can default the datagrid hover color to that and just override it as
         necessary elsewhere (e.g. in the details view)
     */
     --datagrid-hover-color: var(--neutral-layer-2-hover);
+    /* highlight JS theme variables */
+    --hljs-default: #545454;
+    --hljs-comment: #696969;
+    --hljs-variable: #d91e18;
+    --hljs-literal: #aa5d00;
+    --hljs-attribute: #aa5d00;
+    --hljs-string: green;
+    --hljs-section: #007faa;
+    --hljs-keyword: #7928a1;
 }
 
 [data-theme="dark"] {
@@ -66,22 +76,27 @@ fluent-toolbar[orientation=horizontal] {
     --log-warning: #3F3A2B;
     --foreground-subtext-rest: #8D8D8D;
     --foreground-subtext-hover: #A1A1A1;
-
     --error-ui-foreground-color: #000000;
     --error-ui-accent-foreground-color: #512bd4;
     --reconnection-ui-bg: #D6D6D6;
     --error-counter-badge-foreground-color: #ffffff;
     --kbd-background-color: var(--fill-color);
-
     --messagebar-warning-background-color: #411200;
     --messagebar-warning-border-color: #DA3B01;
     --messagebar-info-background-color: #141414;
     --messagebar-info-border-color: #666;
-
     /* overrides of default fluentui-blazor styling */
     --error: #E10B11 !important;
-
     color-scheme: dark;
+    /* highlight JS theme variables */
+    --hljs-default: #f8f8f2;
+    --hljs-comment: #d4d0ab;
+    --hljs-variable: #ffa07a;
+    --hljs-literal: #f5ab35;
+    --hljs-attribute: gold;
+    --hljs-string: #abe338;
+    --hljs-section: #00e0e0;
+    --hljs-keyword: #dcc6e0;
 }
 
 /*
@@ -499,6 +514,95 @@ fluent-data-grid-cell.no-ellipsis {
 .page-content-container {
     height: 100%;
     overflow: auto;
+}
+
+.log-overflow {
+    --console-theme-black: #0C0C0C;
+    --console-theme-blue: #0037DA;
+    --console-theme-cyan: #3A96DD;
+    --console-theme-green: #13A10E;
+    --console-theme-magenta: #CD13E8;
+    --console-theme-bg-red: #F80F24;
+    --console-theme-fg-red: #C50F1F;
+    --console-theme-white: #CCCCCC;
+    --console-theme-yellow: #C19C00;
+
+    --console-theme-bright-black: #767676;
+    --console-theme-bright-blue: #3B78FF;
+    --console-theme-bright-cyan: #61D6D6;
+    --console-theme-bright-green: #16C60C;
+    --console-theme-bright-magenta: #DA01FA;
+    --console-theme-bright-red: #E74856;
+    --console-theme-bright-white: #F2F2F2;
+    --console-theme-bright-yellow: #F9F1A5;
+
+    --line-number-color: #848484;
+    --timestamp-color: var(--line-number-color);
+    --console-background-color: var(--console-theme-black);
+    --console-background-color-hover: #1D1D1D;
+    --console-font-color: var(--console-theme-white);
+
+    width: 100%;
+    overflow: auto;
+}
+
+.console-overflow {
+    background-color: var(--console-background-color);
+    height: 100%;
+}
+
+.log-container {
+    font-family: 'Cascadia Mono', Consolas, monospace;
+    font-size: 13px;
+    line-height: 20px;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.log-line-row-container {
+    width: 100%;
+    overflow: hidden;
+}
+
+.log-line-row {
+    cursor: text;
+    padding: 0 12px 0 0;
+    white-space: pre-wrap;
+
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+}
+
+.log-line-area {
+    flex-grow: 1;
+    justify-content: flex-start;
+    display: flex;
+    flex-direction: row;
+}
+
+.log-line-number {
+    min-width: 53px;
+    text-align: right;
+    align-self: flex-start;
+    flex-shrink: 0;
+    color: var(--line-number-color);
+    user-select: none;
+    cursor: default;
+    height: 100%;
+}
+
+.log-content {
+    word-break: break-all;
+    margin-left: 20px;
+    position: relative;
+    margin-right: 6px;
+    user-select: text;
+    cursor: text;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
 }
 
 .resource-select-application-label {
