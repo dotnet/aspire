@@ -17,8 +17,6 @@ public sealed class FrontendCompositeAuthenticationHandler(
     UrlEncoder encoder)
         : AuthenticationHandler<FrontendCompositeAuthenticationHandlerOptions>(options, logger, encoder)
 {
-    private const string SuppressChallengeKey = "SuppressChallenge";
-
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         var result = await Context.AuthenticateAsync(ConnectionTypeAuthenticationDefaults.AuthenticationSchemeFrontend).ConfigureAwait(false);
@@ -27,7 +25,7 @@ public sealed class FrontendCompositeAuthenticationHandler(
             return AuthenticateResult.Fail(
                 result.Failure,
                 new AuthenticationProperties(new Dictionary<string, string?>(),
-                new Dictionary<string, object?> { [SuppressChallengeKey] = true }));
+                new Dictionary<string, object?> { [AspirePolicyEvaluator.SuppressChallengeKey] = true }));
         }
 
         var scheme = GetRelevantAuthenticationScheme();
