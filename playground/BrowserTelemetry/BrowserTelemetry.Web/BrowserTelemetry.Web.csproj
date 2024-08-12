@@ -4,13 +4,15 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Issue: https://github.com/dotnet/dnceng/issues/3091 -->
+    <NpmAvailable Condition="'$(ContinuousIntegrationBuild)' != 'true' and '$(OS)' != 'Windows_NT'">true</NpmAvailable>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
 
-  <Target Name="NpmInstall" Inputs="package.json" Outputs="node_modules/.install-stamp">
+  <Target Name="NpmInstall" Inputs="package.json" Outputs="node_modules/.install-stamp" Condition="'$(NpmAvailable)' == 'true'">
     <!--
         Use npm install or npm ci depending on RestorePackagesWithLockFile value.
         Uncomment the following lines if you want to use this feature:
@@ -30,7 +32,7 @@
       2. Run npm run build before building the .NET project.
       MSBuild runs NpmInstall before this task because of the DependsOnTargets attribute.
    -->
-  <Target Name="NpmRunBuild" DependsOnTargets="NpmInstall" BeforeTargets="BeforeBuild" Condition="'$(Configuration)' == 'Debug' ">
+  <Target Name="NpmRunBuild" DependsOnTargets="NpmInstall" BeforeTargets="BeforeBuild" Condition="'$(Configuration)' == 'Debug' and '$(NpmAvailable)' == 'true' ">
     <Exec Command="npm run build" />
   </Target>
 
