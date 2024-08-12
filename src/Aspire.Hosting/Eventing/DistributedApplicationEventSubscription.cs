@@ -5,6 +5,7 @@ namespace Aspire.Hosting.Eventing;
 /// <summary>
 /// Represents a subscription to an event that is published during the lifecycle of the AppHost.
 /// </summary>
+/// <param name="callback">Callback to invoke when the event is published.</param>
 public class DistributedApplicationEventSubscription(Func<IDistributedApplicationEvent, CancellationToken, Task> callback)
 {
     /// <summary>

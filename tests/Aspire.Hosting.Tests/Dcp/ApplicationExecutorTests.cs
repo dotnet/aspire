@@ -13,6 +13,7 @@ using Xunit;
 using System.Globalization;
 using Microsoft.Extensions.Hosting;
 using Aspire.Hosting.Tests.Utils;
+using Aspire.Hosting.Eventing;
 
 namespace Aspire.Hosting.Tests.Dcp;
 
@@ -758,7 +759,8 @@ public class ApplicationExecutorTests
             }),
             new ResourceNotificationService(new NullLogger<ResourceNotificationService>(), new TestHostApplicationLifetime()),
             new ResourceLoggerService(),
-            new TestDcpDependencyCheckService()
+            new TestDcpDependencyCheckService(),
+            new DistributedApplicationEventing()
         );
     }
 

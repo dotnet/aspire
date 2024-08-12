@@ -4,6 +4,12 @@ Aspire.Hosting.ApplicationModel.ContainerResourceStartedEvent.ContainerResourceS
 Aspire.Hosting.ApplicationModel.ContainerResourceStartedEvent.Resource.get -> Aspire.Hosting.ApplicationModel.IResource!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
 Aspire.Hosting.DistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!
+Aspire.Hosting.Eventing.DistributedApplicationEventing
+Aspire.Hosting.Eventing.DistributedApplicationEventing.DistributedApplicationEventing() -> void
+Aspire.Hosting.Eventing.DistributedApplicationEventing.PublishAsync<T>(T event, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Aspire.Hosting.Eventing.DistributedApplicationEventing.Subscribe<T>(Aspire.Hosting.ApplicationModel.IResource! resource, System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.Eventing.DistributedApplicationEventSubscription!
+Aspire.Hosting.Eventing.DistributedApplicationEventing.Subscribe<T>(System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.Eventing.DistributedApplicationEventSubscription!
+Aspire.Hosting.Eventing.DistributedApplicationEventing.Unsubscribe(Aspire.Hosting.Eventing.DistributedApplicationEventSubscription! subscription) -> void
 Aspire.Hosting.Eventing.DistributedApplicationEventSubscription
 Aspire.Hosting.Eventing.DistributedApplicationEventSubscription.Callback.get -> System.Func<Aspire.Hosting.Eventing.IDistributedApplicationEvent!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>!
 Aspire.Hosting.Eventing.DistributedApplicationEventSubscription.DistributedApplicationEventSubscription(System.Func<Aspire.Hosting.Eventing.IDistributedApplicationEvent!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> void
