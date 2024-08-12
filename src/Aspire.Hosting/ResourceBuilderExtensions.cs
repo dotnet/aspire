@@ -549,4 +549,18 @@ public static class ResourceBuilderExtensions
     {
         return builder.WithAnnotation(ManifestPublishingCallbackAnnotation.Ignore);
     }
+
+    /// <summary>
+    /// Adds a restart policy annotation to the resource builder.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="restartPolicy">The restart policy to be added.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithRestart<T>(this IResourceBuilder<T> builder, RestartPolicy restartPolicy)
+        where T : IResourceWithRestartPolicy
+    {
+        return builder.WithAnnotation(new RestartPolicyAnnotation(restartPolicy), ResourceAnnotationMutationBehavior.Replace);
+    }
 }
+
