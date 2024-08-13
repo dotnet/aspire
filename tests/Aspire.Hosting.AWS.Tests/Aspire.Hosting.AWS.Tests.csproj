@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
-    <RunTestsOnHelix>false</RunTestsOnHelix>
   </PropertyGroup>
 
   <ItemGroup>
