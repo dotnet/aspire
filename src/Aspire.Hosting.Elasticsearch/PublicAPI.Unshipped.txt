@@ -1,3 +1,4 @@
+#nullable enable
 Aspire.Hosting.ApplicationModel.ElasticsearchResource
 Aspire.Hosting.ApplicationModel.ElasticsearchResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
 Aspire.Hosting.ApplicationModel.ElasticsearchResource.ElasticsearchResource(string! name, Aspire.Hosting.ApplicationModel.ParameterResource! password) -> void
