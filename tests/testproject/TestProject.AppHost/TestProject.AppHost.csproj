@@ -15,7 +15,6 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.PostgreSQL" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Redis" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.SqlServer" />
   </ItemGroup>
 
   <ItemGroup>

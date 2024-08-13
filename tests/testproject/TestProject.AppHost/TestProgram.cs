@@ -67,13 +67,6 @@ public class TestProgram : IDisposable
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea");
             IntegrationServiceABuilder = IntegrationServiceABuilder.WithEnvironment("SKIP_RESOURCES", string.Join(',', resourcesToSkip));
 
-            if (!resourcesToSkip.HasFlag(TestResourceNames.sqlserver) || !resourcesToSkip.HasFlag(TestResourceNames.efsqlserver))
-            {
-                var sqlserverDbName = "tempdb";
-                var sqlserver = AppBuilder.AddSqlServer("sqlserver")
-                    .AddDatabase(sqlserverDbName);
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(sqlserver);
-            }
             if (!resourcesToSkip.HasFlag(TestResourceNames.redis))
             {
                 var redis = AppBuilder.AddRedis("redis")

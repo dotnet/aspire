@@ -5,6 +5,11 @@
     <NeedsWorkload>true</NeedsWorkload>
   </PropertyGroup>
 
+  <ItemGroup>
+    <HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="cp $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/Aspire.EndToEnd.Tests-${TEST_SCENARIO}.trx" />
+    <HelixPostCommand Condition="'$(OS)' == 'Windows_NT'" Include="copy &quot;$(_HelixLogsPath)\TestResults.trx&quot; &quot;$(_HelixLogsPath)\Aspire.EndToEnd.Tests-%TEST_SCENARIO%.trx&quot;" />
+  </ItemGroup>
+
   <Target Name="BuildHelixWorkItemsForEnd2EndTests">
     <PropertyGroup>
       <_E2ETestsArchivePath>$(TestArchiveTestsDirForEndToEndTests)Aspire.EndToEnd.Tests.zip</_E2ETestsArchivePath>
@@ -41,9 +46,6 @@
         <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=$(_WorkItemName)&quot;</PreCommands>
         <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;TEST_SCENARIO=%(Identity)&quot;</PreCommands>
         <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=-%(Identity)&quot;</PreCommands>
-
-        <PostCommands Condition="'$(OS)' != 'Windows_NT'">cp $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/Aspire.EndToEnd.Tests-%(Identity).trx</PostCommands>
-        <PostCommands Condition="'$(OS)' == 'Windows_NT'">copy &quot;$(_HelixLogsPath)\TestResults.trx&quot; &quot;$(_HelixLogsPath)\Aspire.EndToEnd.Tests-%(Identity).trx&quot;</PostCommands>
 
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>

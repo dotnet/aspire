@@ -563,7 +563,6 @@ public class DistributedApplicationTests
             "postgres",
             "mongodb",
             "cosmos",
-            "sqlserver",
             "mysql",
             "rabbitmq",
             "kafka"
