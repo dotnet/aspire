@@ -30,9 +30,9 @@ public sealed class OracleContainerFixture : IAsyncLifetime
             Container = new OracleBuilder()
                 .WithPortBinding(1521, true)
                 .WithHostname("localhost")
+                .WithImage($"{TestConstants.AspireTestContainerRegistry}/gvenzl/oracle-xe:21.3.0-slim-faststart")
                 .WithWaitStrategy(Wait
                     .ForUnixContainer()
-                    .UntilMessageIsLogged("Pluggable database XEPDB1 opened read write")
                     .UntilMessageIsLogged("Completed: ALTER DATABASE OPEN")
                 ).Build();
 
