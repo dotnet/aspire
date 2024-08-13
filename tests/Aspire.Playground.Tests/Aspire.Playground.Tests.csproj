@@ -6,9 +6,13 @@
     <!-- Set this explicitly so the project can build without arcade -->
     <IsTestProject>true</IsTestProject>
 
+    <!-- Disabling these tests - blocked on https://github.com/dotnet/aspire/pull/5251 -->
+    <SkipTests>true</SkipTests>
+    <RunTestsOnHelix>false</RunTestsOnHelix>
+
     <!-- no docker support on helix/windows yet -->
-    <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
-    <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
+    <!--<RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>-->
+    <!--<SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>-->
 
     <DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive\</DeployOutsideOfRepoSupportFilesRelativeDir>
 
@@ -29,20 +33,23 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.NodeJs" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Testing" />
 
-    <ProjectReference Include="$(PlaygroundSourceDir)CosmosEndToEnd/CosmosEndToEnd.AppHost/CosmosEndToEnd.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)ProxylessEndToEnd/ProxylessEndToEnd.AppHost/ProxylessEndToEnd.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)Qdrant/Qdrant.AppHost/Qdrant.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)TestShop/TestShop.AppHost/TestShop.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)mongo/Mongo.AppHost/Mongo.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)mysql/MySqlDb.AppHost/MySqlDb.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)nats/Nats.AppHost/Nats.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)seq/Seq.AppHost/Seq.AppHost.csproj" />
-
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
 
     <Using Include="Aspire.Hosting.Testing" />
+  </ItemGroup>
+
+  <!-- disable the build on CI . Blocked on https://github.com/dotnet/aspire/pull/5271 -->
+  <ItemGroup Condition="'$(ContinuousIntegrationBuild)' != 'true'">
+    <ProjectReference Include="$(PlaygroundSourceDir)CosmosEndToEnd/CosmosEndToEnd.AppHost/CosmosEndToEnd.AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
+    <ProjectReference Include="$(PlaygroundSourceDir)ProxylessEndToEnd/ProxylessEndToEnd.AppHost/ProxylessEndToEnd.AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
+    <ProjectReference Include="$(PlaygroundSourceDir)Qdrant/Qdrant.AppHost/Qdrant.AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
+    <ProjectReference Include="$(PlaygroundSourceDir)TestShop/TestShop.AppHost/TestShop.AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
+    <ProjectReference Include="$(PlaygroundSourceDir)mongo/Mongo.AppHost/Mongo.AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
+    <ProjectReference Include="$(PlaygroundSourceDir)mysql/MySqlDb.AppHost/MySqlDb.AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
+    <ProjectReference Include="$(PlaygroundSourceDir)nats/Nats.AppHost/Nats.AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
+    <ProjectReference Include="$(PlaygroundSourceDir)seq/Seq.AppHost/Seq.AppHost.csproj" AdditionalProperties="SkipDashboardProjectReference=true" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(ArchiveTests)' == 'true'" Label="Prepare archive dir for helix">
