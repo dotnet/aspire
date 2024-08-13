@@ -56,29 +56,35 @@
                         <Panel2>
                             <div>
                                 <div class="metrics-content">
-                                    @if (PageViewModel.SelectedApplication.Id?.InstanceId != null && PageViewModel.SelectedMeter != null && PageViewModel.SelectedInstrument != null)
+                                    @if (PageViewModel.SelectedMeter is not null)
                                     {
-                                        <ChartContainer
-                                            ApplicationKey="@(PageViewModel.SelectedApplication.Id.GetApplicationKey())"                                            MeterName="@(PageViewModel.SelectedMeter.MeterName)"
-                                            InstrumentName="@(PageViewModel.SelectedInstrument.Name)"
-                                            Duration="PageViewModel.SelectedDuration.Id"
-                                            ActiveView="@(PageViewModel.SelectedViewKind ?? MetricViewKind.Graph)"
-                                            OnViewChangedAsync="@OnViewChangedAsync"
-                                            Applications="_applications" />
-                                    }
-                                    else if (PageViewModel.SelectedMeter != null)
-                                    {
-                                        <h3>@PageViewModel.SelectedMeter.MeterName</h3>
-                                        <FluentDataGrid Style="max-width:1100px;" Items="@PageViewModel.Instruments.Where(i => i.Parent == PageViewModel.SelectedMeter).OrderBy(i => i.Name).AsQueryable()" GridTemplateColumns="3fr 5fr" TGridItem="OtlpInstrument">
-                                            <ChildContent>
-                                                <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader)]">
-                                                    <FluentAnchor Href="@DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedApplication.Name, meter: context.Parent.MeterName, instrument: context.Name)" Appearance="Appearance.Lightweight">
-                                                        @context.Name
-                                                    </FluentAnchor>
-                                                </TemplateColumn>
-                                                <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementDescriptionGridNameColumnHeader)]" Property="@(c => c.Description)" Class="multiline-text"/>
-                                            </ChildContent>
-                                        </FluentDataGrid>
+                                        if (PageViewModel.SelectedApplication.Id?.InstanceId is not null && PageViewModel.SelectedInstrument is not null)
+                                        {
+                                            // We've got a selected instrument and application, so show the chart
+                                            <ChartContainer
+                                                ApplicationKey="@(PageViewModel.SelectedApplication.Id.GetApplicationKey())"
+                                                MeterName="@(PageViewModel.SelectedMeter.MeterName)"
+                                                InstrumentName="@(PageViewModel.SelectedInstrument.Name)"
+                                                Duration="PageViewModel.SelectedDuration.Id"
+                                                ActiveView="@(PageViewModel.SelectedViewKind ?? MetricViewKind.Graph)"
+                                                OnViewChangedAsync="@OnViewChangedAsync"
+                                                Applications="_applications" />
+                                        }
+                                        else
+                                        {
+                                            // Show a table of values for the selected meter
+                                            <h3>@PageViewModel.SelectedMeter.MeterName</h3>
+                                            <FluentDataGrid Style="max-width:1100px;" Items="@PageViewModel.Instruments.Where(i => i.Parent == PageViewModel.SelectedMeter).OrderBy(i => i.Name).AsQueryable()" GridTemplateColumns="3fr 5fr" TGridItem="OtlpInstrument">
+                                                <ChildContent>
+                                                    <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader)]">
+                                                        <FluentAnchor Href="@DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedApplication.Name, meter: context.Parent.MeterName, instrument: context.Name)" Appearance="Appearance.Lightweight">
+                                                            @context.Name
+                                                        </FluentAnchor>
+                                                    </TemplateColumn>
+                                                    <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementDescriptionGridNameColumnHeader)]" Property="@(c => c.Description)" Class="multiline-text"/>
+                                                </ChildContent>
+                                            </FluentDataGrid>
+                                        }
                                     }
                                     else
                                     {
