@@ -74,6 +74,9 @@
                                             {
                                                 <FluentGridItem md="12" lg="6">
                                                     <FluentCard>
+                                                        <!-- TODO use a dedicated DashpageChart component instead of ChartContainer
+                                                        <DashpageChart />
+                                                        -->
                                                         <ChartContainer
                                                             ApplicationKey="@(PageViewModel.SelectedApplication.Id.GetApplicationKey())"
                                                             MeterName="@(instrument.Parent.MeterName)"
