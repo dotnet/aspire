@@ -6,7 +6,8 @@ using Aspire.Hosting.AWS.CloudFormation;
 using Aspire.Hosting.Utils;
 using Xunit;
 
-namespace Aspire.Hosting.Tests.AWS;
+namespace Aspire.Hosting.AWS.Tests;
+
 public class AWSCloudFormationResourceTests
 {
     [Fact]
