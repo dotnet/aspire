@@ -34,3 +34,12 @@ static Aspire.Hosting.ContainerResourceBuilderExtensions.WithBuildArg<T>(this As
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithBuildSecret<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ProjectResourceBuilderExtensions.AddProject(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! projectPath, System.Action<Aspire.Hosting.ProjectResourceOptions!>! configure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
 static Aspire.Hosting.ProjectResourceBuilderExtensions.AddProject<TProject>(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.ProjectResourceOptions!>! configure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
+Aspire.Hosting.ApplicationModel.EndpointUrlAnnotation
+Aspire.Hosting.ApplicationModel.EndpointUrlAnnotation.EndpointUrlAnnotation(string! endpointName, string! relativeUrl, bool isLaunchUrl = false, bool excludeFromDashboard = false) -> void
+Aspire.Hosting.ApplicationModel.EndpointUrlAnnotation.EndpointName.get -> string!
+Aspire.Hosting.ApplicationModel.EndpointUrlAnnotation.RelativeUrl.get -> string!
+Aspire.Hosting.ApplicationModel.EndpointUrlAnnotation.IsLaunchUrl.get -> bool
+Aspire.Hosting.ApplicationModel.EndpointUrlAnnotation.ExcludeFromDashboard.get -> bool
+static Aspire.Hosting.ResourceBuilderExtensions.WithEndpointUrl<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! endpointName, string! relativeUrl, bool isLaunchUrl = false, bool excludeFromDashboard = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithHttpEndpointUrl<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! relativeUrl, bool isLaunchUrl = false, bool excludeFromDashboard = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithHttpsEndpointUrl<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! relativeUrl, bool isLaunchUrl = false, bool excludeFromDashboard = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!

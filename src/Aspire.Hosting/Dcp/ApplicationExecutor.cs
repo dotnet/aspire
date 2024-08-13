@@ -739,6 +739,22 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     var endpointString = $"{ep.Scheme}://{endpoint.Spec.Address}:{endpoint.Spec.Port}";
                     urls.Add(new(Name: $"{ep.EndpointName} target port", Url: endpointString, IsInternal: true));
                 }
+
+                if (ep.IsAllocated)
+                {
+                    var urlsFromEndpointUrlAnnotations = appModelResource.Annotations
+                        .OfType<EndpointUrlAnnotation>()
+                        .Where(a => !a.ExcludeFromDashboard && StringComparers.EndpointAnnotationName.Equals(a.EndpointName, ep.EndpointName))
+                        .Select(a =>
+                        {
+                            return new UrlSnapshot(
+                                Name: ep.EndpointName,
+                                Url: new Uri(new Uri(ep.Url), a.RelativeUrl).ToString(),
+                                IsInternal: false);
+                        });
+
+                    urls.AddRange(urlsFromEndpointUrlAnnotations);
+                }
             }
         }
 
