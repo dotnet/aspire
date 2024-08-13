@@ -42,5 +42,5 @@ public interface IDistributedApplicationEventing
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task that can be awaited.</returns>
     [Experimental("ASPIREEVENTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    Task PublishAsync<T>(T @event, CancellationToken cancellationToken) where T : IDistributedApplicationEvent;
+    Task PublishAsync<T>(T @event, CancellationToken cancellationToken = default) where T : IDistributedApplicationEvent;
 }

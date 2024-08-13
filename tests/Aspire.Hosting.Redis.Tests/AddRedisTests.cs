@@ -165,9 +165,9 @@ public class AddRedisTests
         // Add fake allocated endpoints.
         redis.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
 
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var hook = new RedisCommanderConfigWriterHook();
-        await hook.AfterEndpointsAllocatedAsync(model, CancellationToken.None);
+#pragma warning disable ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services));
+#pragma warning restore ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
 
@@ -193,9 +193,9 @@ public class AddRedisTests
         redis1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
         redis2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002, "host2"));
 
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var hook = new RedisCommanderConfigWriterHook();
-        await hook.AfterEndpointsAllocatedAsync(model, CancellationToken.None);
+#pragma warning disable ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new (app.Services));
+#pragma warning restore ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
 

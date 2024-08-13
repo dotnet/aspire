@@ -12,7 +12,7 @@ Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotification
 Aspire.Hosting.DistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!
 Aspire.Hosting.Eventing.DistributedApplicationEventing
 Aspire.Hosting.Eventing.DistributedApplicationEventing.DistributedApplicationEventing() -> void
-Aspire.Hosting.Eventing.DistributedApplicationEventing.PublishAsync<T>(T event, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Aspire.Hosting.Eventing.DistributedApplicationEventing.PublishAsync<T>(T event, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Aspire.Hosting.Eventing.DistributedApplicationEventing.Subscribe<T>(Aspire.Hosting.ApplicationModel.IResource! resource, System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.Eventing.DistributedApplicationEventSubscription!
 Aspire.Hosting.Eventing.DistributedApplicationEventing.Subscribe<T>(System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.Eventing.DistributedApplicationEventSubscription!
 Aspire.Hosting.Eventing.DistributedApplicationEventing.Unsubscribe(Aspire.Hosting.Eventing.DistributedApplicationEventSubscription! subscription) -> void
@@ -24,7 +24,7 @@ Aspire.Hosting.Eventing.DistributedApplicationResourceEventSubscription.Distribu
 Aspire.Hosting.Eventing.DistributedApplicationResourceEventSubscription.Resource.get -> Aspire.Hosting.ApplicationModel.IResource?
 Aspire.Hosting.Eventing.IDistributedApplicationEvent
 Aspire.Hosting.Eventing.IDistributedApplicationEventing
-Aspire.Hosting.Eventing.IDistributedApplicationEventing.PublishAsync<T>(T event, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Aspire.Hosting.Eventing.IDistributedApplicationEventing.PublishAsync<T>(T event, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Aspire.Hosting.Eventing.IDistributedApplicationEventing.Subscribe<T>(Aspire.Hosting.ApplicationModel.IResource! resource, System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.Eventing.DistributedApplicationEventSubscription!
 Aspire.Hosting.Eventing.IDistributedApplicationEventing.Subscribe<T>(System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.Eventing.DistributedApplicationEventSubscription!
 Aspire.Hosting.Eventing.IDistributedApplicationEventing.Unsubscribe(Aspire.Hosting.Eventing.DistributedApplicationEventSubscription! subscription) -> void

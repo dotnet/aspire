@@ -12,7 +12,7 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
 
     /// <inheritdoc cref="IDistributedApplicationEventing.PublishAsync{T}(T, CancellationToken)" />
     [Experimental("ASPIREEVENTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public async Task PublishAsync<T>(T @event, CancellationToken cancellationToken) where T : IDistributedApplicationEvent
+    public async Task PublishAsync<T>(T @event, CancellationToken cancellationToken = default) where T : IDistributedApplicationEvent
     {
         if (_eventSubscriptionListLookup.TryGetValue(typeof(T), out var subscriptions))
         {
