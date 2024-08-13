@@ -170,7 +170,10 @@ public class AppHostTests
                     new ("apiservice", "Application started")
                 ]),
             new TestEndpoints("ParameterEndToEnd.AppHost",
-                resourceEndpoints: new() { { "api", ["/", "/alive", "/health"] } }),
+                resourceEndpoints: new() { { "api", ["/", "/alive", "/health"] } },
+                waitForTexts: [
+                    new ("sql", "SQL Server is now ready for client connections."),
+                ]),
             new TestEndpoints("Nats.AppHost",
                 resourceEndpoints: new() {
                     { "api", ["/alive", "/health"] },
