@@ -206,7 +206,11 @@ public class AppHostTests
                 ]),
             // Invoke "/" first to create the databases
             new TestEndpoints("SqlServerEndToEnd.AppHost",
-                resourceEndpoints: new() { { "api", ["/", "/alive", "/health"] } }),
+                resourceEndpoints: new() { { "api", ["/", "/alive", "/health"] } },
+                waitForTexts: [
+                    new ("sql1", "SQL Server is now ready for client connections"),
+                    new ("sql2", "SQL Server is now ready for client connections"),
+                ]),
             new TestEndpoints("TestShop.AppHost",
                 resourceEndpoints: new() {
                     { "catalogdbapp", ["/alive", "/health"] },
