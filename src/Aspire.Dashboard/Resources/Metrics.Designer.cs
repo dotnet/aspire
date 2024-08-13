@@ -61,6 +61,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Dashpages.
+        /// </summary>
+        public static string DashpagesSectionName {
+            get {
+                return ResourceManager.GetString("DashpagesSectionName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Metrics.
         /// </summary>
         public static string MetricsHeader {

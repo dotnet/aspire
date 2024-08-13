@@ -41,10 +41,19 @@
                         <Panel1>
                             <FluentTreeView Class="metrics-tree" @bind-CurrentSelected="PageViewModel.SelectedTreeItem" @bind-CurrentSelected:after="HandleSelectedTreeItemChangedAsync">
                                 <ChildContent>
-                                    @foreach (var meterGroup in PageViewModel.Instruments.GroupBy(i => i.Parent).OrderBy(g => g.Key.MeterName))
+                                    @if (PageViewModel.Dashpages.Count is not 0)
                                     {
-                                        <FluentTreeItem @key="meterGroup.Key" Text="@meterGroup.Key.MeterName" Data="@meterGroup.Key" title="@meterGroup.Key.MeterName" InitiallyExpanded="true" InitiallySelected="@(PageViewModel.SelectedInstrument == null && meterGroup.Key.MeterName == PageViewModel.SelectedMeter?.MeterName)">
-                                            @foreach (var instrument in meterGroup.OrderBy(i => i.Name))
+                                        <FluentTreeItem Text="@Loc[Aspire.Dashboard.Resources.Metrics.DashpagesSectionName]" title="@Loc[Aspire.Dashboard.Resources.Metrics.DashpagesSectionName]" InitiallyExpanded="true">
+                                            @foreach (DashpageDefinition dashpage in PageViewModel.Dashpages)
+                                            {
+                                                <FluentTreeItem @key="dashpage" Class="nested" Text="@dashpage.Name" Data="@dashpage" title="@dashpage.Name" InitiallySelected="@(dashpage.Name == PageViewModel.SelectedDashpage?.Name)"/>
+                                            }
+                                        </FluentTreeItem>
+                                    }
+                                    @foreach ((var meter, var instruments) in PageViewModel.Instruments.GroupBy(i => i.Parent).OrderBy(g => g.Key.MeterName))
+                                    {
+                                        <FluentTreeItem @key="meter" Text="@meter.MeterName" Data="@meter" title="@meter.MeterName" InitiallyExpanded="true" InitiallySelected="@(PageViewModel.SelectedInstrument == null && meter.MeterName == PageViewModel.SelectedMeter?.MeterName)">
+                                            @foreach (OtlpInstrument instrument in instruments.OrderBy(i => i.Name))
                                             {
                                                 <FluentTreeItem @key="instrument" Class="nested" Text="@instrument.Name" Data="@instrument" title="@instrument.Name" InitiallySelected="@(instrument.Name == PageViewModel.SelectedInstrument?.Name && instrument.Parent.MeterName == PageViewModel.SelectedMeter?.MeterName)"/>
                                             }
