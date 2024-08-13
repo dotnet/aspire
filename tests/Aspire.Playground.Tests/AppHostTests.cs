@@ -146,13 +146,14 @@ public class AppHostTests
                     new ("cosmos", "Started$"),
                     new ("api", "Application started")
                 ]),
-            new TestEndpoints("Mongo.AppHost",
-                resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
-                waitForTexts: [
-                    new ("mongo", "Waiting for connections"),
-                    new ("mongo-mongoexpress", "Mongo Express server listening"),
-                    new("api", "Application started.")
-                ]),
+            // Issue: https://github.com/dotnet/aspire/issues/5274
+            //new TestEndpoints("Mongo.AppHost",
+                //resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
+                //waitForTexts: [
+                    //new ("mongo", "Waiting for connections"),
+                    //new ("mongo-mongoexpress", "Mongo Express server listening"),
+                    //new("api", "Application started.")
+                //]),
             new TestEndpoints("MySqlDb.AppHost",
                 resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/catalog"] } },
                 waitForTexts: [
