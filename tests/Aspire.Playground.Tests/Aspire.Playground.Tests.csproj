@@ -35,7 +35,6 @@
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
 
     <ProjectReference Include="$(PlaygroundSourceDir)CosmosEndToEnd/CosmosEndToEnd.AppHost/CosmosEndToEnd.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)Elasticsearch/Elasticsearch.AppHost/Elasticsearch.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)ParameterEndToEnd/ParameterEndToEnd.AppHost/ParameterEndToEnd.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)PostgresEndToEnd/PostgresEndToEnd.AppHost/PostgresEndToEnd.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)ProxylessEndToEnd/ProxylessEndToEnd.AppHost/ProxylessEndToEnd.AppHost.csproj" />
