@@ -12,32 +12,28 @@ public class AWSSchemaTests
     [Fact]
     public void ValidateAwsStackSamples()
     {
+        new SchemaTests().ValidateApplicationSamples("AwsStack", (IDistributedApplicationBuilder builder) =>
         {
-            new SchemaTests().ValidateApplicationSamples("AwsStack", (IDistributedApplicationBuilder builder) =>
-            {
-                var awsSdkConfig = builder.AddAWSSDKConfig()
-                                          .WithRegion(RegionEndpoint.USWest2)
-                                          .WithProfile("test-profile");
+            var awsSdkConfig = builder.AddAWSSDKConfig()
+                                      .WithRegion(RegionEndpoint.USWest2)
+                                      .WithProfile("test-profile");
 
-                builder.AddAWSCloudFormationStack("ExistingStack")
-                       .WithReference(awsSdkConfig);
-            });
-        }
+            builder.AddAWSCloudFormationStack("ExistingStack")
+                   .WithReference(awsSdkConfig);
+        });
     }
 
     [Fact]
     public void ValidateAwsTemplateSamples()
     {
+        new SchemaTests().ValidateApplicationSamples("AwsTemplate", (IDistributedApplicationBuilder builder) =>
         {
-            new SchemaTests().ValidateApplicationSamples("AwsTemplate", (IDistributedApplicationBuilder builder) =>
-            {
-                var awsSdkConfig = builder.AddAWSSDKConfig()
-                                          .WithRegion(RegionEndpoint.USWest2)
-                                          .WithProfile("test-profile");
+            var awsSdkConfig = builder.AddAWSSDKConfig()
+                                      .WithRegion(RegionEndpoint.USWest2)
+                                      .WithProfile("test-profile");
 
-                builder.AddAWSCloudFormationTemplate("TemplateStack", "nonexistenttemplate")
-                       .WithReference(awsSdkConfig);
-            });
-        }
+            builder.AddAWSCloudFormationTemplate("TemplateStack", "nonexistenttemplate")
+                   .WithReference(awsSdkConfig);
+        });
     }
 }
