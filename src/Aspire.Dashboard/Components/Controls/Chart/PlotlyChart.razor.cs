@@ -226,13 +226,5 @@ public partial class PlotlyChart : ChartBase
         }
     }
 
-    private string GetPlotlyChartStyle()
-    {
-        var width = ViewportInformation.IsDesktop ? 650 : 487; // make width slightly smaller on mobile because of decreased viewport
-        var height = ViewportInformation.IsDesktop ? 450 : 325;
-
-        return $"width:{width}px; height:{height}px";
-    }
-
     private readonly record struct ExemplarGroupKey(DateTimeOffset? Start, DateTimeOffset? End);
 }
