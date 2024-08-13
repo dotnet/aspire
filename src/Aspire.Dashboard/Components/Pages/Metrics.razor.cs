@@ -192,6 +192,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         public FluentTreeItem? SelectedTreeItem { get; set; }
         public OtlpMeter? SelectedMeter { get; set; }
         public OtlpInstrument? SelectedInstrument { get; set; }
+        public DashpageDefinition? SelectedDashpage { get; set; }
+
         public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }
         public required SelectViewModel<TimeSpan> SelectedDuration { get; set; }
 
@@ -202,7 +204,18 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         /// <see langword="null"/> when no application is selected.
         /// </remarks>
         public List<OtlpInstrument>? Instruments { get; set; }
+
         public required MetricViewKind? SelectedViewKind { get; set; }
+
+        public List<DashpageDefinition> Dashpages { get; init; } =
+            [
+                // TODO replace hard-coded test data
+                new DashpageDefinition { Name = ".NET Memory", Key = "dotnet-memory" },
+                new DashpageDefinition { Name = "GC", Key = "gc" },
+                new DashpageDefinition { Name = "CPU", Key = "cpu" },
+                new DashpageDefinition { Name = "Traffic", Key = "traffic" }
+            ];
+    }
 
     public class DashpageDefinition
     {
