@@ -10,7 +10,7 @@ namespace Aspire.Hosting.AWS.Tests;
 public class AWSSchemaTests
 {
     [Fact]
-    public void ValidateAwsStackSamples()
+    public void ValidateAddAWSCloudFormationStackManifest()
     {
         new SchemaTests().ValidateApplicationSamples("AwsStack", (IDistributedApplicationBuilder builder) =>
         {
@@ -24,7 +24,7 @@ public class AWSSchemaTests
     }
 
     [Fact]
-    public void ValidateAwsTemplateSamples()
+    public void ValidateAddAWSCloudFormationTemplateManifest()
     {
         new SchemaTests().ValidateApplicationSamples("AwsTemplate", (IDistributedApplicationBuilder builder) =>
         {
