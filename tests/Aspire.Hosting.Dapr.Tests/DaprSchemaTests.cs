@@ -21,10 +21,16 @@ public class DaprSchemaTests
                 var state = dapr.AddDaprStateStore("daprstate");
                 var pubsub = dapr.AddDaprPubSub("daprpubsub");
 
-                builder.AddProject<Projects.ServiceA>("project")
-                       .WithDaprSidecar()
-                       .WithReference(state)
-                       .WithReference(pubsub);
+                builder.AddProject<ProjectA>("projectA", o => o.ExcludeLaunchProfile = true)
+                    .WithDaprSidecar()
+                    .WithReference(state)
+                    .WithReference(pubsub);
         });
     }
+
+    private sealed class ProjectA : IProjectMetadata
+    {
+        public string ProjectPath => "projectA";
+    }
+
 }
