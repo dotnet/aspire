@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Kafka;
-using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
@@ -57,8 +55,6 @@ public static class KafkaBuilderExtensions
         }
         else
         {
-            builder.ApplicationBuilder.Services.TryAddLifecycleHook<KafkaUIConfigurationHook>();
-
             containerName ??= $"{builder.Resource.Name}-kafka-ui";
 
             var kafkaUi = new KafkaUIContainerResource(containerName);
@@ -68,10 +64,43 @@ public static class KafkaBuilderExtensions
                 .WithHttpEndpoint(targetPort: KafkaUIPort)
                 .ExcludeFromManifest();
 
+#pragma warning disable ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+            {
+                var kafkaResources = builder.ApplicationBuilder.Resources.OfType<KafkaServerResource>();
+
+                int i = 0;
+                foreach (var kafkaResource in kafkaResources)
+                {
+                    if (kafkaResource.InternalEndpoint.IsAllocated)
+                    {
+                        var endpoint = kafkaResource.InternalEndpoint;
+                        int index = i;
+                        kafkaUiBuilder.WithEnvironment(context => ConfigureKafkaUIContainer(context, endpoint, index));
+                    }
+
+                    i++;
+                }
+
+                return Task.CompletedTask;
+            });
+#pragma warning restore ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
             configureContainer?.Invoke(kafkaUiBuilder);
 
             return builder;
         }
+
+        static void ConfigureKafkaUIContainer(EnvironmentCallbackContext context, EndpointReference endpoint, int index)
+        {
+            var bootstrapServers = context.ExecutionContext.IsRunMode
+                ? ReferenceExpression.Create($"{endpoint.ContainerHost}:{endpoint.Property(EndpointProperty.Port)}")
+                : ReferenceExpression.Create($"{endpoint.Property(EndpointProperty.Host)}:{endpoint.Property(EndpointProperty.Port)}");
+
+            context.EnvironmentVariables.Add($"KAFKA_CLUSTERS_{index}_NAME", endpoint.Resource.Name);
+            context.EnvironmentVariables.Add($"KAFKA_CLUSTERS_{index}_BOOTSTRAPSERVERS", bootstrapServers);
+        }
+
     }
 
     /// <summary>
