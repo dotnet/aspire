@@ -193,7 +193,14 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         public OtlpMeter? SelectedMeter { get; set; }
         public OtlpInstrument? SelectedInstrument { get; set; }
         public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }
-        public SelectViewModel<TimeSpan> SelectedDuration { get; set; } = null!;
+        public required SelectViewModel<TimeSpan> SelectedDuration { get; set; }
+
+        /// <summary>
+        /// The set of instruments applicable to the selected application.
+        /// </summary>
+        /// <remarks>
+        /// <see langword="null"/> when no application is selected.
+        /// </remarks>
         public List<OtlpInstrument>? Instruments { get; set; }
         public required MetricViewKind? SelectedViewKind { get; set; }
     }
