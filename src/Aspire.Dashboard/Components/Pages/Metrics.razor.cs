@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -146,6 +147,14 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         _applicationViewModels = ApplicationsSelectHelpers.CreateApplications(_applications);
         _applicationViewModels.Insert(0, _selectApplication);
         UpdateSubscription();
+    }
+
+    private Task HandleDashpageMetricViewKindChangedAsync(MenuChangeEventArgs e)
+    {
+        Debug.Assert(e.Id is not null);
+        var metricKind = Enum.Parse<MetricViewKind>(e.Id);
+        PageViewModel.SelectedViewKind = metricKind;
+        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
     private Task HandleSelectedApplicationChangedAsync()
@@ -329,4 +338,5 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         _applicationsSubscription?.Dispose();
         _metricsSubscription?.Dispose();
     }
+
 }

@@ -3,6 +3,7 @@
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @using Metrics = Aspire.Dashboard.Components.Pages.Metrics
+@using Aspire.Dashboard.Components.Controls.Chart
 @inject IStringLocalizer<ControlsStrings> Loc
 
 @if (_instrument is null)
@@ -12,31 +13,69 @@
 else
 {
     <div class="metrics-chart">
-        <div class="metrics-chart-header">
-            <h3>@_instrument.Name</h3>
-            <p>@_instrument.Description</p>
+        @{
+            // eventually split out into separate component than chartcontainer
+            var headerPadding = IsDashpageChart ? "0" : "40px";
+        }
+
+        <div class="metrics-chart-header" style="@($"padding-left: {headerPadding}")">
+            @if (IsDashpageChart)
+            {
+                <h4 style="text-overflow: ellipsis">@_instrument.Name</h4>
+                <p>@_instrument.Description</p>
+            }
+            else
+            {
+                <h3>@_instrument.Name</h3>
+                <p>@_instrument.Description</p>
+            }
         </div>
-        <FluentTabs ActiveTabId="@($"tab-{ActiveView}")" OnTabChange="@OnTabChangeAsync">
-            <FluentTab LabelClass="tab-label"
-                       Id="@($"tab-{Metrics.MetricViewKind.Graph}")"
-                       aria-label="@Loc[nameof(ControlsStrings.ChartContainerGraphAccessibleLabel)]"
-                       Label="@Loc[nameof(ControlsStrings.ChartContainerGraphTab)]"
-                       Icon="@(new Icons.Regular.Size24.DataArea())">
-                <div class="metrics-chart-container metric-tab">
-                    <PlotlyChart InstrumentViewModel="_instrumentViewModel" Duration="Duration" Applications="Applications"/>
-                    <ChartFilters InstrumentViewModel="_instrumentViewModel" Instrument="_instrument" DimensionFilters="@DimensionFilters" />
-                </div>
-            </FluentTab>
-            <FluentTab LabelClass="tab-label"
-                       Id="@($"tab-{Metrics.MetricViewKind.Table}")"
-                       Label="@Loc[nameof(ControlsStrings.ChartContainerTableTab)]"
-                       Icon="@(new Icons.Regular.Size24.Table())">
-                <div class="metric-tab">
-                    <MetricTable InstrumentViewModel="_instrumentViewModel" Duration="Duration" Applications="Applications" />
-                    <ChartFilters InstrumentViewModel="_instrumentViewModel" Instrument="_instrument" DimensionFilters="@DimensionFilters"/>
-                </div>
-            </FluentTab>
-        </FluentTabs>
+
+        @if (!IsDashpageChart)
+        {
+            <FluentTabs ActiveTabId="@($"tab-{ActiveView}")" OnTabChange="@OnTabChangeAsync">
+                <FluentTab LabelClass="tab-label"
+                           Id="@($"tab-{Metrics.MetricViewKind.Graph}")"
+                           aria-label="@Loc[nameof(ControlsStrings.ChartContainerGraphAccessibleLabel)]"
+                           Label="@Loc[nameof(ControlsStrings.ChartContainerGraphTab)]"
+                           Icon="@(new Icons.Regular.Size24.DataArea())">
+                    <ChartWrapper Applications="@Applications"
+                                  Duration="@Duration"
+                                  Instrument="@_instrument"
+                                  InstrumentViewModel="@_instrumentViewModel"
+                                  DimensionFilters="@DimensionFilters"/>
+                </FluentTab>
+                <FluentTab LabelClass="tab-label"
+                           Id="@($"tab-{Metrics.MetricViewKind.Table}")"
+                           Label="@Loc[nameof(ControlsStrings.ChartContainerTableTab)]"
+                           Icon="@(new Icons.Regular.Size24.Table())">
+                    <MetricTableWrapper Applications="@Applications"
+                                        Duration="@Duration"
+                                        Instrument="@_instrument"
+                                        InstrumentViewModel="@_instrumentViewModel"
+                                        DimensionFilters="@DimensionFilters"/>
+                </FluentTab>
+            </FluentTabs>
+        }
+        else
+        {
+            if (ActiveView is Metrics.MetricViewKind.Graph)
+            {
+                <ChartWrapper Applications="@Applications"
+                              Duration="@Duration"
+                              Instrument="@_instrument"
+                              InstrumentViewModel="@_instrumentViewModel"
+                              DimensionFilters="@DimensionFilters"/>
+            }
+            else
+            {
+                <MetricTableWrapper Applications="@Applications"
+                                    Duration="@Duration"
+                                    Instrument="@_instrument"
+                                    InstrumentViewModel="@_instrumentViewModel"
+                                    DimensionFilters="@DimensionFilters"/>
+            }
+        }
     </div>
 }
 
@@ -49,4 +88,7 @@ else
 
     [Parameter]
     public required List<OtlpApplication> Applications { get; set; }
+
+    [Parameter]
+    public bool IsDashpageChart { get; set; }
 }

@@ -26,6 +26,20 @@
                             AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
                             @bind-SelectedResource="PageViewModel.SelectedApplication"
                             @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync"/>
+
+            @if (PageViewModel.SelectedDashpage is not null)
+            {
+                <div slot="end">
+                <FluentMenuButton ButtonAppearance="Appearance.Stealth"
+                                  Text="@(ControlsStringsLoc[PageViewModel.SelectedViewKind is MetricViewKind.Table ? nameof(ControlsStrings.ChartContainerTableTab) : nameof(ControlsStrings.ChartContainerGraphTab)])"
+                                  OnMenuChanged="@HandleDashpageMetricViewKindChangedAsync"
+                                  slot="end">
+                    <FluentMenuItem Id="@MetricViewKind.Graph.ToString()">@ControlsStringsLoc[nameof(ControlsStrings.ChartContainerGraphTab)]</FluentMenuItem>
+                    <FluentMenuItem Id="@MetricViewKind.Table.ToString()">@ControlsStringsLoc[nameof(ControlsStrings.ChartContainerTableTab)]</FluentMenuItem>
+                </FluentMenuButton>
+                </div>
+            }
+
             <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" Style="margin-right:5px;"/>
             <FluentSelect slot="end" TOption="SelectViewModel<TimeSpan>"
                           Items="@_durations"

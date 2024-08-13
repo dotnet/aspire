@@ -1,0 +1,24 @@
+﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Otlp.Model
+<div class="metric-tab">
+    <MetricTable InstrumentViewModel="@InstrumentViewModel" Duration="Duration" Applications="Applications" />
+    <ChartFilters InstrumentViewModel="@InstrumentViewModel" Instrument="@Instrument" DimensionFilters="@DimensionFilters"/>
+</div>
+
+@code {
+    [Parameter]
+    public required List<OtlpApplication> Applications { get; set; }
+
+    [Parameter, EditorRequired]
+    public required TimeSpan Duration { get; set; }
+
+    [Parameter, EditorRequired]
+    public required List<DimensionFilterViewModel> DimensionFilters { get; set; }
+
+    [Parameter, EditorRequired]
+    public required OtlpInstrument Instrument { get; set; }
+
+    [Parameter, EditorRequired]
+    public required InstrumentViewModel InstrumentViewModel { get; set; }
+
+}

@@ -24,7 +24,6 @@
         "chart";
     width: 100%;
     gap: calc(var(--design-unit) * 4px);
-    padding-left: 40px;
 }
 
 ::deep .metrics-chart-header {
@@ -38,6 +37,10 @@
     flex-wrap: wrap;
     row-gap: calc(var(--design-unit) * 4px);
     column-gap: calc(var(--design-unit) * 4px);
+}
+
+::deep .metrics-chart > fluent-tabs {
+    padding-left: 40px;
 }
 
 ::deep .metrics-filters-container {

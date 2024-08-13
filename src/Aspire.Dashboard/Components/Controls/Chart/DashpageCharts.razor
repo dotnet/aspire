@@ -8,16 +8,19 @@
     {
         if (Instruments.FirstOrDefault(i => i.Name == chart.InstrumentName) is { } instrument)
         {
-            <FluentGridItem md="12" lg="6">
+            <FluentGridItem md="6" lg="4">
                 <FluentCard>
-                    <ChartContainer
-                        ApplicationKey="@(@SelectedApplication.Id.GetApplicationKey())"
-                        MeterName="@(instrument.Parent.MeterName)"
-                        InstrumentName="@(instrument.Name)"
-                        Duration="@SelectedDuration.Id"
-                        ActiveView="@(SelectedViewKind ?? Metrics.MetricViewKind.Graph)"
-                        OnViewChangedAsync="@OnViewChangedAsync"
-                        Applications="@Applications"/>
+                    <div style="padding-left: 20px">
+                        <ChartContainer
+                            ApplicationKey="@(SelectedApplication.Id!.GetApplicationKey())"
+                            MeterName="@(instrument.Parent.MeterName)"
+                            InstrumentName="@(instrument.Name)"
+                            Duration="@SelectedDuration.Id"
+                            ActiveView="@(SelectedViewKind ?? Metrics.MetricViewKind.Graph)"
+                            OnViewChangedAsync="@OnViewChangedAsync"
+                            Applications="@Applications"
+                            IsDashpageChart="true"/>
+                    </div>
                 </FluentCard>
             </FluentGridItem>
         }
