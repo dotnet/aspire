@@ -8,10 +8,11 @@
 
     <!-- Disabling these tests - blocked on https://github.com/dotnet/aspire/pull/5251 -->
     <SkipTests>true</SkipTests>
+    <RunTestsOnHelix>false</RunTestsOnHelix>
 
     <!-- no docker support on helix/windows yet -->
-    <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
-    <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
+    <!--<RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>-->
+    <!--<SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>-->
 
     <DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive\</DeployOutsideOfRepoSupportFilesRelativeDir>
 
