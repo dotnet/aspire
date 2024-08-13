@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using System.Text;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Utils;
 
@@ -54,7 +54,6 @@ public static class RedisBuilderExtensions
         }
         else
         {
-            builder.ApplicationBuilder.Services.TryAddLifecycleHook<RedisCommanderConfigWriterHook>();
             containerName ??= $"{builder.Resource.Name}-commander";
 
             var resource = new RedisCommanderResource(containerName);
@@ -63,6 +62,34 @@ public static class RedisBuilderExtensions
                                       .WithImageRegistry(RedisContainerImageTags.RedisCommanderRegistry)
                                       .WithHttpEndpoint(targetPort: 8081, name: "http")
                                       .ExcludeFromManifest();
+
+#pragma warning disable ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+            {
+                var redisInstances = builder.ApplicationBuilder.Resources.OfType<RedisResource>();
+
+                if (!redisInstances.Any())
+                {
+                    // No-op if there are no Redis resources present.
+                    return Task.CompletedTask;
+                }
+
+                var hostsVariableBuilder = new StringBuilder();
+
+                foreach (var redisInstance in redisInstances)
+                {
+                    if (redisInstance.PrimaryEndpoint.IsAllocated)
+                    {
+                        var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.PrimaryEndpoint.ContainerHost}:{redisInstance.PrimaryEndpoint.Port}:0";
+                        hostsVariableBuilder.Append(hostString);
+                    }
+                }
+
+                resourceBuilder.WithEnvironment("REDIS_HOSTS", hostsVariableBuilder.ToString());
+
+                return Task.CompletedTask;
+            });
+#pragma warning restore ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
             configureContainer?.Invoke(resourceBuilder);
 
