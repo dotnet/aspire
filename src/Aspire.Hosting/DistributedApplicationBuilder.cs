@@ -234,8 +234,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Publishing support
         _innerBuilder.Services.AddLifecycleHook<Http2TransportMutationHook>();
-        _innerBuilder.Services.AddLifecycleHook<DashboardManifestExclusionHook>();
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>("manifest");
+
+#pragma warning disable ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        Eventing.Subscribe<BeforeStartEvent>(ExcludeDashboardFromManifestAsync);
+#pragma warning restore ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         // Overwrite registry if override specified in options
         if (!string.IsNullOrEmpty(options.ContainerRegistryOverride))
@@ -245,6 +248,19 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Services.AddSingleton(ExecutionContext);
         LogBuilderConstructed(this);
+    }
+
+#pragma warning disable ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    private Task ExcludeDashboardFromManifestAsync(BeforeStartEvent beforeStartEvent, CancellationToken cancellationToken)
+#pragma warning restore ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    {
+        // When developing locally, exclude the dashboard from the manifest. This only affects our playground projects in practice.
+        if (Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is { } dashboardResource)
+        {
+            dashboardResource.Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
+        }
+
+        return Task.CompletedTask;
     }
 
     private void MapTransportOptionsFromCustomKeys(TransportOptions options)
