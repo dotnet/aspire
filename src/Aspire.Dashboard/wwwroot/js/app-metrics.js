@@ -14,6 +14,14 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
     var chartDiv = document.createElement("div");
     chartContainerDiv.replaceChildren(chartDiv);
 
+    const resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+            Plotly.relayout(chartDiv, { width: entry.contentRect.width });
+        }
+    });
+
+    resizeObserver.observe(chartContainerDiv.parentElement);
+
     var themeColors = getThemeColors();
 
     var data = [];
@@ -54,12 +62,13 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
     // If there is no explicit width and height, Plotly will use the rendered container size.
     // However, if the container isn't visible then it uses a default size.
     // Being explicit ensures the chart is always the correct size.
-    var width = parseInt(chartContainerDiv.style.width);
-    var height = parseInt(chartContainerDiv.style.height);
+    //var width = parseInt(chartContainerDiv.style.width);
+    //var height = parseInt(chartContainerDiv.style.height);
 
     var layout = {
-        width: width,
-        height: height,
+        autosize: true,
+        //width: width,
+        //height: height,
         paper_bgcolor: themeColors.backgroundColor,
         plot_bgcolor: themeColors.backgroundColor,
         margin: { t: 0, r: 0, b: 40, l: 50 },
@@ -88,7 +97,7 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
         }
     };
 
-    var options = { scrollZoom: false, displayModeBar: false };
+    var options = { scrollZoom: false, displayModeBar: false, responsive: true };
 
     Plotly.newPlot(chartDiv, data, layout, options);
 
