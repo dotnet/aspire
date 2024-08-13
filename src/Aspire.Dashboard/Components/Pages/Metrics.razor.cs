@@ -203,6 +203,32 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         /// </remarks>
         public List<OtlpInstrument>? Instruments { get; set; }
         public required MetricViewKind? SelectedViewKind { get; set; }
+
+    public class DashpageDefinition
+    {
+        public required string Name { get; init; }
+        public required string Key { get; init; }
+
+        public List<DashpageChartDefinition> Charts { get; } =
+        [
+            // TODO more realistic dashpage definitions for testing and demoing
+            // TODO replace hard-coded test data with data from config/resource service
+            new DashpageChartDefinition { Title = "Exception count", InstrumentName = "process.runtime.dotnet.exceptions.count" },
+            new DashpageChartDefinition { Title = "Assembly count", InstrumentName = "process.runtime.dotnet.assemblies.count" },
+            new DashpageChartDefinition { Title = "Assembly count", InstrumentName = "process.runtime.dotnet.thread_pool.completed_items.count" },
+            new DashpageChartDefinition { Title = "Object size", InstrumentName = "process.runtime.dotnet.gc.objects.size" },
+            new DashpageChartDefinition { Title = "Allocation size", InstrumentName = "process.runtime.dotnet.gc.allocations.size" },
+
+            // NOTE for some reason, adding GC Count causes all charts on the page to show blank, with a y-range of 0-1
+            // Is it to do with chart filters? I see them in ChartContainer.razor but can't tell what they're for
+            //new DashpageChartDefinition { Title = "GC Count", InstrumentName = "process.runtime.dotnet.gc.collections.count" },
+        ];
+    }
+
+    public class DashpageChartDefinition
+    {
+        public required string Title { get; init; }
+        public required string InstrumentName{ get; init; }
     }
 
     public class MetricsPageState
