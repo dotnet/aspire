@@ -169,11 +169,6 @@ public class AppHostTests
                     new ("mysql", "ready for connections.* port: 33060"),
                     new ("apiservice", "Application started")
                 ]),
-            new TestEndpoints("ParameterEndToEnd.AppHost",
-                resourceEndpoints: new() { { "api", ["/", "/alive", "/health"] } },
-                waitForTexts: [
-                    new ("sql", "SQL Server is now ready for client connections."),
-                ]),
             new TestEndpoints("Nats.AppHost",
                 resourceEndpoints: new() {
                     { "api", ["/alive", "/health"] },
@@ -183,11 +178,25 @@ public class AppHostTests
                     new ("nats", "Server is ready"),
                     new("api", "Application started")
                 ]),
+            new TestEndpoints("ParameterEndToEnd.AppHost",
+                resourceEndpoints: new() { { "api", ["/", "/alive", "/health"] } },
+                waitForTexts: [
+                    new ("sql", "SQL Server is now ready for client connections."),
+                ]),
             new TestEndpoints("PostgresEndToEnd.AppHost",
                 resourceEndpoints: new() {
                     // Invoking "/" first as that *creates* the databases
                     { "api", ["/", "/alive", "/health"] }
-                }),
+                },
+                waitForTexts: [
+                    new ("pg1", "PostgreSQL init process complete; ready for start up"),
+                    new ("pg2", "PostgreSQL init process complete; ready for start up"),
+                    new ("pg3", "PostgreSQL init process complete; ready for start up"),
+                    new ("pg4", "PostgreSQL init process complete; ready for start up"),
+                    new ("pg5", "PostgreSQL init process complete; ready for start up"),
+                    new ("pg6", "PostgreSQL init process complete; ready for start up"),
+                    new ("pg10", "PostgreSQL init process complete; ready for start up"),
+                ]),
             new TestEndpoints("ProxylessEndToEnd.AppHost",
                 resourceEndpoints: new() { { "api", ["/alive", "/health", "/redis"] } },
                 waitForTexts: [
