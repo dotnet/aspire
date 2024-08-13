@@ -65,7 +65,30 @@
                         <Panel2>
                             <div>
                                 <div class="metrics-content">
-                                    @if (PageViewModel.SelectedMeter is not null)
+                                    @if (PageViewModel.SelectedDashpage is not null && PageViewModel.SelectedApplication.Id is not null)
+                                    {
+                                        <FluentGrid Spacing="2" AdaptiveRendering="true" Style="padding-right: 10px;">
+                                        @foreach (var chart in PageViewModel.SelectedDashpage.Charts)
+                                        {
+                                            if (PageViewModel.Instruments.FirstOrDefault(i => i.Name == chart.InstrumentName) is {} instrument)
+                                            {
+                                                <FluentGridItem md="12" lg="6">
+                                                    <FluentCard>
+                                                        <ChartContainer
+                                                            ApplicationKey="@(PageViewModel.SelectedApplication.Id.GetApplicationKey())"
+                                                            MeterName="@(instrument.Parent.MeterName)"
+                                                            InstrumentName="@(instrument.Name)"
+                                                            Duration="PageViewModel.SelectedDuration.Id"
+                                                            ActiveView="@(PageViewModel.SelectedViewKind ?? MetricViewKind.Graph)"
+                                                            OnViewChangedAsync="@OnViewChangedAsync"
+                                                            Applications="_applications" />
+                                                    </FluentCard>
+                                                </FluentGridItem>
+                                            }
+                                        }
+                                        </FluentGrid>
+                                    }
+                                    else if (PageViewModel.SelectedMeter is not null)
                                     {
                                         if (PageViewModel.SelectedApplication.Id?.InstanceId is not null && PageViewModel.SelectedInstrument is not null)
                                         {
