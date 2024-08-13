@@ -6,10 +6,10 @@ using Xunit;
 
 namespace Aspire.Hosting.Dapr.Tests;
 
-public class AzureSchemaTests
+public class DaprSchemaTests
 {
     [Fact]
-    public void ValidateDaprWithComponentsSamples()
+    public void ValidateWithDaprManifest()
     {
         new SchemaTests().ValidateApplicationSamples("DaprWithComponents", (IDistributedApplicationBuilder builder) =>
             {
