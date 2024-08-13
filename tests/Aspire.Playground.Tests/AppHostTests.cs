@@ -3,8 +3,9 @@
 
 using System.Net;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Workload.Tests;
+using Aspire.Hosting.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using SamplesIntegrationTests;
 using SamplesIntegrationTests.Infrastructure;
@@ -15,12 +16,12 @@ namespace Aspire.Playground.Tests;
 
 public class AppHostTests
 {
-    private readonly TestOutputWrapper _testOutput;
+    private readonly ITestOutputHelper _testOutput;
     private static readonly string? s_appHostNameFilter = Environment.GetEnvironmentVariable("TEST_PLAYGROUND_APPHOST_FILTER");
 
     public AppHostTests(ITestOutputHelper testOutput)
     {
-        this._testOutput = new TestOutputWrapper(testOutput);
+        _testOutput = testOutput;
     }
 
     [Theory]
@@ -52,19 +53,28 @@ public class AppHostTests
 
         await app.StartAsync();
 
-        var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
-
-        await app.WaitForResources().WaitAsync(TimeSpan.FromMinutes(2));
-
-        if (testEndpoints.WaitForResources?.Count > 0)
+        if (testEndpoints.WaitForTexts != null)
         {
-            // Wait until each resource transitions to the required state
-            var timeout = TimeSpan.FromMinutes(5);
-            foreach (var (ResourceName, TargetState) in testEndpoints.WaitForResources)
+            // If specific ready to start texts are available use it
+            var tasks = testEndpoints.WaitForTexts.Select(x => app.WaitForTextAsync(log => new Regex(x.Pattern).IsMatch(log), x.ResourceName));
+            await Task.WhenAll(tasks).WaitAsync(TimeSpan.FromMinutes(5));
+        }
+        else
+        {
+            var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+            var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
+
+            await app.WaitForResources().WaitAsync(TimeSpan.FromMinutes(5));
+
+            if (testEndpoints.WaitForResources?.Count > 0)
             {
-                _testOutput.WriteLine($"Waiting for resource '{ResourceName}' to reach state '{TargetState}' in app '{Path.GetFileNameWithoutExtension(appHostPath)}'");
-                await app.WaitForResource(ResourceName, TargetState).WaitAsync(TimeSpan.FromMinutes(5));
+                // Wait until each resource transitions to the required state
+                var timeout = TimeSpan.FromMinutes(5);
+                foreach (var (ResourceName, TargetState) in testEndpoints.WaitForResources)
+                {
+                    _testOutput.WriteLine($"Waiting for resource '{ResourceName}' to reach state '{TargetState}' in app '{Path.GetFileNameWithoutExtension(appHostPath)}'");
+                    await app.WaitForResource(ResourceName, TargetState).WaitAsync(TimeSpan.FromMinutes(5));
+                }
             }
         }
 
@@ -130,21 +140,70 @@ public class AppHostTests
     {
         IList<TestEndpoints> candidates =
         [
-            new TestEndpoints("Keycloak.AppHost", new() { { "apiservice", ["/alive", "/health"] } }),
-            new TestEndpoints("CosmosEndToEnd.AppHost", new() { { "api", ["/alive", "/health", "/", "/ef"] } }),
-            new TestEndpoints("Mongo.AppHost", new() { { "api", ["/alive", "/health", "/"] } }),
-            new TestEndpoints("MySqlDb.AppHost", new() { { "apiservice", ["/alive", "/health", "/catalog"] }, }),
-            new TestEndpoints("Nats.AppHost", new() {
-                { "api", ["/alive", "/health"] },
-                { "backend", ["/alive", "/health"] }
-            }),
-            new TestEndpoints("ProxylessEndToEnd.AppHost", new() { { "api", ["/alive", "/health", "/redis"] } }),
-            new TestEndpoints("Qdrant.AppHost", new() { { "apiservice", ["/alive", "/health"] } }),
-            new TestEndpoints("Seq.AppHost", new() { { "api", ["/alive", "/health"] } }),
-            new TestEndpoints("TestShop.AppHost", new() {
-                { "catalogdbapp", ["/alive", "/health"] },
-                { "frontend", ["/alive", "/health"] },
-            }),
+            new TestEndpoints("CosmosEndToEnd.AppHost",
+                resourceEndpoints: new() { { "api", ["/alive", "/health", "/", "/ef"] } },
+                waitForTexts: [
+                    new ("cosmos", "Started$"),
+                    new ("api", "Application started")
+                ]),
+            new TestEndpoints("Keycloak.AppHost",
+                resourceEndpoints: new() { { "apiservice", ["/alive", "/health"] } }),
+
+            // Issue: https://github.com/dotnet/aspire/issues/5274
+            //new TestEndpoints("Mongo.AppHost",
+                //resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
+                //waitForTexts: [
+                    //new ("mongo", "Waiting for connections"),
+                    //new ("mongo-mongoexpress", "Mongo Express server listening"),
+                    //new("api", "Application started.")
+                //]),
+            new TestEndpoints("MySqlDb.AppHost",
+                resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/catalog"] } },
+                waitForTexts: [
+                    new ("mysql", "ready for connections.* port: 33060"),
+                    new ("apiservice", "Application started")
+                ]),
+            new TestEndpoints("Nats.AppHost",
+                resourceEndpoints: new() {
+                    { "api", ["/alive", "/health"] },
+                    { "backend", ["/alive", "/health"] }
+                },
+                waitForTexts: [
+                    new ("nats", "Server is ready"),
+                    new("api", "Application started")
+                ]),
+            new TestEndpoints("ProxylessEndToEnd.AppHost",
+                resourceEndpoints: new() { { "api", ["/alive", "/health", "/redis"] } },
+                waitForTexts: [
+                    new ("redis", "Ready to accept connections"),
+                    new("api", "Application started"),
+                    new("api2", "Application started")
+                ]),
+            new TestEndpoints("Qdrant.AppHost",
+                resourceEndpoints: new() { { "apiservice", ["/alive", "/health"] } },
+                waitForTexts: [
+                    new ("qdrant", "Qdrant HTTP listening"),
+                    new ("apiservice", "Application started")
+                ]),
+            new TestEndpoints("Seq.AppHost",
+                resourceEndpoints: new() { { "api", ["/alive", "/health"] } },
+                waitForTexts: [
+                    new ("seq", "Seq listening"),
+                    new ("api", "Application started")
+                ]),
+            new TestEndpoints("TestShop.AppHost",
+                resourceEndpoints: new() {
+                    { "catalogdbapp", ["/alive", "/health"] },
+                    { "frontend", ["/alive", "/health"] }
+                },
+                waitForTexts: [
+                    new ("messaging", "started TCP listener"),
+                    new ("basketcache", "Ready to accept connections"),
+                    new ("frontend", "Application started"),
+                    new ("catalogdbapp", "Application started"),
+                    new ("basketservice", "Application started"),
+                    new ("postgres", "database system is ready to accept connections"),
+                ])
         ];
 
         TheoryData<TestEndpoints> theoryData = new();
@@ -177,15 +236,18 @@ public class TestEndpoints : IXunitSerializable
     // Required for deserialization
     public TestEndpoints() { }
 
-    public TestEndpoints(string appHost, Dictionary<string, List<string>> resourceEndpoints)
+    public TestEndpoints(string appHost, Dictionary<string, List<string>> resourceEndpoints, List<ReadyStateText>? waitForTexts = null)
     {
         AppHost = appHost;
         ResourceEndpoints = resourceEndpoints;
+        WaitForTexts = waitForTexts;
     }
 
     public string? AppHost { get; set; }
 
     public List<ResourceWait>? WaitForResources { get; set; }
+
+    public List<ReadyStateText>? WaitForTexts { get; set; }
 
     public Dictionary<string, List<string>>? ResourceEndpoints { get; set; }
 
@@ -193,6 +255,7 @@ public class TestEndpoints : IXunitSerializable
     {
         AppHost = info.GetValue<string>(nameof(AppHost));
         WaitForResources = JsonSerializer.Deserialize<List<ResourceWait>>(info.GetValue<string>(nameof(WaitForResources)));
+        WaitForTexts = JsonSerializer.Deserialize<List<ReadyStateText>>(info.GetValue<string>(nameof(WaitForTexts)));
         ResourceEndpoints = JsonSerializer.Deserialize<Dictionary<string, List<string>>>(info.GetValue<string>(nameof(ResourceEndpoints)));
     }
 
@@ -200,6 +263,7 @@ public class TestEndpoints : IXunitSerializable
     {
         info.AddValue(nameof(AppHost), AppHost);
         info.AddValue(nameof(WaitForResources), JsonSerializer.Serialize(WaitForResources));
+        info.AddValue(nameof(WaitForTexts), JsonSerializer.Serialize(WaitForTexts));
         info.AddValue(nameof(ResourceEndpoints), JsonSerializer.Serialize(ResourceEndpoints));
     }
 
@@ -217,4 +281,6 @@ public class TestEndpoints : IXunitSerializable
             targetState = TargetState;
         }
     }
+
+    public record class ReadyStateText(string ResourceName, string Pattern);
 }
