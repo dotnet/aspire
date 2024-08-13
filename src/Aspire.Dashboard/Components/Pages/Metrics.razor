@@ -7,6 +7,7 @@
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Utils
+@using Aspire.Dashboard.Components.Controls.Chart
 @inject IStringLocalizer<Dashboard.Resources.Metrics> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
@@ -67,29 +68,14 @@
                                 <div class="metrics-content">
                                     @if (PageViewModel.SelectedDashpage is not null && PageViewModel.SelectedApplication.Id is not null)
                                     {
-                                        <FluentGrid Spacing="2" AdaptiveRendering="true" Style="padding-right: 10px;">
-                                        @foreach (var chart in PageViewModel.SelectedDashpage.Charts)
-                                        {
-                                            if (PageViewModel.Instruments.FirstOrDefault(i => i.Name == chart.InstrumentName) is {} instrument)
-                                            {
-                                                <FluentGridItem md="12" lg="6">
-                                                    <FluentCard>
-                                                        <!-- TODO use a dedicated DashpageChart component instead of ChartContainer
-                                                        <DashpageChart />
-                                                        -->
-                                                        <ChartContainer
-                                                            ApplicationKey="@(PageViewModel.SelectedApplication.Id.GetApplicationKey())"
-                                                            MeterName="@(instrument.Parent.MeterName)"
-                                                            InstrumentName="@(instrument.Name)"
-                                                            Duration="PageViewModel.SelectedDuration.Id"
-                                                            ActiveView="@(PageViewModel.SelectedViewKind ?? MetricViewKind.Graph)"
-                                                            OnViewChangedAsync="@OnViewChangedAsync"
-                                                            Applications="_applications" />
-                                                    </FluentCard>
-                                                </FluentGridItem>
-                                            }
-                                        }
-                                        </FluentGrid>
+                                        <DashpageCharts Applications="@_applications"
+                                                        Instruments="@PageViewModel.Instruments"
+                                                        SelectedApplication="@PageViewModel.SelectedApplication"
+                                                        SelectedDuration="@PageViewModel.SelectedDuration"
+                                                        SelectedDashpage="@PageViewModel.SelectedDashpage"
+                                                        SelectedMeter="@PageViewModel.SelectedMeter"
+                                                        SelectedViewKind="@PageViewModel.SelectedViewKind"
+                                                        OnViewChangedAsync="@OnViewChangedAsync"/>
                                     }
                                     else if (PageViewModel.SelectedMeter is not null)
                                     {
