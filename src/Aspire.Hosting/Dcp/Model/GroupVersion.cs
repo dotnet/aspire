@@ -23,6 +23,7 @@ internal static class Dcp
 
     public static string ExecutableKind { get; } = "Executable";
     public static string ContainerKind { get; } = "Container";
+    public static string ContainerNetworkKind { get; } = "ContainerNetwork";
     public static string ServiceKind { get; } = "Service";
     public static string EndpointKind { get; } = "Endpoint";
     public static string ExecutableReplicaSetKind { get; } = "ExecutableReplicaSet";

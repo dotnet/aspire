@@ -4,7 +4,7 @@
     "redis": {
       "type": "container.v0",
       "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
-      "image": "docker.io/library/redis:7.2.4",
+      "image": "docker.io/library/redis:7.2",
       "bindings": {
         "tcp": {
           "scheme": "tcp",
@@ -23,6 +23,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{api.bindings.http.targetPort}",
         "ConnectionStrings__redis": "{redis.connectionString}"
       },
       "bindings": {
@@ -47,6 +48,7 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{api2.bindings.http.targetPort}",
         "ConnectionStrings__redis": "{redis.connectionString}"
       },
       "bindings": {

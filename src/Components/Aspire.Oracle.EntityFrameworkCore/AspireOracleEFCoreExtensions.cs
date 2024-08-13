@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Oracle.EntityFrameworkCore;
 using Oracle.EntityFrameworkCore.Infrastructure.Internal;
 using Oracle.EntityFrameworkCore.Storage.Internal;
+using Oracle.ManagedDataAccess.OpenTelemetry;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -62,7 +63,7 @@ public static class AspireOracleEFCoreExtensions
 
         void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
         {
-		    ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
+            ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
 
             dbContextOptionsBuilder.UseOracle(settings.ConnectionString, builder =>
             {
@@ -163,6 +164,14 @@ public static class AspireOracleEFCoreExtensions
 
     private static void ConfigureInstrumentation<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, OracleEntityFrameworkCoreSettings settings) where TContext : DbContext
     {
+        if (!settings.DisableTracing)
+        {
+            builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
+            {
+                tracerProviderBuilder.AddOracleDataProviderInstrumentation(settings.InstrumentationOptions);
+            });
+        }
+
         if (!settings.DisableHealthChecks)
         {
             builder.TryAddHealthCheck(

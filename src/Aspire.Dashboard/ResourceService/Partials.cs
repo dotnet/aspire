@@ -26,6 +26,7 @@ partial class Resource
             Environment = GetEnvironment(),
             Urls = GetUrls(),
             State = HasState ? State : null,
+            KnownState = HasState ? Enum.TryParse(State, out KnownResourceState knownState) ? knownState : null : null,
             StateStyle = HasStateStyle ? StateStyle : null,
             Commands = GetCommands()
         };

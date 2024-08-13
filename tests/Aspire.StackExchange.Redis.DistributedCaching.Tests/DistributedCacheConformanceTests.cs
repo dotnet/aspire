@@ -36,7 +36,8 @@ public class DistributedCacheConformanceTests : ConformanceTests
     {
     }
 
-    [RequiresDockerFact]
+    [Fact]
+    [RequiresDocker]
     public void WorksWithOpenTelemetryTracing()
     {
         RemoteExecutor.Invoke(async (connectionString) =>

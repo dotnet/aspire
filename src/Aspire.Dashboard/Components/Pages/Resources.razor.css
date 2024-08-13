@@ -1,16 +1,3 @@
-::deep .resource-state-badge {
-    padding: 0 3px;
-    cursor: pointer;
-}
-
-::deep fluent-toolbar > h1 {
-    padding-left: calc(var(--design-unit) * 1.5px);
-}
-
-::deep.content-layout-with-toolbar > fluent-toolbar {
-    padding: var(--layout-toolbar-padding);
-}
-
 ::deep .unread-logs-errors-link {
     vertical-align: middle;
     --unread-logs-badge-color: #ffffff;

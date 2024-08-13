@@ -23,8 +23,5 @@
     <None Include="$(ReadMePath)" Pack="true" PackagePath="\" />
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(DotNetBuildFromSource)' != 'true' AND $(AddPublicApiAnalyzers) ">
-    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" ExcludeAssets="Compile" PrivateAssets="All" />
-  </ItemGroup>
-
+  <Import Project="$(RepositoryEngineeringDir)/apicompat/PublicApiAnalyzer.targets" />
 </Project>

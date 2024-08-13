@@ -14,7 +14,12 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <AddPublicApiAnalyzers>false</AddPublicApiAnalyzers>
+    <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
+    <EnablePackageValidation>false</EnablePackageValidation>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>27</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>
@@ -41,6 +46,10 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Aspire.Dashboard.Tests" />
     <InternalsVisibleTo Include="Aspire.Dashboard.Components.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Aspire.Dashboard.Model.BrowserStorage" />
   </ItemGroup>
 
   <ItemGroup>

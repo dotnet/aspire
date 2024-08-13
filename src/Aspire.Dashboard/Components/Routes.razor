@@ -1,15 +1,30 @@
-﻿@using Microsoft.AspNetCore.Components.Authorization
+﻿@using Aspire.Dashboard.Components.Resize
 @inject IStringLocalizer<Resources.Routes> Loc
 
-<Router AppAssembly="@typeof(App).Assembly">
-    <Found Context="routeData">
-        <!-- AuthorizeRouteView protects pages from being accessed when authorization is required -->
-        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
-    </Found>
-    <NotFound>
-        <PageTitle>@Loc[nameof(Resources.Routes.NotFoundPageTitle)]</PageTitle>
-        <LayoutView Layout="@typeof(Layout.MainLayout)">
-            <Aspire.Dashboard.Components.Pages.NotFound />
-        </LayoutView>
-    </NotFound>
-</Router>
+<BrowserDimensionWatcher @bind-ViewportInformation="@_viewportInformation" />
+
+@if (_viewportInformation is null)
+{
+    // prevent render until we've determined the browser viewport so that we don't have to re-render
+    // if we guess wrong
+    return;
+}
+
+<CascadingValue Value="@_viewportInformation">
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <!-- AuthorizeRouteView protects pages from being accessed when authorization is required -->
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
+        </Found>
+        <NotFound>
+            <PageTitle>@Loc[nameof(Resources.Routes.NotFoundPageTitle)]</PageTitle>
+            <LayoutView Layout="@typeof(Layout.MainLayout)">
+                <Aspire.Dashboard.Components.Pages.NotFound />
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingValue>
+
+@code {
+    private ViewportInformation? _viewportInformation;
+}

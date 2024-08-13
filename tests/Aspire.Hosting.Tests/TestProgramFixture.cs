@@ -14,9 +14,9 @@ public abstract class TestProgramFixture : IAsyncLifetime
     private DistributedApplication? _app;
     private TestProgram? _testProgram;
 
-    public TestProgram TestProgram => _testProgram!;
+    public TestProgram TestProgram => _testProgram ?? throw new InvalidOperationException("TestProgram is not initialized.");
 
-    public DistributedApplication App => _app!;
+    public DistributedApplication App => _app ?? throw new InvalidOperationException("DistributedApplication is not initialized.");
 
     public abstract TestProgram CreateTestProgram();
 
@@ -24,11 +24,6 @@ public abstract class TestProgramFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null)
-        {
-            return;
-        }
-
         _testProgram = CreateTestProgram();
 
         _app = _testProgram.Build();
@@ -79,33 +74,8 @@ public class SlimTestProgramFixture : TestProgramFixture
     }
 }
 
-/// <summary>
-/// TestProgram with node app but no dashboard or integration services.
-/// </summary>
-/// <remarks>
-/// Use <c>[Collection("NodeApp")]</c> to inject this fixture in test constructors.
-/// </remarks>
-public class NodeAppFixture : TestProgramFixture
-{
-    public override TestProgram CreateTestProgram() => TestProgram.Create<DistributedApplicationTests>(includeNodeApp: true, randomizePorts: false);
-
-    public override async Task WaitReadyStateAsync(CancellationToken cancellationToken = default)
-    {
-        using var client = TestProgram.App!.CreateHttpClient(TestProgram.NodeAppBuilder!.Resource.Name, endpointName: "http");
-        await client.GetStringAsync("/", cancellationToken);
-    }
-}
-
 [CollectionDefinition("SlimTestProgram")]
 public class SlimTestProgramCollection : ICollectionFixture<SlimTestProgramFixture>
-{
-    // This class has no code, and is never created. Its purpose is simply
-    // to be the place to apply [CollectionDefinition] and all the
-    // ICollectionFixture<> interfaces.
-}
-
-[CollectionDefinition("NodeApp")]
-public class NodeJsCollection : ICollectionFixture<NodeAppFixture>
 {
     // This class has no code, and is never created. Its purpose is simply
     // to be the place to apply [CollectionDefinition] and all the
