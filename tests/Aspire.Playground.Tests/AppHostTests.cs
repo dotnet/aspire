@@ -7,10 +7,12 @@ using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Polly.Timeout;
 using SamplesIntegrationTests;
 using SamplesIntegrationTests.Infrastructure;
 using Xunit;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Aspire.Playground.Tests;
 
@@ -106,7 +108,14 @@ public class AppHostTests
             foreach (var path in endpoints)
             {
                 _testOutput.WriteLine($"Calling endpoint '{client.BaseAddress}{path.TrimStart('/')} for resource '{resource}' in app '{Path.GetFileNameWithoutExtension(appHostPath)}'");
-                response = await client.GetAsync(path);
+                try
+                {
+                    response = await client.GetAsync(path);
+                }
+                catch (TimeoutRejectedException tre)
+                {
+                    throw new XunitException($"Endpoint '{client.BaseAddress}{path.TrimStart('/')}' for resource '{resource}' in app '{Path.GetFileNameWithoutExtension(appHostPath)}' timed out", tre);
+                }
 
                 Assert.True(HttpStatusCode.OK == response.StatusCode, $"Endpoint '{client.BaseAddress}{path.TrimStart('/')}' for resource '{resource}' in app '{Path.GetFileNameWithoutExtension(appHostPath)}' returned status code {response.StatusCode}");
             }
