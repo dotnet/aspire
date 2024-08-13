@@ -261,21 +261,18 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     private Task HandleSelectedTreeItemChangedAsync()
     {
-        if (PageViewModel.SelectedTreeItem?.Data is OtlpMeter meter)
-        {
-            PageViewModel.SelectedMeter = meter;
-            PageViewModel.SelectedInstrument = null;
-        }
-        else if (PageViewModel.SelectedTreeItem?.Data is OtlpInstrument instrument)
-        {
-            PageViewModel.SelectedMeter = instrument.Parent;
-            PageViewModel.SelectedInstrument = instrument;
-        }
-        else
-        {
-            PageViewModel.SelectedMeter = null;
-            PageViewModel.SelectedInstrument = null;
-        }
+        (OtlpMeter?, OtlpInstrument?, DashpageDefinition?) selections =
+            PageViewModel.SelectedTreeItem?.Data switch
+            {
+                OtlpMeter meter => (meter, null, null),
+                OtlpInstrument instrument => (instrument.Parent, instrument, null),
+                DashpageDefinition dashpage => (null, null, dashpage),
+                _ => (null, null, null)
+            };
+
+        var vm = PageViewModel;
+
+        (vm.SelectedMeter, vm.SelectedInstrument, vm.SelectedDashpage) = selections;
 
         return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: false);
     }
