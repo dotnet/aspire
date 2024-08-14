@@ -134,7 +134,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
 
 #pragma warning disable ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-            var afterResourcesCreatedEvent = new AfterResourcesCreatedEvent(serviceProvider);
+            var afterResourcesCreatedEvent = new AfterResourcesCreatedEvent(serviceProvider, _model);
             await eventing.PublishAsync(afterResourcesCreatedEvent, cancellationToken).ConfigureAwait(false);
 #pragma warning restore ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
@@ -896,7 +896,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         AddAllocatedEndpointInfo(toCreate);
 
 #pragma warning disable ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        var afterEndpointsAllocatedEvent = new AfterEndpointsAllocatedEvent(serviceProvider);
+        var afterEndpointsAllocatedEvent = new AfterEndpointsAllocatedEvent(serviceProvider, _model);
         await eventing.PublishAsync(afterEndpointsAllocatedEvent, cancellationToken).ConfigureAwait(false);
 #pragma warning restore ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 

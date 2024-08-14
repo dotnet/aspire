@@ -10,6 +10,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// This experimental event is published before the application starts.
 /// </summary>
 /// <param name="services">The <see cref="IServiceProvider"/> instance.</param>
+/// <param name="model">The <see cref="DistributedApplicationModel"/> instance.</param>
 /// <remarks>
 /// Subscribing to this event is analogous to implementing the <see cref="Aspire.Hosting.Lifecycle.IDistributedApplicationLifecycleHook.BeforeStartAsync(Aspire.Hosting.ApplicationModel.DistributedApplicationModel, CancellationToken)"/>
 /// method. This event provides access to the <see cref="IServiceProvider"/> interface to resolve dependencies including
@@ -27,10 +28,15 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </code>
 /// </example>
 [Experimental("ASPIREEVENTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-public class BeforeStartEvent(IServiceProvider services) : IDistributedApplicationEvent
+public class BeforeStartEvent(IServiceProvider services, DistributedApplicationModel model) : IDistributedApplicationEvent
 {
     /// <summary>
     /// The <see cref="IServiceProvider"/> instance.
     /// </summary>
     public IServiceProvider Services { get; } = services;
+
+    /// <summary>
+    /// The <see cref="DistributedApplicationModel"/> instance.
+    /// </summary>
+    public DistributedApplicationModel Model { get; } = model;
 }

@@ -347,7 +347,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
         try
         {
 #pragma warning disable ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-            var beforeStartEvent = new BeforeStartEvent(_host.Services);
+            var beforeStartEvent = new BeforeStartEvent(_host.Services, _host.Services.GetRequiredService<DistributedApplicationModel>());
             var eventing = _host.Services.GetRequiredService<IDistributedApplicationEventing>();
             await eventing.PublishAsync(beforeStartEvent, cancellationToken).ConfigureAwait(false);
 #pragma warning restore ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.

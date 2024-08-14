@@ -15,11 +15,6 @@
 
   <ItemGroup>
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Redis\RedisContainerImageTags.cs" />
-    <Compile Remove="C:\Code\aspire\src\Aspire.Hosting.Redis\RedisCommanderConfigWriterHook.cs" />
-    <Compile Remove="C:\Code\aspire\src\Aspire.Hosting.Redis\RedisCommanderConfigWriterHook.cs" />
-    <Compile Remove="C:\Code\aspire\src\Aspire.Hosting.Redis\RedisCommanderConfigWriterHook.cs" />
-    <Compile Remove="C:\Code\aspire\src\Aspire.Hosting.Redis\RedisCommanderConfigWriterHook.cs" />
-    <Compile Remove="C:\Code\aspire\src\Aspire.Hosting.Redis\RedisCommanderConfigWriterHook.cs" />
     <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
   </ItemGroup>
 

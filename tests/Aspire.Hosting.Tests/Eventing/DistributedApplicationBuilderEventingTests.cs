@@ -31,16 +31,22 @@ public class DistributedApplicationBuilderEventingTests
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.Eventing.Subscribe<BeforeStartEvent>((e, ct) =>
         {
+            Assert.NotNull(e.Services);
+            Assert.NotNull(e.Model);
             beforeStartEventFired.Set();
             return Task.CompletedTask;
         });
         builder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
         {
+            Assert.NotNull(e.Services);
+            Assert.NotNull(e.Model);
             afterEndpointsAllocatedEventFired.Set();
             return Task.CompletedTask;
         });
         builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) =>
         {
+            Assert.NotNull(e.Services);
+            Assert.NotNull(e.Model);
             afterResourcesCreatedEventFired.Set();
             return Task.CompletedTask;
         });

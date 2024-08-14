@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 
@@ -7,8 +9,8 @@ namespace Aspire.Hosting.Eventing;
 [Experimental("ASPIREEVENTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
 public class DistributedApplicationEventing : IDistributedApplicationEventing
 {
-    private readonly Dictionary<Type, List<DistributedApplicationEventSubscription>> _eventSubscriptionListLookup = new();
-    private readonly Dictionary<DistributedApplicationEventSubscription, Type> _subscriptionEventTypeLookup = new();
+    private readonly ConcurrentDictionary<Type, List<DistributedApplicationEventSubscription>> _eventSubscriptionListLookup = new();
+    private readonly ConcurrentDictionary<DistributedApplicationEventSubscription, Type> _subscriptionEventTypeLookup = new();
 
     /// <inheritdoc cref="IDistributedApplicationEventing.PublishAsync{T}(T, CancellationToken)" />
     [Experimental("ASPIREEVENTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
@@ -42,7 +44,13 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
         }
         else
         {
-            _eventSubscriptionListLookup[typeof(T)] = new List<DistributedApplicationEventSubscription> { subscription };
+            if (!_eventSubscriptionListLookup.TryAdd(typeof(T), new List<DistributedApplicationEventSubscription> { subscription }))
+            {
+                // This code only executes if we try get the subscription list and it fails, and then it is subsequently
+                // added by another thread. In this case we just add our subscription. We don't invert this logic because
+                // we don't want to allocate a list each time someone wants to subscribe to an event.
+                _eventSubscriptionListLookup[typeof(T)].Add(subscription);
+            }
         }
 
         _subscriptionEventTypeLookup[subscription] = typeof(T);
@@ -74,7 +82,7 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
             if (_eventSubscriptionListLookup.TryGetValue(eventType, out var subscriptions))
             {
                 subscriptions.Remove(subscription);
-                _subscriptionEventTypeLookup.Remove(subscription);
+                _subscriptionEventTypeLookup.Remove(subscription, out _);
             }
         }
     }
