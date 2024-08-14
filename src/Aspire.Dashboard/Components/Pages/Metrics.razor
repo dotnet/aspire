@@ -71,7 +71,7 @@
                                     {
                                         <h3>@PageViewModel.SelectedMeter.MeterName</h3>
                                         <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
-                                                        ResizeType="DataGridResizeType.Exact"
+                                                        ResizeType="DataGridResizeType.Discrete"
                                                         Style="max-width:1100px;"
                                                         Items="@PageViewModel.Instruments.Where(i => i.Parent == PageViewModel.SelectedMeter).OrderBy(i => i.Name).AsQueryable()"
                                                         GridTemplateColumns="3fr 5fr"

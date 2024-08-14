@@ -12,7 +12,7 @@
         <div class="metrics-filters-section">
             <h5>@Loc[nameof(ControlsStrings.ChartContainerFiltersHeader)]</h5>
             <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
-                            ResizeType="DataGridResizeType.Exact"
+                            ResizeType="DataGridResizeType.Discrete"
                             Items="@Queryable.AsQueryable(DimensionFilters)"
                             GridTemplateColumns="200px 1fr auto"
                             GenerateHeader="GenerateHeaderOption.None">
