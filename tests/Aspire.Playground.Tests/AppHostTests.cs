@@ -2,15 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Polly.Timeout;
 using SamplesIntegrationTests;
 using SamplesIntegrationTests.Infrastructure;
 using Xunit;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Aspire.Playground.Tests;
 
@@ -56,8 +59,24 @@ public class AppHostTests
         if (testEndpoints.WaitForTexts != null)
         {
             // If specific ready to start texts are available use it
-            var tasks = testEndpoints.WaitForTexts.Select(x => app.WaitForTextAsync(log => new Regex(x.Pattern).IsMatch(log), x.ResourceName));
-            await Task.WhenAll(tasks).WaitAsync(TimeSpan.FromMinutes(5));
+            var tasks = testEndpoints.WaitForTexts.Select(x => app.WaitForTextAsync(log => new Regex(x.Pattern).IsMatch(log), x.ResourceName)).ToArray();
+            try
+            {
+                await Task.WhenAll(tasks).WaitAsync(TimeSpan.FromMinutes(5));
+            }
+            catch (TimeoutException te)
+            {
+                StringBuilder sb = new();
+                for (int i = 0; i < testEndpoints.WaitForTexts.Count; i++)
+                {
+                    if (!tasks[i].IsCompleted)
+                    {
+                        sb.AppendLine($"Timed out waiting for this text from resource {testEndpoints.WaitForTexts[i].ResourceName}: {testEndpoints.WaitForTexts[i].Pattern}");
+                    }
+                }
+
+                throw new XunitException(sb.ToString(), te);
+            }
         }
         else
         {
@@ -106,7 +125,14 @@ public class AppHostTests
             foreach (var path in endpoints)
             {
                 _testOutput.WriteLine($"Calling endpoint '{client.BaseAddress}{path.TrimStart('/')} for resource '{resource}' in app '{Path.GetFileNameWithoutExtension(appHostPath)}'");
-                response = await client.GetAsync(path);
+                try
+                {
+                    response = await client.GetAsync(path);
+                }
+                catch (TimeoutRejectedException tre)
+                {
+                    throw new XunitException($"Endpoint '{client.BaseAddress}{path.TrimStart('/')}' for resource '{resource}' in app '{Path.GetFileNameWithoutExtension(appHostPath)}' timed out", tre);
+                }
 
                 Assert.True(HttpStatusCode.OK == response.StatusCode, $"Endpoint '{client.BaseAddress}{path.TrimStart('/')}' for resource '{resource}' in app '{Path.GetFileNameWithoutExtension(appHostPath)}' returned status code {response.StatusCode}");
             }
@@ -172,6 +198,25 @@ public class AppHostTests
                     new ("nats", "Server is ready"),
                     new("api", "Application started")
                 ]),
+            new TestEndpoints("ParameterEndToEnd.AppHost",
+                resourceEndpoints: new() { { "api", ["/", "/alive", "/health"] } },
+                waitForTexts: [
+                    new ("sql", "SQL Server is now ready for client connections."),
+                ]),
+            new TestEndpoints("PostgresEndToEnd.AppHost",
+                resourceEndpoints: new() {
+                    // Invoking "/" first as that *creates* the databases
+                    { "api", ["/", "/alive", "/health"] }
+                },
+                waitForTexts: [
+                    new ("pg1", "PostgreSQL init process complete; ready for start up"),
+                    new ("pg2", "PostgreSQL init process complete; ready for start up"),
+                    new ("pg3", "PostgreSQL init process complete; ready for start up"),
+                    new ("pg4", "PostgreSQL init process complete; ready for start up"),
+                    new ("pg5", "PostgreSQL init process complete; ready for start up"),
+                    new ("pg6", "PostgreSQL init process complete; ready for start up"),
+                    new ("pg10", "PostgreSQL init process complete; ready for start up"),
+                ]),
             new TestEndpoints("ProxylessEndToEnd.AppHost",
                 resourceEndpoints: new() { { "api", ["/alive", "/health", "/redis"] } },
                 waitForTexts: [
@@ -190,6 +235,13 @@ public class AppHostTests
                 waitForTexts: [
                     new ("seq", "Seq listening"),
                     new ("api", "Application started")
+                ]),
+            // Invoke "/" first to create the databases
+            new TestEndpoints("SqlServerEndToEnd.AppHost",
+                resourceEndpoints: new() { { "api", ["/", "/alive", "/health"] } },
+                waitForTexts: [
+                    new ("sql1", "SQL Server is now ready for client connections"),
+                    new ("sql2", "SQL Server is now ready for client connections"),
                 ]),
             new TestEndpoints("TestShop.AppHost",
                 resourceEndpoints: new() {
