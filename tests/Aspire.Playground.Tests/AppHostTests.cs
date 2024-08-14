@@ -71,7 +71,7 @@ public class AppHostTests
                 {
                     if (!tasks[i].IsCompleted)
                     {
-                        sb.AppendLine($"[{testEndpoints.WaitForTexts[i].ResourceName}]: Timed out waiting for: {testEndpoints.WaitForTexts[i].Pattern}");
+                        sb.AppendLine($"Timed out waiting for this text from resource {testEndpoints.WaitForTexts[i].ResourceName}: {testEndpoints.WaitForTexts[i].Pattern}");
                     }
                 }
 
