@@ -118,4 +118,15 @@ public class KeycloakPublicApiTests
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(importDirectory), exception.ParamName);
     }
+
+    [Fact]
+    public void WithRealmImportShouldThrowWhenImportDirectoryDoesNotExist()
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        var keycloak = builder.AddKeycloak("Keycloak");
+
+        var action = () => keycloak.WithRealmImport("does-not-exist");
+
+        Assert.Throws<DirectoryNotFoundException>(action);
+    }
 }
