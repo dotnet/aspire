@@ -54,8 +54,8 @@ public sealed class FrontendCompositeAuthenticationHandler(
         return dashboardOptions.CurrentValue.Frontend.AuthMode switch
         {
             FrontendAuthMode.OpenIdConnect => FrontendAuthenticationDefaults.AuthenticationSchemeOpenIdConnect,
-            FrontendAuthMode.BrowserToken => FrontendAuthenticationDefaults.AuthenticationSchemeBrowserToken;
-            _ => null;
+            FrontendAuthMode.BrowserToken => FrontendAuthenticationDefaults.AuthenticationSchemeBrowserToken,
+            _ => null
         }
     }
 }
