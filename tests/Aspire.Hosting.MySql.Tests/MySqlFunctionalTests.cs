@@ -3,6 +3,7 @@
 
 using System.Data;
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -19,6 +20,8 @@ namespace Aspire.Hosting.MySql.Tests;
 
 public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 {
+    private static readonly Predicate<string> s_mySqlReadyText = log => log.Contains("ready for connections") && log.Contains("port: 3306");
+
     [Fact]
     [RequiresDocker]
     public async Task VerifyMySqlResource()
@@ -38,6 +41,8 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
 
         await app.StartAsync();
+
+        await app.WaitForTextAsync(s_mySqlReadyText).WaitAsync(TimeSpan.FromMinutes(2));
 
         var hb = Host.CreateApplicationBuilder();
 
@@ -108,6 +113,8 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 await app.StartAsync();
 
+                await app.WaitForTextAsync(s_mySqlReadyText).WaitAsync(TimeSpan.FromMinutes(2));
+
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
@@ -175,6 +182,9 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
             using (var app = builder2.Build())
             {
                 await app.StartAsync();
+
+                await app.WaitForTextAsync(s_mySqlReadyText).WaitAsync(TimeSpan.FromMinutes(2));
+
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
@@ -281,6 +291,8 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
             await app.StartAsync();
 
+            await app.WaitForTextAsync(s_mySqlReadyText).WaitAsync(TimeSpan.FromMinutes(2));
+
             var hb = Host.CreateApplicationBuilder();
 
             hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -348,6 +360,8 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         using var app = builder.Build();
 
         await app.StartAsync();
+
+        await app.WaitForTextAsync(s_mySqlReadyText).WaitAsync(TimeSpan.FromMinutes(2));
 
         var hb = Host.CreateApplicationBuilder();
 

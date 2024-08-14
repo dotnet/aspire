@@ -40,16 +40,15 @@
                                 ResizableColumns="true"
                                 ItemsProvider="@GetData"
                                 TGridItem="OtlpTrace"
-                                GridTemplateColumns="0.8fr 2fr 3fr 0.8fr 0.5fr"
+                                GridTemplateColumns="2fr 3fr 0.8fr 0.8fr 0.5fr"
                                 ShowHover="true"
                                 OnRowClick="@(r => r.ExecuteOnDefault(d => NavigationManager.NavigateTo(DashboardUrls.TraceDetailUrl(d.TraceId))))"
                                 Class="enable-row-click">
                     <ChildContent>
-                        <AspireTemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
-                            @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Truncated)
-                        </AspireTemplateColumn>
                         <AspireTemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Tooltip="true" TooltipText="@(trace => GetNameTooltip(trace))">
-                            <span><FluentHighlighter HighlightedText="@(TracesViewModel.FilterText)" Text="@(context.FullName)" /></span>
+                            <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName((context.RootSpan ?? context.FirstSpan).Source)));">
+                                <FluentHighlighter HighlightedText="@(TracesViewModel.FilterText)" Text="@(context.FullName)" />
+                            </span>
                             <span class="trace-id">@OtlpHelpers.ToShortenedId(context.TraceId)</span>
                         </AspireTemplateColumn>
                         <AspireTemplateColumn Title="@Loc[nameof(Dashboard.Resources.Traces.TracesSpansColumnHeader)]">
@@ -87,6 +86,9 @@
                                     </FluentTooltip>
                                 </OverflowTemplate>
                             </FluentOverflow>
+                        </AspireTemplateColumn>
+                        <AspireTemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
+                            @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Truncated)
                         </AspireTemplateColumn>
                         <AspireTemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]">
                             <div class="duration-container">
