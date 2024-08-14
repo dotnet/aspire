@@ -10,9 +10,9 @@ Use the following guide to add a new image, or update an existing image with a n
    2. `az acr login --name netaspireci --expose-token --output tsv --query accessToken | docker login netaspireci.azurecr.io -u 00000000-0000-0000-0000-000000000000 --password-stdin`
    3. See the following docs for more information
       1. https://learn.microsoft.com/azure/container-registry/container-registry-get-started-docker-cli#log-in-to-a-registry
-      2. https://github.com/dotnet/dotnet-docker/blob/main/samples/push-image-to-acr.md#login-to-acr      
+      2. https://github.com/dotnet/dotnet-docker/blob/main/samples/push-image-to-acr.md#login-to-acr
 3. Pull the image locally, tag it, and push it
-   1. `docker pull docker.io/library/redis:7.2`
+   1. `docker pull docker.io/library/redis:7.2 --platform linux/amd64`
    2. `docker tag library/redis:7.2 netaspireci.azurecr.io/library/redis:7.2`
    3. `docker push netaspireci.azurecr.io/library/redis:7.2`
 4. Alternatively, you can try the import command, but unless you have Docker Hub credentials it can fail due to rate limits.
