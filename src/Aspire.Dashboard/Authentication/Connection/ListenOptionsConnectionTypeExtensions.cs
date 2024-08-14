@@ -7,7 +7,7 @@ namespace Aspire.Dashboard.Authentication.Connection;
 
 internal static class ListenOptionsConnectionTypeExtensions
 {
-    public static void UseConnectionType(this ListenOptions listenOptions, ConnectionType[] connectionTypes)
+    public static void UseConnectionTypes(this ListenOptions listenOptions, ConnectionType[] connectionTypes)
     {
         listenOptions.Use(next => new ConnectionTypeMiddleware(connectionTypes, next).OnConnectionAsync);
     }

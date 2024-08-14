@@ -511,7 +511,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             {
                 configurationLoader.Endpoint(browserEndpointName, endpointConfiguration =>
                 {
-                    endpointConfiguration.ListenOptions.UseConnectionType([ConnectionType.Frontend]);
+                    endpointConfiguration.ListenOptions.UseConnectionTypes([ConnectionType.Frontend]);
 
                     // Only the last endpoint is accessible. Tests should only need one but
                     // this will need to be improved if that changes.
@@ -539,7 +539,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     _frontendEndPointAccessor = _otlpServiceGrpcEndPointAccessor;
                 }
 
-                endpointConfiguration.ListenOptions.UseConnectionType(connectionTypes.ToArray());
+                endpointConfiguration.ListenOptions.UseConnectionTypes(connectionTypes.ToArray());
 
                 if (endpointConfiguration.HttpsOptions.ClientCertificateMode == ClientCertificateMode.RequireCertificate)
                 {
@@ -571,7 +571,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     _frontendEndPointAccessor = _otlpServiceGrpcEndPointAccessor;
                 }
 
-                endpointConfiguration.ListenOptions.UseConnectionType(connectionTypes.ToArray());
+                endpointConfiguration.ListenOptions.UseConnectionTypes(connectionTypes.ToArray());
 
                 if (endpointConfiguration.HttpsOptions.ClientCertificateMode == ClientCertificateMode.RequireCertificate)
                 {

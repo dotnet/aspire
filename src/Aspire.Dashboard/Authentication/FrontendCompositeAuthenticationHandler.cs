@@ -24,8 +24,9 @@ public sealed class FrontendCompositeAuthenticationHandler(
         {
             return AuthenticateResult.Fail(
                 result.Failure,
-                new AuthenticationProperties(new Dictionary<string, string?>(),
-                new Dictionary<string, object?> { [AspirePolicyEvaluator.SuppressChallengeKey] = true }));
+                new AuthenticationProperties(
+                    items: new Dictionary<string, string?>(),
+                    parameters: new Dictionary<string, object?> { [AspirePolicyEvaluator.SuppressChallengeKey] = true }));
         }
 
         var scheme = GetRelevantAuthenticationScheme();
@@ -50,18 +51,12 @@ public sealed class FrontendCompositeAuthenticationHandler(
 
     private string? GetRelevantAuthenticationScheme()
     {
-        var options = dashboardOptions.CurrentValue;
-
-        if (options.Frontend.AuthMode is FrontendAuthMode.OpenIdConnect)
+        return dashboardOptions.CurrentValue.Frontend.AuthMode switch
         {
-            return FrontendAuthenticationDefaults.AuthenticationSchemeOpenIdConnect;
+            FrontendAuthMode.OpenIdConnect => FrontendAuthenticationDefaults.AuthenticationSchemeOpenIdConnect,
+            FrontendAuthMode.BrowserToken => FrontendAuthenticationDefaults.AuthenticationSchemeBrowserToken;
+            _ => null;
         }
-        else if (options.Frontend.AuthMode is FrontendAuthMode.BrowserToken)
-        {
-            return FrontendAuthenticationDefaults.AuthenticationSchemeBrowserToken;
-        }
-
-        return null;
     }
 }
 
