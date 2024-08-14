@@ -5,6 +5,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Aspire.Hosting.AWS\Aspire.Hosting.AWS.csproj" />
+    <ProjectReference Include="..\..\src\Aspire.Hosting.Kafka\Aspire.Hosting.Kafka.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Tests\Aspire.Hosting.Tests.csproj" />
   </ItemGroup>
 
