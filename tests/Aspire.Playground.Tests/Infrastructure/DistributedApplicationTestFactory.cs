@@ -26,6 +26,7 @@ internal static class DistributedApplicationTestFactory
             ?? throw new InvalidOperationException("Generated AppHost type not found.");
 
         var builder = await DistributedApplicationTestingBuilder.CreateAsync(appHostType);
+        // TODO: this can be removed if https://github.com/dotnet/aspire/issues/5285 gets resolved
         builder.Services.AddLifecycleHook<ContainerRegistryHook>();
 
         builder.WithRandomParameterValues();

@@ -155,7 +155,7 @@ public static partial class DistributedApplicationExtensions
             {
                 if (predicate(log))
                 {
-                    throw new XunitException($"Unexpected error: {log}");
+                    throw new XunitException($"Error found in the logs: {log}");
                 }
             }
         }
