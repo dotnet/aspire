@@ -166,6 +166,8 @@ public class AppHostTests
     {
         IList<TestEndpoints> candidates =
         [
+            new TestEndpoints("MilvusPlayground.AppHost",
+                resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/create", "/search"] } }),
             new TestEndpoints("CosmosEndToEnd.AppHost",
                 resourceEndpoints: new() { { "api", ["/alive", "/health", "/", "/ef"] } },
                 waitForTexts: [
