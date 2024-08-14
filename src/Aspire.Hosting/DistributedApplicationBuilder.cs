@@ -233,7 +233,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         }
 
         // Publishing support
-        _innerBuilder.Services.AddLifecycleHook<Http2TransportMutationHook>();
+        Eventing.Subscribe<BeforeStartEvent>(MutateHttp2TransportAsync);
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>("manifest");
 
         Eventing.Subscribe<BeforeStartEvent>(ExcludeDashboardFromManifestAsync);
@@ -246,6 +246,21 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Services.AddSingleton(ExecutionContext);
         LogBuilderConstructed(this);
+    }
+
+    private Task MutateHttp2TransportAsync(BeforeStartEvent beforeStartEvent, CancellationToken cancellationToken)
+    {
+        foreach (var resource in Resources)
+        {
+            var isHttp2Service = resource.Annotations.OfType<Http2ServiceAnnotation>().Any();
+            var httpEndpoints = resource.Annotations.OfType<EndpointAnnotation>().Where(sb => sb.UriScheme == "http" || sb.UriScheme == "https");
+            foreach (var httpEndpoint in httpEndpoints)
+            {
+                httpEndpoint.Transport = isHttp2Service ? "http2" : httpEndpoint.Transport;
+            }
+        }
+
+        return Task.CompletedTask;
     }
 
     private Task UpdateContainerRegistryAsync(DistributedApplicationOptions options)
