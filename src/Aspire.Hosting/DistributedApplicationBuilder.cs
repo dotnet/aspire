@@ -233,60 +233,19 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         }
 
         // Publishing support
-        Eventing.Subscribe<BeforeStartEvent>(MutateHttp2TransportAsync);
+        Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.MutateHttp2TransportAsync);
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>("manifest");
 
-        Eventing.Subscribe<BeforeStartEvent>(ExcludeDashboardFromManifestAsync);
+        Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.ExcludeDashboardFromManifestAsync);
 
         // Overwrite registry if override specified in options
         if (!string.IsNullOrEmpty(options.ContainerRegistryOverride))
         {
-            Eventing.Subscribe<BeforeStartEvent>((e, ct) => UpdateContainerRegistryAsync(options));
+            Eventing.Subscribe<BeforeStartEvent>((e, ct) => BuiltInDistributedApplicationEventSubscriptionHandlers.UpdateContainerRegistryAsync(e, options));
         }
 
         _innerBuilder.Services.AddSingleton(ExecutionContext);
         LogBuilderConstructed(this);
-    }
-
-    private Task MutateHttp2TransportAsync(BeforeStartEvent beforeStartEvent, CancellationToken cancellationToken)
-    {
-        foreach (var resource in Resources)
-        {
-            var isHttp2Service = resource.Annotations.OfType<Http2ServiceAnnotation>().Any();
-            var httpEndpoints = resource.Annotations.OfType<EndpointAnnotation>().Where(sb => sb.UriScheme == "http" || sb.UriScheme == "https");
-            foreach (var httpEndpoint in httpEndpoints)
-            {
-                httpEndpoint.Transport = isHttp2Service ? "http2" : httpEndpoint.Transport;
-            }
-        }
-
-        return Task.CompletedTask;
-    }
-
-    private Task UpdateContainerRegistryAsync(DistributedApplicationOptions options)
-    {
-        var resourcesWithContainerImages = Resources.SelectMany(
-            r => r.Annotations.OfType<ContainerImageAnnotation>()
-                              .Select(cia => new { Resource = r, Annotation = cia })
-            );
-
-        foreach (var resourceWithContainerImage in resourcesWithContainerImages)
-        {
-            resourceWithContainerImage.Annotation.Registry = options.ContainerRegistryOverride;
-        }
-
-        return Task.CompletedTask;
-    }
-
-    private Task ExcludeDashboardFromManifestAsync(BeforeStartEvent beforeStartEvent, CancellationToken cancellationToken)
-    {
-        // When developing locally, exclude the dashboard from the manifest. This only affects our playground projects in practice.
-        if (Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is { } dashboardResource)
-        {
-            dashboardResource.Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
-        }
-
-        return Task.CompletedTask;
     }
 
     private void MapTransportOptionsFromCustomKeys(TransportOptions options)
