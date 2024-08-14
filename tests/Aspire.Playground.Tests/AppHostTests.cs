@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
@@ -58,8 +59,24 @@ public class AppHostTests
         if (testEndpoints.WaitForTexts != null)
         {
             // If specific ready to start texts are available use it
-            var tasks = testEndpoints.WaitForTexts.Select(x => app.WaitForTextAsync(log => new Regex(x.Pattern).IsMatch(log), x.ResourceName));
-            await Task.WhenAll(tasks).WaitAsync(TimeSpan.FromMinutes(5));
+            var tasks = testEndpoints.WaitForTexts.Select(x => app.WaitForTextAsync(log => new Regex(x.Pattern).IsMatch(log), x.ResourceName)).ToArray();
+            try
+            {
+                await Task.WhenAll(tasks).WaitAsync(TimeSpan.FromMinutes(5));
+            }
+            catch (TimeoutException te)
+            {
+                StringBuilder sb = new();
+                for (int i = 0; i < testEndpoints.WaitForTexts.Count; i++)
+                {
+                    if (!tasks[i].IsCompleted)
+                    {
+                        sb.AppendLine($"[{testEndpoints.WaitForTexts[i].ResourceName}]: Timed out waiting for: {testEndpoints.WaitForTexts[i].Pattern}");
+                    }
+                }
+
+                throw new XunitException(sb.ToString(), te);
+            }
         }
         else
         {
