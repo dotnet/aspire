@@ -12,6 +12,8 @@ internal sealed class PgAdminConfigWriterHook : IDistributedApplicationLifecycle
 {
     public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(appModel);
+
         var adminResource = appModel.Resources.OfType<PgAdminContainerResource>().Single();
         var serverFileMount = adminResource.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == "/pgadmin4/servers.json");
         var postgresInstances = appModel.Resources.OfType<PostgresServerResource>();
