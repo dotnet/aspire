@@ -10,7 +10,7 @@ namespace Aspire.Dashboard.Authentication;
 
 /// <summary>
 /// Mostly a copy of https://github.com/dotnet/aspnetcore/blob/e9647658dc46260cce21e980ec324565a4d39293/src/Security/Authorization/Policy/src/PolicyEvaluator.cs
-/// Type has been updated to support an auth scheme requesting that challenge is suppressed.
+/// The logic has been updated to support an auth scheme requesting that challenge is suppressed.
 /// Used to avoid challenging to authenticate when rejecting requests sent on the wrong endpoint connection.
 /// </summary>
 public class AspirePolicyEvaluator : IPolicyEvaluator
