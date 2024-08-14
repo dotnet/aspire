@@ -1,12 +1,14 @@
 ﻿@using Aspire.Dashboard.Model
-@using Aspire.Dashboard.Extensions
 @using Aspire.Dashboard.Resources
+
 @inject IStringLocalizer<Columns> Loc
+@inject IStringLocalizer<Resources> ResourcesLoc
 
 @if (ContentAfterValue is not null)
 {
     <GridValue Value="@Value"
                ValueToCopy="@ValueToCopy"
+               ValueDescription="@ResourcesLoc[nameof(Resources.ResourcesSourceColumnHeader)]"
                EnableHighlighting="true"
                HighlightText="@FilterText"
                PreCopyToolTip="@Loc[nameof(Columns.SourceColumnDisplayCopyCommandToClipboard)]"
@@ -20,6 +22,7 @@ else
 {
     <GridValue Value="@Value"
                ValueToCopy="@ValueToCopy"
+               ValueDescription="@ResourcesLoc[nameof(Resources.ResourcesSourceColumnHeader)]"
                EnableHighlighting="true"
                HighlightText="@FilterText"
                PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyFullPathToClipboard)]"

@@ -40,7 +40,7 @@ public class MilvusServerResource : ContainerResource, IResourceWithConnectionSt
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
        ReferenceExpression.Create(
-            $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Url)};Key={ApiKeyParameter}");
+            $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Url)};Key=root:{ApiKeyParameter}");
 
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
 
