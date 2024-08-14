@@ -15,5 +15,4 @@ public static class EnvironmentVariables
     public static readonly bool    TestsRunningOutsideOfRepo     = Environment.GetEnvironmentVariable("TestsRunningOutsideOfRepo") is "true";
     public static readonly string  BuildConfiguration        = Environment.GetEnvironmentVariable("BUILD_CONFIGURATION") ?? "Debug";
     public static readonly string? TestScenario              = Environment.GetEnvironmentVariable("TEST_SCENARIO");
-    public static readonly string? BrowserPath               = Environment.GetEnvironmentVariable(PlaywrightProvider.BrowserPathEnvironmentVariableName);
 }

@@ -270,7 +270,7 @@ Aspire.Oracle.EntityFrameworkCore:
   - "Microsoft.EntityFrameworkCore.Query"
   - "Microsoft.EntityFrameworkCore.Update"
 - Activity source names:
-  - none (currently not supported by Oracle.EntityFrameworkCore library)
+  - "Oracle.ManagedDataAccess.Core"
 - Metric names:
   - none
 

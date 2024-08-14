@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +15,8 @@ namespace Aspire.Hosting.Valkey.Tests;
 
 public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
 {
+    const string ValkeyReadyText = "Ready to accept connections";
+
     [Fact]
     [RequiresDocker]
     public async Task VerifyValkeyResource()
@@ -38,6 +41,8 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
         using var host = hb.Build();
 
         await host.StartAsync();
+
+        await app.WaitForTextAsync(ValkeyReadyText);
 
         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -98,6 +103,8 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
+                        await app.WaitForTextAsync(ValkeyReadyText);
+
                         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
                         var db = redisClient.GetDatabase();
@@ -146,6 +153,8 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
+
+                        await app.WaitForTextAsync(ValkeyReadyText);
 
                         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
