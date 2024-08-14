@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
-using Amazon;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
@@ -130,28 +129,6 @@ public class SchemaTests
                         builder.AddExecutable("executable", "hellworld", "foo", "arg1", "arg2");
                     }
                 },
-
-                { "AwsStack", (IDistributedApplicationBuilder builder) =>
-                    {
-                        var awsSdkConfig = builder.AddAWSSDKConfig()
-                                                  .WithRegion(RegionEndpoint.USWest2)
-                                                  .WithProfile("test-profile");
-
-                        builder.AddAWSCloudFormationStack("ExistingStack")
-                               .WithReference(awsSdkConfig);
-                    }
-                },
-
-                { "AwsTemplate", (IDistributedApplicationBuilder builder) =>
-                    {
-                        var awsSdkConfig = builder.AddAWSSDKConfig()
-                                                  .WithRegion(RegionEndpoint.USWest2)
-                                                  .WithProfile("test-profile");
-
-                        builder.AddAWSCloudFormationTemplate("TemplateStack", "nonexistenttemplate")
-                               .WithReference(awsSdkConfig);
-                    }
-                }
             };
 
             return data;

@@ -579,6 +579,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BrowserTelemetry.Web", "pla
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Dapr.Tests", "tests\Aspire.Hosting.Dapr.Tests\Aspire.Hosting.Dapr.Tests.csproj", "{C60C5CFA-5B6D-4432-BFCD-54D1BEEC7DBE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.AWS.Tests", "tests\Aspire.Hosting.AWS.Tests\Aspire.Hosting.AWS.Tests.csproj", "{6F71BC73-B703-4E64-98E0-801781302E7A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1525,6 +1527,10 @@ Global
 		{C60C5CFA-5B6D-4432-BFCD-54D1BEEC7DBE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C60C5CFA-5B6D-4432-BFCD-54D1BEEC7DBE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C60C5CFA-5B6D-4432-BFCD-54D1BEEC7DBE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F71BC73-B703-4E64-98E0-801781302E7A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F71BC73-B703-4E64-98E0-801781302E7A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F71BC73-B703-4E64-98E0-801781302E7A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F71BC73-B703-4E64-98E0-801781302E7A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1804,6 +1810,7 @@ Global
 		{29946391-F2E9-4DEA-92A2-6FAAC1508446} = {15966C27-17FA-4A46-A172-55985411540A}
 		{091EA540-355B-4763-9980-5F83F0BB6F11} = {15966C27-17FA-4A46-A172-55985411540A}
 		{C60C5CFA-5B6D-4432-BFCD-54D1BEEC7DBE} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
+		{6F71BC73-B703-4E64-98E0-801781302E7A} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

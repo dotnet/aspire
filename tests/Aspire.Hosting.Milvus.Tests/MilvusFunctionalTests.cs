@@ -16,9 +16,6 @@ namespace Aspire.Hosting.Milvus.Tests;
 
 public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
 {
-    // Right now can not set user and password for super user of Milvus at startup. default user and password is root:Milvus.
-    // https://github.com/milvus-io/milvus/issues/33058
-    private const string MilvusToken = "root:Milvus";
     private const string CollectionName = "book";
 
     [Fact]
@@ -32,9 +29,7 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
-        builder.Configuration["Parameters:apikey"] = MilvusToken;
-        var apiKey = builder.AddParameter("apikey");
-        var milvus = builder.AddMilvus("milvus", apiKey: apiKey);
+        var milvus = builder.AddMilvus("milvus");
         var db = milvus.AddDatabase("milvusdb", "db1");
 
         using var app = builder.Build();
@@ -100,9 +95,9 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
         try
         {
             using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-            builder1.Configuration["Parameters:apikey"] = MilvusToken;
-            var apiKey1 = builder1.AddParameter("apikey");
-            var milvus1 = builder1.AddMilvus("milvus1", apiKey1);
+            var milvus1 = builder1.AddMilvus("milvus1");
+            var password = milvus1.Resource.ApiKeyParameter.Value;
+
             var db1 = milvus1.AddDatabase("milvusdb1", dbname);
 
             if (useVolume)
@@ -159,9 +154,10 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-            builder2.Configuration["Parameters:apikey"] = MilvusToken;
-            var apiKey2 = builder2.AddParameter("apikey");
-            var milvus2 = builder2.AddMilvus("milvus2", apiKey2);
+            var passwordParameter = builder2.AddParameter("pwd");
+            builder2.Configuration["Parameters:pwd"] = password;
+
+            var milvus2 = builder2.AddMilvus("milvus2", passwordParameter);
             var db2 = milvus2.AddDatabase("milvusdb2", dbname);
 
             if (useVolume)

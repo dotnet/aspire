@@ -146,6 +146,9 @@ public class AppHostTests
                     new ("cosmos", "Started$"),
                     new ("api", "Application started")
                 ]),
+            new TestEndpoints("Keycloak.AppHost",
+                resourceEndpoints: new() { { "apiservice", ["/alive", "/health"] } }),
+
             // Issue: https://github.com/dotnet/aspire/issues/5274
             //new TestEndpoints("Mongo.AppHost",
                 //resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
