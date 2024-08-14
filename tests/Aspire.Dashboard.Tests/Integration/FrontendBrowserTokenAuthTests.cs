@@ -4,6 +4,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Web;
+using Aspire.Dashboard.Authentication;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting;
@@ -72,6 +73,32 @@ public class FrontendBrowserTokenAuthTests
         // Assert 2
         Assert.Equal(HttpStatusCode.OK, response2.StatusCode);
         Assert.Equal(DashboardUrls.StructuredLogsUrl(), response2.RequestMessage!.RequestUri!.PathAndQuery);
+    }
+
+    [Fact]
+    public async Task Get_LoginPage_ValidToken_OtlpHttpConnection_Denied()
+    {
+        // Arrange
+        var testSink = new TestSink();
+
+        var apiKey = "TestKey123!";
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
+        {
+            config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = FrontendAuthMode.BrowserToken.ToString();
+            config[DashboardConfigNames.DashboardFrontendBrowserTokenName.ConfigKey] = apiKey;
+        }, testSink: testSink);
+        await app.StartAsync();
+
+        using var client = new HttpClient { BaseAddress = new Uri($"http://{app.OtlpServiceHttpEndPointAccessor().EndPoint}") };
+
+        // Act
+        var response = await client.GetAsync(DashboardUrls.LoginUrl(returnUrl: DashboardUrls.TracesUrl(), token: apiKey));
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        var log = testSink.Writes.Single(s => s.LoggerName == typeof(FrontendCompositeAuthenticationHandler).FullName && s.EventId.Name == "AuthenticationSchemeNotAuthenticatedWithFailure");
+        Assert.Equal("FrontendComposite was not authenticated. Failure message: Connection type Frontend is not enabled on this connection.", log.Message);
     }
 
     [Fact]
