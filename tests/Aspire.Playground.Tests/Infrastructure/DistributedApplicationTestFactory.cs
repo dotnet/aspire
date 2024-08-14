@@ -62,7 +62,11 @@ internal static class DistributedApplicationTestFactory
 
             foreach (var resourceWithContainerImage in resourcesWithContainerImages)
             {
-                resourceWithContainerImage.Annotation.Registry = AspireTestContainerRegistry;
+                string? registry = resourceWithContainerImage.Annotation.Registry;
+                if (registry is null || registry.Contains("docker.io"))
+                {
+                    resourceWithContainerImage.Annotation.Registry = AspireTestContainerRegistry;
+                }
             }
 
             return Task.CompletedTask;
