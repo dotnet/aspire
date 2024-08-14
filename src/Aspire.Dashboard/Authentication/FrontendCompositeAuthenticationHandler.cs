@@ -56,7 +56,7 @@ public sealed class FrontendCompositeAuthenticationHandler(
             FrontendAuthMode.OpenIdConnect => FrontendAuthenticationDefaults.AuthenticationSchemeOpenIdConnect,
             FrontendAuthMode.BrowserToken => FrontendAuthenticationDefaults.AuthenticationSchemeBrowserToken,
             _ => null
-        }
+        };
     }
 }
 
