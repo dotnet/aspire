@@ -22,6 +22,10 @@ public static class NodeAppHostingExtension
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<NodeAppResource> AddNodeApp(this IDistributedApplicationBuilder builder, string name, string scriptPath, string? workingDirectory = null, string[]? args = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(scriptPath);
+
         args ??= [];
         string[] effectiveArgs = [scriptPath, .. args];
         workingDirectory ??= Path.GetDirectoryName(scriptPath)!;
@@ -45,6 +49,12 @@ public static class NodeAppHostingExtension
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<NodeAppResource> AddNpmApp(this IDistributedApplicationBuilder builder, string name, string workingDirectory, string scriptName = "start", string[]? args = null)
     {
+
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(workingDirectory);
+        ArgumentNullException.ThrowIfNull(scriptName);
+
         string[] allArgs = args is { Length: > 0 }
             ? ["run", scriptName, "--", .. args]
             : ["run", scriptName];
