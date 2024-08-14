@@ -18,6 +18,8 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
 
+#pragma warning disable ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 /// <summary>
 /// A builder for creating instances of <see cref="DistributedApplication"/>.
 /// </summary>
@@ -68,9 +70,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     public IResourceCollection Resources { get; } = new ResourceCollection();
 
     /// <inheritdoc />
-#pragma warning disable ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     public IDistributedApplicationEventing Eventing { get; } = new DistributedApplicationEventing();
-#pragma warning restore ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
@@ -236,23 +236,34 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddLifecycleHook<Http2TransportMutationHook>();
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>("manifest");
 
-#pragma warning disable ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         Eventing.Subscribe<BeforeStartEvent>(ExcludeDashboardFromManifestAsync);
-#pragma warning restore ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         // Overwrite registry if override specified in options
         if (!string.IsNullOrEmpty(options.ContainerRegistryOverride))
         {
-            _innerBuilder.Services.AddLifecycleHook<ContainerRegistryHook>();
+            Eventing.Subscribe<BeforeStartEvent>((e, ct) => UpdateContainerRegistryAsync(options));
         }
 
         _innerBuilder.Services.AddSingleton(ExecutionContext);
         LogBuilderConstructed(this);
     }
 
-#pragma warning disable ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    private Task UpdateContainerRegistryAsync(DistributedApplicationOptions options)
+    {
+        var resourcesWithContainerImages = Resources.SelectMany(
+            r => r.Annotations.OfType<ContainerImageAnnotation>()
+                              .Select(cia => new { Resource = r, Annotation = cia })
+            );
+
+        foreach (var resourceWithContainerImage in resourcesWithContainerImages)
+        {
+            resourceWithContainerImage.Annotation.Registry = options.ContainerRegistryOverride;
+        }
+
+        return Task.CompletedTask;
+    }
+
     private Task ExcludeDashboardFromManifestAsync(BeforeStartEvent beforeStartEvent, CancellationToken cancellationToken)
-#pragma warning restore ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     {
         // When developing locally, exclude the dashboard from the manifest. This only affects our playground projects in practice.
         if (Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is { } dashboardResource)
