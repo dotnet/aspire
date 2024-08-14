@@ -13,7 +13,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using SamplesIntegrationTests.Infrastructure;
-using Xunit;
+using Xunit.Sdk;
 
 namespace SamplesIntegrationTests.Infrastructure;
 
@@ -134,8 +134,8 @@ public static partial class DistributedApplicationExtensions
 
         var (appHostlogs, resourceLogs) = app.GetLogs();
 
-        Assert.DoesNotContain(appHostlogs, log => log.Level >= LogLevel.Error);
-        Assert.DoesNotContain(resourceLogs, log => log.Category is { Length: > 0 } category && assertableResourceLogNames.Contains(category) && log.Level >= LogLevel.Error);
+        AssertDoesNotContain(appHostlogs, log => log.Level >= LogLevel.Error);
+        AssertDoesNotContain(resourceLogs, log => log.Category is { Length: > 0 } category && assertableResourceLogNames.Contains(category) && log.Level >= LogLevel.Error);
 
         static bool ShouldAssertErrorsForResource(IResource resource)
         {
@@ -147,6 +147,17 @@ public static partial class DistributedApplicationExtensions
                     and not NodeAppResource
                 // Dapr resources write to stderr about deprecated --components-path flag
                 && !resource.Name.EndsWith("-dapr-cli");
+        }
+
+        static void AssertDoesNotContain(IReadOnlyList<FakeLogRecord> logs, Func<FakeLogRecord, bool> predicate)
+        {
+            foreach (var log in logs)
+            {
+                if (predicate(log))
+                {
+                    throw new XunitException($"Unexpected error: {log}");
+                }
+            }
         }
     }
 
