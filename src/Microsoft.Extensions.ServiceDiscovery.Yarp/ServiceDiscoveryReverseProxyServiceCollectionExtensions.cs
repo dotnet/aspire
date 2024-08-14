@@ -17,6 +17,8 @@ public static class ServiceDiscoveryReverseProxyServiceCollectionExtensions
     /// </summary>
     public static IReverseProxyBuilder AddServiceDiscoveryDestinationResolver(this IReverseProxyBuilder builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.Services.AddServiceDiscoveryCore();
         builder.Services.AddSingleton<IDestinationResolver, ServiceDiscoveryDestinationResolver>();
         return builder;
@@ -27,6 +29,8 @@ public static class ServiceDiscoveryReverseProxyServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddHttpForwarderWithServiceDiscovery(this IServiceCollection services)
     {
+        ArgumentNullException.ThrowIfNull(services);
+
         return services.AddHttpForwarder().AddServiceDiscoveryForwarderFactory();
     }
 
@@ -35,6 +39,8 @@ public static class ServiceDiscoveryReverseProxyServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddServiceDiscoveryForwarderFactory(this IServiceCollection services)
     {
+        ArgumentNullException.ThrowIfNull(services);
+
         services.AddServiceDiscoveryCore();
         services.AddSingleton<IForwarderHttpClientFactory, ServiceDiscoveryForwarderHttpClientFactory>();
         return services;
