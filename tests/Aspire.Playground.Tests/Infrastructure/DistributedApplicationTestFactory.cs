@@ -26,7 +26,9 @@ internal static class DistributedApplicationTestFactory
             ?? throw new InvalidOperationException("Generated AppHost type not found.");
 
         var builder = await DistributedApplicationTestingBuilder.CreateAsync(appHostType);
-        // TODO: this can be removed if https://github.com/dotnet/aspire/issues/5285 gets resolved
+        // Custom hook needed because we want to only override the registry when
+        // the original is from `docker.io`, but the options.ContainerRegistryOverride will
+        // always override.
         builder.Services.AddLifecycleHook<ContainerRegistryHook>();
 
         builder.WithRandomParameterValues();
