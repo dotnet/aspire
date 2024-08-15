@@ -130,10 +130,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-                    {
-                        [$"ConnectionStrings:{db1.Resource.Name}"] = await db1.Resource.ConnectionStringExpression.GetValueAsync(default)
-                    });
+                    hb.Configuration[$"ConnectionStrings:{db1.Resource.Name}"] = await db1.Resource.ConnectionStringExpression.GetValueAsync(default);
 
                     hb.AddOracleDatabaseDbContext<TestDbContext>(db1.Resource.Name);
 
