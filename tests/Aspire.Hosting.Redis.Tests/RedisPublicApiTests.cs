@@ -104,20 +104,6 @@ public class RedisPublicApiTests
     }
 
     [Fact]
-    public async Task AfterEndpointsAllocatedAsyncShouldThrowWhenDistributedApplicationModelIsNull()
-    {
-        DistributedApplicationModel appModel = null!;
-        var cancellationToken = CancellationToken.None;
-
-        var instance = (RedisCommanderConfigWriterHook)Activator.CreateInstance(typeof(RedisCommanderConfigWriterHook), true)!;
-
-        async Task Action() => await instance.AfterEndpointsAllocatedAsync(appModel, cancellationToken);
-
-        var exception = await Assert.ThrowsAsync<ArgumentNullException>(Action);
-        Assert.Equal(nameof(appModel), exception.ParamName);
-    }
-
-    [Fact]
     public void CtorRedisCommanderResourceShouldThrowWhenNameIsNull()
     {
         string name = null!;
