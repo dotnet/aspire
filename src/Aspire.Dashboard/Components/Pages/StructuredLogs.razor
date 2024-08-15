@@ -29,7 +29,8 @@
             <ResourceSelect Resources="_applicationViewModels"
                             AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
                             @bind-SelectedResource="PageViewModel.SelectedApplication"
-                            @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync" />
+                            @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync"
+                            CanSelectGrouping="true" />
             <FluentSearch @bind-Value="_filter"
                           @oninput="HandleFilter"
                           @bind-Value:after="HandleAfterFilterBindAsync"
