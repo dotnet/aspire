@@ -60,7 +60,7 @@ public class DocumentsPublicApiTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void AddKeyedAzureSearchClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
+    public void AddKeyedAzureSearchClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         IHostApplicationBuilder builder = new HostApplicationBuilder();
         var name = isNull ? null! : string.Empty;
