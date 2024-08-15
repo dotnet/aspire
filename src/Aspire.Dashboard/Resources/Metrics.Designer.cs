@@ -147,9 +147,9 @@ namespace Aspire.Dashboard.Resources {
             }
         }
         
-        public static string MetricsSelectorMobileToolbarLabel {
+        public static string MetricsViewAttributesToolbar {
             get {
-                return ResourceManager.GetString("MetricsSelectorMobileToolbarLabel", resourceCulture);
+                return ResourceManager.GetString("MetricsViewAttributesToolbar", resourceCulture);
             }
         }
     }

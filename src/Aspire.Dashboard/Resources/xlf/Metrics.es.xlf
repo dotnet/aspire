@@ -87,9 +87,9 @@
         <target state="translated">Seleccione el instrumento.</target>
         <note />
       </trans-unit>
-      <trans-unit id="MetricsSelectorMobileToolbarLabel">
-        <source>Metric</source>
-        <target state="new">Metric</target>
+      <trans-unit id="MetricsViewAttributesToolbar">
+        <source>View attributes</source>
+        <target state="new">View attributes</target>
         <note />
       </trans-unit>
     </body>
