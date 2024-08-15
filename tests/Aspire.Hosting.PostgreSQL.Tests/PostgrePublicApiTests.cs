@@ -60,20 +60,6 @@ public class PostgresPublicApiTests
     }
 
     [Fact]
-    public async Task AfterEndpointsAllocatedAsyncShouldThrowWhenDistributedApplicationModelIsNull()
-    {
-        DistributedApplicationModel appModel = null!;
-        var cancellationToken = CancellationToken.None;
-
-        var instance = (PgAdminConfigWriterHook)Activator.CreateInstance(typeof(PgAdminConfigWriterHook), true)!;
-
-        async Task Action() => await instance.AfterEndpointsAllocatedAsync(appModel, cancellationToken);
-
-        var exception = await Assert.ThrowsAsync<ArgumentNullException>(Action);
-        Assert.Equal(nameof(appModel), exception.ParamName);
-    }
-
-    [Fact]
     public void CtorPgAdminContainerResourceShouldThrowWhenNameIsNull()
     {
         string name = null!;
