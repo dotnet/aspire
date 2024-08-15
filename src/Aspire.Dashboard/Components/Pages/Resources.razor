@@ -3,6 +3,7 @@
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using System.Globalization
+@using Aspire.Dashboard.Model
 @using Humanizer
 @inject IStringLocalizer<Dashboard.Resources.Resources> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
@@ -79,7 +80,10 @@
                                     GridTemplateColumns="@GetGridTemplateColumns()"
                                     RowClass="GetRowClass"
                                     Loading="_isLoading"
-                                    ShowHover="true">
+                                    ShowHover="true"
+                                    TGridItem="ResourceViewModel"
+                                    OnRowClick="@(r => r.ExecuteOnDefault(d => ShowResourceDetailsAsync(d, buttonId: null)))"
+                                    Class="enable-row-click">
                         <ChildContent>
                             <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeColumnHeader)]" Property="@(c => c.ResourceType)" Sortable="true" Tooltip="true" TooltipText="@(c => c.ResourceType)" />
                             <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort" Tooltip="true" TooltipText="@(c => GetResourceName(c))">

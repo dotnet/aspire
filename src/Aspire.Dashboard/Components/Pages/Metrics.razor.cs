@@ -169,8 +169,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             }
         }
 
-        // On mobile, we actually *do* want to update this immediately, since it will affect the tree of possible
-        // metrics to select from. This will immediately close the window but that behavior is not changeable
+        // On mobile, we actually *do* want to update the selected application immediately, since it will affect the tree of possible
+        // metrics to select from. So, we must also immediately close the window since the closing behavior is necessary if the url has changed.
         var isChangeInToolbar = ViewportInformation.IsDesktop;
         return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: isChangeInToolbar);
     }

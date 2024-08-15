@@ -31,7 +31,16 @@
         </ToolbarSection>
         <MainSection>
             <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
-                <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpTrace" GridTemplateColumns="@GetGridTemplateColumns()" ShowHover="true">
+                <FluentDataGrid Virtualize="true"
+                                GenerateHeader="GenerateHeaderOption.Sticky"
+                                ItemSize="46"
+                                ResizableColumns="true"
+                                ItemsProvider="@GetData"
+                                TGridItem="OtlpTrace"
+                                GridTemplateColumns="@GetGridTemplateColumns()"
+                                ShowHover="true"
+                                OnRowClick="@(r => r.ExecuteOnDefault(d => NavigationManager.NavigateTo(DashboardUrls.TraceDetailUrl(d.TraceId))))"
+                                Class="enable-row-click">
                     <ChildContent>
                         <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
                             @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Truncated)
