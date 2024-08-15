@@ -127,7 +127,10 @@ public class KafkaPublicApiTests
         IHostApplicationBuilder builder = null!;
         const string connectionName = "Kafka:Consumer";
 
-        var action = () => builder.AddKafkaConsumer<string, string>(connectionName, default(Action<KafkaConsumerSettings>?), default(Action<ConsumerBuilder<string, string>>?));
+        var action = () => builder.AddKafkaConsumer<string, string>(
+            connectionName,
+            default(Action<KafkaConsumerSettings>?),
+            default(Action<ConsumerBuilder<string, string>>?));
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -141,7 +144,10 @@ public class KafkaPublicApiTests
         IHostApplicationBuilder builder = new HostApplicationBuilder();
         var connectionName = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddKafkaConsumer<string, string>(connectionName, default(Action<KafkaConsumerSettings>?), default(Action<ConsumerBuilder<string, string>>?));
+        var action = () => builder.AddKafkaConsumer<string, string>(
+            connectionName,
+            default(Action<KafkaConsumerSettings>?),
+            default(Action<ConsumerBuilder<string, string>>?));
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -155,7 +161,10 @@ public class KafkaPublicApiTests
         IHostApplicationBuilder builder = null!;
         const string connectionName = "Kafka:Consumer";
 
-        var action = () => builder.AddKafkaConsumer<string, string>(connectionName, default(Action<KafkaConsumerSettings>?), default(Action<IServiceProvider, ConsumerBuilder<string, string>>?));
+        var action = () => builder.AddKafkaConsumer<string, string>(
+            connectionName,
+            default(Action<KafkaConsumerSettings>?),
+            default(Action<IServiceProvider, ConsumerBuilder<string, string>>?));
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -169,7 +178,10 @@ public class KafkaPublicApiTests
         IHostApplicationBuilder builder = new HostApplicationBuilder();
         var connectionName = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddKafkaConsumer<string, string>(connectionName, default(Action<KafkaConsumerSettings>?), default(Action<IServiceProvider, ConsumerBuilder<string, string>>?));
+        var action = () => builder.AddKafkaConsumer<string, string>(
+            connectionName,
+            default(Action<KafkaConsumerSettings>?),
+            default(Action<IServiceProvider, ConsumerBuilder<string, string>>?));
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -295,7 +307,10 @@ public class KafkaPublicApiTests
         IHostApplicationBuilder builder = null!;
         const string name = "Kafka:Consumer";
 
-        var action = () => builder.AddKafkaConsumer<string, string>(name, default(Action<KafkaConsumerSettings>?), default(Action<ConsumerBuilder<string, string>>?));
+        var action = () => builder.AddKafkaConsumer<string, string>(
+            name,
+            default(Action<KafkaConsumerSettings>?),
+            default(Action<ConsumerBuilder<string, string>>?));
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -309,7 +324,10 @@ public class KafkaPublicApiTests
         IHostApplicationBuilder builder = new HostApplicationBuilder();
         var name = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddKeyedKafkaConsumer<string, string>(name, default(Action<KafkaConsumerSettings>?), default(Action<ConsumerBuilder<string, string>>?));
+        var action = () => builder.AddKeyedKafkaConsumer<string, string>(
+            name,
+            default(Action<KafkaConsumerSettings>?),
+            default(Action<ConsumerBuilder<string, string>>?));
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -323,7 +341,10 @@ public class KafkaPublicApiTests
         IHostApplicationBuilder builder = null!;
         const string name = "Kafka:Consumer";
 
-        var action = () => builder.AddKafkaConsumer<string, string>(name, default(Action<KafkaConsumerSettings>?), default(Action<IServiceProvider, ConsumerBuilder<string, string>>?));
+        var action = () => builder.AddKafkaConsumer<string, string>(
+            name,
+            default(Action<KafkaConsumerSettings>?),
+            default(Action<IServiceProvider, ConsumerBuilder<string, string>>?));
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -337,7 +358,10 @@ public class KafkaPublicApiTests
         IHostApplicationBuilder builder = new HostApplicationBuilder();
         var name = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddKeyedKafkaConsumer<string, string>(name, default(Action<KafkaConsumerSettings>?), default(Action<IServiceProvider, ConsumerBuilder<string, string>>?));
+        var action = () => builder.AddKeyedKafkaConsumer<string, string>(
+            name,
+            default(Action<KafkaConsumerSettings>?),
+            default(Action<IServiceProvider, ConsumerBuilder<string, string>>?));
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -463,7 +487,10 @@ public class KafkaPublicApiTests
         IHostApplicationBuilder builder = null!;
         const string connectionName = "Kafka:Producer";
 
-        var action = () => builder.AddKafkaProducer<string, string>(connectionName, default(Action<KafkaProducerSettings>?), default(Action<ProducerBuilder<string, string>>?));
+        var action = () => builder.AddKafkaProducer<string, string>(
+            connectionName,
+            default(Action<KafkaProducerSettings>?),
+            default(Action<ProducerBuilder<string, string>>?));
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -477,7 +504,10 @@ public class KafkaPublicApiTests
         IHostApplicationBuilder builder = new HostApplicationBuilder();
         var connectionName = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddKafkaProducer<string, string>(connectionName, default(Action<KafkaProducerSettings>?), default(Action<ProducerBuilder<string, string>>?));
+        var action = () => builder.AddKafkaProducer<string, string>(
+            connectionName,
+            default(Action<KafkaProducerSettings>?),
+            default(Action<ProducerBuilder<string, string>>?));
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -491,7 +521,10 @@ public class KafkaPublicApiTests
         IHostApplicationBuilder builder = null!;
         const string connectionName = "Kafka:Producer";
 
-        var action = () => builder.AddKafkaProducer<string, string>(connectionName, default(Action<KafkaProducerSettings>?), default(Action<IServiceProvider, ProducerBuilder<string, string>>?));
+        var action = () => builder.AddKafkaProducer<string, string>(
+            connectionName,
+            default(Action<KafkaProducerSettings>?),
+            default(Action<IServiceProvider, ProducerBuilder<string, string>>?));
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -505,7 +538,10 @@ public class KafkaPublicApiTests
         IHostApplicationBuilder builder = new HostApplicationBuilder();
         var connectionName = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddKafkaProducer<string, string>(connectionName, default(Action<KafkaProducerSettings>?), default(Action<IServiceProvider, ProducerBuilder<string, string>>?));
+        var action = () => builder.AddKafkaProducer<string, string>(
+            connectionName,
+            default(Action<KafkaProducerSettings>?),
+            default(Action<IServiceProvider, ProducerBuilder<string, string>>?));
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -617,7 +653,9 @@ public class KafkaPublicApiTests
         IHostApplicationBuilder builder = new HostApplicationBuilder();
         var name = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddKeyedKafkaProducer<string, string>(name, default(Action<IServiceProvider, ProducerBuilder<string, string>>?));
+        var action = () => builder.AddKeyedKafkaProducer<string, string>(
+            name,
+            default(Action<IServiceProvider, ProducerBuilder<string, string>>?));
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -631,7 +669,10 @@ public class KafkaPublicApiTests
         IHostApplicationBuilder builder = null!;
         const string name = "Kafka:Producer";
 
-        var action = () => builder.AddKafkaProducer<string, string>(name, default(Action<KafkaProducerSettings>?), default(Action<ProducerBuilder<string, string>>?));
+        var action = () => builder.AddKafkaProducer<string, string>(
+            name,
+            default(Action<KafkaProducerSettings>?),
+            default(Action<ProducerBuilder<string, string>>?));
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -645,7 +686,10 @@ public class KafkaPublicApiTests
         IHostApplicationBuilder builder = new HostApplicationBuilder();
         var name = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddKeyedKafkaProducer<string, string>(name, default(Action<KafkaProducerSettings>?), default(Action<ProducerBuilder<string, string>>?));
+        var action = () => builder.AddKeyedKafkaProducer<string, string>(
+            name,
+            default(Action<KafkaProducerSettings>?),
+            default(Action<ProducerBuilder<string, string>>?));
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -659,7 +703,10 @@ public class KafkaPublicApiTests
         IHostApplicationBuilder builder = null!;
         const string name = "Kafka:Producer";
 
-        var action = () => builder.AddKafkaProducer<string, string>(name, default(Action<KafkaProducerSettings>?), default(Action<IServiceProvider, ProducerBuilder<string, string>>?));
+        var action = () => builder.AddKafkaProducer<string, string>(
+            name,
+            default(Action<KafkaProducerSettings>?),
+            default(Action<IServiceProvider, ProducerBuilder<string, string>>?));
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -673,7 +720,10 @@ public class KafkaPublicApiTests
         IHostApplicationBuilder builder = new HostApplicationBuilder();
         var name = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddKeyedKafkaProducer<string, string>(name, default(Action<KafkaProducerSettings>?), default(Action<IServiceProvider, ProducerBuilder<string, string>>?));
+        var action = () => builder.AddKeyedKafkaProducer<string, string>(
+            name,
+            default(Action<KafkaProducerSettings>?),
+            default(Action<IServiceProvider, ProducerBuilder<string, string>>?));
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
