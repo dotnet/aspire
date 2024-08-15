@@ -108,6 +108,8 @@ public static class OtlpHelpers
 
     private static JsonNode? ConvertAnyValue(AnyValue value)
     {
+        // Recursively convert AnyValue types to JsonNode types to produce more idiomatic JSON.
+        // Recursing over incoming values is safe because Protobuf serializer imposes a safe limit on recursive messages.
         return value.ValueCase switch
         {
             AnyValue.ValueOneofCase.StringValue => JsonValue.Create(value.StringValue),
