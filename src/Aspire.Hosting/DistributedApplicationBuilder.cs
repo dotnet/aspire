@@ -18,8 +18,6 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
 
-#pragma warning disable ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
 /// <summary>
 /// A builder for creating instances of <see cref="DistributedApplication"/>.
 /// </summary>

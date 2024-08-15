@@ -88,7 +88,6 @@ public static class MySqlBuilderExtensions
                                                 .WithBindMount(configurationTempFileName, "/etc/phpmyadmin/config.user.inc.php")
                                                 .ExcludeFromManifest();
 
-#pragma warning disable ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
         {
             var mySqlInstances = builder.ApplicationBuilder.Resources.OfType<MySqlServerResource>();
@@ -143,7 +142,6 @@ public static class MySqlBuilderExtensions
 
             return Task.CompletedTask;
         });
-#pragma warning restore ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         configureContainer?.Invoke(phpMyAdminContainerBuilder);
 

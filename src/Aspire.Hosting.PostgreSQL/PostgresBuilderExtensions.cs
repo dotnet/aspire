@@ -101,7 +101,6 @@ public static class PostgresBuilderExtensions
                                                  .WithBindMount(Path.GetTempFileName(), "/pgadmin4/servers.json")
                                                  .ExcludeFromManifest();
 
-#pragma warning disable ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
             {
                 var serverFileMount = pgAdminContainer.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == "/pgadmin4/servers.json");
@@ -148,7 +147,6 @@ public static class PostgresBuilderExtensions
 
                 return Task.CompletedTask;
             });
-#pragma warning restore ASPIREEVENTING001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
             configureContainer?.Invoke(pgAdminContainerBuilder);
 
