@@ -13,7 +13,7 @@ namespace Aspire.Dashboard.Components;
 
 public partial class ChartContainer : ComponentBase, IAsyncDisposable
 {
-    private OtlpInstrument? _instrument;
+    private OtlpInstrumentData? _instrument;
     private PeriodicTimer? _tickTimer;
     private Task? _tickTask;
     private IDisposable? _themeChangedSubscription;
@@ -103,12 +103,12 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         await UpdateInstrumentDataAsync(_instrument);
     }
 
-    private async Task UpdateInstrumentDataAsync(OtlpInstrument instrument)
+    private async Task UpdateInstrumentDataAsync(OtlpInstrumentData instrument)
     {
-        var matchedDimensions = instrument.Dimensions.Values.Where(MatchDimension).ToList();
+        var matchedDimensions = instrument.Dimensions.Where(MatchDimension).ToList();
 
         // Only update data in plotly
-        await _instrumentViewModel.UpdateDataAsync(instrument, matchedDimensions);
+        await _instrumentViewModel.UpdateDataAsync(instrument.Summary, matchedDimensions);
     }
 
     private bool MatchDimension(DimensionScope dimension)
@@ -168,7 +168,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         await UpdateInstrumentDataAsync(_instrument);
     }
 
-    private OtlpInstrument? GetInstrument()
+    private OtlpInstrumentData? GetInstrument()
     {
         var endDate = DateTime.UtcNow;
         // Get more data than is being displayed. Histogram graph uses some historical data to calculate bucket counts.
