@@ -4,3 +4,4 @@ Aspire.Hosting.Postgres.PgWebContainerResource.PgWebContainerResource(string! na
 Aspire.Hosting.Postgres.PgWebContainerResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
 static Aspire.Hosting.PostgresBuilderExtensions.WithHostPort(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Postgres.PgWebContainerResource!>! builder, int? port) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Postgres.PgWebContainerResource!>!
 static Aspire.Hosting.PostgresBuilderExtensions.WithPgWeb(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.PostgresServerResource!>! builder, System.Action<Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Postgres.PgWebContainerResource!>!>? configureContainer = null, string? containerName = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.PostgresServerResource!>!
+

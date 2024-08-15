@@ -6,7 +6,8 @@ using Aspire.Hosting.AWS.CloudFormation;
 using Aspire.Hosting.Utils;
 using Xunit;
 
-namespace Aspire.Hosting.Tests.AWS;
+namespace Aspire.Hosting.AWS.Tests;
+
 public class AWSCloudFormationResourceTests
 {
     [Fact]
@@ -62,7 +63,7 @@ public class AWSCloudFormationResourceTests
 
         var resourceBuilder = builder.AddAWSCloudFormationStack("ExistingStack");
 
-        builder.AddProject<Projects.ServiceA>("serviceA")
+        builder.AddProject<ProjectA>("projecta", o => o.ExcludeLaunchProfile = true)
                .WithReference(resourceBuilder);
 
         var resource = resourceBuilder.Resource as CloudFormationStackResource;
@@ -74,7 +75,7 @@ public class AWSCloudFormationResourceTests
           "stack-name": "ExistingStack",
           "references": [
             {
-              "target-resource": "serviceA"
+              "target-resource": "projecta"
             }
           ]
         }
@@ -91,7 +92,7 @@ public class AWSCloudFormationResourceTests
 
         var resourceBuilder = builder.AddAWSCloudFormationTemplate("NewStack", "cf.template");
 
-        builder.AddProject<Projects.ServiceA>("serviceA")
+        builder.AddProject<ProjectA>("projecta", o => o.ExcludeLaunchProfile = true)
                .WithReference(resourceBuilder);
 
         var resource = resourceBuilder.Resource as CloudFormationTemplateResource;
@@ -104,7 +105,7 @@ public class AWSCloudFormationResourceTests
           "template-path": "cf.template",
           "references": [
             {
-              "target-resource": "serviceA"
+              "target-resource": "projecta"
             }
           ]
         }
@@ -112,5 +113,10 @@ public class AWSCloudFormationResourceTests
 
         var manifest = await ManifestUtils.GetManifest(resource);
         Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    private sealed class ProjectA : IProjectMetadata
+    {
+        public string ProjectPath => "projectA";
     }
 }

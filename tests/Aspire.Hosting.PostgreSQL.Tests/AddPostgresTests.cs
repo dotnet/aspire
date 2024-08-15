@@ -443,7 +443,7 @@ public class AddPostgresTests
     [Theory]
     [InlineData("host.docker.internal")]
     [InlineData("host.containers.internal")]
-    public void WithPostgresProducesValidServersJsonFile(string containerHost)
+    public async Task WithPostgresProducesValidServersJsonFile(string containerHost)
     {
         var builder = DistributedApplication.CreateBuilder();
         var pg1 = builder.AddPostgres("mypostgres1").WithPgAdmin(pga => pga.WithHostPort(8081));
@@ -457,10 +457,8 @@ public class AddPostgresTests
         var volume = pgadmin.Annotations.OfType<ContainerMountAnnotation>().Single();
 
         using var app = builder.Build();
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var hook = new PgAdminConfigWriterHook();
-        hook.AfterEndpointsAllocatedAsync(appModel, CancellationToken.None);
+        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
         using var stream = File.OpenRead(volume.Source!);
         var document = JsonDocument.Parse(stream);
