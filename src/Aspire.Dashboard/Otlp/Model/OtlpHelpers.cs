@@ -18,6 +18,7 @@ namespace Aspire.Dashboard.Otlp.Model;
 
 public static class OtlpHelpers
 {
+    // Reduce size of JSON data by not indenting. Dashboard UI supports formatting JSON values when they're displayed.
     private static readonly JsonSerializerOptions s_jsonSerializerOptions = new JsonSerializerOptions
     {
         WriteIndented = false
