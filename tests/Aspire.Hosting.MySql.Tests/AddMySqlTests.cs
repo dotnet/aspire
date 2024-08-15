@@ -242,9 +242,7 @@ public class AddMySqlTests
         // Add fake allocated endpoints.
         mysql.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
 
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var hook = new PhpMyAdminConfigWriterHook();
-        await hook.AfterEndpointsAllocatedAsync(model, CancellationToken.None);
+        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
         var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
 
@@ -287,8 +285,7 @@ public class AddMySqlTests
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var hook = new PhpMyAdminConfigWriterHook();
-        hook.AfterEndpointsAllocatedAsync(appModel, CancellationToken.None);
+        builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
         using var stream = File.OpenRead(volume.Source!);
         var fileContents = new StreamReader(stream).ReadToEnd();

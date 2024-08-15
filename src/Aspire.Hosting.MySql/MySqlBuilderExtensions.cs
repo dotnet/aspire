@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.MySql;
 using Aspire.Hosting.Utils;
 
@@ -77,17 +76,72 @@ public static class MySqlBuilderExtensions
             return builder;
         }
 
-        builder.ApplicationBuilder.Services.TryAddLifecycleHook<PhpMyAdminConfigWriterHook>();
-
         containerName ??= $"{builder.Resource.Name}-phpmyadmin";
+
+        var configurationTempFileName = Path.GetTempFileName();
 
         var phpMyAdminContainer = new PhpMyAdminContainerResource(containerName);
         var phpMyAdminContainerBuilder = builder.ApplicationBuilder.AddResource(phpMyAdminContainer)
                                                 .WithImage("library/phpmyadmin", "5.2")
                                                 .WithImageRegistry(MySqlContainerImageTags.Registry)
                                                 .WithHttpEndpoint(targetPort: 80, name: "http")
-                                                .WithBindMount(Path.GetTempFileName(), "/etc/phpmyadmin/config.user.inc.php")
+                                                .WithBindMount(configurationTempFileName, "/etc/phpmyadmin/config.user.inc.php")
                                                 .ExcludeFromManifest();
+
+        builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+        {
+            var mySqlInstances = builder.ApplicationBuilder.Resources.OfType<MySqlServerResource>();
+
+            if (!mySqlInstances.Any())
+            {
+                // No-op if there are no MySql resources present.
+                return Task.CompletedTask;
+            }
+
+            if (mySqlInstances.Count() == 1)
+            {
+                var singleInstance = mySqlInstances.Single();
+                if (singleInstance.PrimaryEndpoint.IsAllocated)
+                {
+                    var endpoint = singleInstance.PrimaryEndpoint;
+                    phpMyAdminContainerBuilder.WithEnvironment(context =>
+                    {
+                        context.EnvironmentVariables.Add("PMA_HOST", $"{endpoint.ContainerHost}:{endpoint.Port}");
+                        context.EnvironmentVariables.Add("PMA_USER", "root");
+                        context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.PasswordParameter.Value);
+                    });
+                }
+            }
+            else
+            {
+                using var stream = new FileStream(configurationTempFileName, FileMode.Create);
+                using var writer = new StreamWriter(stream);
+
+                writer.WriteLine("<?php");
+                writer.WriteLine();
+                writer.WriteLine("$i = 0;");
+                writer.WriteLine();
+                foreach (var mySqlInstance in mySqlInstances)
+                {
+                    if (mySqlInstance.PrimaryEndpoint.IsAllocated)
+                    {
+                        var endpoint = mySqlInstance.PrimaryEndpoint;
+                        writer.WriteLine("$i++;");
+                        writer.WriteLine($"$cfg['Servers'][$i]['host'] = '{endpoint.ContainerHost}:{endpoint.Port}';");
+                        writer.WriteLine($"$cfg['Servers'][$i]['verbose'] = '{mySqlInstance.Name}';");
+                        writer.WriteLine($"$cfg['Servers'][$i]['auth_type'] = 'cookie';");
+                        writer.WriteLine($"$cfg['Servers'][$i]['user'] = 'root';");
+                        writer.WriteLine($"$cfg['Servers'][$i]['password'] = '{mySqlInstance.PasswordParameter.Value}';");
+                        writer.WriteLine($"$cfg['Servers'][$i]['AllowNoPassword'] = true;");
+                        writer.WriteLine();
+                    }
+                }
+                writer.WriteLine("$cfg['DefaultServer'] = 1;");
+                writer.WriteLine("?>");
+            }
+
+            return Task.CompletedTask;
+        });
 
         configureContainer?.Invoke(phpMyAdminContainerBuilder);
 

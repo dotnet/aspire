@@ -518,7 +518,7 @@ public abstract class ChartBase : ComponentBase, IAsyncDisposable
         return TimeProvider.GetUtcNow().Subtract(TimeSpan.FromSeconds(1)); // Compensate for delay in receiving metrics from services.
     }
 
-    private string GetDisplayedUnit(OtlpInstrument instrument)
+    private string GetDisplayedUnit(OtlpInstrumentSummary instrument)
     {
         return InstrumentUnitResolver.ResolveDisplayedUnit(instrument, titleCase: true, pluralize: true);
     }
