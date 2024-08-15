@@ -109,6 +109,8 @@ public static class AspireKafkaProducerExtensions
         string? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(configurationSectionName);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         var settings = BuildProducerSettings(builder, configurationSectionName, configureSettings, connectionName);
 
