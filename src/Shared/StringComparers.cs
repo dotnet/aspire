@@ -10,10 +10,12 @@ internal static class StringComparers
     public static StringComparer EndpointAnnotationName => StringComparer.OrdinalIgnoreCase;
     public static StringComparer ResourceType => StringComparer.Ordinal;
     public static StringComparer ResourcePropertyName => StringComparer.Ordinal;
+    public static StringComparer ResourceOwnerName => StringComparer.Ordinal;
     public static StringComparer UserTextSearch => StringComparer.CurrentCultureIgnoreCase;
     public static StringComparer EnvironmentVariableName => StringComparer.InvariantCultureIgnoreCase;
     public static StringComparer UrlPath => StringComparer.OrdinalIgnoreCase;
     public static StringComparer UrlHost => StringComparer.OrdinalIgnoreCase;
+    public static StringComparer Attribute => StringComparer.Ordinal;
 }
 
 internal static class StringComparisons
@@ -23,6 +25,8 @@ internal static class StringComparisons
     public static StringComparison EndpointAnnotationName => StringComparison.OrdinalIgnoreCase;
     public static StringComparison ResourceType => StringComparison.Ordinal;
     public static StringComparison ResourcePropertyName => StringComparison.Ordinal;
+    public static StringComparison ResourceOwnerKind => StringComparison.Ordinal;
+    public static StringComparison ResourceOwnerUid => StringComparison.Ordinal;
     public static StringComparison UserTextSearch => StringComparison.CurrentCultureIgnoreCase;
     public static StringComparison EnvironmentVariableName => StringComparison.InvariantCultureIgnoreCase;
     public static StringComparison UrlPath => StringComparison.OrdinalIgnoreCase;

@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using System.Text;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Utils;
 
@@ -98,6 +98,8 @@ public static class RedisBuilderExtensions
         int? port = null,
         IResourceBuilder<ParameterResource>? password = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         if (password?.Resource is not null)
         {
             var redis = new RedisResource(name, password.Resource);
@@ -148,6 +150,8 @@ public static class RedisBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<RedisResource> WithRedisCommander(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<RedisCommanderResource>>? configureContainer = null, string? containerName = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         if (builder.ApplicationBuilder.Resources.OfType<RedisCommanderResource>().SingleOrDefault() is { } existingRedisCommanderResource)
         {
             var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingRedisCommanderResource);
@@ -156,7 +160,6 @@ public static class RedisBuilderExtensions
         }
         else
         {
-            builder.ApplicationBuilder.Services.TryAddLifecycleHook<RedisCommanderConfigWriterHook>();
             containerName ??= $"{builder.Resource.Name}-commander";
 
             var resource = new RedisCommanderResource(containerName);
@@ -165,6 +168,32 @@ public static class RedisBuilderExtensions
                                       .WithImageRegistry(RedisContainerImageTags.RedisCommanderRegistry)
                                       .WithHttpEndpoint(targetPort: 8081, name: "http")
                                       .ExcludeFromManifest();
+
+            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+            {
+                var redisInstances = builder.ApplicationBuilder.Resources.OfType<RedisResource>();
+
+                if (!redisInstances.Any())
+                {
+                    // No-op if there are no Redis resources present.
+                    return Task.CompletedTask;
+                }
+
+                var hostsVariableBuilder = new StringBuilder();
+
+                foreach (var redisInstance in redisInstances)
+                {
+                    if (redisInstance.PrimaryEndpoint.IsAllocated)
+                    {
+                        var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.PrimaryEndpoint.ContainerHost}:{redisInstance.PrimaryEndpoint.Port}:0";
+                        hostsVariableBuilder.Append(hostString);
+                    }
+                }
+
+                resourceBuilder.WithEnvironment("REDIS_HOSTS", hostsVariableBuilder.ToString());
+
+                return Task.CompletedTask;
+            });
 
             configureContainer?.Invoke(resourceBuilder);
 
@@ -180,6 +209,8 @@ public static class RedisBuilderExtensions
     /// <returns>The resource builder for PGAdmin.</returns>
     public static IResourceBuilder<RedisCommanderResource> WithHostPort(this IResourceBuilder<RedisCommanderResource> builder, int? port)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.WithEndpoint("http", endpoint =>
         {
             endpoint.Port = port;
@@ -206,6 +237,8 @@ public static class RedisBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RedisResource> WithDataVolume(this IResourceBuilder<RedisResource> builder, string? name = null, bool isReadOnly = false)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data", isReadOnly);
         if (!isReadOnly)
         {
@@ -234,6 +267,9 @@ public static class RedisBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RedisResource> WithDataBindMount(this IResourceBuilder<RedisResource> builder, string source, bool isReadOnly = false)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+
         builder.WithBindMount(source, "/data", isReadOnly);
         if (!isReadOnly)
         {
@@ -259,11 +295,16 @@ public static class RedisBuilderExtensions
     /// <param name="keysChangedThreshold">The number of key change operations required to trigger a snapshot at the interval. Defaults to 1.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RedisResource> WithPersistence(this IResourceBuilder<RedisResource> builder, TimeSpan? interval = null, long keysChangedThreshold = 1)
-        => builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
         {
             context.Args.Add("--save");
-            context.Args.Add((interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
+            context.Args.Add(
+                (interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
             context.Args.Add(keysChangedThreshold.ToString(CultureInfo.InvariantCulture));
             return Task.CompletedTask;
         }), ResourceAnnotationMutationBehavior.Replace);
+    }
 }

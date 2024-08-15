@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
-using Amazon;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
@@ -107,12 +106,6 @@ public class SchemaTests
                     }
                 },
 
-                { "CdkResourceWithChildResource", (IDistributedApplicationBuilder builder) =>
-                    {
-                        builder.AddPostgres("postgres").PublishAsAzurePostgresFlexibleServer().AddDatabase("db");
-                    }
-                },
-
                 { "BasicDockerfile", (IDistributedApplicationBuilder builder) =>
                     {
                         builder.AddExecutable("foo", "bar", "baz", "one", "two", "three").PublishAsDockerFile();
@@ -134,28 +127,6 @@ public class SchemaTests
                 { "BasicExecutable", (IDistributedApplicationBuilder builder) =>
                     {
                         builder.AddExecutable("executable", "hellworld", "foo", "arg1", "arg2");
-                    }
-                },
-
-                { "AwsStack", (IDistributedApplicationBuilder builder) =>
-                    {
-                        var awsSdkConfig = builder.AddAWSSDKConfig()
-                                                  .WithRegion(RegionEndpoint.USWest2)
-                                                  .WithProfile("test-profile");
-
-                        builder.AddAWSCloudFormationStack("ExistingStack")
-                               .WithReference(awsSdkConfig);
-                    }
-                },
-
-                { "AwsTemplate", (IDistributedApplicationBuilder builder) =>
-                    {
-                        var awsSdkConfig = builder.AddAWSSDKConfig()
-                                                  .WithRegion(RegionEndpoint.USWest2)
-                                                  .WithProfile("test-profile");
-
-                        builder.AddAWSCloudFormationTemplate("TemplateStack", "nonexistenttemplate")
-                               .WithReference(awsSdkConfig);
                     }
                 },
 
@@ -201,7 +172,8 @@ public class SchemaTests
     {
         _ = testCaseName;
 
-        var builder = TestDistributedApplicationBuilder.Create(["--publisher", "manifest", "--output-path", "not-used.json"]);
+        string manifestDir = Directory.CreateTempSubdirectory(testCaseName).FullName;
+        var builder = TestDistributedApplicationBuilder.Create(["--publisher", "manifest", "--output-path", Path.Combine(manifestDir, "not-used.json")]);
         builder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
         configurator(builder);
 

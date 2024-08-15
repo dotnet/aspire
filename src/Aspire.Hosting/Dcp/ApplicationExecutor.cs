@@ -12,6 +12,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using k8s;
@@ -69,7 +70,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           DistributedApplicationExecutionContext executionContext,
                                           ResourceNotificationService notificationService,
                                           ResourceLoggerService loggerService,
-                                          IDcpDependencyCheckService dcpDependencyCheckService)
+                                          IDcpDependencyCheckService dcpDependencyCheckService,
+                                          IDistributedApplicationEventing eventing,
+                                          IServiceProvider serviceProvider
+                                          )
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
@@ -128,6 +132,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
 
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
+
+            var afterResourcesCreatedEvent = new AfterResourcesCreatedEvent(serviceProvider, _model);
+            await eventing.PublishAsync(afterResourcesCreatedEvent, cancellationToken).ConfigureAwait(false);
 
             foreach (var lifecycleHook in _lifecycleHooks)
             {
@@ -886,6 +893,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         var toCreate = _appResources.Where(r => r.DcpResource is Container || r.DcpResource is Executable || r.DcpResource is ExecutableReplicaSet);
         AddAllocatedEndpointInfo(toCreate);
 
+        var afterEndpointsAllocatedEvent = new AfterEndpointsAllocatedEvent(serviceProvider, _model);
+        await eventing.PublishAsync(afterEndpointsAllocatedEvent, cancellationToken).ConfigureAwait(false);
+
         foreach (var lifecycleHook in _lifecycleHooks)
         {
             await lifecycleHook.AfterEndpointsAllocatedAsync(_model, cancellationToken).ConfigureAwait(false);
@@ -1014,7 +1024,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             exeSpec.WorkingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath);
 
             IAnnotationHolder annotationHolder = ers.Spec.Template;
-            annotationHolder.Annotate(CustomResource.OtelServiceNameAnnotation, ers.Metadata.Name);
+            annotationHolder.Annotate(CustomResource.OtelServiceNameAnnotation, (replicas > 1) ? ers.Metadata.Name : project.Name);
             // The OTEL service instance ID annotation will be generated and applied automatically by DCP.
             annotationHolder.Annotate(CustomResource.ResourceNameAnnotation, project.Name);
 

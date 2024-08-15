@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+    <PackageTags>aspire hosting elasticsearch</PackageTags>
+    <Description>Elasticsearch support for .NET Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)Elastic_logo.png</PackageIconFullPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>80</MinCodeCoverage>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Elasticsearch.Tests" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+  </ItemGroup>
+</Project>

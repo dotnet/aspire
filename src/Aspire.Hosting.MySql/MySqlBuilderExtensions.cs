@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.MySql;
 using Aspire.Hosting.Utils;
 
@@ -25,6 +24,9 @@ public static class MySqlBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlServerResource> AddMySql(this IDistributedApplicationBuilder builder, string name, IResourceBuilder<ParameterResource>? password = null, int? port = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 
         var resource = new MySqlServerResource(name, passwordParameter);
@@ -47,6 +49,9 @@ public static class MySqlBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlDatabaseResource> AddDatabase(this IResourceBuilder<MySqlServerResource> builder, string name, string? databaseName = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
 
@@ -64,22 +69,79 @@ public static class MySqlBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithPhpMyAdmin<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<PhpMyAdminContainerResource>>? configureContainer = null, string? containerName = null) where T : MySqlServerResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         if (builder.ApplicationBuilder.Resources.OfType<PhpMyAdminContainerResource>().Any())
         {
             return builder;
         }
 
-        builder.ApplicationBuilder.Services.TryAddLifecycleHook<PhpMyAdminConfigWriterHook>();
-
         containerName ??= $"{builder.Resource.Name}-phpmyadmin";
+
+        var configurationTempFileName = Path.GetTempFileName();
 
         var phpMyAdminContainer = new PhpMyAdminContainerResource(containerName);
         var phpMyAdminContainerBuilder = builder.ApplicationBuilder.AddResource(phpMyAdminContainer)
-                                                .WithImage("phpmyadmin", "5.2")
+                                                .WithImage("library/phpmyadmin", "5.2")
                                                 .WithImageRegistry(MySqlContainerImageTags.Registry)
                                                 .WithHttpEndpoint(targetPort: 80, name: "http")
-                                                .WithBindMount(Path.GetTempFileName(), "/etc/phpmyadmin/config.user.inc.php")
+                                                .WithBindMount(configurationTempFileName, "/etc/phpmyadmin/config.user.inc.php")
                                                 .ExcludeFromManifest();
+
+        builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+        {
+            var mySqlInstances = builder.ApplicationBuilder.Resources.OfType<MySqlServerResource>();
+
+            if (!mySqlInstances.Any())
+            {
+                // No-op if there are no MySql resources present.
+                return Task.CompletedTask;
+            }
+
+            if (mySqlInstances.Count() == 1)
+            {
+                var singleInstance = mySqlInstances.Single();
+                if (singleInstance.PrimaryEndpoint.IsAllocated)
+                {
+                    var endpoint = singleInstance.PrimaryEndpoint;
+                    phpMyAdminContainerBuilder.WithEnvironment(context =>
+                    {
+                        context.EnvironmentVariables.Add("PMA_HOST", $"{endpoint.ContainerHost}:{endpoint.Port}");
+                        context.EnvironmentVariables.Add("PMA_USER", "root");
+                        context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.PasswordParameter.Value);
+                    });
+                }
+            }
+            else
+            {
+                using var stream = new FileStream(configurationTempFileName, FileMode.Create);
+                using var writer = new StreamWriter(stream);
+
+                writer.WriteLine("<?php");
+                writer.WriteLine();
+                writer.WriteLine("$i = 0;");
+                writer.WriteLine();
+                foreach (var mySqlInstance in mySqlInstances)
+                {
+                    if (mySqlInstance.PrimaryEndpoint.IsAllocated)
+                    {
+                        var endpoint = mySqlInstance.PrimaryEndpoint;
+                        writer.WriteLine("$i++;");
+                        writer.WriteLine($"$cfg['Servers'][$i]['host'] = '{endpoint.ContainerHost}:{endpoint.Port}';");
+                        writer.WriteLine($"$cfg['Servers'][$i]['verbose'] = '{mySqlInstance.Name}';");
+                        writer.WriteLine($"$cfg['Servers'][$i]['auth_type'] = 'cookie';");
+                        writer.WriteLine($"$cfg['Servers'][$i]['user'] = 'root';");
+                        writer.WriteLine($"$cfg['Servers'][$i]['password'] = '{mySqlInstance.PasswordParameter.Value}';");
+                        writer.WriteLine($"$cfg['Servers'][$i]['AllowNoPassword'] = true;");
+                        writer.WriteLine();
+                    }
+                }
+                writer.WriteLine("$cfg['DefaultServer'] = 1;");
+                writer.WriteLine("?>");
+            }
+
+            return Task.CompletedTask;
+        });
 
         configureContainer?.Invoke(phpMyAdminContainerBuilder);
 
@@ -94,6 +156,8 @@ public static class MySqlBuilderExtensions
     /// <returns>The resource builder for PGAdmin.</returns>
     public static IResourceBuilder<PhpMyAdminContainerResource> WithHostPort(this IResourceBuilder<PhpMyAdminContainerResource> builder, int? port)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        
         return builder.WithEndpoint("http", endpoint =>
         {
             endpoint.Port = port;
@@ -108,7 +172,11 @@ public static class MySqlBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlServerResource> WithDataVolume(this IResourceBuilder<MySqlServerResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/mysql", isReadOnly);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/mysql", isReadOnly);
+    }
 
     /// <summary>
     /// Adds a bind mount for the data folder to a MySql container resource.
@@ -118,7 +186,12 @@ public static class MySqlBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlServerResource> WithDataBindMount(this IResourceBuilder<MySqlServerResource> builder, string source, bool isReadOnly = false)
-        => builder.WithBindMount(source, "/var/lib/mysql", isReadOnly);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+
+        return builder.WithBindMount(source, "/var/lib/mysql", isReadOnly);
+    }
 
     /// <summary>
     /// Adds a bind mount for the init folder to a MySql container resource.
@@ -128,5 +201,10 @@ public static class MySqlBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlServerResource> WithInitBindMount(this IResourceBuilder<MySqlServerResource> builder, string source, bool isReadOnly = true)
-        => builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+
+        return builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
+    }
 }

@@ -3,8 +3,13 @@
   <file datatype="xml" source-language="en" target-language="it" original="../ControlsStrings.resx">
     <body>
       <trans-unit id="All">
-        <source>All</source>
-        <target state="translated">Tutto</target>
+        <source>(All)</source>
+        <target state="needs-review-translation">Tutto</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ApplicationLower">
+        <source>application</source>
+        <target state="new">application</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerAllTags">
@@ -30,11 +35,6 @@
       <trans-unit id="ChartContainerGraphTab">
         <source>Graph</source>
         <target state="translated">Grafo</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ChartContainerNoneSelected">
-        <source>(None)</source>
-        <target state="translated">(Nessuno)</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">
@@ -127,6 +127,11 @@
         <target state="translated">Caricamento in corso...</target>
         <note />
       </trans-unit>
+      <trans-unit id="MetricTableExemplarsColumnHeader">
+        <source>Exemplars</source>
+        <target state="new">Exemplars</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MetricTableNoMetricsFound">
         <source>No metrics data found</source>
         <target state="translated">Nessun dato delle metriche trovato</target>
@@ -162,9 +167,24 @@
         <target state="translated">Il valore non è stato modificato</target>
         <note />
       </trans-unit>
+      <trans-unit id="MetricTableViewExemplarsLabel">
+        <source>View exemplars</source>
+        <target state="new">View exemplars</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NameColumnHeader">
         <source>Name</source>
         <target state="translated">Nome</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="None">
+        <source>(None)</source>
+        <target state="new">(None)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PageToolbarLandmark">
+        <source>Page toolbar</source>
+        <target state="new">Page toolbar</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -172,10 +192,25 @@
         <target state="translated">Numero</target>
         <note>Count is the name of a plot y-axis label</note>
       </trans-unit>
+      <trans-unit id="PlotlyChartExemplars">
+        <source>Exemplars</source>
+        <target state="new">Exemplars</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlotlyChartLength">
         <source>Length</source>
         <target state="translated">Lunghezza</target>
         <note>Length is the name of a plot y-axis label</note>
+      </trans-unit>
+      <trans-unit id="PlotlyChartTime">
+        <source>Time</source>
+        <target state="new">Time</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PlotlyChartTrace">
+        <source>Trace</source>
+        <target state="new">Trace</target>
+        <note />
       </trans-unit>
       <trans-unit id="PlotlyChartValue">
         <source>Value</source>
@@ -185,11 +220,6 @@
       <trans-unit id="PropertyGridValueColumnHeader">
         <source>Value</source>
         <target state="translated">Valore</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ReplicaSetLower">
-        <source>replica set</source>
-        <target state="translated">set di repliche</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointsHeader">
@@ -212,9 +242,9 @@
         <target state="translated">{0} (replica di {1})</target>
         <note>{0} is a resource name, {1} is a replica set name</note>
       </trans-unit>
-      <trans-unit id="SelectAResource">
-        <source>Select a resource</source>
-        <target state="translated">Seleziona una risorsa</target>
+      <trans-unit id="ResourceLabel">
+        <source>Resource</source>
+        <target state="new">Resource</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">
@@ -222,9 +252,19 @@
         <target state="translated">Seleziona un'applicazione</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanDetailsBacklinksHeader">
+        <source>Backlinks</source>
+        <target state="new">Backlinks</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanDetailsContextHeader">
         <source>Context</source>
         <target state="new">Context</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsDetailsColumnHeader">
+        <source>Details</source>
+        <target state="new">Details</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsDuration">
@@ -237,6 +277,11 @@
         <target state="translated">Eventi</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanDetailsLinksHeader">
+        <source>Links</source>
+        <target state="new">Links</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanDetailsResource">
         <source>Resource &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="translated">Risorsa &lt;strong&gt;{0}&lt;/strong&gt;</target>
@@ -247,9 +292,19 @@
         <target state="translated">Risorsa</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanDetailsSpanColumnHeader">
+        <source>Span</source>
+        <target state="new">Span</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanDetailsSpanHeader">
         <source>Span</source>
         <target state="translated">Span</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsSpanPrefix">
+        <source>Span</source>
+        <target state="new">Span</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsStartTime">

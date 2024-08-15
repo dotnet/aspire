@@ -27,17 +27,13 @@ public class ResourceTypeDetails
         {
             throw new InvalidOperationException($"Can't get ApplicationKey from resource type details '{ToString()}' because {nameof(ReplicaSetName)} is null.");
         }
-        if (InstanceId == null)
-        {
-            throw new InvalidOperationException($"Can't get ApplicationKey from resource type details '{ToString()}' because {nameof(InstanceId)} is null.");
-        }
 
         return new ApplicationKey(ReplicaSetName, InstanceId);
-    }        
+    }
 
-    public static ResourceTypeDetails CreateReplicaSet(string replicaSetName)
+    public static ResourceTypeDetails CreateApplicationGrouping(string groupingName, bool isReplicaSet)
     {
-        return new ResourceTypeDetails(OtlpApplicationType.ReplicaSet, instanceId: null, replicaSetName);
+        return new ResourceTypeDetails(OtlpApplicationType.ResourceGrouping, instanceId: null, replicaSetName: isReplicaSet ? groupingName : null);
     }
 
     public static ResourceTypeDetails CreateSingleton(string instanceId, string replicaSetName)
@@ -47,7 +43,7 @@ public class ResourceTypeDetails
 
     public static ResourceTypeDetails CreateReplicaInstance(string instanceId, string replicaSetName)
     {
-        return new ResourceTypeDetails(OtlpApplicationType.ReplicaInstance, instanceId, replicaSetName);
+        return new ResourceTypeDetails(OtlpApplicationType.Instance, instanceId, replicaSetName);
     }
 
     public override string ToString()
