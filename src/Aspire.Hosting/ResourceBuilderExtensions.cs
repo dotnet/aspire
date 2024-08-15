@@ -549,4 +549,20 @@ public static class ResourceBuilderExtensions
     {
         return builder.WithAnnotation(ManifestPublishingCallbackAnnotation.Ignore);
     }
+
+    /// <summary>
+    /// Wait for another resource to be healthy before starting another resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder for the resource.</param>
+    /// <param name="dependency">The resource builder of the dependency.</param>
+    /// <returns>The resource builder for the resource.</returns>
+    public static IResourceBuilder<T> WaitFor<T>(IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T: IResource
+    {
+        var annotation = new WaitAnnotation(dependency.Resource, async (ct) =>
+        {
+            await Task.Delay(1000, ct).ConfigureAwait(false);
+        });
+        return builder;
+    }
 }

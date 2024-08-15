@@ -12,6 +12,10 @@ Aspire.Hosting.ApplicationModel.BeforeStartEvent.BeforeStartEvent(System.IServic
 Aspire.Hosting.ApplicationModel.BeforeStartEvent.Model.get -> Aspire.Hosting.ApplicationModel.DistributedApplicationModel!
 Aspire.Hosting.ApplicationModel.BeforeStartEvent.Services.get -> System.IServiceProvider!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
+Aspire.Hosting.ApplicationModel.WaitAnnotation
+Aspire.Hosting.ApplicationModel.WaitAnnotation.Dependency.get -> Aspire.Hosting.ApplicationModel.IResource!
+Aspire.Hosting.ApplicationModel.WaitAnnotation.WaitAnnotation(Aspire.Hosting.ApplicationModel.IResource! dependency, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task!>! waitTask) -> void
+Aspire.Hosting.ApplicationModel.WaitAnnotation.WaitAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 Aspire.Hosting.DistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!
 Aspire.Hosting.Eventing.DistributedApplicationEventing
 Aspire.Hosting.Eventing.DistributedApplicationEventing.DistributedApplicationEventing() -> void
@@ -45,6 +49,7 @@ Aspire.Hosting.DistributedApplicationExecutionContextOptions.DistributedApplicat
 Aspire.Hosting.DistributedApplicationExecutionContextOptions.Operation.get -> Aspire.Hosting.DistributedApplicationOperation
 Aspire.Hosting.DistributedApplicationExecutionContextOptions.ServiceProvider.get -> System.IServiceProvider?
 Aspire.Hosting.DistributedApplicationExecutionContextOptions.ServiceProvider.set -> void
+static Aspire.Hosting.ResourceBuilderExtensions.WaitFor<T>(Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IResource!>! dependency) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Exited -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.FailedToStart -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Finished -> string!
