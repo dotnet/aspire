@@ -40,9 +40,6 @@ public static class AspireAzureOpenAIExtensions
         Action<AzureOpenAISettings>? configureSettings = null,
         Action<IAzureClientBuilder<AzureOpenAIClient, AzureOpenAIClientOptions>>? configureClientBuilder = null)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(connectionName);
-
         new OpenAIComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
 
         // Add the AzureOpenAIClient service as OpenAIClient. That way the service can be resolved by both service Types.
@@ -65,7 +62,6 @@ public static class AspireAzureOpenAIExtensions
         Action<AzureOpenAISettings>? configureSettings = null,
         Action<IAzureClientBuilder<AzureOpenAIClient, AzureOpenAIClientOptions>>? configureClientBuilder = null)
     {
-        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         var configurationSectionName = OpenAIComponent.GetKeyedConfigurationSectionName(name, DefaultConfigSectionName);

@@ -37,9 +37,6 @@ public static class AspireTablesExtensions
         Action<AzureDataTablesSettings>? configureSettings = null,
         Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>>? configureClientBuilder = null)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(connectionName);
-
         new TableServiceComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
     }
 
@@ -59,7 +56,6 @@ public static class AspireTablesExtensions
         Action<AzureDataTablesSettings>? configureSettings = null,
         Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>>? configureClientBuilder = null)
     {
-        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         string configurationSectionName = TableServiceComponent.GetKeyedConfigurationSectionName(name, DefaultConfigSectionName);

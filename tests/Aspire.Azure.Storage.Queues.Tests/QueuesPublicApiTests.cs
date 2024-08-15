@@ -1,25 +1,25 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Azure.AI.OpenAI;
 using Azure.Core.Extensions;
+using Azure.Storage.Queues;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Azure.AI.OpenAI.Tests;
+namespace Aspire.Azure.Storage.Queues.Tests;
 
-public class AzureAIOpenAIPublicApiTests
+public class QueuesPublicApiTests
 {
     [Fact]
-    public void AddAzureOpenAIClientShouldThrowWhenBuilderIsNull()
+    public void AddAzureQueueClientShouldThrowWhenBuilderIsNull()
     {
         IHostApplicationBuilder builder = null!;
-        const string connectionName = "openai";
+        const string connectionName = "queue";
 
-        var action = () => builder.AddAzureOpenAIClient(
-            connectionName,
-            default(Action<AzureOpenAISettings>?),
-            default(Action<IAzureClientBuilder<AzureOpenAIClient, AzureOpenAIClientOptions>>?));
+        var action = () => builder.AddAzureQueueClient(
+        connectionName,
+            default(Action<AzureStorageQueuesSettings>?),
+            default(Action<IAzureClientBuilder<QueueServiceClient, QueueClientOptions>>?));
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -28,15 +28,15 @@ public class AzureAIOpenAIPublicApiTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void AddAzureOpenAIClientShouldThrowWhenConnectionNameIsNullorEmpty(bool isNull)
+    public void AddAzureQueueClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
         IHostApplicationBuilder builder = new HostApplicationBuilder();
         var connectionName = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddAzureOpenAIClient(
+        var action = () => builder.AddAzureQueueClient(
             connectionName,
-            default(Action<AzureOpenAISettings>?),
-            default(Action<IAzureClientBuilder<AzureOpenAIClient, AzureOpenAIClientOptions>>?));
+            default(Action<AzureStorageQueuesSettings>?),
+            default(Action<IAzureClientBuilder<QueueServiceClient, QueueClientOptions>>?));
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -45,15 +45,15 @@ public class AzureAIOpenAIPublicApiTests
     }
 
     [Fact]
-    public void AddKeyedAzureOpenAIClientShouldThrowWhenBuilderIsNull()
+    public void AddKeyedAzureQueueClientShouldThrowWhenBuilderIsNull()
     {
         IHostApplicationBuilder builder = null!;
-        const string name = "openai";
+        const string name = "queue";
 
-        var action = () => builder.AddKeyedAzureOpenAIClient(
+        var action = () => builder.AddKeyedAzureQueueClient(
             name,
-            default(Action<AzureOpenAISettings>?),
-            default(Action<IAzureClientBuilder<AzureOpenAIClient, AzureOpenAIClientOptions>>?));
+            default(Action<AzureStorageQueuesSettings>?),
+            default(Action<IAzureClientBuilder<QueueServiceClient, QueueClientOptions>>?));
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -62,19 +62,19 @@ public class AzureAIOpenAIPublicApiTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void AddKeyedAzureOpenAIClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
+    public void AddKeyedAzureQueueClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         IHostApplicationBuilder builder = new HostApplicationBuilder();
         var name = isNull ? null! : string.Empty;
 
-        var action = () => builder.AddKeyedAzureOpenAIClient(
+        var action = () => builder.AddKeyedAzureQueueClient(
             name,
-            default(Action<AzureOpenAISettings>?),
-            default(Action<IAzureClientBuilder<AzureOpenAIClient, AzureOpenAIClientOptions>>?));
+            default(Action<AzureStorageQueuesSettings>?),
+            default(Action<IAzureClientBuilder<QueueServiceClient, QueueClientOptions>>?));
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action); ;
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 }

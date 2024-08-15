@@ -15,10 +15,11 @@ public class AspireTablesPublicApiTests
     {
         IHostApplicationBuilder builder = null!;
         const string connectionName = "tables";
-        Action<AzureDataTablesSettings>? configureSettings = null;
-        Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>>? configureClientBuilder = null;
 
-        var action = () => builder.AddAzureTableClient(connectionName, configureSettings, configureClientBuilder);
+        var action = () => builder.AddAzureTableClient(
+            connectionName,
+            default(Action<AzureDataTablesSettings>?),
+            default(Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>>?));
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -31,10 +32,11 @@ public class AspireTablesPublicApiTests
     {
         var builder = new HostApplicationBuilder();
         var connectionName = isNull ? null! : string.Empty;
-        Action<AzureDataTablesSettings>? configureSettings = null;
-        Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>>? configureClientBuilder = null;
 
-        var action = () => builder.AddAzureTableClient(connectionName, configureSettings, configureClientBuilder);
+        var action = () => builder.AddAzureTableClient(
+            connectionName,
+            default(Action<AzureDataTablesSettings>?),
+            default(Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>>?));
 
         var exception = isNull ? Assert.Throws<ArgumentNullException>(action) : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(connectionName), exception.ParamName);
@@ -45,10 +47,11 @@ public class AspireTablesPublicApiTests
     {
         IHostApplicationBuilder builder = null!;
         const string name = "tables";
-        Action<AzureDataTablesSettings>? configureSettings = null;
-        Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>>? configureClientBuilder = null;
 
-        var action = () => builder.AddKeyedAzureTableClient(name, configureSettings, configureClientBuilder);
+        var action = () => builder.AddKeyedAzureTableClient(
+            name,
+            default(Action<AzureDataTablesSettings>?),
+            default(Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>>?));
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(builder), exception.ParamName);
@@ -61,10 +64,11 @@ public class AspireTablesPublicApiTests
     {
         var builder = new HostApplicationBuilder();
         var name = isNull ? null! : string.Empty;
-        Action<AzureDataTablesSettings>? configureSettings = null;
-        Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>>? configureClientBuilder = null;
 
-        var action = () => builder.AddKeyedAzureTableClient(name, configureSettings, configureClientBuilder);
+        var action = () => builder.AddKeyedAzureTableClient(
+            name,
+            default(Action<AzureDataTablesSettings>?),
+            default(Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>>?));
 
         var exception = isNull ? Assert.Throws<ArgumentNullException>(action) : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
