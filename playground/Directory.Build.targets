@@ -1,12 +1,6 @@
 <Project>
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
 
-  <PropertyGroup>
-    <!-- Skip dashboard when building outside the repo, like on helix. Or when
-         building on CI -->
-    <SkipDashboardProjectReference Condition="'$(SkipDashboardProjectReference)' == '' and ('$(RepoRoot)' == '' or '$(ContinuousIntegrationBuild)' == 'true')">true</SkipDashboardProjectReference>
-  </PropertyGroup>
-
   <ItemGroup Condition="'$(IsAspireHost)' == 'true' and '$(SkipDashboardProjectReference)' != 'true'">
     <ProjectReference Include="$(RepoRoot)src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
   </ItemGroup>
@@ -17,4 +11,8 @@
   <PropertyGroup Condition="'$(SkipDashboardProjectReference)' == 'true'">
     <DefineConstants>SKIP_DASHBOARD_REFERENCE;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Update="@(ProjectReference)" AdditionalProperties="SkipDashboardProjectReference=$(SkipDashboardProjectReference)" />
+  </ItemGroup>
 </Project>
