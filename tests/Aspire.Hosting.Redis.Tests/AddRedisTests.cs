@@ -105,7 +105,7 @@ public class AddRedisTests
     }
 
     [Fact]
-    public async Task RedisCreatesConnectionStringWithoutPassword()
+    public async Task RedisCreatesConnectionStringWithDefaultPassword()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddRedis("myRedis")
@@ -117,12 +117,12 @@ public class AddRedisTests
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
-        Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port},password={myRedis-password.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
         Assert.StartsWith("localhost:2000", connectionString);
     }
 
     [Fact]
-    public async Task VerifyWithoutPasswordManifestInRunMode()
+    public async Task VerifyWithoutPasswordManifest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("redis");
@@ -132,8 +132,12 @@ public class AddRedisTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
+              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value}",
               "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
+              "args": [
+                "--requirepass",
+                "{redis-password.value}"
+              ],
               "bindings": {
                 "tcp": {
                   "scheme": "tcp",
@@ -148,7 +152,7 @@ public class AddRedisTests
     }
 
     [Fact]
-    public async Task VerifyWithPasswordManifestInRunMode()
+    public async Task VerifyWithPasswordManifest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -182,7 +186,7 @@ public class AddRedisTests
     }
 
     [Fact]
-    public async Task VerifyWithPasswordValueNotProvidedManifestInRunMode()
+    public async Task VerifyWithPasswordValueNotProvidedManifest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -198,36 +202,6 @@ public class AddRedisTests
               "args": [
                 "--requirepass",
                 "{pass.value}"
-              ],
-              "bindings": {
-                "tcp": {
-                  "scheme": "tcp",
-                  "protocol": "tcp",
-                  "transport": "tcp",
-                  "targetPort": 6379
-                }
-              }
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ToString());
-    }
-
-    [Fact]
-    public async Task VerifyWithPasswordManifestInPublishMode()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-
-        var redis = builder.AddRedis("redis");
-        var manifest = await ManifestUtils.GetManifest(redis.Resource);
-
-        var expectedManifest = $$"""
-            {
-              "type": "container.v0",
-              "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port},password={redis-password.value}",
-              "image": "{{RedisContainerImageTags.Registry}}/{{RedisContainerImageTags.Image}}:{{RedisContainerImageTags.Tag}}",
-              "args": [
-                "--requirepass",
-                "{redis-password.value}"
               ],
               "bindings": {
                 "tcp": {
@@ -287,7 +261,7 @@ public class AddRedisTests
     [Theory]
     [InlineData("host.docker.internal")]
     [InlineData("host.containers.internal")]
-    public async Task SingleRedisInstanceWithoutPasswordProducesCorrectRedisHostsVariableInRunMode(string containerHost)
+    public async Task SingleRedisInstanceWithoutPasswordProducesCorrectRedisHostsVariable(string containerHost)
     {
         var builder = DistributedApplication.CreateBuilder();
         var redis = builder.AddRedis("myredis1").WithRedisCommander();
@@ -305,13 +279,13 @@ public class AddRedisTests
             DistributedApplicationOperation.Run,
             TestServiceProvider.Instance);
 
-        Assert.Equal($"myredis1:{containerHost}:5001:0", config["REDIS_HOSTS"]);
+        Assert.Equal($"myredis1:{containerHost}:5001:0:{redis.Resource.PasswordParameter?.Value}", config["REDIS_HOSTS"]);
     }
 
     [Theory]
     [InlineData("host.docker.internal")]
     [InlineData("host.containers.internal")]
-    public async Task SingleRedisInstanceWithPasswordProducesCorrectRedisHostsVariableInRunMode(string containerHost)
+    public async Task SingleRedisInstanceWithPasswordProducesCorrectRedisHostsVariable(string containerHost)
     {
         var builder = DistributedApplication.CreateBuilder();
         var password = "p@ssw0rd1";
@@ -324,9 +298,7 @@ public class AddRedisTests
         // Add fake allocated endpoints.
         redis.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
 
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var hook = new RedisCommanderConfigWriterHook();
-        await hook.AfterEndpointsAllocatedAsync(model, CancellationToken.None);
+        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
         var commander = builder.Resources.Single(r => r.Name.EndsWith("-commander"));
 
@@ -358,7 +330,7 @@ public class AddRedisTests
             DistributedApplicationOperation.Run,
             TestServiceProvider.Instance);
 
-        Assert.Equal($"myredis1:{containerHost}:5001:0,myredis2:host2:5002:0", config["REDIS_HOSTS"]);
+        Assert.Equal($"myredis1:{containerHost}:5001:0:{redis1.Resource.PasswordParameter?.Value},myredis2:host2:5002:0:{redis2.Resource.PasswordParameter?.Value}", config["REDIS_HOSTS"]);
     }
 
     [Theory]
@@ -412,85 +384,69 @@ public class AddRedisTests
     }
 
     [Fact]
-    public void WithDataVolumeAddsPersistenceAnnotation()
+    public async Task WithDataVolumeAddsPersistenceAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("myRedis")
                               .WithDataVolume();
 
-        Assert.True(redis.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
-
-        var args = new List<object>();
-        foreach (var argsAnnotation in argsCallbacks)
-        {
-            Assert.NotNull(argsAnnotation.Callback);
-            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
-        }
-
-        Assert.Equal("--save 60 1".Split(" "), args);
+        var args = await GetCommandLineArgs(redis);
+        Assert.Contains("--save 60 1", args);
     }
 
     [Fact]
-    public void WithDataVolumeDoesNotAddPersistenceAnnotationIfIsReadOnly()
+    public async Task WithDataVolumeDoesNotAddPersistenceAnnotationIfIsReadOnly()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("myRedis")
                            .WithDataVolume(isReadOnly: true);
 
-        var persistenceAnnotation = redis.Resource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().SingleOrDefault();
-
-        Assert.Null(persistenceAnnotation);
+        var args = await GetCommandLineArgs(redis);
+        Assert.DoesNotContain("--save", args);
     }
 
     [Fact]
-    public void WithDataBindMountAddsPersistenceAnnotation()
+    public async Task WithDataBindMountAddsPersistenceAnnotation()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("myRedis")
                            .WithDataBindMount("myredisdata");
 
-        Assert.True(redis.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
-
-        var args = new List<object>();
-        foreach (var argsAnnotation in argsCallbacks)
-        {
-            Assert.NotNull(argsAnnotation.Callback);
-            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
-        }
-
-        Assert.Equal("--save 60 1".Split(" "), args);
+        var args = await GetCommandLineArgs(redis);
+        Assert.Contains("--save 60 1", args);
     }
 
     [Fact]
-    public void WithDataBindMountDoesNotAddPersistenceAnnotationIfIsReadOnly()
+    public async Task WithDataBindMountDoesNotAddPersistenceAnnotationIfIsReadOnly()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("myRedis")
                            .WithDataBindMount("myredisdata", isReadOnly: true);
 
-        var persistenceAnnotation = redis.Resource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().SingleOrDefault();
-
-        Assert.Null(persistenceAnnotation);
+        var args = await GetCommandLineArgs(redis);
+        Assert.DoesNotContain("--save", args);
     }
 
     [Fact]
-    public void WithPersistenceReplacesPreviousAnnotationInstances()
+    public async Task WithPersistenceReplacesPreviousAnnotationInstances()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("myRedis")
                            .WithDataVolume()
                            .WithPersistence(TimeSpan.FromSeconds(10), 2);
 
-        Assert.True(redis.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var argsCallbacks));
+        var args = await GetCommandLineArgs(redis);
+        Assert.Contains("--save 10 2", args);
 
-        var args = new List<object>();
-        foreach (var argsAnnotation in argsCallbacks)
-        {
-            Assert.NotNull(argsAnnotation.Callback);
-            argsAnnotation.Callback(new CommandLineArgsCallbackContext(args));
-        }
+        // ensure `--save` is not added twice
+        var saveIndex = args.IndexOf("--save");
+        Assert.DoesNotContain("--save", args.Substring(saveIndex + 1));
+    }
 
-        Assert.Equal("--save 10 2".Split(" "), args);
+    private static async Task<string> GetCommandLineArgs(IResourceBuilder<RedisResource> builder)
+    {
+        var args = await ArgumentEvaluator.GetArgumentListAsync(builder.Resource);
+        return string.Join(" ", args);
     }
 
     [Fact]
@@ -527,6 +483,5 @@ public class AddRedisTests
         var connectionString = await connectionStringResource.GetConnectionStringAsync(default);
         Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port},password={pass.value}", connectionStringResource.ConnectionStringExpression.ValueExpression);
         Assert.StartsWith($"localhost:5001,password={password}", connectionString);
-
     }
 }

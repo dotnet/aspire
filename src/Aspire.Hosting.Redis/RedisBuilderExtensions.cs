@@ -99,46 +99,43 @@ public static class RedisBuilderExtensions
         IResourceBuilder<ParameterResource>? password = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
 
-        if (password?.Resource is not null)
-        {
-            var redis = new RedisResource(name, password.Resource);
-            return builder.AddResource(redis)
-                          .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
-                          .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
-                          .WithImageRegistry(RedisContainerImageTags.Registry)
-                          .WithPassword(password.Resource);
-        }
-        if (builder.ExecutionContext.IsPublishMode)
-        {
-            var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
-            var redis = new RedisResource(name, passwordParameter);
+        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 
-            return builder.AddResource(redis)
-                      .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
-                      .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
-                      .WithImageRegistry(RedisContainerImageTags.Registry)
-                      .WithPassword(passwordParameter);
-        }
-        else if (builder.ExecutionContext.IsRunMode)
-        {
-            var redis = new RedisResource(name);
-            return builder.AddResource(redis)
-                          .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
-                          .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
-                          .WithImageRegistry(RedisContainerImageTags.Registry);
-        }
-        throw new NotSupportedException($"{nameof(AddRedis)} is not supported in current {nameof(builder.ExecutionContext)}. {builder.ExecutionContext.Operation} Operation is not supported.");
+        var redis = new RedisResource(name, passwordParameter);
+        return builder.AddResource(redis)
+            .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
+            .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
+            .WithImageRegistry(RedisContainerImageTags.Registry)
+            .EnsureCommandLineCallback();
     }
 
-    private static IResourceBuilder<RedisResource> WithPassword(this IResourceBuilder<RedisResource> builder, ParameterResource password)
+    private static IResourceBuilder<RedisResource> EnsureCommandLineCallback(this IResourceBuilder<RedisResource> builder)
     {
-        return builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
+        if (!builder.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out _))
         {
-            context.Args.Add("--requirepass");
-            context.Args.Add(password);
-            return Task.CompletedTask;
-        }), ResourceAnnotationMutationBehavior.Replace);
+            builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
+            {
+                if (builder.Resource.PasswordParameter is { } password)
+                {
+                    context.Args.Add("--requirepass");
+                    context.Args.Add(password);
+                }
+
+                if (builder.Resource.TryGetAnnotationsOfType<PersistenceAnnotation>(out var annotations))
+                {
+                    var persistenceAnnotation = annotations.Single();
+                    context.Args.Add("--save");
+                    context.Args.Add(
+                        (persistenceAnnotation.Interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
+                    context.Args.Add(persistenceAnnotation.KeysChangedThreshold.ToString(CultureInfo.InvariantCulture));
+                }
+
+                return Task.CompletedTask;
+            }));
+        }
+        return builder;
     }
 
     /// <summary>
@@ -186,6 +183,10 @@ public static class RedisBuilderExtensions
                     if (redisInstance.PrimaryEndpoint.IsAllocated)
                     {
                         var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.PrimaryEndpoint.ContainerHost}:{redisInstance.PrimaryEndpoint.Port}:0";
+                        if (redisInstance.PasswordParameter is not null)
+                        {
+                            hostString += $":{redisInstance.PasswordParameter.Value}";
+                        }
                         hostsVariableBuilder.Append(hostString);
                     }
                 }
@@ -298,13 +299,13 @@ public static class RedisBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
-        {
-            context.Args.Add("--save");
-            context.Args.Add(
-                (interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
-            context.Args.Add(keysChangedThreshold.ToString(CultureInfo.InvariantCulture));
-            return Task.CompletedTask;
-        }), ResourceAnnotationMutationBehavior.Replace);
+        return builder.WithAnnotation(new PersistenceAnnotation(interval, keysChangedThreshold), ResourceAnnotationMutationBehavior.Replace)
+            .EnsureCommandLineCallback();
+    }
+
+    private sealed class PersistenceAnnotation(TimeSpan? interval, long keysChangedThreshold) : IResourceAnnotation
+    {
+        public TimeSpan? Interval => interval;
+        public long KeysChangedThreshold => keysChangedThreshold;
     }
 }

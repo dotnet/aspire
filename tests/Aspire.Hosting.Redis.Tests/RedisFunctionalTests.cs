@@ -299,7 +299,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task WithRedisCommanderShouldWorkWithPassword()
     {
-        var builder = CreateDistributedApplicationBuilder();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var password = "p@ssw0rd1";
         builder.Configuration["Parameters:pass"] = password;
