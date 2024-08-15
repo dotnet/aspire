@@ -7,14 +7,14 @@
 @implements IDialogContentComponent<Aspire.Dashboard.Model.TextVisualizerDialogViewModel>
 
 <FluentDialogHeader ShowDismiss="true">
-    <FluentStack VerticalAlignment="VerticalAlignment.Center">
-        <FluentIcon Value="@(new Icons.Regular.Size24.SlideSearch())" />
-        <FluentLabel Typo="Typography.PaneHeader">
+    <div class="visualizer-title-grid">
+        <FluentIcon Value="@(new Icons.Regular.Size24.SlideSearch())" Style="grid-area: dialog-icon; align-self: center;" />
+        <FluentLabel Typo="Typography.PaneHeader" Class="col-long-content" Style="grid-area: dialog-title;">
             @Content.Description
         </FluentLabel>
 
-        <div style="margin-left: auto">
-            <FluentMenuButton id="@_openSelectFormatButtonId" slot="end"
+        <div Style="grid-area: dialog-format;">
+            <FluentMenuButton id="@_openSelectFormatButtonId"
                               ButtonAppearance="Appearance.Stealth"
                               IconEnd="@(new Icons.Regular.Size24.SlideTextEdit())"
                               Text="@(_currentValue ?? Loc[nameof(Dialogs.TextVisualizerSelectFormatType)])"
@@ -26,7 +26,7 @@
                 }
             </FluentMenuButton>
         </div>
-    </FluentStack>
+    </div>
 </FluentDialogHeader>
 
 <FluentDialogBody>
