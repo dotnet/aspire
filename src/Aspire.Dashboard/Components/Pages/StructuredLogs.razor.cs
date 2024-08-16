@@ -135,9 +135,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         // return ViewportInformation.IsDesktop ? "1fr 1fr 1fr 5fr 0.8fr 0.8fr" : "1fr 1fr 1.5fr 0.8fr";
         _manager = new GridColumnManager([
             new GridColumn(Name: ResourceColumn, DesktopWidth: "2fr", MobileWidth: "1fr"),
-            new GridColumn(Name: LogLevelColumn, DesktopWidth: "1fr", MobileWidth: "1fr"),
+            new GridColumn(Name: LogLevelColumn, DesktopWidth: "1fr"),
             new GridColumn(Name: TimestampColumn, DesktopWidth: "1.5fr"),
-            new GridColumn(Name: MessageColumn, DesktopWidth: "5fr", "1.5fr"),
+            new GridColumn(Name: MessageColumn, DesktopWidth: "5fr", "2.5fr"),
             new GridColumn(Name: TraceColumn, DesktopWidth: "1fr"),
             new GridColumn(Name: DetailsColumn, DesktopWidth: "1fr", MobileWidth: "0.8fr")
         ], ViewportInformation, DimensionManager);
