@@ -10,6 +10,13 @@
     <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
 
+    <!-- 
+      Setting the AppHost SDK version as 8.2.0 to satisfy the Aspire.Hosting.AppHost package reference requirement. This is
+      necessary because this project ends up referencing Aspire.Hosting.AppHost as a transitive reference (due to its P2Ps) but
+      because it not an APPHost project itself, then it is not getting the Aspire SDK imported which is required by some AppHost targets.
+    -->
+    <AspireHostingSDKVersion>8.2.0</AspireHostingSDKVersion>
+
     <DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive\</DeployOutsideOfRepoSupportFilesRelativeDir>
 
     <TestArchiveTestsDir>$(TestArchiveTestsDirForBuildOnHelixTests)</TestArchiveTestsDir>
