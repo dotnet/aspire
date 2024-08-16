@@ -23,13 +23,13 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 {
     private const string TypeColumn = nameof(TypeColumn);
     private const string NameColumn = nameof(NameColumn);
-    private const string ResourcesStateColumn = nameof(ResourcesStateColumn);
-    private const string ResourcesStartTimeColumn = nameof(ResourcesStartTimeColumn);
-    private const string ResourcesSourceColumn = nameof(ResourcesSourceColumn);
-    private const string ResourcesEndpointsColumn = nameof(ResourcesEndpointsColumn);
-    private const string ResourcesLogsColumn = nameof(ResourcesLogsColumn);
-    private const string ResourcesDetailsColumn = nameof(ResourcesDetailsColumn);
-    private const string ResourcesCommandsColumn = nameof(ResourcesCommandsColumn);
+    private const string StateColumn = nameof(StateColumn);
+    private const string StartTimeColumn = nameof(StartTimeColumn);
+    private const string SourceColumn = nameof(SourceColumn);
+    private const string EndpointsColumn = nameof(EndpointsColumn);
+    private const string LogsColumn = nameof(LogsColumn);
+    private const string DetailsColumn = nameof(DetailsColumn);
+    private const string CommandsColumn = nameof(CommandsColumn);
 
     private Subscription? _logsSubscription;
     private Dictionary<OtlpApplication, int>? _applicationUnviewedErrorCounts;
@@ -152,13 +152,13 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         _manager = new GridColumnManager([
             new GridColumn(Name: TypeColumn, DesktopWidth: "1fr", MobileWidth: "1fr"),
             new GridColumn(Name: NameColumn, DesktopWidth: "1.5fr", MobileWidth: "1.5fr"),
-            new GridColumn(Name: ResourcesStateColumn, DesktopWidth: "1.25fr"),
-            new GridColumn(Name: ResourcesStartTimeColumn, DesktopWidth: "1.5fr"),
-            new GridColumn(Name: ResourcesSourceColumn, DesktopWidth: "2.5fr"),
-            new GridColumn(Name: ResourcesEndpointsColumn, DesktopWidth: "2.5fr", MobileWidth: "2fr"),
-            new GridColumn(Name: ResourcesLogsColumn, DesktopWidth: "1fr"),
-            new GridColumn(Name: ResourcesDetailsColumn, DesktopWidth: "1fr", MobileWidth: "1fr"),
-            new GridColumn(Name: ResourcesCommandsColumn, DesktopWidth: "1fr", IsVisible: () => HasResourcesWithCommands)
+            new GridColumn(Name: StateColumn, DesktopWidth: "1.25fr"),
+            new GridColumn(Name: StartTimeColumn, DesktopWidth: "1.5fr"),
+            new GridColumn(Name: SourceColumn, DesktopWidth: "2.5fr"),
+            new GridColumn(Name: EndpointsColumn, DesktopWidth: "2.5fr", MobileWidth: "2fr"),
+            new GridColumn(Name: LogsColumn, DesktopWidth: "1fr"),
+            new GridColumn(Name: DetailsColumn, DesktopWidth: "1fr", MobileWidth: "1fr"),
+            new GridColumn(Name: CommandsColumn, DesktopWidth: "1fr", IsVisible: () => HasResourcesWithCommands)
         ], ViewportInformation, DimensionManager);
 
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
