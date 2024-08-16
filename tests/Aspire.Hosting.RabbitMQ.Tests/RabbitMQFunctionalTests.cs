@@ -3,9 +3,11 @@
 
 using System.Text;
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using Xunit;
 using Xunit.Abstractions;
@@ -88,11 +90,13 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                 {
                     var hb = Host.CreateApplicationBuilder();
                     hb.Configuration[$"ConnectionStrings:{rabbitMQ1.Resource.Name}"] = await rabbitMQ1.Resource.ConnectionStringExpression.GetValueAsync(default);
+                    hb.Services.AddXunitLogging(testOutputHelper);
                     hb.AddRabbitMQClient(rabbitMQ1.Resource.Name);
 
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
+                        await app.WaitForTextAsync($"Time to start RabbitMQ:", resourceName: "rabbitMQ").WaitAsync(TimeSpan.FromMinutes(1));
 
                         var connection = host.Services.GetRequiredService<IConnection>();
 
@@ -119,6 +123,8 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
+            testOutputHelper.WriteLine($"Starting the second run with the same volume/mount");
+
             using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var passwordParameter2 = builder2.AddParameter("pwd");
             builder2.Configuration["Parameters:pwd"] = password;
@@ -141,11 +147,13 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                 {
                     var hb = Host.CreateApplicationBuilder();
                     hb.Configuration[$"ConnectionStrings:{rabbitMQ2.Resource.Name}"] = await rabbitMQ2.Resource.ConnectionStringExpression.GetValueAsync(default);
+                    hb.Services.AddXunitLogging(testOutputHelper);
                     hb.AddRabbitMQClient(rabbitMQ2.Resource.Name);
 
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
+                        await app.WaitForTextAsync($"Time to start RabbitMQ:", resourceName: "rabbitMQ").WaitAsync(TimeSpan.FromMinutes(1));
 
                         var connection = host.Services.GetRequiredService<IConnection>();
 
