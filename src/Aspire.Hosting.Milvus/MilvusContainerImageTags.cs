@@ -7,9 +7,9 @@ internal static class MilvusContainerImageTags
 {
     public const string Registry = "docker.io";
     public const string Image = "milvusdb/milvus";
-    public const string Tag = "2.3-latest";
+    public const string Tag = "v2.4.7";
 
     public const string AttuImage = "zilliz/attu";
-    public const string AttuTag = "v2.3";
+    public const string AttuTag = "v2.4";
 }
 

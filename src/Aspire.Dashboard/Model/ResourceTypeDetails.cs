@@ -27,10 +27,6 @@ public class ResourceTypeDetails
         {
             throw new InvalidOperationException($"Can't get ApplicationKey from resource type details '{ToString()}' because {nameof(ReplicaSetName)} is null.");
         }
-        if (InstanceId == null)
-        {
-            throw new InvalidOperationException($"Can't get ApplicationKey from resource type details '{ToString()}' because {nameof(InstanceId)} is null.");
-        }
 
         return new ApplicationKey(ReplicaSetName, InstanceId);
     }

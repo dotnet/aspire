@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Dashboard;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -111,6 +112,8 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
     public DistributedApplicationExecutionContext ExecutionContext => _innerBuilder.ExecutionContext;
 
     public IResourceCollection Resources => _innerBuilder.Resources;
+
+    public IDistributedApplicationEventing Eventing => _innerBuilder.Eventing;
 
     public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => _innerBuilder.AddResource(resource);
 
