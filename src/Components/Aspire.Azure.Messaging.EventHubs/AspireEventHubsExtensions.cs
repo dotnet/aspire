@@ -175,7 +175,6 @@ public static class AspireEventHubsExtensions
         new EventHubBufferedProducerClientComponent()
             .AddClient(builder, DefaultConfigSectionName + nameof(EventHubBufferedProducerClient), configureSettings,
                 configureClientBuilder, connectionName, serviceKey: null);
-
     }
 
     /// <summary>
