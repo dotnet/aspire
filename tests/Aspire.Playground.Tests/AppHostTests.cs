@@ -3,7 +3,6 @@
 
 using System.Net;
 using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
@@ -312,11 +311,8 @@ public class AppHostTests
     }
 }
 
-public class TestEndpoints : IXunitSerializable
+public class TestEndpoints
 {
-    // Required for deserialization
-    public TestEndpoints() { }
-
     public TestEndpoints(string appHost, Dictionary<string, List<string>> resourceEndpoints, List<ReadyStateText>? waitForTexts = null)
     {
         AppHost = appHost;
@@ -324,29 +320,13 @@ public class TestEndpoints : IXunitSerializable
         WaitForTexts = waitForTexts;
     }
 
-    public string? AppHost { get; set; }
+    public string AppHost { get; set; }
 
     public List<ResourceWait>? WaitForResources { get; set; }
 
     public List<ReadyStateText>? WaitForTexts { get; set; }
 
     public Dictionary<string, List<string>>? ResourceEndpoints { get; set; }
-
-    public void Deserialize(IXunitSerializationInfo info)
-    {
-        AppHost = info.GetValue<string>(nameof(AppHost));
-        WaitForResources = JsonSerializer.Deserialize<List<ResourceWait>>(info.GetValue<string>(nameof(WaitForResources)));
-        WaitForTexts = JsonSerializer.Deserialize<List<ReadyStateText>>(info.GetValue<string>(nameof(WaitForTexts)));
-        ResourceEndpoints = JsonSerializer.Deserialize<Dictionary<string, List<string>>>(info.GetValue<string>(nameof(ResourceEndpoints)));
-    }
-
-    public void Serialize(IXunitSerializationInfo info)
-    {
-        info.AddValue(nameof(AppHost), AppHost);
-        info.AddValue(nameof(WaitForResources), JsonSerializer.Serialize(WaitForResources));
-        info.AddValue(nameof(WaitForTexts), JsonSerializer.Serialize(WaitForTexts));
-        info.AddValue(nameof(ResourceEndpoints), JsonSerializer.Serialize(ResourceEndpoints));
-    }
 
     public override string? ToString() => $"{AppHost} ({ResourceEndpoints?.Count ?? 0} resources)";
 
