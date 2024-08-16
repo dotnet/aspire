@@ -3,10 +3,12 @@
 
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Polly;
 
 namespace Aspire.Hosting;
 
@@ -116,7 +118,6 @@ public static class RedisBuilderExtensions
         else
         {
             builder.ApplicationBuilder.Services.AddHttpClient();
-            builder.ApplicationBuilder.Services.TryAddLifecycleHook<RedisInsightConfigWriterHook>();
             containerName ??= $"{builder.Resource.Name}-insight";
 
             var resource = new RedisInsightResource(containerName);
@@ -125,6 +126,91 @@ public static class RedisBuilderExtensions
                                       .WithImageRegistry(RedisContainerImageTags.RedisInsightRegistry)
                                       .WithHttpEndpoint(targetPort: 5540, name: "http")
                                       .ExcludeFromManifest();
+
+            builder.ApplicationBuilder.Eventing.Subscribe<AfterResourcesCreatedEvent>(async (e, ct) =>
+            {
+                var redisInstances = builder.ApplicationBuilder.Resources.OfType<RedisResource>();
+
+                if (!redisInstances.Any())
+                {
+                    // No-op if there are no Redis resources present.
+                    return;
+                }
+
+                var connectionFileDirectoryPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                if (!Directory.Exists(connectionFileDirectoryPath))
+                {
+                    Directory.CreateDirectory(connectionFileDirectoryPath);
+                }
+                var connectionFilePath = Path.Combine(connectionFileDirectoryPath, "RedisInsight_connections.json");
+
+                using (var stream = new FileStream(connectionFilePath, FileMode.OpenOrCreate))
+                {
+                    using var writer = new Utf8JsonWriter(stream);
+                    // Need to grant read access to the config file on unix like systems.
+                    if (!OperatingSystem.IsWindows())
+                    {
+                        File.SetUnixFileMode(connectionFilePath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
+                    }
+
+                    writer.WriteStartArray();
+
+                    foreach (var redisResource in redisInstances)
+                    {
+                        if (redisResource.PrimaryEndpoint.IsAllocated)
+                        {
+                            var endpoint = redisResource.PrimaryEndpoint;
+                            writer.WriteStartObject();
+                            writer.WriteString("host", endpoint.ContainerHost);
+                            writer.WriteNumber("port", endpoint.Port);
+                            writer.WriteString("name", redisResource.Name);
+                            writer.WriteNumber("db", 0);
+                            //todo: provide username and password when https://github.com/dotnet/aspire/pull/4642 merged.
+                            writer.WriteNull("username");
+                            writer.WriteNull("password");
+                            writer.WriteString("connectionType", "STANDALONE");
+                            writer.WriteEndObject();
+                        }
+                    }
+                    writer.WriteEndArray();
+                };
+
+                var redisInsightResource = builder.ApplicationBuilder.Resources.OfType<RedisInsightResource>().Single();
+
+
+                var httpClientFactory = e.Services.GetRequiredService<IHttpClientFactory>();
+
+                var client = httpClientFactory.CreateClient();
+
+                var content = new MultipartFormDataContent();
+
+                using (var file = File.OpenRead(connectionFilePath))
+                {
+                    var fileContent = new StreamContent(file);
+
+                    content.Add(fileContent, "file", "RedisInsight_connections.json");
+
+                    var insightEndpoint = redisInsightResource.PrimaryEndpoint;
+                    var apiUrl = $"{insightEndpoint.Scheme}://{insightEndpoint.Host}:{insightEndpoint.Port}/api/databases/import";
+
+                    var pipeline = new ResiliencePipelineBuilder().AddRetry(new Polly.Retry.RetryStrategyOptions
+                    {
+                        Delay = TimeSpan.FromSeconds(2),
+                        MaxRetryAttempts = 5,
+                    }).Build();
+
+                    await pipeline.ExecuteAsync(async (ctx) =>
+                    {
+                        var response = await client.PostAsync(apiUrl, content, ctx)
+                        .ConfigureAwait(false);
+                        response.EnsureSuccessStatusCode();
+
+                    }, ct).ConfigureAwait(false);
+
+                }
+
+                Directory.Delete(connectionFileDirectoryPath, true);
+            });
 
             configureContainer?.Invoke(resourceBuilder);
 
