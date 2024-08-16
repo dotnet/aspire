@@ -145,6 +145,15 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
                         // Seed database
                         dbContext.Cars.Add(new TestDbContext.Car { Brand = "BatMobile" });
                         await dbContext.SaveChangesAsync(cts.Token);
+
+                        await app.StopAsync();
+
+                        // Wait for the database to not be available before attempting to clean the volume.
+
+                        await pipeline.ExecuteAsync(async token =>
+                        {
+                            return !await dbContext.Database.CanConnectAsync(token);
+                        }, cts.Token);
                     }
                 }
                 finally
@@ -193,6 +202,15 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
                         var brands = await dbContext.Cars.ToListAsync(cancellationToken: cts.Token);
                         Assert.Single(brands);
+
+                        await app.StopAsync();
+
+                        // Wait for the database to not be available before attempting to clean the volume.
+
+                        await pipeline.ExecuteAsync(async token =>
+                        {
+                            return !await dbContext.Database.CanConnectAsync(token);
+                        }, cts.Token);
                     }
                 }
                 finally
