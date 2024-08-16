@@ -11,6 +11,16 @@
     grid-template-rows: auto 1fr auto;
 }
 
+::deep.content-header {
+    /*
+        Long titles inside a header don't add an ellipsis when trimmed.
+        Improve here could be to add that feature
+    */
+    grid-area: page-header;
+    overflow-x: hidden;
+    white-space: nowrap;
+}
+
 ::deep .title-toolbar-inline {
     padding-left: 0px;
     padding-top: 0px;
