@@ -1161,8 +1161,19 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
+    private async Task WaitForDependencyResourcesAsync(IResource resource, CancellationToken cancellationToken)
+    {
+        var resourceLogger = loggerService.GetLogger(resource);
+        var waitContext = new WaitContext(resourceLogger, serviceProvider);
+        var waitAnnotations = resource.Annotations.OfType<WaitAnnotation>().Select(w => w.WaitAsync(waitContext, cancellationToken)).ToArray();
+        Task.WaitAll(waitAnnotations, cancellationToken);
+        await Task.WhenAll(waitAnnotations).ConfigureAwait(false);
+    }
+
     private async Task CreateExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
     {
+        await WaitForDependencyResourcesAsync(er.ModelResource, cancellationToken).ConfigureAwait(false);
+
         ExecutableSpec spec;
         Func<Task<CustomResource>> createResource;
 
@@ -1420,6 +1431,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateContainerAsync(AppResource cr, ILogger resourceLogger, CancellationToken cancellationToken)
     {
+        await WaitForDependencyResourcesAsync(cr.ModelResource, cancellationToken).ConfigureAwait(false);
+
         var dcpContainerResource = (Container)cr.DcpResource;
         var modelContainerResource = cr.ModelResource;
 

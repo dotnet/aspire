@@ -14,8 +14,12 @@ Aspire.Hosting.ApplicationModel.BeforeStartEvent.Services.get -> System.IService
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
 Aspire.Hosting.ApplicationModel.WaitAnnotation
 Aspire.Hosting.ApplicationModel.WaitAnnotation.Dependency.get -> Aspire.Hosting.ApplicationModel.IResource!
-Aspire.Hosting.ApplicationModel.WaitAnnotation.WaitAnnotation(Aspire.Hosting.ApplicationModel.IResource! dependency, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task!>! waitTask) -> void
-Aspire.Hosting.ApplicationModel.WaitAnnotation.WaitAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Aspire.Hosting.ApplicationModel.WaitAnnotation.WaitAnnotation(Aspire.Hosting.ApplicationModel.IResource! dependency, System.Func<Aspire.Hosting.ApplicationModel.WaitContext!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> void
+Aspire.Hosting.ApplicationModel.WaitAnnotation.WaitAsync(Aspire.Hosting.ApplicationModel.WaitContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Aspire.Hosting.ApplicationModel.WaitContext
+Aspire.Hosting.ApplicationModel.WaitContext.Logger.get -> Microsoft.Extensions.Logging.ILogger!
+Aspire.Hosting.ApplicationModel.WaitContext.Services.get -> System.IServiceProvider!
+Aspire.Hosting.ApplicationModel.WaitContext.WaitContext(Microsoft.Extensions.Logging.ILogger! logger, System.IServiceProvider! serviceProvider) -> void
 Aspire.Hosting.DistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!
 Aspire.Hosting.Eventing.DistributedApplicationEventing
 Aspire.Hosting.Eventing.DistributedApplicationEventing.DistributedApplicationEventing() -> void
@@ -49,7 +53,7 @@ Aspire.Hosting.DistributedApplicationExecutionContextOptions.DistributedApplicat
 Aspire.Hosting.DistributedApplicationExecutionContextOptions.Operation.get -> Aspire.Hosting.DistributedApplicationOperation
 Aspire.Hosting.DistributedApplicationExecutionContextOptions.ServiceProvider.get -> System.IServiceProvider?
 Aspire.Hosting.DistributedApplicationExecutionContextOptions.ServiceProvider.set -> void
-static Aspire.Hosting.ResourceBuilderExtensions.WaitFor<T>(Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IResource!>! dependency) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WaitFor<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IResource!>! dependency) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Exited -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.FailedToStart -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Finished -> string!

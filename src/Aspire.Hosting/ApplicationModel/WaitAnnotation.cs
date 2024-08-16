@@ -7,17 +7,18 @@ namespace Aspire.Hosting.ApplicationModel;
 /// TODO
 /// </summary>
 /// <param name="dependency">TODO</param>
-/// <param name="waitTask">TODO</param>
-public class WaitAnnotation(IResource dependency, Func<CancellationToken, Task> waitTask) : IResourceAnnotation
+/// <param name="callback">TODO</param>
+public class WaitAnnotation(IResource dependency, Func<WaitContext, CancellationToken, Task> callback) : IResourceAnnotation
 {
     /// <summary>
     /// TODO
     /// </summary>
+    /// <param name="context">TODO</param>
     /// <param name="cancellationToken">TODO</param>
     /// <returns>TODO</returns>
-    public async Task WaitAsync(CancellationToken cancellationToken)
+    public async Task WaitAsync(WaitContext context, CancellationToken cancellationToken)
     {
-        await waitTask(cancellationToken).ConfigureAwait(false);
+        await callback(context, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
