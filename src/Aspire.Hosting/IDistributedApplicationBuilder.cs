@@ -3,6 +3,7 @@
 
 using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -69,6 +70,11 @@ public interface IDistributedApplicationBuilder
 
     /// <inheritdoc cref="HostApplicationBuilder.Services" />
     public IServiceCollection Services { get; }
+
+    /// <summary>
+    /// Eventing infrastructure for AppHost lifecycle.
+    /// </summary>
+    public IDistributedApplicationEventing Eventing { get; }
 
     /// <summary>
     /// Execution context for this invocation of the AppHost.

@@ -15,6 +15,7 @@ internal static class StringComparers
     public static StringComparer EnvironmentVariableName => StringComparer.InvariantCultureIgnoreCase;
     public static StringComparer UrlPath => StringComparer.OrdinalIgnoreCase;
     public static StringComparer UrlHost => StringComparer.OrdinalIgnoreCase;
+    public static StringComparer Attribute => StringComparer.Ordinal;
 }
 
 internal static class StringComparisons
