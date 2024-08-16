@@ -103,7 +103,7 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
                 volumeName = VolumeNameGenerator.CreateVolumeName(oracle1, nameof(WithDataShouldPersistStateBetweenUsages));
 
                 // If the volume already exists (because of a crashing previous run), try to delete it
-                DockerUtils.AttemptDeleteDockerVolume(volumeName);
+                DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
                 oracle1.WithDataVolume(volumeName);
             }
             else
@@ -139,29 +139,12 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
                         using var dbContext = host.Services.GetRequiredService<TestDbContext>();
 
-                        // Wait until the database is available
-                        await pipeline.ExecuteAsync(async token =>
-                        {
-                            return await dbContext.Database.CanConnectAsync(cts.Token);
-                        }, cts.Token);
-
                         // Create tables
                         await dbContext.Database.EnsureCreatedAsync(cts.Token);
 
                         // Seed database
                         dbContext.Cars.Add(new TestDbContext.Car { Brand = "BatMobile" });
                         await dbContext.SaveChangesAsync(cts.Token);
-
-                        // Stops the container and wait until it's not accessible anymore before creating a new one
-                        // using the same volume.
-
-                        await app.StopAsync();
-
-                        await pipeline.ExecuteAsync(async token =>
-                        {
-                            var dbContext = host.Services.GetRequiredService<TestDbContext>();
-                            return !await dbContext.Database.CanConnectAsync(token);
-                        }, cts.Token);
                     }
                 }
                 finally
@@ -208,23 +191,8 @@ public class OracleFunctionalTests(ITestOutputHelper testOutputHelper)
 
                         using var dbContext = host.Services.GetRequiredService<TestDbContext>();
 
-                        // Wait until the database is available
-                        await pipeline.ExecuteAsync(async token =>
-                        {
-                            return await dbContext.Database.CanConnectAsync(token);
-                        });
-
                         var brands = await dbContext.Cars.ToListAsync(cancellationToken: cts.Token);
                         Assert.Single(brands);
-
-                        await app.StopAsync();
-
-                        // Wait for the database to not be available before attempting to clean the volume.
-
-                        await pipeline.ExecuteAsync(async token =>
-                        {
-                            return !await dbContext.Database.CanConnectAsync(token);
-                        }, cts.Token);
                     }
                 }
                 finally
