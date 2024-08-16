@@ -21,6 +21,16 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Resources : ComponentBase, IAsyncDisposable
 {
+    private const string TypeColumn = nameof(TypeColumn);
+    private const string NameColumn = nameof(NameColumn);
+    private const string ResourcesStateColumn = nameof(ResourcesStateColumn);
+    private const string ResourcesStartTimeColumn = nameof(ResourcesStartTimeColumn);
+    private const string ResourcesSourceColumn = nameof(ResourcesSourceColumn);
+    private const string ResourcesEndpointsColumn = nameof(ResourcesEndpointsColumn);
+    private const string ResourcesLogsColumn = nameof(ResourcesLogsColumn);
+    private const string ResourcesDetailsColumn = nameof(ResourcesDetailsColumn);
+    private const string ResourcesCommandsColumn = nameof(ResourcesCommandsColumn);
+
     private Subscription? _logsSubscription;
     private Dictionary<OtlpApplication, int>? _applicationUnviewedErrorCounts;
 
@@ -40,9 +50,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     public required IJSRuntime JS { get; init; }
     [Inject]
     public required ProtectedSessionStorage SessionStorage { get; init; }
+    [Inject]
+    public required DimensionManager DimensionManager { get; init; }
 
     [CascadingParameter]
-    public required ViewportInformation ViewportInformation { get; init; }
+    public required ViewportInformation ViewportInformation { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery]
@@ -59,6 +71,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private Task? _resourceSubscriptionTask;
     private bool _isLoading = true;
     private string? _elementIdBeforeDetailsViewOpened;
+    private GridColumnManager _manager = null!;
 
     private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter)) && !resource.IsHiddenState();
 
@@ -136,6 +149,18 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
+        _manager = new GridColumnManager([
+            new GridColumn(Name: TypeColumn, DesktopWidth: "1fr", MobileWidth: "1fr"),
+            new GridColumn(Name: NameColumn, DesktopWidth: "1.5fr", MobileWidth: "1.5fr"),
+            new GridColumn(Name: ResourcesStateColumn, DesktopWidth: "1.25fr"),
+            new GridColumn(Name: ResourcesStartTimeColumn, DesktopWidth: "1.5fr"),
+            new GridColumn(Name: ResourcesSourceColumn, DesktopWidth: "2.5fr"),
+            new GridColumn(Name: ResourcesEndpointsColumn, DesktopWidth: "2.5fr", MobileWidth: "2fr"),
+            new GridColumn(Name: ResourcesLogsColumn, DesktopWidth: "1fr"),
+            new GridColumn(Name: ResourcesDetailsColumn, DesktopWidth: "1fr", MobileWidth: "1fr"),
+            new GridColumn(Name: ResourcesCommandsColumn, DesktopWidth: "1fr", IsVisible: () => HasResourcesWithCommands)
+        ], ViewportInformation, DimensionManager);
+
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
         if (DashboardClient.IsEnabled)
@@ -279,18 +304,6 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private string GetRowClass(ResourceViewModel resource)
         => resource == SelectedResource ? "selected-row resource-row" : "resource-row";
 
-    private string GetGridTemplateColumns()
-    {
-        if (ViewportInformation.IsDesktop)
-        {
-            return HasResourcesWithCommands ? "1fr 1.5fr 1.25fr 1.5fr 2.5fr 2.5fr 1fr 1fr 1fr" : "1fr 1.5fr 1.25fr 1.5fr 2.5fr 2.5fr 1fr 1fr";
-        }
-        else
-        {
-            return HasResourcesWithCommands ? "1fr 1.5fr 1.25fr 1fr 1fr" : "1fr 1.5fr 1.25fr 1fr";
-        }
-    }
-
     private async Task ExecuteResourceCommandAsync(ResourceViewModel resource, CommandViewModel command)
     {
         if (!string.IsNullOrWhiteSpace(command.ConfirmationMessage))
@@ -399,6 +412,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         _watchTaskCancellationTokenSource.Cancel();
         _watchTaskCancellationTokenSource.Dispose();
         _logsSubscription?.Dispose();
+        _manager.Dispose();
 
         await TaskHelpers.WaitIgnoreCancelAsync(_resourceSubscriptionTask);
     }

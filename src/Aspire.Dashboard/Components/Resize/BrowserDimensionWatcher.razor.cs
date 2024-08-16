@@ -45,10 +45,8 @@ public class BrowserDimensionWatcher : ComponentBase
         {
             ViewportInformation = newViewportInformation;
             DimensionManager.IsResizing = true;
-
+            DimensionManager.InvokeOnBrowserDimensionsChanged(newViewportInformation);
             await ViewportInformationChanged.InvokeAsync(newViewportInformation);
-            DimensionManager.InvokeOnBrowserDimensionsChanged();
-
             DimensionManager.IsResizing = false;
         }
     }

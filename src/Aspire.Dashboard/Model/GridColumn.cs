@@ -3,4 +3,4 @@
 
 namespace Aspire.Dashboard.Model;
 
-public record GridColumn(string Name, string? DesktopWidth, string? MobileWidth, Func<bool>? IsVisible = null);
+public record GridColumn(string Name, string? DesktopWidth, string? MobileWidth = null, Func<bool>? IsVisible = null);

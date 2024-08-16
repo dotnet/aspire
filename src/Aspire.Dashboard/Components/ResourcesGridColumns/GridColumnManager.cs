@@ -6,18 +6,28 @@ using Aspire.Dashboard.Model;
 
 namespace Aspire.Dashboard.Components;
 
-public class GridColumnManager(GridColumn[] columns)
+public class GridColumnManager : IDisposable
 {
-    private ViewportInformation _currentViewport = null!;
+    private readonly GridColumn[] _columns;
+    private readonly DimensionManager _dimensionManager;
+    private ViewportInformation _currentViewport;
 
-    public void SetViewport(ViewportInformation viewportInformation)
+    public GridColumnManager(GridColumn[] columns, ViewportInformation viewportInformation, DimensionManager dimensionManager)
     {
+        _columns = columns;
         _currentViewport = viewportInformation;
+        _dimensionManager = dimensionManager;
+        _dimensionManager.OnBrowserDimensionsChanged += OnBrowserDimensionsChanged;
+    }
+
+    private void OnBrowserDimensionsChanged(object _, BrowserDimensionsChangedEventArgs args)
+    {
+        _currentViewport = args.ViewportInformation;
     }
 
     public bool IsColumnVisible(string columnName)
     {
-        return GetColumnWidth(columns.First(column => column.Name == columnName)) is not null;
+        return GetColumnWidth(_columns.First(column => column.Name == columnName)) is not null;
     }
 
     private string? GetColumnWidth(GridColumn column)
@@ -37,11 +47,16 @@ public class GridColumnManager(GridColumn[] columns)
 
     public string GetGridTemplateColumns()
     {
-        var visibleColumns = columns
+        var visibleColumns = _columns
             .Select(GetColumnWidth)
             .Where(s => s is not null)
             .Select(s => s!);
 
         return string.Join(" ", visibleColumns);
+    }
+
+    public void Dispose()
+    {
+        _dimensionManager.OnBrowserDimensionsChanged -= OnBrowserDimensionsChanged;
     }
 }
