@@ -508,8 +508,7 @@ public class AddPostgresTests
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var hook = new PgWebConfigWriterHook();
-        await hook.AfterEndpointsAllocatedAsync(appModel, CancellationToken.None);
+        await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
         var bookMarkFiles = Directory
             .GetFiles(volume.Source!);
