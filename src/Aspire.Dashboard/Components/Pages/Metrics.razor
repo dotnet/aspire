@@ -113,7 +113,16 @@
                 else if (PageViewModel.Instruments == null)
                 {
                     <div class="empty-content">
-                        <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple"/>&nbsp;@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectAResource)]
+                        @if (ViewportInformation.IsDesktop)
+                        {
+                            <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple"/>@:&nbsp;
+                            @Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectAResource)]
+                        }
+                        else
+                        {
+                            <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple"/>@:&nbsp;
+                            <a class @onclick="@(async () => await _contentLayout!.OpenMobileToolbarAsync())">@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectAResource)]</a>
+                        }
                     </div>
                 }
                 else
