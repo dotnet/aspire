@@ -166,8 +166,16 @@ public class AppHostTests
     {
         IList<TestEndpoints> candidates =
         [
+            new TestEndpoints("AzureStorageEndToEnd.AppHost",
+                resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
+                waitForTexts: [
+                    new ("storage", "Azurite Table service is successfully listening")
+                ]),
             new TestEndpoints("MilvusPlayground.AppHost",
-                resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/create", "/search"] } }),
+                resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/create", "/search"] } },
+                waitForTexts: [
+                    new ("milvus", "Milvus Proxy successfully initialized and ready to serve"),
+                ]),
             new TestEndpoints("CosmosEndToEnd.AppHost",
                 resourceEndpoints: new() { { "api", ["/alive", "/health", "/", "/ef"] } },
                 waitForTexts: [
