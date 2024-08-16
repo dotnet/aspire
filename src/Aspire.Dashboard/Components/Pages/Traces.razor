@@ -37,20 +37,26 @@
                                 ResizableColumns="true"
                                 ItemsProvider="@GetData"
                                 TGridItem="OtlpTrace"
-                                GridTemplateColumns="@GetGridTemplateColumns()"
+                                GridTemplateColumns="@_manager.GetGridTemplateColumns()"
                                 ShowHover="true"
                                 OnRowClick="@(r => r.ExecuteOnDefault(d => NavigationManager.NavigateTo(DashboardUrls.TraceDetailUrl(d.TraceId))))"
                                 Class="enable-row-click">
                     <ChildContent>
-                        <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
-                            @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Truncated)
-                        </TemplateColumn>
-                        <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Tooltip="true" TooltipText="@(trace => GetNameTooltip(trace))">
-                            <span><FluentHighlighter HighlightedText="@(TracesViewModel.FilterText)" Text="@(context.FullName)" /></span>
-                            <span class="trace-id">@OtlpHelpers.ToShortenedId(context.TraceId)</span>
-                        </TemplateColumn>
+                        @if (_manager.IsColumnVisible(TimestampColumn))
+                        {
+                            <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
+                                @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.FirstSpan.StartTime, MillisecondsDisplay.Truncated)
+                            </TemplateColumn>
+                        }
+                        @if (_manager.IsColumnVisible(NameColumn))
+                        {
+                            <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Tooltip="true" TooltipText="@(trace => GetNameTooltip(trace))">
+                                <span><FluentHighlighter HighlightedText="@(TracesViewModel.FilterText)" Text="@(context.FullName)"/></span>
+                                <span class="trace-id">@OtlpHelpers.ToShortenedId(context.TraceId)</span>
+                            </TemplateColumn>
+                        }
 
-                        @if (ViewportInformation.IsDesktop)
+                        @if (_manager.IsColumnVisible(SpansColumn))
                         {
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Traces.TracesSpansColumnHeader)]">
                                 <FluentOverflow>
@@ -61,7 +67,7 @@
                                                 <span class="trace-tag trace-service-tag" title="@(GetSpansTooltip(item))" style="border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(item.Key)));">
                                                     @if (item.Any(s => s.Status == OtlpSpanStatusCode.Error))
                                                     {
-                                                        <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
+                                                        <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon"/>
                                                     }
                                                     @GetResourceName(item.Key) (@item.Count())
                                                 </span>
@@ -88,7 +94,10 @@
                                     </OverflowTemplate>
                                 </FluentOverflow>
                             </TemplateColumn>
+                        }
 
+                        @if (_manager.IsColumnVisible(DurationColumn))
+                        {
                             <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]">
                                 <div class="duration-container">
                                     @if (ViewportInformation.IsDesktop)
@@ -110,9 +119,12 @@
                             </TemplateColumn>
                         }
 
-                        <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
-                            <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.TraceDetailUrl(context.TraceId)">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentAnchor>
-                        </TemplateColumn>
+                        @if (_manager.IsColumnVisible(DetailsColumn))
+                        {
+                            <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
+                                <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.TraceDetailUrl(context.TraceId)">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentAnchor>
+                            </TemplateColumn>
+                        }
                     </ChildContent>
                     <EmptyContent>
                         <FluentIcon Icon="Icons.Regular.Size24.GanttChart" />&nbsp;@Loc[nameof(Dashboard.Resources.Traces.TracesNoTraces)]
