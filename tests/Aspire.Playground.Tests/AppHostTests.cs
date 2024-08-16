@@ -28,7 +28,7 @@ public class AppHostTests
     }
 
     [Theory]
-    [MemberData(nameof(AppHostAssemblies))]
+    [MemberData(nameof(AppHostAssembliesWithNoTestEndpoints))]
     public async Task AppHostRunsCleanly(string appHostPath)
     {
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, _testOutput);
@@ -142,7 +142,7 @@ public class AppHostTests
         await app.StopAsync();
     }
 
-    public static TheoryData<string> AppHostAssemblies()
+    public static TheoryData<string> AppHostAssembliesWithNoTestEndpoints()
     {
         var appHostAssemblies = GetPlaygroundAppHostAssemblyPaths();
 
@@ -158,6 +158,7 @@ public class AppHostTests
             var appHostName = Path.GetFileNameWithoutExtension(asm);
             if (appHostsWithTestEndpoints.Contains(appHostName))
             {
+                // Skipping this as it will be tested by TestEndpointsReturnOk
                 continue;
             }
 
