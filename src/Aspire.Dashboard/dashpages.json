@@ -1,37 +1,108 @@
 [
-  /* Comments are ignored */
   {
-    "name": ".NET",
-    "priority": 99,
+    "name": "ASP.NET",
     "charts": [
       {
-        "title": "Exception count",
-        "instrument": "process.runtime.dotnet.exceptions.count",
-        "required": false, // default
-        "resource": null, // default
-        "kind": "Graph" // upper case
+        "title": "Request duration",
+        "instrument": "http.server.request.duration",
+        "required": true
       },
       {
-        "title": "Assembly count",
-        "instrument": "process.runtime.dotnet.assemblies.count",
-        "kind": "table" // lower case
+        "title": "Active requests",
+        "instrument": "http.server.active_requests"
       },
       {
-        "title": "Thread Pool Completion",
-        "instrument": "process.runtime.dotnet.thread_pool.completed_items.count",
-        "required": true // non-default
+        "title": "Active connections",
+        "instrument": "kestrel.active_connections"
+      },
+      {
+        "title": "Routing match attempts",
+        "instrument": "aspnetcore.routing.match_attempts"
+        //"Breakout": "http.route"
       }
     ]
   },
   {
-    "name": "Envoy",
-    "priority": 99,
+    "name": "Runtime (Instrumentation Library)",
     "charts": [
       {
-        "title": "Connection count",
-        "instrument": "envoy.connection.count",
-        "required": true, // non-default
-        "resource": "envoy" // non-default
+        "title": "GC Heap Size",
+        "instrument": "process.runtime.dotnet.gc.heap.size"
+      },
+      {
+        "title": "Exception count",
+        "instrument": "process.runtime.dotnet.exceptions.count"
+      },
+      {
+        "title": "Thread pool queue length",
+        "instrument": "process.runtime.dotnet.thread_pool.queue.length"
+      },
+      {
+        "title": "Lock contention",
+        "instrument": "process.runtime.dotnet.monitor.lock_contention.count"
+      },
+      {
+        "title": "Methods JIT compiled",
+        "instrument": "process.runtime.dotnet.jit.methods_compiled.count"
+      },
+      {
+        "title": ".NET assembly count",
+        "instrument": "process.runtime.dotnet.assemblies.count",
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "HttpClient",
+    "charts": [
+      {
+        "title": "Request duration",
+        "instrument": "http.client.request.duration"
+        //"Breakout": "server.address"
+      },
+      {
+        "title": "Active requests",
+        "instrument": "http.client.active_requests"
+      },
+      {
+        "title": "Connection duration",
+        "instrument": "http.client.connection.duration"
+      },
+      {
+        "title": "Open connections",
+        "instrument": "http.client.open_connections",
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "NgpSQL",
+    "charts": [
+      {
+        "title": "Command duration",
+        "instrument": "db.client.commands.duration"
+        //"Breakout": "pool.name"
+      },
+      {
+        "title": "Commands executing",
+        "instrument": "db.client.commands.executing"
+        //"Breakout": "pool.name"
+      },
+      {
+        "title": "Connection usage",
+        "instrument": "db.client.connections.usage",
+        "required": true
+        //"Breakout": "state"
+      },
+      {
+        "title": "Bytes read",
+        "instrument": "db.client.commands.bytes_read"
+        //"Breakout": "pool.name"
+      },
+      {
+        "title": "Bytes written",
+        "instrument": "db.client.commands.bytes_written"
+        //"Breakout": "pool.name"
       }
     ]
   }
