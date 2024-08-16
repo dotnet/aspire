@@ -7,6 +7,12 @@
     font-weight: 600;
 }
 
+::deep .meter-name-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* Metrics chart SVG */
 ::deep .yaxislayer-above {
     transform: translate(-10px,0px);
@@ -34,6 +40,13 @@
 
 ::deep .metrics-chart-header {
     grid-area: header;
+    overflow-x: hidden;
+}
+
+::deep .metrics-chart-header h3 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 ::deep .metrics-chart-container {
