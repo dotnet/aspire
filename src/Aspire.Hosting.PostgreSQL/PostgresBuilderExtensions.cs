@@ -220,8 +220,6 @@ public static class PostgresBuilderExtensions
         }
         else
         {
-            builder.ApplicationBuilder.Services.TryAddLifecycleHook<PgWebConfigWriterHook>();
-
             containerName ??= $"{builder.Resource.Name}-pgweb";
             var dir = Directory.CreateTempSubdirectory().FullName;
             var pgwebContainer = new PgWebContainerResource(containerName);
@@ -235,6 +233,36 @@ public static class PostgresBuilderExtensions
                                                .ExcludeFromManifest();
 
             configureContainer?.Invoke(pgwebContainerBuilder);
+
+            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>(async (e, ct) =>
+            {
+                var adminResource = builder.ApplicationBuilder.Resources.OfType<PgWebContainerResource>().Single();
+                var serverFileMount = adminResource.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == "/.pgweb/bookmarks");
+                var postgresInstances = builder.ApplicationBuilder.Resources.OfType<PostgresDatabaseResource>();
+
+                if (!Directory.Exists(serverFileMount.Source!))
+                {
+                    Directory.CreateDirectory(serverFileMount.Source!);
+                }
+
+                foreach (var postgresDatabase in postgresInstances)
+                {
+                    var user = postgresDatabase.Parent.UserNameParameter?.Value ?? "postgres";
+
+                    var fileContent = $"""
+                        host = "{postgresDatabase.Parent.PrimaryEndpoint.ContainerHost}"
+                        port = {postgresDatabase.Parent.PrimaryEndpoint.Port}
+                        user = "{user}"
+                        password = "{postgresDatabase.Parent.PasswordParameter.Value}"
+                        database = "{postgresDatabase.DatabaseName}"
+                        sslmode = "disable"
+                        """;
+
+                    var filePath = Path.Combine(serverFileMount.Source!, $"{postgresDatabase.Name}.toml");
+                    await File.WriteAllTextAsync(filePath, fileContent, ct).ConfigureAwait(false);
+                }
+            });
+
             return builder;
         }
     }
