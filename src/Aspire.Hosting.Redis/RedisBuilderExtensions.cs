@@ -177,7 +177,6 @@ public static class RedisBuilderExtensions
 
                 var redisInsightResource = builder.ApplicationBuilder.Resources.OfType<RedisInsightResource>().Single();
 
-
                 var httpClientFactory = e.Services.GetRequiredService<IHttpClientFactory>();
 
                 var client = httpClientFactory.CreateClient();
