@@ -153,7 +153,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
-                        await app.WaitForTextAsync($"Time to start RabbitMQ:", resourceName: "rabbitMQ").WaitAsync(TimeSpan.FromMinutes(1));
+                        await app.WaitForTextAsync($"Time to start RabbitMQ:", resourceName: rabbitMQ2.Resource.Name).WaitAsync(TimeSpan.FromMinutes(1));
 
                         var connection = host.Services.GetRequiredService<IConnection>();
 
