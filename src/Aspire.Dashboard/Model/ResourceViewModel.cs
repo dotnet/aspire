@@ -88,8 +88,9 @@ public sealed class EnvironmentVariableViewModel
 
     public EnvironmentVariableViewModel(string name, string? value, bool fromSpec)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-
+        // Name should always have a value, but somehow an empty/whitespace name can reach this point.
+        // Better to allow Aspire to run with an env var with no name than break when loading resources.
+        // https://github.com/dotnet/aspire/issues/5309
         Name = name;
         Value = value;
         FromSpec = fromSpec;
