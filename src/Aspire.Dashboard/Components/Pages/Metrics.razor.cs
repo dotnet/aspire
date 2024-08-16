@@ -1,7 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -59,12 +62,15 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public required TelemetryRepository TelemetryRepository { get; init; }
 
     [Inject]
+    public required IDashpagePersistence DashpagePersistence { get; init; }
+
+    [Inject]
     public required ILogger<Metrics> Logger { get; init; }
 
-    protected override Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
     {
-        _durations = new List<SelectViewModel<TimeSpan>>
-        {
+        _durations =
+        [
             new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastOneMinute)], Id = TimeSpan.FromMinutes(1) },
             new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastFiveMinutes)], Id = TimeSpan.FromMinutes(5) },
             new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastFifteenMinutes)], Id = TimeSpan.FromMinutes(15) },
@@ -73,7 +79,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastThreeHours)], Id = TimeSpan.FromHours(3) },
             new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastSixHours)], Id = TimeSpan.FromHours(6) },
             new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastTwelveHours)], Id = TimeSpan.FromHours(12) },
-        };
+        ];
 
         _selectApplication = new SelectViewModel<ResourceTypeDetails>
         {
@@ -85,16 +91,17 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         {
             SelectedApplication = _selectApplication,
             SelectedDuration = _durations.Single(d => d.Id == s_defaultDuration),
-            SelectedViewKind = null
+            SelectedViewKind = null,
+            Dashpages = await DashpagePersistence.GetDashpagesAsync(CancellationToken.None)
         };
 
         UpdateApplications();
+
         _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
         {
             UpdateApplications();
             StateHasChanged();
         }));
-        return Task.CompletedTask;
     }
 
     protected override async Task OnParametersSetAsync()
@@ -196,6 +203,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
+    #region Model
+
     public sealed class MetricsViewModel
     {
         public FluentTreeItem? SelectedTreeItem { get; set; }
@@ -216,41 +225,16 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
         public required MetricViewKind? SelectedViewKind { get; set; }
 
-        public List<DashpageDefinition> Dashpages { get; init; } =
-            [
-                // TODO replace hard-coded test data
-                new DashpageDefinition { Name = ".NET Memory", Key = "dotnet-memory" },
-                new DashpageDefinition { Name = "GC", Key = "gc" },
-                new DashpageDefinition { Name = "CPU", Key = "cpu" },
-                new DashpageDefinition { Name = "Traffic", Key = "traffic" }
-            ];
+        public required ImmutableArray<DashpageDefinition> Dashpages { get; init; }
     }
 
-    public class DashpageDefinition
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public enum MetricViewKind
     {
-        public required string Name { get; init; }
-        public required string Key { get; init; }
-
-        public List<DashpageChartDefinition> Charts { get; } =
-        [
-            // TODO more realistic dashpage definitions for testing and demoing
-            // TODO replace hard-coded test data with data from config/resource service
-            new DashpageChartDefinition { Title = "Exception count", InstrumentName = "process.runtime.dotnet.exceptions.count" },
-            new DashpageChartDefinition { Title = "Assembly count", InstrumentName = "process.runtime.dotnet.assemblies.count" },
-            new DashpageChartDefinition { Title = "Assembly count", InstrumentName = "process.runtime.dotnet.thread_pool.completed_items.count" },
-            new DashpageChartDefinition { Title = "Object size", InstrumentName = "process.runtime.dotnet.gc.objects.size" },
-            new DashpageChartDefinition { Title = "Allocation size", InstrumentName = "process.runtime.dotnet.gc.allocations.size" },
-
-            // NOTE for some reason, adding GC Count causes all charts on the page to show blank, with a y-range of 0-1
-            // Is it to do with chart filters? I see them in ChartContainer.razor but can't tell what they're for
-            //new DashpageChartDefinition { Title = "GC Count", InstrumentName = "process.runtime.dotnet.gc.collections.count" },
-        ];
-    }
-
-    public class DashpageChartDefinition
-    {
-        public required string Title { get; init; }
-        public required string InstrumentName{ get; init; }
+        [EnumMember(Value = "graph")]
+        Graph,
+        [EnumMember(Value = "table")]
+        Table
     }
 
     public class MetricsPageState
@@ -262,11 +246,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         public required string? ViewKind { get; set; }
     }
 
-    public enum MetricViewKind
-    {
-        Table,
-        Graph
-    }
+    #endregion
 
     private Task HandleSelectedTreeItemChangedAsync()
     {

@@ -1,0 +1,38 @@
+[
+  /* Comments are ignored */
+  {
+    "name": ".NET",
+    "priority": 99,
+    "charts": [
+      {
+        "title": "Exception count",
+        "instrument": "process.runtime.dotnet.exceptions.count",
+        "required": false, // default
+        "resource": null, // default
+        "kind": "Graph" // upper case
+      },
+      {
+        "title": "Assembly count",
+        "instrument": "process.runtime.dotnet.assemblies.count",
+        "kind": "table" // lower case
+      },
+      {
+        "title": "Thread Pool Completion",
+        "instrument": "process.runtime.dotnet.thread_pool.completed_items.count",
+        "required": true // non-default
+      }
+    ]
+  },
+  {
+    "name": "Envoy",
+    "priority": 99,
+    "charts": [
+      {
+        "title": "Connection count",
+        "instrument": "envoy.connection.count",
+        "required": true, // non-default
+        "resource": "envoy" // non-default
+      }
+    ]
+  }
+]

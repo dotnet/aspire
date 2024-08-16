@@ -29,6 +29,7 @@ using Microsoft.AspNetCore.Server.Kestrel;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
@@ -218,6 +219,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddScoped<ISessionStorage, SessionBrowserStorage>();
 
         builder.Services.AddScoped<DimensionManager>();
+
+        builder.Services.AddSingleton<IFileProvider>(new PhysicalFileProvider(Directory.GetCurrentDirectory()));
+        builder.Services.AddSingleton<IDashpagePersistence, DashpageJsonFilePersistence>();
 
         builder.Services.AddLocalization();
 

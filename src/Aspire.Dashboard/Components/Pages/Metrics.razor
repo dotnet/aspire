@@ -3,6 +3,7 @@
 @page "/metrics/resource/{applicationName}/meter/{meterName}"
 @page "/metrics/resource/{applicationName}/meter/{meterName}/instrument/{instrumentName}"
 
+@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Otlp.Model
@@ -56,7 +57,7 @@
                         <Panel1>
                             <FluentTreeView Class="metrics-tree" @bind-CurrentSelected="PageViewModel.SelectedTreeItem" @bind-CurrentSelected:after="HandleSelectedTreeItemChangedAsync">
                                 <ChildContent>
-                                    @if (PageViewModel.Dashpages.Count is not 0)
+                                    @if (PageViewModel.Dashpages.Length is not 0)
                                     {
                                         <FluentTreeItem Text="@Loc[Aspire.Dashboard.Resources.Metrics.DashpagesSectionName]" title="@Loc[Aspire.Dashboard.Resources.Metrics.DashpagesSectionName]" InitiallyExpanded="true">
                                             @foreach (DashpageDefinition dashpage in PageViewModel.Dashpages)
