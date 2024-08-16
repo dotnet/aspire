@@ -37,6 +37,7 @@
 
       <_E2ETestScenarios Include="basicservices" />
       <_E2ETestScenarios Include="cosmos" />
+      <_E2ETestScenarios Include="eventhubs" />
       <!-- needed for batching below -->
       <_E2ETestScenarios PreCommands="" />
 
