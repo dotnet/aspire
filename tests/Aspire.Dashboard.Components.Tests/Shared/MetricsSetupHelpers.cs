@@ -14,6 +14,7 @@ using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Otlp.Storage;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -81,6 +82,7 @@ internal static class MetricsSetupHelpers
         context.Services.AddSingleton<LibraryConfiguration>();
         context.Services.AddSingleton<IKeyCodeService, KeyCodeService>();
         context.Services.AddSingleton<IEffectiveThemeResolver, TestEffectiveThemeResolver>();
+        context.Services.AddSingleton<IDashpagePersistence, TestDashpagePersistence>();
         context.Services.AddSingleton<ThemeManager>();
     }
 
