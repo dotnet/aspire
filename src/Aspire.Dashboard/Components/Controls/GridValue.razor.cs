@@ -17,6 +17,9 @@ public partial class GridValue
     [Parameter, EditorRequired]
     public required string ValueDescription { get; set; }
 
+    [Parameter]
+    public string? TextVisualizerTitle { get; set; }
+
     /// <summary>
     /// Content to include, if any, after the Value string
     /// </summary>

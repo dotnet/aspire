@@ -359,4 +359,19 @@
   <data name="PageToolbarLandmark" xml:space="preserve">
     <value>Page toolbar</value>
     </data>
+  <data name="FluentDataGridHeaderCellResizeLabel" xml:space="preserve">
+    <value>Column width (in pixels)</value>
+  </data>
+  <data name="FluentDataGridHeaderCellSortButtonText" xml:space="preserve">
+    <value>Sort</value>
+  </data>
+  <data name="FluentDataGridHeaderCellSortAscendingButtonText" xml:space="preserve">
+    <value>Sort (ascending)</value>
+  </data>
+  <data name="FluentDataGridHeaderCellSortDescendingButtonText" xml:space="preserve">
+    <value>Sort (descending)</value>
+  </data>
+  <data name="FluentDataGridHeaderCellResizeButtonText" xml:space="preserve">
+    <value>Resize</value>
+  </data>
 </root>

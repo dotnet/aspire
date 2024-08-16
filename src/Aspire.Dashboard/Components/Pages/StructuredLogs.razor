@@ -5,6 +5,7 @@
 @using Aspire.Dashboard.Utils
 @using Aspire.Dashboard.Resources
 @using System.Globalization
+@using Aspire.Dashboard.Components.Controls.Grid
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -26,7 +27,8 @@
             <ResourceSelect Resources="_applicationViewModels"
                             AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"
                             @bind-SelectedResource="PageViewModel.SelectedApplication"
-                            @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync" />
+                            @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync"
+                            CanSelectGrouping="true" />
             <FluentSearch @bind-Value="_filter"
                           @oninput="HandleFilter"
                           @bind-Value:after="HandleAfterFilterBindAsync"
@@ -101,7 +103,9 @@
                 <Summary>
                     <div class="logs-summary-layout">
                         <div class="logs-grid-container continuous-scroll-overflow">
-                            <FluentDataGrid Virtualize="true"
+                            <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
+                                            ResizeType="DataGridResizeType.Discrete"
+                                            Virtualize="true"
                                             RowClass="@GetRowClass"
                                             GenerateHeader="GenerateHeaderOption.Sticky"
                                             ItemSize="46"
@@ -113,59 +117,36 @@
                                             OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, buttonId: null)))"
                                             Class="enable-row-click">
                                 <ChildContent>
-                                    @if (_manager.IsColumnVisible(ResourceColumn))
-                                    {
-                                        <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsResourceColumnHeader)]" Tooltip="true" TooltipText="@(e => GetResourceName(e.Application))">
-                                            <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Application)));">
-                                                @GetResourceName(context.Application)
-                                            </span>
-                                        </TemplateColumn>
-                                    }
-
-                                    @if (_manager.IsColumnVisible(LogLevelColumn))
-                                    {
-                                        // hide this on mobile, info is available in detail panel + row background
-                                        // helps to indicate severity for sighted users
-                                        <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevelColumnHeader)]">
-                                            <LogLevelColumnDisplay LogEntry="@context"/>
-                                        </TemplateColumn>
-                                    }
-
-                                    @if (_manager.IsColumnVisible(TimestampColumn))
-                                    {
-                                        <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.TimeStamp, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
-                                            @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.TimeStamp, MillisecondsDisplay.Truncated)
-                                        </TemplateColumn>
-                                    }
-
-                                    @if (_manager.IsColumnVisible(MessageColumn))
-                                    {
-                                        <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]" Tooltip="true" TooltipText="(e) => e.Message">
-                                            <LogMessageColumnDisplay FilterText="@(ViewModel.FilterText)" LogEntry="@context"/>
-                                        </TemplateColumn>
-                                    }
-
-                                    @if (_manager.IsColumnVisible(TraceColumn))
-                                    {
-                                        <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTraceColumnHeader)]">
-                                            @if (!string.IsNullOrEmpty(context.TraceId))
-                                            {
-                                                <a href="@DashboardUrls.TraceDetailUrl(context.TraceId)" class="long-inner-content">
-                                                    @OtlpHelpers.ToShortenedId(context.TraceId)
-                                                </a>
-                                            }
-                                        </TemplateColumn>
-                                    }
-
-                                    @if (_manager.IsColumnVisible(DetailsColumn))
-                                    {
-                                        <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
-                                            @{
-                                                var id = $"details-button-{context.InternalId}";
-                                             }
-                                                <FluentButton Id="@id" Appearance="Appearance.Lightweight" OnClick="@(() => OnShowPropertiesAsync(context, id))">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
-                                        </TemplateColumn>
-                                    }
+                                    <AspireTemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsResourceColumnHeader)]" Tooltip="true" TooltipText="@(e => GetResourceName(e.Application))">
+                                        <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Application)));">
+                                            @GetResourceName(context.Application)
+                                        </span>
+                                    </AspireTemplateColumn>
+                                    <AspireTemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevelColumnHeader)]">
+                                        <LogLevelColumnDisplay LogEntry="@context" />
+                                    </AspireTemplateColumn>
+                                    <AspireTemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.TimeStamp, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
+                                        @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.TimeStamp, MillisecondsDisplay.Truncated)
+                                    </AspireTemplateColumn>
+                                    <AspireTemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]" Tooltip="true" TooltipText="(e) => e.Message">
+                                        <LogMessageColumnDisplay FilterText="@(ViewModel.FilterText)" LogEntry="@context" />
+                                    </AspireTemplateColumn>
+                                    <AspireTemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTraceColumnHeader)]">
+                                        @if (!string.IsNullOrEmpty(context.TraceId))
+                                        {
+                                            <a href="@DashboardUrls.TraceDetailUrl(context.TraceId)" class="long-inner-content" @onclick:stopPropagation="true">
+                                                @OtlpHelpers.ToShortenedId(context.TraceId)
+                                            </a>
+                                        }
+                                    </AspireTemplateColumn>
+                                    <AspireTemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
+                                        @{
+                                            var id = $"details-button-{context.InternalId}";
+                                        }
+                                        <div @onclick:stopPropagation="true">
+                                            <FluentButton Id="@id" Appearance="Appearance.Lightweight" OnClick="@(() => OnShowPropertiesAsync(context, id))">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
+                                        </div>
+                                    </AspireTemplateColumn>
                                 </ChildContent>
                                 <EmptyContent>
                                     <FluentIcon Icon="Icons.Regular.Size24.SlideTextSparkle" />&nbsp;@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsNoLogsFound)]

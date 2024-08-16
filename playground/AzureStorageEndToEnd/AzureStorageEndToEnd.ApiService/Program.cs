@@ -11,6 +11,7 @@ builder.AddAzureBlobClient("blobs");
 
 var app = builder.Build();
 
+app.MapDefaultEndpoints();
 app.MapGet("/", async (BlobServiceClient bsc) =>
 {
     var container = bsc.GetBlobContainerClient("mycontainer");

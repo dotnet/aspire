@@ -121,9 +121,9 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public void UpdateViewModelFromQuery(MetricsViewModel viewModel)
     {
         viewModel.SelectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration);
-        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _selectApplication);
+        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _selectApplication);
         var selectedInstance = viewModel.SelectedApplication.Id?.GetApplicationKey();
-        viewModel.Instruments = selectedInstance != null ? TelemetryRepository.GetInstrumentsSummary(selectedInstance.Value) : null;
+        viewModel.Instruments = selectedInstance != null ? TelemetryRepository.GetInstrumentsSummaries(selectedInstance.Value) : null;
 
         viewModel.SelectedMeter = null;
         viewModel.SelectedInstrument = null;
@@ -134,12 +134,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             viewModel.SelectedMeter = viewModel.Instruments.FirstOrDefault(i => i.Parent.MeterName == MeterName)?.Parent;
             if (viewModel.SelectedMeter != null && !string.IsNullOrEmpty(InstrumentName))
             {
-                viewModel.SelectedInstrument = TelemetryRepository.GetInstrument(new GetInstrumentRequest
-                {
-                    ApplicationKey = selectedInstance!.Value,
-                    MeterName = MeterName,
-                    InstrumentName = InstrumentName
-                });
+                viewModel.SelectedInstrument = viewModel.Instruments.FirstOrDefault(i => i.Parent.MeterName == MeterName && i.Name == InstrumentName);
             }
         }
     }
@@ -160,7 +155,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             PageViewModel.SelectedInstrument != null)
         {
             var selectedInstance = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
-            var instruments = selectedInstance != null ? TelemetryRepository.GetInstrumentsSummary(selectedInstance.Value) : null;
+            var instruments = selectedInstance != null ? TelemetryRepository.GetInstrumentsSummaries(selectedInstance.Value) : null;
 
             if (instruments == null || ShouldClearSelectedMetrics(instruments))
             {
@@ -175,7 +170,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: isChangeInToolbar);
     }
 
-    private bool ShouldClearSelectedMetrics(List<OtlpInstrument> instruments)
+    private bool ShouldClearSelectedMetrics(List<OtlpInstrumentSummary> instruments)
     {
         if (PageViewModel.SelectedMeter != null && !instruments.Any(i => i.Parent.MeterName == PageViewModel.SelectedMeter.MeterName))
         {
@@ -198,10 +193,10 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     {
         public FluentTreeItem? SelectedTreeItem { get; set; }
         public OtlpMeter? SelectedMeter { get; set; }
-        public OtlpInstrument? SelectedInstrument { get; set; }
+        public OtlpInstrumentSummary? SelectedInstrument { get; set; }
         public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }
         public SelectViewModel<TimeSpan> SelectedDuration { get; set; } = null!;
-        public List<OtlpInstrument>? Instruments { get; set; }
+        public List<OtlpInstrumentSummary>? Instruments { get; set; }
         public required MetricViewKind? SelectedViewKind { get; set; }
     }
 
@@ -227,7 +222,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             PageViewModel.SelectedMeter = meter;
             PageViewModel.SelectedInstrument = null;
         }
-        else if (PageViewModel.SelectedTreeItem?.Data is OtlpInstrument instrument)
+        else if (PageViewModel.SelectedTreeItem?.Data is OtlpInstrumentSummary instrument)
         {
             PageViewModel.SelectedMeter = instrument.Parent;
             PageViewModel.SelectedInstrument = instrument;
@@ -276,7 +271,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
                 if (selectedApplicationKey != null)
                 {
                     // If there are more instruments than before then update the UI.
-                    var instruments = TelemetryRepository.GetInstrumentsSummary(selectedApplicationKey.Value);
+                    var instruments = TelemetryRepository.GetInstrumentsSummaries(selectedApplicationKey.Value);
 
                     if (PageViewModel.Instruments is null || instruments.Count > PageViewModel.Instruments.Count)
                     {

@@ -257,7 +257,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
 
     public void UpdateViewModelFromQuery(TracesPageViewModel viewModel)
     {
-        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
+        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _allApplication);
         TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
     }
 
