@@ -101,8 +101,8 @@
                                         }
                                         else
                                         {
-                                            <a class @* class needed to prevent color from being removed from reboot style *@
-                                               @onclick="@(async () => await _contentLayout!.OpenMobileToolbarAsync())">
+                                            // class needed to prevent color from being removed from reboot style
+                                            <a class @onclick="@(async () => await _contentLayout!.OpenMobileToolbarAsync())">
                                                 @Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectInstrument)]
                                             </a>
                                         }
