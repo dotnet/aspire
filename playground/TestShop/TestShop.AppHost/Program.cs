@@ -6,11 +6,14 @@ var catalogDb = builder.AddPostgres("postgres")
                        .AddDatabase("catalogdb");
 
 var basketCache = builder.AddRedis("basketcache")
-                         .WithDataVolume()
-                         .WithRedisCommander(c =>
-                         {
-                             c.WithHostPort(33801);
-                         });
+                         .WithDataVolume();
+
+#if !SKIP_DASHBOARD_REFERENCE
+basketCache.WithRedisCommander(c =>
+                     {
+                         c.WithHostPort(33801);
+                     });
+#endif
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
                             .WithReference(catalogDb)
