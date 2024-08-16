@@ -1,10 +1,8 @@
 ﻿@page "/structuredlogs"
 @page "/structuredlogs/resource/{applicationName}"
 
-@using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Utils
-@using Microsoft.Extensions.Logging
 @using Aspire.Dashboard.Resources
 @using System.Globalization
 @inject IJSRuntime JS
@@ -110,35 +108,44 @@
                                             ResizableColumns="true"
                                             ItemsProvider="@GetData"
                                             TGridItem="OtlpLogEntry"
-                                            GridTemplateColumns="@GetGridTemplateColumns()"
+                                            GridTemplateColumns="@_manager.GetGridTemplateColumns()"
                                             ShowHover="true"
                                             OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, buttonId: null)))"
                                             Class="enable-row-click">
                                 <ChildContent>
-                                    <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsResourceColumnHeader)]" Tooltip="true" TooltipText="@(e => GetResourceName(e.Application))">
-                                        <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Application)));">
-                                            @GetResourceName(context.Application)
-                                        </span>
-                                    </TemplateColumn>
+                                    @if (_manager.IsColumnVisible(ResourceColumn))
+                                    {
+                                        <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsResourceColumnHeader)]" Tooltip="true" TooltipText="@(e => GetResourceName(e.Application))">
+                                            <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Application)));">
+                                                @GetResourceName(context.Application)
+                                            </span>
+                                        </TemplateColumn>
+                                    }
 
-                                    @if (ViewportInformation.IsDesktop)
+                                    @if (_manager.IsColumnVisible(LogLevelColumn))
                                     {
                                         // hide this on mobile, info is available in detail panel + row background
                                         // helps to indicate severity for sighted users
                                         <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevelColumnHeader)]">
-                                            <LogLevelColumnDisplay LogEntry="@context" />
+                                            <LogLevelColumnDisplay LogEntry="@context"/>
                                         </TemplateColumn>
                                     }
 
-                                    <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.TimeStamp, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
-                                        @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.TimeStamp, MillisecondsDisplay.Truncated)
-                                    </TemplateColumn>
+                                    @if (_manager.IsColumnVisible(TimestampColumn))
+                                    {
+                                        <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(TimeProvider, context.TimeStamp, MillisecondsDisplay.Full, CultureInfo.CurrentCulture))" Tooltip="true">
+                                            @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.TimeStamp, MillisecondsDisplay.Truncated)
+                                        </TemplateColumn>
+                                    }
 
-                                    <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]" Tooltip="true" TooltipText="(e) => e.Message">
-                                        <LogMessageColumnDisplay FilterText="@(ViewModel.FilterText)" LogEntry="@context"/>
-                                    </TemplateColumn>
+                                    @if (_manager.IsColumnVisible(MessageColumn))
+                                    {
+                                        <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]" Tooltip="true" TooltipText="(e) => e.Message">
+                                            <LogMessageColumnDisplay FilterText="@(ViewModel.FilterText)" LogEntry="@context"/>
+                                        </TemplateColumn>
+                                    }
 
-                                    @if (ViewportInformation.IsDesktop)
+                                    @if (_manager.IsColumnVisible(TraceColumn))
                                     {
                                         <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTraceColumnHeader)]">
                                             @if (!string.IsNullOrEmpty(context.TraceId))
@@ -150,12 +157,15 @@
                                         </TemplateColumn>
                                     }
 
-                                    <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
-                                        @{
-                                            var id = $"details-button-{context.InternalId}";
-                                        }
-                                        <FluentButton Id="@id" Appearance="Appearance.Lightweight" OnClick="@(() => OnShowPropertiesAsync(context, id))">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
-                                    </TemplateColumn>
+                                    @if (_manager.IsColumnVisible(DetailsColumn))
+                                    {
+                                        <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
+                                            @{
+                                                var id = $"details-button-{context.InternalId}";
+                                             }
+                                                <FluentButton Id="@id" Appearance="Appearance.Lightweight" OnClick="@(() => OnShowPropertiesAsync(context, id))">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
+                                        </TemplateColumn>
+                                    }
                                 </ChildContent>
                                 <EmptyContent>
                                     <FluentIcon Icon="Icons.Regular.Size24.SlideTextSparkle" />&nbsp;@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsNoLogsFound)]

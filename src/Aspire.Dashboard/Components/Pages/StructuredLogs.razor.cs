@@ -21,6 +21,13 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs.StructuredLogsPageViewModel, StructuredLogs.StructuredLogsPageState>
 {
+    private const string ResourceColumn = nameof(ResourceColumn);
+    private const string LogLevelColumn = nameof(LogLevelColumn);
+    private const string TimestampColumn = nameof(TimestampColumn);
+    private const string MessageColumn = nameof(MessageColumn);
+    private const string TraceColumn = nameof(TraceColumn);
+    private const string DetailsColumn = nameof(DetailsColumn);
+
     private SelectViewModel<ResourceTypeDetails> _allApplication = default!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
@@ -34,6 +41,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private string? _elementIdBeforeDetailsViewOpened;
     private AspirePageContentLayout? _contentLayout;
     private string _filter = string.Empty;
+    private GridColumnManager _manager = null!;
 
     public string BasePath => DashboardUrls.StructuredLogsBasePath;
     public string SessionStorageKey => "StructuredLogs_PageState";
@@ -124,6 +132,16 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     protected override Task OnInitializedAsync()
     {
+        // return ViewportInformation.IsDesktop ? "1fr 1fr 1fr 5fr 0.8fr 0.8fr" : "1fr 1fr 1.5fr 0.8fr";
+        _manager = new GridColumnManager([
+            new GridColumn(Name: ResourceColumn, DesktopWidth: "1fr", MobileWidth: "1fr"),
+            new GridColumn(Name: LogLevelColumn, DesktopWidth: "1fr", MobileWidth: "1fr"),
+            new GridColumn(Name: TimestampColumn, DesktopWidth: "1.5fr"),
+            new GridColumn(Name: MessageColumn, DesktopWidth: "5fr", "1.5fr"),
+            new GridColumn(Name: TraceColumn, DesktopWidth: "0.8fr"),
+            new GridColumn(Name: DetailsColumn, DesktopWidth: "0.8fr", MobileWidth: "0.8fr")
+        ], ViewportInformation, DimensionManager);
+
         if (!string.IsNullOrEmpty(TraceId))
         {
             ViewModel.AddFilter(new LogFilter
@@ -339,11 +357,6 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         {
             return $"log-row-{entry.Severity.ToString().ToLowerInvariant()}";
         }
-    }
-
-    private string GetGridTemplateColumns()
-    {
-        return ViewportInformation.IsDesktop ? "1fr 1fr 1fr 5fr 0.8fr 0.8fr" : "1fr 1fr 1.5fr 0.8fr";
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
