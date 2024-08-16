@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
+using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.Extensions.DependencyInjection;
 using Polly.Timeout;
 using SamplesIntegrationTests;
@@ -145,9 +146,22 @@ public class AppHostTests
     public static TheoryData<string> AppHostAssemblies()
     {
         var appHostAssemblies = GetPlaygroundAppHostAssemblyPaths();
+
+        HashSet<string> appHostsWithTestEndpoints = new();
+        foreach (var testEndpoint in GetAllTestEndpoints())
+        {
+            appHostsWithTestEndpoints.Add(testEndpoint.AppHost);
+        }
+
         var theoryData = new TheoryData<string>();
         foreach (var asm in appHostAssemblies)
         {
+            var appHostName = Path.GetFileNameWithoutExtension(asm);
+            if (appHostsWithTestEndpoints.Contains(appHostName))
+            {
+                continue;
+            }
+
             if (string.IsNullOrEmpty(s_appHostNameFilter) || asm.Contains(s_appHostNameFilter, StringComparison.OrdinalIgnoreCase))
             {
                 theoryData.Add(Path.GetRelativePath(AppContext.BaseDirectory, asm));
@@ -156,13 +170,13 @@ public class AppHostTests
 
         if (!theoryData.Any() && !string.IsNullOrEmpty(s_appHostNameFilter))
         {
-            throw new InvalidOperationException($"No app host assemblies found matching filter '{s_appHostNameFilter}'");
+            throw new SkipTestException($"No app host assemblies found matching filter '{s_appHostNameFilter}'");
         }
 
         return theoryData;
     }
 
-    public static TheoryData<TestEndpoints> TestEndpoints()
+    public static IList<TestEndpoints> GetAllTestEndpoints()
     {
         IList<TestEndpoints> candidates =
         [
@@ -268,8 +282,13 @@ public class AppHostTests
                 ])
         ];
 
+        return candidates;
+    }
+
+    public static TheoryData<TestEndpoints> TestEndpoints()
+    {
         TheoryData<TestEndpoints> theoryData = new();
-        foreach (var candidateTestEndpoint in candidates)
+        foreach (var candidateTestEndpoint in GetAllTestEndpoints())
         {
             if (string.IsNullOrEmpty(s_appHostNameFilter) || candidateTestEndpoint.AppHost?.Contains(s_appHostNameFilter, StringComparison.OrdinalIgnoreCase) == true)
             {
@@ -279,7 +298,7 @@ public class AppHostTests
 
         if (!theoryData.Any() && !string.IsNullOrEmpty(s_appHostNameFilter))
         {
-            throw new InvalidOperationException($"No test endpoints found matching filter '{s_appHostNameFilter}'");
+            throw new SkipTestException($"No test endpoints found matching filter '{s_appHostNameFilter}'");
         }
 
         return theoryData;
