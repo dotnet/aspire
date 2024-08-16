@@ -31,11 +31,7 @@ var basketService = builder.AddProject("basketservice", @"..\BasketService\Baske
 builder.AddProject<Projects.MyFrontend>("frontend")
        .WithExternalHttpEndpoints()
        .WithReference(basketService)
-       .WithReference(catalogService)
-       .WithEnvironment(c =>
-       {
-           c.EnvironmentVariables[""] = "hi";
-       });
+       .WithReference(catalogService);
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor", launchProfileName: "OrderProcessor")
        .WithReference(messaging);
