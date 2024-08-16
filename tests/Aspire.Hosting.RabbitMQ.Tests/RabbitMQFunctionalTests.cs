@@ -16,6 +16,8 @@ namespace Aspire.Hosting.RabbitMQ.Tests;
 
 public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
 {
+    private const string RabbitMQReadyText = "Time to start RabbitMQ:";
+
     [Fact]
     [RequiresDocker]
     public async Task VerifyRabbitMQResource()
@@ -96,7 +98,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
-                        await app.WaitForTextAsync($"Time to start RabbitMQ:", resourceName: rabbitMQ1.Resource.Name).WaitAsync(TimeSpan.FromMinutes(1));
+                        await app.WaitForTextAsync(RabbitMQReadyText, resourceName: rabbitMQ1.Resource.Name).WaitAsync(TimeSpan.FromMinutes(1));
 
                         var connection = host.Services.GetRequiredService<IConnection>();
 
@@ -153,7 +155,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
-                        await app.WaitForTextAsync($"Time to start RabbitMQ:", resourceName: rabbitMQ2.Resource.Name).WaitAsync(TimeSpan.FromMinutes(1));
+                        await app.WaitForTextAsync(RabbitMQReadyText, resourceName: rabbitMQ2.Resource.Name).WaitAsync(TimeSpan.FromMinutes(1));
 
                         var connection = host.Services.GetRequiredService<IConnection>();
 
