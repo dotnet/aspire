@@ -48,6 +48,12 @@
 
   <Target Name="Build" />
 
+  <Target Name="GetDCPBinaryLocation" Returns="$(DCPBinariesLocation)">
+    <PropertyGroup>
+      <DCPBinariesLocation>$(NuGetPackageRoot)microsoft.developercontrolplane.$(DcpPlatform)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)/tools</DCPBinariesLocation>
+    </PropertyGroup>
+  </Target>
+
   <Target Name="AddPackageFiles" Returns="@(TfmSpecificPackageFile)">
     <PropertyGroup>
       <_DcpNuGetRootPath>$(NuGetPackageRoot)microsoft.developercontrolplane.$(DcpPlatform)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)/tools</_DcpNuGetRootPath>

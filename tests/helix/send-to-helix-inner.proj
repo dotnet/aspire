@@ -160,9 +160,13 @@
     <Error Condition="'$(NeedsDcpPathOverride)' == 'true' and !Exists('$(ArtifactsBinDir)dotnet-latest')"
            Text="Could not find workload installed in $(ArtifactsBinDir)dotnet-latest required for %24(NeedsDcpPathOverride)==true" />
 
+    <MSBuild Projects="$(RepoRoot)\eng\dcppack\Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier).csproj" Targets="GetDCPBinaryLocation">
+      <Output TaskParameter="TargetOutputs" PropertyName="DCPBinaryLocation" />
+    </MSBuild>
+
     <ItemGroup Condition="'$(NeedsDcpPathOverride)' == 'true'">
-      <_DcpInWorkloadPack Condition="'$(OS)' != 'Windows_NT'" Include="$(ArtifactsBinDir)dotnet-latest\packs\**\dcp" />
-      <_DcpInWorkloadPack Condition="'$(OS)' == 'Windows_NT'" Include="$(ArtifactsBinDir)dotnet-latest\packs\**\dcp.exe" />
+      <_DcpInWorkloadPack Condition="'$(OS)' != 'Windows_NT'" Include="$(DCPBinaryLocation)\**\dcp" />
+      <_DcpInWorkloadPack Condition="'$(OS)' == 'Windows_NT'" Include="$(DCPBinaryLocation)\**\dcp.exe" />
 
       <HelixCorrelationPayload Include="@(_DcpInWorkloadPack -> '%(RootDir)%(Directory)')" Destination="dcp" />
 
