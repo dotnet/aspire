@@ -34,40 +34,54 @@ internal sealed class ResourceLoggerForwarderService(
 
     private async Task WatchNotifications(CancellationToken cancellationToken)
     {
-        var loggingResourceIds = new HashSet<string>();
-        var logWatchTasks = new List<Task>();
-
-        await foreach (var resourceEvent in resourceNotificationService.WatchAsync(cancellationToken).ConfigureAwait(false))
+        try
         {
-            var resourceId = resourceEvent.ResourceId;
+            var loggingResourceIds = new HashSet<string>();
+            var logWatchTasks = new List<Task>();
 
-            if (loggingResourceIds.Add(resourceId))
+            await foreach (var resourceEvent in resourceNotificationService.WatchAsync(cancellationToken).ConfigureAwait(false))
             {
-                // Start watching the logs for this resource ID
-                logWatchTasks.Add(WatchResourceLogs(resourceEvent.Resource, resourceId, cancellationToken));
-            }
-        }
+                var resourceId = resourceEvent.ResourceId;
 
-        await Task.WhenAll(logWatchTasks).ConfigureAwait(false);
+                if (loggingResourceIds.Add(resourceId))
+                {
+                    // Start watching the logs for this resource ID
+                    logWatchTasks.Add(WatchResourceLogs(resourceEvent.Resource, resourceId, cancellationToken));
+                }
+            }
+
+            await Task.WhenAll(logWatchTasks).ConfigureAwait(false);
+        }
+        catch (TaskCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // this was expected as the token was canceled
+        }
     }
 
     private async Task WatchResourceLogs(IResource resource, string resourceId, CancellationToken cancellationToken)
     {
-        var applicationName = hostEnvironment.ApplicationName;
-        var logger = loggerFactory.CreateLogger($"{applicationName}.Resources.{resource.Name}");
-        await foreach (var logEvent in resourceLoggerService.WatchAsync(resourceId).WithCancellation(cancellationToken).ConfigureAwait(false))
+        try
         {
-            foreach (var line in logEvent)
+            var applicationName = hostEnvironment.ApplicationName;
+            var logger = loggerFactory.CreateLogger($"{applicationName}.Resources.{resource.Name}");
+            await foreach (var logEvent in resourceLoggerService.WatchAsync(resourceId).WithCancellation(cancellationToken).ConfigureAwait(false))
             {
-                var logLevel = line.IsErrorMessage ? LogLevel.Error : LogLevel.Information;
-
-                if (logger.IsEnabled(logLevel))
+                foreach (var line in logEvent)
                 {
-                    // Log message format here approximates the format shown in the dashboard
-                    logger.Log(logLevel, "{LineNumber}: {LineContent}", line.LineNumber, line.Content);
-                    OnResourceLog?.Invoke(resourceId);
+                    var logLevel = line.IsErrorMessage ? LogLevel.Error : LogLevel.Information;
+
+                    if (logger.IsEnabled(logLevel))
+                    {
+                        // Log message format here approximates the format shown in the dashboard
+                        logger.Log(logLevel, "{LineNumber}: {LineContent}", line.LineNumber, line.Content);
+                        OnResourceLog?.Invoke(resourceId);
+                    }
                 }
             }
+        }
+        catch (TaskCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // this was expected as the token was canceled
         }
     }
 }
