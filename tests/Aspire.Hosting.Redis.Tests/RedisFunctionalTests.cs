@@ -52,7 +52,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("value", value);
     }
 
-    [Fact]
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/5325")]
     [RequiresDocker]
     public async Task VerifyWithRedisInsight()
     {
