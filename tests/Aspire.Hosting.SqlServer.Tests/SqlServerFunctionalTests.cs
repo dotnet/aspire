@@ -102,8 +102,8 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
                 volumeName = VolumeNameGenerator.CreateVolumeName(sqlserver1, nameof(WithDataShouldPersistStateBetweenUsages));
 
-                // If the volume already exists (because of a crashing previous run), try to delete it
-                DockerUtils.AttemptDeleteDockerVolume(volumeName);
+                // if the volume already exists (because of a crashing previous run), delete it
+                DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
                 sqlserver1.WithDataVolume(volumeName);
             }
             else

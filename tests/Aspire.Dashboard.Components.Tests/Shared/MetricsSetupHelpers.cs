@@ -66,6 +66,9 @@ internal static class MetricsSetupHelpers
         var searchModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Search/FluentSearch.razor.js", version));
         searchModule.SetupVoid("addAriaHidden", _ => true);
 
+        var keycodeModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/KeyCode/FluentKeyCode.razor.js", version));
+        keycodeModule.Setup<string>("RegisterKeyCode", _ => true);
+
         MetricsSetupHelpers.SetupChartContainer(context);
 
         context.Services.AddLocalization();

@@ -2,15 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
-using System.Text.Json;
+using System.Text;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
+using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.Extensions.DependencyInjection;
+using Polly.Timeout;
 using SamplesIntegrationTests;
 using SamplesIntegrationTests.Infrastructure;
 using Xunit;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Aspire.Playground.Tests;
 
@@ -25,7 +28,7 @@ public class AppHostTests
     }
 
     [Theory]
-    [MemberData(nameof(AppHostAssemblies))]
+    [MemberData(nameof(AppHostAssembliesWithNoTestEndpoints))]
     public async Task AppHostRunsCleanly(string appHostPath)
     {
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, _testOutput);
@@ -56,8 +59,24 @@ public class AppHostTests
         if (testEndpoints.WaitForTexts != null)
         {
             // If specific ready to start texts are available use it
-            var tasks = testEndpoints.WaitForTexts.Select(x => app.WaitForTextAsync(log => new Regex(x.Pattern).IsMatch(log), x.ResourceName));
-            await Task.WhenAll(tasks).WaitAsync(TimeSpan.FromMinutes(5));
+            var tasks = testEndpoints.WaitForTexts.Select(x => app.WaitForTextAsync(log => new Regex(x.Pattern).IsMatch(log), x.ResourceName)).ToArray();
+            try
+            {
+                await Task.WhenAll(tasks).WaitAsync(TimeSpan.FromMinutes(5));
+            }
+            catch (TimeoutException te)
+            {
+                StringBuilder sb = new();
+                for (int i = 0; i < testEndpoints.WaitForTexts.Count; i++)
+                {
+                    if (!tasks[i].IsCompleted)
+                    {
+                        sb.AppendLine($"Timed out waiting for this text from resource {testEndpoints.WaitForTexts[i].ResourceName}: {testEndpoints.WaitForTexts[i].Pattern}");
+                    }
+                }
+
+                throw new XunitException(sb.ToString(), te);
+            }
         }
         else
         {
@@ -106,7 +125,14 @@ public class AppHostTests
             foreach (var path in endpoints)
             {
                 _testOutput.WriteLine($"Calling endpoint '{client.BaseAddress}{path.TrimStart('/')} for resource '{resource}' in app '{Path.GetFileNameWithoutExtension(appHostPath)}'");
-                response = await client.GetAsync(path);
+                try
+                {
+                    response = await client.GetAsync(path);
+                }
+                catch (TimeoutRejectedException tre)
+                {
+                    throw new XunitException($"Endpoint '{client.BaseAddress}{path.TrimStart('/')}' for resource '{resource}' in app '{Path.GetFileNameWithoutExtension(appHostPath)}' timed out", tre);
+                }
 
                 Assert.True(HttpStatusCode.OK == response.StatusCode, $"Endpoint '{client.BaseAddress}{path.TrimStart('/')}' for resource '{resource}' in app '{Path.GetFileNameWithoutExtension(appHostPath)}' returned status code {response.StatusCode}");
             }
@@ -116,12 +142,26 @@ public class AppHostTests
         await app.StopAsync();
     }
 
-    public static TheoryData<string> AppHostAssemblies()
+    public static TheoryData<string> AppHostAssembliesWithNoTestEndpoints()
     {
         var appHostAssemblies = GetPlaygroundAppHostAssemblyPaths();
+
+        HashSet<string> appHostsWithTestEndpoints = new();
+        foreach (var testEndpoint in GetAllTestEndpoints())
+        {
+            appHostsWithTestEndpoints.Add(testEndpoint.AppHost);
+        }
+
         var theoryData = new TheoryData<string>();
         foreach (var asm in appHostAssemblies)
         {
+            var appHostName = Path.GetFileNameWithoutExtension(asm);
+            if (appHostsWithTestEndpoints.Contains(appHostName))
+            {
+                // Skipping this as it will be tested by TestEndpointsReturnOk
+                continue;
+            }
+
             if (string.IsNullOrEmpty(s_appHostNameFilter) || asm.Contains(s_appHostNameFilter, StringComparison.OrdinalIgnoreCase))
             {
                 theoryData.Add(Path.GetRelativePath(AppContext.BaseDirectory, asm));
@@ -130,16 +170,26 @@ public class AppHostTests
 
         if (!theoryData.Any() && !string.IsNullOrEmpty(s_appHostNameFilter))
         {
-            throw new InvalidOperationException($"No app host assemblies found matching filter '{s_appHostNameFilter}'");
+            throw new SkipTestException($"No app host assemblies found matching filter '{s_appHostNameFilter}'");
         }
 
         return theoryData;
     }
 
-    public static TheoryData<TestEndpoints> TestEndpoints()
+    public static IList<TestEndpoints> GetAllTestEndpoints()
     {
         IList<TestEndpoints> candidates =
         [
+            new TestEndpoints("AzureStorageEndToEnd.AppHost",
+                resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
+                waitForTexts: [
+                    new ("storage", "Azurite Table service is successfully listening")
+                ]),
+            new TestEndpoints("MilvusPlayground.AppHost",
+                resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/create", "/search"] } },
+                waitForTexts: [
+                    new ("milvus", "Milvus Proxy successfully initialized and ready to serve"),
+                ]),
             new TestEndpoints("CosmosEndToEnd.AppHost",
                 resourceEndpoints: new() { { "api", ["/alive", "/health", "/", "/ef"] } },
                 waitForTexts: [
@@ -172,6 +222,25 @@ public class AppHostTests
                     new ("nats", "Server is ready"),
                     new("api", "Application started")
                 ]),
+            new TestEndpoints("ParameterEndToEnd.AppHost",
+                resourceEndpoints: new() { { "api", ["/", "/alive", "/health"] } },
+                waitForTexts: [
+                    new ("sql", "SQL Server is now ready for client connections."),
+                ]),
+            new TestEndpoints("PostgresEndToEnd.AppHost",
+                resourceEndpoints: new() {
+                    // Invoking "/" first as that *creates* the databases
+                    { "api", ["/", "/alive", "/health"] }
+                },
+                waitForTexts: [
+                    new ("pg1", "PostgreSQL init process complete; ready for start up"),
+                    new ("pg2", "PostgreSQL init process complete; ready for start up"),
+                    new ("pg3", "PostgreSQL init process complete; ready for start up"),
+                    new ("pg4", "PostgreSQL init process complete; ready for start up"),
+                    new ("pg5", "PostgreSQL init process complete; ready for start up"),
+                    new ("pg6", "PostgreSQL init process complete; ready for start up"),
+                    new ("pg10", "PostgreSQL init process complete; ready for start up"),
+                ]),
             new TestEndpoints("ProxylessEndToEnd.AppHost",
                 resourceEndpoints: new() { { "api", ["/alive", "/health", "/redis"] } },
                 waitForTexts: [
@@ -191,6 +260,13 @@ public class AppHostTests
                     new ("seq", "Seq listening"),
                     new ("api", "Application started")
                 ]),
+            // Invoke "/" first to create the databases
+            new TestEndpoints("SqlServerEndToEnd.AppHost",
+                resourceEndpoints: new() { { "api", ["/", "/alive", "/health"] } },
+                waitForTexts: [
+                    new ("sql1", "SQL Server is now ready for client connections"),
+                    new ("sql2", "SQL Server is now ready for client connections"),
+                ]),
             new TestEndpoints("TestShop.AppHost",
                 resourceEndpoints: new() {
                     { "catalogdbapp", ["/alive", "/health"] },
@@ -206,8 +282,13 @@ public class AppHostTests
                 ])
         ];
 
+        return candidates;
+    }
+
+    public static TheoryData<TestEndpoints> TestEndpoints()
+    {
         TheoryData<TestEndpoints> theoryData = new();
-        foreach (var candidateTestEndpoint in candidates)
+        foreach (var candidateTestEndpoint in GetAllTestEndpoints())
         {
             if (string.IsNullOrEmpty(s_appHostNameFilter) || candidateTestEndpoint.AppHost?.Contains(s_appHostNameFilter, StringComparison.OrdinalIgnoreCase) == true)
             {
@@ -217,7 +298,7 @@ public class AppHostTests
 
         if (!theoryData.Any() && !string.IsNullOrEmpty(s_appHostNameFilter))
         {
-            throw new InvalidOperationException($"No test endpoints found matching filter '{s_appHostNameFilter}'");
+            throw new SkipTestException($"No test endpoints found matching filter '{s_appHostNameFilter}'");
         }
 
         return theoryData;
@@ -231,11 +312,8 @@ public class AppHostTests
     }
 }
 
-public class TestEndpoints : IXunitSerializable
+public class TestEndpoints
 {
-    // Required for deserialization
-    public TestEndpoints() { }
-
     public TestEndpoints(string appHost, Dictionary<string, List<string>> resourceEndpoints, List<ReadyStateText>? waitForTexts = null)
     {
         AppHost = appHost;
@@ -243,29 +321,13 @@ public class TestEndpoints : IXunitSerializable
         WaitForTexts = waitForTexts;
     }
 
-    public string? AppHost { get; set; }
+    public string AppHost { get; set; }
 
     public List<ResourceWait>? WaitForResources { get; set; }
 
     public List<ReadyStateText>? WaitForTexts { get; set; }
 
     public Dictionary<string, List<string>>? ResourceEndpoints { get; set; }
-
-    public void Deserialize(IXunitSerializationInfo info)
-    {
-        AppHost = info.GetValue<string>(nameof(AppHost));
-        WaitForResources = JsonSerializer.Deserialize<List<ResourceWait>>(info.GetValue<string>(nameof(WaitForResources)));
-        WaitForTexts = JsonSerializer.Deserialize<List<ReadyStateText>>(info.GetValue<string>(nameof(WaitForTexts)));
-        ResourceEndpoints = JsonSerializer.Deserialize<Dictionary<string, List<string>>>(info.GetValue<string>(nameof(ResourceEndpoints)));
-    }
-
-    public void Serialize(IXunitSerializationInfo info)
-    {
-        info.AddValue(nameof(AppHost), AppHost);
-        info.AddValue(nameof(WaitForResources), JsonSerializer.Serialize(WaitForResources));
-        info.AddValue(nameof(WaitForTexts), JsonSerializer.Serialize(WaitForTexts));
-        info.AddValue(nameof(ResourceEndpoints), JsonSerializer.Serialize(ResourceEndpoints));
-    }
 
     public override string? ToString() => $"{AppHost} ({ResourceEndpoints?.Count ?? 0} resources)";
 

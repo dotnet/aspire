@@ -3,7 +3,9 @@
 
 using System.Net;
 using System.Web;
+using Aspire.Dashboard.Authentication;
 using Aspire.Hosting;
+using Microsoft.Extensions.Logging.Testing;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -20,17 +22,7 @@ public class FrontendOpenIdConnectAuthTests(ITestOutputHelper testOutputHelper)
             testOutputHelper,
             additionalConfiguration: config =>
             {
-                // Configure the resource service, as otherwise HTTP requests are redirected to /structuredlogs before OIDC
-                config[DashboardConfigNames.ResourceServiceClientAuthModeName.ConfigKey] = "Unsecured";
-                config[DashboardConfigNames.ResourceServiceUrlName.ConfigKey] = "https://localhost:1234"; // won't actually exist
-
-                // Configure OIDC. It (the RP) will communicate with the mock authority (IdP) spun up for this test.
-                config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = "OpenIdConnect";
-                config["Authentication:Schemes:OpenIdConnect:Authority"] = authority.Url;
-                config["Authentication:Schemes:OpenIdConnect:ClientId"] = "MyClientId";
-                config["Authentication:Schemes:OpenIdConnect:ClientSecret"] = "MyClientSecret";
-                // Allow the requirement of HTTPS communication with the OpenIdConnect authority to be relaxed during tests.
-                config["Authentication:Schemes:OpenIdConnect:RequireHttpsMetadata"] = "false";
+                ConfigureOpenIdConnect(config, authority);
             });
 
         await app.StartAsync();
@@ -62,5 +54,56 @@ public class FrontendOpenIdConnectAuthTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("openid profile", query.Get("scope"));
 
         await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task Get_Unauthenticated_OtlpHttpConnection_Denied()
+    {
+        await using var authority = await MockOpenIdAuthority.CreateAsync();
+
+        var testSink = new TestSink();
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(
+            testOutputHelper,
+            additionalConfiguration: config =>
+            {
+                ConfigureOpenIdConnect(config, authority);
+            },
+            testSink: testSink);
+
+        await app.StartAsync();
+
+        var handler = new HttpClientHandler()
+        {
+            // Don't follow redirects. We want to validate where the redirect would take us.
+            AllowAutoRedirect = false
+        };
+
+        using var client = new HttpClient(handler) { BaseAddress = new Uri($"http://{app.OtlpServiceHttpEndPointAccessor().EndPoint}") };
+
+        // Act
+        var response = await client.GetAsync("/");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        var log = testSink.Writes.Single(s => s.LoggerName == typeof(FrontendCompositeAuthenticationHandler).FullName && s.EventId.Name == "AuthenticationSchemeNotAuthenticatedWithFailure");
+        Assert.Equal("FrontendComposite was not authenticated. Failure message: Connection type Frontend is not enabled on this connection.", log.Message);
+
+        await app.StopAsync();
+    }
+
+    private static void ConfigureOpenIdConnect(Dictionary<string, string?> config, MockOpenIdAuthority.Authority authority)
+    {
+        // Configure the resource service, as otherwise HTTP requests are redirected to /structuredlogs before OIDC
+        config[DashboardConfigNames.ResourceServiceClientAuthModeName.ConfigKey] = "Unsecured";
+        config[DashboardConfigNames.ResourceServiceUrlName.ConfigKey] = "https://localhost:1234"; // won't actually exist
+
+        // Configure OIDC. It (the RP) will communicate with the mock authority (IdP) spun up for this test.
+        config[DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = "OpenIdConnect";
+        config["Authentication:Schemes:OpenIdConnect:Authority"] = authority.Url;
+        config["Authentication:Schemes:OpenIdConnect:ClientId"] = "MyClientId";
+        config["Authentication:Schemes:OpenIdConnect:ClientSecret"] = "MyClientSecret";
+        // Allow the requirement of HTTPS communication with the OpenIdConnect authority to be relaxed during tests.
+        config["Authentication:Schemes:OpenIdConnect:RequireHttpsMetadata"] = "false";
     }
 }
