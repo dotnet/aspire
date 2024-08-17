@@ -20,6 +20,9 @@ public static class IDistributedApplicationResourceBuilderExtensions
     /// <returns>The resource builder instance.</returns>
     public static IResourceBuilder<T> WithDaprSidecar<T>(this IResourceBuilder<T> builder, string appId) where T : IResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(appId);
+
         return builder.WithDaprSidecar(new DaprSidecarOptions { AppId = appId });
     }
 
@@ -32,6 +35,8 @@ public static class IDistributedApplicationResourceBuilderExtensions
     /// <returns>The resource builder instance.</returns>
     public static IResourceBuilder<T> WithDaprSidecar<T>(this IResourceBuilder<T> builder, DaprSidecarOptions? options = null) where T : IResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.WithDaprSidecar(
             sidecarBuilder =>
             {
@@ -51,6 +56,9 @@ public static class IDistributedApplicationResourceBuilderExtensions
     /// <returns>The resource builder instance.</returns>
     public static IResourceBuilder<T> WithDaprSidecar<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<IDaprSidecarResource>> configureSidecar) where T : IResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configureSidecar);
+
         // Add Dapr is idempotent, so we can call it multiple times.
         builder.ApplicationBuilder.AddDapr();
 
@@ -75,6 +83,9 @@ public static class IDistributedApplicationResourceBuilderExtensions
     /// <returns>The Dapr sidecar resource builder instance.</returns>
     public static IResourceBuilder<IDaprSidecarResource> WithOptions(this IResourceBuilder<IDaprSidecarResource> builder, DaprSidecarOptions options)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(options);
+
         return builder.WithAnnotation(new DaprSidecarOptionsAnnotation(options));
     }
 
@@ -86,6 +97,9 @@ public static class IDistributedApplicationResourceBuilderExtensions
     /// <param name="component">The Dapr component to use with the sidecar.</param>
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IDaprComponentResource> component) where TDestination : IResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(component);
+
         return builder.WithAnnotation(new DaprComponentReferenceAnnotation(component.Resource));
     }
 }
