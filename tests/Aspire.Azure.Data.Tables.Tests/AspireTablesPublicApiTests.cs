@@ -60,7 +60,7 @@ public class AspireTablesPublicApiTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void AddKeyedAzureTableClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
+    public void AddKeyedAzureTableClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var builder = new HostApplicationBuilder();
         var name = isNull ? null! : string.Empty;

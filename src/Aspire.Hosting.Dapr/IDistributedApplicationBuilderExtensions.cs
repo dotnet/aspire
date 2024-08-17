@@ -23,6 +23,8 @@ public static class IDistributedApplicationBuilderExtensions
     /// <returns>The distributed application builder instance.</returns>
     public static IDistributedApplicationBuilder AddDapr(this IDistributedApplicationBuilder builder, Action<DaprOptions>? configure = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         if (configure is not null)
         {
             builder.Services.Configure(configure);
@@ -42,6 +44,8 @@ public static class IDistributedApplicationBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<IDaprComponentResource> AddDaprComponent(this IDistributedApplicationBuilder builder, string name, string type, DaprComponentOptions? options = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         var resource = new DaprComponentResource(name, type) { Options = options };
 
         return builder

@@ -28,7 +28,7 @@ public class AzureAIOpenAIPublicApiTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void AddAzureOpenAIClientShouldThrowWhenConnectionNameIsNullorEmpty(bool isNull)
+    public void AddAzureOpenAIClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
         IHostApplicationBuilder builder = new HostApplicationBuilder();
         var connectionName = isNull ? null! : string.Empty;
