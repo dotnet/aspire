@@ -63,7 +63,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         }, cts.Token);
     }
 
-    [Fact]
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/5325")]
     [RequiresDocker]
     public async Task VerifyWithPgWeb()
     {
