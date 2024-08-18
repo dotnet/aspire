@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Testing;
 using Aspire.TestProject;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -101,6 +102,7 @@ public class TestProgram : IDisposable
             }
         }
 
+        AppBuilder.Services.AddHostedService<ResourceLoggerForwarderService>();
         AppBuilder.Services.AddLifecycleHook<EndPointWriterHook>();
         AppBuilder.Services.AddHttpClient();
     }
