@@ -23,17 +23,21 @@ public class CosmosPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddAzureCosmosClientShouldThrowWhenConnectionNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddAzureCosmosClientShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
         IHostApplicationBuilder builder = new HostApplicationBuilder();
-        string connectionName = null!;
+        var connectionName = isNull ? null! : string.Empty;
         Action<MicrosoftAzureCosmosSettings>? configureSettings = null;
         Action<CosmosClientOptions>? configureClientOptions = null;
 
         var action = () => builder.AddAzureCosmosClient(connectionName, configureSettings, configureClientOptions);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(connectionName), exception.ParamName);
     }
 
@@ -51,17 +55,21 @@ public class CosmosPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKeyedAzureCosmosClientShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddKeyedAzureCosmosClientShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         IHostApplicationBuilder builder = new HostApplicationBuilder();
-        string name = null!;
+        var name = isNull ? null! : string.Empty;
         Action<MicrosoftAzureCosmosSettings>? configureSettings = null;
         Action<CosmosClientOptions>? configureClientOptions = null;
 
         var action = () => builder.AddKeyedAzureCosmosClient(name, configureSettings, configureClientOptions);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 }

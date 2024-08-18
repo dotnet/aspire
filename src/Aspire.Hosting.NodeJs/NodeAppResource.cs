@@ -15,6 +15,10 @@ namespace Aspire.Hosting;
 public class NodeAppResource(string name, string command, string workingDirectory)
     : ExecutableResource(ThrowIfNull(name), ThrowIfNull(command), ThrowIfNull(workingDirectory)), IResourceWithServiceDiscovery
 {
-    private static string ThrowIfNull([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
-        => argument ?? throw new ArgumentNullException(paramName);
+    private static string ThrowIfNull([NotNull] string? argument,
+        [CallerArgumentExpression(nameof(argument))] string? paramName = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
+        return argument;
+    }
 }

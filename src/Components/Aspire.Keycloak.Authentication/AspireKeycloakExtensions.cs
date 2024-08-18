@@ -91,9 +91,9 @@ public static class AspireKeycloakExtensions
         Action<JwtBearerOptions>? configureOptions)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(serviceName);
-        ArgumentNullException.ThrowIfNull(realm);
-        ArgumentNullException.ThrowIfNull(authenticationScheme);
+        ArgumentException.ThrowIfNullOrEmpty(serviceName);
+        ArgumentException.ThrowIfNullOrEmpty(realm);
+        ArgumentException.ThrowIfNullOrEmpty(authenticationScheme);
 
         builder.AddJwtBearer(authenticationScheme);
 
@@ -185,9 +185,9 @@ public static class AspireKeycloakExtensions
         Action<OpenIdConnectOptions>? configureOptions)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(serviceName);
-        ArgumentNullException.ThrowIfNull(realm);
-        ArgumentNullException.ThrowIfNull(authenticationScheme);
+        ArgumentException.ThrowIfNullOrEmpty(serviceName);
+        ArgumentException.ThrowIfNullOrEmpty(realm);
+        ArgumentException.ThrowIfNullOrEmpty(authenticationScheme);
 
         builder.AddOpenIdConnect(authenticationScheme, options => { });
 

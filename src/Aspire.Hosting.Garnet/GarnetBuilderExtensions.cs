@@ -116,7 +116,7 @@ public static class GarnetBuilderExtensions
         string source, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         builder.WithBindMount(source, GarnetContainerDataDirectory, isReadOnly);
         if (!isReadOnly)

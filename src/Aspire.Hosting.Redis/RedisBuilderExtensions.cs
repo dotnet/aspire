@@ -162,7 +162,7 @@ public static class RedisBuilderExtensions
     public static IResourceBuilder<RedisResource> WithDataBindMount(this IResourceBuilder<RedisResource> builder, string source, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         builder.WithBindMount(source, "/data", isReadOnly);
         if (!isReadOnly)

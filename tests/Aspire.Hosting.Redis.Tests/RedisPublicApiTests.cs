@@ -21,15 +21,19 @@ public class RedisPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddRedisContainerShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddRedisContainerShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         IDistributedApplicationBuilder builder = new DistributedApplicationBuilder([]);
-        string name = null!;
+        var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddRedis(name);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
@@ -79,16 +83,20 @@ public class RedisPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void WithDataBindMountShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithDataBindMountShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("Redis");
-        string source = null!;
+        var source = isNull ? null! : string.Empty;
 
         var action = () => redis.WithDataBindMount(source);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(source), exception.ParamName);
     }
 
@@ -103,25 +111,33 @@ public class RedisPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void CtorRedisCommanderResourceShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorRedisCommanderResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        string name = null!;
+        var name = isNull ? null! : string.Empty;
 
         var action = () => new RedisCommanderResource(name);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
-    [Fact]
-    public void CtorRedisResourceShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorRedisResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        string name = null!;
+        string name = isNull ? null! : string.Empty;
 
         var action = () => new RedisResource(name);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 }

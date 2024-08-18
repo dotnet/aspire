@@ -21,33 +21,41 @@ public class MilvusPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddMilvusContainerShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddMilvusContainerShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var builder = DistributedApplication.CreateBuilder([]);
         builder.Configuration["Parameters:ApiKey"] = "root:Milvus";
         var apiKey = builder.AddParameter("ApiKey");
-        string name = null!;
+        var name = isNull ? null! : string.Empty;
 
         var action = () => builder.AddMilvus(name, apiKey);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
-    [Fact]
-    public void AddDatabaseShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddDatabaseShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
         var builder = DistributedApplication.CreateBuilder([]);
         builder.Configuration["Parameters:ApiKey"] = "root:Milvus";
         var apiKey = builder.AddParameter("ApiKey");
 
         var milvus = builder.AddMilvus("Milvus", apiKey);
-        string name = null!;
+        var name = isNull ? null! : string.Empty;
 
         var action = () => milvus.AddDatabase(name);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
@@ -55,7 +63,7 @@ public class MilvusPublicApiTests
     public void AddDatabaseShouldThrowWhenSourceIsNull()
     {
         IResourceBuilder<MilvusServerResource> builder = null!;
-        string name = "db";
+        var name = "db";
 
         var action = () => builder.AddDatabase(name);
 
@@ -97,19 +105,23 @@ public class MilvusPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void WithDataBindMountShouldThrowWhenSourceIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithDataBindMountShouldThrowWhenSourceIsNullOrEmpty(bool isNull)
     {
         var builder = DistributedApplication.CreateBuilder([]);
         builder.Configuration["Parameters:ApiKey"] = "root:Milvus";
         var apiKey = builder.AddParameter("ApiKey");
 
         var milvus = builder.AddMilvus("Milvus", apiKey);
-        string source = null!;
+        var source = isNull ? null! : string.Empty;
 
         var action = () => milvus.WithDataBindMount(source);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(source), exception.ParamName);
     }
 
@@ -124,31 +136,38 @@ public class MilvusPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void WithConfigurationBindMountShouldThrowWhenConfigurationFilePathIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void WithConfigurationBindMountShouldThrowWhenConfigurationFilePathIsNullOrEmpty(bool isNull)
     {
         var builder = DistributedApplication.CreateBuilder([]);
         builder.Configuration["Parameters:ApiKey"] = "root:Milvus";
         var apiKey = builder.AddParameter("ApiKey");
-
         var milvus = builder.AddMilvus("Milvus", apiKey);
-        string configurationFilePath = null!;
+        var configurationFilePath = isNull ? null! : string.Empty;
+
         var action = () => milvus.WithConfigurationBindMount(configurationFilePath);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(configurationFilePath), exception.ParamName);
     }
 
-    [Fact]
-    public void CtorMilvusServerResourceShouldThrowWhenNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CtorMilvusServerResourceShouldThrowWhenNameIsNullOrEmpty(bool isNull)
     {
-        var builder = DistributedApplication.CreateBuilder([]);
-        string name = null!;
-        var apiKey = new ParameterResource("ApiKey", (pd) => "root:Milvus");
+        var name = isNull ? null! : string.Empty;
+        var apiKey = new ParameterResource("ApiKey", (_) => "root:Milvus");
 
         var action = () => new MilvusServerResource(name, apiKey);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 

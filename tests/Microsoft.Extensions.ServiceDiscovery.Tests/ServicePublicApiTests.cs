@@ -172,17 +172,21 @@ public class ServicePublicApiTests
         Assert.Equal(nameof(endPoint), exception.ParamName);
     }
 
-    [Fact]
-    public void TryParseShouldThrowWhenEndPointIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TryParseShouldThrowWhenEndPointIsNullOrEmpty(bool isNull)
     {
-        string input = null!;
+        var input = isNull ? null! : string.Empty;
 
         var action = () =>
         {
             _ = ServiceEndpointQuery.TryParse(input, out _);
         };
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(input), exception.ParamName);
     }
 

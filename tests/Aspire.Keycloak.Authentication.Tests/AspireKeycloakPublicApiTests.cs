@@ -24,29 +24,37 @@ public class AspireKeycloakPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKeycloakJwtBearerShouldThrowWhenServiceNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddKeycloakJwtBearerShouldThrowWhenServiceNameIsNullOrEmpty(bool isNull)
     {
         var builder = new AuthenticationBuilder(new ServiceCollection());
-        string serviceName = null!;
+        var serviceName = isNull ? null! : string.Empty;
         const string realm = "realm";
 
         var action = () => builder.AddKeycloakJwtBearer(serviceName, realm);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(serviceName), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKeycloakJwtBearerShouldThrowWhenRealmIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddKeycloakJwtBearerShouldThrowWhenRealmIsNullOrEmpty(bool isNull)
     {
         var builder = new AuthenticationBuilder(new ServiceCollection());
         const string serviceName = "Keycloak";
-        string realm = null!;
+        var realm = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeycloakJwtBearer(serviceName, realm);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(realm), exception.ParamName);
     }
 
@@ -64,45 +72,57 @@ public class AspireKeycloakPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKeycloakJwtBearerWithAuthenticationSchemeShouldThrowWhenServiceNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddKeycloakJwtBearerWithAuthenticationSchemeShouldThrowWhenServiceNameIsNullOrEmpty(bool isNull)
     {
         var builder = new AuthenticationBuilder(new ServiceCollection());
-        string serviceName = null!;
+        var serviceName = isNull ? null! : string.Empty;
         const string realm = "realm";
         const string authenticationScheme = "Bearer";
 
         var action = () => builder.AddKeycloakJwtBearer(serviceName, realm, authenticationScheme);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(serviceName), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKeycloakJwtBearerWithAuthenticationSchemeShouldThrowWhenRealmIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddKeycloakJwtBearerWithAuthenticationSchemeShouldThrowWhenRealmIsNullOrEmpty(bool isNull)
     {
         var builder = new AuthenticationBuilder(new ServiceCollection());
         const string serviceName = "Keycloak";
-        string realm = null!;
+        var realm = isNull ? null! : string.Empty;
         const string authenticationScheme = "Bearer";
 
         var action = () => builder.AddKeycloakJwtBearer(serviceName, realm, authenticationScheme);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(realm), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKeycloakJwtBearerWithAuthenticationSchemeShouldThrowWhenAuthenticationSchemeIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddKeycloakJwtBearerWithAuthenticationSchemeShouldThrowWhenAuthenticationSchemeIsNullOrEmpty(bool isNull)
     {
         var builder = new AuthenticationBuilder(new ServiceCollection());
         const string serviceName = "Keycloak";
         const string realm = "realm";
-        string authenticationScheme = null!;
+        var authenticationScheme = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeycloakJwtBearer(serviceName, realm, authenticationScheme);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(authenticationScheme), exception.ParamName);
     }
 
@@ -120,31 +140,39 @@ public class AspireKeycloakPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKeycloakJwtBearerWithConfigureOptionsShouldThrowWhenServiceNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddKeycloakJwtBearerWithConfigureOptionsShouldThrowWhenServiceNameIsNullOrEmpty(bool isNull)
     {
         var builder = new AuthenticationBuilder(new ServiceCollection());
-        string serviceName = null!;
+        var serviceName = isNull ? null! : string.Empty;
         const string realm = "realm";
         Action<JwtBearerOptions>? configureOptions = null;
 
         var action = () => builder.AddKeycloakJwtBearer(serviceName, realm, configureOptions);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(serviceName), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKeycloakJwtBearerWithConfigureOptionsShouldThrowWhenRealmIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddKeycloakJwtBearerWithConfigureOptionsShouldThrowWhenRealmIsNullOrEmpty(bool isNull)
     {
         var builder = new AuthenticationBuilder(new ServiceCollection());
         const string serviceName = "Keycloak";
-        string realm = null!;
+        var realm = isNull ? null! : string.Empty;
         Action<JwtBearerOptions>? configureOptions = null;
 
         var action = () => builder.AddKeycloakJwtBearer(serviceName, realm, configureOptions);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(realm), exception.ParamName);
     }
 
@@ -161,29 +189,37 @@ public class AspireKeycloakPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKeycloakOpenIdConnectShouldThrowWhenServiceNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddKeycloakOpenIdConnectShouldThrowWhenServiceNameIsNullOrEmpty(bool isNull)
     {
         var builder = new AuthenticationBuilder(new ServiceCollection());
-        string serviceName = null!;
+        var serviceName = isNull ? null! : string.Empty;
         const string realm = "realm";
 
         var action = () => builder.AddKeycloakOpenIdConnect(serviceName, realm);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(serviceName), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKeycloakOpenIdConnectShouldThrowWhenRealmIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddKeycloakOpenIdConnectShouldThrowWhenRealmIsNullOrEmpty(bool isNull)
     {
         var builder = new AuthenticationBuilder(new ServiceCollection());
         const string serviceName = "Keycloak";
-        string realm = null!;
+        var realm = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeycloakOpenIdConnect(serviceName, realm);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(realm), exception.ParamName);
     }
 
@@ -201,45 +237,57 @@ public class AspireKeycloakPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKeycloakOpenIdConnectWithAuthenticationSchemeShouldThrowWhenServiceNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddKeycloakOpenIdConnectWithAuthenticationSchemeShouldThrowWhenServiceNameIsNullOrEmpty(bool isNull)
     {
         var builder = new AuthenticationBuilder(new ServiceCollection());
-        string serviceName = null!;
+        var serviceName = isNull ? null! : string.Empty;
         const string realm = "realm";
         const string authenticationScheme = "Bearer";
 
         var action = () => builder.AddKeycloakOpenIdConnect(serviceName, realm, authenticationScheme);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(serviceName), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKeycloakOpenIdConnectWithAuthenticationSchemeShouldThrowWhenRealmIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddKeycloakOpenIdConnectWithAuthenticationSchemeShouldThrowWhenRealmIsNullOrEmpty(bool isNull)
     {
         var builder = new AuthenticationBuilder(new ServiceCollection());
         const string serviceName = "Keycloak";
-        string realm = null!;
+        var realm = isNull ? null! : string.Empty;
         const string authenticationScheme = "Bearer";
 
         var action = () => builder.AddKeycloakOpenIdConnect(serviceName, realm, authenticationScheme);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(realm), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKeycloakOpenIdConnectWithAuthenticationSchemeShouldThrowWhenAuthenticationSchemeIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddKeycloakOpenIdConnectWithAuthenticationSchemeShouldThrowWhenAuthenticationSchemeIsNullOrEmpty(bool isNull)
     {
         var builder = new AuthenticationBuilder(new ServiceCollection());
         const string serviceName = "Keycloak";
         const string realm = "realm";
-        string authenticationScheme = null!;
+        var authenticationScheme = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeycloakOpenIdConnect(serviceName, realm, authenticationScheme);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(authenticationScheme), exception.ParamName);
     }
 
@@ -257,31 +305,39 @@ public class AspireKeycloakPublicApiTests
         Assert.Equal(nameof(builder), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKeycloakOpenIdConnectWithConfigureOptionsShouldThrowWhenServiceNameIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddKeycloakOpenIdConnectWithConfigureOptionsShouldThrowWhenServiceNameIsNullOrEmpty(bool isNull)
     {
         var builder = new AuthenticationBuilder(new ServiceCollection());
-        string serviceName = null!;
+        var serviceName = isNull ? null! : string.Empty;
         const string realm = "realm";
         Action<OpenIdConnectOptions>? configureOptions = null;
 
         var action = () => builder.AddKeycloakOpenIdConnect(serviceName, realm, configureOptions);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(serviceName), exception.ParamName);
     }
 
-    [Fact]
-    public void AddKeycloakOpenIdConnectWithConfigureOptionsShouldThrowWhenRealmIsNull()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AddKeycloakOpenIdConnectWithConfigureOptionsShouldThrowWhenRealmIsNullOrEmtpy(bool isNull)
     {
         var builder = new AuthenticationBuilder(new ServiceCollection());
         const string serviceName = "Keycloak";
-        string realm = null!;
+        var realm = isNull ? null! : string.Empty;
         Action<OpenIdConnectOptions>? configureOptions = null;
 
         var action = () => builder.AddKeycloakOpenIdConnect(serviceName, realm, configureOptions);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(realm), exception.ParamName);
     }
 }

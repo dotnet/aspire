@@ -167,7 +167,7 @@ public static class MilvusBuilderExtensions
     public static IResourceBuilder<MilvusServerResource> WithDataBindMount(this IResourceBuilder<MilvusServerResource> builder, string source, bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
         return builder.WithBindMount(source, "/var/lib/milvus", isReadOnly);
     }
 
@@ -180,7 +180,7 @@ public static class MilvusBuilderExtensions
     public static IResourceBuilder<MilvusServerResource> WithConfigurationBindMount(this IResourceBuilder<MilvusServerResource> builder, string configurationFilePath)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(configurationFilePath);
+        ArgumentException.ThrowIfNullOrEmpty(configurationFilePath);
         return builder.WithBindMount(configurationFilePath, "/milvus/configs/milvus.yaml");
     }
 

@@ -252,8 +252,8 @@ public class DarpPublicApiTests
     {
         IResourceBuilder<IDaprSidecarResource> builder = null!;
 
-        IDistributedApplicationBuilder builder2 = TestDistributedApplicationBuilder.Create();
-        var component = builder2.AddResource<IDaprComponentResource>(new DaprComponentResource("darp", "state"));
+        IDistributedApplicationBuilder resourceBuilder = TestDistributedApplicationBuilder.Create();
+        var component = resourceBuilder.AddResource<IDaprComponentResource>(new DaprComponentResource("darp", "state"));
 
         var action = () => builder.WithReference(component);
 

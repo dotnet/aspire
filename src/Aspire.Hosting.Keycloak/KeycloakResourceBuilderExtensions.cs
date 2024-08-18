@@ -122,7 +122,7 @@ public static class KeycloakResourceBuilderExtensions
     public static IResourceBuilder<KeycloakResource> WithDataBindMount(this IResourceBuilder<KeycloakResource> builder, string source)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(source);
 
         return builder.WithBindMount(source, "/opt/keycloak/data", false);
     }
@@ -150,7 +150,7 @@ public static class KeycloakResourceBuilderExtensions
         bool isReadOnly = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(importDirectory);
+        ArgumentException.ThrowIfNullOrEmpty(importDirectory);
 
         var importDirectoryFullPath = Path.GetFullPath(importDirectory, builder.ApplicationBuilder.AppHostDirectory);
         if (!Directory.Exists(importDirectoryFullPath))

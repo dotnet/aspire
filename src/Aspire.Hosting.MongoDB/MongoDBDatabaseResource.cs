@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -14,9 +17,9 @@ public class MongoDBDatabaseResource : Resource, IResourceWithParent<MongoDBServ
     /// <param name="name">The name of the resource.</param>
     /// <param name="databaseName">The database name.</param>
     /// <param name="parent">The MongoDB server resource associated with this database.</param>
-    public MongoDBDatabaseResource(string name, string databaseName, MongoDBServerResource parent) : base(name)
+    public MongoDBDatabaseResource(string name, string databaseName, MongoDBServerResource parent) : base(ThrowIfNullOrEmpty(name))
     {
-        ArgumentNullException.ThrowIfNull(databaseName);
+        ThrowIfNullOrEmpty(databaseName);
         ArgumentNullException.ThrowIfNull(parent);
 
         Parent = parent;
@@ -38,4 +41,12 @@ public class MongoDBDatabaseResource : Resource, IResourceWithParent<MongoDBServ
     /// Gets the database name.
     /// </summary>
     public string DatabaseName { get; }
+
+    private static string ThrowIfNullOrEmpty(
+        [NotNull] string? argument,
+        [CallerArgumentExpression(nameof(argument))] string? paramName = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
+        return argument;
+    }
 }
