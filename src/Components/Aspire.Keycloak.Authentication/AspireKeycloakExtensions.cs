@@ -29,7 +29,8 @@ public static class AspireKeycloakExtensions
     public static AuthenticationBuilder AddKeycloakJwtBearer(this AuthenticationBuilder builder, string serviceName, string realm)
     {
         ArgumentNullException.ThrowIfNull(builder);
-
+        ArgumentException.ThrowIfNullOrEmpty(serviceName);
+        ArgumentException.ThrowIfNullOrEmpty(realm);
         return builder.AddKeycloakJwtBearer(serviceName, realm, JwtBearerDefaults.AuthenticationScheme, null);
     }
 
