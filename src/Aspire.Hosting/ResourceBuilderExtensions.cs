@@ -4,6 +4,8 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting;
 
@@ -561,10 +563,34 @@ public static class ResourceBuilderExtensions
     {
         var cts = new TaskCompletionSource();
 
-        builder.ApplicationBuilder.Eventing.Subscribe<ResourceCreatedEvent>(dependency.Resource, (e, ct) =>
+        // When we WaitFor a resource we subscribe to the ResourceCreatedEvent for the dependency...
+        builder.ApplicationBuilder.Eventing.Subscribe<ResourceCreatedEvent>(dependency.Resource, async (e, ct) =>
         {
+            // ... however, we don't know whether the dependency is really available so we optionally wait for
+            // health checks to pass. This is done by checking health checks against the list of health checks
+            // we are interested in as specified by the health checks annotation.
+            var hcs = e.Services.GetRequiredService<HealthCheckService>();
+            var healthCheckAnnotations = dependency.Resource.Annotations.OfType<HealthCheckAnnotation>();
+
+            if (healthCheckAnnotations.Any())
+            {
+                do
+                {
+                    var report = await hcs.CheckHealthAsync(
+                        r => healthCheckAnnotations.Any(hca => hca.Name == r.Name),
+                        ct
+                        ).ConfigureAwait(false);
+
+                    if (report.Status == HealthStatus.Healthy)
+                    {
+                        break;
+                    }
+
+                    await Task.Delay(500, ct).ConfigureAwait(false);
+                } while (true);
+            }
+
             cts.SetResult();
-            return Task.CompletedTask;
         });
 
         var annotation = new WaitAnnotation(dependency.Resource, async (context, ct) =>

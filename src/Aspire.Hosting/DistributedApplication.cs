@@ -198,7 +198,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// built using the <see cref="IDistributedApplicationBuilder.Build"/> method.
     /// </para>
     /// <para>
-    /// To add services to the dependency injection container developers should use the <see cref="IDistributedApplicationBuilder.Services"/>
+    /// To add services to the dependency injection container developers should use the <see cref="IHostApplicationBuilder.Services"/>
     /// property to access the <see cref="IServiceCollection"/> instance.
     /// </para>
     /// </remarks>

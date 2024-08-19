@@ -372,12 +372,9 @@ Aspire.Hosting.IDistributedApplicationBuilder
 Aspire.Hosting.IDistributedApplicationBuilder.AddResource<T>(T resource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 Aspire.Hosting.IDistributedApplicationBuilder.AppHostDirectory.get -> string!
 Aspire.Hosting.IDistributedApplicationBuilder.Build() -> Aspire.Hosting.DistributedApplication!
-Aspire.Hosting.IDistributedApplicationBuilder.Configuration.get -> Microsoft.Extensions.Configuration.ConfigurationManager!
 Aspire.Hosting.IDistributedApplicationBuilder.CreateResourceBuilder<T>(T resource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
-Aspire.Hosting.IDistributedApplicationBuilder.Environment.get -> Microsoft.Extensions.Hosting.IHostEnvironment!
 Aspire.Hosting.IDistributedApplicationBuilder.ExecutionContext.get -> Aspire.Hosting.DistributedApplicationExecutionContext!
 Aspire.Hosting.IDistributedApplicationBuilder.Resources.get -> Aspire.Hosting.ApplicationModel.IResourceCollection!
-Aspire.Hosting.IDistributedApplicationBuilder.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Aspire.Hosting.IProjectMetadata
 Aspire.Hosting.IProjectMetadata.ProjectPath.get -> string!
 Aspire.Hosting.IResourceWithServiceDiscovery

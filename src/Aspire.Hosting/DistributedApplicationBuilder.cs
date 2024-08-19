@@ -12,6 +12,7 @@ using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Diagnostics.Metrics;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -69,6 +70,17 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     /// <inheritdoc />
     public IDistributedApplicationEventing Eventing { get; } = new DistributedApplicationEventing();
+
+    IConfigurationManager IHostApplicationBuilder.Configuration => _innerBuilder.Configuration;
+
+    /// <inheritdoc />
+    public ILoggingBuilder Logging => _innerBuilder.Logging;
+
+    /// <inheritdoc />
+    public IMetricsBuilder Metrics => _innerBuilder.Metrics;
+
+    /// <inheritdoc />
+    public IDictionary<object, object> Properties => ((IHostApplicationBuilder)_innerBuilder).Properties;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
@@ -373,5 +385,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         }
 
         return diagnosticListener;
+    }
+
+    /// <inheritdoc />
+    public void ConfigureContainer<TContainerBuilder>(IServiceProviderFactory<TContainerBuilder> factory, Action<TContainerBuilder>? configure = null) where TContainerBuilder : notnull
+    {
+        throw new NotImplementedException();
     }
 }

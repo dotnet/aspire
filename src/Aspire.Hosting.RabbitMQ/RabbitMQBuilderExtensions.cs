@@ -4,6 +4,8 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.RabbitMQ;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
 
@@ -36,18 +38,36 @@ public static class RabbitMQBuilderExtensions
         // don't use special characters in the password, since it goes into a URI
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special: false);
 
-        var rabbitMq = new RabbitMQServerResource(name, userName?.Resource, passwordParameter);
-        var rabbitmq = builder.AddResource(rabbitMq)
+        var resource = new RabbitMQServerResource(name, userName?.Resource, passwordParameter);
+        var resourceBuilder = builder.AddResource(resource)
                               .WithImage(RabbitMQContainerImageTags.Image, RabbitMQContainerImageTags.Tag)
                               .WithImageRegistry(RabbitMQContainerImageTags.Registry)
                               .WithEndpoint(port: port, targetPort: 5672, name: RabbitMQServerResource.PrimaryEndpointName)
                               .WithEnvironment(context =>
                               {
-                                  context.EnvironmentVariables["RABBITMQ_DEFAULT_USER"] = rabbitMq.UserNameReference;
-                                  context.EnvironmentVariables["RABBITMQ_DEFAULT_PASS"] = rabbitMq.PasswordParameter;
-                              });
+                                  context.EnvironmentVariables["RABBITMQ_DEFAULT_USER"] = resource.UserNameReference;
+                                  context.EnvironmentVariables["RABBITMQ_DEFAULT_PASS"] = resource.PasswordParameter;
+                              })
+                              .WithAnnotation(new HealthCheckAnnotation($"RabbitMQ.Client_{name}")); // HACK! Hard coded string.
 
-        return rabbitmq;
+        // When the resource is started, we update the apphost connection string configuration with the connection string
+        // so that subsequent healthchecks can use it.
+        builder.Eventing.Subscribe<ResourceCreatedEvent>(resource, async (e, ct) =>
+        {
+            var connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+            builder.Configuration[$"ConnectionStrings:{name}"] = connectionString;
+        });
+
+        // We take over the connection factory to make sure we are grabbing the URI from the connection string
+        // after the endpoint has been allocated since it isn't available when the client is first injected
+        // into the DI container.
+        builder.AddKeyedRabbitMQClient(name, configureConnectionFactory: f =>
+        {
+            var connectionString = builder.Configuration.GetConnectionString(name);
+            f.Uri = new(connectionString!);
+        });
+
+        return resourceBuilder;
     }
 
     /// <summary>

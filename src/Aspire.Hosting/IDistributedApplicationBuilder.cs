@@ -5,8 +5,6 @@ using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
@@ -50,11 +48,8 @@ namespace Aspire.Hosting;
 /// builder.Build().Run();
 /// </code>
 /// </example>
-public interface IDistributedApplicationBuilder
+public interface IDistributedApplicationBuilder : IHostApplicationBuilder
 {
-    /// <inheritdoc cref="HostApplicationBuilder.Configuration" />
-    public ConfigurationManager Configuration { get; }
-
     /// <summary>
     /// Directory of the project where the app host is located. Defaults to the content root if there's no project.
     /// </summary>
@@ -64,12 +59,6 @@ public interface IDistributedApplicationBuilder
     /// Assembly of the app host project.
     /// </summary>
     public Assembly? AppHostAssembly { get; }
-
-    /// <inheritdoc cref="HostApplicationBuilder.Environment" />
-    public IHostEnvironment Environment { get; }
-
-    /// <inheritdoc cref="HostApplicationBuilder.Services" />
-    public IServiceCollection Services { get; }
 
     /// <summary>
     /// Eventing infrastructure for AppHost lifecycle.

@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+    <ProjectReference Include="..\Components\Aspire.RabbitMQ.Client\Aspire.RabbitMQ.Client.csproj" />
   </ItemGroup>
 
 </Project>
