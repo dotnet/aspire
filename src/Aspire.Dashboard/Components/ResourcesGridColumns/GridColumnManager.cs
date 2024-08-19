@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
 
@@ -13,13 +14,18 @@ public class GridColumnManager
 
     public GridColumnManager(GridColumn[] columns, DimensionManager dimensionManager)
     {
+        if (columns.DistinctBy(c => c.Name, StringComparers.GridColumn).Count() != columns.Length)
+        {
+            throw new InvalidOperationException("There are duplicate columns");
+        }
+
         _columns = columns;
         _dimensionManager = dimensionManager;
     }
 
-    public bool IsColumnVisible(string columnName)
+    public bool IsColumnVisible(string columnId)
     {
-        return GetColumnWidth(_columns.First(column => column.Name == columnName)) is not null;
+        return GetColumnWidth(_columns.First(column => column.Name == columnId)) is not null;
     }
 
     private string? GetColumnWidth(GridColumn column)
