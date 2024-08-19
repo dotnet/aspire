@@ -1,26 +1,25 @@
-﻿@using Aspire.Dashboard.Components.Pages
+﻿@namespace Aspire.Dashboard.Components
+
+@using Aspire.Dashboard.Components.Pages
 @using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 
-<FluentGrid Spacing="2" AdaptiveRendering="true" Style="padding-right: 10px;">
+<FluentGrid Spacing="3" AdaptiveRendering="true" Justify="JustifyContent.FlexStart">
     @foreach (var chart in SelectedDashpage.Charts)
     {
         if (Instruments.FirstOrDefault(i => i.Name == chart.InstrumentName) is { } instrument)
         {
             <FluentGridItem md="6" lg="4">
-                <FluentCard>
-                    <div style="padding-left: 20px">
-                        <ChartContainer
-                            ApplicationKey="@(SelectedApplication.Id!.GetApplicationKey())"
-                            MeterName="@(instrument.Parent.MeterName)"
-                            InstrumentName="@(instrument.Name)"
-                            Duration="@SelectedDuration.Id"
-                            ActiveView="@(SelectedViewKind ?? Metrics.MetricViewKind.Graph)"
-                            OnViewChangedAsync="@OnViewChangedAsync"
-                            Applications="@Applications"
-                            IsDashpageChart="true"/>
-                    </div>
+                <FluentCard AreaRestricted="true">
+                    <DashpageChartContainer
+                        ApplicationKey="@(SelectedApplication.Id!.GetApplicationKey())"
+                        MeterName="@(instrument.Parent.MeterName)"
+                        InstrumentName="@(instrument.Name)"
+                        Duration="@SelectedDuration.Id"
+                        ActiveView="@(SelectedViewKind ?? Metrics.MetricViewKind.Graph)"
+                        OnViewChangedAsync="@OnViewChangedAsync"
+                        Applications="@Applications" />
                 </FluentCard>
             </FluentGridItem>
         }

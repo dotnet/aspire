@@ -7,18 +7,15 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
-using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components;
 
-public partial class ChartContainer : ComponentBase, IAsyncDisposable
+public abstract class ChartContainer : ComponentBase, IAsyncDisposable
 {
-    private OtlpInstrument? _instrument;
     private PeriodicTimer? _tickTimer;
     private Task? _tickTask;
     private IDisposable? _themeChangedSubscription;
     private int _renderedDimensionsCount;
-    private readonly InstrumentViewModel _instrumentViewModel = new InstrumentViewModel();
 
     [Parameter, EditorRequired]
     public required ApplicationKey ApplicationKey { get; set; }
@@ -32,6 +29,9 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     [Parameter, EditorRequired]
     public required TimeSpan Duration { get; set; }
 
+    [Parameter, EditorRequired]
+    public required Func<Metrics.MetricViewKind, Task> OnViewChangedAsync { get; set; }
+
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
 
@@ -44,6 +44,8 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     public List<DimensionFilterViewModel> DimensionFilters { get; } = [];
     public string? PreviousMeterName { get; set; }
     public string? PreviousInstrumentName { get; set; }
+    public OtlpInstrument? Instrument { get; private set; }
+    public InstrumentViewModel ViewModel { get; } = new InstrumentViewModel();
 
     protected override void OnInitialized()
     {
@@ -52,7 +54,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         _tickTask = Task.Run(UpdateDataAsync);
         _themeChangedSubscription = ThemeManager.OnThemeChanged(async () =>
         {
-            _instrumentViewModel.Theme = ThemeManager.Theme;
+            ViewModel.Theme = ThemeManager.Theme;
             await InvokeAsync(StateHasChanged);
         });
     }
@@ -74,33 +76,33 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         var timer = _tickTimer;
         while (await timer!.WaitForNextTickAsync())
         {
-            _instrument = GetInstrument();
-            if (_instrument == null)
+            Instrument = GetInstrument();
+            if (Instrument == null)
             {
                 continue;
             }
 
-            if (_instrument.Dimensions.Count > _renderedDimensionsCount)
+            if (Instrument.Dimensions.Count > _renderedDimensionsCount)
             {
                 // Re-render the entire control if the number of dimensions has changed.
-                _renderedDimensionsCount = _instrument.Dimensions.Count;
+                _renderedDimensionsCount = Instrument.Dimensions.Count;
                 await InvokeAsync(StateHasChanged);
             }
             else
             {
-                await UpdateInstrumentDataAsync(_instrument);
+                await UpdateInstrumentDataAsync(Instrument);
             }
         }
     }
 
     public async Task DimensionValuesChangedAsync(DimensionFilterViewModel dimensionViewModel)
     {
-        if (_instrument == null)
+        if (Instrument == null)
         {
             return;
         }
 
-        await UpdateInstrumentDataAsync(_instrument);
+        await UpdateInstrumentDataAsync(Instrument);
     }
 
     private async Task UpdateInstrumentDataAsync(OtlpInstrument instrument)
@@ -108,7 +110,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         var matchedDimensions = instrument.Dimensions.Values.Where(MatchDimension).ToList();
 
         // Only update data in plotly
-        await _instrumentViewModel.UpdateDataAsync(instrument, matchedDimensions);
+        await ViewModel.UpdateDataAsync(instrument, matchedDimensions);
     }
 
     private bool MatchDimension(DimensionScope dimension)
@@ -149,9 +151,9 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     protected override async Task OnParametersSetAsync()
     {
-        _instrument = GetInstrument();
+        Instrument = GetInstrument();
 
-        if (_instrument == null)
+        if (Instrument == null)
         {
             return;
         }
@@ -165,7 +167,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         DimensionFilters.Clear();
         DimensionFilters.AddRange(filters);
 
-        await UpdateInstrumentDataAsync(_instrument);
+        await UpdateInstrumentDataAsync(Instrument);
     }
 
     private OtlpInstrument? GetInstrument()
@@ -199,9 +201,9 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     private List<DimensionFilterViewModel> CreateUpdatedFilters(bool hasInstrumentChanged)
     {
         var filters = new List<DimensionFilterViewModel>();
-        if (_instrument != null)
+        if (Instrument != null)
         {
-            foreach (var item in _instrument.KnownAttributeValues.OrderBy(kvp => kvp.Key))
+            foreach (var item in Instrument.KnownAttributeValues.OrderBy(kvp => kvp.Key))
             {
                 var dimensionModel = new DimensionFilterViewModel
                 {
@@ -262,19 +264,5 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         }
 
         return filters;
-    }
-
-    private Task OnTabChangeAsync(FluentTab newTab)
-    {
-        var id = newTab.Id?.Substring("tab-".Length);
-
-        if (id is null
-            || !Enum.TryParse(typeof(Metrics.MetricViewKind), id, out var o)
-            || o is not Metrics.MetricViewKind viewKind)
-        {
-            return Task.CompletedTask;
-        }
-
-        return OnViewChangedAsync(viewKind);
     }
 }

@@ -30,6 +30,9 @@ public partial class PlotlyChart : ChartBase
     [Inject]
     public required IDialogService DialogService { get; init; }
 
+    [Parameter]
+    public bool IsDashpage { get; set; }
+
     public string ChartDivId { get; } = $"plotly-chart-container-{Interlocked.Increment(ref s_nextChartId)}";
 
     private DotNetObjectReference<ChartInterop>? _chartInteropReference;
@@ -223,4 +226,14 @@ public partial class PlotlyChart : ChartBase
     }
 
     private readonly record struct ExemplarGroupKey(DateTimeOffset? Start, DateTimeOffset? End);
+
+    private string GetChartDivClass()
+    {
+        if (IsDashpage)
+        {
+            return "";
+        }
+
+        return "plotly-chart-container-single-metric-view";
+    }
 }

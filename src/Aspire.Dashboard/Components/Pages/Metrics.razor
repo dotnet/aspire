@@ -97,7 +97,7 @@
                                         if (PageViewModel.SelectedApplication.Id?.InstanceId is not null && PageViewModel.SelectedInstrument is not null)
                                         {
                                             // We've got a selected instrument and application, so show the chart
-                                            <ChartContainer
+                                            <SingleMetricChartContainer
                                                 ApplicationKey="@(PageViewModel.SelectedApplication.Id.GetApplicationKey())"
                                                 MeterName="@(PageViewModel.SelectedMeter.MeterName)"
                                                 InstrumentName="@(PageViewModel.SelectedInstrument.Name)"

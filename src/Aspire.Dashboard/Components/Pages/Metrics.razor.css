@@ -73,7 +73,7 @@
     margin-left: 10px;
 }
 
-::deep .plotly-chart-container {
+::deep .plotly-chart-container-single-metric-view {
     margin-left: -40px;
 }
 

@@ -1,8 +1,8 @@
 ﻿@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Otlp.Model
 
-<div class="metrics-chart-container metric-tab">
-    <PlotlyChart InstrumentViewModel="@InstrumentViewModel" Duration="Duration" Applications="Applications"/>
+<div class="metric-tab">
+    <PlotlyChart InstrumentViewModel="@InstrumentViewModel" Duration="Duration" Applications="Applications" IsDashpage="@IsDashpage"/>
     <ChartFilters InstrumentViewModel="@InstrumentViewModel" Instrument="@Instrument" DimensionFilters="@DimensionFilters" />
 </div>
 
@@ -22,4 +22,6 @@
     [Parameter, EditorRequired]
     public required InstrumentViewModel InstrumentViewModel { get; set; }
 
+    [Parameter]
+    public bool IsDashpage { get; set; }
 }

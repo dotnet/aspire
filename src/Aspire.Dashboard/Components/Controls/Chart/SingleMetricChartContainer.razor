@@ -1,0 +1,56 @@
+﻿@namespace Aspire.Dashboard.Components
+
+@inherits ChartContainer
+
+@using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Resources
+@using Metrics = Aspire.Dashboard.Components.Pages.Metrics
+@using Aspire.Dashboard.Components.Controls.Chart
+
+@inject IStringLocalizer<ControlsStrings> Loc
+
+@if (Instrument is null)
+{
+    <div>@Loc[nameof(ControlsStrings.ChartContainerUnableToDisplay)]</div>
+}
+else
+{
+    <div class="metrics-chart">
+        <div class="metrics-chart-header" style="@($"padding-left: 40px")">
+            <h3>@Instrument.Name</h3>
+            <p>@Instrument.Description</p>
+        </div>
+
+        <FluentTabs ActiveTabId="@($"tab-{ActiveView}")" OnTabChange="@OnTabChangeAsync">
+            <FluentTab LabelClass="tab-label"
+                       Id="@($"tab-{Metrics.MetricViewKind.Graph}")"
+                       aria-label="@Loc[nameof(ControlsStrings.ChartContainerGraphAccessibleLabel)]"
+                       Label="@Loc[nameof(ControlsStrings.ChartContainerGraphTab)]"
+                       Icon="@(new Icons.Regular.Size24.DataArea())">
+                <ChartWrapper Applications="@Applications"
+                              Duration="@Duration"
+                              Instrument="@Instrument"
+                              InstrumentViewModel="@ViewModel"
+                              DimensionFilters="@DimensionFilters"/>
+            </FluentTab>
+            <FluentTab LabelClass="tab-label"
+                       Id="@($"tab-{Metrics.MetricViewKind.Table}")"
+                       Label="@Loc[nameof(ControlsStrings.ChartContainerTableTab)]"
+                       Icon="@(new Icons.Regular.Size24.Table())">
+                <MetricTableWrapper Applications="@Applications"
+                                    Duration="@Duration"
+                                    Instrument="@Instrument"
+                                    InstrumentViewModel="@ViewModel"
+                                    DimensionFilters="@DimensionFilters"/>
+            </FluentTab>
+        </FluentTabs>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public required Metrics.MetricViewKind ActiveView { get; set; }
+
+    [Parameter]
+    public required List<OtlpApplication> Applications { get; set; }
+}

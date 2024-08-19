@@ -1,0 +1,7 @@
+::deep .dashpage-chart-header {
+    padding-left: 0;
+}
+
+::deep .dashpage-chart-body {
+    padding-top: 10px;
+}
