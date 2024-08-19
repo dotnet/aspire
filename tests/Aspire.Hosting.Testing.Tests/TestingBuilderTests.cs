@@ -20,14 +20,18 @@ public class TestingBuilderTests
     public async Task CreateAsyncWithOptions(bool genericEntryPoint)
     {
         var nonExistantRegistry = "non-existant-registry-azurecr.io";
+        var testEnvironmentName = "TestFooEnvironment";
         Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder = (options, settings) =>
         {
             options.ContainerRegistryOverride = nonExistantRegistry;
+            settings.EnvironmentName = testEnvironmentName;
         };
 
         var appHost = await (genericEntryPoint
             ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>([], configureBuilder)
             : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost), [], configureBuilder));
+        Assert.Equal(testEnvironmentName, appHost.Environment.EnvironmentName);
+
         await using var app = await appHost.BuildAsync();
         await app.StartAsync();
 
