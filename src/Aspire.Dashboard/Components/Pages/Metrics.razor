@@ -83,7 +83,7 @@
                                     }
                                     else if (PageViewModel.SelectedMeter != null)
                                     {
-                                        <h3>@PageViewModel.SelectedMeter.MeterName</h3>
+                                        <h3 class="meter-name-title">@PageViewModel.SelectedMeter.MeterName</h3>
                                         <FluentDataGrid
                                             ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
                                             ResizeType="DataGridResizeType.Discrete"
@@ -110,7 +110,7 @@
                                         else
                                         {
                                             // class needed to prevent color from being removed from reboot style
-                                            <a class @onclick="@(async () => await _contentLayout!.OpenMobileToolbarAsync())">
+                                            <a class="" @onclick="@(async () => await _contentLayout!.OpenMobileToolbarAsync())">
                                                 @Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectInstrument)]
                                             </a>
                                         }
@@ -131,7 +131,7 @@
                         else
                         {
                             <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple"/>@:&nbsp;
-                            <a class @onclick="@(async () => await _contentLayout!.OpenMobileToolbarAsync())">@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectAResource)]</a>
+                            <a class="" @onclick="@(async () => await _contentLayout!.OpenMobileToolbarAsync())">@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectAResource)]</a>
                         }
                     </div>
                 }

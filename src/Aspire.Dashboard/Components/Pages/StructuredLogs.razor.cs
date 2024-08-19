@@ -139,7 +139,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             new GridColumn(Name: MessageColumn, DesktopWidth: "5fr", "2.5fr"),
             new GridColumn(Name: TraceColumn, DesktopWidth: "1fr"),
             new GridColumn(Name: DetailsColumn, DesktopWidth: "1fr", MobileWidth: "0.8fr")
-        ], ViewportInformation, DimensionManager);
+        ], DimensionManager);
 
         if (!string.IsNullOrEmpty(TraceId))
         {

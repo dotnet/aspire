@@ -159,7 +159,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             new GridColumn(Name: LogsColumn, DesktopWidth: "1fr"),
             new GridColumn(Name: DetailsColumn, DesktopWidth: "1fr", MobileWidth: "1fr"),
             new GridColumn(Name: CommandsColumn, DesktopWidth: "1fr", IsVisible: () => HasResourcesWithCommands)
-        ], ViewportInformation, DimensionManager);
+        ], DimensionManager);
 
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
@@ -412,7 +412,6 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         _watchTaskCancellationTokenSource.Cancel();
         _watchTaskCancellationTokenSource.Dispose();
         _logsSubscription?.Dispose();
-        _manager.Dispose();
 
         await TaskHelpers.WaitIgnoreCancelAsync(_resourceSubscriptionTask);
     }

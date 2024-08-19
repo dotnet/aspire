@@ -13,6 +13,8 @@ public class GridColumnManagerTests
     public void Returns_Correct_TemplateColumn_String()
     {
         var dimensionManager = new DimensionManager();
+        dimensionManager.InvokeOnBrowserDimensionsChanged(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+
         var manager = new GridColumnManager([
             new GridColumn("NoMobile", "1fr", null),
             new GridColumn("Both1", "1fr", "1fr"),
@@ -20,7 +22,7 @@ public class GridColumnManagerTests
             new GridColumn("NoDesktop", null, "2fr"),
             new GridColumn("NoDesktopWithIsVisibleFalse", null, "2fr", IsVisible: () => false),
             new GridColumn("NoDesktopWithIsVisibleTrue", null, "4fr", IsVisible: () => true)
-        ], new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false), dimensionManager);
+        ], dimensionManager);
 
         Assert.Equal("1fr 1fr 3fr", manager.GetGridTemplateColumns());
 
@@ -32,6 +34,8 @@ public class GridColumnManagerTests
     public void Returns_Right_Columns_IsVisible()
     {
         var dimensionManager = new DimensionManager();
+        dimensionManager.InvokeOnBrowserDimensionsChanged(new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+
         var manager = new GridColumnManager([
             new GridColumn("NoMobile", "1fr", null),
             new GridColumn("Both1", "1fr", "1fr"),
@@ -39,7 +43,7 @@ public class GridColumnManagerTests
             new GridColumn("NoDesktop", null, "2fr"),
             new GridColumn("NoDesktopWithIsVisibleFalse", null, "2fr", IsVisible: () => false),
             new GridColumn("NoDesktopWithIsVisibleTrue", null, "4fr", IsVisible: () => true)
-        ], new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false), dimensionManager);
+        ], dimensionManager);
 
         Assert.True(manager.IsColumnVisible("NoMobile"));
         Assert.True(manager.IsColumnVisible("Both1"));

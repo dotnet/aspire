@@ -8,6 +8,15 @@ namespace Aspire.Dashboard.Components.Resize;
 
 public class BrowserDimensionWatcher : ComponentBase
 {
+    // Set our mobile cutoff at 768 pixels, which is ~medium tablet size
+    private const int MobileCutoffPixelWidth = 768;
+
+    // A small enough height that the filters button takes up too much of the vertical space on screen
+    private const int LowHeightCutoffPixelWidth = 400;
+
+    // Very close to the minimum width we need to support (320px)
+    private const int LowWidthCutoffPixelWidth = 350;
+
     [Parameter]
     public ViewportInformation? ViewportInformation { get; set; }
 
@@ -26,6 +35,7 @@ public class BrowserDimensionWatcher : ComponentBase
         {
             var viewport = await JS.InvokeAsync<ViewportSize>("window.getWindowDimensions");
             ViewportInformation = GetViewportInformation(viewport);
+            DimensionManager.InvokeOnBrowserDimensionsChanged(ViewportInformation);
             await ViewportInformationChanged.InvokeAsync(ViewportInformation);
 
             await JS.InvokeVoidAsync("window.listenToWindowResize", DotNetObjectReference.Create(this));
@@ -45,6 +55,10 @@ public class BrowserDimensionWatcher : ComponentBase
         {
             ViewportInformation = newViewportInformation;
             DimensionManager.IsResizing = true;
+            // A re-render happens on components after ViewportInformationChanged is invoked
+            // we should invoke OnBrowserDimensionsChanged first so that listeners of it
+            // that are outside of the UI tree have the current viewport kind internally when components
+            // call them
             DimensionManager.InvokeOnBrowserDimensionsChanged(newViewportInformation);
             await ViewportInformationChanged.InvokeAsync(newViewportInformation);
             DimensionManager.IsResizing = false;
@@ -54,9 +68,9 @@ public class BrowserDimensionWatcher : ComponentBase
     private static ViewportInformation GetViewportInformation(ViewportSize viewportSize)
     {
         return new ViewportInformation(
-            IsDesktop: viewportSize.Width > 768,
-            IsUltraLowHeight: viewportSize.Height < 400,
-            IsUltraLowWidth: viewportSize.Width < 350);
+            IsDesktop: viewportSize.Width > MobileCutoffPixelWidth,
+            IsUltraLowHeight: viewportSize.Height < LowHeightCutoffPixelWidth,
+            IsUltraLowWidth: viewportSize.Width < LowWidthCutoffPixelWidth);
     }
     public record ViewportSize(int Width, int Height);
 }

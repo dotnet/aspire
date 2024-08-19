@@ -64,7 +64,7 @@ public partial class TraceDetail : ComponentBase
             new GridColumn(Name: NameColumn, DesktopWidth: "4fr", MobileWidth: "4fr"),
             new GridColumn(Name: TicksColumn, DesktopWidth: "12fr", MobileWidth: "12fr"),
             new GridColumn(Name: DetailsColumn, DesktopWidth: "85px", MobileWidth: null)
-        ], ViewportInformation, DimensionManager);
+        ], DimensionManager);
 
         foreach (var resolver in OutgoingPeerResolvers)
         {

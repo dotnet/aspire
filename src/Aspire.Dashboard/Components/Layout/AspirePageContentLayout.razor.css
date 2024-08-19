@@ -17,7 +17,6 @@
         Improve here could be to add that feature
     */
     grid-area: page-header;
-    overflow-x: hidden;
     white-space: nowrap;
 }
 

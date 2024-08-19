@@ -5,12 +5,15 @@ namespace Aspire.Dashboard.Components.Resize;
 
 public class DimensionManager
 {
+    private ViewportInformation? _viewportInformation;
     public event BrowserDimensionsChangedEventHandler? OnBrowserDimensionsChanged;
 
     public bool IsResizing { get; set; }
+    public ViewportInformation ViewportInformation => _viewportInformation ?? throw new ArgumentNullException(nameof(_viewportInformation));
 
     internal void InvokeOnBrowserDimensionsChanged(ViewportInformation newViewportInformation)
     {
+        _viewportInformation = newViewportInformation;
         OnBrowserDimensionsChanged?.Invoke(this, new BrowserDimensionsChangedEventArgs(newViewportInformation));
     }
 }

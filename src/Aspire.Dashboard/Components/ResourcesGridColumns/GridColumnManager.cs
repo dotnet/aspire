@@ -6,23 +6,15 @@ using Aspire.Dashboard.Model;
 
 namespace Aspire.Dashboard.Components;
 
-public class GridColumnManager : IDisposable
+public class GridColumnManager
 {
     private readonly GridColumn[] _columns;
     private readonly DimensionManager _dimensionManager;
-    private ViewportInformation _currentViewport;
 
-    public GridColumnManager(GridColumn[] columns, ViewportInformation viewportInformation, DimensionManager dimensionManager)
+    public GridColumnManager(GridColumn[] columns, DimensionManager dimensionManager)
     {
         _columns = columns;
-        _currentViewport = viewportInformation;
         _dimensionManager = dimensionManager;
-        _dimensionManager.OnBrowserDimensionsChanged += OnBrowserDimensionsChanged;
-    }
-
-    private void OnBrowserDimensionsChanged(object _, BrowserDimensionsChangedEventArgs args)
-    {
-        _currentViewport = args.ViewportInformation;
     }
 
     public bool IsColumnVisible(string columnName)
@@ -37,7 +29,7 @@ public class GridColumnManager : IDisposable
             return null;
         }
 
-        if (_currentViewport.IsDesktop)
+        if (_dimensionManager.ViewportInformation.IsDesktop)
         {
             return column.DesktopWidth;
         }
@@ -53,10 +45,5 @@ public class GridColumnManager : IDisposable
             .Select(s => s!);
 
         return string.Join(" ", visibleColumns);
-    }
-
-    public void Dispose()
-    {
-        _dimensionManager.OnBrowserDimensionsChanged -= OnBrowserDimensionsChanged;
     }
 }
