@@ -189,29 +189,6 @@
       "type": "value.v0",
       "connectionString": "{pg11.connectionString};Database=postgres"
     },
-    "pg12": {
-      "type": "container.v0",
-      "connectionString": "Host={pg12.bindings.tcp.host};Port={pg12.bindings.tcp.port};Username=postgres;Password={pg12-password.value}",
-      "image": "docker.io/library/postgres:16.2",
-      "env": {
-        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
-        "POSTGRES_USER": "postgres",
-        "POSTGRES_PASSWORD": "{pg12-password.value}"
-      },
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "targetPort": 5432
-        }
-      }
-    },
-    "db12": {
-      "type": "value.v0",
-      "connectionString": "{pg12.connectionString};Database=db12"
-    },
     "api": {
       "type": "project.v0",
       "path": "../PostgresEndToEnd.ApiService/PostgresEndToEnd.ApiService.csproj",
@@ -231,8 +208,7 @@
         "ConnectionStrings__db8": "{db8.connectionString}",
         "ConnectionStrings__db9": "{db9.connectionString}",
         "ConnectionStrings__db10": "{db10.connectionString}",
-        "ConnectionStrings__postgres": "{postgres.connectionString}",
-        "ConnectionStrings__db12": "{db12.connectionString}"
+        "ConnectionStrings__postgres": "{postgres.connectionString}"
       },
       "bindings": {
         "http": {
@@ -342,21 +318,6 @@
     "pg11-password": {
       "type": "parameter.v0",
       "value": "{pg11-password.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
-        }
-      }
-    },
-    "pg12-password": {
-      "type": "parameter.v0",
-      "value": "{pg12-password.inputs.value}",
       "inputs": {
         "value": {
           "type": "string",
