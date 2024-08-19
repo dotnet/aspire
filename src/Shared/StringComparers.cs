@@ -16,6 +16,8 @@ internal static class StringComparers
     public static StringComparer UrlPath => StringComparer.OrdinalIgnoreCase;
     public static StringComparer UrlHost => StringComparer.OrdinalIgnoreCase;
     public static StringComparer Attribute => StringComparer.Ordinal;
+    public static StringComparer OtlpInstrumentName => StringComparer.OrdinalIgnoreCase;
+    public static StringComparer OtlpApplicationName => StringComparer.OrdinalIgnoreCase;
 }
 
 internal static class StringComparisons
@@ -31,4 +33,7 @@ internal static class StringComparisons
     public static StringComparison EnvironmentVariableName => StringComparison.InvariantCultureIgnoreCase;
     public static StringComparison UrlPath => StringComparison.OrdinalIgnoreCase;
     public static StringComparison UrlHost => StringComparison.OrdinalIgnoreCase;
+    public static StringComparison Attribute => StringComparison.Ordinal;
+    public static StringComparison OtlpInstrumentName => StringComparison.OrdinalIgnoreCase;
+    public static StringComparison OtlpApplicationName => StringComparison.OrdinalIgnoreCase;
 }

@@ -59,12 +59,17 @@
                                 <ChildContent>
                                     @if (PageViewModel.Dashpages.Length is not 0)
                                     {
-                                        <FluentTreeItem Text="@Loc[Aspire.Dashboard.Resources.Metrics.DashpagesSectionName]" title="@Loc[Aspire.Dashboard.Resources.Metrics.DashpagesSectionName]" InitiallyExpanded="true">
-                                            @foreach (DashpageDefinition dashpage in PageViewModel.Dashpages)
-                                            {
-                                                <FluentTreeItem @key="dashpage" Class="nested" Text="@dashpage.Name" Data="@dashpage" title="@dashpage.Name" InitiallySelected="@(dashpage.Name == PageViewModel.SelectedDashpage?.Name)"/>
-                                            }
-                                        </FluentTreeItem>
+                                        var filteredDashpages = PageViewModel.Dashpages.Where(PageViewModel.IsDashpageAvailable).ToList();
+
+                                        if (filteredDashpages.Count is not 0)
+                                        {
+                                            <FluentTreeItem Text="@Loc[Aspire.Dashboard.Resources.Metrics.DashpagesSectionName]" title="@Loc[Aspire.Dashboard.Resources.Metrics.DashpagesSectionName]" InitiallyExpanded="true">
+                                                @foreach (DashpageDefinition dashpage in filteredDashpages)
+                                                {
+                                                    <FluentTreeItem @key="dashpage" Class="nested" Text="@dashpage.Name" Data="@dashpage" title="@dashpage.Name" InitiallySelected="@(dashpage.Name == PageViewModel.SelectedDashpage?.Name)"/>
+                                                }
+                                            </FluentTreeItem>
+                                        }
                                     }
                                     @foreach ((var meter, var instruments) in PageViewModel.Instruments.GroupBy(i => i.Parent).OrderBy(g => g.Key.MeterName))
                                     {
