@@ -11,6 +11,10 @@ Aspire.Hosting.ApplicationModel.BeforeStartEvent
 Aspire.Hosting.ApplicationModel.BeforeStartEvent.BeforeStartEvent(System.IServiceProvider! services, Aspire.Hosting.ApplicationModel.DistributedApplicationModel! model) -> void
 Aspire.Hosting.ApplicationModel.BeforeStartEvent.Model.get -> Aspire.Hosting.ApplicationModel.DistributedApplicationModel!
 Aspire.Hosting.ApplicationModel.BeforeStartEvent.Services.get -> System.IServiceProvider!
+Aspire.Hosting.ApplicationModel.ResourceCreatedEvent
+Aspire.Hosting.ApplicationModel.ResourceCreatedEvent.Resource.get -> Aspire.Hosting.ApplicationModel.IResource!
+Aspire.Hosting.ApplicationModel.ResourceCreatedEvent.ResourceCreatedEvent(Aspire.Hosting.ApplicationModel.IResource! resource, System.IServiceProvider! services) -> void
+Aspire.Hosting.ApplicationModel.ResourceCreatedEvent.Services.get -> System.IServiceProvider!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
 Aspire.Hosting.ApplicationModel.WaitAnnotation
 Aspire.Hosting.ApplicationModel.WaitAnnotation.Dependency.get -> Aspire.Hosting.ApplicationModel.IResource!

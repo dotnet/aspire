@@ -4,7 +4,6 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -560,9 +559,17 @@ public static class ResourceBuilderExtensions
     /// <returns>The resource builder for the resource.</returns>
     public static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T: IResource
     {
+        var cts = new TaskCompletionSource();
+
+        builder.ApplicationBuilder.Eventing.Subscribe<ResourceCreatedEvent>(dependency.Resource, (e, ct) =>
+        {
+            cts.SetResult();
+            return Task.CompletedTask;
+        });
+
         var annotation = new WaitAnnotation(dependency.Resource, async (context, ct) =>
         {
-            await Task.Delay(1000, ct).ConfigureAwait(false);
+            await cts.Task.ConfigureAwait(false);
         });
 
         return builder.WithAnnotation(annotation);
