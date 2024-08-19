@@ -29,10 +29,10 @@
     <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.6.2</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
     <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.6.2</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
     <!-- Other -->
-    <MicrosoftDotNetRemoteExecutorPackageVersion>8.0.0-beta.24376.1</MicrosoftDotNetRemoteExecutorPackageVersion>
-    <MicrosoftDotNetXUnitExtensionsPackageVersion>8.0.0-beta.24376.1</MicrosoftDotNetXUnitExtensionsPackageVersion>
-    <MicrosoftDotNetBuildTasksInstallersPackageVersion>8.0.0-beta.24376.1</MicrosoftDotNetBuildTasksInstallersPackageVersion>
-    <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>8.0.0-beta.24376.1</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
+    <MicrosoftDotNetRemoteExecutorPackageVersion>8.0.0-beta.24413.2</MicrosoftDotNetRemoteExecutorPackageVersion>
+    <MicrosoftDotNetXUnitExtensionsPackageVersion>8.0.0-beta.24413.2</MicrosoftDotNetXUnitExtensionsPackageVersion>
+    <MicrosoftDotNetBuildTasksInstallersPackageVersion>8.0.0-beta.24413.2</MicrosoftDotNetBuildTasksInstallersPackageVersion>
+    <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>8.0.0-beta.24413.2</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
     <MicrosoftExtensionsHttpResiliencePackageVersion>8.8.0</MicrosoftExtensionsHttpResiliencePackageVersion>
     <MicrosoftExtensionsDiagnosticsTestingPackageVersion>8.8.0</MicrosoftExtensionsDiagnosticsTestingPackageVersion>
     <MicrosoftExtensionsConfigurationAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsConfigurationAbstractionsPackageVersion>
@@ -56,10 +56,10 @@
     <MicrosoftExtensionsFeaturesPackageVersion>8.0.8</MicrosoftExtensionsFeaturesPackageVersion>
     <MicrosoftExtensionsTimeProviderTestingVersion>8.8.0</MicrosoftExtensionsTimeProviderTestingVersion>
     <!-- EF -->
-    <MicrosoftEntityFrameworkCoreCosmosPackageVersion>8.0.7</MicrosoftEntityFrameworkCoreCosmosPackageVersion>
-    <MicrosoftEntityFrameworkCoreDesignPackageVersion>8.0.7</MicrosoftEntityFrameworkCoreDesignPackageVersion>
-    <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>8.0.7</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
-    <MicrosoftEntityFrameworkCoreToolsPackageVersion>8.0.7</MicrosoftEntityFrameworkCoreToolsPackageVersion>
+    <MicrosoftEntityFrameworkCoreCosmosPackageVersion>8.0.8</MicrosoftEntityFrameworkCoreCosmosPackageVersion>
+    <MicrosoftEntityFrameworkCoreDesignPackageVersion>8.0.8</MicrosoftEntityFrameworkCoreDesignPackageVersion>
+    <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>8.0.8</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
+    <MicrosoftEntityFrameworkCoreToolsPackageVersion>8.0.8</MicrosoftEntityFrameworkCoreToolsPackageVersion>
     <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.0-preview.5.24272.3</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
   </PropertyGroup>
 </Project>
