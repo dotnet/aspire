@@ -74,7 +74,7 @@ public static class DistributedApplicationTestingBuilder
     /// </summary>
     /// <typeparam name="TEntryPoint">
     /// A type in the entry point assembly of the target Aspire AppHost. Typically, the Program class can be used.
-    /// </typeparam>///
+    /// </typeparam>
     /// <param name="args">The command line arguments to pass to the entry point.</param>
     /// <param name="configureBuilder">The delegate used to configure the builder.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
