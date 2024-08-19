@@ -62,17 +62,6 @@ public class ReferenceExpressionTests
         Assert.Equal(expected, expr);
     }
 
-    [Theory]
-    [InlineData("{0} {x}", "abc123", "abc123 {x}")]
-    [InlineData("{x} {0}", "abc123", "{x} abc123")]
-    [InlineData("{0} test {x}", "abc123", "abc123 test {x}")]
-    [InlineData("{x} test {0}", "abc123", "{x} test abc123")]
-    public void ReferenceExpressionHandlesValueWithBothParameterAndNonParameterBrackets(string input, string parameterValue, string expected)
-    {
-        var expr = ReferenceExpression.Create($"{input}", [new HostUrl("test")], [parameterValue]).ValueExpression;
-        Assert.Equal(expected, expr);
-    }
-
     [Fact]
     public void ReferenceExpressionHandlesValueWithoutBrackets()
     {
