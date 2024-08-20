@@ -229,6 +229,14 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">Builder for the container resource.</param>
     /// <param name="lifetimeType">The lifetime behavior of the container resource (defaults behavior is <see cref="ContainerLifetimeType.AppHost"/>)</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <example>
+    /// Marking a container resource to have a <see cref="ContainerLifetimeType.Persistent"/> lifetime.
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// builder.AddContainer("mycontainer", "myimage")
+    ///        .WithContainerLifetime(ContainerLifetimeType.Persistent);
+    /// </code>
+    /// </example>
     [Experimental("ASPIRECONTAINERLIFETIME001")]
     public static IResourceBuilder<T> WithContainerLifetime<T>(this IResourceBuilder<T> builder, ContainerLifetimeType lifetimeType) where T : ContainerResource
     {
