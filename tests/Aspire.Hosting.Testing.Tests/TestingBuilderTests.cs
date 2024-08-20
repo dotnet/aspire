@@ -2,8 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Http.Json;
+using System.Reflection;
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.Tests;
 using Aspire.Hosting.Tests.Utils;
+using Aspire.TestProject;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -13,6 +16,50 @@ namespace Aspire.Hosting.Testing.Tests;
 
 public class TestingBuilderTests
 {
+    [Fact]
+    [RequiresDocker]
+    public async Task CanLoadFromDirectoryOutsideOfAppContextBaseDirectory()
+    {
+        // This test depends on the TestProject.AppHost not being in `AppContext.BaseDirectory` for the tests assembly.
+        var unexpectedAppHostFiles = Directory.GetFiles(AppContext.BaseDirectory, "TestProject.AppHost.*");
+        if (unexpectedAppHostFiles.Length > 0)
+        {
+            // The test requires that the TestProject.AppHost* files not be present in the test directory
+            // This is a defensive check to ensure that the test is not run in an unexpected environment due
+            // to build changes
+            throw new InvalidOperationException($"Found unexpected AppHost files in {AppContext.BaseDirectory}: {string.Join(", ", unexpectedAppHostFiles)}");
+        }
+
+        var testProjectAssemblyPath = Directory.GetFiles(
+            Path.Combine(MSBuildUtils.GetRepoRoot(), "artifacts", "bin", "TestProject.AppHost"),
+            "TestProject.AppHost.dll",
+            SearchOption.AllDirectories).FirstOrDefault();
+
+        Assert.True(File.Exists(testProjectAssemblyPath), $"TestProject.AppHost.dll not found at {testProjectAssemblyPath}.");
+
+        var appHostAssembly = Assembly.LoadFrom(Path.Combine(AppContext.BaseDirectory, testProjectAssemblyPath));
+        var appHostType = appHostAssembly.GetTypes().FirstOrDefault(t => t.Name.EndsWith("_AppHost"))
+            ?? throw new InvalidOperationException("Generated AppHost type not found.");
+
+        TestResourceNames resourcesToSkip = ~TestResourceNames.redis;
+        var appHost = await DistributedApplicationTestingBuilder.CreateAsync(appHostType, ["--skip-resources", resourcesToSkip.ToCSVString()]);
+        await using var app = await appHost.BuildAsync();
+        await app.StartAsync();
+
+        // Sanity check that the app is running as expected
+        // Get an endpoint from a resource
+        var serviceAHttpEndpoint = app.GetEndpoint("servicea", "http");
+        Assert.NotNull(serviceAHttpEndpoint);
+        Assert.True(serviceAHttpEndpoint.Host.Length > 0);
+    }
+
+    [Fact]
+    public async Task ThrowsForAssemblyWithoutAnEntrypoint()
+    {
+        var ioe = await Assert.ThrowsAsync<InvalidOperationException>(() => DistributedApplicationTestingBuilder.CreateAsync(typeof(Microsoft.Extensions.Logging.ConsoleLoggerExtensions)));
+        Assert.Contains("does not have an entry point", ioe.Message);
+    }
+
     [Theory]
     [RequiresDocker]
     [InlineData(false)]
