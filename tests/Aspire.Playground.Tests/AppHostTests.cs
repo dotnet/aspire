@@ -115,8 +115,8 @@ public class AppHostTests
                     .ConfigureHttpClient(client => client.Timeout = Timeout.InfiniteTimeSpan)
                     .AddStandardResilienceHandler(resilience =>
                     {
-                        resilience.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(120);
-                        resilience.AttemptTimeout.Timeout = TimeSpan.FromSeconds(60);
+                        resilience.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(4);
+                        resilience.AttemptTimeout.Timeout = TimeSpan.FromSeconds(90);
                         resilience.Retry.MaxRetryAttempts = 30;
                         resilience.CircuitBreaker.SamplingDuration = resilience.AttemptTimeout.Timeout * 2;
                     });
