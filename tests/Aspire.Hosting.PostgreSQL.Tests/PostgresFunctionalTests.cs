@@ -3,6 +3,7 @@
 
 using System.Data;
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -60,6 +61,54 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
             Assert.True(results.HasRows);
         }, cts.Token);
+    }
+
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/5325")]
+    [RequiresDocker]
+    public async Task VerifyWithPgWeb()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        var dbName = "postgres";
+        var pg = builder.AddPostgres("pg1").WithPgWeb().AddDatabase(dbName);
+
+        builder.Services.AddHttpClient();
+
+        using var app = builder.Build();
+
+        await app.StartAsync();
+
+        var factory = app.Services.GetRequiredService<IHttpClientFactory>();
+        var client = factory.CreateClient();
+
+        var pgWeb = builder.Resources.OfType<PgWebContainerResource>().SingleOrDefault();
+
+        var pgWebEndpoint = pgWeb!.PrimaryEndpoint;
+
+        var testConnectionApiUrl = $"{pgWebEndpoint.Scheme}://{pgWebEndpoint.Host}:{pgWebEndpoint.Port}/api/connect";
+
+        var pipeline = new ResiliencePipelineBuilder().AddRetry(new Polly.Retry.RetryStrategyOptions
+        {
+            Delay = TimeSpan.FromSeconds(2),
+            MaxRetryAttempts = 10,
+        }).Build();
+
+        await pipeline.ExecuteAsync(async (ct) =>
+        {
+            var httpContent = new MultipartFormDataContent
+            {
+                { new StringContent(dbName), "bookmark_id" }
+            };
+
+            client.DefaultRequestHeaders.Add("x-session-id", Guid.NewGuid().ToString());
+
+            var response = await client.PostAsync(testConnectionApiUrl, httpContent, ct)
+                .ConfigureAwait(false);
+
+            response.EnsureSuccessStatusCode();
+        }, cts.Token).ConfigureAwait(false);
     }
 
     [Theory]
