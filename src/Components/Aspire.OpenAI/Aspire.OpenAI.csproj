@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <!-- This library can't ship stable until OpenAI ships stable. -->
+    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
+    <PackageTags>ai openai</PackageTags>
+    <Description>A client for OpenAI that integrates with Aspire, including logging and telemetry.</Description>
+    <PackageIconFullPath>$(SharedDir)OpenAI_256x.png</PackageIconFullPath>
+    <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
+    <!-- Disable package validation as this package hasn't shipped stable yet. -->
+    <EnablePackageValidation>false</EnablePackageValidation>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>70</MinCodeCoverage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
+    <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenAI" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+  </ItemGroup>
+
+</Project>

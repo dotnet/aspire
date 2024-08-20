@@ -1,0 +1,114 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.ClientModel;
+using Aspire.OpenAI;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using OpenAI;
+
+namespace Microsoft.Extensions.Hosting;
+
+/// <summary>
+/// Provides extension methods for registering <see cref="OpenAIClient"/> as a singleton in the services provided by the <see cref="IHostApplicationBuilder"/>.
+/// </summary>
+public static class AspireOpenAIExtensions
+{
+    private const string DefaultConfigSectionName = "Aspire:OpenAI";
+
+    /// <summary>
+    /// Registers <see cref="OpenAIClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="OpenAISettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureOptions">An optional method that can be used for customizing the <see cref="OpenAIClientOptions"/>.</param>
+    /// <remarks>Reads the configuration from "Aspire.OpenAI" section.</remarks>
+    public static void AddOpenAIClient(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<OpenAISettings>? configureSettings = null,
+        Action<OpenAIClientOptions>? configureOptions = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(connectionName);
+
+        AddOpenAIClient(builder, DefaultConfigSectionName, configureSettings, configureOptions, connectionName, serviceKey: null);
+    }
+
+    /// <summary>
+    /// Registers <see cref="OpenAIClient"/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
+    ///
+    /// Additionally, registers the <see cref="OpenAIClient"/> as an <see cref="OpenAIClient"/> service.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="OpenAISettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureOptions">An optional method that can be used for customizing the <see cref="OpenAIClientOptions"/>.</param>
+    /// <remarks>Reads the configuration from "Aspire.OpenAI:{name}" section.</remarks>
+    public static void AddKeyedOpenAIClient(
+        this IHostApplicationBuilder builder,
+        string name,
+        Action<OpenAISettings>? configureSettings = null,
+        Action<OpenAIClientOptions>? configureOptions = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        AddOpenAIClient(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureOptions, connectionName: name, serviceKey: name);
+
+        // Add the OpenAIClient service as OpenAIClient. That way the service can be resolved by both service Types.
+        builder.Services.TryAddKeyedSingleton(typeof(OpenAIClient), serviceKey: name, static (provider, key) => provider.GetRequiredKeyedService<OpenAIClient>(key));
+    }
+
+    private static void AddOpenAIClient(
+        this IHostApplicationBuilder builder,
+        string configurationSectionName,
+        Action<OpenAISettings>? configureSettings,
+        Action<OpenAIClientOptions>? configureOptions,
+        string connectionName,
+        string? serviceKey)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var configSection = builder.Configuration.GetSection(configurationSectionName);
+
+        var settings = new OpenAISettings();
+        configSection.Bind(settings);
+
+        if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
+        {
+            settings.ParseConnectionString(connectionString);
+        }
+
+        configureSettings?.Invoke(settings);
+
+        var options = new OpenAIClientOptions();
+        configureOptions?.Invoke(options);
+
+        if (serviceKey is null)
+        {
+            builder.Services.AddSingleton(ConfigureOpenAI);
+        }
+        else
+        {
+            builder.Services.AddKeyedSingleton(serviceKey, (sp, key) => ConfigureOpenAI(sp));
+        }
+
+        OpenAIClient ConfigureOpenAI(IServiceProvider serviceProvider)
+        {
+            if (settings.Endpoint is not null && settings.Key is not null)
+            {
+                return new OpenAIClient(new ApiKeyCredential(settings.Key), options);
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                        $"An OpenAIClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or either " +
+                        $"{nameof(settings.Endpoint)} and {nameof(settings.Key)} must both be provided " +
+                        $"in the '{configurationSectionName}' configuration section.");
+            }
+        }
+    }
+}
