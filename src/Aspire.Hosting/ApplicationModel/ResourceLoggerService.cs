@@ -260,7 +260,7 @@ public class ResourceLoggerService
             }
             OnNewLog += Log;
 
-            // Add a small delay to ensure the backlog is replay and ordered correctly.
+            // Add a small delay to ensure the backlog is replayed from DCP and ordered correctly.
             await EnsureBacklogReplayAsync(cancellationToken).ConfigureAwait(false);
 
             lock (_backlog)
@@ -312,7 +312,7 @@ public class ResourceLoggerService
             {
                 var delay = TimeSpan.FromMilliseconds(100);
 
-                // There could be an initial burst of logs as they're replayed. Give them the opporunity to be loaded
+                // There could be an initial burst of logs as they're replayed. Give them the opportunity to be loaded
                 // into the backlog in the correct order and returned before streaming logs as they arrive.
                 for (var i = 0; i < 3; i++)
                 {
