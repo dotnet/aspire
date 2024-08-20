@@ -42,11 +42,11 @@ The sdk in `artifacts/bin/dotnet-latest` is usable outside the repo at this poin
 - The environment needs to be set up to use this. It can be done manually with:
     - Add `/path-to-aspire-repo/artifacts/bin/dotnet-latest` to `PATH`.
     - Add `artifacts/packages/$(Configuration)/Shipping` as a nuget source for your projects, so the locally built packages can be picked up.
-        - `tests/Aspire.Workload.Tests/data/nuget8.config` can be used as a template for this, or you can add it manually to your `nuget.config`
+        - `tests/Shared/WorkloadTesting/data/nuget8.config` can be used as a template for this, or you can add it manually to your `nuget.config`
         - This `nuget8.config` uses the environment variable `BUILT_NUGETS_PATH`, so set `BUILT_NUGETS_PATH=/path-to-aspire/artifacts/packages/$(Configuration)/Shipping`
 
 - An alternative way is to use `source /path-to-aspire-repo/dogfood.sh` on Linux/macOS.
-    - Copy `tests/Aspire.Workload.Tests/data/nuget8.config nuget.config`
+    - Copy `tests/Shared/WorkloadTesting/data/nuget8.config nuget.config`
     - and set `BUILT_NUGETS_PATH=/path-to-aspire/artifacts/packages/$(Configuration)/Shipping`
 
 ## Inner loop tips
