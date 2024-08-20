@@ -510,13 +510,12 @@ public class AddPostgresTests
 
         await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
-        var bookMarkFiles = Directory
-            .GetFiles(volume.Source!);
+        var bookMarkFiles = Directory.GetFiles(volume.Source!).OrderBy(f => f).ToArray();
 
         Assert.Collection(bookMarkFiles,
             filePath =>
             {
-                Assert.Equal(".toml", Path.GetExtension(filePath)) ;
+                Assert.Equal(".toml", Path.GetExtension(filePath));
             },
             filePath =>
             {
