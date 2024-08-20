@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Aspire.Dashboard.Otlp.Storage;
@@ -56,6 +58,17 @@ public class ResourceLoggerService
         ArgumentNullException.ThrowIfNull(resourceName);
 
         return GetResourceLoggerState(resourceName).Logger;
+    }
+
+    /// <summary>
+    /// The internal logger is used when adding logs from resource's stream logs.
+    /// It allows the parsed date from text to be used as the log line date.
+    /// </summary>
+    internal Action<DateTime, string, bool> GetInternalLogger(string resourceName)
+    {
+        ArgumentNullException.ThrowIfNull(resourceName);
+
+        return GetResourceLoggerState(resourceName).AddLog;
     }
 
     /// <summary>
@@ -159,7 +172,8 @@ public class ResourceLoggerService
         }
     }
 
-    private ResourceLoggerState GetResourceLoggerState(string resourceName) =>
+    // Internal for testing.
+    internal ResourceLoggerState GetResourceLoggerState(string resourceName) =>
         _loggers.GetOrAdd(resourceName, (name, context) =>
         {
             var state = new ResourceLoggerState();
@@ -168,15 +182,19 @@ public class ResourceLoggerService
         },
         this);
 
+    internal sealed record InternalLogLine(DateTime DateTimeUtc, string Message, bool IsError);
+
     /// <summary>
     /// A logger for the resource to write to.
     /// </summary>
-    private sealed class ResourceLoggerState
+    internal sealed class ResourceLoggerState
     {
         private readonly ResourceLogger _logger;
         private readonly CancellationTokenSource _logStreamCts = new();
 
-        private readonly CircularBuffer<LogLine> _backlog = new(10000);
+        private Task? _backlogReplayCompleteTask;
+        private long _lastLogReceivedTimestamp;
+        private readonly CircularBuffer<InternalLogLine> _backlog = new(10000);
 
         /// <summary>
         /// Creates a new <see cref="ResourceLoggerState"/>.
@@ -220,45 +238,46 @@ public class ResourceLoggerService
         /// <returns>The log stream for the resource.</returns>
         public async IAsyncEnumerable<IReadOnlyList<LogLine>> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            var channel = Channel.CreateUnbounded<LogLine>();
+            // Line number always restarts from 1 when watching logs.
+            // Note that this will need to be improved if the log source (DCP) is changed to return a maximum number of lines.
+            var lineNumber = 1;
+            var channel = Channel.CreateUnbounded<InternalLogLine>();
 
             using var _ = _logStreamCts.Token.Register(() => channel.Writer.TryComplete());
 
-            LogLine[]? backlogSnapshot = default;
-            var flushBacklogSync = new ManualResetEventSlim();
-            void Log(LogLine log)
+            InternalLogLine[]? backlogSnapshot = null;
+            void Log(InternalLogLine log)
             {
-                if (flushBacklogSync.IsSet)
+                lock (_backlog)
                 {
-                    channel.Writer.TryWrite(log);
-                    return;
-                }
-
-                flushBacklogSync.Wait(cancellationToken);
-                // We need to ensure we don't write this log to the channel if it was already in the backlog
-                if (backlogSnapshot?.Contains(log) == false)
-                {
-                    channel.Writer.TryWrite(log);
+                    // Don't write to the channel until the backlog snapshot is accessed.
+                    // This prevents duplicate logs in result.
+                    if (backlogSnapshot != null)
+                    {
+                        channel.Writer.TryWrite(log);
+                    }
                 }
             }
-
-            // From the moment we add this callback, logs will be written to the backlog & to our Log method above
-            // so our Log method needs to ensure it de-dupes logs.
             OnNewLog += Log;
 
-            backlogSnapshot = GetBacklogSnapshot();
-            flushBacklogSync.Set();
+            // Add a small delay to ensure the backlog is replayed from DCP and ordered correctly.
+            await EnsureBacklogReplayAsync(cancellationToken).ConfigureAwait(false);
+
+            lock (_backlog)
+            {
+                backlogSnapshot = GetBacklogSnapshot();
+            }
 
             if (backlogSnapshot.Length > 0)
             {
-                yield return backlogSnapshot;
+                yield return CreateLogLines(ref lineNumber, backlogSnapshot);
             }
 
             try
             {
                 await foreach (var entry in channel.GetBatchesAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
                 {
-                    yield return entry;
+                    yield return CreateLogLines(ref lineNumber, entry);
                 }
             }
             finally
@@ -267,11 +286,51 @@ public class ResourceLoggerService
 
                 channel.Writer.TryComplete();
             }
+
+            static LogLine[] CreateLogLines(ref int lineNumber, IReadOnlyList<InternalLogLine> entry)
+            {
+                var logs = new LogLine[entry.Count];
+                for (var i = 0; i < entry.Count; i++)
+                {
+                    logs[i] = new LogLine(lineNumber, entry[i].Message, entry[i].IsError);
+                    lineNumber++;
+                }
+
+                return logs;
+            }
+        }
+
+        private Task EnsureBacklogReplayAsync(CancellationToken cancellationToken)
+        {
+            lock (_backlog)
+            {
+                _backlogReplayCompleteTask ??= StartBacklogReplayAsync(cancellationToken);
+                return _backlogReplayCompleteTask;
+            }
+
+            async Task StartBacklogReplayAsync(CancellationToken cancellationToken)
+            {
+                var delay = TimeSpan.FromMilliseconds(100);
+
+                // There could be an initial burst of logs as they're replayed. Give them the opportunity to be loaded
+                // into the backlog in the correct order and returned before streaming logs as they arrive.
+                for (var i = 0; i < 3; i++)
+                {
+                    await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                    lock (_backlog)
+                    {
+                        if (_lastLogReceivedTimestamp != 0 && Stopwatch.GetElapsedTime(_lastLogReceivedTimestamp) > delay)
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         // This provides the fan out to multiple subscribers.
-        private Action<LogLine>? _onNewLog;
-        private event Action<LogLine> OnNewLog
+        private Action<InternalLogLine>? _onNewLog;
+        private event Action<InternalLogLine> OnNewLog
         {
             add
             {
@@ -324,10 +383,11 @@ public class ResourceLoggerService
             lock (_backlog)
             {
                 _backlog.Clear();
+                _backlogReplayCompleteTask = null;
             }
         }
 
-        private LogLine[] GetBacklogSnapshot()
+        internal InternalLogLine[] GetBacklogSnapshot()
         {
             lock (_backlog)
             {
@@ -335,10 +395,36 @@ public class ResourceLoggerService
             }
         }
 
+        public void AddLog(DateTime dateTimeUtc, string logMessage, bool isErrorMessage)
+        {
+            InternalLogLine logLine;
+            lock (_backlog)
+            {
+                logLine = new InternalLogLine(dateTimeUtc, logMessage, isErrorMessage);
+
+                var added = false;
+                for (var i = _backlog.Count - 1; i >= 0; i--)
+                {
+                    if (dateTimeUtc >= _backlog[i].DateTimeUtc)
+                    {
+                        _backlog.Insert(i + 1, logLine);
+                        added = true;
+                        break;
+                    }
+                }
+                if (!added)
+                {
+                    _backlog.Insert(0, logLine);
+                }
+
+                _lastLogReceivedTimestamp = Stopwatch.GetTimestamp();
+            }
+
+            _onNewLog?.Invoke(logLine);
+        }
+
         private sealed class ResourceLogger(ResourceLoggerState loggerState) : ILogger
         {
-            private int _lineNumber;
-
             IDisposable? ILogger.BeginScope<TState>(TState state) => null;
 
             bool ILogger.IsEnabled(LogLevel logLevel) => true;
@@ -351,21 +437,42 @@ public class ResourceLoggerService
                     return;
                 }
 
-                var log = formatter(state, exception) + (exception is null ? "" : $"\n{exception}");
+                var logMessage = formatter(state, exception) + (exception is null ? "" : $"\n{exception}");
                 var isErrorMessage = logLevel >= LogLevel.Error;
 
-                LogLine logLine;
-                lock (loggerState._backlog)
-                {
-                    _lineNumber++;
-                    logLine = new LogLine(_lineNumber, log, isErrorMessage);
-
-                    loggerState._backlog.Add(logLine);
-                }
-
-                loggerState._onNewLog?.Invoke(logLine);
+                loggerState.AddLog(DateTime.UtcNow, logMessage, isErrorMessage);
             }
         }
+    }
+
+    internal static bool TryParseContentLineDate(string content, out DateTime value)
+    {
+        const int MinDateLength = 20; // Date + time without fractional seconds.
+        const int MaxDateLength = 30; // Date + time with fractional seconds.
+
+        if (content.Length >= MinDateLength)
+        {
+            var firstSpaceIndex = content.IndexOf(' ', StringComparison.Ordinal);
+            if (firstSpaceIndex > 0)
+            {
+                if (DateTimeOffset.TryParse(content.AsSpan(0, firstSpaceIndex), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var dateTime))
+                {
+                    value = dateTime.UtcDateTime;
+                    return true;
+                }
+            }
+            else if (content.Length <= MaxDateLength)
+            {
+                if (DateTimeOffset.TryParse(content, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var dateTime))
+                {
+                    value = dateTime.UtcDateTime;
+                    return true;
+                }
+            }
+        }
+
+        value = default;
+        return false;
     }
 }
 
