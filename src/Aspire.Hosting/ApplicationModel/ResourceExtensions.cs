@@ -239,7 +239,7 @@ public static class ResourceExtensions
     /// no <see cref="ContainerLifetimeAnnotation"/> is found.
     /// </summary>
     /// <param name="resource">The resource to the get the ContainerLifetimeType for.</param>
-    /// <returns></returns>
+    /// <returns>The <see cref="ContainerLifetimeType"/> from the <see cref="ContainerLifetimeAnnotation"/> for the resource (if the annotation exists). Defaults to <see cref="ContainerLifetimeType.AppHost"/> if the annotation is not set.</returns>
     internal static ContainerLifetimeType GetContainerLifetimeType(this IResource resource)
     {
         if (resource.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
