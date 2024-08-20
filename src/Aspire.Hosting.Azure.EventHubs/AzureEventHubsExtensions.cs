@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
@@ -121,7 +122,7 @@ public static class AzureEventHubsExtensions
     ///
     /// builder.AddProject&lt;Projects.InventoryService&gt;()
     ///        .WithReference(eventHub);
-    ///        
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
@@ -133,6 +134,15 @@ public static class AzureEventHubsExtensions
         }
 
         // Add emulator container
+        var configHostFile = Path.GetTempFileName();
+        File.WriteAllBytes(configHostFile, []);
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            File.SetUnixFileMode(configHostFile,
+                UnixFileMode.UserRead | UnixFileMode.UserWrite
+                | UnixFileMode.GroupRead | UnixFileMode.GroupWrite
+                | UnixFileMode.OtherRead | UnixFileMode.OtherWrite);
+        }
 
         builder
             .WithEndpoint(name: "emulator", targetPort: 5672)
@@ -143,7 +153,7 @@ public static class AzureEventHubsExtensions
                 Tag = EventHubsEmulatorContainerImageTags.Tag
             })
             .WithAnnotation(new ContainerMountAnnotation(
-                Path.GetTempFileName(),
+                configHostFile,
                 AzureEventHubsEmulatorResource.EmulatorConfigJsonPath,
                 ContainerMountType.BindMount,
                 isReadOnly: false));
