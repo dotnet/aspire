@@ -16,6 +16,7 @@ internal static class StringComparers
     public static StringComparer UrlPath => StringComparer.OrdinalIgnoreCase;
     public static StringComparer UrlHost => StringComparer.OrdinalIgnoreCase;
     public static StringComparer Attribute => StringComparer.Ordinal;
+    public static StringComparer GridColumn => StringComparer.Ordinal;
 }
 
 internal static class StringComparisons

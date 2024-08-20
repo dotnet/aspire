@@ -9,6 +9,22 @@ namespace Aspire.Hosting.Tests;
 public class ResourceLoggerServiceTests
 {
     [Fact]
+    public void ParseStreamedLogLine()
+    {
+        DateTime dateTimeUtc;
+
+        Assert.False(ResourceLoggerService.TryParseContentLineDate("", out _));
+        Assert.False(ResourceLoggerService.TryParseContentLineDate(" ", out _));
+        Assert.False(ResourceLoggerService.TryParseContentLineDate("ABC-ABC-ABC-ABC-ABC-ABC-ABC-ABC-ABC-ABC-ABC-ABC", out _));
+
+        Assert.True(ResourceLoggerService.TryParseContentLineDate("2024-08-19T06:01:06.661Z", out dateTimeUtc));
+        Assert.Equal(new DateTime(2024, 8, 19, 6, 1, 6, 661, DateTimeKind.Utc), dateTimeUtc);
+
+        Assert.True(ResourceLoggerService.TryParseContentLineDate("2024-08-19T06:10:33.473275911Z", out dateTimeUtc));
+        Assert.Equal(new DateTime(2024, 8, 19, 6, 10, 33, 473, 275, DateTimeKind.Utc).Add(TimeSpan.FromTicks(9)), dateTimeUtc);
+    }
+
+    [Fact]
     public async Task AddingResourceLoggerAnnotationAllowsLogging()
     {
         var testResource = new TestResource("myResource");
