@@ -56,15 +56,7 @@ public class TestingBuilderTests
     [Fact]
     public async Task ThrowsForAssemblyWithoutAnEntrypoint()
     {
-        var classLibraryAssemblyPath = Directory.GetFiles(
-            AppContext.BaseDirectory,
-            "ClassLibrary.dll",
-            SearchOption.AllDirectories).Single();
-
-        var appHostAssembly = Assembly.LoadFrom(Path.Combine(AppContext.BaseDirectory, classLibraryAssemblyPath));
-        var appHostType = appHostAssembly.GetTypes().Single(t => t.FullName == "ClassLibrary.Class1");
-
-        var ioe = await Assert.ThrowsAsync<InvalidOperationException>(() => DistributedApplicationTestingBuilder.CreateAsync(appHostType));
+        var ioe = await Assert.ThrowsAsync<InvalidOperationException>(() => DistributedApplicationTestingBuilder.CreateAsync(typeof(Microsoft.Extensions.Logging.ConsoleLoggerExtensions)));
         Assert.Contains("does not have an entry point", ioe.Message);
     }
 
