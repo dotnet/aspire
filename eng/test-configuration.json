@@ -5,6 +5,8 @@
   "retryOnRules": [
     { "testAssembly": { "regex": "Aspire.EndToEnd.*" }, "failureMessage": { "regex": "App run failed" } },
     { "testAssembly": { "regex": "Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.*" } },
-    { "testAssembly": { "regex": "Aspire.Microsoft.EntityFrameworkCore.SqlServer.*" } }
+    { "testAssembly": { "regex": "Aspire.Microsoft.EntityFrameworkCore.SqlServer.*" } },
+    { "testName": { "contains": "Aspire.Elastic.Clients.Elasticsearch.Tests.ConformanceTests.HealthCheckReportsExpectedStatus" } },
+    { "testAssembly": { "contains": "Aspire.Elastic.Clients.Elasticsearch.Test" }, "failureMessage": { "contains": "RemoteExecutionException : Half-way through waiting for remote process." } }
   ]
 }
