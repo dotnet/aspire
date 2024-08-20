@@ -165,8 +165,6 @@
     </MSBuild>
 
     <ItemGroup Condition="'$(NeedsDcpPathOverride)' == 'true'">
-      <_joeTest Include="$(DCPBinaryLocation)\**\*" />
-
       <_DcpInWorkloadPack Condition="'$(OS)' != 'Windows_NT'" Include="$(DCPBinaryLocation)/dcp" />
       <_DcpInWorkloadPack Condition="'$(OS)' == 'Windows_NT'" Include="$(DCPBinaryLocation)\dcp.exe" />
 

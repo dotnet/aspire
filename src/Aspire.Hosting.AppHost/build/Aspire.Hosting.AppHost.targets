@@ -247,7 +247,7 @@ namespace Projects%3B
   </Target>
 
   <Target Name="__ErrorOnMininumWorkloadVersionMissing" BeforeTargets="PrepareForBuild"
-    Condition="'$(AspireHostingSDKVersion)' == '' or $([MSBuild]::VersionLessThan('$(AspireHostingSDKVersion)', '8.2.0'))">
+    Condition="'$(IsAspireHost)' == 'true' and ('$(AspireHostingSDKVersion)' == '' or $([MSBuild]::VersionLessThan('$(AspireHostingSDKVersion)', '8.2.0')))">
     <Error Code="ASPIRE005"
       Text="$(MSBuildProjectName) project requires a newer version of the .NET Aspire Workload to work correctly. Please run `dotnet workload update`." />
   </Target>
