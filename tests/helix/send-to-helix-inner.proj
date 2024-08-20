@@ -165,8 +165,10 @@
     </MSBuild>
 
     <ItemGroup Condition="'$(NeedsDcpPathOverride)' == 'true'">
-      <_DcpInWorkloadPack Condition="'$(OS)' != 'Windows_NT'" Include="$(DCPBinaryLocation)\**\dcp" />
-      <_DcpInWorkloadPack Condition="'$(OS)' == 'Windows_NT'" Include="$(DCPBinaryLocation)\**\dcp.exe" />
+      <_joeTest Include="$(DCPBinaryLocation)\**\*" />
+
+      <_DcpInWorkloadPack Condition="'$(OS)' != 'Windows_NT'" Include="$(DCPBinaryLocation)/dcp" />
+      <_DcpInWorkloadPack Condition="'$(OS)' == 'Windows_NT'" Include="$(DCPBinaryLocation)\dcp.exe" />
 
       <HelixCorrelationPayload Include="@(_DcpInWorkloadPack -> '%(RootDir)%(Directory)')" Destination="dcp" />
 

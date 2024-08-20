@@ -48,7 +48,7 @@
 
   <Target Name="Build" />
 
-  <Target Name="GetDCPBinaryLocation" Returns="$(DCPBinariesLocation)">
+  <Target Name="GetDCPBinaryLocation" Returns="$(DCPBinariesLocation)" DependsOnTargets="Restore">
     <PropertyGroup>
       <DCPBinariesLocation>$(NuGetPackageRoot)microsoft.developercontrolplane.$(DcpPlatform)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)/tools</DCPBinariesLocation>
     </PropertyGroup>
