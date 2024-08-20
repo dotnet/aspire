@@ -78,9 +78,12 @@ internal sealed class TestKubernetesService : IKubernetesService
 
     public void PushResourceModified(CustomResource resource)
     {
-        foreach (var c in _watchChannels)
+        lock (CreatedResources)
         {
-            c.Writer.TryWrite((WatchEventType.Modified, resource));
+            foreach (var c in _watchChannels)
+            {
+                c.Writer.TryWrite((WatchEventType.Modified, resource));
+            }
         }
     }
 
