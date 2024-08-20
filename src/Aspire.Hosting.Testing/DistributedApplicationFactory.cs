@@ -249,8 +249,6 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
             {
                 if (!_entryPointStarted)
                 {
-                    EnsureDepsFile(_entryPoint);
-
                     // This helper launches the target assembly's entry point and hooks into the lifecycle
                     // so we can intercept execution at key stages.
                     var factory = DistributedApplicationEntryPointInvoker.ResolveEntryPoint(
@@ -325,22 +323,6 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         if (!_startedTcs.Task.IsCompletedSuccessfully)
         {
             throw new InvalidOperationException("The application has not been initialized.");
-        }
-    }
-
-    private static void EnsureDepsFile(Type entryPoint)
-    {
-        if (entryPoint.Assembly.EntryPoint == null)
-        {
-            throw new InvalidOperationException($"Assembly of specified type {entryPoint.Name} does not have an entry point.");
-        }
-
-        var depsFileName = $"{entryPoint.Assembly.GetName().Name}.deps.json";
-        // entryPoint.Assembly.Location is always an absolute path
-        var depsFile = new FileInfo(Path.Combine(Path.GetDirectoryName(entryPoint.Assembly.Location)!, depsFileName));
-        if (!depsFile.Exists)
-        {
-            throw new InvalidOperationException($"Missing deps file '{Path.GetFileName(depsFile.FullName)}'. Make sure the project has been built.");
         }
     }
 
