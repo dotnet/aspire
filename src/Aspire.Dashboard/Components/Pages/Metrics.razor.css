@@ -7,6 +7,12 @@
     font-weight: 600;
 }
 
+::deep .meter-name-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* Metrics chart SVG */
 ::deep .yaxislayer-above {
     transform: translate(-10px,0px);
@@ -24,11 +30,23 @@
         "chart";
     width: 100%;
     gap: calc(var(--design-unit) * 4px);
-    padding-left: 40px;
+}
+
+@media (min-width: 768px) {
+    ::deep .metrics-chart {
+        padding-left: 40px;
+    }
 }
 
 ::deep .metrics-chart-header {
     grid-area: header;
+    overflow-x: hidden;
+}
+
+::deep .metrics-chart-header h3 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 ::deep .metrics-chart-container {
@@ -71,7 +89,21 @@
 }
 
 ::deep .plotly-chart-container {
-    margin-left: -40px;
+    width: 100%;
+    max-width: 650px;
+    aspect-ratio: 13 / 9;
+}
+
+@media (min-width: 768px) {
+    ::deep .plotly-chart-container {
+        margin-left: -40px;
+    }
+}
+
+@media (max-width: 768px) {
+    ::deep .plotly-chart-container {
+        margin-left: -20px;
+    }
 }
 
 ::deep .metric-info-icon {
