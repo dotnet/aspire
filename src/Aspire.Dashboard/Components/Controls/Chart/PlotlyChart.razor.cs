@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Web;
 using Aspire.Dashboard.Components.Controls.Chart;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -31,6 +32,9 @@ public partial class PlotlyChart : ChartBase
     public required IDialogService DialogService { get; init; }
 
     public string ChartDivId { get; } = $"plotly-chart-container-{Interlocked.Increment(ref s_nextChartId)}";
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; init; }
 
     private DotNetObjectReference<ChartInterop>? _chartInteropReference;
     private IJSObjectReference? _jsModule;
