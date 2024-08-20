@@ -8,6 +8,7 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Utils;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Azure;
 using Azure.Core;
@@ -32,7 +33,9 @@ internal sealed class AzureProvisioner(
     ILogger<AzureProvisioner> logger,
     IServiceProvider serviceProvider,
     ResourceNotificationService notificationService,
-    ResourceLoggerService loggerService) : IDistributedApplicationLifecycleHook
+    ResourceLoggerService loggerService,
+    IDistributedApplicationEventing eventing
+    ) : IDistributedApplicationLifecycleHook
 {
     internal const string AspireResourceNameTag = "aspire-resource-name";
 
@@ -217,6 +220,9 @@ internal sealed class AzureProvisioner(
 
     private async Task ProcessResourceAsync(IConfiguration configuration, Lazy<Task<ProvisioningContext>> provisioningContextLazy, IAzureResource resource, CancellationToken cancellationToken)
     {
+        var resourceCreatingEvent = new ResourceCreatingEvent(resource, serviceProvider);
+        await eventing.PublishAsync(resourceCreatingEvent, cancellationToken).ConfigureAwait(false);
+
         IAzureResourceProvisioner? SelectProvisioner(IAzureResource resource)
         {
             var type = resource.GetType();
@@ -272,6 +278,9 @@ internal sealed class AzureProvisioner(
                     cancellationToken).ConfigureAwait(false);
 
                 resource.ProvisioningTaskCompletionSource?.TrySetResult();
+
+                var resourceCreatedEvent = new ResourceCreatedEvent(resource, serviceProvider);
+                await eventing.PublishAsync(resourceCreatedEvent, cancellationToken).ConfigureAwait(false);
             }
             catch (AzureCliNotOnPathException ex)
             {

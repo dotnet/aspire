@@ -20,6 +20,79 @@ public class DistributedApplicationBuilderEventingTests
     }
 
     [Fact]
+    public async Task ResourceEventsForContainersFireForSpecificResources()
+    {
+        var resourceCreatingEventFired = new ManualResetEventSlim();
+        var resourceCreatedEventFired = new ManualResetEventSlim();
+
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder.AddRedis("redis");
+
+        builder.Eventing.Subscribe<ResourceCreatingEvent>(redis.Resource, (e, ct) =>
+        {
+            Assert.NotNull(e.Services);
+            Assert.NotNull(e.Resource);
+            resourceCreatingEventFired.Set();
+            return Task.CompletedTask;
+        });
+
+        builder.Eventing.Subscribe<ResourceCreatedEvent>(redis.Resource, (e, ct) =>
+        {
+            Assert.NotNull(e.Services);
+            Assert.NotNull(e.Resource);
+            resourceCreatedEventFired.Set();
+            return Task.CompletedTask;
+        });
+
+        using var app = builder.Build();
+        await app.StartAsync();
+
+        var allFired = ManualResetEvent.WaitAll(
+            [resourceCreatingEventFired.WaitHandle, resourceCreatedEventFired.WaitHandle],
+            TimeSpan.FromSeconds(10)
+            );
+
+        Assert.True(allFired);
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task ResourceEventsForContainersFireForAllResources()
+    {
+        var countdownEvent = new CountdownEvent(4);
+
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.AddRedis("redis1");
+        builder.AddRedis("redis2");
+
+        // Should be called twice ... once for each event.
+        builder.Eventing.Subscribe<ResourceCreatingEvent>((e, ct) =>
+        {
+            Assert.NotNull(e.Services);
+            Assert.NotNull(e.Resource);
+            countdownEvent.Signal();
+            return Task.CompletedTask;
+        });
+
+        // Should be called twice ... once for each event.
+        builder.Eventing.Subscribe<ResourceCreatedEvent>((e, ct) =>
+        {
+            Assert.NotNull(e.Services);
+            Assert.NotNull(e.Resource);
+            countdownEvent.Signal();
+            return Task.CompletedTask;
+        });
+
+        using var app = builder.Build();
+        await app.StartAsync();
+
+        var fired = countdownEvent.Wait(TimeSpan.FromSeconds(10));
+
+        Assert.True(fired);
+        await app.StopAsync();
+    }
+
+    [Fact]
     public async Task LifeycleHookAnalogousEventsFire()
     {
         var beforeStartEventFired = new ManualResetEventSlim();

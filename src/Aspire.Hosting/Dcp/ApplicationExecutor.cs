@@ -1163,6 +1163,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
     {
+        var resourceCreatingEvent = new ResourceCreatingEvent(er.ModelResource, serviceProvider);
+        await eventing.PublishAsync(resourceCreatingEvent, cancellationToken).ConfigureAwait(false);
+
         ExecutableSpec spec;
         Func<Task<CustomResource>> createResource;
 
@@ -1266,6 +1269,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
 
         await createResource().ConfigureAwait(false);
+
+        var resourceCreatedEvent = new ResourceCreatedEvent(er.ModelResource, serviceProvider);
+        await eventing.PublishAsync(resourceCreatedEvent, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<string?> GetValue(string? key, IValueProvider valueProvider, ILogger logger, bool isContainer, CancellationToken cancellationToken)
@@ -1420,6 +1426,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateContainerAsync(AppResource cr, ILogger resourceLogger, CancellationToken cancellationToken)
     {
+        var resourceCreatingEvent = new ResourceCreatingEvent(cr.ModelResource, serviceProvider);
+        await eventing.PublishAsync(resourceCreatingEvent, cancellationToken).ConfigureAwait(false);
+
         var dcpContainerResource = (Container)cr.DcpResource;
         var modelContainerResource = cr.ModelResource;
 
@@ -1577,6 +1586,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
 
         await kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
+
+        var resourceCreatedEvent = new ResourceCreatedEvent(cr.ModelResource, serviceProvider);
+        await eventing.PublishAsync(resourceCreatedEvent, cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task ApplyBuildArgumentsAsync(Container dcpContainerResource, IResource modelContainerResource, CancellationToken cancellationToken)
