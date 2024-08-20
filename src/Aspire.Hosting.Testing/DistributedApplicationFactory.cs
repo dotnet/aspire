@@ -249,6 +249,11 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
             {
                 if (!_entryPointStarted)
                 {
+                    if (entryPoint.Assembly.EntryPoint == null)
+                    {
+                        throw new InvalidOperationException($"Assembly of specified type {entryPoint.Name} does not have an entry point.");
+                    }
+
                     // This helper launches the target assembly's entry point and hooks into the lifecycle
                     // so we can intercept execution at key stages.
                     var factory = DistributedApplicationEntryPointInvoker.ResolveEntryPoint(
