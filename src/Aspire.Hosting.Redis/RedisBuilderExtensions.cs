@@ -6,6 +6,8 @@ using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
 
@@ -28,11 +30,26 @@ public static class RedisBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var redis = new RedisResource(name);
-        return builder.AddResource(redis)
-                      .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
-                      .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
-                      .WithImageRegistry(RedisContainerImageTags.Registry);
+        var resource = new RedisResource(name);
+        var resourceBuilder = builder.AddResource(resource)
+            .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
+            .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
+            .WithImageRegistry(RedisContainerImageTags.Registry)
+            .WithAnnotation(new HealthCheckAnnotation($"StackExchange.Redis_{name}"));
+
+        builder.Eventing.Subscribe<ResourceCreatedEvent>(resource, async (e, ct) =>
+        {
+            var connectionString = await resource.GetConnectionStringAsync(ct).ConfigureAwait(false);
+            builder.Configuration[$"ConnectionStrings:{name}"] = connectionString;
+        });
+
+        builder.AddKeyedRedisClient(name, configureOptions: o =>
+        {
+            var connectionString = builder.Configuration.GetConnectionString(name);
+            o.EndPoints.Add(connectionString!);
+        });
+
+        return resourceBuilder;
     }
 
     /// <summary>

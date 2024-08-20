@@ -50,17 +50,12 @@ public static class RabbitMQBuilderExtensions
                               })
                               .WithAnnotation(new HealthCheckAnnotation($"RabbitMQ.Client_{name}")); // HACK! Hard coded string.
 
-        // When the resource is started, we update the apphost connection string configuration with the connection string
-        // so that subsequent healthchecks can use it.
         builder.Eventing.Subscribe<ResourceCreatedEvent>(resource, async (e, ct) =>
         {
             var connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
             builder.Configuration[$"ConnectionStrings:{name}"] = connectionString;
         });
 
-        // We take over the connection factory to make sure we are grabbing the URI from the connection string
-        // after the endpoint has been allocated since it isn't available when the client is first injected
-        // into the DI container.
         builder.AddKeyedRabbitMQClient(name, configureConnectionFactory: f =>
         {
             var connectionString = builder.Configuration.GetConnectionString(name);

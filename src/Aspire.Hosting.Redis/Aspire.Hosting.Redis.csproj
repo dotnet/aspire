@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+    <ProjectReference Include="..\Components\Aspire.StackExchange.Redis\Aspire.StackExchange.Redis.csproj" />
   </ItemGroup>
 
 </Project>
