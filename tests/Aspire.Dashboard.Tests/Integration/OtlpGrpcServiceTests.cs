@@ -288,7 +288,7 @@ public class OtlpGrpcServiceTests
 
     [Theory]
     [InlineData(null)]
-    [InlineData("91113E785A7100C246D4664420621157498BCC66")]
+    [InlineData("A1D2CE3FA7405B5824F207180EA8201EE8BA01B3C07C54AC44BF927D7666F38B")]
     public async Task CallService_OtlpEndpoint_RequiredClientCertificateValid_Success(string? allowedThumbprint)
     {
         // Arrange
@@ -311,7 +311,7 @@ public class OtlpGrpcServiceTests
         });
         await app.StartAsync();
 
-        var clientCertificates = new X509CertificateCollection(new[] { TestCertificateLoader.GetTestCertificate("eku.client.pfx") });
+        var clientCertificate = TestCertificateLoader.GetTestCertificate("eku.client.pfx");
         using var channel = IntegrationTestHelpers.CreateGrpcChannel(
             $"https://{app.OtlpServiceGrpcEndPointAccessor().EndPoint}",
             _testOutputHelper,
@@ -319,7 +319,7 @@ public class OtlpGrpcServiceTests
             {
                 clientCallbackCert = cert;
             },
-            clientCertificates: clientCertificates);
+            clientCertificates: new X509CertificateCollection(new[] { clientCertificate }));
 
         var client = new LogsService.LogsServiceClient(channel);
 
