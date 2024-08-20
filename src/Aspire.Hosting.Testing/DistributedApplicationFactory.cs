@@ -336,7 +336,8 @@ public class DistributedApplicationFactory(Type entryPoint, string[] args) : IDi
         }
 
         var depsFileName = $"{entryPoint.Assembly.GetName().Name}.deps.json";
-        var depsFile = new FileInfo(Path.Combine(AppContext.BaseDirectory, depsFileName));
+        // entryPoint.Assembly.Location is always an absolute path
+        var depsFile = new FileInfo(Path.Combine(Path.GetDirectoryName(entryPoint.Assembly.Location)!, depsFileName));
         if (!depsFile.Exists)
         {
             throw new InvalidOperationException($"Missing deps file '{Path.GetFileName(depsFile.FullName)}'. Make sure the project has been built.");
