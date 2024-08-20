@@ -240,7 +240,7 @@ public static class ResourceExtensions
     /// </summary>
     /// <param name="resource">The resource to the get the ContainerLifetimeType for.</param>
     /// <returns></returns>
-    public static ContainerLifetimeType GetContainerLifetimeType(this IResource resource)
+    internal static ContainerLifetimeType GetContainerLifetimeType(this IResource resource)
     {
         if (resource.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
         {

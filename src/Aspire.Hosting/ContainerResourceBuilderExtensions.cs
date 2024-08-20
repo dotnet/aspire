@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 
@@ -228,6 +229,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">Builder for the container resource.</param>
     /// <param name="lifetimeType">The lifetime behavior of the container resource (defaults behavior is <see cref="ContainerLifetimeType.AppHost"/>)</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [Experimental("ASPIRECONTAINERLIFETIME001")]
     public static IResourceBuilder<T> WithContainerLifetime<T>(this IResourceBuilder<T> builder, ContainerLifetimeType lifetimeType) where T : ContainerResource
     {
         return builder.WithAnnotation(new ContainerLifetimeAnnotation { LifetimeType = lifetimeType }, ResourceAnnotationMutationBehavior.Replace);
