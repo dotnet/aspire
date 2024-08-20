@@ -135,7 +135,6 @@ public static class AzureEventHubsExtensions
 
         // Add emulator container
         var configHostFile = Path.GetTempFileName();
-        File.WriteAllBytes(configHostFile, []);
         if (!OperatingSystem.IsWindows())
         {
             File.SetUnixFileMode(configHostFile,
