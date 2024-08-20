@@ -233,4 +233,20 @@ public static class ResourceExtensions
             return 1;
         }
     }
+
+    /// <summary>
+    /// Gets the lifetime type of the container for the specified resoruce. Defaults to <see cref="ContainerLifetimeType.AppHost"/> if
+    /// no <see cref="ContainerLifetimeAnnotation"/> is found.
+    /// </summary>
+    /// <param name="resource">The resource to the get the ContainerLifetimeType for.</param>
+    /// <returns></returns>
+    public static ContainerLifetimeType GetContainerLifetimeType(this IResource resource)
+    {
+        if (resource.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
+        {
+            return lifetimeAnnotation.LifetimeType;
+        }
+
+        return ContainerLifetimeType.AppHost;
+    }
 }

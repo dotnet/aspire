@@ -1327,18 +1327,21 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 throw new InvalidOperationException();
             }
 
-            var nameSuffix = GetRandomNameSuffix();
+            var nameSuffix = string.Empty;
+
+            if (container.GetContainerLifetimeType() == ContainerLifetimeType.AppHost)
+            {
+                nameSuffix = GetRandomNameSuffix();
+            }
+
             var containerObjectName = GetObjectNameForResource(container, nameSuffix);
             var ctr = Container.Create(containerObjectName, containerImageName);
 
             ctr.Spec.ContainerName = containerObjectName; // Use the same name for container orchestrator (Docker, Podman) resource and DCP object name.
 
-            if (container.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
+            if (container.GetContainerLifetimeType() == ContainerLifetimeType.Persistent)
             {
-                if (lifetimeAnnotation.LifetimeType == ContainerLifetimeType.Persistent)
-                {
-                    ctr.Spec.Persistent = true;
-                }
+                ctr.Spec.Persistent = true;
             }
 
             ctr.Annotate(CustomResource.ResourceNameAnnotation, container.Name);
