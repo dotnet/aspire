@@ -220,8 +220,8 @@ internal sealed class AzureProvisioner(
 
     private async Task ProcessResourceAsync(IConfiguration configuration, Lazy<Task<ProvisioningContext>> provisioningContextLazy, IAzureResource resource, CancellationToken cancellationToken)
     {
-        var resourceCreatingEvent = new ResourceCreatingEvent(resource, serviceProvider);
-        await eventing.PublishAsync(resourceCreatingEvent, cancellationToken).ConfigureAwait(false);
+        var beforeResourceStartedEvent = new BeforeResourceStartedEvent(resource, serviceProvider);
+        await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
 
         IAzureResourceProvisioner? SelectProvisioner(IAzureResource resource)
         {
@@ -279,8 +279,8 @@ internal sealed class AzureProvisioner(
 
                 resource.ProvisioningTaskCompletionSource?.TrySetResult();
 
-                var resourceCreatedEvent = new ResourceCreatedEvent(resource, serviceProvider);
-                await eventing.PublishAsync(resourceCreatedEvent, cancellationToken).ConfigureAwait(false);
+                var afterResourceCreatedEvent = new AfterResourceStartedEvent(resource, serviceProvider);
+                await eventing.PublishAsync(afterResourceCreatedEvent, cancellationToken).ConfigureAwait(false);
             }
             catch (AzureCliNotOnPathException ex)
             {

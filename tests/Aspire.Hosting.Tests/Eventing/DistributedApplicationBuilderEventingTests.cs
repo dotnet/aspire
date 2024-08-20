@@ -22,25 +22,25 @@ public class DistributedApplicationBuilderEventingTests
     [Fact]
     public async Task ResourceEventsForContainersFireForSpecificResources()
     {
-        var resourceCreatingEventFired = new ManualResetEventSlim();
-        var resourceCreatedEventFired = new ManualResetEventSlim();
+        var beforeResourceStartedEvent = new ManualResetEventSlim();
+        var afterResourceCreatedEvent = new ManualResetEventSlim();
 
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("redis");
 
-        builder.Eventing.Subscribe<ResourceCreatingEvent>(redis.Resource, (e, ct) =>
+        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(redis.Resource, (e, ct) =>
         {
             Assert.NotNull(e.Services);
             Assert.NotNull(e.Resource);
-            resourceCreatingEventFired.Set();
+            beforeResourceStartedEvent.Set();
             return Task.CompletedTask;
         });
 
-        builder.Eventing.Subscribe<ResourceCreatedEvent>(redis.Resource, (e, ct) =>
+        builder.Eventing.Subscribe<AfterResourceStartedEvent>(redis.Resource, (e, ct) =>
         {
             Assert.NotNull(e.Services);
             Assert.NotNull(e.Resource);
-            resourceCreatedEventFired.Set();
+            afterResourceCreatedEvent.Set();
             return Task.CompletedTask;
         });
 
@@ -48,7 +48,7 @@ public class DistributedApplicationBuilderEventingTests
         await app.StartAsync();
 
         var allFired = ManualResetEvent.WaitAll(
-            [resourceCreatingEventFired.WaitHandle, resourceCreatedEventFired.WaitHandle],
+            [beforeResourceStartedEvent.WaitHandle, afterResourceCreatedEvent.WaitHandle],
             TimeSpan.FromSeconds(10)
             );
 
@@ -66,7 +66,7 @@ public class DistributedApplicationBuilderEventingTests
         builder.AddRedis("redis2");
 
         // Should be called twice ... once for each event.
-        builder.Eventing.Subscribe<ResourceCreatingEvent>((e, ct) =>
+        builder.Eventing.Subscribe<BeforeResourceStartedEvent>((e, ct) =>
         {
             Assert.NotNull(e.Services);
             Assert.NotNull(e.Resource);
@@ -75,7 +75,7 @@ public class DistributedApplicationBuilderEventingTests
         });
 
         // Should be called twice ... once for each event.
-        builder.Eventing.Subscribe<ResourceCreatedEvent>((e, ct) =>
+        builder.Eventing.Subscribe<AfterResourceStartedEvent>((e, ct) =>
         {
             Assert.NotNull(e.Services);
             Assert.NotNull(e.Resource);

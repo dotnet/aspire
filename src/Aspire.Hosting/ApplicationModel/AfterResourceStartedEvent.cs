@@ -6,14 +6,14 @@ using Aspire.Hosting.Eventing;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// This event is raised by orchestrators before they have created a new resource.
+/// This event is raised by orchestrators after they have started a new resource.
 /// </summary>
-/// <param name="resource">The resource that is being created.</param>
+/// <param name="resource">The resource that was created.</param>
 /// <param name="services">The <see cref="IServiceProvider"/> for the app host.</param>
 /// <remarks>
 /// Resources that are created by orchestrators may not yet be ready to handle requests.
 /// </remarks>
-public class ResourceCreatingEvent(IResource resource, IServiceProvider services) : IDistributedApplicationResourceEvent
+public class AfterResourceStartedEvent(IResource resource, IServiceProvider services) : IDistributedApplicationResourceEvent
 {
     /// <inheritdoc />
     public IResource Resource { get; } = resource;
