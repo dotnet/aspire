@@ -3,7 +3,7 @@
 
 using Microsoft.EntityFrameworkCore;
 
-namespace Aspire.Hosting.MySql.Tests;
+namespace Aspire.Hosting.Oracle.Tests;
 
 public class TestDbContext : DbContext
 {
