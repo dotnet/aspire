@@ -390,6 +390,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     /// <inheritdoc />
     public void ConfigureContainer<TContainerBuilder>(IServiceProviderFactory<TContainerBuilder> factory, Action<TContainerBuilder>? configure = null) where TContainerBuilder : notnull
     {
-        throw new NotImplementedException();
+        _innerBuilder.ConfigureContainer(factory, configure);
     }
 }

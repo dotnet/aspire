@@ -10,6 +10,7 @@ using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.Metrics;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Xunit.Abstractions;
@@ -115,6 +116,14 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
 
     public IDistributedApplicationEventing Eventing => _innerBuilder.Eventing;
 
+    IConfigurationManager IHostApplicationBuilder.Configuration => _innerBuilder.Configuration;
+
+    public ILoggingBuilder Logging => throw new NotImplementedException();
+
+    public IMetricsBuilder Metrics => throw new NotImplementedException();
+
+    public IDictionary<object, object> Properties => _innerBuilder.Properties;
+
     public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => _innerBuilder.AddResource(resource);
 
     [MemberNotNull(nameof(_app))]
@@ -145,6 +154,11 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
 
             _app?.Dispose();
         }
+    }
+
+    public void ConfigureContainer<TContainerBuilder>(IServiceProviderFactory<TContainerBuilder> factory, Action<TContainerBuilder>? configure = null) where TContainerBuilder : notnull
+    {
+        _innerBuilder.ConfigureContainer(factory, configure);
     }
 
     private sealed class BuilderInterceptor : IObserver<DiagnosticListener>
