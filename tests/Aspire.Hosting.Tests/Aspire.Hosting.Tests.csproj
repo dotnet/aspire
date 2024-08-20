@@ -15,13 +15,11 @@
     <ProjectReference Include="..\..\src\Aspire.Hosting.Testing\Aspire.Hosting.Testing.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\testproject\TestProject.AppHost\TestProject.AppHost.csproj" IsAspireProjectResource="false" />
-    <ProjectReference Include="..\..\src\Components\Aspire.Oracle.EntityFrameworkCore\Aspire.Oracle.EntityFrameworkCore.csproj" IsAspireProjectResource="false" />
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
 
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
-    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Oracle\OracleContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.PostgreSQL\PostgresContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Redis\RedisContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Testing\ResourceLoggerForwarderService.cs" Link="Utils\ResourceLoggerForwarderService.cs" />
