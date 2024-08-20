@@ -3,6 +3,8 @@
 
 using Microsoft.EntityFrameworkCore;
 
+namespace Aspire.Hosting.MySql.Tests;
+
 public class TestDbContext : DbContext
 {
     public TestDbContext(DbContextOptions<TestDbContext> options) : base(options)
