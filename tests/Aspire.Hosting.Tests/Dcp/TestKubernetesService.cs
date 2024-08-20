@@ -21,7 +21,13 @@ internal sealed class TestKubernetesService : IKubernetesService
     public ConcurrentQueue<CustomResource> CreatedResources { get; } = [];
 
     private readonly List<Channel<(WatchEventType, CustomResource)>> _watchChannels = [];
-    private int _nextPort = StartOfAutoPortRange; 
+    private readonly Func<CustomResource, string, Stream> _startStream;
+    private int _nextPort = StartOfAutoPortRange;
+
+    public TestKubernetesService(Func<CustomResource, string, Stream>? startStream = null)
+    {
+        _startStream = startStream ?? ((obj, logStreamType) => new MemoryStream(Encoding.UTF8.GetBytes($"Logs for {obj.Metadata.Name} ({logStreamType})")));
+    }
 
     public Task<T> GetAsync<T>(string name, string? namespaceParameter = null, CancellationToken _ = default) where T : CustomResource
     {
@@ -66,8 +72,16 @@ internal sealed class TestKubernetesService : IKubernetesService
                 c.Writer.TryWrite((WatchEventType.Added, res));
             }
         }
-        
+
         return Task.FromResult(res);
+    }
+
+    public void PushResourceModified(CustomResource resource)
+    {
+        foreach (var c in _watchChannels)
+        {
+            c.Writer.TryWrite((WatchEventType.Modified, resource));
+        }
     }
 
     public Task<T> DeleteAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default) where T : CustomResource
@@ -118,7 +132,6 @@ internal sealed class TestKubernetesService : IKubernetesService
 
     public Task<Stream> GetLogStreamAsync<T>(T obj, string logStreamType, bool? follow = true, bool? timestamps = false, CancellationToken cancellationToken = default) where T : CustomResource
     {
-        var ms = new MemoryStream(Encoding.UTF8.GetBytes($"Logs for {obj.Metadata.Name} ({logStreamType})"));
-        return Task.FromResult((Stream) ms);
+        return Task.FromResult(_startStream(obj, logStreamType));
     }
 }
