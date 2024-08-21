@@ -484,29 +484,34 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     if (_logger.IsEnabled(LogLevel.Debug))
                     {
-                        _logger.LogDebug("Starting log streaming for {ResourceName}", resource.Metadata.Name);
+                        _logger.LogDebug("Starting log streaming for {ResourceName}.", resource.Metadata.Name);
                     }
 
                     // Pump the logs from the enumerable into the logger
-                    var logger = loggerService.GetLogger(resource.Metadata.Name);
+                    var logger = loggerService.GetInternalLogger(resource.Metadata.Name);
 
                     await foreach (var batch in enumerable.WithCancellation(cancellation.Token).ConfigureAwait(false))
                     {
                         foreach (var (content, isError) in batch)
                         {
-                            var level = isError ? LogLevel.Error : LogLevel.Information;
-                            logger.Log(level, 0, content, null, (s, _) => s);
+                            if (!ResourceLoggerService.TryParseContentLineDate(content, out var dateTimeUtc))
+                            {
+                                // If a date can't be read from the line content then use the current date.
+                                dateTimeUtc = DateTime.UtcNow;
+                            }
+
+                            logger(dateTimeUtc, content, isError);
                         }
                     }
                 }
                 catch (OperationCanceledException)
                 {
                     // Ignore
-                    _logger.LogDebug("Log streaming for {ResourceName} was cancelled", resource.Metadata.Name);
+                    _logger.LogDebug("Log streaming for {ResourceName} was cancelled.", resource.Metadata.Name);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error streaming logs for {ResourceName}", resource.Metadata.Name);
+                    _logger.LogError(ex, "Error streaming logs for {ResourceName}.", resource.Metadata.Name);
                 }
             },
             cancellation.Token);

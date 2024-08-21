@@ -77,7 +77,7 @@ public partial class AspirePageContentLayout : ComponentBase
         return style;
     }
 
-    private async Task OpenMobileToolbarAsync()
+    public async Task OpenMobileToolbarAsync()
     {
         _toolbarPanel = await DialogService.ShowPanelAsync<ToolbarPanel>(
             new MobileToolbar(
