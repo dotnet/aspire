@@ -26,10 +26,10 @@ The Aspire component must support the [latest LTS version of .NET](https://dotne
 
 | .NET Aspire Version | Targets                         |
 |---------------------|---------------------------------|
-| 8.x                 | net8.0                          |
-| 9.x                 | net8.0 (optionally  + `net9.0`) |
-| 10.x                | net10.0                         |
-| 11.x                | net10.0 (optionally + `net11.0`)|
+| 8.x                 | `net8.0`                        |
+| 9.x                 | `net8.0` (+`net9.0` optional)   |
+| 10.x                | `net10.0`                       |
+| 11.x                | `net10.0` (+`net11.0` optional) |
 
 ### Dependency Versioning
 
