@@ -7,7 +7,7 @@ using Aspire.Hosting.Eventing;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// This event is raised by orchestrators before they have created a new resource.
+/// This event is raised by orchestrators before they have started a new resource.
 /// </summary>
 /// <param name="resource">The resource that is being created.</param>
 /// <param name="services">The <see cref="IServiceProvider"/> for the app host.</param>
@@ -15,7 +15,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Resources that are created by orchestrators may not yet be ready to handle requests.
 /// </remarks>
 [Experimental("ASPIREEVENTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-public class ResourceCreatingEvent(IResource resource, IServiceProvider services) : IDistributedApplicationResourceEvent
+public class BeforeResourceStartedEvent(IResource resource, IServiceProvider services) : IDistributedApplicationResourceEvent
 {
     /// <inheritdoc />
     public IResource Resource { get; } = resource;
