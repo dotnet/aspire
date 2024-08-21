@@ -227,7 +227,7 @@ public static class ContainerResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">Builder for the container resource.</param>
-    /// <param name="lifetimeType">The lifetime behavior of the container resource (defaults behavior is <see cref="ContainerLifetimeType.AppHost"/>)</param>
+    /// <param name="lifetimeType">The lifetime behavior of the container resource (defaults behavior is <see cref="ContainerLifetimeType.Default"/>)</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <example>
     /// Marking a container resource to have a <see cref="ContainerLifetimeType.Persistent"/> lifetime.

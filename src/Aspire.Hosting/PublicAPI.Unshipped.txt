@@ -16,7 +16,7 @@ Aspire.Hosting.ApplicationModel.ContainerLifetimeAnnotation.ContainerLifetimeAnn
 Aspire.Hosting.ApplicationModel.ContainerLifetimeAnnotation.LifetimeType.get -> Aspire.Hosting.ApplicationModel.ContainerLifetimeType
 Aspire.Hosting.ApplicationModel.ContainerLifetimeAnnotation.LifetimeType.set -> void
 Aspire.Hosting.ApplicationModel.ContainerLifetimeType
-Aspire.Hosting.ApplicationModel.ContainerLifetimeType.AppHost = 0 -> Aspire.Hosting.ApplicationModel.ContainerLifetimeType
+Aspire.Hosting.ApplicationModel.ContainerLifetimeType.Default = 0 -> Aspire.Hosting.ApplicationModel.ContainerLifetimeType
 Aspire.Hosting.ApplicationModel.ContainerLifetimeType.Persistent = 1 -> Aspire.Hosting.ApplicationModel.ContainerLifetimeType
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
 Aspire.Hosting.DistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!

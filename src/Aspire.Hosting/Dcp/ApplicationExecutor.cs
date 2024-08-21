@@ -1329,7 +1329,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             var nameSuffix = string.Empty;
 
-            if (container.GetContainerLifetimeType() == ContainerLifetimeType.AppHost)
+            if (container.GetContainerLifetimeType() == ContainerLifetimeType.Default)
             {
                 nameSuffix = GetRandomNameSuffix();
             }
