@@ -122,7 +122,7 @@ public static class AzureEventHubsExtensions
     ///
     /// builder.AddProject&lt;Projects.InventoryService&gt;()
     ///        .WithReference(eventHub);
-    ///        
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
@@ -134,6 +134,14 @@ public static class AzureEventHubsExtensions
         }
 
         // Add emulator container
+        var configHostFile = Path.GetTempFileName();
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(configHostFile,
+                UnixFileMode.UserRead | UnixFileMode.UserWrite
+                | UnixFileMode.GroupRead | UnixFileMode.GroupWrite
+                | UnixFileMode.OtherRead | UnixFileMode.OtherWrite);
+        }
 
         var configHostFile = Path.GetTempFileName();
         File.WriteAllBytes(configHostFile, []);
