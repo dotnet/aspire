@@ -24,37 +24,25 @@ public class DistributedApplicationBuilderEventingTests
     [RequiresDocker]
     public async Task ResourceEventsForContainersFireForSpecificResources()
     {
-        var beforeResourceStartedEvent = new ManualResetEventSlim();
-        var afterResourceCreatedEvent = new ManualResetEventSlim();
+        var resourceCreatedEvent = new ManualResetEventSlim();
 
         using var builder = TestDistributedApplicationBuilder.Create();
         var redis = builder.AddRedis("redis");
 
-        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(redis.Resource, (e, ct) =>
+        builder.Eventing.Subscribe<ResourceCreatingEvent>(redis.Resource, (e, ct) =>
         {
             Assert.NotNull(e.Services);
             Assert.NotNull(e.Resource);
-            beforeResourceStartedEvent.Set();
-            return Task.CompletedTask;
-        });
-
-        builder.Eventing.Subscribe<AfterResourceStartedEvent>(redis.Resource, (e, ct) =>
-        {
-            Assert.NotNull(e.Services);
-            Assert.NotNull(e.Resource);
-            afterResourceCreatedEvent.Set();
+            resourceCreatedEvent.Set();
             return Task.CompletedTask;
         });
 
         using var app = builder.Build();
         await app.StartAsync();
 
-        var allFired = ManualResetEvent.WaitAll(
-            [beforeResourceStartedEvent.WaitHandle, afterResourceCreatedEvent.WaitHandle],
-            TimeSpan.FromSeconds(10)
-            );
+        var fired = resourceCreatedEvent.Wait(TimeSpan.FromSeconds(10));
 
-        Assert.True(allFired);
+        Assert.True(fired);
         await app.StopAsync();
     }
 
@@ -62,23 +50,14 @@ public class DistributedApplicationBuilderEventingTests
     [RequiresDocker]
     public async Task ResourceEventsForContainersFireForAllResources()
     {
-        var countdownEvent = new CountdownEvent(4);
+        var countdownEvent = new CountdownEvent(2);
 
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.AddRedis("redis1");
         builder.AddRedis("redis2");
 
         // Should be called twice ... once for each event.
-        builder.Eventing.Subscribe<BeforeResourceStartedEvent>((e, ct) =>
-        {
-            Assert.NotNull(e.Services);
-            Assert.NotNull(e.Resource);
-            countdownEvent.Signal();
-            return Task.CompletedTask;
-        });
-
-        // Should be called twice ... once for each event.
-        builder.Eventing.Subscribe<AfterResourceStartedEvent>((e, ct) =>
+        builder.Eventing.Subscribe<ResourceCreatingEvent>((e, ct) =>
         {
             Assert.NotNull(e.Services);
             Assert.NotNull(e.Resource);

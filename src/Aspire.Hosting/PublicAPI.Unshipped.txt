@@ -7,18 +7,14 @@ Aspire.Hosting.ApplicationModel.AfterResourcesCreatedEvent
 Aspire.Hosting.ApplicationModel.AfterResourcesCreatedEvent.AfterResourcesCreatedEvent(System.IServiceProvider! services, Aspire.Hosting.ApplicationModel.DistributedApplicationModel! model) -> void
 Aspire.Hosting.ApplicationModel.AfterResourcesCreatedEvent.Model.get -> Aspire.Hosting.ApplicationModel.DistributedApplicationModel!
 Aspire.Hosting.ApplicationModel.AfterResourcesCreatedEvent.Services.get -> System.IServiceProvider!
-Aspire.Hosting.ApplicationModel.AfterResourceStartedEvent
-Aspire.Hosting.ApplicationModel.AfterResourceStartedEvent.AfterResourceStartedEvent(Aspire.Hosting.ApplicationModel.IResource! resource, System.IServiceProvider! services) -> void
-Aspire.Hosting.ApplicationModel.AfterResourceStartedEvent.Resource.get -> Aspire.Hosting.ApplicationModel.IResource!
-Aspire.Hosting.ApplicationModel.AfterResourceStartedEvent.Services.get -> System.IServiceProvider!
-Aspire.Hosting.ApplicationModel.BeforeResourceStartedEvent
-Aspire.Hosting.ApplicationModel.BeforeResourceStartedEvent.BeforeResourceStartedEvent(Aspire.Hosting.ApplicationModel.IResource! resource, System.IServiceProvider! services) -> void
-Aspire.Hosting.ApplicationModel.BeforeResourceStartedEvent.Resource.get -> Aspire.Hosting.ApplicationModel.IResource!
-Aspire.Hosting.ApplicationModel.BeforeResourceStartedEvent.Services.get -> System.IServiceProvider!
 Aspire.Hosting.ApplicationModel.BeforeStartEvent
 Aspire.Hosting.ApplicationModel.BeforeStartEvent.BeforeStartEvent(System.IServiceProvider! services, Aspire.Hosting.ApplicationModel.DistributedApplicationModel! model) -> void
 Aspire.Hosting.ApplicationModel.BeforeStartEvent.Model.get -> Aspire.Hosting.ApplicationModel.DistributedApplicationModel!
 Aspire.Hosting.ApplicationModel.BeforeStartEvent.Services.get -> System.IServiceProvider!
+Aspire.Hosting.ApplicationModel.ResourceCreatingEvent
+Aspire.Hosting.ApplicationModel.ResourceCreatingEvent.Resource.get -> Aspire.Hosting.ApplicationModel.IResource!
+Aspire.Hosting.ApplicationModel.ResourceCreatingEvent.ResourceCreatingEvent(Aspire.Hosting.ApplicationModel.IResource! resource, System.IServiceProvider! services) -> void
+Aspire.Hosting.ApplicationModel.ResourceCreatingEvent.Services.get -> System.IServiceProvider!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
 Aspire.Hosting.DistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!
 Aspire.Hosting.Eventing.DistributedApplicationEventing
