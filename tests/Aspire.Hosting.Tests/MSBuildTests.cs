@@ -15,7 +15,7 @@ public class MSBuildTests
     [Fact]
     public void EnsureWarningsAreEmittedWhenProjectReferencingLibraries()
     {
-        var repoRoot = GetRepoRoot();
+        var repoRoot = MSBuildUtils.GetRepoRoot();
         var tempDirectory = Directory.CreateTempSubdirectory("AspireHostingTests");
         try
         {
@@ -121,18 +121,5 @@ builder.Build().Run();
         {
             tempDirectory.Delete(true);
         }
-    }
-
-    private static string GetRepoRoot()
-    {
-        string directory = AppContext.BaseDirectory;
-
-        // To support git worktrees, check for either a directory or a file named ".git"
-        while (directory != null && !Directory.Exists(Path.Combine(directory, ".git")) && !File.Exists(Path.Combine(directory, ".git")))
-        {
-            directory = Directory.GetParent(directory)!.FullName;
-        }
-
-        return directory!;
     }
 }
