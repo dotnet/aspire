@@ -84,7 +84,6 @@
 
     <PropertyGroup Condition="'$(AppHostVersion)' == ''">
       <AppHostVersion>%(AppHostPackageReference.Version)</AppHostVersion>
-      <_UsingCentralPackageManagement>true</_UsingCentralPackageManagement>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(AppHostVersion)' != ''">
@@ -96,23 +95,11 @@
     Text="$(MSBuildProjectName) is a .NET Aspire AppHost project that needs a package reference to Aspire.Hosting.AppHost version 8.2.0 or above to work correctly.$(__CurrentAppHostVersionMessage)" />
 
     <!-- If not using CPM, then directly add the two PackageReferences -->
-    <ItemGroup Condition=" '$(AppHostVersion)' != '' and '$(_UsingCentralPackageManagement)' != 'true' ">
+    <ItemGroup Condition=" '$(AppHostVersion)' != ''">
       <PackageReference Include="Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier)"
-  Version="$(AppHostVersion)" />
+  Version="$(AppHostVersion)" IsImplicitlyDefined="true" />
       <PackageReference Include="Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier)"
-  Version="$(AppHostVersion)" />
-    </ItemGroup>
-
-    <!-- If using CPM, then we need to define the PackageVersion items, and then add the versionless PackageReferences
-         to avoid NuGet restore complaining about using CPM but having versioned PackageReferences. -->
-    <ItemGroup Condition=" '$(AppHostVersion)' != '' and '$(_UsingCentralPackageManagement)' == 'true' ">
-      <PackageVersion Include="Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier)"
-  Version="$(AppHostVersion)" />
-      <PackageVersion Include="Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier)"
-  Version="$(AppHostVersion)" />
-
-      <PackageReference Include="Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier)" />
-      <PackageReference Include="Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier)" />
+  Version="$(AppHostVersion)" IsImplicitlyDefined="true" />
     </ItemGroup>
   </Target>
 
