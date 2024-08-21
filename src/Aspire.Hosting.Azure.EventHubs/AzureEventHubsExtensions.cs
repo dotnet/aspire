@@ -143,15 +143,6 @@ public static class AzureEventHubsExtensions
                 | UnixFileMode.OtherRead | UnixFileMode.OtherWrite);
         }
 
-        var configHostFile = Path.GetTempFileName();
-        File.WriteAllBytes(configHostFile, []);
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            File.SetUnixFileMode(configHostFile,
-                UnixFileMode.UserRead | UnixFileMode.UserWrite
-                | UnixFileMode.GroupRead | UnixFileMode.GroupWrite
-                | UnixFileMode.OtherRead | UnixFileMode.OtherWrite);
-        }
         builder
             .WithEndpoint(name: "emulator", targetPort: 5672)
             .WithAnnotation(new ContainerImageAnnotation
