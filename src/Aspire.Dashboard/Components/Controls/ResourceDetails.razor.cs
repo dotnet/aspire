@@ -1,9 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
@@ -28,12 +26,15 @@ public partial class ResourceDetails
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
 
-    private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceValues().Any(v => v.KnownProperty == null);
+    private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceProperties(ordered: false).Any(static vm => vm.KnownProperty is null);
+
+    // NOTE Excludes endpoints as they don't expose sensitive items (and enumerating endpoints is non-trivial)
+    private IEnumerable<IPropertyGridItem> SensitiveGridItems => Resource.Environment.Cast<IPropertyGridItem>().Concat(Resource.Properties.Values).Where(static vm => vm.IsValueSensitive);
 
     private bool _showAll;
     private ResourceViewModel? _resource;
 
-    private IQueryable<EnvironmentVariableViewModel> FilteredItems =>
+    private IQueryable<EnvironmentVariableViewModel> FilteredEnvironmentVariables =>
         Resource.Environment.Where(vm =>
             (_showAll || vm.FromSpec) &&
             (vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
@@ -41,7 +42,7 @@ public partial class ResourceDetails
         ).AsQueryable();
 
     private IQueryable<DisplayedEndpoint> FilteredEndpoints => GetEndpoints()
-        .Where(v => v.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) || v.Text.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true)
+        .Where(vm => vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) || vm.Text.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true)
         .AsQueryable();
 
     private IQueryable<VolumeViewModel> FilteredVolumes =>
@@ -50,16 +51,15 @@ public partial class ResourceDetails
             vm.Target?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true
         ).AsQueryable();
 
-    private IQueryable<SummaryValue> FilteredResourceValues => GetResourceValues()
-        .Where(v => _showAll || v.KnownProperty != null)
-        .Where(v => v.Key.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) || v.Tooltip.Contains(_filter, StringComparison.CurrentCultureIgnoreCase))
+    private IQueryable<ResourcePropertyViewModel> FilteredResourceProperties => GetResourceProperties(ordered: true)
+        .Where(vm => _showAll || vm.KnownProperty != null)
+        .Where(vm => vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) || vm.ToolTip.Contains(_filter, StringComparison.CurrentCultureIgnoreCase))
         .AsQueryable();
 
     private string _filter = "";
-    private bool _areEnvironmentVariablesMasked = true;
+    private bool _isMaskAllChecked = true;
 
-    private readonly GridSort<EnvironmentVariableViewModel> _nameSort = GridSort<EnvironmentVariableViewModel>.ByAscending(vm => vm.Name);
-    private readonly GridSort<EnvironmentVariableViewModel> _valueSort = GridSort<EnvironmentVariableViewModel>.ByAscending(vm => vm.Value);
+    private readonly GridSort<DisplayedEndpoint> _endpointValueSort = GridSort<DisplayedEndpoint>.ByAscending(vm => vm.Url ?? vm.Text);
 
     private List<KnownProperty> _resourceProperties = default!;
     private List<KnownProperty> _projectProperties = default!;
@@ -107,15 +107,11 @@ public partial class ResourceDetails
         if (!ReferenceEquals(Resource, _resource))
         {
             _resource = Resource;
-            ResetResourceEnvironmentVariableMasks();
-        }
-    }
 
-    private void ResetResourceEnvironmentVariableMasks()
-    {
-        foreach (var vm in Resource.Environment.Where(vm => vm.IsValueMasked != _areEnvironmentVariablesMasked))
-        {
-            vm.IsValueMasked = _areEnvironmentVariablesMasked;
+            foreach (var item in SensitiveGridItems)
+            {
+                item.IsValueMasked = _isMaskAllChecked;
+            }
         }
     }
 
@@ -124,111 +120,101 @@ public partial class ResourceDetails
         return ResourceEndpointHelpers.GetEndpoints(Resource, includeInternalUrls: true);
     }
 
-    private IEnumerable<SummaryValue> GetResourceValues()
+    private IEnumerable<ResourcePropertyViewModel> GetResourceProperties(bool ordered)
     {
-        var resolvedKnownProperties = Resource.ResourceType switch
-        {
-            KnownResourceTypes.Project => _projectProperties,
-            KnownResourceTypes.Executable => _executableProperties,
-            KnownResourceTypes.Container => _containerProperties,
-            _ => _resourceProperties
-        };
+        PopulateMissingKnownProperties();
 
-        // This is a left outer join for the SQL fans.
-        // Return the resource properties, with an optional known property.
-        // Order properties by the known property order. Unmatched properties are last.
-        var values = Resource.Properties
-            .Where(p => !p.Value.HasNullValue && !(p.Value.KindCase == Value.KindOneofCase.ListValue && p.Value.ListValue.Values.Count == 0))
-            .GroupJoin(
-                resolvedKnownProperties,
-                p => p.Key,
-                k => k.Key,
-                (p, k) => new SummaryValue { Key = p.Key, Value = p.Value, KnownProperty = k.SingleOrDefault(), Tooltip = GetTooltip(p.Value) })
-            .OrderBy(v => v.KnownProperty != null ? resolvedKnownProperties.IndexOf(v.KnownProperty) : int.MaxValue);
+        var vms = Resource.Properties.Values
+            .Where(vm => vm.Value is { HasNullValue: false } and not { KindCase: Value.KindOneofCase.ListValue, ListValue.Values.Count: 0 });
 
-        return values;
-    }
+        return ordered
+            ? vms.OrderBy(vm => vm.Priority).ThenBy(vm => vm.Name)
+            : vms;
 
-    private static string GetTooltip(Value value)
-    {
-        if (value.HasStringValue)
+        void PopulateMissingKnownProperties()
         {
-            return value.StringValue;
-        }
-        else
-        {
-            return value.ToString();
-        }
-    }
+            List<KnownProperty>? knownProperties = null;
 
-    private static string GetDisplayedValue(BrowserTimeProvider timeProvider, SummaryValue summaryValue)
-    {
-        string value;
-        if (summaryValue.Value.HasStringValue)
-        {
-            value = summaryValue.Value.StringValue;
-        }
-        else
-        {
-            // Complex values such as arrays and objects will be output as JSON.
-            // Consider how complex values are rendered in the future.
-            value = summaryValue.Value.ToString();
-        }
-        if (summaryValue.Key == KnownProperties.Container.Id)
-        {
-            // Container images have a short ID of 12 characters
-            value = value.Substring(0, Math.Min(value.Length, 12));
-        }
-        else
-        {
-            // Dates are returned as ISO 8601 text.
-            // Use try parse to check if a value matches ISO 8601 format. If there is a match then convert to a friendly format.
-            if (DateTime.TryParseExact(value, "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+            // Lazily populate some data on the view models, that wasn't available when they were constructed.
+            foreach ((var key, var vm) in Resource.Properties)
             {
-                value = FormatHelpers.FormatDateTime(timeProvider, date, cultureInfo: CultureInfo.CurrentCulture);
+                // A priority of -1 means the known property hasn't been looked up. Do that once per property, now.
+                if (vm.Priority == -1)
+                {
+                    knownProperties ??= GetKnownPropertiesForSelectedResourceType();
+
+                    var found = false;
+
+                    for (var i = 0; i < knownProperties.Count; i++)
+                    {
+                        var kp = knownProperties[i];
+
+                        if (kp.Key == key)
+                        {
+                            found = true;
+                            vm.KnownProperty = kp;
+                            vm.Priority = i;
+                            break;
+                        }
+                    }
+
+                    if (!found)
+                    {
+                        vm.Priority = int.MaxValue;
+                    }
+                }
             }
-        }
 
-        return value;
-    }
-
-    private void ToggleMaskState()
-    {
-        if (Resource.Environment is var environment)
-        {
-            foreach (var vm in environment)
+            List<KnownProperty> GetKnownPropertiesForSelectedResourceType()
             {
-                vm.IsValueMasked = _areEnvironmentVariablesMasked;
+                return Resource.ResourceType switch
+                {
+                    KnownResourceTypes.Project => _projectProperties,
+                    KnownResourceTypes.Executable => _executableProperties,
+                    KnownResourceTypes.Container => _containerProperties,
+                    _ => _resourceProperties
+                };
             }
         }
     }
 
-    private void CheckAllMaskStates()
+    private static RenderFragment GetContentAfterValue(DisplayedEndpoint vm)
     {
-        var foundMasked = false;
-        var foundUnmasked = false;
-
-        foreach (var vm in Resource.Environment)
+        if (vm.Url is null)
         {
-            foundMasked |= vm.IsValueMasked;
-            foundUnmasked |= !vm.IsValueMasked;
+            return static builder => { };
         }
 
-        _areEnvironmentVariablesMasked = foundMasked switch
+        return builder =>
         {
-            false when foundUnmasked => false,
-            true when !foundUnmasked => true,
-            _ => _areEnvironmentVariablesMasked
+            builder.OpenElement(0, "a");
+            builder.AddAttribute(1, "href", vm.Url);
+            builder.AddContent(2, vm.Text);
+            builder.CloseElement();
         };
     }
 
-    private sealed class SummaryValue
+    private void OnMaskAllCheckedChanged()
     {
-        public required string Key { get; init; }
-        public required Value Value { get; init; }
-        public required string Tooltip { get; init; }
-        public KnownProperty? KnownProperty { get; set; }
+        foreach (var vm in SensitiveGridItems)
+        {
+            vm.IsValueMasked = _isMaskAllChecked;
+        }
     }
 
-    private sealed record KnownProperty(string Key, string DisplayName);
+    private void OnValueMaskedChanged()
+    {
+        // Check the "Mask All" checkbox if all sensitive values are masked.
+
+        foreach (var item in SensitiveGridItems)
+        {
+            if (!item.IsValueMasked)
+            {
+                _isMaskAllChecked = false;
+                return;
+            }
+        }
+
+        _isMaskAllChecked = true;
+    }
 }

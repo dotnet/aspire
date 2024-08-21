@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Dashboard.Components.Controls;
 
 namespace Aspire.Dashboard.Model;
 
@@ -45,11 +46,15 @@ internal static class ResourceEndpointHelpers
 }
 
 [DebuggerDisplay("Name = {Name}, Text = {Text}, Address = {Address}:{Port}, Url = {Url}")]
-public sealed class DisplayedEndpoint
+public sealed class DisplayedEndpoint : IPropertyGridItem
 {
     public required string Name { get; set; }
     public required string Text { get; set; }
     public string? Address { get; set; }
     public int? Port { get; set; }
     public string? Url { get; set; }
+
+    string? IPropertyGridItem.Value => null;
+    bool IPropertyGridItem.IsValueSensitive => false;
+    bool IPropertyGridItem.IsValueMasked { get => false; set => throw new NotImplementedException(); }
 }

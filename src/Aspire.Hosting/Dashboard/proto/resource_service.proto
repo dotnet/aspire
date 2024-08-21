@@ -137,6 +137,8 @@ message ResourceProperty {
     optional string display_name = 2;
     // The data value. May be null, a number, a string, a boolean, a dictionary of values (Struct), or a list of values (ValueList).
     google.protobuf.Value value = 3;
+    // Whether the value is sensitive and should be masked in the UI by default. The user may explicitly unmask this value to view it.
+    optional bool is_sensitive = 4;
 }
 
 // Models the full state of an resource (container, executable, project, etc) at a particular point in time.

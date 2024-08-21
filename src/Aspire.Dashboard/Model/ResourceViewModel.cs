@@ -5,7 +5,10 @@ using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Globalization;
+using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Extensions;
+using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -25,7 +28,7 @@ public sealed class ResourceViewModel
     public required ImmutableArray<EnvironmentVariableViewModel> Environment { get; init; }
     public required ImmutableArray<UrlViewModel> Urls { get; init; }
     public required ImmutableArray<VolumeViewModel> Volumes { get; init; }
-    public required FrozenDictionary<string, Value> Properties { get; init; }
+    public required FrozenDictionary<string, ResourcePropertyViewModel> Properties { get; init; }
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
     public KnownResourceState? KnownState { get; init; }
 
@@ -119,13 +122,15 @@ public sealed class CommandViewModel
 }
 
 [DebuggerDisplay("Name = {Name}, Value = {Value}, FromSpec = {FromSpec}, IsValueMasked = {IsValueMasked}")]
-public sealed class EnvironmentVariableViewModel
+public sealed class EnvironmentVariableViewModel : IPropertyGridItem
 {
     public string Name { get; }
     public string? Value { get; }
     public bool FromSpec { get; }
 
     public bool IsValueMasked { get; set; } = true;
+
+    public bool IsValueSensitive => true;
 
     public EnvironmentVariableViewModel(string name, string? value, bool fromSpec)
     {
@@ -137,6 +142,68 @@ public sealed class EnvironmentVariableViewModel
         FromSpec = fromSpec;
     }
 }
+
+[DebuggerDisplay("Name = {Name}, Value = {Value}, IsValueSensitive = {IsValueSensitive}, IsValueMasked = {IsValueMasked}")]
+public sealed class ResourcePropertyViewModel : IPropertyGridItem
+{
+    private readonly Lazy<string> _displayValue;
+    private readonly Lazy<string> _tooltip;
+
+    public string Name { get; }
+    public Value Value { get; }
+    public KnownProperty? KnownProperty { get; internal set; }
+    public string ToolTip => _tooltip.Value;
+    public bool IsValueSensitive { get; }
+    public bool IsValueMasked { get; set; }
+    internal int Priority { get; set; } = -1;
+
+    string? IPropertyGridItem.Name => KnownProperty?.DisplayName ?? Name;
+
+    string? IPropertyGridItem.Value => _displayValue.Value;
+
+    public ResourcePropertyViewModel(string name, Value value, bool isValueSensitive, KnownProperty? knownProperty, BrowserTimeProvider timeProvider)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        Name = name;
+        Value = value;
+        IsValueSensitive = isValueSensitive;
+        KnownProperty = knownProperty;
+        IsValueMasked = isValueSensitive;
+
+        _tooltip = new(() => value.HasStringValue ? value.StringValue : value.ToString());
+
+        _displayValue = new(() =>
+        {
+            var value = Value is { HasStringValue: true, StringValue: var stringValue }
+                ? stringValue
+                // Complex values such as arrays and objects will be output as JSON.
+                // Consider how complex values are rendered in the future.
+                : Value.ToString();
+
+            if (Name == KnownProperties.Container.Id)
+            {
+                // Container images have a short ID of 12 characters
+                if (value.Length > 12)
+                {
+                    value = value[..12];
+                }
+            }
+            else
+            {
+                // Dates are returned as ISO 8601 text. Try to parse. If successful, format with the current culture.
+                if (DateTime.TryParseExact(value, "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+                {
+                    value = FormatHelpers.FormatDateTime(timeProvider, date, cultureInfo: CultureInfo.CurrentCulture);
+                }
+            }
+
+            return value;
+        });
+    }
+}
+
+public sealed record KnownProperty(string Key, string DisplayName);
 
 [DebuggerDisplay("Name = {Name}, Url = {Url}, IsInternal = {IsInternal}")]
 public sealed class UrlViewModel
@@ -156,4 +223,13 @@ public sealed class UrlViewModel
     }
 }
 
-public sealed record class VolumeViewModel(string? Source, string Target, string MountType, bool IsReadOnly);
+public sealed record class VolumeViewModel(string? Source, string Target, string MountType, bool IsReadOnly) : IPropertyGridItem
+{
+    string? IPropertyGridItem.Name => Source;
+
+    string? IPropertyGridItem.Value => Target;
+
+    bool IPropertyGridItem.IsValueSensitive => false;
+
+    bool IPropertyGridItem.IsValueMasked { get => false; set => throw new NotImplementedException(); }
+}

@@ -9,7 +9,6 @@ using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.BrowserStorage;
 using Bunit;
-using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
@@ -189,7 +188,7 @@ public partial class ConsoleLogsTests : TestContext
             Uid = Guid.NewGuid().ToString(),
             CreationTimeStamp = DateTime.UtcNow,
             Environment = [],
-            Properties = FrozenDictionary<string, Value>.Empty,
+            Properties = FrozenDictionary<string, ResourcePropertyViewModel>.Empty,
             Urls = [],
             Volumes = [],
             State = state?.ToString(),

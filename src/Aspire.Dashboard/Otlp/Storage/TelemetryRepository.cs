@@ -870,20 +870,6 @@ public sealed class TelemetryRepository
         }
 
         var events = new List<OtlpSpanEvent>();
-        foreach (var e in span.Events.OrderBy(e => e.TimeUnixNano))
-        {
-            events.Add(new OtlpSpanEvent
-            {
-                Name = e.Name,
-                Time = OtlpHelpers.UnixNanoSecondsToDateTime(e.TimeUnixNano),
-                Attributes = e.Attributes.ToKeyValuePairs(options)
-            });
-
-            if (events.Count >= options.MaxSpanEventCount)
-            {
-                break;
-            }
-        }
 
         var links = new List<OtlpSpanLink>();
         foreach (var e in span.Links)
@@ -915,6 +901,21 @@ public sealed class TelemetryRepository
             Links = links,
             BackLinks = new()
         };
+
+        foreach (var e in span.Events.OrderBy(e => e.TimeUnixNano))
+        {
+            events.Add(new OtlpSpanEvent(newSpan)
+            {
+                Name = e.Name,
+                Time = OtlpHelpers.UnixNanoSecondsToDateTime(e.TimeUnixNano),
+                Attributes = e.Attributes.ToKeyValuePairs(options)
+            });
+
+            if (events.Count >= options.MaxSpanEventCount)
+            {
+                break;
+            }
+        }
         return newSpan;
     }
 
