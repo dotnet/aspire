@@ -1,2 +1,2 @@
 #nullable enable
-
+Aspire.Hosting.ApplicationModel.AzureOpenAIDeployment.AzureOpenAIDeployment(string! name, string! modelName, string! modelVersion, string! skuName = "Standard", int skuCapacity = 8) -> void
