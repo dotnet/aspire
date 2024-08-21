@@ -5,8 +5,6 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var deploymentAndModelName = "gpt-4o";
 var openai = builder.AddAzureOpenAI("openai").AddDeployment(
-    // the default SKU capacity of 1,000 TPM is not high enough for the OpenAIEndToEnd_WebStory project
-    // see https://github.com/dotnet/aspire/issues/4970
     new(deploymentAndModelName, deploymentAndModelName, "2024-05-13")
     );
 
