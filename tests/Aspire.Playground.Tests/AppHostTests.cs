@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
+using Aspire.Workload.Tests;
 using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.Extensions.DependencyInjection;
 using Polly.Timeout;
@@ -19,12 +20,24 @@ namespace Aspire.Playground.Tests;
 
 public class AppHostTests
 {
-    private readonly ITestOutputHelper _testOutput;
+    private readonly TestOutputWrapper _testOutput;
     private static readonly string? s_appHostNameFilter = Environment.GetEnvironmentVariable("TEST_PLAYGROUND_APPHOST_FILTER");
+    private static readonly string s_appHostBasePath = ComputeAppHostBasePath();
+
+    private static string ComputeAppHostBasePath()
+    {
+        var appHostBasePath = Path.Combine(AppContext.BaseDirectory, "playground", "artifacts");
+        if (!Directory.Exists(appHostBasePath))
+        {
+            appHostBasePath = Path.Combine(AppContext.BaseDirectory);
+        }
+
+        return appHostBasePath;
+    }
 
     public AppHostTests(ITestOutputHelper testOutput)
     {
-        _testOutput = testOutput;
+        _testOutput = new TestOutputWrapper(testOutput);
     }
 
     [Theory]
@@ -49,7 +62,11 @@ public class AppHostTests
         var appHostName = testEndpoints.AppHost!;
         var resourceEndpoints = testEndpoints.ResourceEndpoints!;
 
-        var appHostPath = $"{appHostName}.dll";
+        // FIXME: find this path or set it outside
+        _testOutput.WriteLine($"Looking for app host '{appHostName}' in '{s_appHostBasePath}'");
+        var appHostPath = Directory.EnumerateFiles(s_appHostBasePath, $"{appHostName}.dll", SearchOption.AllDirectories).Single();
+
+        // var appHostPath = Path.Combine(_appHostBasePath, appHostName, "bin", "Debug", "net8.0", $"{appHostName}.dll");
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, _testOutput);
         var projects = appHost.Resources.OfType<ProjectResource>();
         await using var app = await appHost.BuildAsync();
@@ -200,13 +217,13 @@ public class AppHostTests
                 resourceEndpoints: new() { { "apiservice", ["/alive", "/health"] } }),
 
             // Issue: https://github.com/dotnet/aspire/issues/5274
-            //new TestEndpoints("Mongo.AppHost",
-                //resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
-                //waitForTexts: [
-                    //new ("mongo", "Waiting for connections"),
+            new TestEndpoints("Mongo.AppHost",
+                resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
+                waitForTexts: [
+                    new ("mongo", "Waiting for connections"),
                     //new ("mongo-mongoexpress", "Mongo Express server listening"),
-                    //new("api", "Application started.")
-                //]),
+                    new("api", "Application started.")
+                ]),
             new TestEndpoints("MySqlDb.AppHost",
                 resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/catalog"] } },
                 waitForTexts: [
@@ -306,9 +323,9 @@ public class AppHostTests
 
     private static IEnumerable<string> GetPlaygroundAppHostAssemblyPaths()
     {
-        // All the AppHost projects are referenced by this project so we can find them by looking for all their assemblies in the base directory
-        return Directory.GetFiles(AppContext.BaseDirectory, "*.AppHost.dll")
-            .Where(fileName => !fileName.EndsWith("Aspire.Hosting.AppHost.dll", StringComparison.OrdinalIgnoreCase));
+        return Directory
+                    .EnumerateFiles(s_appHostBasePath, "*.AppHost.dll", SearchOption.AllDirectories)
+                    .Where(fileName => !fileName.EndsWith("Aspire.Hosting.AppHost.dll", StringComparison.OrdinalIgnoreCase));
     }
 }
 

@@ -3,29 +3,22 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
 
-    <!-- Set this explicitly so the project can build without arcade -->
-    <IsTestProject>true</IsTestProject>
-
     <!-- no docker support on helix/windows yet -->
     <RunTestsOnHelix Condition="'$(OS)' != 'Windows_NT'">true</RunTestsOnHelix>
     <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
 
-    <DeployOutsideOfRepoSupportFilesRelativeDir>staging-archive\</DeployOutsideOfRepoSupportFilesRelativeDir>
-
     <TestArchiveTestsDir>$(TestArchiveTestsDirForBuildOnHelixTests)</TestArchiveTestsDir>
-
-    <PlaygroundSourceDir>$(MSBuildThisFileDirectory)..\..\playground\</PlaygroundSourceDir>
-    <TestsSharedDir>$(MSBuildThisFileDirectory)..\Shared\</TestsSharedDir>
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- on helix, the file will be in the source directory, so it will get
-         picked up by msbuild by default -->
-    <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)src\Aspire.Hosting\Utils\PasswordGenerator.cs" />
-    <Compile Condition="'$(RepoRoot)' != ''" Include="$(RepoRoot)tests\Aspire.Hosting.Tests\Utils\LoggerNotificationExtensions.cs" />
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting\Utils\PasswordGenerator.cs" />
+    <Compile Include="$(RepoRoot)tests\Aspire.Hosting.Tests\Utils\LoggerNotificationExtensions.cs" />
     <Compile Include="$(TestsSharedDir)Logging\*.cs" />
+    <Compile Include="$(TestsSharedDir)WorkloadTesting\TestOutputWrapper.cs" />
+    <Compile Include="$(TestsSharedDir)WorkloadTesting\EnvironmentVariables.cs" />
 
+    <!-- FIXME: change to simple projectrefs -->
     <AspireProjectOrPackageReference Include="Aspire.Hosting" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.NodeJs" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Testing" />
@@ -34,34 +27,62 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
 
-    <ProjectReference Include="$(PlaygroundSourceDir)AzureStorageEndToEnd/AzureStorageEndToEnd.AppHost/AzureStorageEndToEnd.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)CosmosEndToEnd/CosmosEndToEnd.AppHost/CosmosEndToEnd.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)ParameterEndToEnd/ParameterEndToEnd.AppHost/ParameterEndToEnd.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)PostgresEndToEnd/PostgresEndToEnd.AppHost/PostgresEndToEnd.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)ProxylessEndToEnd/ProxylessEndToEnd.AppHost/ProxylessEndToEnd.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)Qdrant/Qdrant.AppHost/Qdrant.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)SqlServerEndToEnd/SqlServerEndToEnd.AppHost/SqlServerEndToEnd.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)TestShop/TestShop.AppHost/TestShop.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)keycloak/Keycloak.AppHost/Keycloak.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)milvus/MilvusPlayground.AppHost/MilvusPlayground.AppHost.csproj" />
-
-    <!-- Issue: https://github.com/dotnet/aspire/issues/5274 -->
-    <!-- Only `dotnet run` startup checked -->
-    <ProjectReference Include="$(PlaygroundSourceDir)mongo/Mongo.AppHost/Mongo.AppHost.csproj" />
-
-    <ProjectReference Include="$(PlaygroundSourceDir)mysql/MySqlDb.AppHost/MySqlDb.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)nats/Nats.AppHost/Nats.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)seq/Seq.AppHost/Seq.AppHost.csproj" />
-
     <Using Include="Aspire.Hosting.Testing" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(ArchiveTests)' == 'true'" Label="Prepare archive dir for helix">
-    <None Include="$(MSBuildProjectDirectory)\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)src\Aspire.Hosting\Utils\PasswordGenerator.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\PasswordGenerator.cs" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)tests\Aspire.Hosting.Tests\Utils\LoggerNotificationExtensions.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\LoggerNotificationExtensions.cs" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)src\Shared\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)src\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="$(RepoRoot)playground\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)playground\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  <!-- Local run -->
+  <ItemGroup Condition="'$(ArchiveTests)' != 'true'">
+    <ProjectReference Include="$(RepoRoot)playground\AzureStorageEndToEnd/AzureStorageEndToEnd.AppHost/AzureStorageEndToEnd.AppHost.csproj" />
+    <ProjectReference Include="$(RepoRoot)playground\CosmosEndToEnd\CosmosEndToEnd.AppHost\CosmosEndToEnd.AppHost.csproj" />
+    <ProjectReference Include="$(RepoRoot)playground\ParameterEndToEnd/ParameterEndToEnd.AppHost/ParameterEndToEnd.AppHost.csproj" />
+    <ProjectReference Include="$(RepoRoot)playground\PostgresEndToEnd/PostgresEndToEnd.AppHost/PostgresEndToEnd.AppHost.csproj" />
+    <ProjectReference Include="$(RepoRoot)playground\ProxylessEndToEnd\ProxylessEndToEnd.AppHost\ProxylessEndToEnd.AppHost.csproj" />
+    <ProjectReference Include="$(RepoRoot)playground\Qdrant\Qdrant.AppHost\Qdrant.AppHost.csproj" />
+    <ProjectReference Include="$(RepoRoot)playground\SqlServerEndToEnd/SqlServerEndToEnd.AppHost/SqlServerEndToEnd.AppHost.csproj" />
+    <ProjectReference Include="$(RepoRoot)playground\TestShop\TestShop.AppHost\TestShop.AppHost.csproj" />
+
+    <ProjectReference Include="$(RepoRoot)playground\keycloak/Keycloak.AppHost/Keycloak.AppHost.csproj" />
+    <ProjectReference Include="$(RepoRoot)playground\milvus/MilvusPlayground.AppHost/MilvusPlayground.AppHost.csproj" />
+    <ProjectReference Include="$(RepoRoot)playground\mongo\Mongo.AppHost\Mongo.AppHost.csproj" />
+    <ProjectReference Include="$(RepoRoot)playground\mysql\MySqlDb.AppHost\MySqlDb.AppHost.csproj" />
+    <ProjectReference Include="$(RepoRoot)playground\nats\Nats.AppHost\Nats.AppHost.csproj" />
+    <ProjectReference Include="$(RepoRoot)playground\seq\Seq.AppHost\Seq.AppHost.csproj" />
   </ItemGroup>
+
+  <ItemGroup Condition="'$(ArchiveTests)' == 'true'" Label="Prepare archive dir for helix">
+    <None Include="$(RepoRoot)playground\Playground.ServiceDefaults\**\*" Link="playground\Playground.ServiceDefaults\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)playground\AzureStorageEndToEnd\**\*" Link="playground\AzureStorageEndToEnd\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)playground\CosmosEndToEnd\**\*" Link="playground\CosmosEndToEnd\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)playground\ParameterEndToEnd/**\*" Link="playground\ParameterEndToEnd\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)playground\PostgresEndToEnd/**\*"  Link="playground\PostgresEndToEnd\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)playground\ProxylessEndToEnd\**\*" Link="playground\ProxylessEndToEnd\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)playground\SqlServerEndToEnd\**\*" Link="playground\SqlServerEndToEnd\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)playground\Qdrant\**\*" Link="playground\Qdrant\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)playground\TestShop\**\*" Link="playground\TestShop\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+
+    <None Include="$(RepoRoot)playground\keycloak\**\*" Link="playground\keycloak\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)playground\milvus\**\*" Link="playground\milvus\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)playground\mongo\**\*" Link="playground\mongo\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)playground\mysql\**\*" Link="playground\mysql\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)playground\nats\**\*" Link="playground\nats\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(RepoRoot)playground\seq\**\*" Link="playground\seq\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+
+    <None Include="$(RepoRoot)playground\*" Link="playground\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+
+    <None Include="build-playground-apps.proj" Link="build-playground-apps.proj" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="_GenerateRunTestsScript" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true'">
+
+    <ItemGroup>
+      <_RunScriptCommand Include="#!/usr/bin/env bash" />
+      <_RunScriptCommand Include="export TestsRunningOutsideOfRepo=true" />
+      <_RunScriptCommand Include="export SkipDashboardProjectReference=true" />
+      <_RunScriptCommand Include="dotnet build -bl:$HELIX_WORKITEM_UPLOAD_ROOT/logs/build-playground-apps.binlog build-playground-apps.proj &amp;&amp; dotnet test Aspire.Playground.Tests.dll -s .runsettings --ResultsDirectory:${HELIX_WORKITEM_UPLOAD_ROOT}/logs" />
+    </ItemGroup>
+
+    <WriteLinesToFile Lines="@(_RunScriptCommand)" File="$(OutDir)RunTests.sh" Overwrite="true" />
+
+  </Target>
 
 </Project>
