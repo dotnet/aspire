@@ -1269,9 +1269,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
 
         await createResource().ConfigureAwait(false);
-
-        var afterResourceCreatedEvent = new AfterResourceStartedEvent(er.ModelResource, serviceProvider);
-        await eventing.PublishAsync(afterResourceCreatedEvent, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<string?> GetValue(string? key, IValueProvider valueProvider, ILogger logger, bool isContainer, CancellationToken cancellationToken)
@@ -1586,9 +1583,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
 
         await kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
-
-        var afterResourceCreatedEvent = new AfterResourceStartedEvent(cr.ModelResource, serviceProvider);
-        await eventing.PublishAsync(afterResourceCreatedEvent, cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task ApplyBuildArgumentsAsync(Container dcpContainerResource, IResource modelContainerResource, CancellationToken cancellationToken)

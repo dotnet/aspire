@@ -278,9 +278,6 @@ internal sealed class AzureProvisioner(
                     cancellationToken).ConfigureAwait(false);
 
                 resource.ProvisioningTaskCompletionSource?.TrySetResult();
-
-                var afterResourceCreatedEvent = new AfterResourceStartedEvent(resource, serviceProvider);
-                await eventing.PublishAsync(afterResourceCreatedEvent, cancellationToken).ConfigureAwait(false);
             }
             catch (AzureCliNotOnPathException ex)
             {
