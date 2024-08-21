@@ -31,7 +31,6 @@
     <!-- This ProjectReference is *only* to get this project built, but not referenced directly.
          It will be loaded dynamically by individual tests. -->
     <ProjectReference Include="..\testproject\TestProject.AppHost\TestProject.AppHost.csproj" ReferenceOutputAssembly="false" IsAspireProjectResource="false" Private="false" />
-    <ProjectReference Include="..\testassets\ClassLibrary\ClassLibrary.csproj" />
   </ItemGroup>
 
   <ItemGroup>
