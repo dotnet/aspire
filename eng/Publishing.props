@@ -32,9 +32,9 @@
       We will pass SuppressFinalPackageVersion as true when fetching the package version so that we get back a version with a prerelease suffix.
     -->
     <MSBuild Projects="$(RepoRoot)src\Microsoft.NET.Sdk.Aspire\Microsoft.NET.Sdk.Aspire.csproj"
-        Targets="ReturnPackageVersion"
-        SkipNonexistentProjects="false"
-        AdditionalProperties="SuppressFinalPackageVersion=true">
+      Targets="ReturnPackageVersion"
+      SkipNonexistentProjects="false"
+      Properties="SuppressFinalPackageVersion=true">
       <Output TaskParameter="TargetOutputs" PropertyName="_PackageVersion" />
     </MSBuild>
 
