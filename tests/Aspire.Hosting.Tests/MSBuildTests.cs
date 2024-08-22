@@ -58,7 +58,7 @@ public class Class1
       Test applications have their own way of referencing Aspire.Hosting.AppHost, as well as DCP and Dashboard, so we disable
       the Aspire.Hosting.SDK targets that will automatically add these references to projects. 
     -->
-    <SkipAddReferenceToDashboardAndDCP Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">true</SkipAddReferenceToDashboardAndDCP>
+    <SkipAddAspireDefaultReferences Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">true</SkipAddAspireDefaultReferences>
     <AspireHostingSDKVersion>8.2.0</AspireHostingSDKVersion>
   </PropertyGroup>
 
