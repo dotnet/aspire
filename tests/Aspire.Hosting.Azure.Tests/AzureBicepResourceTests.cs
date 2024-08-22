@@ -1134,7 +1134,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             if (overrideDefaultTlsVersion)
             {
-                sql.AssignProperty(s => s.MinimalTlsVersion, "'1.2'");
+                sql.AssignProperty(s => s.MinimalTlsVersion, "'1.3'");
             }
         });
         sql.AddDatabase("db", "dbName");
@@ -1182,7 +1182,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               properties: {
                 version: '12.0'
-                minimalTlsVersion: '{{(overrideDefaultTlsVersion ? "1.2" : "1.3")}}'
+                minimalTlsVersion: '{{(overrideDefaultTlsVersion ? "1.3" : "1.2")}}'
                 publicNetworkAccess: 'Enabled'
                 administrators: {
                   administratorType: 'ActiveDirectory'
@@ -1241,7 +1241,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             if (overrideDefaultTlsVersion)
             {
-                sql.AssignProperty(s => s.MinimalTlsVersion, "'1.2'");
+                sql.AssignProperty(s => s.MinimalTlsVersion, "'1.3'");
             }
         });
         sql.AddDatabase("db", "dbName");
@@ -1285,7 +1285,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               properties: {
                 version: '12.0'
-                minimalTlsVersion: '{{(overrideDefaultTlsVersion ? "1.2" : "1.3")}}'
+                minimalTlsVersion: '{{(overrideDefaultTlsVersion ? "1.3" : "1.2")}}'
                 publicNetworkAccess: 'Enabled'
                 administrators: {
                   administratorType: 'ActiveDirectory'
