@@ -53,6 +53,16 @@
     <PropertyGroup>
       <_CombinedProps>@(DefaultPropertiesForNuGetBuild, ';');@(_PropertiesForNuGetBuilds, ';')</_CombinedProps>
     </PropertyGroup>
+    <!-- FIXME:
+      Explicitly invoke Build on these two projects so the GenerateTextReplacementFiles target gets triggered.
+      This can be removed once the workloadtesting targets support a custom list of targets to invoke
+    -->
+    <MSBuild Projects="$(RepoRoot)eng/dcppack/Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier).csproj"
+              Properties="$(_CombinedProps)"
+              Targets="Restore;Build" />
+    <MSBuild Projects="$(RepoRoot)eng/dashboardpack/Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier).csproj"
+              Properties="$(_CombinedProps)"
+              Targets="Restore;Build" />
   </Target>
 
   <Target Name="_GetWorkloadsToInstall" DependsOnTargets="_SetPackageVersionForWorkloadsTesting" Returns="@(WorkloadIdForTesting);@(WorkloadCombinationsToInstall)">

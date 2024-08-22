@@ -1,7 +1,5 @@
 <Project>
-
-    <PropertyGroup>
-        <AspireHostingSDKVersion>@VERSION@</AspireHostingSDKVersion>
-    </PropertyGroup>
-
+  <PropertyGroup>
+    <AspireHostingSDKVersion>@VERSION@</AspireHostingSDKVersion>
+  </PropertyGroup>
 </Project>

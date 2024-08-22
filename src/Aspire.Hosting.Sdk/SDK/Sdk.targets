@@ -92,10 +92,10 @@
 
     <!-- At this point, we should have the version either by CPM or PackageReference, so we fail if not.  -->
     <Error Condition="'$(AppHostVersion)' == '' or $([MSBuild]::VersionLessThan('$(AppHostVersion)', '8.2.0'))" 
-    Text="$(MSBuildProjectName) is a .NET Aspire AppHost project that needs a package reference to Aspire.Hosting.AppHost version 8.2.0 or above to work correctly.$(__CurrentAppHostVersionMessage)" />
+       Text="$(MSBuildProjectName) is a .NET Aspire AppHost project that needs a package reference to Aspire.Hosting.AppHost version 8.2.0 or above to work correctly.$(__CurrentAppHostVersionMessage)" />
 
-    <!-- If not using CPM, then directly add the two PackageReferences -->
-    <ItemGroup Condition=" '$(AppHostVersion)' != ''">
+    <!-- Now that we have the version, we add the package references -->
+    <ItemGroup>
       <PackageReference Include="Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier)"
   Version="$(AppHostVersion)" IsImplicitlyDefined="true" />
       <PackageReference Include="Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier)"
