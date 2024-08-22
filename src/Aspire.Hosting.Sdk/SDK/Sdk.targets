@@ -65,41 +65,41 @@
     <!-- First, we assume project is not using Central Package Management, and we try to extract the version
          from PackageReference Items. -->
     <ItemGroup>
-      <AppHostPackageReference Include="@(PackageReference)" Condition="'%(Identity)' ==
+      <_AppHostPackageReference Include="@(PackageReference)" Condition="'%(Identity)' ==
   'Aspire.Hosting.AppHost'" />
     </ItemGroup>
 
     <!-- Extract the Version metadata -->
     <PropertyGroup>
-      <AppHostVersion>%(AppHostPackageReference.Version)</AppHostVersion>
+      <_AppHostVersion>%(_AppHostPackageReference.Version)</_AppHostVersion>
     </PropertyGroup>
 
     <!-- If the version is still empty, then we assume the project is using Central Package Management, 
          and we try to extract the PackageVersion Items. -->
-    <ItemGroup Condition="'$(AppHostVersion)' == ''">
-      <AppHostPackageReference />
-      <AppHostPackageReference Include="@(PackageVersion)" Condition="'%(Identity)' ==
+    <ItemGroup Condition="'$(_AppHostVersion)' == ''">
+      <_AppHostPackageReference />
+      <_AppHostPackageReference Include="@(PackageVersion)" Condition="'%(Identity)' ==
   'Aspire.Hosting.AppHost'" />
     </ItemGroup>
 
-    <PropertyGroup Condition="'$(AppHostVersion)' == ''">
-      <AppHostVersion>%(AppHostPackageReference.Version)</AppHostVersion>
+    <PropertyGroup Condition="'$(_AppHostVersion)' == ''">
+      <_AppHostVersion>%(_AppHostPackageReference.Version)</_AppHostVersion>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(AppHostVersion)' != ''">
-      <__CurrentAppHostVersionMessage> You are using version $(AppHostVersion).</__CurrentAppHostVersionMessage>
+    <PropertyGroup Condition="'$(_AppHostVersion)' != ''">
+      <__CurrentAppHostVersionMessage> You are using version $(_AppHostVersion).</__CurrentAppHostVersionMessage>
     </PropertyGroup>
 
     <!-- At this point, we should have the version either by CPM or PackageReference, so we fail if not.  -->
-    <Error Condition="'$(AppHostVersion)' == '' or $([MSBuild]::VersionLessThan('$(AppHostVersion)', '8.2.0'))" 
+    <Error Condition="'$(_AppHostVersion)' == '' or $([MSBuild]::VersionLessThan('$(_AppHostVersion)', '8.2.0'))" 
        Text="$(MSBuildProjectName) is a .NET Aspire AppHost project that needs a package reference to Aspire.Hosting.AppHost version 8.2.0 or above to work correctly.$(__CurrentAppHostVersionMessage)" />
 
     <!-- Now that we have the version, we add the package references -->
     <ItemGroup>
       <PackageReference Include="Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier)"
-  Version="$(AppHostVersion)" IsImplicitlyDefined="true" />
+  Version="$(_AppHostVersion)" IsImplicitlyDefined="true" />
       <PackageReference Include="Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier)"
-  Version="$(AppHostVersion)" IsImplicitlyDefined="true" />
+  Version="$(_AppHostVersion)" IsImplicitlyDefined="true" />
     </ItemGroup>
   </Target>
 
