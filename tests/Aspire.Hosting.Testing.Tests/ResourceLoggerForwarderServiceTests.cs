@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Hosting.Internal;
@@ -54,7 +55,7 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
     {
         var hostApplicationLifetime = new TestHostApplicationLifetime();
         var resourceNotificationService = new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, hostApplicationLifetime);
-        var resourceLoggerService = new ResourceLoggerService();
+        var resourceLoggerService = ConsoleLoggingTestHelpers.GetResourceLoggerService();
         var hostEnvironment = new HostingEnvironment { ApplicationName = "TestApp.AppHost" };
         var fakeLoggerProvider = new FakeLoggerProvider();
         var fakeLoggerFactory = new LoggerFactory([fakeLoggerProvider, new XunitLoggerProvider(output)]);
@@ -118,12 +119,12 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
         // Category is derived from the application name and resource name
         // Logs sent at information level or lower are logged as information, otherwise they are logged as error
         Assert.Collection(hostLogs,
-            log => { Assert.Equal(LogLevel.Information, log.Level); Assert.Equal("1: Test trace message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
-            log => { Assert.Equal(LogLevel.Information, log.Level); Assert.Equal("2: Test debug message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
-            log => { Assert.Equal(LogLevel.Information, log.Level); Assert.Equal("3: Test information message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
-            log => { Assert.Equal(LogLevel.Information, log.Level); Assert.Equal("4: Test warning message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
-            log => { Assert.Equal(LogLevel.Error, log.Level); Assert.Equal("5: Test error message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
-            log => { Assert.Equal(LogLevel.Error, log.Level); Assert.Equal("6: Test critical message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); });
+            log => { Assert.Equal(LogLevel.Information, log.Level); Assert.Equal("1: 2000-12-29T20:59:59.0000000 Test trace message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
+            log => { Assert.Equal(LogLevel.Information, log.Level); Assert.Equal("2: 2000-12-29T20:59:59.0000000 Test debug message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
+            log => { Assert.Equal(LogLevel.Information, log.Level); Assert.Equal("3: 2000-12-29T20:59:59.0000000 Test information message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
+            log => { Assert.Equal(LogLevel.Information, log.Level); Assert.Equal("4: 2000-12-29T20:59:59.0000000 Test warning message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
+            log => { Assert.Equal(LogLevel.Error, log.Level); Assert.Equal("5: 2000-12-29T20:59:59.0000000 Test error message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
+            log => { Assert.Equal(LogLevel.Error, log.Level); Assert.Equal("6: 2000-12-29T20:59:59.0000000 Test critical message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); });
     }
 
     private sealed class CustomResource(string name) : Resource(name)

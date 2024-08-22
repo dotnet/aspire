@@ -8,6 +8,7 @@ using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
+using Aspire.Hosting.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
@@ -32,7 +33,7 @@ public sealed partial class LogViewer
     [Inject]
     public required IOptions<DashboardOptions> Options { get; set; }
 
-    public LogEntries LogEntries { get; set; } = null!;
+    internal LogEntries LogEntries { get; set; } = null!;
 
     public string? ResourceName { get; set; }
 
@@ -85,7 +86,14 @@ public sealed partial class LogViewer
 
             foreach (var (lineNumber, content, isErrorOutput) in batch)
             {
-                LogEntries.InsertSorted(logParser.CreateLogEntry(content, isErrorOutput), lineNumber);
+                // Set the base line number using the reported line number of the first log line.
+                if (LogEntries.EntriesCount == 0)
+                {
+                    LogEntries.BaseLineNumber = lineNumber;
+                }
+
+                var logEntry = logParser.CreateLogEntry(content, isErrorOutput);
+                LogEntries.InsertSorted(logEntry);
             }
 
             StateHasChanged();
