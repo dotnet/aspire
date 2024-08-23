@@ -6,7 +6,6 @@ using Aspire.Hosting.Tests.Utils;
 using SamplesIntegrationTests;
 using SamplesIntegrationTests.Infrastructure;
 using Xunit;
-using Xunit.Sdk;
 using Xunit.Abstractions;
 
 namespace Aspire.Playground.Tests;
