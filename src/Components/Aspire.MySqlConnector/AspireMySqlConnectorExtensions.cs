@@ -7,7 +7,6 @@ using HealthChecks.MySql;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Logging;
 using MySqlConnector;
 
 namespace Microsoft.Extensions.Hosting;
