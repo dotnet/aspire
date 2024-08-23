@@ -118,9 +118,13 @@
         {
             return @<span>@vm.Text</span>;
         }
+        else if (string.Equals(vm.Url, vm.Text, StringComparison.Ordinal))
+        {
+            return @<a href="@vm.Url" target="_blank">@vm.Url</a>;
+        }
         else
         {
-            return @<a href="@vm.Url">@vm.Text</a>;
+            return @<a href="@vm.Url" title="@vm.Url" target="_blank">@vm.Text</a>;
         }
     }
 }
