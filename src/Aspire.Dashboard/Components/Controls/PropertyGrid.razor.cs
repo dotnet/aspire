@@ -26,17 +26,17 @@ public interface IPropertyGridItem
     /// <summary>
     /// Gets the display name of the item.
     /// </summary>
-    public string? Name { get; }
+    string? Name { get; }
 
     /// <summary>
     /// Gets the display value of the item.
     /// </summary>
-    public string? Value { get; }
+    string? Value { get; }
 
     /// <summary>
     /// Gets whether this item's value is sensitive and should be masked.
     /// </summary>
-    public bool IsValueSensitive { get; }
+    bool IsValueSensitive { get; }
 
     /// <summary>
     /// Gets and sets whether this item's value is masked in the UI by default.
@@ -52,7 +52,7 @@ public interface IPropertyGridItem
     /// is ignored.
     /// </para>
     /// </remarks>
-    public bool IsValueMasked { get; set; }
+    bool IsValueMasked { get; set; }
 }
 
 public partial class PropertyGrid<TItem> where TItem : IPropertyGridItem
