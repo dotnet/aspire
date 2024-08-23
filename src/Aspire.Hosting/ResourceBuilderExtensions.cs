@@ -558,7 +558,21 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder for the resource that will be waiting.</param>
     /// <param name="dependency">The resource builder for the dependency resource.</param>
-    /// <returns></returns>
+    /// <returns>The resource builder.</returns>
+    /// <remarks>
+    /// <para>This method is useful when a resource should wait until another has started running. This can help
+    /// reduce errors in logs during local development where dependency resources.</para>
+    /// </remarks>
+    /// <example>
+    /// Start message queue before starting the worker service.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var messaging = builder.AddRabbitMQ("messaging");
+    /// builder.AddProject&lt;Projects.MyApp&gt;("myapp")
+    ///        .WithReference(messaging)
+    ///        .WaitFor(messaging);
+    /// </code>
+    /// </example>
     public static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T : IResource
     {
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (e, ct) =>
@@ -581,7 +595,25 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder for the resource that will be waiting.</param>
     /// <param name="dependency">The resource builder for the dependency resource.</param>
-    /// <returns></returns>
+    /// <returns>The resource builder.</returns>
+    /// <remarks>
+    /// <para>This method is useful when a resource should wait until another has completed. A common usage pattern
+    /// would be to include a console application that initializes the database schema or performs other one off
+    /// initialization tasks.</para>
+    /// <para>Note that this method has no impact at deployment time and only works for local development.</para>
+    /// </remarks>
+    /// <example>
+    /// Wait for database initialization app to complete running.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var pgsql = builder.AddPostgres("postgres");
+    /// var dbprep = builder.AddProject&lt;Projects.DbPrepApp&gt;("dbprep")
+    ///                     .WithReference(pgsql);
+    /// builder.AddProject&lt;Projects.DatabasePrepTool&gt;("dbprep")
+    ///        .WithReference(pgsql)
+    ///        .WaitForCompletion(dbprep);
+    /// </code>
+    /// </example>
     public static IResourceBuilder<T> WaitForCompletion<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T : IResource
     {
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (e, ct) =>
