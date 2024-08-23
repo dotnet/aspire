@@ -51,32 +51,14 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
         await app.StopAsync();
     }
 
-    internal static async Task WaitForAllTextAsync(DistributedApplication app, IEnumerable<string> logTexts, string? resourceName = null, int timeoutSecs = -1)
+    internal static Task WaitForAllTextAsync(DistributedApplication app, IEnumerable<string> logTexts, string? resourceName = null, int timeoutSecs = -1)
     {
-        var table = logTexts.ToList();
-        try
+        CancellationTokenSource cts = new();
+        if (timeoutSecs > 0)
         {
-            var task = app.WaitForTextAsync((log) =>
-            {
-                foreach (var text in table)
-                {
-                    if (log.Contains(text))
-                    {
-                        table.Remove(text);
-                        break;
-                    }
-                }
-
-                return table.Count == 0;
-            }, resourceName);
-
-            await (timeoutSecs > 0
-                    ? task.WaitAsync(TimeSpan.FromSeconds(timeoutSecs))
-                    : task);
+            cts.CancelAfter(TimeSpan.FromSeconds(timeoutSecs));
         }
-        catch (TimeoutException te)
-        {
-            throw new XunitException($"The following messages were not found: '{string.Join("', '", table)}'", te);
-        }
+
+        return app.WaitForAllTextAsync(logTexts, resourceName, cts.Token);
     }
 }
