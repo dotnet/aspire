@@ -4,6 +4,8 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -548,5 +550,51 @@ public static class ResourceBuilderExtensions
     public static IResourceBuilder<T> ExcludeFromManifest<T>(this IResourceBuilder<T> builder) where T : IResource
     {
         return builder.WithAnnotation(ManifestPublishingCallbackAnnotation.Ignore);
+    }
+
+    /// <summary>
+    /// Waits for the dependency resource to enter the Running state before starting the resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder for the resource that will be waiting.</param>
+    /// <param name="dependency">The resource builder for the dependency resource.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T : IResource
+    {
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (e, ct) =>
+        {
+            var rls = e.Services.GetRequiredService<ResourceLoggerService>();
+            var resourceLogger = rls.GetLogger(builder.Resource);
+            resourceLogger.LogInformation($"Waiting for resource '{dependency.Resource.Name}' to enter the '{KnownResourceStates.Running}' state.");
+
+            var rns = e.Services.GetRequiredService<ResourceNotificationService>();
+            await rns.PublishUpdateAsync(builder.Resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
+            await rns.WaitForResourceAsync(dependency.Resource.Name, cancellationToken: ct).ConfigureAwait(false);
+        });
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Waits for the dependency resource to enter the Exited or Finished state before starting the resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder for the resource that will be waiting.</param>
+    /// <param name="dependency">The resource builder for the dependency resource.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WaitForCompletion<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T : IResource
+    {
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (e, ct) =>
+        {
+            var rls = e.Services.GetRequiredService<ResourceLoggerService>();
+            var resourceLogger = rls.GetLogger(builder.Resource);
+            resourceLogger.LogInformation($"Waiting for resource '{dependency.Resource.Name}' to enter the 'Finished' state.");
+
+            var rns = e.Services.GetRequiredService<ResourceNotificationService>();
+            await rns.PublishUpdateAsync(builder.Resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
+            await rns.WaitForResourceAsync(dependency.Resource.Name, targetState: "Finished", cancellationToken: ct).ConfigureAwait(false);
+        });
+
+        return builder;
     }
 }
