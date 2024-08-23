@@ -4,7 +4,7 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
-    <PackageTags>aspire resource integration hosting keycloak</PackageTags>
+    <PackageTags>aspire integration hosting keycloak</PackageTags>
     <Description>Keycloak support for .NET Aspire.</Description>
   </PropertyGroup>
 

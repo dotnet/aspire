@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire resource integration hosting azure</PackageTags>
+    <PackageTags>aspire integration hosting azure</PackageTags>
     <Description>Azure Service Bus resource types for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)AzureServiceBus_256x.png</PackageIconFullPath>
   </PropertyGroup>
