@@ -12,7 +12,7 @@ public class MicrosoftDataSqlClientPublicApiTests
     public void AddSqlServerClientShouldThrowWhenBuilderIsNull()
     {
         IHostApplicationBuilder builder = null!;
-        const string connectionName = "blobs";
+        const string connectionName = "sqlconnection";
 
         var action = () => builder.AddSqlServerClient(
             connectionName,
@@ -44,7 +44,7 @@ public class MicrosoftDataSqlClientPublicApiTests
     public void AddKeyedSqlServerClientShouldThrowWhenBuilderIsNull()
     {
         IHostApplicationBuilder builder = null!;
-        const string name = "blobs";
+        const string name = "sqlconnection";
 
         var action = () => builder.AddKeyedSqlServerClient(
             name,
