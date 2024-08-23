@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire integration hosting azure</PackageTags>
+    <PackageTags>aspire resource integration hosting azure</PackageTags>
     <Description>Azure AppConfiguration resource types for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)AzureAppConfig_256x.png</PackageIconFullPath>
   </PropertyGroup>

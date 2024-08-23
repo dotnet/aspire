@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire integration hosting orleans</PackageTags>
+    <PackageTags>aspire resource integration hosting orleans</PackageTags>
     <Description>Orleans support for .NET Aspire.</Description>
   </PropertyGroup>
 

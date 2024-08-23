@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire integration hosting oracle sql</PackageTags>
+    <PackageTags>aspire resource integration hosting oracle sql</PackageTags>
     <Description>Oracle Database support for .NET Aspire.</Description>
   </PropertyGroup>
 
