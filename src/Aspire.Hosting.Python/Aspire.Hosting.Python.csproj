@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire integration hosting python</PackageTags>
+    <PackageTags>aspire resource integration hosting python</PackageTags>
     <Description>Python support for .NET Aspire.</Description>
     <MinCodeCoverage>80</MinCodeCoverage>
   </PropertyGroup>

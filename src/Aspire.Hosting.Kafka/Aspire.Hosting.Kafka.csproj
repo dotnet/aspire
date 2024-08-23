@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire integration hosting kafka</PackageTags>
+    <PackageTags>aspire resource integration hosting kafka</PackageTags>
     <Description>Kafka support for .NET Aspire.</Description>
   </PropertyGroup>
 
