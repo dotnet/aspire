@@ -98,10 +98,12 @@ public static class LoggerNotificationExtensions
         catch (OperationCanceledException)
         {
             // Expected if the application stops prematurely or the text was detected.
+            tcs.TrySetCanceled();
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "An error occurred while watching for resource notifications.");
+            tcs.TrySetException(ex);
         }
     }
 
