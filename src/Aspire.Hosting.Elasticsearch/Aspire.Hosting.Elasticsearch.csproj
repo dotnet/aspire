@@ -4,7 +4,7 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
-    <PackageTags>aspire resource integration hosting elasticsearch</PackageTags>
+    <PackageTags>aspire integration hosting elasticsearch</PackageTags>
     <Description>Elasticsearch support for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)Elastic_logo.png</PackageIconFullPath>
   </PropertyGroup>

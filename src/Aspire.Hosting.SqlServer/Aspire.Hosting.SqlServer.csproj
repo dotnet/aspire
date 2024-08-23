@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire resource integration hosting sqlserver sql</PackageTags>
+    <PackageTags>aspire integration hosting sqlserver sql</PackageTags>
     <Description>Microsoft SQL Server support for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)SQL_256x.png</PackageIconFullPath>
   </PropertyGroup>
