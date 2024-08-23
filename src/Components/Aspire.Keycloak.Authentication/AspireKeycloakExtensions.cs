@@ -27,12 +27,7 @@ public static class AspireKeycloakExtensions
     /// For example, if <paramref name="serviceName"/> is "keycloak" and <paramref name="realm"/> is "myrealm", the authority URL will be "https+http://keycloak/realms/myrealm".
     /// </remarks>
     public static AuthenticationBuilder AddKeycloakJwtBearer(this AuthenticationBuilder builder, string serviceName, string realm)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(serviceName);
-        ArgumentException.ThrowIfNullOrEmpty(realm);
-        return builder.AddKeycloakJwtBearer(serviceName, realm, JwtBearerDefaults.AuthenticationScheme, null);
-    }
+        => AddKeycloakJwtBearerInternal(builder, serviceName, realm, JwtBearerDefaults.AuthenticationScheme, null);
 
     /// <summary>
     /// Adds Keycloak JWT Bearer authentication to the application.
@@ -46,11 +41,7 @@ public static class AspireKeycloakExtensions
     /// For example, if <paramref name="serviceName"/> is "keycloak" and <paramref name="realm"/> is "myrealm", the authority URL will be "https+http://keycloak/realms/myrealm".
     /// </remarks>
     public static AuthenticationBuilder AddKeycloakJwtBearer(this AuthenticationBuilder builder, string serviceName, string realm, string authenticationScheme)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        return builder.AddKeycloakJwtBearer(serviceName, realm, authenticationScheme, null);
-    }
+        => AddKeycloakJwtBearerInternal(builder, serviceName, realm, authenticationScheme, null);
 
     /// <summary>
     /// Adds Keycloak JWT Bearer authentication to the application.
@@ -64,12 +55,7 @@ public static class AspireKeycloakExtensions
     /// For example, if <paramref name="serviceName"/> is "keycloak" and <paramref name="realm"/> is "myrealm", the authority URL will be "https+http://keycloak/realms/myrealm".
     /// </remarks>
     public static AuthenticationBuilder AddKeycloakJwtBearer(this AuthenticationBuilder builder, string serviceName, string realm, Action<JwtBearerOptions>? configureOptions)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        return builder.AddKeycloakJwtBearer(serviceName, realm, JwtBearerDefaults.AuthenticationScheme,
-            configureOptions);
-    }
+        => AddKeycloakJwtBearerInternal(builder, serviceName, realm, JwtBearerDefaults.AuthenticationScheme, configureOptions);
 
     /// <summary>
     /// Adds Keycloak JWT Bearer authentication to the application.
@@ -89,6 +75,14 @@ public static class AspireKeycloakExtensions
         string realm,
         string authenticationScheme,
         Action<JwtBearerOptions>? configureOptions)
+        => AddKeycloakJwtBearerInternal(builder, serviceName, realm, authenticationScheme, configureOptions);
+
+    private static AuthenticationBuilder AddKeycloakJwtBearerInternal(
+        AuthenticationBuilder builder,
+        string serviceName,
+        string realm,
+        string authenticationScheme,
+        Action<JwtBearerOptions>? configureOptions)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(serviceName);
@@ -100,14 +94,14 @@ public static class AspireKeycloakExtensions
         builder.Services.AddHttpClient(KeycloakBackchannel);
 
         builder.Services
-               .AddOptions<JwtBearerOptions>(authenticationScheme)
-               .Configure<IConfiguration, IHttpClientFactory, IHostEnvironment>((options, configuration, httpClientFactory, hostEnvironment) =>
-               {
-                   options.Backchannel = httpClientFactory.CreateClient(KeycloakBackchannel);
-                   options.Authority = GetAuthorityUri(serviceName, realm);
+            .AddOptions<JwtBearerOptions>(authenticationScheme)
+            .Configure<IConfiguration, IHttpClientFactory, IHostEnvironment>((options, configuration, httpClientFactory, hostEnvironment) =>
+            {
+                options.Backchannel = httpClientFactory.CreateClient(KeycloakBackchannel);
+                options.Authority = GetAuthorityUri(serviceName, realm);
 
-                   configureOptions?.Invoke(options);
-               });
+                configureOptions?.Invoke(options);
+            });
 
         return builder;
     }
@@ -123,11 +117,7 @@ public static class AspireKeycloakExtensions
     /// For example, if <paramref name="serviceName"/> is "keycloak" and <paramref name="realm"/> is "myrealm", the authority URL will be "https+http://keycloak/realms/myrealm".
     /// </remarks>
     public static AuthenticationBuilder AddKeycloakOpenIdConnect(this AuthenticationBuilder builder, string serviceName, string realm)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        return builder.AddKeycloakOpenIdConnect(serviceName, realm, OpenIdConnectDefaults.AuthenticationScheme, null);
-    }
+        => AddKeycloakOpenIdConnectInternal(builder, serviceName, realm, OpenIdConnectDefaults.AuthenticationScheme, null);
 
     /// <summary>
     /// Adds Keycloak OpenID Connect authentication to the application.
@@ -141,11 +131,7 @@ public static class AspireKeycloakExtensions
     /// For example, if <paramref name="serviceName"/> is "keycloak" and <paramref name="realm"/> is "myrealm", the authority URL will be "https+http://keycloak/realms/myrealm".
     /// </remarks>
     public static AuthenticationBuilder AddKeycloakOpenIdConnect(this AuthenticationBuilder builder, string serviceName, string realm, string authenticationScheme)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        return builder.AddKeycloakOpenIdConnect(serviceName, realm, authenticationScheme, null);
-    }
+        => AddKeycloakOpenIdConnectInternal(builder, serviceName, realm, authenticationScheme, null);
 
     /// <summary>
     /// Adds Keycloak OpenID Connect authentication to the application.
@@ -159,11 +145,7 @@ public static class AspireKeycloakExtensions
     /// For example, if <paramref name="serviceName"/> is "keycloak" and <paramref name="realm"/> is "myrealm", the authority URL will be "https+http://keycloak/realms/myrealm".
     /// </remarks>
     public static AuthenticationBuilder AddKeycloakOpenIdConnect(this AuthenticationBuilder builder, string serviceName, string realm, Action<OpenIdConnectOptions>? configureOptions)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        return builder.AddKeycloakOpenIdConnect(serviceName, realm, OpenIdConnectDefaults.AuthenticationScheme, configureOptions);
-    }
+        => AddKeycloakOpenIdConnectInternal(builder, serviceName, realm, OpenIdConnectDefaults.AuthenticationScheme, configureOptions);
 
     /// <summary>
     /// Adds Keycloak OpenID Connect authentication to the application.
@@ -183,6 +165,15 @@ public static class AspireKeycloakExtensions
         string realm,
         string authenticationScheme,
         Action<OpenIdConnectOptions>? configureOptions)
+        => AddKeycloakOpenIdConnectInternal(builder, serviceName, realm, authenticationScheme, configureOptions);
+
+    private static AuthenticationBuilder AddKeycloakOpenIdConnectInternal(
+        AuthenticationBuilder builder,
+        string serviceName,
+        string realm,
+        string authenticationScheme,
+        Action<OpenIdConnectOptions>? configureOptions
+    )
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(serviceName);
@@ -194,14 +185,14 @@ public static class AspireKeycloakExtensions
         builder.Services.AddHttpClient(KeycloakBackchannel);
 
         builder.Services
-               .AddOptions<OpenIdConnectOptions>(authenticationScheme)
-               .Configure<IConfiguration, IHttpClientFactory, IHostEnvironment>((options, configuration, httpClientFactory, hostEnvironment) =>
-               {
-                   options.Backchannel = httpClientFactory.CreateClient(KeycloakBackchannel);
-                   options.Authority = GetAuthorityUri(serviceName, realm);
+            .AddOptions<OpenIdConnectOptions>(authenticationScheme)
+            .Configure<IConfiguration, IHttpClientFactory, IHostEnvironment>((options, configuration, httpClientFactory, hostEnvironment) =>
+            {
+                options.Backchannel = httpClientFactory.CreateClient(KeycloakBackchannel);
+                options.Authority = GetAuthorityUri(serviceName, realm);
 
-                   configureOptions?.Invoke(options);
-               });
+                configureOptions?.Invoke(options);
+            });
 
         return builder;
     }

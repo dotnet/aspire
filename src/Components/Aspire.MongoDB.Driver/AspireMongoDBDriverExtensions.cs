@@ -34,12 +34,7 @@ public static class AspireMongoDBDriverExtensions
         string connectionName,
         Action<MongoDBSettings>? configureSettings = null,
         Action<MongoClientSettings>? configureClientSettings = null)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(connectionName);
-
-        builder.AddMongoDBClient(DefaultConfigSectionName, configureSettings, configureClientSettings, connectionName, serviceKey: null);
-    }
+        => AddMongoDBClient(builder, DefaultConfigSectionName, configureSettings, configureClientSettings, connectionName, serviceKey: null);
 
     /// <summary>
     /// Registers <see cref="IMongoClient"/> and <see cref="IMongoDatabase"/> instances for connecting MongoDB database with MongoDB.Driver client.
@@ -57,10 +52,10 @@ public static class AspireMongoDBDriverExtensions
         Action<MongoDBSettings>? configureSettings = null,
         Action<MongoClientSettings>? configureClientSettings = null)
     {
-        ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        builder.AddMongoDBClient(
+        AddMongoDBClient(
+            builder,
             $"{DefaultConfigSectionName}:{name}",
             configureSettings,
             configureClientSettings,
@@ -69,7 +64,7 @@ public static class AspireMongoDBDriverExtensions
     }
 
     private static void AddMongoDBClient(
-        this IHostApplicationBuilder builder,
+        IHostApplicationBuilder builder,
         string configurationSectionName,
         Action<MongoDBSettings>? configureSettings,
         Action<MongoClientSettings>? configureClientSettings,
@@ -77,6 +72,7 @@ public static class AspireMongoDBDriverExtensions
         object? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         var settings = builder.GetMongoDBSettings(
             connectionName,

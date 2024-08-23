@@ -48,10 +48,6 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
         string connectionName,
         string? serviceKey)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(configurationSectionName);
-        ArgumentException.ThrowIfNullOrEmpty(connectionName);
-
         var configSection = builder.Configuration.GetSection(configurationSectionName);
 
         var settings = new TSettings();
