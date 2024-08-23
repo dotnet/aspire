@@ -54,7 +54,12 @@ public sealed class DisplayedEndpoint : IPropertyGridItem
     public int? Port { get; set; }
     public string? Url { get; set; }
 
+    /// <summary>
+    /// Don't display a plain string value here. The URL will be displayed as a hyperlink
+    /// in <see cref="ResourceDetails.GetContentAfterValue"/> instead.
+    /// </summary>
     string? IPropertyGridItem.Value => null;
+
     bool IPropertyGridItem.IsValueSensitive => false;
     bool IPropertyGridItem.IsValueMasked { get => false; set => throw new NotImplementedException(); }
 }

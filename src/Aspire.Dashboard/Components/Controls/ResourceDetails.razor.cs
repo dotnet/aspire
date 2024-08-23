@@ -178,22 +178,6 @@ public partial class ResourceDetails
         }
     }
 
-    private static RenderFragment GetContentAfterValue(DisplayedEndpoint vm)
-    {
-        if (vm.Url is null)
-        {
-            return static builder => { };
-        }
-
-        return builder =>
-        {
-            builder.OpenElement(0, "a");
-            builder.AddAttribute(1, "href", vm.Url);
-            builder.AddContent(2, vm.Text);
-            builder.CloseElement();
-        };
-    }
-
     private void OnMaskAllCheckedChanged()
     {
         foreach (var vm in SensitiveGridItems)

@@ -110,3 +110,17 @@
         </FluentAccordion>
     </div>
 </div>
+
+@code {
+    private static RenderFragment GetContentAfterValue(DisplayedEndpoint vm)
+    {
+        if (vm.Url is null)
+        {
+            return @<span>@vm.Text</span>;
+        }
+        else
+        {
+            return @<a href="@vm.Url">@vm.Text</a>;
+        }
+    }
+}
