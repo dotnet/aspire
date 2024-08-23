@@ -3,7 +3,7 @@
   <Import Project="$(SharedDir)Workload.targets" />
 
   <PropertyGroup>
-    <PackageTags>aspire integration hosting sdk</PackageTags>
+    <PackageTags>aspire hosting sdk</PackageTags>
     <Description>.NET Aspire Hosting SDK. Enabled via &lt;IsAspireHost&gt;true&lt;/IsAspireHost&gt;.</Description>
   </PropertyGroup>
 
