@@ -8,4 +8,7 @@ internal static class MySqlContainerImageTags
     public const string Registry = "docker.io";
     public const string Image = "library/mysql";
     public const string Tag = "9.0";
+
+    public const string PhpMyAdminImage = "library/phpmyadmin";
+    public const string PhpMyAdminTag = "5.2";
 }
