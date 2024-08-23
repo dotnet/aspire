@@ -54,6 +54,7 @@ public static class AspireMySqlConnectorExtensions
         Action<MySqlConnectorSettings>? configureSettings, string connectionName, object? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         MySqlConnectorSettings settings = new();
         builder.Configuration.GetSection(configurationSectionName).Bind(settings);
