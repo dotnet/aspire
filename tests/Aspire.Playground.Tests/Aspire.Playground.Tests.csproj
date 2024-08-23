@@ -44,6 +44,7 @@
     <ProjectReference Include="$(PlaygroundSourceDir)TestShop/TestShop.AppHost/TestShop.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)keycloak/Keycloak.AppHost/Keycloak.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)milvus/MilvusPlayground.AppHost/MilvusPlayground.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)withdockerfile/WithDockerfile.AppHost/WithDockerfile.AppHost.csproj" />
 
     <!-- Issue: https://github.com/dotnet/aspire/issues/5274 -->
     <!-- Only `dotnet run` startup checked -->
