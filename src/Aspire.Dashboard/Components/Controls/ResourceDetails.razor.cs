@@ -35,15 +35,14 @@ public partial class ResourceDetails
     private ResourceViewModel? _resource;
 
     private IQueryable<EnvironmentVariableViewModel> FilteredEnvironmentVariables =>
-        Resource.Environment.Where(vm =>
-            (_showAll || vm.FromSpec) &&
-            (vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
-            vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true)
-        ).AsQueryable();
+        Resource.Environment
+            .Where(vm => (_showAll || vm.FromSpec) && vm.MatchesFilter(_filter))
+            .AsQueryable();
 
-    private IQueryable<DisplayedEndpoint> FilteredEndpoints => GetEndpoints()
-        .Where(vm => vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) || vm.Text.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true)
-        .AsQueryable();
+    private IQueryable<DisplayedEndpoint> FilteredEndpoints =>
+        GetEndpoints()
+            .Where(vm => vm.MatchesFilter(_filter))
+            .AsQueryable();
 
     private IQueryable<VolumeViewModel> FilteredVolumes =>
         Resource.Volumes.Where(vm =>
@@ -51,10 +50,10 @@ public partial class ResourceDetails
             vm.Target?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true
         ).AsQueryable();
 
-    private IQueryable<ResourcePropertyViewModel> FilteredResourceProperties => GetResourceProperties(ordered: true)
-        .Where(vm => _showAll || vm.KnownProperty != null)
-        .Where(vm => vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) || vm.ToolTip.Contains(_filter, StringComparison.CurrentCultureIgnoreCase))
-        .AsQueryable();
+    private IQueryable<ResourcePropertyViewModel> FilteredResourceProperties =>
+        GetResourceProperties(ordered: true)
+            .Where(vm => (_showAll || vm.KnownProperty != null) && vm.MatchesFilter(_filter))
+            .AsQueryable();
 
     private string _filter = "";
     private bool _isMaskAllChecked = true;

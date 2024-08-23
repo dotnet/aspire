@@ -132,6 +132,10 @@ public sealed class EnvironmentVariableViewModel : IPropertyGridItem
 
     public bool IsValueSensitive => true;
 
+    public bool MatchesFilter(string filter)
+        => Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
+           Value?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
+
     public EnvironmentVariableViewModel(string name, string? value, bool fromSpec)
     {
         // Name should always have a value, but somehow an empty/whitespace name can reach this point.
@@ -201,6 +205,10 @@ public sealed class ResourcePropertyViewModel : IPropertyGridItem
             return value;
         });
     }
+
+    public bool MatchesFilter(string filter) =>
+        Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
+        ToolTip.Contains(filter, StringComparison.CurrentCultureIgnoreCase);
 }
 
 public sealed record KnownProperty(string Key, string DisplayName);

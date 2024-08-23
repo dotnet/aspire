@@ -53,6 +53,8 @@ public interface IPropertyGridItem
     /// </para>
     /// </remarks>
     bool IsValueMasked { get; set; }
+
+    public bool MatchesFilter(string filter) => false;
 }
 
 public partial class PropertyGrid<TItem> where TItem : IPropertyGridItem
