@@ -95,8 +95,6 @@ public partial class GridValue
         IsMasked = !IsMasked;
 
         await IsMaskedChanged.InvokeAsync(IsMasked);
-
-        await InvokeAsync(StateHasChanged);
     }
 
     private string TrimLength(string? text)
