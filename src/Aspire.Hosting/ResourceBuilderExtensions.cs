@@ -579,7 +579,7 @@ public static class ResourceBuilderExtensions
         {
             var rls = e.Services.GetRequiredService<ResourceLoggerService>();
             var resourceLogger = rls.GetLogger(builder.Resource);
-            resourceLogger.LogInformation($"Waiting for resource '{dependency.Resource.Name}' to enter the '{KnownResourceStates.Running}' state.");
+            resourceLogger.LogInformation("Waiting for resource '{Name}' to enter the '{State}' state.", dependency.Resource.Name, KnownResourceStates.Running);
 
             var rns = e.Services.GetRequiredService<ResourceNotificationService>();
             await rns.PublishUpdateAsync(builder.Resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
