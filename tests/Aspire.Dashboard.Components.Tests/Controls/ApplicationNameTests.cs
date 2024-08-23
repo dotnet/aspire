@@ -22,6 +22,7 @@ public class ApplicationNameTests : TestContext
         Services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
         Services.AddSingleton<IDashboardClient, DashboardClient>();
         Services.AddSingleton<BrowserTimeProvider>();
+        Services.AddSingleton<IKnownPropertyLookup>(new MockKnownPropertyLookup());
 
         // Act
         var cut = RenderComponent<ApplicationName>();

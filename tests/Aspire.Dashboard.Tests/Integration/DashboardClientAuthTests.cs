@@ -116,6 +116,7 @@ public sealed class DashboardClientAuthTests
             configuration: new ConfigurationManager(),
             dashboardOptions: Options.Create(options),
             timeProvider: new BrowserTimeProvider(NullLoggerFactory.Instance),
+            knownPropertyLookup: new MockKnownPropertyLookup(),
             configureHttpHandler: handler => handler.SslOptions.RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true);
 
         var iClient = (IDashboardClient)client;

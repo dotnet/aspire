@@ -30,7 +30,7 @@ public sealed class ResourceViewModelTests
         };
 
         // Act
-        var vm = resource.ToViewModel(s_timeProvider);
+        var vm = resource.ToViewModel(s_timeProvider, new MockKnownPropertyLookup());
 
         // Assert
         Assert.Collection(resource.Environment,
@@ -51,7 +51,7 @@ public sealed class ResourceViewModelTests
         };
 
         // Act
-        var ex = Assert.Throws<InvalidOperationException>(() => resource.ToViewModel(s_timeProvider));
+        var ex = Assert.Throws<InvalidOperationException>(() => resource.ToViewModel(s_timeProvider, new MockKnownPropertyLookup()));
 
         // Assert
         Assert.Equal(@"Error converting resource ""TestName-abc"" to ResourceViewModel.", ex.Message);
@@ -74,23 +74,33 @@ public sealed class ResourceViewModelTests
             }
         };
 
+        var kp = new KnownProperty("foo", "bar");
+
         // Act
-        var viewModel = resource.ToViewModel(s_timeProvider);
+        var viewModel = resource.ToViewModel(s_timeProvider, new MockKnownPropertyLookup(123, kp));
 
         // Assert
         Assert.Collection(
-            resource.Properties,
+            viewModel.Properties,
             p =>
             {
-                Assert.Equal("Property1", p.Name);
-                Assert.Equal("Value1", p.Value.StringValue);
-                Assert.False(p.IsSensitive);
+                Assert.Equal("Property1", p.Key);
+                Assert.Equal("Property1", p.Value.Name);
+                Assert.Equal("Value1", p.Value.Value.StringValue);
+                Assert.Equal(123, p.Value.Priority);
+                Assert.Same(kp, p.Value.KnownProperty);
+                Assert.False(p.Value.IsValueMasked);
+                Assert.False(p.Value.IsValueSensitive);
             },
             p =>
             {
-                Assert.Equal("Property2", p.Name);
-                Assert.Equal("Value2", p.Value.StringValue);
-                Assert.True(p.IsSensitive);
+                Assert.Equal("Property2", p.Key);
+                Assert.Equal("Property2", p.Value.Name);
+                Assert.Equal("Value2", p.Value.Value.StringValue);
+                Assert.Equal(123, p.Value.Priority);
+                Assert.Same(kp, p.Value.KnownProperty);
+                Assert.True(p.Value.IsValueMasked);
+                Assert.True(p.Value.IsValueSensitive);
             });
     }
 }

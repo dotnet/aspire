@@ -155,17 +155,17 @@ public sealed class ResourcePropertyViewModel : IPropertyGridItem
 
     public string Name { get; }
     public Value Value { get; }
-    public KnownProperty? KnownProperty { get; internal set; }
+    public KnownProperty? KnownProperty { get; }
     public string ToolTip => _tooltip.Value;
     public bool IsValueSensitive { get; }
     public bool IsValueMasked { get; set; }
-    internal int Priority { get; set; } = -1;
+    internal int Priority { get; }
 
     string? IPropertyGridItem.Name => KnownProperty?.DisplayName ?? Name;
 
     string? IPropertyGridItem.Value => _displayValue.Value;
 
-    public ResourcePropertyViewModel(string name, Value value, bool isValueSensitive, KnownProperty? knownProperty, BrowserTimeProvider timeProvider)
+    public ResourcePropertyViewModel(string name, Value value, bool isValueSensitive, KnownProperty? knownProperty, int priority, BrowserTimeProvider timeProvider)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
@@ -173,6 +173,7 @@ public sealed class ResourcePropertyViewModel : IPropertyGridItem
         Value = value;
         IsValueSensitive = isValueSensitive;
         KnownProperty = knownProperty;
+        Priority = priority;
         IsValueMasked = isValueSensitive;
 
         _tooltip = new(() => value.HasStringValue ? value.StringValue : value.ToString());

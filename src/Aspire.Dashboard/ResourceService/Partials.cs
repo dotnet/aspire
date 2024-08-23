@@ -13,7 +13,7 @@ partial class Resource
     /// <summary>
     /// Converts this gRPC message object to a view model for use in the dashboard UI.
     /// </summary>
-    public ResourceViewModel ToViewModel(BrowserTimeProvider timeProvider)
+    public ResourceViewModel ToViewModel(BrowserTimeProvider timeProvider, IKnownPropertyLookup knownPropertyLookup)
     {
         try
         {
@@ -27,12 +27,18 @@ partial class Resource
                 Properties = Properties.ToFrozenDictionary(
                     comparer: StringComparers.ResourcePropertyName,
                     keySelector: property => ValidateNotNull(property.Name),
-                    elementSelector: property => new ResourcePropertyViewModel(
-                        name: ValidateNotNull(property.Name),
-                        value: ValidateNotNull(property.Value),
-                        isValueSensitive: property.IsSensitive,
-                        knownProperty: null, // TODO can we do better here? yes, if the server sends known properties
-                        timeProvider: timeProvider)),
+                    elementSelector: property =>
+                    {
+                        var (priority, knownProperty) = knownPropertyLookup.FindProperty(ResourceType, property.Name);
+
+                        return new ResourcePropertyViewModel(
+                            name: ValidateNotNull(property.Name),
+                            value: ValidateNotNull(property.Value),
+                            isValueSensitive: property.IsSensitive,
+                            knownProperty: knownProperty,
+                            priority: priority,
+                            timeProvider: timeProvider);
+                    }),
                 Environment = GetEnvironment(),
                 Urls = GetUrls(),
                 Volumes = GetVolumes(),

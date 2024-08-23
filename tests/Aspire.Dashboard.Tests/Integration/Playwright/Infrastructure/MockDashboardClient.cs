@@ -32,6 +32,7 @@ public sealed class MockDashboardClient : IDashboardClient
                     },
                     isValueSensitive: false,
                     knownProperty: new(KnownProperties.Project.Path, "Path"),
+                    priority: 0,
                     timeProvider: s_timeProvider))
         }.ToFrozenDictionary(),
         State = "Running",
