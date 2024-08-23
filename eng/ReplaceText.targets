@@ -34,7 +34,7 @@
   that use the processed file but preserve all other metadata.
   -->
   <Target Name="GenerateTextReplacementFiles"
-    BeforeTargets="Build;AssignTargetPaths"
+    BeforeTargets="Build;AssignTargetPaths;_GetPackageFiles"
     DependsOnTargets="_GatherTextReplacementFiles;_ProcessTextReplacementFiles"
     Condition="@(None->AnyHaveMetadataValue('PerformTextReplacement', 'True'))"
     >
