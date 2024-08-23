@@ -68,6 +68,39 @@ public static class LoggerNotificationExtensions
         return tcs.Task;
     }
 
+    /// <summary>
+    /// Waits for all the specified texts to be logged.
+    /// </summary>
+    /// <param name="app">The <see cref="DistributedApplication" /> instance to watch.</param>
+    /// <param name="logTexts">Any text to wait for.</param>
+    /// <param name="resourceName">An optional resource name to filter the logs for.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns></returns>
+    public static async Task WaitForAllTextAsync(this DistributedApplication app, IEnumerable<string> logTexts, string? resourceName = null, CancellationToken cancellationToken = default)
+    {
+        var table = logTexts.ToList();
+        try
+        {
+            await app.WaitForTextAsync((log) =>
+            {
+                foreach (var text in table)
+                {
+                    if (log.Contains(text))
+                    {
+                        table.Remove(text);
+                        break;
+                    }
+                }
+
+                return table.Count == 0;
+            }, resourceName, cancellationToken).ConfigureAwait(false);
+        }
+        catch (TaskCanceledException te) when (cancellationToken.IsCancellationRequested)
+        {
+            throw new TaskCanceledException($"Task was canceled before these messages were found: '{string.Join("', '", table)}'", te);
+        }
+    }
+
     private static async Task WatchNotifications(DistributedApplication app, string? resourceName, Predicate<string> predicate, TaskCompletionSource tcs, CancellationTokenSource cancellationTokenSource)
     {
         var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
