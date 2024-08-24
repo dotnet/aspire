@@ -96,7 +96,9 @@
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\dapr-cli%3B%PATH%" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/dapr-cli:$PATH" />
 
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="find $HELIX_CORRELATION_PAYLOAD" />
+    <HelixPreCommand Include="dapr init" />
+    <HelixPreCommand Include="dapr --version" />
+    <HelixPreCommand Include="dapr ps" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(NeedsWorkload)' == 'true'">
