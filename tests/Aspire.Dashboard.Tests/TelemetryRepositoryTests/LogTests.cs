@@ -9,7 +9,7 @@ using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Logs.V1;
 using Xunit;
-using static Aspire.Dashboard.Tests.TelemetryRepositoryTests.TestHelpers;
+using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
 
 namespace Aspire.Dashboard.Tests.TelemetryRepositoryTests;
 
@@ -854,5 +854,94 @@ public class LogTests
                         Assert.Equal("Value!", p.Value);
                     });
             });
+    }
+
+    [Fact]
+    public void GetLogs_MultipleInstances()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "app1", instanceId: "123"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(1), message: "message-1", attributes: [KeyValuePair.Create("key-1", "value-1")]) }
+                    }
+                }
+            },
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "app1", instanceId: "456"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(2), message: "message-2", attributes: [KeyValuePair.Create("key-2", "value-2")]) }
+                    }
+                }
+            },
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "app2"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(3)) }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var appKey = new ApplicationKey("app1", InstanceId: null);
+        var logs = repository.GetLogs(new GetLogsContext
+        {
+            ApplicationKey = appKey,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+        Assert.Collection(logs.Items,
+            app =>
+            {
+                Assert.Equal("message-1", app.Message);
+                Assert.Equal("TestLogger", app.Scope.ScopeName);
+                Assert.Collection(app.Attributes,
+                    p =>
+                    {
+                        Assert.Equal("key-1", p.Key);
+                        Assert.Equal("value-1", p.Value);
+                    });
+            },
+            app =>
+            {
+                Assert.Equal("message-2", app.Message);
+                Assert.Equal("TestLogger", app.Scope.ScopeName);
+                Assert.Collection(app.Attributes,
+                    p =>
+                    {
+                        Assert.Equal("key-2", p.Key);
+                        Assert.Equal("value-2", p.Value);
+                    });
+            });
+
+        var propertyKeys = repository.GetLogPropertyKeys(appKey)!;
+        Assert.Collection(propertyKeys,
+            s => Assert.Equal("key-1", s),
+            s => Assert.Equal("key-2", s));
     }
 }

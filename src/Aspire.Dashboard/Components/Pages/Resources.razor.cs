@@ -21,6 +21,16 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Resources : ComponentBase, IAsyncDisposable
 {
+    private const string TypeColumn = nameof(TypeColumn);
+    private const string NameColumn = nameof(NameColumn);
+    private const string StateColumn = nameof(StateColumn);
+    private const string StartTimeColumn = nameof(StartTimeColumn);
+    private const string SourceColumn = nameof(SourceColumn);
+    private const string EndpointsColumn = nameof(EndpointsColumn);
+    private const string LogsColumn = nameof(LogsColumn);
+    private const string DetailsColumn = nameof(DetailsColumn);
+    private const string CommandsColumn = nameof(CommandsColumn);
+
     private Subscription? _logsSubscription;
     private Dictionary<OtlpApplication, int>? _applicationUnviewedErrorCounts;
 
@@ -40,9 +50,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     public required IJSRuntime JS { get; init; }
     [Inject]
     public required ProtectedSessionStorage SessionStorage { get; init; }
+    [Inject]
+    public required DimensionManager DimensionManager { get; init; }
 
     [CascadingParameter]
-    public required ViewportInformation ViewportInformation { get; init; }
+    public required ViewportInformation ViewportInformation { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery]
@@ -59,6 +71,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private Task? _resourceSubscriptionTask;
     private bool _isLoading = true;
     private string? _elementIdBeforeDetailsViewOpened;
+    private GridColumnManager _manager = null!;
 
     private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter)) && !resource.IsHiddenState();
 
@@ -136,6 +149,18 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
+        _manager = new GridColumnManager([
+            new GridColumn(Name: TypeColumn, DesktopWidth: "1fr", MobileWidth: "1fr"),
+            new GridColumn(Name: NameColumn, DesktopWidth: "1.5fr", MobileWidth: "1.5fr"),
+            new GridColumn(Name: StateColumn, DesktopWidth: "1.25fr"),
+            new GridColumn(Name: StartTimeColumn, DesktopWidth: "1.5fr"),
+            new GridColumn(Name: SourceColumn, DesktopWidth: "2.5fr"),
+            new GridColumn(Name: EndpointsColumn, DesktopWidth: "2.5fr", MobileWidth: "2fr"),
+            new GridColumn(Name: LogsColumn, DesktopWidth: "1fr"),
+            new GridColumn(Name: DetailsColumn, DesktopWidth: "1fr", MobileWidth: "1fr"),
+            new GridColumn(Name: CommandsColumn, DesktopWidth: "1fr", IsVisible: () => HasResourcesWithCommands)
+        ], DimensionManager);
+
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
         if (DashboardClient.IsEnabled)
@@ -223,7 +248,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         return false;
     }
 
-    private async Task ShowResourceDetailsAsync(ResourceViewModel resource, string buttonId)
+    private async Task ShowResourceDetailsAsync(ResourceViewModel resource, string? buttonId)
     {
         _elementIdBeforeDetailsViewOpened = buttonId;
 
@@ -276,7 +301,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         return false;
     }
 
-    private string? GetRowClass(ResourceViewModel resource)
+    private string GetRowClass(ResourceViewModel resource)
         => resource == SelectedResource ? "selected-row resource-row" : "resource-row";
 
     private async Task ExecuteResourceCommandAsync(ResourceViewModel resource, CommandViewModel command)
@@ -379,7 +404,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
         additionalMessage = null;
 
-        return ResourceEndpointHelpers.GetEndpoints(resource, includeInteralUrls: false);
+        return ResourceEndpointHelpers.GetEndpoints(resource, includeInternalUrls: false);
     }
 
     public async ValueTask DisposeAsync()

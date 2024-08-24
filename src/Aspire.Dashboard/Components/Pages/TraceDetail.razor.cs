@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -15,6 +16,10 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class TraceDetail : ComponentBase
 {
+    private const string NameColumn = nameof(NameColumn);
+    private const string TicksColumn = nameof(TicksColumn);
+    private const string DetailsColumn = nameof(DetailsColumn);
+
     private readonly List<IDisposable> _peerChangesSubscriptions = new();
     private OtlpTrace? _trace;
     private Subscription? _tracesSubscription;
@@ -23,6 +28,7 @@ public partial class TraceDetail : ComponentBase
     private List<OtlpApplication> _applications = default!;
     private readonly List<string> _collapsedSpanIds = [];
     private string? _elementIdBeforeDetailsViewOpened;
+    private GridColumnManager _manager = null!;
 
     [Parameter]
     public required string TraceId { get; set; }
@@ -46,8 +52,20 @@ public partial class TraceDetail : ComponentBase
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
+    [Inject]
+    public required DimensionManager DimensionManager { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
+
     protected override void OnInitialized()
     {
+        _manager = new GridColumnManager([
+            new GridColumn(Name: NameColumn, DesktopWidth: "4fr", MobileWidth: "4fr"),
+            new GridColumn(Name: TicksColumn, DesktopWidth: "12fr", MobileWidth: "12fr"),
+            new GridColumn(Name: DetailsColumn, DesktopWidth: "85px", MobileWidth: null)
+        ], DimensionManager);
+
         foreach (var resolver in OutgoingPeerResolvers)
         {
             _peerChangesSubscriptions.Add(resolver.OnPeerChanges(async () =>

@@ -6,7 +6,6 @@ using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 using Xunit;
 using Xunit.Abstractions;
@@ -19,7 +18,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifyRedisResource()
     {
-        var builder = CreateDistributedApplicationBuilder();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var redis = builder.AddRedis("redis");
 
@@ -57,12 +56,14 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         // Use a volume to do a snapshot save
 
-        var builder1 = CreateDistributedApplicationBuilder();
+        using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis1 = builder1.AddRedis("redis");
 
         // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
         var volumeName = VolumeNameGenerator.CreateVolumeName(redis1, nameof(WithDataVolumeShouldPersistStateBetweenUsages));
         redis1.WithDataVolume(volumeName);
+        // if the volume already exists (because of a crashing previous run), delete it
+        DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
 
         using (var app = builder1.Build())
         {
@@ -98,7 +99,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             await app.StopAsync();
         }
 
-        var builder2 = CreateDistributedApplicationBuilder();
+        using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis2 = builder2.AddRedis("redis").WithDataVolume(volumeName);
 
         using (var app = builder2.Build())
@@ -147,7 +148,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         // Use a bind mount to do a snapshot save
 
-        var builder1 = CreateDistributedApplicationBuilder();
+        using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis1 = builder1.AddRedis("redis").WithDataBindMount(bindMountPath);
 
         using (var app = builder1.Build())
@@ -183,7 +184,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             await app.StopAsync();
         }
 
-        var builder2 = CreateDistributedApplicationBuilder();
+        using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis2 = builder2.AddRedis("redis").WithDataBindMount(bindMountPath);
 
         using (var app = builder2.Build())
@@ -231,7 +232,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         // Checks that without enabling Redis Persistence the tests fail
 
-        var builder1 = CreateDistributedApplicationBuilder();
+        using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis1 = builder1.AddRedis("redis");
 
         using (var app = builder1.Build())
@@ -262,7 +263,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             await app.StopAsync();
         }
 
-        var builder2 = CreateDistributedApplicationBuilder();
+        using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis2 = builder2.AddRedis("redis");
 
         using (var app = builder2.Build())
@@ -293,12 +294,5 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
             await app.StopAsync();
         }
-    }
-
-    private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
-    {
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
-        builder.Services.AddXunitLogging(testOutputHelper);
-        return builder;
     }
 }

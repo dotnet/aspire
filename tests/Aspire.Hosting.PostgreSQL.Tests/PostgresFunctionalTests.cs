@@ -3,12 +3,11 @@
 
 using System.Data;
 using Aspire.Components.Common.Tests;
-using Aspire.Hosting.Testing;
+using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Npgsql;
 using Polly;
 using Xunit;
@@ -27,7 +26,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
             .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<NpgsqlException>() })
             .Build();
 
-        var builder = CreateDistributedApplicationBuilder();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var postgresDbName = "db1";
 
@@ -64,6 +63,54 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         }, cts.Token);
     }
 
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/5325")]
+    [RequiresDocker]
+    public async Task VerifyWithPgWeb()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        var dbName = "postgres";
+        var pg = builder.AddPostgres("pg1").WithPgWeb().AddDatabase(dbName);
+
+        builder.Services.AddHttpClient();
+
+        using var app = builder.Build();
+
+        await app.StartAsync();
+
+        var factory = app.Services.GetRequiredService<IHttpClientFactory>();
+        var client = factory.CreateClient();
+
+        var pgWeb = builder.Resources.OfType<PgWebContainerResource>().SingleOrDefault();
+
+        var pgWebEndpoint = pgWeb!.PrimaryEndpoint;
+
+        var testConnectionApiUrl = $"{pgWebEndpoint.Scheme}://{pgWebEndpoint.Host}:{pgWebEndpoint.Port}/api/connect";
+
+        var pipeline = new ResiliencePipelineBuilder().AddRetry(new Polly.Retry.RetryStrategyOptions
+        {
+            Delay = TimeSpan.FromSeconds(2),
+            MaxRetryAttempts = 10,
+        }).Build();
+
+        await pipeline.ExecuteAsync(async (ct) =>
+        {
+            var httpContent = new MultipartFormDataContent
+            {
+                { new StringContent(dbName), "bookmark_id" }
+            };
+
+            client.DefaultRequestHeaders.Add("x-session-id", Guid.NewGuid().ToString());
+
+            var response = await client.PostAsync(testConnectionApiUrl, httpContent, ct)
+                .ConfigureAwait(false);
+
+            response.EnsureSuccessStatusCode();
+        }, cts.Token).ConfigureAwait(false);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -82,7 +129,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = CreateDistributedApplicationBuilder();
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
             var username = "postgres";
             var password = "p@ssw0rd1";
@@ -100,8 +147,8 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
                 volumeName = VolumeNameGenerator.CreateVolumeName(postgres1, nameof(WithDataShouldPersistStateBetweenUsages));
 
-                // If the volume already exists (because of a crashing previous run), try to delete it
-                DockerUtils.AttemptDeleteDockerVolume(volumeName);
+                // if the volume already exists (because of a crashing previous run), delete it
+                DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
                 postgres1.WithDataVolume(volumeName);
             }
             else
@@ -154,7 +201,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            var builder2 = CreateDistributedApplicationBuilder();
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             usernameParameter = builder2.AddParameter("user");
             passwordParameter = builder2.AddParameter("pwd");
             builder2.Configuration["Parameters:user"] = username;
@@ -256,7 +303,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                 INSERT INTO cars (brand) VALUES ('BatMobile');
             """);
 
-            var builder = CreateDistributedApplicationBuilder();
+            using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
             var postgresDbName = "db1";
 
@@ -315,13 +362,5 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                 // Don't fail test if we can't clean the temporary folder
             }
         }
-    }
-
-    private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
-    {
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
-        builder.Services.AddXunitLogging(testOutputHelper);
-        builder.Services.AddHostedService<ResourceLoggerForwarderService>();
-        return builder;
     }
 }

@@ -104,13 +104,8 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         {
             TestResourceNames.cosmos or TestResourceNames.efcosmos => "cosmos",
             TestResourceNames.eventhubs => "eventhubs",
-            TestResourceNames.garnet => "garnet",
-            TestResourceNames.mongodb => "mongodb",
-            TestResourceNames.oracledatabase => "oracledatabase",
             TestResourceNames.postgres or TestResourceNames.efnpgsql => "postgres",
-            TestResourceNames.rabbitmq => "rabbitmq",
             TestResourceNames.redis => "redis",
-            TestResourceNames.sqlserver or TestResourceNames.efsqlserver => "sqlserver",
             _ => throw new ArgumentException($"Unknown resource: {resource}")
         };
 
@@ -140,17 +135,11 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     {
         TestResourceNames resourcesToInclude = TestScenario switch
         {
-            "oracle" => TestResourceNames.oracledatabase,
             "cosmos" => TestResourceNames.cosmos | TestResourceNames.efcosmos,
             "eventhubs" => TestResourceNames.eventhubs,
-            "basicservices" => TestResourceNames.mongodb
-                              | TestResourceNames.rabbitmq
-                              | TestResourceNames.redis
-                              | TestResourceNames.garnet
+            "basicservices" => TestResourceNames.redis
                               | TestResourceNames.postgres
-                              | TestResourceNames.efnpgsql
-                              | TestResourceNames.sqlserver
-                              | TestResourceNames.efsqlserver,
+                              | TestResourceNames.efnpgsql,
             "" or null => TestResourceNames.All,
             _ => throw new ArgumentException($"Unknown test scenario '{TestScenario}'")
         };
@@ -168,7 +157,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             if (BuildEnvironment.IsRunningOnCI)
             {
                 resourcesToSkip |= TestResourceNames.cosmos;
-                resourcesToSkip |= TestResourceNames.oracledatabase;
             }
         }
 

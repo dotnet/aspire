@@ -7,7 +7,6 @@ using Grpc.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Polly;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
@@ -30,7 +29,7 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
             .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(1), ShouldHandle = new PredicateBuilder().Handle<RpcException>() })
             .Build();
 
-        var builder = CreateDistributedApplicationBuilder();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var qdrant = builder.AddQdrant("qdrant");
 
@@ -99,7 +98,7 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = CreateDistributedApplicationBuilder();
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var qdrant1 = builder1.AddQdrant("qdrant");
 
             if (useVolume)
@@ -107,8 +106,8 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
                 volumeName = VolumeNameGenerator.CreateVolumeName(qdrant1, nameof(WithDataShouldPersistStateBetweenUsages));
 
-                // if the volume already exists (because of a crashing previous run), try to delete it
-                DockerUtils.AttemptDeleteDockerVolume(volumeName);
+                // if the volume already exists (because of a crashing previous run), delete it
+                DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
                 qdrant1.WithDataVolume(volumeName);
             }
             else
@@ -150,7 +149,7 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            var builder2 = CreateDistributedApplicationBuilder();
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var qdrant2 = builder2.AddQdrant("qdrant");
 
             if (useVolume)
@@ -216,12 +215,5 @@ public class QdrantFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
         }
-    }
-
-    private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
-    {
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
-        builder.Services.AddXunitLogging(testOutputHelper);
-        return builder;
     }
 }

@@ -47,14 +47,19 @@
         <target state="translated">取消</target>
         <note />
       </trans-unit>
-      <trans-unit id="FilterDialogConditionSelectLabel">
-        <source>Select a filter condition</source>
-        <target state="translated">選取篩選條件</target>
+      <trans-unit id="FilterDialogConditionInputLabel">
+        <source>Condition</source>
+        <target state="new">Condition</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
         <source>Field</source>
         <target state="translated">欄位</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogParameterInputLabel">
+        <source>Parameter</source>
+        <target state="new">Parameter</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogRemoveFilterButtonText">
@@ -152,6 +157,11 @@
         <target state="translated">切換面板方向</target>
         <note />
       </trans-unit>
+      <trans-unit id="OpenInTextVisualizer">
+        <source>Open in text visualizer</source>
+        <target state="new">Open in text visualizer</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OpenTraceDialogCancelButtonText">
         <source>Cancel</source>
         <target state="new">Cancel</target>
@@ -186,6 +196,26 @@
         <source>Version: {0}</source>
         <target state="translated">版本: {0}</target>
         <note>{0} is the dashboard version string</note>
+      </trans-unit>
+      <trans-unit id="TextVisualizerDialogJsonFormat">
+        <source>Format JSON</source>
+        <target state="new">Format JSON</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerDialogPlaintextFormat">
+        <source>Unformatted</source>
+        <target state="new">Unformatted</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerDialogXmlFormat">
+        <source>Format XML</source>
+        <target state="new">Format XML</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TextVisualizerSelectFormatType">
+        <source>Select format</source>
+        <target state="new">Select format</target>
+        <note />
       </trans-unit>
     </body>
   </file>

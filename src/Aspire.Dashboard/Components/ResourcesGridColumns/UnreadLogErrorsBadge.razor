@@ -8,7 +8,8 @@
     <FluentAnchor aria-label="@(_unviewedCount == 1 ? nameof(Columns.UnreadLogErrorsBadgeOneErrorLog) : string.Format(Loc[nameof(Columns.UnreadLogErrorsBadgeErrorLogs)], _unviewedCount))"
                   Href="@GetResourceErrorStructuredLogsUrl()"
                   Appearance="Appearance.Stealth"
-                  Class="unread-logs-errors-link">
+                  Class="unread-logs-errors-link"
+                  @onclick:stopPropagation="true">
         <FluentBadge
             Appearance="Appearance.Accent"
             Circular="true"

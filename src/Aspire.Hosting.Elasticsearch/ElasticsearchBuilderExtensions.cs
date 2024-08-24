@@ -44,6 +44,9 @@ public static class ElasticsearchBuilderExtensions
         IResourceBuilder<ParameterResource>? password = null,
         int? port = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 
         var elasticsearch = new ElasticsearchResource(name, passwordParameter);
@@ -62,7 +65,7 @@ public static class ElasticsearchBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a named volume for the data folder to a Elasticseach container resource.
+    /// Adds a named volume for the data folder to a Elasticsearch container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
@@ -82,10 +85,14 @@ public static class ElasticsearchBuilderExtensions
     /// </code>
     /// </example>
     public static IResourceBuilder<ElasticsearchResource> WithDataVolume(this IResourceBuilder<ElasticsearchResource> builder, string? name = null)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/usr/share/elasticsearch/data");
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/usr/share/elasticsearch/data");
+    }
 
     /// <summary>
-    /// Adds a bind mount for the data folder to a Elasticseach container resource.
+    /// Adds a bind mount for the data folder to a Elasticsearch container resource.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source directory on the host to mount into the container.</param>
@@ -105,6 +112,10 @@ public static class ElasticsearchBuilderExtensions
     /// </code>
     /// </example>
     public static IResourceBuilder<ElasticsearchResource> WithDataBindMount(this IResourceBuilder<ElasticsearchResource> builder, string source)
-        => builder.WithBindMount(source, "/usr/share/elasticsearch/data");
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
 
+        return builder.WithBindMount(source, "/usr/share/elasticsearch/data");
+    }
 }

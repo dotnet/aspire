@@ -5,7 +5,7 @@
     <IsPackable>true</IsPackable>
     <!-- This library needs more bake time until it can ship stable. -->
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
-    <PackageTags>aspire hosting aws</PackageTags>
+    <PackageTags>aspire integration hosting aws</PackageTags>
     <Description>Add support for provisioning AWS application resources and configuring the AWS SDK for .NET.</Description>
     <NoWarn>$(NoWarn);CS8002</NoWarn> <!-- AWS CDK packages are not signed -->
   </PropertyGroup>
@@ -26,7 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.AWS.Tests" />
   </ItemGroup>
 
 </Project>

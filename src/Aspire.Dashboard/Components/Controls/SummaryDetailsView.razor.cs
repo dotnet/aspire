@@ -6,7 +6,6 @@ using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -53,7 +52,7 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
     public RenderFragment<T>? DetailsTitleTemplate { get; set; }
 
     [Inject]
-    public required ProtectedLocalStorage ProtectedLocalStore { get; init; }
+    public required ILocalStorage LocalStore { get; init; }
 
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
@@ -87,7 +86,7 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
         {
             if (RememberOrientation)
             {
-                var orientationResult = await ProtectedLocalStore.SafeGetAsync<Orientation>(GetOrientationStorageKey());
+                var orientationResult = await LocalStore.SafeGetAsync<Orientation>(GetOrientationStorageKey());
                 if (orientationResult.Success)
                 {
                     Orientation = orientationResult.Value;
@@ -96,7 +95,7 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
 
             if (RememberSize)
             {
-                var panel1FractionResult = await ProtectedLocalStore.SafeGetAsync<float>(GetSizeStorageKey());
+                var panel1FractionResult = await LocalStore.SafeGetAsync<float>(GetSizeStorageKey());
                 if (panel1FractionResult.Success)
                 {
                     SetPanelSizes(panel1FractionResult.Value);
@@ -129,12 +128,12 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
 
         if (RememberOrientation)
         {
-            await ProtectedLocalStore.SetAsync(GetOrientationStorageKey(), Orientation);
+            await LocalStore.SetAsync(GetOrientationStorageKey(), Orientation);
         }
 
         if (RememberSize)
         {
-            var panel1FractionResult = await ProtectedLocalStore.SafeGetAsync<float>(GetSizeStorageKey());
+            var panel1FractionResult = await LocalStore.SafeGetAsync<float>(GetSizeStorageKey());
             if (panel1FractionResult.Success)
             {
                 SetPanelSizes(panel1FractionResult.Value);
@@ -171,7 +170,7 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
 
     private async Task SaveSizeToStorage(float panel1Fraction)
     {
-        await ProtectedLocalStore.SetAsync(GetSizeStorageKey(), panel1Fraction);
+        await LocalStore.SetAsync(GetSizeStorageKey(), panel1Fraction);
     }
 
     private void ResetPanelSizes()

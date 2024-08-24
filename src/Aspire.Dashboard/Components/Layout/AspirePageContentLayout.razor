@@ -4,9 +4,10 @@
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
 <div class="content-layout">
+    <!-- Toolbar -->
     @if (ViewportInformation.IsDesktop)
     {
-        <div style="grid-area: page-header; @HeaderStyle">
+        <header class="content-header" style="@HeaderStyle" aria-label="@ControlsStringsLoc[nameof(ControlsStrings.PageToolbarLandmark)]">
             @if (AddNewlineOnToolbar)
             {
                 @PageTitleSection
@@ -22,22 +23,11 @@
                     @ToolbarSection
                 </FluentToolbar>
             }
-        </div>
-
-        <div style="grid-area: main; overflow: auto; @MainContentStyle">@MainSection</div>
-
-        @if (FooterSection is not null && ShouldShowFooter)
-        {
-            <div style="grid-area: footer">@FooterSection</div>
-        }
+        </header>
     }
-    else if (IsSummaryDetailsViewOpen)
+    else if (!IsSummaryDetailsViewOpen)
     {
-        <div style="@GetMobileMainStyle()">@MainSection</div>
-    }
-    else
-    {
-        <div style="grid-area: page-header">
+        <header class="content-header">
             <FluentToolbar Orientation="Orientation.Horizontal" Style="@HeaderStyle">
                 @PageTitleSection
 
@@ -49,15 +39,29 @@
 
             @if (AddNewlineOnToolbar)
             {
-                <div style="padding: calc(var(--design-unit) * 2.5px)">@MobilePageTitleToolbarSection</div>
+                <div style="padding-left: calc(var(--design-unit) * 2.5px)">@MobilePageTitleToolbarSection</div>
             }
-        </div>
+        </header>
+    }
 
-        <div style="@GetMobileMainStyle()">@MainSection</div>
+    <!-- Main content -->
+    <main style="@(ViewportInformation.IsDesktop ? $"grid-area: main; overflow: auto; {MainContentStyle}" : GetMobileMainStyle())">
+        @MainSection
+    </main>
 
+    <!-- Footer -->
+    @if (ViewportInformation.IsDesktop)
+    {
+        @if (FooterSection is not null && ShouldShowFooter)
+        {
+            <footer style="grid-area: footer">@FooterSection</footer>
+        }
+    }
+    else if (!IsSummaryDetailsViewOpen)
+    {
         if ((FooterSection is not null && ShouldShowFooter) || ToolbarSection is not null)
         {
-            <div style="grid-area: footer">
+            <footer style="grid-area: footer">
                 @if (FooterSection is not null && ShouldShowFooter)
                 {
                     @FooterSection
@@ -71,7 +75,7 @@
                         @(MobileToolbarButtonText ?? LayoutLoc[nameof(Layout.PageLayoutViewFilters)])
                     </FluentButton>
                 }
-            </div>
+            </footer>
         }
     }
 </div>

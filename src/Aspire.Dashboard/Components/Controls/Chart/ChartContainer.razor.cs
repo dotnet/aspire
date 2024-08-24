@@ -13,7 +13,7 @@ namespace Aspire.Dashboard.Components;
 
 public partial class ChartContainer : ComponentBase, IAsyncDisposable
 {
-    private OtlpInstrument? _instrument;
+    private OtlpInstrumentData? _instrument;
     private PeriodicTimer? _tickTimer;
     private Task? _tickTask;
     private IDisposable? _themeChangedSubscription;
@@ -41,8 +41,9 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
 
-    [Inject]
-    public required CurrentChartViewModel ChartViewModel { get; init; }
+    public List<DimensionFilterViewModel> DimensionFilters { get; } = [];
+    public string? PreviousMeterName { get; set; }
+    public string? PreviousInstrumentName { get; set; }
 
     protected override void OnInitialized()
     {
@@ -102,17 +103,17 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         await UpdateInstrumentDataAsync(_instrument);
     }
 
-    private async Task UpdateInstrumentDataAsync(OtlpInstrument instrument)
+    private async Task UpdateInstrumentDataAsync(OtlpInstrumentData instrument)
     {
-        var matchedDimensions = instrument.Dimensions.Values.Where(MatchDimension).ToList();
+        var matchedDimensions = instrument.Dimensions.Where(MatchDimension).ToList();
 
         // Only update data in plotly
-        await _instrumentViewModel.UpdateDataAsync(instrument, matchedDimensions);
+        await _instrumentViewModel.UpdateDataAsync(instrument.Summary, matchedDimensions);
     }
 
     private bool MatchDimension(DimensionScope dimension)
     {
-        foreach (var dimensionFilter in ChartViewModel.DimensionFilters)
+        foreach (var dimensionFilter in DimensionFilters)
         {
             if (!MatchFilter(dimension.Attributes, dimensionFilter))
             {
@@ -155,19 +156,19 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
             return;
         }
 
-        var hasInstrumentChanged = ChartViewModel.PreviousMeterName != MeterName || ChartViewModel.PreviousInstrumentName != InstrumentName;
-        ChartViewModel.PreviousMeterName = MeterName;
-        ChartViewModel.PreviousInstrumentName = InstrumentName;
+        var hasInstrumentChanged = PreviousMeterName != MeterName || PreviousInstrumentName != InstrumentName;
+        PreviousMeterName = MeterName;
+        PreviousInstrumentName = InstrumentName;
 
         var filters = CreateUpdatedFilters(hasInstrumentChanged);
 
-        ChartViewModel.DimensionFilters.Clear();
-        ChartViewModel.DimensionFilters.AddRange(filters);
+        DimensionFilters.Clear();
+        DimensionFilters.AddRange(filters);
 
         await UpdateInstrumentDataAsync(_instrument);
     }
 
-    private OtlpInstrument? GetInstrument()
+    private OtlpInstrumentData? GetInstrument()
     {
         var endDate = DateTime.UtcNow;
         // Get more data than is being displayed. Histogram graph uses some historical data to calculate bucket counts.
@@ -234,7 +235,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                 }
                 else
                 {
-                    var existing = ChartViewModel.DimensionFilters.SingleOrDefault(m => m.Name == item.Name);
+                    var existing = DimensionFilters.SingleOrDefault(m => m.Name == item.Name);
                     if (existing != null)
                     {
                         // Select previously selected.

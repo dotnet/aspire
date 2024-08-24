@@ -12,6 +12,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using k8s;
@@ -69,7 +70,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           DistributedApplicationExecutionContext executionContext,
                                           ResourceNotificationService notificationService,
                                           ResourceLoggerService loggerService,
-                                          IDcpDependencyCheckService dcpDependencyCheckService)
+                                          IDcpDependencyCheckService dcpDependencyCheckService,
+                                          IDistributedApplicationEventing eventing,
+                                          IServiceProvider serviceProvider
+                                          )
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
@@ -128,6 +132,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
 
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
+
+            var afterResourcesCreatedEvent = new AfterResourcesCreatedEvent(serviceProvider, _model);
+            await eventing.PublishAsync(afterResourcesCreatedEvent, cancellationToken).ConfigureAwait(false);
 
             foreach (var lifecycleHook in _lifecycleHooks)
             {
@@ -477,29 +484,34 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     if (_logger.IsEnabled(LogLevel.Debug))
                     {
-                        _logger.LogDebug("Starting log streaming for {ResourceName}", resource.Metadata.Name);
+                        _logger.LogDebug("Starting log streaming for {ResourceName}.", resource.Metadata.Name);
                     }
 
                     // Pump the logs from the enumerable into the logger
-                    var logger = loggerService.GetLogger(resource.Metadata.Name);
+                    var logger = loggerService.GetInternalLogger(resource.Metadata.Name);
 
                     await foreach (var batch in enumerable.WithCancellation(cancellation.Token).ConfigureAwait(false))
                     {
                         foreach (var (content, isError) in batch)
                         {
-                            var level = isError ? LogLevel.Error : LogLevel.Information;
-                            logger.Log(level, 0, content, null, (s, _) => s);
+                            if (!ResourceLoggerService.TryParseContentLineDate(content, out var dateTimeUtc))
+                            {
+                                // If a date can't be read from the line content then use the current date.
+                                dateTimeUtc = DateTime.UtcNow;
+                            }
+
+                            logger(dateTimeUtc, content, isError);
                         }
                     }
                 }
                 catch (OperationCanceledException)
                 {
                     // Ignore
-                    _logger.LogDebug("Log streaming for {ResourceName} was cancelled", resource.Metadata.Name);
+                    _logger.LogDebug("Log streaming for {ResourceName} was cancelled.", resource.Metadata.Name);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error streaming logs for {ResourceName}", resource.Metadata.Name);
+                    _logger.LogError(ex, "Error streaming logs for {ResourceName}.", resource.Metadata.Name);
                 }
             },
             cancellation.Token);
@@ -886,6 +898,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         var toCreate = _appResources.Where(r => r.DcpResource is Container || r.DcpResource is Executable || r.DcpResource is ExecutableReplicaSet);
         AddAllocatedEndpointInfo(toCreate);
 
+        var afterEndpointsAllocatedEvent = new AfterEndpointsAllocatedEvent(serviceProvider, _model);
+        await eventing.PublishAsync(afterEndpointsAllocatedEvent, cancellationToken).ConfigureAwait(false);
+
         foreach (var lifecycleHook in _lifecycleHooks)
         {
             await lifecycleHook.AfterEndpointsAllocatedAsync(_model, cancellationToken).ConfigureAwait(false);
@@ -1153,6 +1168,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
     {
+        var beforeResourceStartedEvent = new BeforeResourceStartedEvent(er.ModelResource, serviceProvider);
+        await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
+
         ExecutableSpec spec;
         Func<Task<CustomResource>> createResource;
 
@@ -1410,6 +1428,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateContainerAsync(AppResource cr, ILogger resourceLogger, CancellationToken cancellationToken)
     {
+        var beforeResourceStartedEvent = new BeforeResourceStartedEvent(cr.ModelResource, serviceProvider);
+        await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
+
         var dcpContainerResource = (Container)cr.DcpResource;
         var modelContainerResource = cr.ModelResource;
 

@@ -10,7 +10,7 @@ using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
-using static Aspire.Dashboard.Tests.TelemetryRepositoryTests.TestHelpers;
+using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
 
 namespace Aspire.Dashboard.Tests.TelemetryRepositoryTests;
 
@@ -824,5 +824,124 @@ public class TraceTests
         });
 
         Assert.Equal(0, addContext.FailureCount);
+    }
+
+    [Fact]
+    public void AddTraces_MultipleRootSpans_RootSpanIsEarliestWithoutParent()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10)),
+                            CreateSpan(traceId: "1", spanId: "1-2", startTime: s_testTime.AddMinutes(3), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1"),
+                            CreateSpan(traceId: "1", spanId: "1-3", startTime: s_testTime.AddMinutes(4), endTime: s_testTime.AddMinutes(10))
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = null,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10
+        });
+        Assert.Collection(traces.PagedResult.Items,
+            trace =>
+            {
+                AssertId("1", trace.TraceId);
+                AssertId("1-2", trace.FirstSpan.SpanId); // First by time
+                AssertId("1-3", trace.RootSpan!.SpanId); // First by time and without a parent
+                Assert.Equal(3, trace.Spans.Count);
+            });
+    }
+
+    [Fact]
+    public void GetTraces_MultipleInstances()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: "app1", instanceId: "123"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans = { CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10)) }
+                    }
+                }
+            },
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: "app1", instanceId: "456"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans = { CreateSpan(traceId: "2", spanId: "2-1", startTime: s_testTime.AddMinutes(2), endTime: s_testTime.AddMinutes(10)) }
+                    }
+                }
+            },
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: "app2"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans = { CreateSpan(traceId: "3", spanId: "3-1", startTime: s_testTime.AddMinutes(3), endTime: s_testTime.AddMinutes(10)) }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var appKey = new ApplicationKey("app1", InstanceId: null);
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = appKey,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10
+        });
+        Assert.Collection(traces.PagedResult.Items,
+            trace =>
+            {
+                AssertId("1", trace.TraceId);
+            },
+            trace =>
+            {
+                AssertId("2", trace.TraceId);
+            });
     }
 }

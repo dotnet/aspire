@@ -3,9 +3,9 @@
 
 using System.Globalization;
 using Aspire.Dashboard.Components.Dialogs;
-using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Components.Resize;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -13,7 +13,6 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -22,6 +21,13 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs.StructuredLogsPageViewModel, StructuredLogs.StructuredLogsPageState>
 {
+    private const string ResourceColumn = nameof(ResourceColumn);
+    private const string LogLevelColumn = nameof(LogLevelColumn);
+    private const string TimestampColumn = nameof(TimestampColumn);
+    private const string MessageColumn = nameof(MessageColumn);
+    private const string TraceColumn = nameof(TraceColumn);
+    private const string DetailsColumn = nameof(DetailsColumn);
+
     private SelectViewModel<ResourceTypeDetails> _allApplication = default!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
@@ -35,13 +41,11 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private string? _elementIdBeforeDetailsViewOpened;
     private AspirePageContentLayout? _contentLayout;
     private string _filter = string.Empty;
+    private GridColumnManager _manager = null!;
 
     public string BasePath => DashboardUrls.StructuredLogsBasePath;
     public string SessionStorageKey => "StructuredLogs_PageState";
     public StructuredLogsPageViewModel PageViewModel { get; set; } = null!;
-
-    [Parameter]
-    public string? ApplicationName { get; set; }
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
@@ -53,7 +57,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     public required IDialogService DialogService { get; init; }
 
     [Inject]
-    public required ProtectedSessionStorage SessionStorage { get; init; }
+    public required ISessionStorage SessionStorage { get; init; }
 
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
@@ -62,19 +66,22 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     public required BrowserTimeProvider TimeProvider { get; init; }
 
     [Inject]
-    public required ILogger<Traces> Logger { get; init; }
+    public required ILogger<StructuredLogs> Logger { get; init; }
 
     [Inject]
     public required DimensionManager DimensionManager { get; set; }
-
-    [CascadingParameter]
-    public required ViewportInformation ViewportInformation { get; set; }
 
     [Inject]
     public required IOptions<DashboardOptions> DashboardOptions { get; init; }
 
     [Inject]
     public required IMessageService MessageService { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
+
+    [Parameter]
+    public string? ApplicationName { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery]
@@ -125,6 +132,15 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     protected override Task OnInitializedAsync()
     {
+        _manager = new GridColumnManager([
+            new GridColumn(Name: ResourceColumn, DesktopWidth: "2fr", MobileWidth: "1fr"),
+            new GridColumn(Name: LogLevelColumn, DesktopWidth: "1fr"),
+            new GridColumn(Name: TimestampColumn, DesktopWidth: "1.5fr"),
+            new GridColumn(Name: MessageColumn, DesktopWidth: "5fr", "2.5fr"),
+            new GridColumn(Name: TraceColumn, DesktopWidth: "1fr"),
+            new GridColumn(Name: DetailsColumn, DesktopWidth: "1fr", MobileWidth: "0.8fr")
+        ], DimensionManager);
+
         if (!string.IsNullOrEmpty(TraceId))
         {
             ViewModel.AddFilter(new LogFilter
@@ -143,12 +159,12 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         _allApplication = new()
         {
             Id = null,
-            Name = Loc[nameof(Dashboard.Resources.ControlsStrings.All)]
+            Name = ControlsStringsLoc[nameof(Dashboard.Resources.ControlsStrings.All)]
         };
 
         _logLevels = new List<SelectViewModel<LogLevel?>>
         {
-            new SelectViewModel<LogLevel?> { Id = null, Name = $"({Loc[nameof(Dashboard.Resources.ControlsStrings.All)]})" },
+            new SelectViewModel<LogLevel?> { Id = null, Name = ControlsStringsLoc[nameof(Dashboard.Resources.ControlsStrings.All)] },
             new SelectViewModel<LogLevel?> { Id = LogLevel.Trace, Name = "Trace" },
             new SelectViewModel<LogLevel?> { Id = LogLevel.Debug, Name = "Debug" },
             new SelectViewModel<LogLevel?> { Id = LogLevel.Information, Name = "Information" },
@@ -215,7 +231,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         }
     }
 
-    private async Task OnShowPropertiesAsync(OtlpLogEntry entry, string buttonId)
+    private async Task OnShowPropertiesAsync(OtlpLogEntry entry, string? buttonId)
     {
         _elementIdBeforeDetailsViewOpened = buttonId;
 
@@ -397,7 +413,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     public void UpdateViewModelFromQuery(StructuredLogsPageViewModel viewModel)
     {
-        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
+        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _allApplication);
         ViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
 
         if (LogLevelText is not null && Enum.TryParse<LogLevel>(LogLevelText, ignoreCase: true, out var logLevel))

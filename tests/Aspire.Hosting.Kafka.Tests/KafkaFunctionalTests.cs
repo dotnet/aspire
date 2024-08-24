@@ -7,7 +7,6 @@ using Confluent.Kafka;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Polly;
 using Xunit;
 using Xunit.Abstractions;
@@ -22,7 +21,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
 
-        var builder = CreateDistributedApplicationBuilder();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var kafka = builder.AddKafka("kafka");
 
@@ -87,7 +86,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = CreateDistributedApplicationBuilder();
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var kafka1 = builder1.AddKafka("kafka");
 
             if (useVolume)
@@ -95,8 +94,8 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
                 volumeName = VolumeNameGenerator.CreateVolumeName(kafka1, nameof(WithDataShouldPersistStateBetweenUsages));
 
-                // if the volume already exists (because of a crashing previous run), try to delete it
-                DockerUtils.AttemptDeleteDockerVolume(volumeName);
+                // if the volume already exists (because of a crashing previous run), delete it
+                DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
                 kafka1.WithDataVolume(volumeName);
             }
             else
@@ -143,7 +142,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            var builder2 = CreateDistributedApplicationBuilder();
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var kafka2 = builder2.AddKafka("kafka");
 
             if (useVolume)
@@ -220,12 +219,5 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
         }
-    }
-
-    private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
-    {
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
-        builder.Services.AddXunitLogging(testOutputHelper);
-        return builder;
     }
 }

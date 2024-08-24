@@ -2,11 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 using Xunit;
 using Xunit.Abstractions;
@@ -15,11 +15,13 @@ namespace Aspire.Hosting.Valkey.Tests;
 
 public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
 {
+    const string ValkeyReadyText = "Ready to accept connections";
+
     [Fact]
     [RequiresDocker]
     public async Task VerifyValkeyResource()
     {
-        var builder = CreateDistributedApplicationBuilder();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var valkey = builder.AddValkey("valkey");
 
@@ -39,6 +41,8 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
         using var host = hb.Build();
 
         await host.StartAsync();
+
+        await app.WaitForTextAsync(ValkeyReadyText);
 
         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -62,7 +66,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = CreateDistributedApplicationBuilder();
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var valkey1 = builder1.AddValkey("valkey");
 
             if (useVolume)
@@ -70,8 +74,8 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
                 volumeName = VolumeNameGenerator.CreateVolumeName(valkey1, nameof(WithDataShouldPersistStateBetweenUsages));
 
-                // if the volume already exists (because of a crashing previous run), try to delete it
-                DockerUtils.AttemptDeleteDockerVolume(volumeName);
+                // if the volume already exists (because of a crashing previous run), delete it
+                DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
                 valkey1.WithDataVolume(volumeName);
             }
             else
@@ -99,6 +103,8 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
+                        await app.WaitForTextAsync(ValkeyReadyText);
+
                         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
                         var db = redisClient.GetDatabase();
@@ -118,7 +124,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            var builder2 = CreateDistributedApplicationBuilder();
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var valkey2 = builder2.AddValkey("valkey");
 
             if (useVolume)
@@ -147,6 +153,8 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
+
+                        await app.WaitForTextAsync(ValkeyReadyText);
 
                         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -183,12 +191,5 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
         }
-    }
-
-    private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
-    {
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
-        builder.Services.AddXunitLogging(testOutputHelper);
-        return builder;
     }
 }

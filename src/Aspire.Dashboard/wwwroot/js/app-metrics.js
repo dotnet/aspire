@@ -4,6 +4,10 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
     registerLocale(serverLocale);
 
     var chartContainerDiv = document.getElementById(id);
+    if (!chartContainerDiv) {
+        console.log(`Couldn't find container '${id}' when initializing chart.`);
+        return;
+    }
 
     // Reusing a div can create issues with chart lines appearing beyond the end range.
     // Workaround this issue by replacing the chart div. Ensures we start from a new state.
@@ -46,16 +50,8 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
     };
     data.push(points);
 
-    // Explicitly set the width and height based on the container div.
-    // If there is no explicit width and height, Plotly will use the rendered container size.
-    // However, if the container isn't visible then it uses a default size.
-    // Being explicit ensures the chart is always the correct size.
-    var width = parseInt(chartContainerDiv.style.width);
-    var height = parseInt(chartContainerDiv.style.height);
-
+    // Width and height are set using ResizeObserver + ploty resize call.
     var layout = {
-        width: width,
-        height: height,
         paper_bgcolor: themeColors.backgroundColor,
         plot_bgcolor: themeColors.backgroundColor,
         margin: { t: 0, r: 0, b: 40, l: 50 },
@@ -86,7 +82,7 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
 
     var options = { scrollZoom: false, displayModeBar: false };
 
-    Plotly.newPlot(chartDiv, data, layout, options);
+    var plot = Plotly.newPlot(chartDiv, data, layout, options);
 
     fixTraceLineRendering(chartDiv);
 
@@ -102,7 +98,6 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
         var point = data.points[0];
         if (point.fullData.name == exemplarTrace.name) {
             currentPoint = point;
-            var pointTraceData = point.data.traceData[point.pointIndex];
             dragLayer.style.cursor = 'pointer';
         }
     });
@@ -121,11 +116,29 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
             chartInterop.invokeMethodAsync('ViewSpan', pointTraceData.traceId, pointTraceData.spanId);
         }
     });
+
+    const resizeObserver = new ResizeObserver(entries => {
+        for (let entry of entries) {
+            Plotly.Plots.resize(entry.target);
+        }
+    });
+    plot.then(plotyDiv => {
+        resizeObserver.observe(plotyDiv);
+    });
 }
 
 export function updateChart(id, traces, exemplarTrace, rangeStartTime, rangeEndTime) {
     var chartContainerDiv = document.getElementById(id);
+    if (!chartContainerDiv) {
+        console.log(`Couldn't find container '${id}' when updating chart.`);
+        return;
+    }
+
     var chartDiv = chartContainerDiv.firstChild;
+    if (!chartDiv) {
+        console.log(`Couldn't find div inside container '${id}' when updating chart. Chart may not have been successfully initialized.`);
+        return;
+    }
 
     var themeColors = getThemeColors();
 

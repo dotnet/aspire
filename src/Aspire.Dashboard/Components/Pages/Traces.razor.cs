@@ -12,7 +12,6 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -22,6 +21,12 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, TracesPageState>
 {
+    private const string TimestampColumn = nameof(TimestampColumn);
+    private const string NameColumn = nameof(NameColumn);
+    private const string SpansColumn = nameof(SpansColumn);
+    private const string DurationColumn = nameof(DurationColumn);
+    private const string DetailsColumn = nameof(DetailsColumn);
+
     private SelectViewModel<ResourceTypeDetails> _allApplication = null!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
@@ -33,6 +38,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
     private CancellationTokenSource? _filterCts;
     private string _filter = string.Empty;
     private AspirePageContentLayout? _contentLayout;
+    private GridColumnManager _manager = null!;
 
     public string SessionStorageKey => "Traces_PageState";
     public string BasePath => DashboardUrls.TracesBasePath;
@@ -66,10 +72,10 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
     public required NavigationManager NavigationManager { get; set; }
 
     [Inject]
-    public required ProtectedSessionStorage SessionStorage { get; set; }
+    public required ISessionStorage SessionStorage { get; set; }
 
     [Inject]
-    public required DimensionManager DimensionManager { get; set; }
+    public required DimensionManager DimensionManager { get; init; }
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
@@ -125,11 +131,19 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
 
     protected override Task OnInitializedAsync()
     {
-        _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = $"({ControlsStringsLoc[nameof(ControlsStrings.All)]})" };
+        _manager = new GridColumnManager([
+            new GridColumn(Name: TimestampColumn, DesktopWidth: "0.8fr", MobileWidth: "0.8fr"),
+            new GridColumn(Name: NameColumn, DesktopWidth: "2fr", MobileWidth: "2fr"),
+            new GridColumn(Name: SpansColumn, DesktopWidth: "3fr"),
+            new GridColumn(Name: DurationColumn, DesktopWidth: "0.8fr"),
+            new GridColumn(Name: DetailsColumn, DesktopWidth: "0.5fr", MobileWidth: "1fr")
+        ], DimensionManager);
+
+        _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = ControlsStringsLoc[name: nameof(ControlsStrings.All)] };
         PageViewModel = new TracesPageViewModel { SelectedApplication = _allApplication };
 
         UpdateApplications();
-        _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
+        _applicationsSubscription = TelemetryRepository.OnNewApplications(callback: () => InvokeAsync(workItem: () =>
         {
             UpdateApplications();
             StateHasChanged();
@@ -243,7 +257,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
 
     public void UpdateViewModelFromQuery(TracesPageViewModel viewModel)
     {
-        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
+        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _allApplication);
         TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
     }
 

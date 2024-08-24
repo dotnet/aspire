@@ -7,7 +7,6 @@ using Grpc.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Milvus.Client;
 using Polly;
 using Xunit;
@@ -17,9 +16,6 @@ namespace Aspire.Hosting.Milvus.Tests;
 
 public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
 {
-    // Right now can not set user and password for super user of Milvus at startup. default user and password is root:Milvus.
-    // https://github.com/milvus-io/milvus/issues/33058
-    private const string MilvusToken = "root:Milvus";
     private const string CollectionName = "book";
 
     [Fact]
@@ -31,11 +27,9 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
            .AddRetry(new() { MaxRetryAttempts = 10, Delay = TimeSpan.FromSeconds(3), ShouldHandle = new PredicateBuilder().Handle<RpcException>() })
            .Build();
 
-        var builder = CreateDistributedApplicationBuilder();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
-        builder.Configuration["Parameters:apikey"] = MilvusToken;
-        var apiKey = builder.AddParameter("apikey");
-        var milvus = builder.AddMilvus("milvus", apiKey: apiKey);
+        var milvus = builder.AddMilvus("milvus");
         var db = milvus.AddDatabase("milvusdb", "db1");
 
         using var app = builder.Build();
@@ -100,10 +94,10 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
 
         try
         {
-            var builder1 = CreateDistributedApplicationBuilder();
-            builder1.Configuration["Parameters:apikey"] = MilvusToken;
-            var apiKey1 = builder1.AddParameter("apikey");
-            var milvus1 = builder1.AddMilvus("milvus1", apiKey1);
+            using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            var milvus1 = builder1.AddMilvus("milvus1");
+            var password = milvus1.Resource.ApiKeyParameter.Value;
+
             var db1 = milvus1.AddDatabase("milvusdb1", dbname);
 
             if (useVolume)
@@ -111,8 +105,8 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
                 volumeName = VolumeNameGenerator.CreateVolumeName(milvus1, nameof(WithDataShouldPersistStateBetweenUsages));
 
-                // if the volume already exists (because of a crashing previous run), try to delete it
-                DockerUtils.AttemptDeleteDockerVolume(volumeName);
+                // if the volume already exists (because of a crashing previous run), delete it
+                DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
                 milvus1.WithDataVolume(volumeName);
             }
             else
@@ -159,10 +153,11 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
 
-            var builder2 = CreateDistributedApplicationBuilder();
-            builder2.Configuration["Parameters:apikey"] = MilvusToken;
-            var apiKey2 = builder2.AddParameter("apikey");
-            var milvus2 = builder2.AddMilvus("milvus2", apiKey2);
+            using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+            var passwordParameter = builder2.AddParameter("pwd");
+            builder2.Configuration["Parameters:pwd"] = password;
+
+            var milvus2 = builder2.AddMilvus("milvus2", passwordParameter);
             var db2 = milvus2.AddDatabase("milvusdb2", dbname);
 
             if (useVolume)
@@ -233,12 +228,5 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
                 }
             }
         }
-    }
-
-    private TestDistributedApplicationBuilder CreateDistributedApplicationBuilder()
-    {
-        var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
-        builder.Services.AddXunitLogging(testOutputHelper);
-        return builder;
     }
 }
