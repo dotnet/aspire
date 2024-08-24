@@ -286,7 +286,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Logs.
+        ///   Looks up a localized string similar to Console.
         /// </summary>
         public static string ResourcesLogsColumnHeader {
             get {

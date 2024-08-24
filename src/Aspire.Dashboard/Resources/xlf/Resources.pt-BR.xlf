@@ -118,8 +118,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ResourcesLogsColumnHeader">
-        <source>Logs</source>
-        <target state="translated">Logs</target>
+        <source>Console</source>
+        <target state="needs-review-translation">Logs</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">

@@ -113,7 +113,7 @@
                                                         DisplayedEndpoints="@GetDisplayedEndpoints(context, out var additionalMessage)"
                                                         AdditionalMessage="@additionalMessage" />
                             </AspireTemplateColumn>
-                            <AspireTemplateColumn ColumnId="@LogsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesLogsColumnHeader)]" Class="no-ellipsis">
+                            <AspireTemplateColumn ColumnId="@ConsoleColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesLogsColumnHeader)]" Class="no-ellipsis">
                                 <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(resource: context.Name)" @onclick:stopPropagation="true">@ControlsStringsLoc[ControlsStrings.ViewAction]</FluentAnchor>
                             </AspireTemplateColumn>
                             <AspireTemplateColumn ColumnId="@DetailsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesDetailsColumnHeader)]" Sortable="false" Class="no-ellipsis">

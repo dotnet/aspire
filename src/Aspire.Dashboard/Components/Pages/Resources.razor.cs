@@ -27,7 +27,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private const string StartTimeColumn = nameof(StartTimeColumn);
     private const string SourceColumn = nameof(SourceColumn);
     private const string EndpointsColumn = nameof(EndpointsColumn);
-    private const string LogsColumn = nameof(LogsColumn);
+    private const string ConsoleColumn = nameof(ConsoleColumn);
     private const string DetailsColumn = nameof(DetailsColumn);
     private const string CommandsColumn = nameof(CommandsColumn);
 
@@ -156,7 +156,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             new GridColumn(Name: StartTimeColumn, DesktopWidth: "1.5fr"),
             new GridColumn(Name: SourceColumn, DesktopWidth: "2.5fr"),
             new GridColumn(Name: EndpointsColumn, DesktopWidth: "2.5fr", MobileWidth: "2fr"),
-            new GridColumn(Name: LogsColumn, DesktopWidth: "1fr"),
+            new GridColumn(Name: ConsoleColumn, DesktopWidth: "1fr"),
             new GridColumn(Name: DetailsColumn, DesktopWidth: "1fr", MobileWidth: "1fr"),
             new GridColumn(Name: CommandsColumn, DesktopWidth: "1fr", IsVisible: () => HasResourcesWithCommands)
         ], DimensionManager);
