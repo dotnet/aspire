@@ -185,6 +185,11 @@ public class AppHostTests
                 waitForTexts: [
                     new ("storage", "Azurite Table service is successfully listening")
                 ]),
+            new TestEndpoints("Dapr.AppHost",
+                resourceEndpoints: new() {
+                    { "servicea", ["/alive", "/health", "/weatherforecast"] },
+                    { "serviceb", ["/alive", "/health", "/weatherforecast"] },
+                }),
             new TestEndpoints("MilvusPlayground.AppHost",
                 resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/create", "/search"] } },
                 waitForTexts: [
