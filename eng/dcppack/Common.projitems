@@ -53,7 +53,7 @@
       <_DcpFilesToCopy Include="$(NuGetPackageRoot)microsoft.developercontrolplane.$(DcpPlatform)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)\tools\**\*" />
     </ItemGroup>
 
-    <Copy SourceFiles="@(_DcpFilesToCopy)" DestinationFolder="$(IntermediateOutputPath)\tools" />
+    <Copy SourceFiles="@(_DcpFilesToCopy)" DestinationFolder="$(IntermediateOutputPath)\tools\%(RecursiveDir)" />
   </Target>
 
   <Target Name="GetDCPBinaryLocation" Returns="$(DCPBinariesLocation)">
