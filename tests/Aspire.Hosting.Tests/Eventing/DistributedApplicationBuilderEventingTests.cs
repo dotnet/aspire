@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +18,60 @@ public class DistributedApplicationBuilderEventingTests
         using var app = builder.Build();
         var eventing = app.Services.GetRequiredService<IDistributedApplicationEventing>();
         Assert.Equal(builder.Eventing, eventing);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task ResourceEventsForContainersFireForSpecificResources()
+    {
+        var beforeResourceStartedEvent = new ManualResetEventSlim();
+
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder.AddRedis("redis");
+
+        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(redis.Resource, (e, ct) =>
+        {
+            Assert.NotNull(e.Services);
+            Assert.NotNull(e.Resource);
+            beforeResourceStartedEvent.Set();
+            return Task.CompletedTask;
+        });
+
+        using var app = builder.Build();
+        await app.StartAsync();
+
+        var fired = beforeResourceStartedEvent.Wait(TimeSpan.FromSeconds(10));
+
+        Assert.True(fired);
+        await app.StopAsync();
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task ResourceEventsForContainersFireForAllResources()
+    {
+        var countdownEvent = new CountdownEvent(2);
+
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.AddRedis("redis1");
+        builder.AddRedis("redis2");
+
+        // Should be called twice ... once for each event.
+        builder.Eventing.Subscribe<BeforeResourceStartedEvent>((e, ct) =>
+        {
+            Assert.NotNull(e.Services);
+            Assert.NotNull(e.Resource);
+            countdownEvent.Signal();
+            return Task.CompletedTask;
+        });
+
+        using var app = builder.Build();
+        await app.StartAsync();
+
+        var fired = countdownEvent.Wait(TimeSpan.FromSeconds(10));
+
+        Assert.True(fired);
+        await app.StopAsync();
     }
 
     [Fact]
