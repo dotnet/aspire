@@ -12,7 +12,7 @@ public class SeqPublicApiTests
     public void AddSeqEndpointShouldThrowWhenBuilderIsNull()
     {
         IHostApplicationBuilder builder = null!;
-        const string connectionName = "rabbitmq";
+        const string connectionName = "seq";
 
         var action = () => builder.AddSeqEndpoint(
             connectionName,
