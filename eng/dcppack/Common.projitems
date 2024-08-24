@@ -48,9 +48,17 @@
 
   <Target Name="Build" />
 
-  <Target Name="GetDCPBinaryLocation" Returns="$(DCPBinariesLocation)" DependsOnTargets="Restore">
+  <Target Name="_CopyDCPBinaryToIntermediateDir" AfterTargets="Build">
+    <ItemGroup>
+      <_DcpFilesToCopy Include="$(NuGetPackageRoot)microsoft.developercontrolplane.$(DcpPlatform)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)\tools\**\*" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_DcpFilesToCopy)" DestinationFolder="$(IntermediateOutputPath)\tools\%(RecursiveDir)" />
+  </Target>
+
+  <Target Name="GetDCPBinaryLocation" Returns="$(DCPBinariesLocation)">
     <PropertyGroup>
-      <DCPBinariesLocation>$(NuGetPackageRoot)microsoft.developercontrolplane.$(DcpPlatform)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)/tools</DCPBinariesLocation>
+      <DCPBinariesLocation>$(IntermediateOutputPath)/tools</DCPBinariesLocation>
     </PropertyGroup>
   </Target>
 
