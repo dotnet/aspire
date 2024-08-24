@@ -27,7 +27,7 @@ public class PomeloEntityFrameworkCoreMySqlPublicApiTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void AAddMySqlDbContextShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
+    public void AddMySqlDbContextShouldThrowWhenConnectionNameIsNullOrEmpty(bool isNull)
     {
         IHostApplicationBuilder builder = new HostApplicationBuilder();
         var connectionName = isNull ? null! : string.Empty;
