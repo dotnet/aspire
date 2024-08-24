@@ -72,7 +72,7 @@ public class AWSCloudFormationResourceTests
         var expectedManifest = """
         {
           "type": "aws.cloudformation.stack.v0",
-          "stack-name": "Aspire-ExistingStack",
+          "stack-name": "ExistingStack",
           "references": [
             {
               "target-resource": "projecta"
@@ -101,7 +101,7 @@ public class AWSCloudFormationResourceTests
         var expectedManifest = """
         {
           "type": "aws.cloudformation.template.v0",
-          "stack-name": "Aspire-NewStack",
+          "stack-name": "NewStack",
           "template-path": "cf.template",
           "references": [
             {
