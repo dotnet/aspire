@@ -8,7 +8,8 @@ using Amazon.CloudFormation;
 using Amazon.CloudFormation.Model;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.AWS.Provisioning.Provisioners;
+namespace Aspire.Hosting.AWS.Provisioning;
+
 internal sealed class CloudFormationStackExecutor(
     IAmazonCloudFormation cloudFormationClient,
     CloudFormationStackExecutionContext context,

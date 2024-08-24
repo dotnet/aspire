@@ -22,7 +22,7 @@ public static class CDKExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the stack resource.</param>
     public static IResourceBuilder<IStackResource> AddAWSCDKStack(this IDistributedApplicationBuilder builder, string name)
-        => AddAWSCDKStack(builder, name, "Aspire-" + name);
+        => AddAWSCDKStack(builder, name, name);
 
     /// <summary>
     /// Adds an AWS CDK stack as resource.
@@ -89,8 +89,7 @@ public static class CDKExtensions
             {
                 Properties = [],
                 ResourceType = GetResourceType<Construct>(resource),
-            })
-            .WithManifestPublishingCallback(resource.WriteToManifest);
+            });
     }
 
     /// <summary>

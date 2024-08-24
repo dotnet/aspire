@@ -9,7 +9,7 @@ var awsConfig = builder.AddAWSSDKConfig()
     .WithRegion(RegionEndpoint.EUWest1);
 
 var stack = builder.AddAWSCDKStack("stack").WithReference(awsConfig);
-var customStack = builder.AddAWSCDKStack("custom", scope => new CustomStack(scope, "Aspire-custom"));
+var customStack = builder.AddAWSCDKStack("custom", scope => new CustomStack(scope, "custom"));
 customStack.AddOutput("BucketName", stack => stack.Bucket.BucketName).WithReference(awsConfig);
 
 var topic = stack.AddSNSTopic("topic");

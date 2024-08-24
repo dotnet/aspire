@@ -10,7 +10,7 @@ internal interface IAWSResourceProvisioner
 internal abstract class AWSResourceProvisioner<TResource> : IAWSResourceProvisioner
     where TResource : IAWSResource
 {
-    Task IAWSResourceProvisioner.GetOrCreateResourceAsync(
+    public Task GetOrCreateResourceAsync(
         IAWSResource resource,
         CancellationToken cancellationToken)
         => GetOrCreateResourceAsync((TResource)resource, cancellationToken);

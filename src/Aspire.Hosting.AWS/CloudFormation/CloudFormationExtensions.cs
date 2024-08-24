@@ -25,8 +25,7 @@ public static class CloudFormationExtensions
     public static IResourceBuilder<ICloudFormationTemplateResource> AddAWSCloudFormationTemplate(this IDistributedApplicationBuilder builder, string name, string templatePath, string? stackName = null)
     {
         builder.AddAWSProvisioning();
-        stackName ??= "Aspire-" + name;
-        var resource = new CloudFormationTemplateResource(name, stackName, templatePath);
+        var resource = new CloudFormationTemplateResource(name, stackName ?? name, templatePath);
         return builder
             .AddResource(resource)
             .WithInitialState(new()

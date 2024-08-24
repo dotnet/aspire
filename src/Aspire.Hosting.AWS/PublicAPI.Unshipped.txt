@@ -1,6 +1,4 @@
 #nullable enable
-Aspire.Hosting.AWS.AWSProvisioningException
-Aspire.Hosting.AWS.AWSProvisioningException.AWSProvisioningException(string! message, System.Exception? innerException = null) -> void
 Aspire.Hosting.AWS.CDK.ConstructBuilderDelegate<T>
 Aspire.Hosting.AWS.CDK.ConstructOutputDelegate<T>
 Aspire.Hosting.AWS.CDK.IConstructResource
@@ -46,6 +44,8 @@ Aspire.Hosting.AWS.IAWSSDKConfig.Profile.get -> string?
 Aspire.Hosting.AWS.IAWSSDKConfig.Profile.set -> void
 Aspire.Hosting.AWS.IAWSSDKConfig.Region.get -> Amazon.RegionEndpoint?
 Aspire.Hosting.AWS.IAWSSDKConfig.Region.set -> void
+Aspire.Hosting.AWS.Provisioning.AWSProvisioningException
+Aspire.Hosting.AWS.Provisioning.AWSProvisioningException.AWSProvisioningException(string! message, System.Exception? innerException = null) -> void
 Aspire.Hosting.CDKExtensions
 Aspire.Hosting.CloudFormationExtensions
 Aspire.Hosting.CognitoResourceExtensions

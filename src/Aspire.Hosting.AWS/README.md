@@ -84,7 +84,7 @@ In the AppHost project create either a JSON or YAML CloudFormation template. Her
 ```
 
 In the AppHost the `AddAWSCloudFormationTemplate` method is used to register the CloudFormation resource. The first parameter,
-which is the Aspire resource name, is used as the CloudFormation stack name prefixed with `Aspire-` when the `stackName` parameter is not set.
+which is the Aspire resource name, is used as the CloudFormation stack name when the `stackName` parameter is not set.
 If the template defines parameters the value can be provided using
 the `WithParameter` method. To configure what AWS account and region to deploy the CloudFormation stack,
 the `WithReference` method is used to associate a SDK configuration.

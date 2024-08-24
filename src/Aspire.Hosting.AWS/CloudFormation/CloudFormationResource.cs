@@ -5,7 +5,6 @@ using Amazon.CloudFormation;
 using Amazon.CloudFormation.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.AWS.CloudFormation;
 
@@ -26,19 +25,5 @@ internal abstract class CloudFormationResource(string name, string stackName) : 
     /// <inheritdoc/>
     public TaskCompletionSource? ProvisioningTaskCompletionSource { get; set; }
 
-    internal virtual void WriteToManifest(ManifestPublishingContext context)
-    {
-        context.Writer.WriteString("type", "aws.cloudformation.stack.v0");
-        context.Writer.TryWriteString("stack-name", StackName);
-
-        context.Writer.WritePropertyName("references");
-        context.Writer.WriteStartArray();
-        foreach (var cloudFormationResource in Annotations.OfType<CloudFormationReferenceAnnotation>())
-        {
-            context.Writer.WriteStartObject();
-            context.Writer.WriteString("target-resource", cloudFormationResource.TargetResource);
-            context.Writer.WriteEndObject();
-        }
-        context.Writer.WriteEndArray();
-    }
+    internal abstract void WriteToManifest(ManifestPublishingContext context);
 }

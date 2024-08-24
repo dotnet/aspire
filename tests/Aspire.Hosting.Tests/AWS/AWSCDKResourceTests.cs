@@ -111,8 +111,8 @@ public class AWSCDKResourceTests
         const string expectedManifest = """
                                         {
                                           "type": "aws.cloudformation.template.v0",
-                                          "stack-name": "Aspire-Stack",
-                                          "template-path": "cdk.out/Aspire-Stack.template.json",
+                                          "stack-name": "Stack",
+                                          "template-path": "cdk.out/Stack.template.json",
                                           "references": [
                                             {
                                               "target-resource": "ServiceA"
@@ -124,41 +124,4 @@ public class AWSCDKResourceTests
         var manifest = await ManifestUtils.GetManifest(resource);
         Assert.Equal(expectedManifest, manifest.ToString());
     }
-
-    [Fact]
-    public async Task ManifestAWSCDKResourceWithConstructTest()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var cdk = builder.AddAWSCDKStack("Stack");
-        var resourceBuilder = cdk.AddConstruct("Construct", scope => new Bucket(scope, "Bucket"));
-
-        builder.AddProject<Projects.ServiceA>("ServiceA")
-            .WithReference(resourceBuilder, bucket => bucket.BucketName, "BucketName");
-
-        var resource = resourceBuilder.Resource;
-        Assert.NotNull(resource);
-
-        const string expectedManifest = """
-                                        {
-                                          "type": "aws.cdk.construct.v0",
-                                          "construct-name": "Construct",
-                                          "stack-name": "Aspire-Stack",
-                                          "stack-unique-id": "Bucket14E6E604",
-                                          "references": [
-                                            {
-                                              "parent-resource": "Stack"
-                                            },
-                                            {
-                                              "target-resource": "ServiceA",
-                                              "output-name": "BucketName"
-                                            }
-                                          ]
-                                        }
-                                        """;
-
-        var manifest = await ManifestUtils.GetManifest(resource);
-        Assert.Equal(expectedManifest, manifest.ToString());
-    }
-
 }

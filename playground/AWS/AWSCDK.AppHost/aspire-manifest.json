@@ -3,8 +3,8 @@
   "resources": {
     "stack": {
       "type": "aws.cloudformation.template.v0",
-      "stack-name": "Aspire-stack",
-      "template-path": "cdk.out/Aspire-stack.template.json",
+      "stack-name": "stack",
+      "template-path": "cdk.out/stack.template.json",
       "references": [
         {
           "target-resource": "frontend"
@@ -13,8 +13,8 @@
     },
     "custom": {
       "type": "aws.cloudformation.template.v0",
-      "stack-name": "Aspire-custom",
-      "template-path": "cdk.out/Aspire-custom.template.json",
+      "stack-name": "custom",
+      "template-path": "cdk.out/custom.template.json",
       "references": [
         {
           "target-resource": "frontend"
@@ -22,30 +22,10 @@
       ]
     },
     "topic": {
-      "type": "aws.cdk.construct.v0",
-      "construct-name": "topic",
-      "stack-name": "Aspire-stack",
-      "stack-unique-id": "topic8C050C71",
-      "references": [
-        {
-          "parent-resource": "stack"
-        },
-        {
-          "target-resource": "frontend",
-          "output-name": "AWSResourcesChatTopicArn"
-        }
-      ]
+      "error": "This resource does not support generation in the manifest."
     },
     "queue": {
-      "type": "aws.cdk.construct.v0",
-      "construct-name": "queue",
-      "stack-name": "Aspire-stack",
-      "stack-unique-id": "queue6283178E",
-      "references": [
-        {
-          "parent-resource": "stack"
-        }
-      ]
+      "error": "This resource does not support generation in the manifest."
     },
     "frontend": {
       "type": "project.v0",
@@ -57,7 +37,7 @@
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{frontend.bindings.http.targetPort}",
         "AWS__Resources__BucketName": "{custom.output.BucketName}",
-        "AWS__Resources__ChatTopicArn": "{stack.output.topic8C050C71AWSResourcesChatTopicArn}"
+        "AWS__Resources__ChatTopicArn": "{stack.output.topic77A32C62AWSResourcesChatTopicArn}"
       },
       "bindings": {
         "http": {

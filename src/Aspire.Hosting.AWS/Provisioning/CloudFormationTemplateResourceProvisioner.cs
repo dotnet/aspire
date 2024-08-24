@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS.CloudFormation;
-using Aspire.Hosting.AWS.Provisioning.Provisioners;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.AWS.Provisioning;
