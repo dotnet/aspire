@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>d824db17-effc-4f8c-aa80-f0ae6aba93eb</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AzureFunctionsEndToEnd.ApiService\AzureFunctionsEndToEnd.ApiService.csproj" />
+    <ProjectReference Include="..\AzureFunctionsEndToEnd.Web\AzureFunctionsEndToEnd.Web.csproj" />
+    <ProjectReference Include="..\AzureFunctionsEndToEnd.Functions\AzureFunctionsEndToEnd.Functions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.EventHubs" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" />
+  </ItemGroup>
+
+</Project>
