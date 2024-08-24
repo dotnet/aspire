@@ -11,6 +11,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    margin-left: 10px;
 }
 
 /* Metrics chart SVG */

@@ -2,12 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace Aspire.Hosting.Tests.Oracle;
+namespace Aspire.Hosting.Oracle.Tests;
 
 public class AddOracleTests
 {
@@ -18,7 +19,7 @@ public class AddOracleTests
 
         var orcl = appBuilder.AddOracle("orcl");
 
-        Assert.IsType<UserSecretsParameterDefault>(orcl.Resource.PasswordParameter.Default);
+        Assert.Equal("Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault", orcl.Resource.PasswordParameter.Default?.GetType().FullName);
     }
 
     [Fact]
@@ -28,7 +29,7 @@ public class AddOracleTests
 
         var orcl = appBuilder.AddOracle("orcl");
 
-        Assert.IsNotType<UserSecretsParameterDefault>(orcl.Resource.PasswordParameter.Default);
+        Assert.NotEqual("Aspire.Hosting.ApplicationModel.UserSecretsParameterDefault", orcl.Resource.PasswordParameter.Default?.GetType().FullName);
     }
 
     [Fact]

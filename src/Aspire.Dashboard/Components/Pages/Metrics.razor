@@ -85,19 +85,17 @@
                                     {
                                         <h3 class="meter-name-title">@PageViewModel.SelectedMeter.MeterName</h3>
                                         <FluentDataGrid
-                                            ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
-                                            ResizeType="DataGridResizeType.Discrete"
                                             Style="max-width:1100px;"
                                             Items="@PageViewModel.Instruments.Where(i => i.Parent == PageViewModel.SelectedMeter).OrderBy(i => i.Name).AsQueryable()"
                                             GridTemplateColumns="3fr 5fr"
                                             TGridItem="OtlpInstrumentSummary">
                                             <ChildContent>
-                                                <AspireTemplateColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader)]">
+                                                <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader)]">
                                                     <FluentAnchor Href="@DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedApplication.Name, meter: context.Parent.MeterName, instrument: context.Name)" Appearance="Appearance.Lightweight">
                                                         @context.Name
                                                     </FluentAnchor>
-                                                </AspireTemplateColumn>
-                                                <AspirePropertyColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementDescriptionGridNameColumnHeader)]" Property="@(c => c.Description)" Class="multiline-text"/>
+                                                </TemplateColumn>
+                                                <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementDescriptionGridNameColumnHeader)]" Property="@(c => c.Description)" Class="multiline-text"/>
                                             </ChildContent>
                                         </FluentDataGrid>
                                     }
