@@ -89,6 +89,16 @@
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PLAYWRIGHT_BROWSERS_PATH=$HELIX_CORRELATION_PAYLOAD/playwright-deps" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(NeedsDapr)' == 'true'">
+    <HelixCorrelationPayload Condition="'$(OS)' != 'Windows_NT'" Include="dapr" Uri="https://github.com/dapr/cli/releases/download/v1.14.1/dapr_linux_amd64.tar.gz" Destination="dapr-cli" />
+    <HelixCorrelationPayload Condition="'$(OS)' == 'Windows_NT'" Include="dapr" Uri="https://github.com/dapr/cli/releases/download/v1.14.1/dapr_windows_amd64.zip" Destination="dapr-cli" />
+
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\dapr-cli%3B%PATH%" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/dapr-cli:$PATH" />
+
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="find PATH=$HELIX_CORRELATION_PAYLOAD" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(NeedsWorkload)' == 'true'">
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\dotnet-latest%3B%PATH%" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/dotnet-latest:$PATH" />
