@@ -7,7 +7,7 @@ using Aspire.Hosting.Utils;
 using Constructs;
 using Xunit;
 
-namespace Aspire.Hosting.Tests.AWS;
+namespace Aspire.Hosting.AWS.Tests;
 
 public class AWSCDKResourceTests
 {

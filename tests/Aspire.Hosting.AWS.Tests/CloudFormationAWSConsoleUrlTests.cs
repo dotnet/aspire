@@ -7,7 +7,7 @@ using Aspire.Hosting.AWS.CloudFormation;
 using Aspire.Hosting.AWS.Provisioning;
 using Xunit;
 
-namespace Aspire.Hosting.Tests.AWS;
+namespace Aspire.Hosting.AWS.Tests;
 
 public class CloudFormationAWSConsoleUrlTests
 {

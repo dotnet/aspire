@@ -1,4 +1,4 @@
-﻿using Amazon;
+using Amazon;
 using AWSCDK.AppHost;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -8,8 +8,8 @@ var awsConfig = builder.AddAWSSDKConfig()
     .WithProfile("default")
     .WithRegion(RegionEndpoint.EUWest1);
 
-var stack = builder.AddAWSCDKStack("stack").WithReference(awsConfig);
-var customStack = builder.AddAWSCDKStack("custom", scope => new CustomStack(scope, "custom"));
+var stack = builder.AddAWSCDKStack("stack", "Aspire-stack").WithReference(awsConfig);
+var customStack = builder.AddAWSCDKStack("custom", scope => new CustomStack(scope, "Aspire-custom"));
 customStack.AddOutput("BucketName", stack => stack.Bucket.BucketName).WithReference(awsConfig);
 
 var topic = stack.AddSNSTopic("topic");
