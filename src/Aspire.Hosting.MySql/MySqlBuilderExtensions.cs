@@ -82,7 +82,7 @@ public static class MySqlBuilderExtensions
 
         var phpMyAdminContainer = new PhpMyAdminContainerResource(containerName);
         var phpMyAdminContainerBuilder = builder.ApplicationBuilder.AddResource(phpMyAdminContainer)
-                                                .WithImage("library/phpmyadmin", "5.2")
+                                                .WithImage(MySqlContainerImageTags.PhpMyAdminImage, MySqlContainerImageTags.PhpMyAdminTag)
                                                 .WithImageRegistry(MySqlContainerImageTags.Registry)
                                                 .WithHttpEndpoint(targetPort: 80, name: "http")
                                                 .WithBindMount(configurationTempFileName, "/etc/phpmyadmin/config.user.inc.php")
