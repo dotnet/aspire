@@ -116,7 +116,7 @@ public class DashboardLifecycleHookTests
         yield return new object[]
         {
             messageJson,
-            "Error message\r\nSystem.InvalidOperationException: Error!",
+            $"Error message{Environment.NewLine}System.InvalidOperationException: Error!",
             "Aspire.Hosting.Dashboard.TestCategory.TestSubCategory",
             LogLevel.Critical
         };
