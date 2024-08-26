@@ -97,7 +97,8 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
                 var panel1FractionResult = await LocalStore.GetUnprotectedAsync<float>(GetSizeStorageKey());
                 if (panel1FractionResult.Success)
                 {
-                    SetPanelSizes(panel1FractionResult.Value);
+                    var fraction = Math.Clamp(panel1FractionResult.Value, 0, 1);
+                    SetPanelSizes(fraction);
                 }
             }
         }
@@ -135,8 +136,8 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
             var panel1FractionResult = await LocalStore.GetUnprotectedAsync<float>(GetSizeStorageKey());
             if (panel1FractionResult.Success)
             {
-                SetPanelSizes(panel1FractionResult.Value);
-
+                var fraction = Math.Clamp(panel1FractionResult.Value, 0, 1);
+                SetPanelSizes(fraction);
             }
             else
             {
