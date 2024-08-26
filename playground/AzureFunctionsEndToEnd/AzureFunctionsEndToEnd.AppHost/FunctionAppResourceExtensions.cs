@@ -9,7 +9,8 @@ using Aspire.Hosting.Azure;
 /// grow from one implementation to the next.
 /// </remarks>
 public class AzureFunctionsProjectResource(string name, string executable, string workingDirectory)
-    : ExecutableResource(name, executable, workingDirectory), IResourceWithEnvironment, IResourceWithArgs, IResourceWithServiceDiscovery { }
+    : ExecutableResource(name, executable, workingDirectory), IResourceWithEnvironment, IResourceWithArgs, IResourceWithServiceDiscovery
+{ }
 
 public static class AzureFunctionsProjectResourceExtensions
 {
@@ -21,32 +22,41 @@ public static class AzureFunctionsProjectResourceExtensions
     /// </remarks>
     public static IResourceBuilder<AzureFunctionsProjectResource> WithReference(this IResourceBuilder<AzureFunctionsProjectResource> builder, IResourceBuilder<IResourceWithConnectionString> source, string? name = null)
     {
-        return builder.WithEnvironment(delegate (EnvironmentCallbackContext context)
+        return builder.WithEnvironment((context) =>
         {
             if (source.Resource is AzureQueueStorageResource azureQueueStorageResource)
             {
-                var connectionString = azureQueueStorageResource.ConnectionStringExpression;
-                if (connectionString is not null)
+                var suffix = name ?? "Storage";
+                if (azureQueueStorageResource.Parent.IsEmulator)
                 {
-                    var suffix = name ?? "Storage";
-                    context.EnvironmentVariables[$"AzureWebJobs{suffix}__queueServiceUri"] = connectionString;
+                    context.EnvironmentVariables[$"AzureWebJobs{suffix}"] = azureQueueStorageResource.Parent.GetEmulatorConnectionString();
+                }
+                else
+                {
+                    context.EnvironmentVariables[$"AzureWebJobs{suffix}__queueServiceUri"] = azureQueueStorageResource.ConnectionStringExpression;
                 }
             }
             else if (source.Resource is AzureBlobStorageResource azureBlobStorageResource)
             {
-                var connectionString = azureBlobStorageResource.ConnectionStringExpression;
-                if (connectionString is not null)
+                var suffix = name ?? "Storage";
+                if (azureBlobStorageResource.Parent.IsEmulator)
                 {
-                    var suffix = name ?? "Storage";
-                    context.EnvironmentVariables[$"AzureWebJobs{suffix}__blobServiceUri"] = connectionString;
+                    context.EnvironmentVariables[$"AzureWebJobs{suffix}"] = azureBlobStorageResource.Parent.GetEmulatorConnectionString();
+                }
+                else
+                {
+                    context.EnvironmentVariables[$"AzureWebJobs{suffix}__blobServiceUri"] = azureBlobStorageResource.ConnectionStringExpression;
                 }
             }
             else if (source.Resource is AzureEventHubsResource azureEventHubsResource)
             {
-                var connectionString = azureEventHubsResource.ConnectionStringExpression;
-                if (connectionString is not null)
+                if (azureEventHubsResource.IsEmulator)
                 {
-                    context.EnvironmentVariables["EventHub__fullyQualifiedNamespace"] = connectionString;
+                    context.EnvironmentVariables["EventHub"] = azureEventHubsResource.ConnectionStringExpression;
+                }
+                else
+                {
+                    context.EnvironmentVariables["EventHub__fullyQualifiedNamespace"] = azureEventHubsResource.ConnectionStringExpression;
                 }
             }
         });
@@ -81,18 +91,21 @@ public static class AzureFunctionsProjectResourceExtensions
             .WithEnvironment("ASPNETCORE_FORWARDEDHEADERS_ENABLED", "true")
             .WithEnvironment("FUNCTIONS_WORKER_RUNTIME", "dotnet-isolated")
             .WithOtlpExporter()
-            .WithEndpoint("http", (endpoint) => {
+            .WithEndpoint("http", (endpoint) =>
+            {
                 endpoint.Protocol = System.Net.Sockets.ProtocolType.Tcp;
                 endpoint.UriScheme = "http";
                 endpoint.Transport = "http";
                 endpoint.IsExternal = true;
             })
-            .WithManifestPublishingCallback(async (context) => {
+            .WithManifestPublishingCallback(async (context) =>
+            {
                 context.Writer.WriteString("type", "function.v0");
                 context.Writer.WriteString("path", context.GetManifestRelativePath(new TProject().ProjectPath));
                 await context.WriteEnvironmentVariablesAsync(resource);
                 context.Writer.WriteStartObject("bindings");
-                foreach (var s in new string[]{ "http", "https"}) {
+                foreach (var s in new string[] { "http", "https" })
+                {
                     context.Writer.WriteStartObject(s);
                     context.Writer.WriteString("scheme", s);
                     context.Writer.WriteString("protocol", "tcp");

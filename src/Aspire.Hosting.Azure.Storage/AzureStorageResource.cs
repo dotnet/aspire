@@ -38,6 +38,13 @@ public class AzureStorageResource(string name, Action<ResourceModuleConstruct> c
     /// </summary>
     public bool IsEmulator => this.IsContainer();
 
+    /// <summary>
+    /// Gets the connection string for the Azure Storage emulator.
+    /// </summary>
+    /// <returns></returns>
+    public ReferenceExpression GetEmulatorConnectionString() =>
+        ReferenceExpression.Create($"{AzureStorageEmulatorConnectionString.Create(blobPort: EmulatorBlobEndpoint.Port, queuePort: EmulatorQueueEndpoint.Port, tablePort: EmulatorTableEndpoint.Port)}");
+
     internal ReferenceExpression GetTableConnectionString() => IsEmulator
         ? ReferenceExpression.Create($"{AzureStorageEmulatorConnectionString.Create(tablePort: EmulatorTableEndpoint.Port)}")
         : ReferenceExpression.Create($"{TableEndpoint}");
