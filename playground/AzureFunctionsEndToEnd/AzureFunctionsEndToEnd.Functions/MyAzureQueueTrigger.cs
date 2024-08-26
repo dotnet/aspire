@@ -4,19 +4,12 @@ using Microsoft.Extensions.Logging;
 
 namespace AzureFunctionsEndToEnd.Functions;
 
-public class MyAzureQueueTrigger
+public class MyAzureQueueTrigger(ILogger<MyAzureQueueTrigger> logger)
 {
-    private readonly ILogger<MyAzureQueueTrigger> _logger;
-
-    public MyAzureQueueTrigger(ILogger<MyAzureQueueTrigger> logger)
-    {
-        _logger = logger;
-    }
-
     [Function(nameof(MyAzureQueueTrigger))]
     public void Run([QueueTrigger("queue")] QueueMessage message)
     {
-        _logger.LogInformation($"C# Queue trigger function processed: {message.MessageText}");
+        logger.LogInformation("C# Queue trigger function processed: {Text}", message.MessageText);
     }
 }
 

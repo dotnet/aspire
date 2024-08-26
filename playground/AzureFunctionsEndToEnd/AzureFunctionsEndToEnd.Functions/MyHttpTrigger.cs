@@ -6,19 +6,12 @@ using Microsoft.Azure.Functions.Worker.Http;
 
 namespace AzureFunctionsEndToEnd.Functions;
 
-public class MyHttpTrigger
+public class MyHttpTrigger(ILogger<MyHttpTrigger> logger)
 {
-    private readonly ILogger<MyHttpTrigger> _logger;
-
-    public MyHttpTrigger(ILogger<MyHttpTrigger> logger)
-    {
-        _logger = logger;
-    }
-
     [Function("weatherforecast")]
     public HttpResponseData Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequestData req)
     {
-        _logger.LogInformation("C# HTTP trigger function processed a request.");
+        logger.LogInformation("C# HTTP trigger function processed a request.");
 
         var forecast = Enumerable.Range(1, 5).Select(index =>
             new WeatherForecast
