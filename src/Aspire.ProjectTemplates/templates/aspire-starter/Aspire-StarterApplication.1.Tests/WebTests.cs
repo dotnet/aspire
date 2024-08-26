@@ -1,10 +1,17 @@
 namespace Aspire_StarterApplication._1.Tests;
 
+/// <summary>
+/// Contains tests for web resources.
+/// </summary>
 #if (TestFramework == "MSTest")
 [TestClass]
 #endif
 public class WebTests
 {
+    /// <summary>
+    /// Tests if the root web resource returns an OK status code.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
 #if (TestFramework == "MSTest")
     [TestMethod]
 #elif (TestFramework == "NUnit")
@@ -24,14 +31,16 @@ public class WebTests
         // To output logs to the xUnit.net ITestOutputHelper, consider adding a package from https://www.nuget.org/packages?q=xunit+logging
 #endif
 
-        await using var app = await appHost.BuildAsync();
+#pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
+        await using var app = await appHost.BuildAsync().ConfigureAwait(true);
+#pragma warning restore CA2007
         var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
-        await app.StartAsync();
+        await app.StartAsync().ConfigureAwait(true);
 
         // Act
         var httpClient = app.CreateHttpClient("webfrontend");
         await resourceNotificationService.WaitForResourceAsync("webfrontend", KnownResourceStates.Running).WaitAsync(TimeSpan.FromSeconds(30));
-        var response = await httpClient.GetAsync("/");
+        var response = await httpClient.GetAsync(new Uri("/", UriKind.Relative)).ConfigureAwait(true);
 
         // Assert
 #if (TestFramework == "MSTest")
