@@ -2,30 +2,31 @@
   "type": "object",
   "properties": {
     "Azure": {
+      "description": "Azure provisioning information. This section is used to create Azure resources for the app.",
       "type": "object",
       "properties": {
         "SubscriptionId": {
-          "description": "Azure Subscription Id that will be used to host aspire app",
+          "description": "Azure Subscription Id that will be used to host the resources.",
           "type": "string"
         },
         "ResourceGroup": {
-          "description": "Azure Resource Group name where to create resources",
+          "description": "Azure Resource Group name where to create resources.",
           "type": "string"
         },
         "ResourceGroupPrefix": {
-          "description": "Azure Resource Group prefix used in resource groups names created",
+          "description": "Azure Resource Group prefix used in resource groups names created.",
           "type": "string"
         },
         "AllowResourceGroupCreation": {
-          "description": "Flag that shows if it is allowed to create a resource group if not exists",
+          "description": "Flag that shows if it is allowed to create a resource group if not exists. Defaults to false if ResourceGroup is provided.",
           "type": "boolean"
         },
         "Location": {
-          "description": "Azure Location that will be used to create resources",
+          "description": "Azure Location that will be used to create resources.",
           "type": "string"
         },
         "CredentialSource": {
-          "description": "Shows where to look for Azure credentials",
+          "description": "Configures which Azure credential to use for provisioning.",
           "enum": [
             "AzureCli",
             "AzurePowerShell",
