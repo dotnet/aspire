@@ -60,9 +60,6 @@ public sealed class DisplayedEndpoint : IPropertyGridItem
     /// </summary>
     string? IPropertyGridItem.Value => null;
 
-    bool IPropertyGridItem.IsValueSensitive => false;
-    bool IPropertyGridItem.IsValueMasked { get => false; set => throw new NotImplementedException(); }
-
     public bool MatchesFilter(string filter)
         => Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
            Text.Contains(filter, StringComparison.CurrentCultureIgnoreCase);

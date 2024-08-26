@@ -9,9 +9,6 @@ public class OtlpSpanAttributeItem(string name, string value) : IPropertyGridIte
 {
     public string Name { get; } = name;
     public string Value { get; } = value;
-
-    bool IPropertyGridItem.IsValueSensitive => false;
-    bool IPropertyGridItem.IsValueMasked { get => false; set => throw new NotImplementedException(); }
 }
 
 public class OtlpSpanEvent(OtlpSpan span) : IPropertyGridItem
@@ -21,7 +18,4 @@ public class OtlpSpanEvent(OtlpSpan span) : IPropertyGridItem
     public required KeyValuePair<string, string>[] Attributes { get; init; }
     string? IPropertyGridItem.Name => DurationFormatter.FormatDuration(Time - span.StartTime);
     string? IPropertyGridItem.Value => Name;
-
-    bool IPropertyGridItem.IsValueSensitive => false;
-    bool IPropertyGridItem.IsValueMasked { get => false; set => throw new NotImplementedException(); }
 }

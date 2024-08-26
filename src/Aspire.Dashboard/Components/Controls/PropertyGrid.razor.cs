@@ -36,7 +36,7 @@ public interface IPropertyGridItem
     /// <summary>
     /// Gets whether this item's value is sensitive and should be masked.
     /// </summary>
-    bool IsValueSensitive { get; }
+    public bool IsValueSensitive => false;
 
     /// <summary>
     /// Gets and sets whether this item's value is masked in the UI by default.
@@ -52,7 +52,7 @@ public interface IPropertyGridItem
     /// is ignored.
     /// </para>
     /// </remarks>
-    bool IsValueMasked { get; set; }
+    public bool IsValueMasked { get => false; set => throw new NotImplementedException(); }
 
     public bool MatchesFilter(string filter) => false;
 }

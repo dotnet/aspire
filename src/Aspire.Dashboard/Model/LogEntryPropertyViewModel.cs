@@ -9,7 +9,4 @@ public sealed class LogEntryPropertyViewModel : IPropertyGridItem
 {
     public required string Name { get; init; }
     public required string Value { get; init; }
-
-    bool IPropertyGridItem.IsValueSensitive => false;
-    bool IPropertyGridItem.IsValueMasked { get => false; set => throw new NotImplementedException(); }
 }
