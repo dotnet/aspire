@@ -63,7 +63,7 @@ function getSystemTheme() {
 function setThemeCookie(theme) {
     // Cookie will expire after 1 year. Using a much larger value won't have an impact because
     // Chrome limits expiration to 400 days: https://developer.chrome.com/blog/cookie-max-age-expires
-    // If we want the cookie to persist longer then we'll need to reset it when the dashboard launches.
+    // The cookie is reset when the dashboard loads to creating a sliding expiration.
     document.cookie = `${currentThemeCookieName}=${theme}; expires=${new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 365).toGMTString()}`;
 }
 
