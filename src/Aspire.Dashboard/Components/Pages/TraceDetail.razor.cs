@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -15,6 +16,10 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class TraceDetail : ComponentBase
 {
+    private const string NameColumn = nameof(NameColumn);
+    private const string TicksColumn = nameof(TicksColumn);
+    private const string DetailsColumn = nameof(DetailsColumn);
+
     private readonly List<IDisposable> _peerChangesSubscriptions = new();
     private OtlpTrace? _trace;
     private Subscription? _tracesSubscription;
@@ -23,6 +28,7 @@ public partial class TraceDetail : ComponentBase
     private List<OtlpApplication> _applications = default!;
     private readonly List<string> _collapsedSpanIds = [];
     private string? _elementIdBeforeDetailsViewOpened;
+    private GridColumnManager _manager = null!;
 
     [Parameter]
     public required string TraceId { get; set; }
@@ -46,8 +52,20 @@ public partial class TraceDetail : ComponentBase
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
+    [Inject]
+    public required DimensionManager DimensionManager { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
+
     protected override void OnInitialized()
     {
+        _manager = new GridColumnManager([
+            new GridColumn(Name: NameColumn, DesktopWidth: "4fr", MobileWidth: "4fr"),
+            new GridColumn(Name: TicksColumn, DesktopWidth: "12fr", MobileWidth: "12fr"),
+            new GridColumn(Name: DetailsColumn, DesktopWidth: "85px", MobileWidth: null)
+        ], DimensionManager);
+
         foreach (var resolver in OutgoingPeerResolvers)
         {
             _peerChangesSubscriptions.Add(resolver.OnPeerChanges(async () =>
@@ -278,15 +296,45 @@ public partial class TraceDetail : ComponentBase
                 .Select(kvp => new SpanPropertyViewModel { Name = kvp.Key, Value = kvp.Value })
                 .ToList();
 
+            var traceCache = new Dictionary<string, OtlpTrace>(StringComparer.Ordinal);
+
+            var links = viewModel.Span.Links.Select(l => CreateLinkViewModel(l.TraceId, l.SpanId, l.Attributes, traceCache)).ToList();
+            var backlinks = viewModel.Span.BackLinks.Select(l => CreateLinkViewModel(l.SourceTraceId, l.SourceSpanId, l.Attributes, traceCache)).ToList();
+
             var spanDetailsViewModel = new SpanDetailsViewModel
             {
                 Span = viewModel.Span,
+                Applications = _applications,
                 Properties = entryProperties,
-                Title = SpanWaterfallViewModel.GetTitle(viewModel.Span, _applications)
+                Title = SpanWaterfallViewModel.GetTitle(viewModel.Span, _applications),
+                Links = links,
+                Backlinks = backlinks,
             };
 
             SelectedSpan = spanDetailsViewModel;
         }
+    }
+
+    private SpanLinkViewModel CreateLinkViewModel(string traceId, string spanId, KeyValuePair<string, string>[] attributes, Dictionary<string, OtlpTrace> traceCache)
+    {
+        if (!traceCache.TryGetValue(traceId, out var trace))
+        {
+            trace = TelemetryRepository.GetTrace(traceId);
+            if (trace != null)
+            {
+                traceCache[traceId] = trace;
+            }
+        }
+
+        var linkSpan = trace?.Spans.FirstOrDefault(s => s.SpanId == spanId);
+
+        return new SpanLinkViewModel
+        {
+            TraceId = traceId,
+            SpanId = spanId,
+            Attributes = attributes,
+            Span = linkSpan,
+        };
     }
 
     private async Task ClearSelectedSpanAsync(bool causedByUserAction = false)

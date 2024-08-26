@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting MySQL</PackageTags>
+    <PackageTags>aspire integration hosting MySQL</PackageTags>
     <Description>MySQL support for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)MySQL_logo.png</PackageIconFullPath>
   </PropertyGroup>
@@ -22,7 +22,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
+    <!-- Required for PhpMyAdminConfigWriterHook -->
+    <InternalsVisibleTo Include="Aspire.Hosting.MySql.Tests" />
   </ItemGroup>
 
 </Project>

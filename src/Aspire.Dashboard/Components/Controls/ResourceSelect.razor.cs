@@ -15,6 +15,8 @@ public partial class ResourceSelect
     private const int MaxVisibleResourceOptions = 15;
     private const int SelectPadding = 8; // 4px top + 4px bottom
 
+    private readonly string _selectId = $"resource-select-{Guid.NewGuid():N}";
+
     [Parameter]
     public IEnumerable<SelectViewModel<ResourceTypeDetails>> Resources { get; set; } = default!;
 
@@ -27,10 +29,18 @@ public partial class ResourceSelect
     [Parameter]
     public string? AriaLabel { get; set; }
 
+    [Parameter]
+    public bool CanSelectGrouping { get; set; }
+
     [Inject]
     public required IJSRuntime JS { get; init; }
 
     private FluentSelect<SelectViewModel<ResourceTypeDetails>>? _resourceSelectComponent;
+
+    private static void ValuedChanged(string value)
+    {
+        // Do nothing. Required for bunit change to trigger SelectedOptionChanged.
+    }
 
     /// <summary>
     /// Workaround for issue in fluent-select web component where the display value of the

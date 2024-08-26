@@ -1,0 +1,40 @@
+﻿<FluentMenu Open="@IsNavMenuOpen" Anchored="false" Style="grid-area: nav-menu; height: 100vh; margin-top: 2px;">
+    @foreach (var item in GetMobileNavMenuEntries())
+    {
+        <FluentMenuItem OnClick="@(async () => { CloseNavMenu(); await item.OnClick(); })" Style="height: 40px; width: 100vw; margin-bottom: 6px;">
+            <span>@item.Text</span>
+
+            @if (item.Icon is { } icon)
+            {
+                var isActive = item.LinkMatchRegex is not null && item.LinkMatchRegex.IsMatch($"/{NavigationManager.ToBaseRelativePath(NavigationManager.Uri)}");
+
+                <span slot="start">
+                    @if (isActive)
+                    {
+                        <FluentIcon Class="align-text-bottom" Value="@icon" Slot="start" CustomColor="var(--accent-foreground-active)" Color="Color.Custom"/>
+                    }
+                    else
+                    {
+                        <FluentIcon Class="align-text-bottom" Value="@icon" Slot="start" Color="Color.Neutral" />
+                    }
+                </span>
+            }
+        </FluentMenuItem>
+
+        <FluentDivider/>
+    }
+</FluentMenu>
+
+@code {
+    [Parameter, EditorRequired]
+    public required bool IsNavMenuOpen { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Action CloseNavMenu { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Func<Task> LaunchHelpAsync { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Func<Task> LaunchSettingsAsync { get; set; }
+}

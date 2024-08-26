@@ -14,4 +14,8 @@
     <PackageReference Include="bUnit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="$(TestsSharedDir)Telemetry\*.cs" LinkBase="shared/Telemetry" />
+  </ItemGroup>
+
 </Project>

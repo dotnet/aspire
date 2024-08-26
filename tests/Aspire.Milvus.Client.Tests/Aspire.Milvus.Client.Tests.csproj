@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
-    <RunTestsOnHelix>true</RunTestsOnHelix>
     <NoWarn>$(NoWarn);CS8002</NoWarn> <!-- Milvus.Client packages are not signed -->
   </PropertyGroup>
 

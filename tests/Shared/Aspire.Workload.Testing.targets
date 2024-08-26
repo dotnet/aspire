@@ -39,13 +39,13 @@
 
       <NuGetsToBuildForWorkloadTesting
                       Include="$(_ShippingPackagesDir)Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier).nupkg"
-                      Project="$(RepoRoot)eng/dashboardpack/dashboardpack.csproj"
+                      Project="$(RepoRoot)eng/dashboardpack/Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier).csproj"
                       Properties="@(DefaultPropertiesForNuGetBuild, ';');@(_PropertiesForNuGetBuilds, ';')"
                       Descriptor="Dashboard pack"/>
 
       <NuGetsToBuildForWorkloadTesting
                       Include="$(_ShippingPackagesDir)Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier).nupkg"
-                      Project="$(RepoRoot)eng/dcppack/dcppack.csproj"
+                      Project="$(RepoRoot)eng/dcppack/Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier).csproj"
                       Properties="@(DefaultPropertiesForNuGetBuild, ';');@(_PropertiesForNuGetBuilds, ';')"
                       Descriptor="Dcp pack"/>
     </ItemGroup>
@@ -57,10 +57,10 @@
       Explicitly invoke Build on these two projects so the GenerateTextReplacementFiles target gets triggered.
       This can be removed once the workloadtesting targets support a custom list of targets to invoke
     -->
-    <MSBuild Projects="$(RepoRoot)eng/dcppack/dcppack.csproj"
+    <MSBuild Projects="$(RepoRoot)eng/dcppack/Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier).csproj"
               Properties="$(_CombinedProps)"
               Targets="Restore;Build" />
-    <MSBuild Projects="$(RepoRoot)eng/dashboardpack/dashboardpack.csproj"
+    <MSBuild Projects="$(RepoRoot)eng/dashboardpack/Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier).csproj"
               Properties="$(_CombinedProps)"
               Targets="Restore;Build" />
   </Target>
@@ -76,97 +76,11 @@
     </ItemGroup>
   </Target>
 
-  <UsingTask TaskName="PrepareNuGetConfigForWorkloadTesting"
-      TaskFactory="RoslynCodeTaskFactory"
-      AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
-    <ParameterGroup>
-      <TemplateNuGetConfigPath ParameterType="System.String" Required="true" />
-      <OutputFile ParameterType="System.String" Required="true" />
-    </ParameterGroup>
-    <Task>
-      <Using Namespace="System.IO" />
-      <Using Namespace="System.Xml.Linq" />
-      <Using Namespace="System.Xml.XPath" />
-      <Code Type="Fragment" Language="cs">
-        <![CDATA[
-          if (!File.Exists(TemplateNuGetConfigPath))
-          {
-            Log.LogError($"Could not find nuget config template at '{TemplateNuGetConfigPath}' .");
-            return false;
-          }
-
-          // This task adds a nuget packageSource pointing to the locally built nugets.
-          // And then adds a packageSourceMapping for that source to `*Aspire*` so the
-          // locally built nugets can be restored from there
-
-          // add packageSource
-          XDocument doc = XDocument.Load(TemplateNuGetConfigPath);
-          string xpath = "/configuration/packageSources";
-          XElement packageSources = doc.XPathSelectElement(xpath);
-          if (packageSources is null)
-          {
-            Log.LogError($"Could not find {xpath} in {TemplateNuGetConfigPath}");
-            return false;
-          }
-
-          // %BUILT_NUGETS_PATH% is set when building the testproject
-          packageSources.LastNode.AddAfterSelf(
-            new XElement("add",
-              new XAttribute("key", "nuget-local"),
-              new XAttribute("value", "%BUILT_NUGETS_PATH%")));
-
-          // add packageSourceMapping
-          string mappingXpath = "/configuration/packageSourceMapping";
-          XElement packageSourceMapping = doc.XPathSelectElement(mappingXpath);
-          if (packageSourceMapping is null)
-          {
-            // if mapping has been removed completely then the task needs an update!
-            throw new InvalidOperationException($"Expected to find {mappingXpath} in {TemplateNuGetConfigPath}");
-          }
-
-          packageSourceMapping.FirstNode.AddBeforeSelf(
-            new XElement("packageSource",
-              new XAttribute("key", "nuget-local"),
-              new XElement("package", new XAttribute("pattern", "*Aspire*"))));
-
-          doc.Save(OutputFile);
-          Log.LogMessage(MessageImportance.Low, $"Generated patched nuget.config at {OutputFile}");
-        ]]>
-      </Code>
-    </Task>
-  </UsingTask>
-
-  <!-- For test projects -->
-
-  <Target Name="_PatchNuGetConfig" AfterTargets="GetCopyToOutputDirectoryItems" Inputs="$(TemplateNuGetConfigPath)" Outputs="$(PatchedNuGetConfigPath)">
-    <PrepareNuGetConfigForWorkloadTesting TemplateNuGetConfigPath="$(RepoRoot)NuGet.config" OutputFile="$(PatchedNuGetConfigPath)" />
-  </Target>
-
-  <Target Name="_AddPackageVersionsForUseWithHelix" BeforeTargets="ZipTestArchive">
-    <PropertyGroup>
-      <_TestAssetsOutputDir>$(OutputPath)\testassets\</_TestAssetsOutputDir>
-
-      <_PackagePropsContents>
-<![CDATA[
-      <Project>
-        <PropertyGroup>
-          <PackageVersion>$(PackageVersion)</PackageVersion>
-          <MicrosoftExtensionsHostingAbstractionsPackageVersion>$(MicrosoftExtensionsHostingAbstractionsPackageVersion)</MicrosoftExtensionsHostingAbstractionsPackageVersion>
-          <MicrosoftExtensionsHostingPackageVersion>$(MicrosoftExtensionsHostingPackageVersion)</MicrosoftExtensionsHostingPackageVersion>
-        </PropertyGroup>
-      </Project>
-]]>
-      </_PackagePropsContents>
-    </PropertyGroup>
-
-    <WriteLinesToFile Lines="$(_PackagePropsContents)" File="$(_TestAssetsOutputDir)\testproject\Directory.Build.Helix.props" Overwrite="true" />
-  </Target>
-
   <Target Name="CheckForWorkloadInstalled" BeforeTargets="VSTest" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
     <Error Condition="'$(SdkWithWorkloadForTestingPath)' == '' or !Exists($(SdkWithWorkloadForTestingPath))"
       Text="Could not find %24(SdkWithWorkloadForTestingPath)=$(SdkWithWorkloadForTestingPath) . Prepare it by following:
-      1. .\build.cmd -pack
-      2. dotnet build tests/Aspire.EndToEnd.Tests/Aspire.EndToEnd.csproj /t:InstallWorkloadUsingArtifacts /p:Configuration=$(Configuration)" />
+      1. .\build.cmd -pack (or ./build.sh on unix)
+      2. dotnet build tests/workloads.proj /p:Configuration=$(Configuration)" />
   </Target>
 
   <Target Name="_ValidateExpectedSetOfPackagesExist" Condition="'$(SkipPackageCheckForWorkloadTesting)' != 'true'">
@@ -191,7 +105,7 @@
 
     <ItemGroup>
       <AllPackages Include="$(ArtifactsShippingPackagesDir)*.nupkg" />
-      <ExpectedPackagePaths Include="$(ArtifactsShippingPackagesDir)%(ExpectedPackageNames.Identity).$(PackageVersion).nupkg" />
+      <ExpectedPackagePaths Include="$(ArtifactsShippingPackagesDir)%(ExpectedPackageNames.Identity).%(ExpectedPackageNames.WithPackageVersion).nupkg" />
       <MissingPackages Include="@(ExpectedPackagePaths)" Condition="!Exists(%(ExpectedPackagePaths.Identity))" />
 
       <UnexpectedPackages Include="@(AllPackages)" Exclude="@(ExpectedPackagePaths)" />

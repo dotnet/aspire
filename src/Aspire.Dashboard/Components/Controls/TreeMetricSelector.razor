@@ -1,0 +1,23 @@
+﻿@using Aspire.Dashboard.Components.Pages
+
+<FluentTreeView Id="metric-selector" Class="metrics-tree" @bind-CurrentSelected="@PageViewModel.SelectedTreeItem" @bind-CurrentSelected:after="HandleSelectedTreeItemChangedAsync">
+    <ChildContent>
+        @foreach (var meterGroup in PageViewModel.Instruments!.GroupBy(i => i.Parent).OrderBy(g => g.Key.MeterName))
+        {
+            <FluentTreeItem @key="meterGroup.Key" Text="@meterGroup.Key.MeterName" Data="@meterGroup.Key" title="@meterGroup.Key.MeterName" InitiallyExpanded="true" InitiallySelected="@(PageViewModel.SelectedInstrument == null && meterGroup.Key.MeterName == PageViewModel.SelectedMeter?.MeterName)">
+                @foreach (var instrument in meterGroup.OrderBy(i => i.Name))
+                {
+                    <FluentTreeItem @key="instrument" Class="nested" Text="@instrument.Name" Data="@instrument" title="@instrument.Name" InitiallySelected="@(instrument.Name == PageViewModel.SelectedInstrument?.Name && instrument.Parent.MeterName == PageViewModel.SelectedMeter?.MeterName)"/>
+                }
+            </FluentTreeItem>
+        }
+    </ChildContent>
+</FluentTreeView>
+
+@code {
+    [Parameter, EditorRequired]
+    public required Func<Task> HandleSelectedTreeItemChangedAsync { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Metrics.MetricsViewModel PageViewModel { get; set; }
+}

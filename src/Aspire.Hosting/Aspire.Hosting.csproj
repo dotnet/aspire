@@ -37,6 +37,7 @@
     <Compile Include="$(SharedDir)LaunchProfile.cs" Link="LaunchProfile.cs" />
     <Compile Include="$(SharedDir)LaunchSettingsSerializerContext.cs" Link="LaunchSettingsSerializerContext.cs" />
     <Compile Include="$(SharedDir)SecretsStore.cs" Link="Utils\SecretsStore.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\TimestampParser.cs" Link="Utils\ConsoleLogs\TimestampParser.cs" />
   </ItemGroup>
 
   <ItemGroup>

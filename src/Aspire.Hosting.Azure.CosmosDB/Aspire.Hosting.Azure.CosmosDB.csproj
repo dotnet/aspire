@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting azure</PackageTags>
+    <PackageTags>aspire integration hosting azure</PackageTags>
     <Description>Azure Cosmos DB resource types for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)AzureCosmosDB_256x.png</PackageIconFullPath>
   </PropertyGroup>
@@ -20,10 +20,6 @@
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.CosmosDB" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
   </ItemGroup>
 
 </Project>

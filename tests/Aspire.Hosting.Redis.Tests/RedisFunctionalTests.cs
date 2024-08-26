@@ -8,16 +8,17 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Redis.Tests;
 
-public class RedisFunctionalTests
+public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     [RequiresDocker]
     public async Task VerifyRedisResource()
     {
-        var builder = CreateDistributedApplicationBuilder();
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var redis = builder.AddRedis("redis");
 
@@ -55,12 +56,14 @@ public class RedisFunctionalTests
     {
         // Use a volume to do a snapshot save
 
-        var builder1 = CreateDistributedApplicationBuilder();
+        using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis1 = builder1.AddRedis("redis");
 
         // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
         var volumeName = VolumeNameGenerator.CreateVolumeName(redis1, nameof(WithDataVolumeShouldPersistStateBetweenUsages));
         redis1.WithDataVolume(volumeName);
+        // if the volume already exists (because of a crashing previous run), delete it
+        DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
 
         using (var app = builder1.Build())
         {
@@ -96,7 +99,7 @@ public class RedisFunctionalTests
             await app.StopAsync();
         }
 
-        var builder2 = CreateDistributedApplicationBuilder();
+        using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis2 = builder2.AddRedis("redis").WithDataVolume(volumeName);
 
         using (var app = builder2.Build())
@@ -145,7 +148,7 @@ public class RedisFunctionalTests
 
         // Use a bind mount to do a snapshot save
 
-        var builder1 = CreateDistributedApplicationBuilder();
+        using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis1 = builder1.AddRedis("redis").WithDataBindMount(bindMountPath);
 
         using (var app = builder1.Build())
@@ -181,7 +184,7 @@ public class RedisFunctionalTests
             await app.StopAsync();
         }
 
-        var builder2 = CreateDistributedApplicationBuilder();
+        using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis2 = builder2.AddRedis("redis").WithDataBindMount(bindMountPath);
 
         using (var app = builder2.Build())
@@ -215,7 +218,7 @@ public class RedisFunctionalTests
 
         try
         {
-            File.Delete(bindMountPath);
+            Directory.Delete(bindMountPath, recursive: true);
         }
         catch
         {
@@ -229,7 +232,7 @@ public class RedisFunctionalTests
     {
         // Checks that without enabling Redis Persistence the tests fail
 
-        var builder1 = CreateDistributedApplicationBuilder();
+        using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis1 = builder1.AddRedis("redis");
 
         using (var app = builder1.Build())
@@ -260,7 +263,7 @@ public class RedisFunctionalTests
             await app.StopAsync();
         }
 
-        var builder2 = CreateDistributedApplicationBuilder();
+        using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
         var redis2 = builder2.AddRedis("redis");
 
         using (var app = builder2.Build())
@@ -292,7 +295,4 @@ public class RedisFunctionalTests
             await app.StopAsync();
         }
     }
-
-    private static TestDistributedApplicationBuilder CreateDistributedApplicationBuilder() =>
-        TestDistributedApplicationBuilder.CreateWithTestContainerRegistry();
 }

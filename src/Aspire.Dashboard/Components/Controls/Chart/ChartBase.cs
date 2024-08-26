@@ -16,9 +16,12 @@ using Microsoft.Extensions.Localization;
 
 namespace Aspire.Dashboard.Components.Controls.Chart;
 
-public abstract class ChartBase : ComponentBase
+public abstract class ChartBase : ComponentBase, IAsyncDisposable
 {
     private const int GraphPointCount = 30;
+
+    private readonly CancellationTokenSource _cts = new();
+    protected CancellationToken CancellationToken { get; private set; }
 
     private TimeSpan _tickDuration;
     private DateTimeOffset _lastUpdateTime;
@@ -61,13 +64,18 @@ public abstract class ChartBase : ComponentBase
 
     protected override void OnInitialized()
     {
+        // Copy the token so there is no chance it is accessed on CTS after it is disposed.
+        CancellationToken = _cts.Token;
         _currentDataStartTime = GetCurrentDataTime();
         InstrumentViewModel.DataUpdateSubscriptions.Add(OnInstrumentDataUpdate);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (InstrumentViewModel.Instrument is null || InstrumentViewModel.MatchedDimensions is null || !ReadyForData())
+        if (CancellationToken.IsCancellationRequested ||
+            InstrumentViewModel.Instrument is null ||
+            InstrumentViewModel.MatchedDimensions is null ||
+            !ReadyForData())
         {
             return;
         }
@@ -90,13 +98,13 @@ public abstract class ChartBase : ComponentBase
             _renderedDimensionAttributes = dimensionAttributes;
             _renderedTheme = InstrumentViewModel.Theme;
             _renderedShowCount = InstrumentViewModel.ShowCount;
-            await UpdateChart(tickUpdate: false, inProgressDataTime).ConfigureAwait(false);
+            await UpdateChartAsync(tickUpdate: false, inProgressDataTime).ConfigureAwait(false);
         }
         else if (_lastUpdateTime.Add(TimeSpan.FromSeconds(0.2)) < TimeProvider.GetUtcNow())
         {
             // Throttle how often the chart is updated.
             _lastUpdateTime = TimeProvider.GetUtcNow();
-            await UpdateChart(tickUpdate: true, inProgressDataTime).ConfigureAwait(false);
+            await UpdateChartAsync(tickUpdate: true, inProgressDataTime).ConfigureAwait(false);
         }
     }
 
@@ -303,7 +311,7 @@ public abstract class ChartBase : ComponentBase
                 var key = new SpanKey(exemplar.TraceId, exemplar.SpanId);
                 if (!_currentCache.TryGetValue(key, out var span))
                 {
-                    span = GetSpan(exemplar.TraceId, exemplar.SpanId);
+                    span = TelemetryRepository.GetSpan(exemplar.TraceId, exemplar.SpanId);
                 }
                 if (span != null)
                 {
@@ -470,7 +478,7 @@ public abstract class ChartBase : ComponentBase
         return now.Subtract(pointDuration * pointIndex);
     }
 
-    private async Task UpdateChart(bool tickUpdate, DateTimeOffset inProgressDataTime)
+    private async Task UpdateChartAsync(bool tickUpdate, DateTimeOffset inProgressDataTime)
     {
         // Unit comes from the instrument and they're not localized.
         // The hardcoded "Count" label isn't localized for consistency.
@@ -502,12 +510,7 @@ public abstract class ChartBase : ComponentBase
         _currentCache = _newCache;
         _newCache = new Dictionary<SpanKey, OtlpSpan>();
 
-        await OnChartUpdated(traces, xValues, exemplars, tickUpdate, inProgressDataTime);
-    }
-
-    protected OtlpSpan? GetSpan(string traceId, string spanId)
-    {
-        return MetricsHelpers.GetSpan(TelemetryRepository, traceId, spanId);
+        await OnChartUpdatedAsync(traces, xValues, exemplars, tickUpdate, inProgressDataTime, CancellationToken);
     }
 
     private DateTimeOffset GetCurrentDataTime()
@@ -515,12 +518,21 @@ public abstract class ChartBase : ComponentBase
         return TimeProvider.GetUtcNow().Subtract(TimeSpan.FromSeconds(1)); // Compensate for delay in receiving metrics from services.
     }
 
-    private string GetDisplayedUnit(OtlpInstrument instrument)
+    private string GetDisplayedUnit(OtlpInstrumentSummary instrument)
     {
         return InstrumentUnitResolver.ResolveDisplayedUnit(instrument, titleCase: true, pluralize: true);
     }
 
-    protected abstract Task OnChartUpdated(List<ChartTrace> traces, List<DateTimeOffset> xValues, List<ChartExemplar> exemplars, bool tickUpdate, DateTimeOffset inProgressDataTime);
+    protected abstract Task OnChartUpdatedAsync(List<ChartTrace> traces, List<DateTimeOffset> xValues, List<ChartExemplar> exemplars, bool tickUpdate, DateTimeOffset inProgressDataTime, CancellationToken cancellationToken);
 
-    protected virtual bool ReadyForData() => true;
+    protected abstract bool ReadyForData();
+
+    public ValueTask DisposeAsync() => DisposeAsync(disposing: true);
+
+    protected virtual ValueTask DisposeAsync(bool disposing)
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+        return ValueTask.CompletedTask;
+    }
 }

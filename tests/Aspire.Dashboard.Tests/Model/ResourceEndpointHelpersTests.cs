@@ -11,9 +11,9 @@ namespace Aspire.Dashboard.Tests.Model;
 
 public sealed class ResourceEndpointHelpersTests
 {
-    public static List<DisplayedEndpoint> GetEndpoints(ResourceViewModel resource, bool includeInteralUrls = false)
+    public static List<DisplayedEndpoint> GetEndpoints(ResourceViewModel resource, bool includeInternalUrls = false)
     {
-        return ResourceEndpointHelpers.GetEndpoints(resource, includeInteralUrls);
+        return ResourceEndpointHelpers.GetEndpoints(resource, includeInternalUrls);
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public sealed class ResourceEndpointHelpersTests
             new("First", new("https://localhost:8080/test"), isInternal:true),
             new("Test", new("https://localhost:8081/test2"), isInternal:false)
         ]),
-        includeInteralUrls: true);
+        includeInternalUrls: true);
 
         Assert.Collection(endpoints,
             e =>
@@ -166,6 +166,25 @@ public sealed class ResourceEndpointHelpersTests
                 Assert.Equal("localhost", e.Address);
                 Assert.Equal(8081, e.Port);
             });
+    }
+
+    [Fact]
+    public void GetEndpoints_OrderByName()
+    {
+        var endpoints = GetEndpoints(CreateResource([
+            new("a", new("http://localhost:8080"), isInternal: false),
+            new("C", new("http://localhost:8080"), isInternal: false),
+            new("D", new("tcp://localhost:8080"), isInternal: false),
+            new("B", new("tcp://localhost:8080"), isInternal: false),
+            new("Z", new("https://localhost:8080"), isInternal: false)
+        ]));
+
+        Assert.Collection(endpoints,
+            e => Assert.Equal("Z", e.Name),
+            e => Assert.Equal("a", e.Name),
+            e => Assert.Equal("C", e.Name),
+            e => Assert.Equal("B", e.Name),
+            e => Assert.Equal("D", e.Name));
     }
 
     private static ResourceViewModel CreateResource(ImmutableArray<UrlViewModel> urls)

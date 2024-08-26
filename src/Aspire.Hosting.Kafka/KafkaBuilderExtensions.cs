@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Kafka;
-using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
@@ -26,6 +24,9 @@ public static class KafkaBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{KafkaServerResource}"/>.</returns>
     public static IResourceBuilder<KafkaServerResource> AddKafka(this IDistributedApplicationBuilder builder, string name, int? port = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         var kafka = new KafkaServerResource(name);
         return builder.AddResource(kafka)
             .WithEndpoint(targetPort: KafkaBrokerPort, port: port, name: KafkaServerResource.PrimaryEndpointName)
@@ -44,6 +45,8 @@ public static class KafkaBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{KafkaServerResource}"/>.</returns>
     public static IResourceBuilder<KafkaServerResource> WithKafkaUI(this IResourceBuilder<KafkaServerResource> builder, Action<IResourceBuilder<KafkaUIContainerResource>>? configureContainer = null, string? containerName = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         if (builder.ApplicationBuilder.Resources.OfType<KafkaUIContainerResource>().SingleOrDefault() is { } existingKafkaUIResource)
         {
             var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingKafkaUIResource);
@@ -52,8 +55,6 @@ public static class KafkaBuilderExtensions
         }
         else
         {
-            builder.ApplicationBuilder.Services.TryAddLifecycleHook<KafkaUIConfigurationHook>();
-
             containerName ??= $"{builder.Resource.Name}-kafka-ui";
 
             var kafkaUi = new KafkaUIContainerResource(containerName);
@@ -63,10 +64,41 @@ public static class KafkaBuilderExtensions
                 .WithHttpEndpoint(targetPort: KafkaUIPort)
                 .ExcludeFromManifest();
 
+            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+            {
+                var kafkaResources = builder.ApplicationBuilder.Resources.OfType<KafkaServerResource>();
+
+                int i = 0;
+                foreach (var kafkaResource in kafkaResources)
+                {
+                    if (kafkaResource.InternalEndpoint.IsAllocated)
+                    {
+                        var endpoint = kafkaResource.InternalEndpoint;
+                        int index = i;
+                        kafkaUiBuilder.WithEnvironment(context => ConfigureKafkaUIContainer(context, endpoint, index));
+                    }
+
+                    i++;
+                }
+
+                return Task.CompletedTask;
+            });
+
             configureContainer?.Invoke(kafkaUiBuilder);
 
             return builder;
         }
+
+        static void ConfigureKafkaUIContainer(EnvironmentCallbackContext context, EndpointReference endpoint, int index)
+        {
+            var bootstrapServers = context.ExecutionContext.IsRunMode
+                ? ReferenceExpression.Create($"{endpoint.ContainerHost}:{endpoint.Property(EndpointProperty.Port)}")
+                : ReferenceExpression.Create($"{endpoint.Property(EndpointProperty.Host)}:{endpoint.Property(EndpointProperty.Port)}");
+
+            context.EnvironmentVariables.Add($"KAFKA_CLUSTERS_{index}_NAME", endpoint.Resource.Name);
+            context.EnvironmentVariables.Add($"KAFKA_CLUSTERS_{index}_BOOTSTRAPSERVERS", bootstrapServers);
+        }
+
     }
 
     /// <summary>
@@ -77,6 +109,8 @@ public static class KafkaBuilderExtensions
     /// <returns>The resource builder for KafkaUI.</returns>
     public static IResourceBuilder<KafkaUIContainerResource> WithHostPort(this IResourceBuilder<KafkaUIContainerResource> builder, int? port)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.WithEndpoint("http", endpoint =>
         {
             endpoint.Port = port;
@@ -91,7 +125,11 @@ public static class KafkaBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<KafkaServerResource> WithDataVolume(this IResourceBuilder<KafkaServerResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/kafka/data", isReadOnly);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/kafka/data", isReadOnly);
+    }
 
     /// <summary>
     /// Adds a bind mount for the data folder to a Kafka container resource.
@@ -101,7 +139,12 @@ public static class KafkaBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<KafkaServerResource> WithDataBindMount(this IResourceBuilder<KafkaServerResource> builder, string source, bool isReadOnly = false)
-        => builder.WithBindMount(source, "/var/lib/kafka/data", isReadOnly);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+
+        return builder.WithBindMount(source, "/var/lib/kafka/data", isReadOnly);
+    }
 
     private static void ConfigureKafkaContainer(EnvironmentCallbackContext context, KafkaServerResource resource)
     {

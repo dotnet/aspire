@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Dialogs;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
@@ -15,11 +16,15 @@ namespace Aspire.Dashboard.Components.Layout;
 
 public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 {
+    private bool _isNavMenuOpen;
+
     private IDisposable? _themeChangedSubscription;
     private IDisposable? _locationChangingRegistration;
     private IJSObjectReference? _jsModule;
     private IJSObjectReference? _keyboardHandlers;
+    private IJSObjectReference? _textVisualizerHandler;
     private DotNetObjectReference<ShortcutManager>? _shortcutManagerReference;
+    private DotNetObjectReference<MainLayout>? _layoutReference;
     private IDialogReference? _openPageDialog;
 
     private const string SettingsDialogId = "SettingsDialog";
@@ -39,6 +44,9 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     public required IStringLocalizer<Resources.Layout> Loc { get; init; }
 
     [Inject]
+    public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
+
+    [Inject]
     public required IDialogService DialogService { get; init; }
 
     [Inject]
@@ -56,6 +64,9 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     [Inject]
     public required IOptionsMonitor<DashboardOptions> Options { get; init; }
 
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         // Theme change can be triggered from the settings dialog. This logic applies the new theme to the browser window.
@@ -66,7 +77,8 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
             {
                 var newValue = ThemeManager.Theme!;
 
-                await _jsModule.InvokeVoidAsync("updateTheme", newValue);
+                var effectiveTheme = await _jsModule.InvokeAsync<string>("updateTheme", newValue);
+                ThemeManager.EffectiveTheme = effectiveTheme;
             }
         });
 
@@ -113,10 +125,21 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     {
         if (firstRender)
         {
-            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/theme.js");
+            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/app-theme.js");
             _shortcutManagerReference = DotNetObjectReference.Create(ShortcutManager);
+            _layoutReference = DotNetObjectReference.Create(this);
             _keyboardHandlers = await JS.InvokeAsync<IJSObjectReference>("window.registerGlobalKeydownListener", _shortcutManagerReference);
+            _textVisualizerHandler = await JS.InvokeAsync<IJSObjectReference>("window.registerOpenTextVisualizerOnClick", _layoutReference);
             ShortcutManager.AddGlobalKeydownListener(this);
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (ViewportInformation.IsDesktop && _isNavMenuOpen)
+        {
+            _isNavMenuOpen = false;
+            CloseMobileNavMenu();
         }
     }
 
@@ -224,27 +247,60 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         }
     }
 
+    private void CloseMobileNavMenu()
+    {
+        _isNavMenuOpen = false;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task OpenTextVisualizerAsync(IJSStreamReference valueStream, string valueDescription)
+    {
+        var width = ViewportInformation.IsDesktop ? "75vw" : "100vw";
+        var parameters = new DialogParameters
+        {
+            Title = valueDescription,
+            Width = $"min(1000px, {width})",
+            TrapFocus = true,
+            Modal = true,
+            PreventScroll = true,
+        };
+
+        await using var referenceStream = await valueStream.OpenReadStreamAsync();
+        using var reader = new StreamReader(referenceStream);
+        var value = await reader.ReadToEndAsync();
+
+        await DialogService.ShowDialogAsync<TextVisualizerDialog>(new TextVisualizerDialogViewModel(value, valueDescription), parameters);
+    }
+
     public async ValueTask DisposeAsync()
     {
         _shortcutManagerReference?.Dispose();
+        _layoutReference?.Dispose();
         _themeChangedSubscription?.Dispose();
         _locationChangingRegistration?.Dispose();
         ShortcutManager.RemoveGlobalKeydownListener(this);
 
-        if (_keyboardHandlers is { } h)
+        try
         {
-            try
+            if (_keyboardHandlers is { } h)
             {
                 await JS.InvokeVoidAsync("window.unregisterGlobalKeydownListener", h);
             }
-            catch (JSDisconnectedException)
+
+            if (_textVisualizerHandler is not null)
             {
-                // Per https://learn.microsoft.com/aspnet/core/blazor/javascript-interoperability/?view=aspnetcore-7.0#javascript-interop-calls-without-a-circuit
-                // this is one of the calls that will fail if the circuit is disconnected, and we just need to catch the exception so it doesn't pollute the logs
+                await JS.InvokeVoidAsync("window.unregisterOpenTextVisualizerOnClick", _textVisualizerHandler);
             }
+        }
+        catch (JSDisconnectedException)
+        {
+            // Per https://learn.microsoft.com/aspnet/core/blazor/javascript-interoperability/?view=aspnetcore-7.0#javascript-interop-calls-without-a-circuit
+            // this is one of the calls that will fail if the circuit is disconnected, and we just need to catch the exception so it doesn't pollute the logs
         }
 
         await JSInteropHelpers.SafeDisposeAsync(_jsModule);
         await JSInteropHelpers.SafeDisposeAsync(_keyboardHandlers);
+        await JSInteropHelpers.SafeDisposeAsync(_textVisualizerHandler);
     }
 }
