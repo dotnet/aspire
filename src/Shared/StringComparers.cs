@@ -3,6 +3,8 @@
 
 namespace Aspire;
 
+// NOTE unit tests enforce that these two classes are kept in sync
+
 internal static class StringComparers
 {
     public static StringComparer ResourceName => StringComparer.OrdinalIgnoreCase;
@@ -11,6 +13,8 @@ internal static class StringComparers
     public static StringComparer ResourceType => StringComparer.Ordinal;
     public static StringComparer ResourcePropertyName => StringComparer.Ordinal;
     public static StringComparer ResourceOwnerName => StringComparer.Ordinal;
+    public static StringComparer ResourceOwnerKind => StringComparer.Ordinal;
+    public static StringComparer ResourceOwnerUid => StringComparer.Ordinal;
     public static StringComparer UserTextSearch => StringComparer.CurrentCultureIgnoreCase;
     public static StringComparer EnvironmentVariableName => StringComparer.InvariantCultureIgnoreCase;
     public static StringComparer UrlPath => StringComparer.OrdinalIgnoreCase;
@@ -26,10 +30,13 @@ internal static class StringComparisons
     public static StringComparison EndpointAnnotationName => StringComparison.OrdinalIgnoreCase;
     public static StringComparison ResourceType => StringComparison.Ordinal;
     public static StringComparison ResourcePropertyName => StringComparison.Ordinal;
+    public static StringComparison ResourceOwnerName => StringComparison.Ordinal;
     public static StringComparison ResourceOwnerKind => StringComparison.Ordinal;
     public static StringComparison ResourceOwnerUid => StringComparison.Ordinal;
     public static StringComparison UserTextSearch => StringComparison.CurrentCultureIgnoreCase;
     public static StringComparison EnvironmentVariableName => StringComparison.InvariantCultureIgnoreCase;
     public static StringComparison UrlPath => StringComparison.OrdinalIgnoreCase;
     public static StringComparison UrlHost => StringComparison.OrdinalIgnoreCase;
+    public static StringComparison Attribute => StringComparison.Ordinal;
+    public static StringComparison GridColumn => StringComparison.Ordinal;
 }
