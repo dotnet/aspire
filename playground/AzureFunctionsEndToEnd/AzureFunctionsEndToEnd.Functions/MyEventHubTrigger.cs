@@ -13,7 +13,7 @@ public class MyEventHubTrigger
     }
 
     [Function(nameof(MyEventHubTrigger))]
-    public void Run([EventHubTrigger("myhub", Connection = "EventHub")] string[] input)
+    public void Run([EventHubTrigger("myhub", Connection = "eventhubs")] string[] input)
     {
         _logger.LogInformation($"C# EventHub trigger function processed: {input.Length} messages");
     }

@@ -20,43 +20,44 @@ public static class AzureFunctionsProjectResourceExtensions
     /// An alternative approach here is to "teach Functions about Aspire" where integrate the Aspire configuration
     /// model into the Azure Functions worker extensions.
     /// </remarks>
-    public static IResourceBuilder<AzureFunctionsProjectResource> WithReference(this IResourceBuilder<AzureFunctionsProjectResource> builder, IResourceBuilder<IResourceWithConnectionString> source, string? name = null)
+    public static IResourceBuilder<AzureFunctionsProjectResource> WithReference(this IResourceBuilder<AzureFunctionsProjectResource> builder, IResourceBuilder<IResourceWithConnectionString> source, string? connectionName = null)
     {
-        return builder.WithEnvironment((context) =>
+        return builder.WithEnvironment(context =>
         {
             if (source.Resource is AzureQueueStorageResource azureQueueStorageResource)
             {
-                var suffix = name ?? "Storage";
+                var prefix = connectionName ?? "Storage";
                 if (azureQueueStorageResource.Parent.IsEmulator)
                 {
-                    context.EnvironmentVariables[$"AzureWebJobs{suffix}"] = azureQueueStorageResource.Parent.GetEmulatorConnectionString();
+                    context.EnvironmentVariables[prefix] = azureQueueStorageResource.Parent.GetEmulatorConnectionString();
                 }
                 else
                 {
-                    context.EnvironmentVariables[$"AzureWebJobs{suffix}__queueServiceUri"] = azureQueueStorageResource.ConnectionStringExpression;
+                    context.EnvironmentVariables[$"{prefix}__queueServiceUri"] = azureQueueStorageResource.ConnectionStringExpression;
                 }
             }
             else if (source.Resource is AzureBlobStorageResource azureBlobStorageResource)
             {
-                var suffix = name ?? "Storage";
+                var prefix = connectionName ?? "Storage";
                 if (azureBlobStorageResource.Parent.IsEmulator)
                 {
-                    context.EnvironmentVariables[$"AzureWebJobs{suffix}"] = azureBlobStorageResource.Parent.GetEmulatorConnectionString();
+                    context.EnvironmentVariables[prefix] = azureBlobStorageResource.Parent.GetEmulatorConnectionString();
                 }
                 else
                 {
-                    context.EnvironmentVariables[$"AzureWebJobs{suffix}__blobServiceUri"] = azureBlobStorageResource.ConnectionStringExpression;
+                    context.EnvironmentVariables[$"{prefix}__blobServiceUri"] = azureBlobStorageResource.ConnectionStringExpression;
                 }
             }
             else if (source.Resource is AzureEventHubsResource azureEventHubsResource)
             {
+                connectionName ??= source.Resource.Name;
                 if (azureEventHubsResource.IsEmulator)
                 {
-                    context.EnvironmentVariables["EventHub"] = azureEventHubsResource.ConnectionStringExpression;
+                    context.EnvironmentVariables[(string)connectionName] = azureEventHubsResource.ConnectionStringExpression;
                 }
                 else
                 {
-                    context.EnvironmentVariables["EventHub__fullyQualifiedNamespace"] = azureEventHubsResource.ConnectionStringExpression;
+                    context.EnvironmentVariables[$"{connectionName}__fullyQualifiedNamespace"] = azureEventHubsResource.ConnectionStringExpression;
                 }
             }
         });
