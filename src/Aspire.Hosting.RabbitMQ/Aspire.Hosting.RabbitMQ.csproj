@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting rabbitmq</PackageTags>
+    <PackageTags>aspire integration hosting rabbitmq</PackageTags>
     <Description>RabbitMQ support for .NET Aspire.</Description>
   </PropertyGroup>
 
