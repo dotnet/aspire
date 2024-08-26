@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Model.BrowserStorage;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.JSInterop;
 using Xunit;
 
@@ -28,7 +29,7 @@ public class LocalBrowserStorageTests
             (identifier, args) = r;
             return default;
         };
-        var localStorage = new LocalBrowserStorage(testJsonRuntime, new ProtectedLocalStorage(testJsonRuntime, new TestDataProtector()));
+        var localStorage = CreateBrowserLocalStorage(testJsonRuntime);
 
         // Act
         await localStorage.SetUnprotectedAsync("MyKey", value);
@@ -53,7 +54,7 @@ public class LocalBrowserStorageTests
             (identifier, args) = r;
             return "123";
         };
-        var localStorage = new LocalBrowserStorage(testJsonRuntime, new ProtectedLocalStorage(testJsonRuntime, new TestDataProtector()));
+        var localStorage = CreateBrowserLocalStorage(testJsonRuntime);
 
         // Act
         var result = await localStorage.GetUnprotectedAsync<int>("MyKey");
@@ -79,7 +80,7 @@ public class LocalBrowserStorageTests
             (identifier, args) = r;
             return default;
         };
-        var localStorage = new LocalBrowserStorage(testJsonRuntime, new ProtectedLocalStorage(testJsonRuntime, new TestDataProtector()));
+        var localStorage = CreateBrowserLocalStorage(testJsonRuntime);
 
         // Act
         var result = await localStorage.GetUnprotectedAsync<int>("MyKey");
@@ -89,6 +90,39 @@ public class LocalBrowserStorageTests
         Assert.Equal("localStorage.getItem", identifier);
         Assert.NotNull(args);
         Assert.Equal("MyKey", args[0]);
+    }
+
+    [Fact]
+    public async Task GetUnprotectedAsync_InvalidValue_Failure()
+    {
+        // Arrange
+        string? identifier = null;
+        object?[]? args = null;
+
+        var testJsonRuntime = new TestJSRuntime();
+        testJsonRuntime.OnInvoke = r =>
+        {
+            (identifier, args) = r;
+            return "One";
+        };
+        var localStorage = CreateBrowserLocalStorage(testJsonRuntime);
+
+        // Act
+        var result = await localStorage.GetUnprotectedAsync<int>("MyKey");
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal("localStorage.getItem", identifier);
+        Assert.NotNull(args);
+        Assert.Equal("MyKey", args[0]);
+    }
+
+    private static LocalBrowserStorage CreateBrowserLocalStorage(TestJSRuntime testJsonRuntime)
+    {
+        return new LocalBrowserStorage(
+            testJsonRuntime,
+            new ProtectedLocalStorage(testJsonRuntime, new TestDataProtector()),
+            NullLogger<LocalBrowserStorage>.Instance);
     }
 
     private sealed class TestJSRuntime : IJSRuntime
