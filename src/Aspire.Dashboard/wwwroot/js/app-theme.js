@@ -35,7 +35,7 @@ export function updateTheme(specifiedTheme) {
  * @returns {string}
  */
 export function getThemeCookieValue() {
-    return getCookieValue(currentThemeCookieName) ?? themeSettingSystem;
+    return getCookieValue(currentThemeCookieName);
 }
 
 export function getCurrentTheme() {
@@ -263,6 +263,12 @@ function initializeTheme() {
     const effectiveTheme = getEffectiveTheme(themeCookieValue);
 
     applyTheme(effectiveTheme);
+
+    // If a theme cookie has been set then set it again on page load.
+    // This updates the cookie expiration date and creates a sliding expiration.
+    if (themeCookieValue) {
+        setThemeCookie(themeCookieValue);
+    }
 }
 
 createAdditionalDesignTokens();
