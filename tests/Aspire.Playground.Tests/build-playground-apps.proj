@@ -1,0 +1,15 @@
+<Project>
+  <Target Name="Build">
+    <ItemGroup>
+      <AdditionalProperties Include="TestsRunningOutsideOfRepo=true" />
+      <AdditionalProperties Include="SkipDashboardProjectReference=true" />
+
+      <_AppHostProject Include="playground\**\*AppHost.csproj" />
+    </ItemGroup>
+
+    <Message Text="proj: %(_AppHostProject.Identity)" Importance="High" />
+    <MSBuild Projects="@(_AppHostProject)" Targets="Restore" Properties="@(AdditionalProperties)" />
+    <MSBuild Projects="@(_AppHostProject)" Targets="Build" Properties="@(AdditionalProperties);__RANDOM_PROPERTY_TO_FORCE_PROJECT_REEVALUATION__=234" />
+  </Target>
+
+</Project>
