@@ -64,6 +64,38 @@ public class TestingBuilderTests
     [RequiresDocker]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task CreateAsyncWithOptions(bool genericEntryPoint)
+    {
+        var nonExistantRegistry = "non-existant-registry-azurecr.io";
+        var testEnvironmentName = "TestFooEnvironment";
+        Action<DistributedApplicationOptions, HostApplicationBuilderSettings> configureBuilder = (options, settings) =>
+        {
+            options.ContainerRegistryOverride = nonExistantRegistry;
+            settings.EnvironmentName = testEnvironmentName;
+        };
+
+        var appHost = await (genericEntryPoint
+            ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>([], configureBuilder)
+            : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost), [], configureBuilder));
+        Assert.Equal(testEnvironmentName, appHost.Environment.EnvironmentName);
+
+        await using var app = await appHost.BuildAsync();
+        await app.StartAsync();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        foreach (var resource in appModel.GetContainerResources())
+        {
+            var containerImageAnnotation = resource.Annotations.OfType<ContainerImageAnnotation>().FirstOrDefault();
+            Assert.NotNull(containerImageAnnotation);
+
+            Assert.Equal(nonExistantRegistry, containerImageAnnotation!.Registry);
+        }
+    }
+
+    [Theory]
+    [RequiresDocker]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task HasEndPoints(bool genericEntryPoint)
     {
         var appHost = await (genericEntryPoint

@@ -7,10 +7,11 @@ using System.Globalization;
 using System.Net;
 using System.Reflection;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using Aspire.Dashboard.Authentication;
+using Aspire.Dashboard.Authentication.Connection;
 using Aspire.Dashboard.Authentication.OpenIdConnect;
 using Aspire.Dashboard.Authentication.OtlpApiKey;
-using Aspire.Dashboard.Authentication.Connection;
 using Aspire.Dashboard.Components;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
@@ -24,6 +25,7 @@ using Microsoft.AspNetCore.Authentication.Certificate;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -32,7 +34,6 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-using Microsoft.AspNetCore.Authorization.Policy;
 
 namespace Aspire.Dashboard;
 
@@ -624,11 +625,15 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                         var options = context.HttpContext.RequestServices.GetRequiredService<IOptions<DashboardOptions>>().Value;
                         if (options.Otlp.AllowedCertificates is { Count: > 0 } allowList)
                         {
+                            string? certThumbprint = null;
+
                             var allowed = false;
                             foreach (var rule in allowList)
                             {
+                                certThumbprint ??= context.ClientCertificate.GetCertHashString(HashAlgorithmName.SHA256);
+
                                 // Thumbprint is hexadecimal and is case-insensitive.
-                                if (string.Equals(rule.Thumbprint, context.ClientCertificate.Thumbprint, StringComparison.OrdinalIgnoreCase))
+                                if (string.Equals(rule.Thumbprint, certThumbprint, StringComparison.OrdinalIgnoreCase))
                                 {
                                     allowed = true;
                                     break;

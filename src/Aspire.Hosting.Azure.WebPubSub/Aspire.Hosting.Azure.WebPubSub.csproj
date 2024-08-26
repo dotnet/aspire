@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting azure webpubsub pubsub websocket</PackageTags>
+    <PackageTags>aspire integration hosting azure webpubsub pubsub websocket</PackageTags>
     <Description>Azure WebPubSub resource types for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)AzureWebPubSub_256x.png</PackageIconFullPath>
     <!-- This library can't ship stable until Azure.Provisioning.WebPubSub ships stable. -->
