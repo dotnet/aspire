@@ -10,7 +10,6 @@ import {
 } from "/_content/Microsoft.FluentUI.AspNetCore.Components/Microsoft.FluentUI.AspNetCore.Components.lib.module.js";
 
 const currentThemeCookieName = "currentTheme";
-const themeSettingSystem = "System";
 const themeSettingDark = "Dark";
 const themeSettingLight = "Light";
 const darkThemeLuminance = 0.19;
@@ -31,7 +30,7 @@ export function updateTheme(specifiedTheme) {
 }
 
 /**
- * Returns the value of the currentTheme cookie, or System if the cookie is not set.
+ * Returns the value of the currentTheme cookie.
  * @returns {string}
  */
 export function getThemeCookieValue() {
@@ -61,10 +60,15 @@ function getSystemTheme() {
  * @param {string} theme
  */
 function setThemeCookie(theme) {
-    // Cookie will expire after 1 year. Using a much larger value won't have an impact because
-    // Chrome limits expiration to 400 days: https://developer.chrome.com/blog/cookie-max-age-expires
-    // The cookie is reset when the dashboard loads to creating a sliding expiration.
-    document.cookie = `${currentThemeCookieName}=${theme}; expires=${new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 365).toGMTString()}`;
+    if (theme == themeSettingDark || theme == themeSettingLight) {
+        // Cookie will expire after 1 year. Using a much larger value won't have an impact because
+        // Chrome limits expiration to 400 days: https://developer.chrome.com/blog/cookie-max-age-expires
+        // The cookie is reset when the dashboard loads to creating a sliding expiration.
+        document.cookie = `${currentThemeCookieName}=${theme}; Path=/; expires=${new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 365).toGMTString()}`;
+    } else {
+        // Delete cookie for other values (e.g. System)
+        document.cookie = `${currentThemeCookieName}=; Path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
+    }
 }
 
 /**
