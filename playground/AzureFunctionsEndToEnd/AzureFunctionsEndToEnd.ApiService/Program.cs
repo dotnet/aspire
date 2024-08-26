@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
@@ -26,8 +27,7 @@ app.MapGet("/publish/asq", async (QueueServiceClient client, CancellationToken c
 static string RandomString(int length)
 {
     const string chars = "abcdefghijklmnopqrstuvwxyz";
-    return new string(Enumerable.Repeat(chars, length)
-        .Select(s => s[Random.Shared.Next(s.Length)]).ToArray());
+    return RandomNumberGenerator.GetString(chars, length);
 }
 
 app.MapGet("/publish/blob", async (BlobServiceClient client, CancellationToken cancellationToken, int length = 20) =>
