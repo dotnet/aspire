@@ -27,7 +27,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     private Subscription? _metricsSubscription;
 
     public string BasePath => DashboardUrls.MetricsBasePath;
-    public string SessionStorageKey => "Metrics_PageState";
+    public string SessionStorageKey => "Aspire_Metrics_PageState";
     public MetricsViewModel PageViewModel { get; set; } = null!;
 
     [Parameter]
