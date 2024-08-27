@@ -53,7 +53,7 @@ public static class AzureFunctionsProjectResourceExtensions
                 connectionName ??= source.Resource.Name;
                 if (azureEventHubsResource.IsEmulator)
                 {
-                    context.EnvironmentVariables[(string)connectionName] = azureEventHubsResource.ConnectionStringExpression;
+                    context.EnvironmentVariables[connectionName] = azureEventHubsResource.ConnectionStringExpression;
                 }
                 else
                 {
