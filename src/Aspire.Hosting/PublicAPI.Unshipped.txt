@@ -16,6 +16,7 @@ Aspire.Hosting.ApplicationModel.BeforeStartEvent.BeforeStartEvent(System.IServic
 Aspire.Hosting.ApplicationModel.BeforeStartEvent.Model.get -> Aspire.Hosting.ApplicationModel.DistributedApplicationModel!
 Aspire.Hosting.ApplicationModel.BeforeStartEvent.Services.get -> System.IServiceProvider!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
+Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, System.Func<Aspire.Hosting.ApplicationModel.ResourceEvent!, bool>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ResourceEvent!>!
 Aspire.Hosting.DistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!
 Aspire.Hosting.Eventing.DistributedApplicationEventing
 Aspire.Hosting.Eventing.DistributedApplicationEventing.DistributedApplicationEventing() -> void
@@ -50,7 +51,7 @@ Aspire.Hosting.DistributedApplicationExecutionContextOptions.Operation.get -> As
 Aspire.Hosting.DistributedApplicationExecutionContextOptions.ServiceProvider.get -> System.IServiceProvider?
 Aspire.Hosting.DistributedApplicationExecutionContextOptions.ServiceProvider.set -> void
 static Aspire.Hosting.ResourceBuilderExtensions.WaitFor<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IResource!>! dependency) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
-static Aspire.Hosting.ResourceBuilderExtensions.WaitForCompletion<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IResource!>! dependency) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WaitForCompletion<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IResource!>! dependency, int exitCode = 0) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Exited -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.FailedToStart -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Finished -> string!
@@ -74,4 +75,5 @@ static Aspire.Hosting.ContainerResourceBuilderExtensions.WithBuildArg<T>(this As
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithBuildSecret<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ProjectResourceBuilderExtensions.AddProject(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! projectPath, System.Action<Aspire.Hosting.ProjectResourceOptions!>! configure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
 static Aspire.Hosting.ProjectResourceBuilderExtensions.AddProject<TProject>(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, System.Action<Aspire.Hosting.ProjectResourceOptions!>! configure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
+static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.TerminalStates -> string![]!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Waiting -> string!

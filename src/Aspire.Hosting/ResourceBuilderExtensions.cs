@@ -595,6 +595,7 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder for the resource that will be waiting.</param>
     /// <param name="dependency">The resource builder for the dependency resource.</param>
+    /// <param name="exitCode">The exit code which is interpretted as successful.</param>
     /// <returns>The resource builder.</returns>
     /// <remarks>
     /// <para>This method is useful when a resource should wait until another has completed. A common usage pattern
@@ -614,19 +615,49 @@ public static class ResourceBuilderExtensions
     ///        .WaitForCompletion(dbprep);
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> WaitForCompletion<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T : IResource
+    public static IResourceBuilder<T> WaitForCompletion<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, int exitCode = 0) where T : IResource
     {
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (e, ct) =>
         {
+            // TODO: Decide how we want to interpret inconsistent results from replicas of projects. For now
+            //       if we detect that the project is configured for replicas we will throw an exception.
+            if (dependency.Resource.Annotations.Any(a => a is ReplicaAnnotation ra && ra.Replicas > 1))
+            {
+                throw new DistributedApplicationException("WaitForCompletion cannot be used with resources that have replicas.");
+            }
+
             var rls = e.Services.GetRequiredService<ResourceLoggerService>();
             var resourceLogger = rls.GetLogger(builder.Resource);
-            resourceLogger.LogInformation($"Waiting for resource '{dependency.Resource.Name}' to enter the 'Finished' state.");
+            resourceLogger.LogInformation($"Waiting for resource '{dependency.Resource.Name}' to complete.");
 
             var rns = e.Services.GetRequiredService<ResourceNotificationService>();
             await rns.PublishUpdateAsync(builder.Resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
-            await rns.WaitForResourceAsync(dependency.Resource.Name, targetState: "Finished", cancellationToken: ct).ConfigureAwait(false);
+            var resourceEvent = await rns.WaitForResourceAsync(dependency.Resource.Name, re => IsKnownTerminalState(re.Snapshot), cancellationToken: ct).ConfigureAwait(false);
+            var snapshot = resourceEvent.Snapshot;
+
+            if (snapshot.State == KnownResourceStates.FailedToStart)
+            {
+                throw new DistributedApplicationException("Dependency resource failed to start.");
+            }
+            else if ((snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited)  && snapshot.ExitCode != exitCode)
+            {
+                resourceLogger.LogInformation(
+                    "Resource '{ResourceName}' has entered the '{State}' state with exit code '{ExitCode}'",
+                    dependency.Resource.Name,
+                    snapshot.State.Text,
+                    snapshot.ExitCode
+                    );
+
+                throw new DistributedApplicationException(
+                    $"Resource '{dependency.Resource.Name}' has entered the '{snapshot.State.Text}' state with exit code '{snapshot.ExitCode}'"
+                    );
+            }
         });
 
         return builder;
+
+        static bool IsKnownTerminalState(CustomResourceSnapshot snapshot) =>
+            KnownResourceStates.TerminalStates.Contains(snapshot.State?.Text) &&
+            snapshot.ExitCode is not null;
     }
 }

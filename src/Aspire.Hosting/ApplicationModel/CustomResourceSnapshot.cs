@@ -154,4 +154,9 @@ public static class KnownResourceStates
     /// The waiting state. Useful for showing the resource is waiting for a dependency.
     /// </summary>
     public static readonly string Waiting = nameof(Waiting);
+
+    /// <summary>
+    /// List of terminal states.
+    /// </summary>
+    public static readonly string[] TerminalStates = [Finished, FailedToStart, Exited];
 }
