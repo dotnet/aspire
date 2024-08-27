@@ -246,6 +246,7 @@ public class ResourceLoggerService
 
             using var _ = _logStreamCts.Token.Register(() => channel.Writer.TryComplete());
 
+            // No need to lock in the log method because TryWrite/TryComplete are already threadsafe.
             void Log(LogEntry log) => channel.Writer.TryWrite(log);
 
             LogEntry[] backlogSnapshot;
