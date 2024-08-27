@@ -34,8 +34,7 @@ internal static partial class TimestampParser
                 }
             }
 
-            var timestamp = match.ValueSpan;
-            result = new(content.ToString(), DateTimeOffset.Parse(timestamp.ToString(), CultureInfo.InvariantCulture));
+            result = new(content.ToString(), DateTimeOffset.Parse(match.ValueSpan, CultureInfo.InvariantCulture));
             return true;
         }
 
