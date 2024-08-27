@@ -20,6 +20,7 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
 
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
+    <Compile Include="$(TestsSharedDir)ConsoleLogging\*.cs" LinkBase="shared" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.PostgreSQL\PostgresContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Redis\RedisContainerImageTags.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Testing\ResourceLoggerForwarderService.cs" Link="Utils\ResourceLoggerForwarderService.cs" />

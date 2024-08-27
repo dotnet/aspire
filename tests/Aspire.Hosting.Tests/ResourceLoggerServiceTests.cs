@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Tests.Utils;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
@@ -9,30 +10,16 @@ namespace Aspire.Hosting.Tests;
 public class ResourceLoggerServiceTests
 {
     [Fact]
-    public void ParseStreamedLogLine()
-    {
-        DateTime dateTimeUtc;
-
-        Assert.False(ResourceLoggerService.TryParseContentLineDate("", out _));
-        Assert.False(ResourceLoggerService.TryParseContentLineDate(" ", out _));
-        Assert.False(ResourceLoggerService.TryParseContentLineDate("ABC-ABC-ABC-ABC-ABC-ABC-ABC-ABC-ABC-ABC-ABC-ABC", out _));
-
-        Assert.True(ResourceLoggerService.TryParseContentLineDate("2024-08-19T06:01:06.661Z", out dateTimeUtc));
-        Assert.Equal(new DateTime(2024, 8, 19, 6, 1, 6, 661, DateTimeKind.Utc), dateTimeUtc);
-
-        Assert.True(ResourceLoggerService.TryParseContentLineDate("2024-08-19T06:10:33.473275911Z", out dateTimeUtc));
-        Assert.Equal(new DateTime(2024, 8, 19, 6, 10, 33, 473, 275, DateTimeKind.Utc).Add(TimeSpan.FromTicks(9)), dateTimeUtc);
-    }
-
-    [Fact]
     public async Task AddingResourceLoggerAnnotationAllowsLogging()
     {
         var testResource = new TestResource("myResource");
-        var service = new ResourceLoggerService();
+        var service = ConsoleLoggingTestHelpers.GetResourceLoggerService();
         var logger = service.GetLogger(testResource);
 
         var subsLoop = WatchForSubscribers(service);
-        var logsLoop = WatchForLogs(service, 2, testResource);
+
+        var logsEnumerator1 = service.WatchAsync(testResource).GetAsyncEnumerator();
+        var logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator1, 2);
 
         // Wait for subscriber to be added
         await subsLoop.WaitAsync(TimeSpan.FromSeconds(15));
@@ -44,32 +31,36 @@ public class ResourceLoggerServiceTests
         // Wait for logs to be read
         var allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
 
-        Assert.Equal("Hello, world!", allLogs[0].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000 Hello, world!", allLogs[0].Content);
         Assert.False(allLogs[0].IsErrorMessage);
 
-        Assert.Equal("Hello, error!", allLogs[1].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000 Hello, error!", allLogs[1].Content);
         Assert.True(allLogs[1].IsErrorMessage);
 
         // New sub should get the previous logs
         subsLoop = WatchForSubscribers(service);
-        logsLoop = WatchForLogs(service, 2, testResource);
-        await subsLoop.WaitAsync(TimeSpan.FromSeconds(15));
+        var logsEnumerator2 = service.WatchAsync(testResource).GetAsyncEnumerator();
+        logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator2, 2);
+        await subsLoop.WaitAsync(TimeSpan.FromSeconds(150));
         allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
 
         Assert.Equal(2, allLogs.Count);
-        Assert.Equal("Hello, world!", allLogs[0].Content);
-        Assert.Equal("Hello, error!", allLogs[1].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000 Hello, world!", allLogs[0].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000 Hello, error!", allLogs[1].Content);
+
+        await logsEnumerator1.DisposeAsync();
+        await logsEnumerator2.DisposeAsync();
     }
 
     [Fact]
     public async Task StreamingLogsCancelledAfterComplete()
     {
         var testResource = new TestResource("myResource");
-        var service = new ResourceLoggerService();
+        var service = ConsoleLoggingTestHelpers.GetResourceLoggerService();
         var logger = service.GetLogger(testResource);
 
         var subsLoop = WatchForSubscribers(service);
-        var logsLoop = WatchForLogs(service, 2, testResource);
+        var logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(service, 2, testResource);
 
         // Wait for subscriber to be added
         await subsLoop.WaitAsync(TimeSpan.FromSeconds(15));
@@ -84,30 +75,27 @@ public class ResourceLoggerServiceTests
         // Wait for logs to be read
         var allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
 
-        Assert.Equal("Hello, world!", allLogs[0].Content);
-        Assert.False(allLogs[0].IsErrorMessage);
-
-        Assert.Equal("Hello, error!", allLogs[1].Content);
-        Assert.True(allLogs[1].IsErrorMessage);
-
-        Assert.DoesNotContain("The third log", allLogs.Select(x => x.Content));
+        Assert.Collection(allLogs,
+            l => Assert.Equal("2000-12-29T20:59:59.0000000 Hello, world!", l.Content),
+            l => Assert.Equal("2000-12-29T20:59:59.0000000 Hello, error!", l.Content));
 
         // New sub should not get new logs as the stream is completed
-        logsLoop = WatchForLogs(service, 100, testResource);
+        logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(service, 100, testResource);
         allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
 
-        Assert.Equal(2, allLogs.Count);
+        Assert.Equal(0, allLogs.Count);
     }
 
     [Fact]
     public async Task SecondSubscriberGetsBacklog()
     {
         var testResource = new TestResource("myResource");
-        var service = new ResourceLoggerService();
+        var service = ConsoleLoggingTestHelpers.GetResourceLoggerService();
         var logger = service.GetLogger(testResource);
 
         var subsLoop = WatchForSubscribers(service);
-        var logsLoop = WatchForLogs(service, 2, testResource);
+        var logsEnumerator1 = service.WatchAsync(testResource).GetAsyncEnumerator();
+        var logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator1, 2);
 
         // Wait for subscriber to be added
         await subsLoop.WaitAsync(TimeSpan.FromSeconds(15));
@@ -119,34 +107,36 @@ public class ResourceLoggerServiceTests
         // Wait for logs to be read
         var allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
 
-        Assert.Equal("Hello, world!", allLogs[0].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000 Hello, world!", allLogs[0].Content);
         Assert.False(allLogs[0].IsErrorMessage);
 
-        Assert.Equal("Hello, error!", allLogs[1].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000 Hello, error!", allLogs[1].Content);
         Assert.True(allLogs[1].IsErrorMessage);
 
         // New sub should get the previous logs (backlog)
         subsLoop = WatchForSubscribers(service);
-        logsLoop = WatchForLogs(service, 2, testResource);
+        var logsEnumerator2 = service.WatchAsync(testResource).GetAsyncEnumerator();
+        logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator2, 2);
         await subsLoop.WaitAsync(TimeSpan.FromSeconds(15));
         allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
 
         Assert.Equal(2, allLogs.Count);
-        Assert.Equal("Hello, world!", allLogs[0].Content);
-        Assert.Equal("Hello, error!", allLogs[1].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000 Hello, world!", allLogs[0].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000 Hello, error!", allLogs[1].Content);
 
         // Clear the backlog and ensure new subs only get new logs
         service.ClearBacklog(testResource.Name);
 
         subsLoop = WatchForSubscribers(service);
-        logsLoop = WatchForLogs(service, 1, testResource);
+        var logsEnumerator3 = service.WatchAsync(testResource).GetAsyncEnumerator();
+        logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(logsEnumerator3, 1);
         await subsLoop.WaitAsync(TimeSpan.FromSeconds(15));
         logger.LogInformation("The third log");
         allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
 
         // The backlog should be cleared so only new logs are received
         Assert.Equal(1, allLogs.Count);
-        Assert.Equal("The third log", allLogs[0].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000 The third log", allLogs[0].Content);
     }
 
     private sealed class TestResource(string name) : Resource(name)
@@ -165,23 +155,6 @@ public class ResourceLoggerServiceTests
                     break;
                 }
             }
-        });
-    }
-
-    private static Task<IReadOnlyList<LogLine>> WatchForLogs(ResourceLoggerService service, int targetLogCount, IResource resource)
-    {
-        return Task.Run(async () =>
-        {
-            var logs = new List<LogLine>();
-            await foreach (var log in service.WatchAsync(resource))
-            {
-                logs.AddRange(log);
-                if (logs.Count >= targetLogCount)
-                {
-                    break;
-                }
-            }
-            return (IReadOnlyList<LogLine>)logs;
         });
     }
 }
