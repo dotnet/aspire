@@ -16,7 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="**/*.props;**/*.targets" Pack="true" PackagePath="%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Include="**/*.props;**/*.targets;AspireAppHostConfiguration.json" Pack="true" PackagePath="%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

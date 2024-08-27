@@ -12,6 +12,11 @@
     <ProjectCapability Include="Aspire" Condition=" '$(IsAspireHost)' == 'true' " />
   </ItemGroup>
 
+  <ItemGroup>
+    <JsonSchemaSegment Include="$(MSBuildThisFileDirectory)..\AspireAppHostConfiguration.json"
+                       FilePathPattern="appsettings\..*json" />
+  </ItemGroup>
+
   <Target Name="_CreateAspireProjectResources">
 
     <ItemGroup>

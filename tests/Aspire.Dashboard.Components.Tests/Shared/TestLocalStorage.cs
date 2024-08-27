@@ -9,10 +9,20 @@ public sealed class TestLocalStorage : ILocalStorage
 {
     public Task<StorageResult<T>> GetAsync<T>(string key)
     {
-        return Task.FromResult<StorageResult<T>>(new StorageResult<T>(Success: false, Value: default));
+        return Task.FromResult(new StorageResult<T>(Success: false, Value: default));
+    }
+
+    public Task<StorageResult<T>> GetUnprotectedAsync<T>(string key)
+    {
+        return Task.FromResult(new StorageResult<T>(Success: false, Value: default));
     }
 
     public Task SetAsync<T>(string key, T value)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task SetUnprotectedAsync<T>(string key, T value)
     {
         return Task.CompletedTask;
     }

@@ -17,9 +17,10 @@
     <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
 
     <Compile Include="$(RepoRoot)tests\Aspire.Hosting.Tests\Utils\LoggerNotificationExtensions.cs" />
-    <Compile Include="$(RepoRoot)tests\Aspire.Hosting.Tests\Utils\MSBuildUtils.cs" LinkBase="shared\tests\MSBuildUtils.cs" />
-    <Compile Include="$(RepoRoot)tests\testproject\Common\TestResourceNames.cs" LinkBase="shared\tests\TestResourceNames.cs" />
+    <Compile Include="$(RepoRoot)tests\Aspire.Hosting.Tests\Utils\MSBuildUtils.cs" Link="shared\tests\MSBuildUtils.cs" />
+    <Compile Include="$(RepoRoot)tests\testproject\Common\TestResourceNames.cs" Link="shared\tests\TestResourceNames.cs" />
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared\Logging" />
+    <Compile Include="$(TestsSharedDir)ConsoleLogging\*.cs" LinkBase="shared" />
   </ItemGroup>
 
   <ItemGroup>

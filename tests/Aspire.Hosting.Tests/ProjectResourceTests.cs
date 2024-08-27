@@ -163,11 +163,6 @@ public class ProjectResourceTests
             {
                 Assert.Equal("LOGGING__CONSOLE__FORMATTERNAME", env.Key);
                 Assert.Equal("simple", env.Value);
-            },
-            env =>
-            {
-                Assert.Equal("LOGGING__CONSOLE__FORMATTEROPTIONS__TIMESTAMPFORMAT", env.Key);
-                Assert.Equal("yyyy-MM-ddTHH:mm:ss.fffffff ", env.Value);
             });
     }
 
