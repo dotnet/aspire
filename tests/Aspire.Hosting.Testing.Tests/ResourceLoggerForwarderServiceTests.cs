@@ -119,12 +119,12 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
         // Category is derived from the application name and resource name
         // Logs sent at information level or lower are logged as information, otherwise they are logged as error
         Assert.Collection(hostLogs,
-            log => { Assert.Equal(LogLevel.Information, log.Level); Assert.Equal("1: 2000-12-29T20:59:59.0000000 Test trace message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
-            log => { Assert.Equal(LogLevel.Information, log.Level); Assert.Equal("2: 2000-12-29T20:59:59.0000000 Test debug message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
-            log => { Assert.Equal(LogLevel.Information, log.Level); Assert.Equal("3: 2000-12-29T20:59:59.0000000 Test information message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
-            log => { Assert.Equal(LogLevel.Information, log.Level); Assert.Equal("4: 2000-12-29T20:59:59.0000000 Test warning message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
-            log => { Assert.Equal(LogLevel.Error, log.Level); Assert.Equal("5: 2000-12-29T20:59:59.0000000 Test error message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
-            log => { Assert.Equal(LogLevel.Error, log.Level); Assert.Equal("6: 2000-12-29T20:59:59.0000000 Test critical message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); });
+            log => { Assert.Equal(LogLevel.Information, log.Level); Assert.Equal("1: 2000-12-29T20:59:59.0000000Z Test trace message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
+            log => { Assert.Equal(LogLevel.Information, log.Level); Assert.Equal("2: 2000-12-29T20:59:59.0000000Z Test debug message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
+            log => { Assert.Equal(LogLevel.Information, log.Level); Assert.Equal("3: 2000-12-29T20:59:59.0000000Z Test information message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
+            log => { Assert.Equal(LogLevel.Information, log.Level); Assert.Equal("4: 2000-12-29T20:59:59.0000000Z Test warning message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
+            log => { Assert.Equal(LogLevel.Error, log.Level); Assert.Equal("5: 2000-12-29T20:59:59.0000000Z Test error message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); },
+            log => { Assert.Equal(LogLevel.Error, log.Level); Assert.Equal("6: 2000-12-29T20:59:59.0000000Z Test critical message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); });
     }
 
     private sealed class CustomResource(string name) : Resource(name)
