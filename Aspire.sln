@@ -1,4 +1,5 @@
-﻿Microsoft Visual Studio Solution File, Format Version 12.00
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -592,6 +593,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureFunctionsEndToEnd.Functions", "playground\AzureFunctionsEndToEnd\AzureFunctionsEndToEnd.Functions\AzureFunctionsEndToEnd.Functions.csproj", "{79D2E40E-95EC-4BAF-8382-E5669B8E6E42}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureFunctionsEndToEnd.Web", "playground\AzureFunctionsEndToEnd\AzureFunctionsEndToEnd.Web\AzureFunctionsEndToEnd.Web.csproj", "{7DFB3793-0A76-407C-862B-150AB15EBB00}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Azure.Functions", "src\Aspire.Hosting.Azure.Functions\Aspire.Hosting.Azure.Functions.csproj", "{A8FFEB1F-B128-48D0-A114-5C94FF770551}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1563,6 +1566,10 @@ Global
 		{7DFB3793-0A76-407C-862B-150AB15EBB00}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7DFB3793-0A76-407C-862B-150AB15EBB00}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7DFB3793-0A76-407C-862B-150AB15EBB00}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A8FFEB1F-B128-48D0-A114-5C94FF770551}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8FFEB1F-B128-48D0-A114-5C94FF770551}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A8FFEB1F-B128-48D0-A114-5C94FF770551}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A8FFEB1F-B128-48D0-A114-5C94FF770551}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1849,6 +1856,7 @@ Global
 		{13025E2D-2E2B-4319-8754-0B12F324283E} = {305D5B56-8782-493C-BD44-9860F8616D92}
 		{79D2E40E-95EC-4BAF-8382-E5669B8E6E42} = {305D5B56-8782-493C-BD44-9860F8616D92}
 		{7DFB3793-0A76-407C-862B-150AB15EBB00} = {305D5B56-8782-493C-BD44-9860F8616D92}
+		{A8FFEB1F-B128-48D0-A114-5C94FF770551} = {77CFE74A-32EE-400C-8930-5025E8555256}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

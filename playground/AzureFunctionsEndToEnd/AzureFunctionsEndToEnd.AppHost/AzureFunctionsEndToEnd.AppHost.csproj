@@ -10,15 +10,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AzureFunctionsEndToEnd.ApiService\AzureFunctionsEndToEnd.ApiService.csproj" />
-    <ProjectReference Include="..\AzureFunctionsEndToEnd.Web\AzureFunctionsEndToEnd.Web.csproj" />
-    <ProjectReference Include="..\AzureFunctionsEndToEnd.Functions\AzureFunctionsEndToEnd.Functions.csproj" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Functions" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.EventHubs" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" />
   </ItemGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.EventHubs" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" />
+    <ProjectReference Include="..\AzureFunctionsEndToEnd.ApiService\AzureFunctionsEndToEnd.ApiService.csproj" />
+    <ProjectReference Include="..\AzureFunctionsEndToEnd.Functions\AzureFunctionsEndToEnd.Functions.csproj" />
+    <ProjectReference Include="..\AzureFunctionsEndToEnd.Web\AzureFunctionsEndToEnd.Web.csproj" />
   </ItemGroup>
 
 </Project>
