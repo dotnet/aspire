@@ -246,22 +246,12 @@ public class ResourceLoggerService
 
             using var _ = _logStreamCts.Token.Register(() => channel.Writer.TryComplete());
 
-            LogEntry[]? backlogSnapshot = null;
-            void Log(LogEntry log)
-            {
-                lock (_lock)
-                {
-                    // Don't write to the channel until the backlog snapshot is accessed.
-                    // This prevents duplicate logs in result.
-                    if (backlogSnapshot != null)
-                    {
-                        channel.Writer.TryWrite(log);
-                    }
-                }
-            }
+            void Log(LogEntry log) => channel.Writer.TryWrite(log);
 
+            LogEntry[] backlogSnapshot;
             lock (_lock)
             {
+                // Get back
                 backlogSnapshot = GetBacklogSnapshot();
                 OnNewLog += Log;
             }
@@ -315,7 +305,9 @@ public class ResourceLoggerService
             {
                 Debug.Assert(Monitor.IsEntered(_lock));
 
-                var raiseSubscribersChanged = _onNewLog is null; // is this the first subscriber?
+                // When this is the first subscriber, raise event so WatchAnySubscribersAsync publishes an update.
+                // Is this the first subscriber?
+                var raiseSubscribersChanged = _onNewLog is null;
 
                 _onNewLog += value;
 
@@ -330,8 +322,9 @@ public class ResourceLoggerService
 
                 _onNewLog -= value;
 
-                var raiseSubscribersChanged = _onNewLog is null; // is this the last subscriber?
-
+                // When there are no more subscribers, raise event so WatchAnySubscribersAsync publishes an update.
+                // Is this the last subscriber?
+                var raiseSubscribersChanged = _onNewLog is null;
                 if (raiseSubscribersChanged)
                 {
                     // Clear backlog immediately.
