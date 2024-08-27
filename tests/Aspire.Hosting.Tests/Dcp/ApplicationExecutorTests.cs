@@ -424,7 +424,7 @@ public class ApplicationExecutorTests
         await pipes.StandardOut.Writer.WriteAsync(Encoding.UTF8.GetBytes("2024-08-19T06:10:33.473275911Z Hello world" + Environment.NewLine));
         Assert.True(await moveNextTask);
         var logLine = watchLogsEnumerator.Current.Single();
-        Assert.Equal("2024-08-19T06:10:33.4732759 Hello world", logLine.Content);
+        Assert.Equal("2024-08-19T06:10:33.4732759Z Hello world", logLine.Content);
         Assert.Equal(1, logLine.LineNumber);
         Assert.False(logLine.IsErrorMessage);
 
@@ -435,7 +435,7 @@ public class ApplicationExecutorTests
         await pipes.StandardErr.Writer.WriteAsync(Encoding.UTF8.GetBytes("2024-08-19T06:10:32.661Z Next" + Environment.NewLine));
         Assert.True(await moveNextTask);
         logLine = watchLogsEnumerator.Current.Single();
-        Assert.Equal("2024-08-19T06:10:32.6610000 Next", logLine.Content);
+        Assert.Equal("2024-08-19T06:10:32.6610000Z Next", logLine.Content);
         Assert.Equal(2, logLine.LineNumber);
         Assert.True(logLine.IsErrorMessage);
 
