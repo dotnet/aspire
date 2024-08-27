@@ -424,7 +424,7 @@ public class ApplicationExecutorTests
         await pipes.StandardOut.Writer.WriteAsync(Encoding.UTF8.GetBytes("2024-08-19T06:10:33.473275911Z Hello world" + Environment.NewLine));
         Assert.True(await moveNextTask);
         var logLine = watchLogsEnumerator.Current.Single();
-        Assert.Equal("2024-08-19T06:10:33.473275911Z Hello world", logLine.Content);
+        Assert.Equal("2024-08-19T06:10:33.4732759Z Hello world", logLine.Content);
         Assert.Equal(1, logLine.LineNumber);
         Assert.False(logLine.IsErrorMessage);
 
@@ -435,14 +435,14 @@ public class ApplicationExecutorTests
         await pipes.StandardErr.Writer.WriteAsync(Encoding.UTF8.GetBytes("2024-08-19T06:10:32.661Z Next" + Environment.NewLine));
         Assert.True(await moveNextTask);
         logLine = watchLogsEnumerator.Current.Single();
-        Assert.Equal("2024-08-19T06:10:32.661Z Next", logLine.Content);
+        Assert.Equal("2024-08-19T06:10:32.6610000Z Next", logLine.Content);
         Assert.Equal(2, logLine.LineNumber);
         Assert.True(logLine.IsErrorMessage);
 
         var loggerState = resourceLoggerService.GetResourceLoggerState(exeResource.Metadata.Name);
         Assert.Collection(loggerState.GetBacklogSnapshot(),
-            l => Assert.Equal("2024-08-19T06:10:32.661Z Next", l.Message),
-            l => Assert.Equal("2024-08-19T06:10:33.473275911Z Hello world", l.Message));
+            l => Assert.Equal("Next", l.Content),
+            l => Assert.Equal("Hello world", l.Content));
 
         // Stop watching.
         moveNextTask = watchLogsEnumerator.MoveNextAsync().AsTask();
@@ -504,10 +504,9 @@ public class ApplicationExecutorTests
         var watchSubscribers = resourceLoggerService.WatchAnySubscribersAsync();
         var watchSubscribersEnumerator = watchSubscribers.GetAsyncEnumerator();
         var watchLogs1 = resourceLoggerService.WatchAsync(exeResource.Metadata.Name);
-        var watchLogsEnumerator1 = watchLogs1.GetAsyncEnumerator(watchCts.Token);
+        var watchLogsTask1 = ConsoleLoggingTestHelpers.WatchForLogsAsync(watchLogs1, targetLogCount: 7);
 
-        var moveNextTask = watchLogsEnumerator1.MoveNextAsync().AsTask();
-        Assert.False(moveNextTask.IsCompletedSuccessfully, "No logs yet.");
+        Assert.False(watchLogsTask1.IsCompletedSuccessfully, "Logs not available yet.");
 
         await watchSubscribersEnumerator.MoveNextAsync();
         Assert.Equal(exeResource.Metadata.Name, watchSubscribersEnumerator.Current.Name);
@@ -516,28 +515,27 @@ public class ApplicationExecutorTests
         exeResource.Status = new ContainerStatus { State = ContainerState.Running };
         kubernetesService.PushResourceModified(exeResource);
 
-        Assert.True(await moveNextTask);
-        Assert.Collection(watchLogsEnumerator1.Current,
-            l => Assert.Equal("2024-08-19T06:10:01.000Z First", l.Content),
-            l => Assert.Equal("2024-08-19T06:10:02.000Z Second", l.Content),
-            l => Assert.Equal("2024-08-19T06:10:03.000Z Third", l.Content),
-            l => Assert.Equal("2024-08-19T06:10:04.000Z Forth", l.Content),
-            l => Assert.Equal("2024-08-19T06:10:04.000Z Fifth", l.Content),
-            l => Assert.Equal("2024-08-19T06:10:05.000Z Sixth", l.Content),
-            l => Assert.Equal("2024-08-19T06:10:05.000Z Seventh", l.Content));
+        var watchLogsResults1 = await watchLogsTask1;
+        Assert.Equal(7, watchLogsResults1.Count);
+        Assert.Contains(watchLogsResults1, l => l.Content.Contains("First"));
+        Assert.Contains(watchLogsResults1, l => l.Content.Contains("Second"));
+        Assert.Contains(watchLogsResults1, l => l.Content.Contains("Third"));
+        Assert.Contains(watchLogsResults1, l => l.Content.Contains("Forth"));
+        Assert.Contains(watchLogsResults1, l => l.Content.Contains("Fifth"));
+        Assert.Contains(watchLogsResults1, l => l.Content.Contains("Sixth"));
+        Assert.Contains(watchLogsResults1, l => l.Content.Contains("Seventh"));
 
         var watchLogs2 = resourceLoggerService.WatchAsync(exeResource.Metadata.Name);
-        var watchLogsEnumerator2 = watchLogs2.GetAsyncEnumerator(watchCts.Token);
+        var watchLogsTask2 = ConsoleLoggingTestHelpers.WatchForLogsAsync(watchLogs2, targetLogCount: 7);
 
-        Assert.True(await watchLogsEnumerator2.MoveNextAsync());
-        Assert.Collection(watchLogsEnumerator2.Current,
-            l => Assert.Equal("2024-08-19T06:10:01.000Z First", l.Content),
-            l => Assert.Equal("2024-08-19T06:10:02.000Z Second", l.Content),
-            l => Assert.Equal("2024-08-19T06:10:03.000Z Third", l.Content),
-            l => Assert.Equal("2024-08-19T06:10:04.000Z Forth", l.Content),
-            l => Assert.Equal("2024-08-19T06:10:04.000Z Fifth", l.Content),
-            l => Assert.Equal("2024-08-19T06:10:05.000Z Sixth", l.Content),
-            l => Assert.Equal("2024-08-19T06:10:05.000Z Seventh", l.Content));
+        var watchLogsResults2 = await watchLogsTask2;
+        Assert.Contains(watchLogsResults2, l => l.Content.Contains("First"));
+        Assert.Contains(watchLogsResults2, l => l.Content.Contains("Second"));
+        Assert.Contains(watchLogsResults2, l => l.Content.Contains("Third"));
+        Assert.Contains(watchLogsResults2, l => l.Content.Contains("Forth"));
+        Assert.Contains(watchLogsResults2, l => l.Content.Contains("Fifth"));
+        Assert.Contains(watchLogsResults2, l => l.Content.Contains("Sixth"));
+        Assert.Contains(watchLogsResults2, l => l.Content.Contains("Seventh"));
     }
 
     private sealed class LogStreamPipes

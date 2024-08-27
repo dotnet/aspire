@@ -1,5 +1,8 @@
 ﻿@namespace Aspire.Dashboard.Components
+@using System.Globalization
 @using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Utils
+@using Aspire.Hosting.ConsoleLogs
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
@@ -11,15 +14,20 @@
                     <span class="log-line-area" role="log">
                         <span class="log-line-number">@context.LineNumber</span>
                         <span class="log-content">
+                            @{
+                                var hasPrefix = false;
+                            }
                             @if (context.Timestamp is { } timestamp)
                             {
-                                <span class="timestamp">@GetDisplayTimestamp(timestamp)</span>
+                                hasPrefix = true;
+                                <span class="timestamp" title="@FormatHelpers.FormatDateTime(TimeProvider, timestamp, MillisecondsDisplay.Full, CultureInfo.CurrentCulture)">@GetDisplayTimestamp(timestamp)</span>
                             }
                             @if (context.Type == LogEntryType.Error)
                             {
+                                hasPrefix = true;
                                 <fluent-badge appearance="accent">stderr</fluent-badge>
                             }
-                            @((MarkupString)(context.Content ?? string.Empty))
+                            @((MarkupString)((hasPrefix ? "&#32;" : string.Empty) + (context.Content ?? string.Empty)))
                         </span>
                     </span>
                 </div>

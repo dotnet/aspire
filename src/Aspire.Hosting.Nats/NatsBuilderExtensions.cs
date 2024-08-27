@@ -21,6 +21,9 @@ public static class NatsBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<NatsServerResource> AddNats(this IDistributedApplicationBuilder builder, string name, int? port = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         var nats = new NatsServerResource(name);
         return builder.AddResource(nats)
                       .WithEndpoint(targetPort: 4222, port: port, name: NatsServerResource.PrimaryEndpointName)
@@ -54,7 +57,11 @@ public static class NatsBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<NatsServerResource> WithJetStream(this IResourceBuilder<NatsServerResource> builder)
-        => builder.WithArgs("-js");
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithArgs("-js");
+    }
 
     /// <summary>
     /// Adds a named volume for the data folder to a NATS container resource.
@@ -64,8 +71,13 @@ public static class NatsBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<NatsServerResource> WithDataVolume(this IResourceBuilder<NatsServerResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/nats", isReadOnly)
-                  .WithArgs("-sd", "/var/lib/nats");
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/nats",
+                isReadOnly)
+            .WithArgs("-sd", "/var/lib/nats");
+    }
 
     /// <summary>
     /// Adds a bind mount for the data folder to a NATS container resource.
@@ -75,7 +87,11 @@ public static class NatsBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<NatsServerResource> WithDataBindMount(this IResourceBuilder<NatsServerResource> builder, string source, bool isReadOnly = false)
-        => builder.WithBindMount(source, "/var/lib/nats", isReadOnly)
-                  .WithArgs("-sd", "/var/lib/nats");
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
 
+        return builder.WithBindMount(source, "/var/lib/nats", isReadOnly)
+            .WithArgs("-sd", "/var/lib/nats");
+    }
 }

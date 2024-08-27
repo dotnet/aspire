@@ -22,6 +22,23 @@ app.Lifetime.ApplicationStarted.Register(ConsoleStresser.Stress);
 
 app.MapGet("/", () => "Hello world");
 
+app.MapGet("/write-console", () =>
+{
+    for (var i = 0; i < 5000; i++)
+    {
+        if (i % 500 == 0)
+        {
+            Console.Error.WriteLine($"{i} Error");
+        }
+        else
+        {
+            Console.Out.WriteLine($"{i} Out");
+        }
+    }
+
+    return "Console written";
+});
+
 app.MapGet("/increment-counter", (TestMetrics metrics) =>
 {
     metrics.IncrementCounter(1, new TagList([new KeyValuePair<string, object?>("add-tag", "1")]));
