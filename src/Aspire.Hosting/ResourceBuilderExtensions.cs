@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
@@ -527,6 +528,80 @@ public static class ResourceBuilderExtensions
     {
         return builder.Resource.GetEndpoint(name);
     }
+
+    /// <summary>
+    /// Adds an endpoint URL for the endpoint with the specified name and relative URL.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="endpointName">The name of the endpoint.</param>
+    /// <param name="relativeUrl">The URL relative to the endpoint.</param>
+    /// <param name="isLaunchUrl">Specifies whether the endpoint URL should launch at startup.</param>
+    /// <param name="excludeFromDashboard">Specifies whether the endpoint URL should be excluded from the dashboard.</param>
+    /// <returns>The updated resource builder.</returns>
+    public static IResourceBuilder<T> WithEndpointUrl<T>(
+        this IResourceBuilder<T> builder,
+        string endpointName,
+        string relativeUrl,
+        bool isLaunchUrl = false,
+        bool excludeFromDashboard = false)
+        where T : IResourceWithEndpoints
+    {
+        if (!builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            return builder;
+        }
+
+        var endpoint = builder.GetEndpoint(endpointName);
+
+        if (isLaunchUrl)
+        {
+            builder.ApplicationBuilder.Services.AddLifecycleHook(_ =>
+                new LaunchEndpointUrlLifecycleHook(endpoint, relativeUrl));
+        }
+
+        var annotation = new EndpointUrlAnnotation(
+            endpointName,
+            relativeUrl,
+            isLaunchUrl,
+            excludeFromDashboard);
+
+        return builder.WithAnnotation(annotation);
+    }
+
+    /// <summary>
+    /// Adds an endpoint URL for the endpoint named "http" with the specified relative URL.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="relativeUrl">The URL relative to the endpoint.</param>
+    /// <param name="isLaunchUrl">Specifies whether the endpoint URL should launch at startup.</param>
+    /// <param name="excludeFromDashboard">Specifies whether the endpoint URL should be excluded from the dashboard.</param>
+    /// <returns>The updated resource builder.</returns>
+    public static IResourceBuilder<T> WithHttpEndpointUrl<T>(
+        this IResourceBuilder<T> builder,
+        string relativeUrl,
+        bool isLaunchUrl = false,
+        bool excludeFromDashboard = false)
+        where T : IResourceWithEndpoints =>
+        builder.WithEndpointUrl("http", relativeUrl, isLaunchUrl, excludeFromDashboard);
+
+    /// <summary>
+    /// Adds an endpoint URL for the endpoint named "https" with the specified relative URL.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="relativeUrl">The URL relative to the endpoint.</param>
+    /// <param name="isLaunchUrl">Specifies whether the endpoint URL should launch at startup.</param>
+    /// <param name="excludeFromDashboard">Specifies whether the endpoint URL should be excluded from the dashboard.</param>
+    /// <returns>The updated resource builder.</returns>
+    public static IResourceBuilder<T> WithHttpsEndpointUrl<T>(
+        this IResourceBuilder<T> builder,
+        string relativeUrl,
+        bool isLaunchUrl = false,
+        bool excludeFromDashboard = false)
+        where T : IResourceWithEndpoints =>
+        builder.WithEndpointUrl("https", relativeUrl, isLaunchUrl, excludeFromDashboard);
 
     /// <summary>
     /// Configures a resource to mark all endpoints' transport as HTTP/2. This is useful for HTTP/2 services that need prior knowledge.
