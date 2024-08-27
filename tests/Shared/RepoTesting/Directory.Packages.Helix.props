@@ -4,7 +4,7 @@
   <ItemGroup Label="Aspire packages">
     <PackageVersion Include="Aspire.Azure.AI.OpenAI" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.Azure.Data.Tables" Version="8.2.0" />
-    <PackageVersion Include="Aspire.Azure.Messaging.EventHubs" Version="$(PackageVersion)" />
+    <PackageVersion Include="Aspire.Azure.Messaging.EventHubs" Version="8.2.0" />
     <PackageVersion Include="Aspire.Azure.Messaging.ServiceBus" Version="8.2.0" />
     <PackageVersion Include="Aspire.Azure.Messaging.WebPubSub" Version="8.2.0" />
     <PackageVersion Include="Aspire.Azure.Search.Documents" Version="8.2.0" />
