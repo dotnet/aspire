@@ -65,7 +65,7 @@ public sealed partial class LogViewer
         });
     }
 
-    internal async Task SetLogSourceAsync(string resourceName, IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> batches, bool convertTimestampsFromUtc)
+    internal async Task SetLogSourceAsync(string resourceName, IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> batches, bool convertTimestampsFromUtc = true)
     {
         ResourceName = resourceName;
 
@@ -102,12 +102,9 @@ public sealed partial class LogViewer
 
     private string GetDisplayTimestamp(DateTimeOffset timestamp)
     {
-        if (_convertTimestampsFromUtc)
-        {
-            timestamp = TimeProvider.ToLocal(timestamp);
-        }
+        var date = _convertTimestampsFromUtc ? TimeProvider.ToLocal(timestamp) : timestamp.DateTime;
 
-        return timestamp.ToString(KnownFormats.ConsoleLogsTimestampFormat, CultureInfo.InvariantCulture);
+        return date.ToString(KnownFormats.ConsoleLogsUITimestampFormat, CultureInfo.InvariantCulture);
     }
 
     internal async Task ClearLogsAsync()

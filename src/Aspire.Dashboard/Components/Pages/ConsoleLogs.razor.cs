@@ -278,10 +278,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             if (subscription is not null)
             {
-                var task = _logViewer.SetLogSourceAsync(
-                    PageViewModel.SelectedResource.Name,
-                    subscription,
-                    convertTimestampsFromUtc: PageViewModel.SelectedResource.IsContainer());
+                var task = _logViewer.SetLogSourceAsync(PageViewModel.SelectedResource.Name, subscription);
 
                 PageViewModel.InitialisedSuccessfully = true;
                 PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs)];

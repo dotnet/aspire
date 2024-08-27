@@ -31,10 +31,10 @@ public class ResourceLoggerServiceTests
         // Wait for logs to be read
         var allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
 
-        Assert.Equal("2000-12-29T20:59:59.0000000 Hello, world!", allLogs[0].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, world!", allLogs[0].Content);
         Assert.False(allLogs[0].IsErrorMessage);
 
-        Assert.Equal("2000-12-29T20:59:59.0000000 Hello, error!", allLogs[1].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, error!", allLogs[1].Content);
         Assert.True(allLogs[1].IsErrorMessage);
 
         // New sub should get the previous logs
@@ -45,8 +45,8 @@ public class ResourceLoggerServiceTests
         allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
 
         Assert.Equal(2, allLogs.Count);
-        Assert.Equal("2000-12-29T20:59:59.0000000 Hello, world!", allLogs[0].Content);
-        Assert.Equal("2000-12-29T20:59:59.0000000 Hello, error!", allLogs[1].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, world!", allLogs[0].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, error!", allLogs[1].Content);
 
         await logsEnumerator1.DisposeAsync();
         await logsEnumerator2.DisposeAsync();
@@ -76,8 +76,8 @@ public class ResourceLoggerServiceTests
         var allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
 
         Assert.Collection(allLogs,
-            l => Assert.Equal("2000-12-29T20:59:59.0000000 Hello, world!", l.Content),
-            l => Assert.Equal("2000-12-29T20:59:59.0000000 Hello, error!", l.Content));
+            l => Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, world!", l.Content),
+            l => Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, error!", l.Content));
 
         // New sub should not get new logs as the stream is completed
         logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(service, 100, testResource);
@@ -107,10 +107,10 @@ public class ResourceLoggerServiceTests
         // Wait for logs to be read
         var allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
 
-        Assert.Equal("2000-12-29T20:59:59.0000000 Hello, world!", allLogs[0].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, world!", allLogs[0].Content);
         Assert.False(allLogs[0].IsErrorMessage);
 
-        Assert.Equal("2000-12-29T20:59:59.0000000 Hello, error!", allLogs[1].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, error!", allLogs[1].Content);
         Assert.True(allLogs[1].IsErrorMessage);
 
         // New sub should get the previous logs (backlog)
@@ -121,8 +121,8 @@ public class ResourceLoggerServiceTests
         allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
 
         Assert.Equal(2, allLogs.Count);
-        Assert.Equal("2000-12-29T20:59:59.0000000 Hello, world!", allLogs[0].Content);
-        Assert.Equal("2000-12-29T20:59:59.0000000 Hello, error!", allLogs[1].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, world!", allLogs[0].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000Z Hello, error!", allLogs[1].Content);
 
         // Clear the backlog and ensure new subs only get new logs
         service.ClearBacklog(testResource.Name);
@@ -136,7 +136,7 @@ public class ResourceLoggerServiceTests
 
         // The backlog should be cleared so only new logs are received
         Assert.Equal(1, allLogs.Count);
-        Assert.Equal("2000-12-29T20:59:59.0000000 The third log", allLogs[0].Content);
+        Assert.Equal("2000-12-29T20:59:59.0000000Z The third log", allLogs[0].Content);
     }
 
     private sealed class TestResource(string name) : Resource(name)

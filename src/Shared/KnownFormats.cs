@@ -6,8 +6,13 @@ namespace Aspire;
 internal static class KnownFormats
 {
     /// <summary>
-    /// Format is passed to apps as an env var to override logging's timestamp format.
-    /// It is also used to parse logs when they're displayed in the dashboard's console logs UI.
+    /// Internal timestamp format that is used to add the timestamp to a log line.
+    /// Preserve second precision and timezone information.
     /// </summary>
-    public const string ConsoleLogsTimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffffff";
+    public const string ConsoleLogsTimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffffffK";
+
+    /// <summary>
+    /// UI timestamp displayed on the console logs UI.
+    /// </summary>
+    public const string ConsoleLogsUITimestampFormat = "yyyy-MM-ddTHH:mm:ss";
 }
