@@ -44,7 +44,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private GridColumnManager _manager = null!;
 
     public string BasePath => DashboardUrls.StructuredLogsBasePath;
-    public string SessionStorageKey => "StructuredLogs_PageState";
+    public string SessionStorageKey => "Aspire_StructuredLogs_PageState";
     public StructuredLogsPageViewModel PageViewModel { get; set; } = null!;
 
     [Inject]

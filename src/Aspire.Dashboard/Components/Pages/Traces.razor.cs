@@ -40,7 +40,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
     private AspirePageContentLayout? _contentLayout;
     private GridColumnManager _manager = null!;
 
-    public string SessionStorageKey => "Traces_PageState";
+    public string SessionStorageKey => "Aspire_Traces_PageState";
     public string BasePath => DashboardUrls.TracesBasePath;
     public TracesPageViewModel PageViewModel { get; set; } = null!;
 

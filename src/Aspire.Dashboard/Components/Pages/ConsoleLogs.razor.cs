@@ -57,7 +57,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
 
     public string BasePath => DashboardUrls.ConsoleLogBasePath;
-    public string SessionStorageKey => "ConsoleLogs_PageState";
+    public string SessionStorageKey => "Aspire_ConsoleLogs_PageState";
 
     protected override async Task OnInitializedAsync()
     {
@@ -278,10 +278,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             if (subscription is not null)
             {
-                var task = _logViewer.SetLogSourceAsync(
-                    PageViewModel.SelectedResource.Name,
-                    subscription,
-                    convertTimestampsFromUtc: PageViewModel.SelectedResource.IsContainer());
+                var task = _logViewer.SetLogSourceAsync(PageViewModel.SelectedResource.Name, subscription);
 
                 PageViewModel.InitialisedSuccessfully = true;
                 PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs)];
