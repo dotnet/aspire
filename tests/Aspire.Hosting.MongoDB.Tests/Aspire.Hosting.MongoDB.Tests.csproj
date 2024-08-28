@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
-    <NoWarn>$(NoWarn);CS8002</NoWarn> <!-- MongoDB packages are not signed -->
   </PropertyGroup>
 
   <ItemGroup>
