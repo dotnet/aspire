@@ -583,10 +583,34 @@ public static class ResourceBuilderExtensions
 
             var rns = e.Services.GetRequiredService<ResourceNotificationService>();
             await rns.PublishUpdateAsync(builder.Resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
-            await rns.WaitForResourceAsync(dependency.Resource.Name, cancellationToken: ct).ConfigureAwait(false);
+            var resourceEvent = await rns.WaitForResourceAsync(dependency.Resource.Name, re => IsContinuableState(re.Snapshot), cancellationToken: ct).ConfigureAwait(false);
+            var snapshot = resourceEvent.Snapshot;
+
+            if (snapshot.State == KnownResourceStates.FailedToStart)
+            {
+                throw new DistributedApplicationException("Dependency resource failed to start.");
+            }
+            else if (snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited)
+            {
+                resourceLogger.LogInformation(
+                    "Resource '{ResourceName}' has entered the '{State}' state prematurely.",
+                    dependency.Resource.Name,
+                    snapshot.State.Text
+                    );
+
+                throw new DistributedApplicationException(
+                    $"Resource '{dependency.Resource.Name}' has entered the '{snapshot.State.Text}' state prematurely."
+                    );
+            }
         });
 
         return builder;
+
+        static bool IsContinuableState(CustomResourceSnapshot snapshot) =>
+            snapshot.State?.Text == KnownResourceStates.Running ||
+            snapshot.State?.Text == KnownResourceStates.Finished ||
+            snapshot.State?.Text == KnownResourceStates.Exited ||
+            snapshot.State?.Text == KnownResourceStates.FailedToStart;
     }
 
     /// <summary>
