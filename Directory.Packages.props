@@ -69,7 +69,7 @@
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Queues" Version="8.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.AzureServiceBus" Version="8.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.Kafka" Version="8.0.1" />
-    <PackageVersion Include="AspNetCore.HealthChecks.MongoDb" Version="8.0.1" />
+    <PackageVersion Include="AspNetCore.HealthChecks.MongoDb" Version="8.1.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.MySql" Version="8.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.Rabbitmq" Version="8.0.1" />
@@ -107,8 +107,8 @@
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.9.3" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.9.3" />
     <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1"/>
-    <PackageVersion Include="MongoDB.Driver" Version="2.27.0" />
-    <PackageVersion Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" Version="1.4.0" />
+    <PackageVersion Include="MongoDB.Driver" Version="2.28.0" />
+    <PackageVersion Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" Version="1.5.0" />
     <PackageVersion Include="MySqlConnector.DependencyInjection" Version="2.3.6" />
     <PackageVersion Include="MySqlConnector.Logging.Microsoft.Extensions.Logging" Version="2.1.0" />
     <PackageVersion Include="NATS.Net" Version="2.3.3" />
