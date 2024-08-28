@@ -37,8 +37,36 @@ public static class AzureFunctionsProjectResourceExtensions
                     if (item.HostStorage == storage)
                     {
                         removeStorage = false;
-                        break;
                     }
+
+                    // Before the resource starts, we want to apply the azure functions specific environment variables.
+                    // we look at all of the environment variables and apply the configuration for any resources that implement IResourceWithAzureFunctionsConfig.
+                    item.Annotations.Add(new EnvironmentCallbackAnnotation(static context =>
+                    {
+                        var functionsConfigMapping = new Dictionary<string, IResourceWithAzureFunctionsConfig>();
+
+                        foreach (var (_, val) in context.EnvironmentVariables)
+                        {
+                            var (name, config) = val switch
+                            {
+                                IResourceWithAzureFunctionsConfig c => (c.Name, c),
+                                ConnectionStringReference conn when conn.Resource is IResourceWithAzureFunctionsConfig c => (conn.ConnectionName ?? c.Name, c),
+                                 _ => ("", null)
+                            };
+
+                            if (config is not null)
+                            {
+                                functionsConfigMapping[name] = config;
+                            }
+                        }
+
+                        foreach (var (name, config) in functionsConfigMapping)
+                        {
+                            config.ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, name);
+                        }
+
+                        return Task.CompletedTask;
+                    }));
                 }
 
                 if (removeStorage)
@@ -52,7 +80,7 @@ public static class AzureFunctionsProjectResourceExtensions
 
         resource.HostStorage = storage;
 
-        var functionsBuilder = builder.AddResource(resource)
+        return builder.AddResource(resource)
             .WithArgs(context =>
             {
                 var http = resource.GetEndpoint("http");
@@ -104,8 +132,6 @@ public static class AzureFunctionsProjectResourceExtensions
 
                 context.Writer.WriteEndObject();
             });
-
-        return functionsBuilder;
     }
 
     /// <summary>
@@ -118,80 +144,5 @@ public static class AzureFunctionsProjectResourceExtensions
     {
         builder.Resource.HostStorage = storage.Resource;
         return builder;
-    }
-
-    /// <remarks>
-    /// This implementation demonstrates the approach of "teaching Aspire about Functions" where we take advantage of
-    /// Aspire's ConnectionStringExpression to map to the connection strings format that Azure Functions understands.
-    /// An alternative approach here is to "teach Functions about Aspire" where integrate the Aspire configuration
-    /// model into the Azure Functions worker extensions.
-    /// </remarks>
-#pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
-    public static IResourceBuilder<AzureFunctionsProjectResource> WithReference(this IResourceBuilder<AzureFunctionsProjectResource> builder, IResourceBuilder<AzureQueueStorageResource> source, string? connectionName = null)
-#pragma warning restore RS0026 // Do not add multiple public overloads with optional parameters
-    {
-        return builder.WithEnvironment(context =>
-        {
-            connectionName ??= source.Resource.Name;
-            if (source.Resource.Parent.IsEmulator)
-            {
-                context.EnvironmentVariables[connectionName] = source.Resource.Parent.GetEmulatorConnectionString();
-            }
-            else
-            {
-                context.EnvironmentVariables[$"{connectionName}__queueServiceUri"] = source.Resource.ConnectionStringExpression;
-            }
-        });
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="source"></param>
-    /// <param name="connectionName"></param>
-    /// <returns></returns>
-#pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
-    public static IResourceBuilder<AzureFunctionsProjectResource> WithReference(this IResourceBuilder<AzureFunctionsProjectResource> builder, IResourceBuilder<AzureBlobStorageResource> source, string? connectionName = null)
-#pragma warning restore RS0026 // Do not add multiple public overloads with optional parameters
-    {
-        return builder.WithEnvironment(context =>
-        {
-            connectionName ??= source.Resource.Name;
-
-            if (source.Resource.Parent.IsEmulator)
-            {
-                context.EnvironmentVariables[connectionName] = source.Resource.Parent.GetEmulatorConnectionString();
-            }
-            else
-            {
-                context.EnvironmentVariables[$"{connectionName}__blobServiceUri"] = source.Resource.ConnectionStringExpression;
-            }
-        });
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="source"></param>
-    /// <param name="connectionName"></param>
-    /// <returns></returns>
-#pragma warning disable RS0026 // Do not add multiple public overloads with optional parameters
-    public static IResourceBuilder<AzureFunctionsProjectResource> WithReference(this IResourceBuilder<AzureFunctionsProjectResource> builder, IResourceBuilder<AzureEventHubsResource> source, string? connectionName = null)
-#pragma warning restore RS0026 // Do not add multiple public overloads with optional parameters
-    {
-        return builder.WithEnvironment(context =>
-        {
-            connectionName ??= source.Resource.Name;
-            if (source.Resource.IsEmulator)
-            {
-                context.EnvironmentVariables[connectionName] = source.Resource.ConnectionStringExpression;
-            }
-            else
-            {
-                context.EnvironmentVariables[$"{connectionName}__fullyQualifiedNamespace"] = source.Resource.ConnectionStringExpression;
-            }
-        });
     }
 }

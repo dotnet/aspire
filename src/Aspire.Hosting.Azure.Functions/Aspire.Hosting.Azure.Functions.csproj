@@ -13,7 +13,6 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <ProjectReference Include="..\Aspire.Hosting.Azure.EventHubs\Aspire.Hosting.Azure.EventHubs.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Azure.Storage\Aspire.Hosting.Azure.Storage.csproj" />
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
   </ItemGroup>
