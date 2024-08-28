@@ -619,9 +619,7 @@ public static class ResourceBuilderExtensions
     {
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (e, ct) =>
         {
-            // TODO: Decide how we want to interpret inconsistent results from replicas of projects. For now
-            //       if we detect that the project is configured for replicas we will throw an exception.
-            if (dependency.Resource.Annotations.Any(a => a is ReplicaAnnotation ra && ra.Replicas > 1))
+            if (dependency.Resource.TryGetLastAnnotation<ReplicaAnnotation>(out var replicaAnnotation) && replicaAnnotation.Replicas > 1)
             {
                 throw new DistributedApplicationException("WaitForCompletion cannot be used with resources that have replicas.");
             }

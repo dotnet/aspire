@@ -27,7 +27,8 @@ public class WaitForTests
         // into a Running state, so rather than awaiting it we'll hold onto the
         // task so we can inspect the state of the Redis resource which should
         // be in a waiting state if everything is working correctly.
-        var startTask = app.StartAsync();
+        var startupCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var startTask = app.StartAsync(startupCts.Token);
 
         // We don't want to wait forever for Redis to move into a waiting state,
         // it should be super quick, but we'll allow 60 seconds just in case the
@@ -66,7 +67,8 @@ public class WaitForTests
         // into a Finished state, so rather than awaiting it we'll hold onto the
         // task so we can inspect the state of the Redis resource which should
         // be in a waiting state if everything is working correctly.
-        var startTask = app.StartAsync();
+        var startupCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var startTask = app.StartAsync(startupCts.Token);
 
         // We don't want to wait forever for Redis to move into a waiting state,
         // it should be super quick, but we'll allow 60 seconds just in case the
@@ -113,7 +115,8 @@ public class WaitForTests
         // into a Finished state, so rather than awaiting it we'll hold onto the
         // task so we can inspect the state of the Redis resource which should
         // be in a waiting state if everything is working correctly.
-        var startTask = app.StartAsync();
+        var startupCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var startTask = app.StartAsync(startupCts.Token);
 
         // We don't want to wait forever for Redis to move into a waiting state,
         // it should be super quick, but we'll allow 60 seconds just in case the
@@ -161,7 +164,8 @@ public class WaitForTests
         // into a Finished state, so rather than awaiting it we'll hold onto the
         // task so we can inspect the state of the Redis resource which should
         // be in a waiting state if everything is working correctly.
-        var startTask = app.StartAsync();
+        var startupCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var startTask = app.StartAsync(startupCts.Token);
 
         // We don't want to wait forever for Redis to move into a waiting state,
         // it should be super quick, but we'll allow 60 seconds just in case the
