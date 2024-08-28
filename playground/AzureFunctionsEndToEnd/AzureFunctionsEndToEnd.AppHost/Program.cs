@@ -10,7 +10,8 @@ var eventHubs = builder.AddAzureEventHubs("eventhubs").RunAsEmulator().AddEventH
 
 var funcApp = builder.AddAzureFunctionsProject<Projects.AzureFunctionsEndToEnd_Functions>("funcapp")
     .WithExternalHttpEndpoints()
-    .WithHostStorage(storage)
+    .WithReference(blob)
+    .WithReference(queue)
     .WithReference(eventHubs);
 
 var apiService = builder.AddProject<Projects.AzureFunctionsEndToEnd_ApiService>("apiservice")

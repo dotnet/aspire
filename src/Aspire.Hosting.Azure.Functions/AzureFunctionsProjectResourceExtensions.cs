@@ -20,8 +20,37 @@ public static class AzureFunctionsProjectResourceExtensions
         var projectDirectory = Path.GetDirectoryName(new TProject().ProjectPath)!;
         var resource = new AzureFunctionsProjectResource(name, "func", projectDirectory);
 
-        // REVIEW: Default storage
-        // var storage = builder.AddAzureStorage($"{name}-storage").RunAsEmulator();
+        // Add the default storage resource if it doesn't already exist.
+        var storage = builder.Resources.OfType<AzureStorageResource>().FirstOrDefault(r => r.Name == "azure-functions-default-storage");
+
+        if (storage is null)
+        {
+            storage = builder.AddAzureStorage("azure-functions-default-storage").RunAsEmulator().Resource;
+
+            builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
+            {
+                var removeStorage = true;
+                // Look at all of the resources and if non of them use the default storage, then we can remove it.
+                // This is because we're unable to cleanly add a resource to the builder from within a callback.
+                foreach (var item in data.Model.Resources.OfType<AzureFunctionsProjectResource>())
+                {
+                    if (item.HostStorage == storage)
+                    {
+                        removeStorage = false;
+                        break;
+                    }
+                }
+
+                if (removeStorage)
+                {
+                    data.Model.Resources.Remove(storage);
+                }
+
+                return Task.CompletedTask;
+            });
+        }
+
+        resource.HostStorage = storage;
 
         var functionsBuilder = builder.AddResource(resource)
             .WithArgs(context =>
@@ -37,11 +66,24 @@ public static class AzureFunctionsProjectResourceExtensions
                 context.Args.Add("--language-worker");
                 context.Args.Add("dotnet-isolated");
             })
-            .WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES", "true")
-            .WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES", "true")
-            .WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY", "in_memory")
-            .WithEnvironment("ASPNETCORE_FORWARDEDHEADERS_ENABLED", "true")
-            .WithEnvironment("FUNCTIONS_WORKER_RUNTIME", "dotnet-isolated")
+            .WithEnvironment(context =>
+            {
+                context.EnvironmentVariables["OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES"] = "true";
+                context.EnvironmentVariables["OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES"] = "true";
+                context.EnvironmentVariables["OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY"] = "in_memory";
+                context.EnvironmentVariables["ASPNETCORE_FORWARDEDHEADERS_ENABLED"] = "true";
+                context.EnvironmentVariables["FUNCTIONS_WORKER_RUNTIME"] = "dotnet-isolated";
+
+                if (resource.HostStorage.IsEmulator)
+                {
+                    context.EnvironmentVariables["Storage"] = resource.HostStorage.GetEmulatorConnectionString();
+                }
+                else
+                {
+                    context.EnvironmentVariables["Storage__blobServiceUri"] = resource.HostStorage.BlobEndpoint;
+                    context.EnvironmentVariables["Storage__queueServiceUri"] = resource.HostStorage.QueueEndpoint;
+                }
+            })
             .WithOtlpExporter()
             .WithHttpEndpoint()
             .WithManifestPublishingCallback(async (context) =>
@@ -59,34 +101,9 @@ public static class AzureFunctionsProjectResourceExtensions
                     context.Writer.WriteBoolean("external", true);
                     context.Writer.WriteEndObject();
                 }
+
                 context.Writer.WriteEndObject();
             });
-
-        // Add a callback to remove the storage resource from the model if the project is configured to use host storage.
-        //builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
-        //{
-        //    if (resource.AutomaticallyInjectHostStorage)
-        //    {
-        //        resource.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
-        //        {
-        //            if (storage.Resource.IsEmulator)
-        //            {
-        //                context.EnvironmentVariables["Storage"] = storage.Resource.GetEmulatorConnectionString();
-        //            }
-        //            else
-        //            {
-        //                context.EnvironmentVariables["Storage__blobServiceUri"] = storage.Resource.BlobEndpoint;
-        //                context.EnvironmentVariables["Storage__queueServiceUri"] = storage.Resource.QueueEndpoint;
-        //            }
-        //        }));
-        //    }
-        //    else
-        //    {
-        //        data.Model.Resources.Remove(storage.Resource);
-        //    }
-
-        //    return Task.CompletedTask;
-        //});
 
         return functionsBuilder;
     }
@@ -99,20 +116,8 @@ public static class AzureFunctionsProjectResourceExtensions
     /// <returns></returns>
     public static IResourceBuilder<AzureFunctionsProjectResource> WithHostStorage(this IResourceBuilder<AzureFunctionsProjectResource> builder, IResourceBuilder<AzureStorageResource> storage)
     {
-        builder.Resource.AutomaticallyInjectHostStorage = false;
-
-        return builder.WithEnvironment(context =>
-        {
-            if (storage.Resource.IsEmulator)
-            {
-                context.EnvironmentVariables["Storage"] = storage.Resource.GetEmulatorConnectionString();
-            }
-            else
-            {
-                context.EnvironmentVariables["Storage__blobServiceUri"] = storage.Resource.BlobEndpoint;
-                context.EnvironmentVariables["Storage__queueServiceUri"] = storage.Resource.QueueEndpoint;
-            }
-        });
+        builder.Resource.HostStorage = storage.Resource;
+        return builder;
     }
 
     /// <remarks>

@@ -6,8 +6,8 @@ namespace AzureFunctionsEndToEnd.Functions;
 public class MyAzureBlobTrigger(ILogger<MyAzureBlobTrigger> logger)
 {
     [Function(nameof(MyAzureBlobTrigger))]
-    [BlobOutput("test-files/{name}.txt")]
-    public string Run([BlobTrigger("blobs/{name}")] string triggerString)
+    [BlobOutput("test-files/{name}.txt", Connection = "blob")]
+    public string Run([BlobTrigger("blobs/{name}", Connection = "blob")] string triggerString)
     {
         logger.LogInformation("C# blob trigger function invoked with {message}...", triggerString);
         return triggerString.ToUpper();
