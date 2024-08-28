@@ -34,7 +34,9 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
         }
         else
         {
+            // Blob and Queue services are required to make blob triggers work.
             target[$"{connectionName}__blobServiceUri"] = Parent.BlobEndpoint;
+            target[$"{connectionName}__queueServiceUri"] = Parent.QueueEndpoint;
         }
     }
 }

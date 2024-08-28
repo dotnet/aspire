@@ -44,20 +44,29 @@ public static class AzureFunctionsProjectResourceExtensions
                     item.Annotations.Add(new EnvironmentCallbackAnnotation(static context =>
                     {
                         var functionsConfigMapping = new Dictionary<string, IResourceWithAzureFunctionsConfig>();
+                        var valuesToRemove = new List<string>();
 
-                        foreach (var (_, val) in context.EnvironmentVariables)
+                        foreach (var (envName, val) in context.EnvironmentVariables)
                         {
                             var (name, config) = val switch
                             {
                                 IResourceWithAzureFunctionsConfig c => (c.Name, c),
                                 ConnectionStringReference conn when conn.Resource is IResourceWithAzureFunctionsConfig c => (conn.ConnectionName ?? c.Name, c),
-                                 _ => ("", null)
+                                _ => ("", null)
                             };
 
                             if (config is not null)
                             {
+                                valuesToRemove.Add(envName);
                                 functionsConfigMapping[name] = config;
                             }
+                        }
+
+                        // REVIEW: We need to remove the existing values before adding the new ones as there's a conflict with the connection strings.
+                        // we don't want to do this because it'll stop the aspire components from working in functions projects.
+                        foreach (var envName in valuesToRemove)
+                        {
+                            context.EnvironmentVariables.Remove(envName);
                         }
 
                         foreach (var (name, config) in functionsConfigMapping)
