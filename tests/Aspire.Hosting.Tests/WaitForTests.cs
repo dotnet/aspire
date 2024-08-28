@@ -30,9 +30,9 @@ public class WaitForTests
         var startTask = app.StartAsync();
 
         // We don't want to wait forever for Redis to move into a waiting state,
-        // it should be super quick, but we'll allow 10 seconds just in case the
-        // CI machine is chugging.
-        var waitingStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        // it should be super quick, but we'll allow 60 seconds just in case the
+        // CI machine is chugging (also useful when collecting code coverage).
+        var waitingStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
         await rns.WaitForResourceAsync(redis.Resource.Name, "Waiting", waitingStateCts.Token);
@@ -40,7 +40,9 @@ public class WaitForTests
         // Now that we know we successfully entered the Waiting state, we can swap
         // the dependency into a running state which will unblock startup and
         // we can continue executing.
-        await rns.PublishUpdateAsync(dependency.Resource, s => s with { State = KnownResourceStates.Running });
+        await rns.PublishUpdateAsync(dependency.Resource, s => s with {
+            State = KnownResourceStates.Running
+        });
 
         await startTask;
 
@@ -67,9 +69,9 @@ public class WaitForTests
         var startTask = app.StartAsync();
 
         // We don't want to wait forever for Redis to move into a waiting state,
-        // it should be super quick, but we'll allow 10 seconds just in case the
-        // CI machine is chugging.
-        var waitingStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        // it should be super quick, but we'll allow 60 seconds just in case the
+        // CI machine is chugging (also useful when collecting code coverage).
+        var waitingStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
         await rns.WaitForResourceAsync(redis.Resource.Name, "Waiting", waitingStateCts.Token);
@@ -77,13 +79,97 @@ public class WaitForTests
         // Now that we know we successfully entered the Waiting state, we can swap
         // the dependency into a running state which will unblock startup and
         // we can continue executing.
-        await rns.PublishUpdateAsync(dependency.Resource, s => s with { State = KnownResourceStates.Finished });
+        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        {
+            State = KnownResourceStates.Finished,
+            ExitCode = 0
+        });
 
         // This time we want to wait for Redis to move into a Running state to verify that
         // it successfully started after we moved the dependency resource into the Finished, but
         // we need to give it more time since we have to download the image in CI.
         var runningStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
         await rns.WaitForResourceAsync(redis.Resource.Name, KnownResourceStates.Running, runningStateCts.Token);
+
+        await startTask;
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task EnsureDependencyResourceThatReturnsNonMatchingExitCodeResultsInDependentResourceFailingToStart()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var dependency = builder.AddResource(new CustomResource("test"));
+        var redis = builder.AddRedis("redis")
+                           .WithReference(dependency)
+                           .WaitForCompletion(dependency, exitCode: 2);
+
+        using var app = builder.Build();
+
+        // StartAsync will currently block until the dependency resource moves
+        // into a Finished state, so rather than awaiting it we'll hold onto the
+        // task so we can inspect the state of the Redis resource which should
+        // be in a waiting state if everything is working correctly.
+        var startTask = app.StartAsync();
+
+        // We don't want to wait forever for Redis to move into a waiting state,
+        // it should be super quick, but we'll allow 60 seconds just in case the
+        // CI machine is chugging (also useful when collecting code coverage).
+        var waitingStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceAsync(redis.Resource.Name, "Waiting", waitingStateCts.Token);
+
+        // Now that we know we successfully entered the Waiting state, we can swap
+        // the dependency into a finished state which will unblock startup and
+        // we can continue executing.
+        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        {
+            State = KnownResourceStates.Finished,
+            ExitCode = 3 // Exit code does not match expected exit code above intentionally.
+        });
+
+        // This time we want to wait for Redis to move into a FailedToStart state to verify that
+        // it didn't start if the dependency resource didn't finish with the correct exit code.
+        var runningStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        await rns.WaitForResourceAsync(redis.Resource.Name, KnownResourceStates.FailedToStart, runningStateCts.Token);
+
+        await startTask;
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task DependencyWithGreaterThan1ReplicaAnnotationCausesDependentResourceToFailToStart()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var dependency = builder.AddResource(new CustomResource("test"))
+                                .WithAnnotation(new ReplicaAnnotation(2));
+
+        var redis = builder.AddRedis("redis")
+                           .WithReference(dependency)
+                           .WaitForCompletion(dependency);
+
+        using var app = builder.Build();
+
+        // StartAsync will currently block until the dependency resource moves
+        // into a Finished state, so rather than awaiting it we'll hold onto the
+        // task so we can inspect the state of the Redis resource which should
+        // be in a waiting state if everything is working correctly.
+        var startTask = app.StartAsync();
+
+        // We don't want to wait forever for Redis to move into a waiting state,
+        // it should be super quick, but we'll allow 60 seconds just in case the
+        // CI machine is chugging (also useful when collecting code coverage).
+        var waitingStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceAsync(redis.Resource.Name, "FailedToStart", waitingStateCts.Token);
 
         await startTask;
 
