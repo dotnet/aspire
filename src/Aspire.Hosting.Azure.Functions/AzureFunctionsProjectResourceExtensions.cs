@@ -19,7 +19,11 @@ public static class AzureFunctionsProjectResourceExtensions
     {
         var projectDirectory = Path.GetDirectoryName(new TProject().ProjectPath)!;
         var resource = new AzureFunctionsProjectResource(name, "func", projectDirectory);
-        return builder.AddResource(resource)
+
+        // REVIEW: Default storage
+        // var storage = builder.AddAzureStorage($"{name}-storage").RunAsEmulator();
+
+        var functionsBuilder = builder.AddResource(resource)
             .WithArgs(context =>
             {
                 var http = resource.GetEndpoint("http");
@@ -57,6 +61,58 @@ public static class AzureFunctionsProjectResourceExtensions
                 }
                 context.Writer.WriteEndObject();
             });
+
+        // Add a callback to remove the storage resource from the model if the project is configured to use host storage.
+        //builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
+        //{
+        //    if (resource.AutomaticallyInjectHostStorage)
+        //    {
+        //        resource.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
+        //        {
+        //            if (storage.Resource.IsEmulator)
+        //            {
+        //                context.EnvironmentVariables["Storage"] = storage.Resource.GetEmulatorConnectionString();
+        //            }
+        //            else
+        //            {
+        //                context.EnvironmentVariables["Storage__blobServiceUri"] = storage.Resource.BlobEndpoint;
+        //                context.EnvironmentVariables["Storage__queueServiceUri"] = storage.Resource.QueueEndpoint;
+        //            }
+        //        }));
+        //    }
+        //    else
+        //    {
+        //        data.Model.Resources.Remove(storage.Resource);
+        //    }
+
+        //    return Task.CompletedTask;
+        //});
+
+        return functionsBuilder;
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="storage"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureFunctionsProjectResource> WithHostStorage(this IResourceBuilder<AzureFunctionsProjectResource> builder, IResourceBuilder<AzureStorageResource> storage)
+    {
+        builder.Resource.AutomaticallyInjectHostStorage = false;
+
+        return builder.WithEnvironment(context =>
+        {
+            if (storage.Resource.IsEmulator)
+            {
+                context.EnvironmentVariables["Storage"] = storage.Resource.GetEmulatorConnectionString();
+            }
+            else
+            {
+                context.EnvironmentVariables["Storage__blobServiceUri"] = storage.Resource.BlobEndpoint;
+                context.EnvironmentVariables["Storage__queueServiceUri"] = storage.Resource.QueueEndpoint;
+            }
+        });
     }
 
     /// <remarks>
@@ -71,14 +127,14 @@ public static class AzureFunctionsProjectResourceExtensions
     {
         return builder.WithEnvironment(context =>
         {
-            var prefix = connectionName ?? "Storage";
+            connectionName ??= source.Resource.Name;
             if (source.Resource.Parent.IsEmulator)
             {
-                context.EnvironmentVariables[prefix] = source.Resource.Parent.GetEmulatorConnectionString();
+                context.EnvironmentVariables[connectionName] = source.Resource.Parent.GetEmulatorConnectionString();
             }
             else
             {
-                context.EnvironmentVariables[$"{prefix}__queueServiceUri"] = source.Resource.ConnectionStringExpression;
+                context.EnvironmentVariables[$"{connectionName}__queueServiceUri"] = source.Resource.ConnectionStringExpression;
             }
         });
     }
@@ -96,14 +152,15 @@ public static class AzureFunctionsProjectResourceExtensions
     {
         return builder.WithEnvironment(context =>
         {
-            var prefix = connectionName ?? "Storage";
+            connectionName ??= source.Resource.Name;
+
             if (source.Resource.Parent.IsEmulator)
             {
-                context.EnvironmentVariables[prefix] = source.Resource.Parent.GetEmulatorConnectionString();
+                context.EnvironmentVariables[connectionName] = source.Resource.Parent.GetEmulatorConnectionString();
             }
             else
             {
-                context.EnvironmentVariables[$"{prefix}__blobServiceUri"] = source.Resource.ConnectionStringExpression;
+                context.EnvironmentVariables[$"{connectionName}__blobServiceUri"] = source.Resource.ConnectionStringExpression;
             }
         });
     }

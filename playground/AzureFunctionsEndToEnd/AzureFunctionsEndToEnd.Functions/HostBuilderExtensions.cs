@@ -23,6 +23,7 @@ public static class HostBuilderExtensions
                 logging.IncludeScopes = true;
             });
         });
+
         builder.ConfigureServices((context, services) =>
         {
             services.AddOpenTelemetry()
@@ -35,11 +36,8 @@ public static class HostBuilderExtensions
                 .WithTracing(tracing =>
                 {
                     tracing.AddAspNetCoreInstrumentation()
-                    // Uncomment the following line to enable gRPC instrumentation (requires the OpenTelemetry.Instrumentation.GrpcNetClient package)
-                    //.AddGrpcClientInstrumentation()
                         .AddHttpClientInstrumentation();
                 });
-            // services.AddOpenTelemetryExporters(context.Configuration);
         });
 
         builder.ConfigureServices(services =>

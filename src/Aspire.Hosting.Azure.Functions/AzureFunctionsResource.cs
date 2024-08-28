@@ -13,4 +13,5 @@ namespace Aspire.Hosting.Azure;
 public class AzureFunctionsProjectResource(string name, string executable, string workingDirectory)
     : ExecutableResource(name, executable, workingDirectory), IResourceWithEnvironment, IResourceWithArgs, IResourceWithServiceDiscovery
 {
+    internal bool AutomaticallyInjectHostStorage { get; set; } = true;
 }
