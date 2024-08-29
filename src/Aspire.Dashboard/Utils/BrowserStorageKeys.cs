@@ -7,7 +7,7 @@ namespace Aspire.Dashboard.Utils;
 
 internal static class BrowserStorageKeys
 {
-    public const string UnsecuredTelemetryMessageDismissedKey = "Aspire_UnsecuredTelemetryMessage_Dismissed";
+    public const string UnsecuredTelemetryMessageDismissedKey = "Aspire_Telemetry_UnsecuredMessageDismissed";
 
     public const string TracesPageState = "Aspire_PageState_Traces";
     public const string StructuredLogsPageState = "Aspire_PageState_StructuredLogs";
