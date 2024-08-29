@@ -36,6 +36,27 @@ public static class RedisBuilderExtensions
     }
 
     /// <summary>
+    /// Adds a RedisStack container to the application model.
+    /// </summary>
+    /// <remarks>
+    /// The default image is "redis-stack" and the tag is "7.4.0-v0".
+    /// </remarks>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="port">The host port to bind the underlying container to.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<RedisStackResource> AddRedisStack(this IDistributedApplicationBuilder builder, string name, int? port = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var redis = new RedisStackResource(name);
+        return builder.AddResource(redis)
+                      .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
+                      .WithImage(RedisContainerImageTags.RedisStackServerImage, RedisContainerImageTags.RedisStackServerTag)
+                      .WithImageRegistry(RedisContainerImageTags.RedisStackServerRegistry);
+    }
+
+    /// <summary>
     /// Configures a container resource for Redis Commander which is pre-configured to connect to the <see cref="RedisResource"/> that this method is used on.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the <see cref="RedisResource"/>.</param>
@@ -200,5 +221,153 @@ public static class RedisBuilderExtensions
             context.Args.Add(keysChangedThreshold.ToString(CultureInfo.InvariantCulture));
             return Task.CompletedTask;
         }), ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Configures a RedisStack container resource for persistence.
+    /// </summary>
+    /// <remarks>
+    /// Use with <see cref="WithDataBindMount(IResourceBuilder{RedisStackResource}, string, bool)"/>
+    /// or <see cref="WithDataVolume(IResourceBuilder{RedisStackResource}, string?, bool)"/> to persist RedisStack data across sessions with custom persistence configuration, e.g.:
+    /// <code lang="csharp">
+    /// var cache = builder.AddRedisStack("cache")
+    ///                    .WithDataVolume()
+    ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
+    /// </code>
+    /// </remarks>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="interval">The interval between snapshot exports. Defaults to 60 seconds.</param>
+    /// <param name="keysChangedThreshold">The number of key change operations required to trigger a snapshot at the interval. Defaults to 1.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
+    public static IResourceBuilder<RedisStackResource> WithPersistence(this IResourceBuilder<RedisStackResource> builder, TimeSpan? interval = null, long keysChangedThreshold = 1)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithEnvironment("REDIS_ARGS", $"--save {(interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture)} {keysChangedThreshold.ToString(CultureInfo.InvariantCulture)}");
+    }
+
+    /// <summary>
+    /// Adds a named volume for the data folder to a RedisStack container resource and enables RedisStack persistence.
+    /// </summary>
+    /// <remarks>
+    /// Use <see cref="WithPersistence(IResourceBuilder{RedisResource}, TimeSpan?, long)"/> to adjust RedisStack persistence configuration, e.g.:
+    /// <code lang="csharp">
+    /// var cache = builder.AddRedisStack("cache")
+    ///                    .WithDataVolume()
+    ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
+    /// </code>
+    /// </remarks>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
+    /// <param name="isReadOnly">
+    /// A flag that indicates if this is a read-only volume. Setting this to <c>true</c> will disable RedisStack persistence.<br/>
+    /// Defaults to <c>false</c>.
+    /// </param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
+    public static IResourceBuilder<RedisStackResource> WithDataVolume(this IResourceBuilder<RedisStackResource> builder, string? name = null, bool isReadOnly = false)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/data", isReadOnly);
+        if (!isReadOnly)
+        {
+            builder.WithPersistence();
+        }
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a bind mount for the data folder to a RedisStack container resource and enables RedisStack persistence.
+    /// </summary>
+    /// <remarks>
+    /// Use <see cref="WithPersistence(IResourceBuilder{RedisStackResource}, TimeSpan?, long)"/> to adjust Redis persistence configuration, e.g.:
+    /// <code lang="csharp">
+    /// var cache = builder.AddRedisStack("cache")
+    ///                    .WithDataBindMount("myredisdata")
+    ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
+    /// </code>
+    /// </remarks>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The source directory on the host to mount into the container.</param>
+    /// <param name="isReadOnly">
+    /// A flag that indicates if this is a read-only mount. Setting this to <c>true</c> will disable Redis persistence.<br/>
+    /// Defaults to <c>false</c>.
+    /// </param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
+    public static IResourceBuilder<RedisStackResource> WithDataBindMount(this IResourceBuilder<RedisStackResource> builder, string source, bool isReadOnly = false)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+
+        builder.WithBindMount(source, "/data", isReadOnly);
+        if (!isReadOnly)
+        {
+            builder.WithPersistence();
+        }
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures a container resource for Redis Commander which is pre-configured to connect to the <see cref="RedisResource"/> that this method is used on.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for the <see cref="RedisResource"/>.</param>
+    /// <param name="configureContainer">Configuration callback for Redis Commander container resource.</param>
+    /// <param name="containerName">Override the container name used for Redis Commander.</param>
+    /// <returns></returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
+    public static IResourceBuilder<RedisStackResource> WithRedisCommander(this IResourceBuilder<RedisStackResource> builder, Action<IResourceBuilder<RedisCommanderResource>>? configureContainer = null, string? containerName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        if (builder.ApplicationBuilder.Resources.OfType<RedisCommanderResource>().SingleOrDefault() is { } existingRedisCommanderResource)
+        {
+            var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingRedisCommanderResource);
+            configureContainer?.Invoke(builderForExistingResource);
+            return builder;
+        }
+        else
+        {
+            containerName ??= $"{builder.Resource.Name}-commander";
+
+            var resource = new RedisCommanderResource(containerName);
+            var resourceBuilder = builder.ApplicationBuilder.AddResource(resource)
+                                      .WithImage(RedisContainerImageTags.RedisCommanderImage, RedisContainerImageTags.RedisCommanderTag)
+                                      .WithImageRegistry(RedisContainerImageTags.RedisCommanderRegistry)
+                                      .WithHttpEndpoint(targetPort: 8081, name: "http")
+                                      .ExcludeFromManifest();
+
+            builder.ApplicationBuilder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>((e, ct) =>
+            {
+                var redisInstances = builder.ApplicationBuilder.Resources.OfType<RedisStackResource>();
+
+                if (!redisInstances.Any())
+                {
+                    // No-op if there are no Redis resources present.
+                    return Task.CompletedTask;
+                }
+
+                var hostsVariableBuilder = new StringBuilder();
+
+                foreach (var redisInstance in redisInstances)
+                {
+                    if (redisInstance.PrimaryEndpoint.IsAllocated)
+                    {
+                        var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.PrimaryEndpoint.ContainerHost}:{redisInstance.PrimaryEndpoint.Port}:0";
+                        hostsVariableBuilder.Append(hostString);
+                    }
+                }
+
+                resourceBuilder.WithEnvironment("REDIS_HOSTS", hostsVariableBuilder.ToString());
+
+                return Task.CompletedTask;
+            });
+
+            configureContainer?.Invoke(resourceBuilder);
+
+            return builder;
+        }
     }
 }
