@@ -20,8 +20,7 @@ var catalogDbApp = builder.AddProject<Projects.CatalogDb>("catalogdbapp")
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
                             .WithReference(catalogDb)
-                            .WithReplicas(2)
-                            .WaitForCompletion(catalogDbApp);
+                            .WithReplicas(2);
 
 var messaging = builder.AddRabbitMQ("messaging")
                        .WithDataVolume()
@@ -38,8 +37,7 @@ builder.AddProject<Projects.MyFrontend>("frontend")
        .WithReference(catalogService);
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor", launchProfileName: "OrderProcessor")
-       .WithReference(messaging)
-       .WaitFor(messaging);
+       .WithReference(messaging);
 
 builder.AddProject<Projects.ApiGateway>("apigateway")
        .WithReference(basketService)
