@@ -17,7 +17,7 @@ public class WaitForTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var dependency = builder.AddResource(new CustomResource("test"));
-        var redis = builder.AddRedis("redis")
+        var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                            .WithReference(dependency)
                            .WaitFor(dependency);
 
@@ -25,18 +25,18 @@ public class WaitForTests
 
         // StartAsync will currently block until the dependency resource moves
         // into a Running state, so rather than awaiting it we'll hold onto the
-        // task so we can inspect the state of the Redis resource which should
+        // task so we can inspect the state of the Nginx resource which should
         // be in a waiting state if everything is working correctly.
         var startupCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
         var startTask = app.StartAsync(startupCts.Token);
 
-        // We don't want to wait forever for Redis to move into a waiting state,
+        // We don't want to wait forever for Nginx to move into a waiting state,
         // it should be super quick, but we'll allow 60 seconds just in case the
         // CI machine is chugging (also useful when collecting code coverage).
         var waitingStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(redis.Resource.Name, "Waiting", waitingStateCts.Token);
+        await rns.WaitForResourceAsync(nginx.Resource.Name, "Waiting", waitingStateCts.Token);
 
         // Now that we know we successfully entered the Waiting state, we can swap
         // the dependency into a running state which will unblock startup and
@@ -57,7 +57,7 @@ public class WaitForTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var dependency = builder.AddResource(new CustomResource("test"));
-        var redis = builder.AddRedis("redis")
+        var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                            .WithReference(dependency)
                            .WaitForCompletion(dependency);
 
@@ -65,18 +65,18 @@ public class WaitForTests
 
         // StartAsync will currently block until the dependency resource moves
         // into a Finished state, so rather than awaiting it we'll hold onto the
-        // task so we can inspect the state of the Redis resource which should
+        // task so we can inspect the state of the Nginx resource which should
         // be in a waiting state if everything is working correctly.
         var startupCts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
         var startTask = app.StartAsync(startupCts.Token);
 
-        // We don't want to wait forever for Redis to move into a waiting state,
+        // We don't want to wait forever for Nginx to move into a waiting state,
         // it should be super quick, but we'll allow 60 seconds just in case the
         // CI machine is chugging (also useful when collecting code coverage).
         var waitingStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(redis.Resource.Name, "Waiting", waitingStateCts.Token);
+        await rns.WaitForResourceAsync(nginx.Resource.Name, "Waiting", waitingStateCts.Token);
 
         // Now that we know we successfully entered the Waiting state, we can swap
         // the dependency into a running state which will unblock startup and
@@ -87,11 +87,11 @@ public class WaitForTests
             ExitCode = 0
         });
 
-        // This time we want to wait for Redis to move into a Running state to verify that
+        // This time we want to wait for Nginx to move into a Running state to verify that
         // it successfully started after we moved the dependency resource into the Finished, but
         // we need to give it more time since we have to download the image in CI.
         var runningStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-        await rns.WaitForResourceAsync(redis.Resource.Name, KnownResourceStates.Running, runningStateCts.Token);
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Running, runningStateCts.Token);
 
         await startTask;
 
@@ -105,7 +105,7 @@ public class WaitForTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var dependency = builder.AddResource(new CustomResource("test"));
-        var redis = builder.AddRedis("redis")
+        var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                            .WithReference(dependency)
                            .WaitFor(dependency);
 
@@ -113,18 +113,18 @@ public class WaitForTests
 
         // StartAsync will currently block until the dependency resource moves
         // into a Finished state, so rather than awaiting it we'll hold onto the
-        // task so we can inspect the state of the Redis resource which should
+        // task so we can inspect the state of the Nginx resource which should
         // be in a waiting state if everything is working correctly.
         var startupCts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
         var startTask = app.StartAsync(startupCts.Token);
 
-        // We don't want to wait forever for Redis to move into a waiting state,
+        // We don't want to wait forever for Nginx to move into a waiting state,
         // it should be super quick, but we'll allow 60 seconds just in case the
         // CI machine is chugging (also useful when collecting code coverage).
         var waitingStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(redis.Resource.Name, "Waiting", waitingStateCts.Token);
+        await rns.WaitForResourceAsync(nginx.Resource.Name, "Waiting", waitingStateCts.Token);
 
         // Now that we know we successfully entered the Waiting state, we can swap
         // the dependency into a running state which will unblock startup and
@@ -135,11 +135,11 @@ public class WaitForTests
             ExitCode = 0
         });
 
-        // This time we want to wait for Redis to move into a Running state to verify that
+        // This time we want to wait for Nginx to move into a Running state to verify that
         // it successfully started after we moved the dependency resource into the Finished, but
         // we need to give it more time since we have to download the image in CI.
         var runningStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-        await rns.WaitForResourceAsync(redis.Resource.Name, KnownResourceStates.FailedToStart, runningStateCts.Token);
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.FailedToStart, runningStateCts.Token);
 
         await startTask;
 
@@ -153,7 +153,7 @@ public class WaitForTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var dependency = builder.AddResource(new CustomResource("test"));
-        var redis = builder.AddRedis("redis")
+        var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                            .WithReference(dependency)
                            .WaitForCompletion(dependency, exitCode: 2);
 
@@ -161,18 +161,18 @@ public class WaitForTests
 
         // StartAsync will currently block until the dependency resource moves
         // into a Finished state, so rather than awaiting it we'll hold onto the
-        // task so we can inspect the state of the Redis resource which should
+        // task so we can inspect the state of the Nginx resource which should
         // be in a waiting state if everything is working correctly.
         var startupCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
         var startTask = app.StartAsync(startupCts.Token);
 
-        // We don't want to wait forever for Redis to move into a waiting state,
+        // We don't want to wait forever for Nginx to move into a waiting state,
         // it should be super quick, but we'll allow 60 seconds just in case the
         // CI machine is chugging (also useful when collecting code coverage).
         var waitingStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(redis.Resource.Name, "Waiting", waitingStateCts.Token);
+        await rns.WaitForResourceAsync(nginx.Resource.Name, "Waiting", waitingStateCts.Token);
 
         // Now that we know we successfully entered the Waiting state, we can swap
         // the dependency into a finished state which will unblock startup and
@@ -183,10 +183,10 @@ public class WaitForTests
             ExitCode = 3 // Exit code does not match expected exit code above intentionally.
         });
 
-        // This time we want to wait for Redis to move into a FailedToStart state to verify that
+        // This time we want to wait for Nginx to move into a FailedToStart state to verify that
         // it didn't start if the dependency resource didn't finish with the correct exit code.
         var runningStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-        await rns.WaitForResourceAsync(redis.Resource.Name, KnownResourceStates.FailedToStart, runningStateCts.Token);
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.FailedToStart, runningStateCts.Token);
 
         await startTask;
 
@@ -202,7 +202,7 @@ public class WaitForTests
         var dependency = builder.AddResource(new CustomResource("test"))
                                 .WithAnnotation(new ReplicaAnnotation(2));
 
-        var redis = builder.AddRedis("redis")
+        var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                            .WithReference(dependency)
                            .WaitForCompletion(dependency);
 
@@ -210,18 +210,18 @@ public class WaitForTests
 
         // StartAsync will currently block until the dependency resource moves
         // into a Finished state, so rather than awaiting it we'll hold onto the
-        // task so we can inspect the state of the Redis resource which should
+        // task so we can inspect the state of the Nginx resource which should
         // be in a waiting state if everything is working correctly.
         var startupCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
         var startTask = app.StartAsync(startupCts.Token);
 
-        // We don't want to wait forever for Redis to move into a waiting state,
+        // We don't want to wait forever for Nginx to move into a waiting state,
         // it should be super quick, but we'll allow 60 seconds just in case the
         // CI machine is chugging (also useful when collecting code coverage).
         var waitingStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(redis.Resource.Name, "FailedToStart", waitingStateCts.Token);
+        await rns.WaitForResourceAsync(nginx.Resource.Name, "FailedToStart", waitingStateCts.Token);
 
         await startTask;
 

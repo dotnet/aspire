@@ -588,11 +588,16 @@ public static class ResourceBuilderExtensions
 
             if (snapshot.State == KnownResourceStates.FailedToStart)
             {
-                throw new DistributedApplicationException("Dependency resource failed to start.");
+                resourceLogger.LogError(
+                    "Dependency resource '{ResourceName}' failed to start.",
+                    dependency.Resource.Name
+                    );
+
+                throw new DistributedApplicationException($"Dependency resource '{dependency.Resource.Name}' failed to start.");
             }
             else if (snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited)
             {
-                resourceLogger.LogInformation(
+                resourceLogger.LogError(
                     "Resource '{ResourceName}' has entered the '{State}' state prematurely.",
                     dependency.Resource.Name,
                     snapshot.State.Text
@@ -659,11 +664,16 @@ public static class ResourceBuilderExtensions
 
             if (snapshot.State == KnownResourceStates.FailedToStart)
             {
-                throw new DistributedApplicationException("Dependency resource failed to start.");
+                resourceLogger.LogError(
+                    "Dependency resource '{ResourceName}' failed to start.",
+                    dependency.Resource.Name
+                    );
+
+                throw new DistributedApplicationException($"Dependency resource '{dependency.Resource.Name}' failed to start.");
             }
             else if ((snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited)  && snapshot.ExitCode != exitCode)
             {
-                resourceLogger.LogInformation(
+                resourceLogger.LogError(
                     "Resource '{ResourceName}' has entered the '{State}' state with exit code '{ExitCode}'",
                     dependency.Resource.Name,
                     snapshot.State.Text,
