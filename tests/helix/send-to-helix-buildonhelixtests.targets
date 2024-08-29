@@ -14,6 +14,8 @@
   <ItemGroup>
     <HelixPreCommand Include="$(_EnvVarSetKeyword) SkipDashboardProjectReference=true" />
     <HelixPreCommand Include="$(_EnvVarSetKeyword) TestsRunningOutsideOfRepo=true" />
+    <!-- required for tests that build docker images, like Aspire.Playground.Tests -->
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) DOCKER_BUILDKIT=1" />
 
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set NUGET_PACKAGES=%HELIX_WORKITEM_ROOT%\nuget-cache\" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export NUGET_PACKAGES=$HELIX_WORKITEM_ROOT/nuget-cache/" />
@@ -26,6 +28,10 @@
   <Target Name="BuildHelixWorkItemsForBuildOnHelixTests">
     <ItemGroup>
       <_TestRunCommandArguments Remove="@(_TestRunCommandArguments)" />
+
+      <_TestBlameArguments Remove="@(_TestBlameArguments)" />
+      <_TestBlameArguments Include="--blame-crash" />
+      <_TestBlameArguments Include="--blame-crash-dump-type full" />
 
       <!-- Using `dotnet test` for the project directly here -->
       <_TestRunCommandArguments Include="dotnet test -s .runsettings --results-directory $(_HelixLogsPath)" />

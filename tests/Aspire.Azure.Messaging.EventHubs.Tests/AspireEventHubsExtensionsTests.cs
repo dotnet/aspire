@@ -26,13 +26,15 @@ public class AspireEventHubsExtensionsTests
     private const int EventHubConsumerClientIndex = 1;
     private const int EventProcessorClientIndex = 2;
     private const int PartitionReceiverIndex = 3;
+    private const int EventBufferedProducerClientIndex = 4;
 
     private static readonly Action<HostApplicationBuilder, string, Action<AzureMessagingEventHubsSettings>?>[] s_keyedClientAdders =
     [
         (builder, key, settings) => builder.AddKeyedAzureEventHubProducerClient(key, settings),
         (builder, key, settings) => builder.AddKeyedAzureEventHubConsumerClient(key, settings),
         (builder, key, settings) => builder.AddKeyedAzureEventProcessorClient(key, settings),
-        (builder, key, settings) => builder.AddKeyedAzurePartitionReceiverClient(key, settings)
+        (builder, key, settings) => builder.AddKeyedAzurePartitionReceiverClient(key, settings),
+        (builder, key, settings) => builder.AddKeyedAzureEventHubBufferedProducerClient(key, settings),
     ];
 
     private static readonly Action<HostApplicationBuilder, string, Action<AzureMessagingEventHubsSettings>?>[] s_clientAdders =
@@ -40,7 +42,8 @@ public class AspireEventHubsExtensionsTests
         (builder, name, settings) => builder.AddAzureEventHubProducerClient(name, settings),
         (builder, name, settings) => builder.AddAzureEventHubConsumerClient(name, settings),
         (builder, name, settings) => builder.AddAzureEventProcessorClient(name, settings),
-        (builder, name, settings) => builder.AddAzurePartitionReceiverClient(name, settings)
+        (builder, name, settings) => builder.AddAzurePartitionReceiverClient(name, settings),
+        (builder, name, settings) => builder.AddAzureEventHubBufferedProducerClient(name, settings),
     ];
 
     private static readonly Type[] s_clientTypes =
@@ -48,7 +51,8 @@ public class AspireEventHubsExtensionsTests
         typeof(EventHubProducerClient),
         typeof(EventHubConsumerClient),
         typeof(EventProcessorClient),
-        typeof(PartitionReceiver)
+        typeof(PartitionReceiver),
+        typeof(EventHubBufferedProducerClient)
     ];
 
     private static void ConfigureBlobServiceClient(bool useKeyed, IServiceCollection services)
@@ -112,6 +116,8 @@ public class AspireEventHubsExtensionsTests
     [InlineData(true, EventProcessorClientIndex)]
     [InlineData(false, PartitionReceiverIndex)]
     [InlineData(true, PartitionReceiverIndex)]
+    [InlineData(false, EventBufferedProducerClientIndex)]
+    [InlineData(true, EventBufferedProducerClientIndex)]
     public void ReadsFromConnectionStringsCorrectly(bool useKeyed, int clientIndex)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -156,6 +162,8 @@ public class AspireEventHubsExtensionsTests
     [InlineData(true, EventProcessorClientIndex)]
     [InlineData(false, PartitionReceiverIndex)]
     [InlineData(true, PartitionReceiverIndex)]
+    [InlineData(false, EventBufferedProducerClientIndex)]
+    [InlineData(true, EventBufferedProducerClientIndex)]
     public void ConnectionStringCanBeSetInCode(bool useKeyed, int clientIndex)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -202,6 +210,8 @@ public class AspireEventHubsExtensionsTests
     [InlineData(true, EventProcessorClientIndex)]
     [InlineData(false, PartitionReceiverIndex)]
     [InlineData(true, PartitionReceiverIndex)]
+    [InlineData(false, EventBufferedProducerClientIndex)]
+    [InlineData(true, EventBufferedProducerClientIndex)]
     public void ConnectionNameWinsOverConfigSection(bool useKeyed, int clientIndex)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -269,6 +279,7 @@ public class AspireEventHubsExtensionsTests
             EventHubConsumerClient consumer => consumer.FullyQualifiedNamespace,
             EventProcessorClient processor => processor.FullyQualifiedNamespace,
             PartitionReceiver receiver => receiver.FullyQualifiedNamespace,
+            EventHubBufferedProducerClient  producer => producer.FullyQualifiedNamespace,
             _ => throw new InvalidOperationException()
         });
     }
@@ -282,6 +293,7 @@ public class AspireEventHubsExtensionsTests
     [InlineData(true, EventProcessorClientIndex)]
     [InlineData(false, PartitionReceiverIndex)]
     [InlineData(true, PartitionReceiverIndex)]
+    [InlineData(false, EventBufferedProducerClientIndex)]
     public void NamespaceWorksInConnectionStrings(bool useKeyed, int clientIndex)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -329,6 +341,7 @@ public class AspireEventHubsExtensionsTests
     [InlineData(EventHubConsumerClientIndex)]
     [InlineData(EventProcessorClientIndex)]
     [InlineData(PartitionReceiverIndex)]
+    [InlineData(EventBufferedProducerClientIndex)]
     public void CanAddMultipleKeyedServices(int clientIndex)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);

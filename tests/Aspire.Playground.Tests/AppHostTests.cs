@@ -3,10 +3,10 @@
 
 using System.Net;
 using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
+using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.Extensions.DependencyInjection;
 using Polly.Timeout;
 using SamplesIntegrationTests;
@@ -28,7 +28,7 @@ public class AppHostTests
     }
 
     [Theory]
-    [MemberData(nameof(AppHostAssemblies))]
+    [MemberData(nameof(AppHostAssembliesWithNoTestEndpoints))]
     public async Task AppHostRunsCleanly(string appHostPath)
     {
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, _testOutput);
@@ -115,8 +115,8 @@ public class AppHostTests
                     .ConfigureHttpClient(client => client.Timeout = Timeout.InfiniteTimeSpan)
                     .AddStandardResilienceHandler(resilience =>
                     {
-                        resilience.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(120);
-                        resilience.AttemptTimeout.Timeout = TimeSpan.FromSeconds(60);
+                        resilience.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(4);
+                        resilience.AttemptTimeout.Timeout = TimeSpan.FromSeconds(90);
                         resilience.Retry.MaxRetryAttempts = 30;
                         resilience.CircuitBreaker.SamplingDuration = resilience.AttemptTimeout.Timeout * 2;
                     });
@@ -142,12 +142,26 @@ public class AppHostTests
         await app.StopAsync();
     }
 
-    public static TheoryData<string> AppHostAssemblies()
+    public static TheoryData<string> AppHostAssembliesWithNoTestEndpoints()
     {
         var appHostAssemblies = GetPlaygroundAppHostAssemblyPaths();
+
+        HashSet<string> appHostsWithTestEndpoints = new();
+        foreach (var testEndpoint in GetAllTestEndpoints())
+        {
+            appHostsWithTestEndpoints.Add(testEndpoint.AppHost);
+        }
+
         var theoryData = new TheoryData<string>();
         foreach (var asm in appHostAssemblies)
         {
+            var appHostName = Path.GetFileNameWithoutExtension(asm);
+            if (appHostsWithTestEndpoints.Contains(appHostName))
+            {
+                // Skipping this as it will be tested by TestEndpointsReturnOk
+                continue;
+            }
+
             if (string.IsNullOrEmpty(s_appHostNameFilter) || asm.Contains(s_appHostNameFilter, StringComparison.OrdinalIgnoreCase))
             {
                 theoryData.Add(Path.GetRelativePath(AppContext.BaseDirectory, asm));
@@ -156,13 +170,13 @@ public class AppHostTests
 
         if (!theoryData.Any() && !string.IsNullOrEmpty(s_appHostNameFilter))
         {
-            throw new InvalidOperationException($"No app host assemblies found matching filter '{s_appHostNameFilter}'");
+            throw new SkipTestException($"No app host assemblies found matching filter '{s_appHostNameFilter}'");
         }
 
         return theoryData;
     }
 
-    public static TheoryData<TestEndpoints> TestEndpoints()
+    public static IList<TestEndpoints> GetAllTestEndpoints()
     {
         IList<TestEndpoints> candidates =
         [
@@ -268,8 +282,13 @@ public class AppHostTests
                 ])
         ];
 
+        return candidates;
+    }
+
+    public static TheoryData<TestEndpoints> TestEndpoints()
+    {
         TheoryData<TestEndpoints> theoryData = new();
-        foreach (var candidateTestEndpoint in candidates)
+        foreach (var candidateTestEndpoint in GetAllTestEndpoints())
         {
             if (string.IsNullOrEmpty(s_appHostNameFilter) || candidateTestEndpoint.AppHost?.Contains(s_appHostNameFilter, StringComparison.OrdinalIgnoreCase) == true)
             {
@@ -279,7 +298,7 @@ public class AppHostTests
 
         if (!theoryData.Any() && !string.IsNullOrEmpty(s_appHostNameFilter))
         {
-            throw new InvalidOperationException($"No test endpoints found matching filter '{s_appHostNameFilter}'");
+            throw new SkipTestException($"No test endpoints found matching filter '{s_appHostNameFilter}'");
         }
 
         return theoryData;
@@ -293,11 +312,8 @@ public class AppHostTests
     }
 }
 
-public class TestEndpoints : IXunitSerializable
+public class TestEndpoints
 {
-    // Required for deserialization
-    public TestEndpoints() { }
-
     public TestEndpoints(string appHost, Dictionary<string, List<string>> resourceEndpoints, List<ReadyStateText>? waitForTexts = null)
     {
         AppHost = appHost;
@@ -305,29 +321,13 @@ public class TestEndpoints : IXunitSerializable
         WaitForTexts = waitForTexts;
     }
 
-    public string? AppHost { get; set; }
+    public string AppHost { get; set; }
 
     public List<ResourceWait>? WaitForResources { get; set; }
 
     public List<ReadyStateText>? WaitForTexts { get; set; }
 
     public Dictionary<string, List<string>>? ResourceEndpoints { get; set; }
-
-    public void Deserialize(IXunitSerializationInfo info)
-    {
-        AppHost = info.GetValue<string>(nameof(AppHost));
-        WaitForResources = JsonSerializer.Deserialize<List<ResourceWait>>(info.GetValue<string>(nameof(WaitForResources)));
-        WaitForTexts = JsonSerializer.Deserialize<List<ReadyStateText>>(info.GetValue<string>(nameof(WaitForTexts)));
-        ResourceEndpoints = JsonSerializer.Deserialize<Dictionary<string, List<string>>>(info.GetValue<string>(nameof(ResourceEndpoints)));
-    }
-
-    public void Serialize(IXunitSerializationInfo info)
-    {
-        info.AddValue(nameof(AppHost), AppHost);
-        info.AddValue(nameof(WaitForResources), JsonSerializer.Serialize(WaitForResources));
-        info.AddValue(nameof(WaitForTexts), JsonSerializer.Serialize(WaitForTexts));
-        info.AddValue(nameof(ResourceEndpoints), JsonSerializer.Serialize(ResourceEndpoints));
-    }
 
     public override string? ToString() => $"{AppHost} ({ResourceEndpoints?.Count ?? 0} resources)";
 

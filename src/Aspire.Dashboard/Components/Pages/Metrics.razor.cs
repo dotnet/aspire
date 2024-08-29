@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Layout;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -26,7 +27,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     private Subscription? _metricsSubscription;
 
     public string BasePath => DashboardUrls.MetricsBasePath;
-    public string SessionStorageKey => "Metrics_PageState";
+    public string SessionStorageKey => BrowserStorageKeys.MetricsPageState;
     public MetricsViewModel PageViewModel { get; set; } = null!;
 
     [Parameter]
@@ -59,6 +60,9 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     [Inject]
     public required ILogger<Metrics> Logger { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; init; }
 
     protected override Task OnInitializedAsync()
     {
@@ -160,7 +164,10 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             }
         }
 
-        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
+        // On mobile, we actually *do* want to update the selected application immediately, since it will affect the tree of possible
+        // metrics to select from. So, we must also immediately close the window since the closing behavior is necessary if the url has changed.
+        var isChangeInToolbar = ViewportInformation.IsDesktop;
+        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: isChangeInToolbar);
     }
 
     private bool ShouldClearSelectedMetrics(List<OtlpInstrumentSummary> instruments)
@@ -226,7 +233,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             PageViewModel.SelectedInstrument = null;
         }
 
-        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: false);
+        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: !ViewportInformation.IsDesktop);
     }
 
     public string GetUrlFromSerializableViewModel(MetricsPageState serializable)
