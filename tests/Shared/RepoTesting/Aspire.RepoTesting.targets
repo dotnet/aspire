@@ -143,4 +143,9 @@
     <Import Project="$(RepoRoot)src\Aspire.Hosting.Sdk\SDK\Sdk.targets" Condition="Exists('$(RepoRoot)src\Aspire.Hosting.Sdk\SDK\Sdk.targets')" />
   </ImportGroup>
 
+  <PropertyGroup Condition="'$(RepoRoot)' != 'null' and '$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'">
+    <!-- This is for in-repo testing and required for Aspire.Hosting.AppHost targets loading correctly. On real projects, this comes from SDK.props in Aspire.Hosting.SDK. -->
+    <AspireHostingSDKVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion)</AspireHostingSDKVersion>
+  </PropertyGroup>
+
 </Project>

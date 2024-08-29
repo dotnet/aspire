@@ -5,7 +5,6 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <NoWarn>$(NoWarn);CS8002</NoWarn> <!-- MongoDB packages are not signed -->
   </PropertyGroup>
 
   <ItemGroup>

@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
@@ -300,7 +301,13 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
                     try
                     {
-                        logMessage = JsonSerializer.Deserialize(logLine.Content, DashboardLogMessageContext.Default.DashboardLogMessage);
+                        var content = logLine.Content;
+                        if (TimestampParser.TryParseConsoleTimestamp(content, out var result))
+                        {
+                            content = result.Value.ModifiedText;
+                        }
+
+                        logMessage = JsonSerializer.Deserialize(content, DashboardLogMessageContext.Default.DashboardLogMessage);
                     }
                     catch (JsonException)
                     {
