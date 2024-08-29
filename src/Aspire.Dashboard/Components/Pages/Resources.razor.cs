@@ -27,9 +27,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private const string StartTimeColumn = nameof(StartTimeColumn);
     private const string SourceColumn = nameof(SourceColumn);
     private const string EndpointsColumn = nameof(EndpointsColumn);
-    private const string LogsColumn = nameof(LogsColumn);
-    private const string DetailsColumn = nameof(DetailsColumn);
-    private const string CommandsColumn = nameof(CommandsColumn);
+    private const string ActionsColumn = nameof(ActionsColumn);
 
     private Subscription? _logsSubscription;
     private Dictionary<OtlpApplication, int>? _applicationUnviewedErrorCounts;
@@ -139,8 +137,6 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         }
     }
 
-    private bool HasResourcesWithCommands => _resourceByName.Any(r => r.Value.Commands.Any());
-
     private IQueryable<ResourceViewModel>? FilteredResources => _resourceByName.Values.Where(Filter).OrderBy(e => e.ResourceType).ThenBy(e => e.Name).AsQueryable();
 
     private readonly GridSort<ResourceViewModel> _nameSort = GridSort<ResourceViewModel>.ByAscending(p => p.Name);
@@ -156,9 +152,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             new GridColumn(Name: StartTimeColumn, DesktopWidth: "1.5fr"),
             new GridColumn(Name: SourceColumn, DesktopWidth: "2.5fr"),
             new GridColumn(Name: EndpointsColumn, DesktopWidth: "2.5fr", MobileWidth: "2fr"),
-            new GridColumn(Name: LogsColumn, DesktopWidth: "1fr"),
-            new GridColumn(Name: DetailsColumn, DesktopWidth: "1fr", MobileWidth: "1fr"),
-            new GridColumn(Name: CommandsColumn, DesktopWidth: "1fr", IsVisible: () => HasResourcesWithCommands)
+            new GridColumn(Name: ActionsColumn, DesktopWidth: "1.5fr", MobileWidth: "1fr")
         ], DimensionManager);
 
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();

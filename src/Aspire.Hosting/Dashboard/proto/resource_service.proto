@@ -38,6 +38,10 @@ message ResourceCommand {
     // Clients must return any value provided by the server when invoking
     // the command.
     optional google.protobuf.Value parameter = 4;
+    // A flag that indicates whether the command is highlighted in the UI.
+    bool is_highlighted = 5;
+    // Optional icon content. SVG path is displayed in the UI.
+    optional string icon_content = 6;
 }
 
 // Represents a request to execute a command.

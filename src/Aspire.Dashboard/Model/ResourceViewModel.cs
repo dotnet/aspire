@@ -64,8 +64,10 @@ public sealed class CommandViewModel
     public string DisplayName { get; }
     public string? ConfirmationMessage { get; }
     public Value? Parameter { get; }
+    public bool IsHighlighted { get; }
+    public string? IconContent { get; }
 
-    public CommandViewModel(string commandType, string displayName, string? confirmationMessage, Value? parameter)
+    public CommandViewModel(string commandType, string displayName, string? confirmationMessage, Value? parameter, bool isHighlighted, string? iconContent)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(commandType);
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
@@ -74,6 +76,8 @@ public sealed class CommandViewModel
         DisplayName = displayName;
         ConfirmationMessage = confirmationMessage;
         Parameter = parameter;
+        IsHighlighted = isHighlighted;
+        IconContent = iconContent;
     }
 }
 
