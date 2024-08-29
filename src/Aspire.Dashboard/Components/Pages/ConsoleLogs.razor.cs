@@ -57,7 +57,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
 
     public string BasePath => DashboardUrls.ConsoleLogBasePath;
-    public string SessionStorageKey => "Aspire_ConsoleLogs_PageState";
+    public string SessionStorageKey => BrowserStorageKeys.ConsoleLogsPageState;
 
     protected override async Task OnInitializedAsync()
     {

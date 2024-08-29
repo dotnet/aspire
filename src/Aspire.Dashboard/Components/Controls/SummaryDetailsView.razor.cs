@@ -4,6 +4,7 @@
 using System.Globalization;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -293,13 +294,13 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
     private string GetSizeStorageKey()
     {
         var viewKey = ViewKey ?? NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-        return $"Aspire_SplitterSize_{Orientation}_{viewKey}";
+        return BrowserStorageKeys.SplitterSizeKey(viewKey, Orientation);
     }
 
     private string GetOrientationStorageKey()
     {
         var viewKey = ViewKey ?? NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-        return $"Aspire_SplitterOrientation_{viewKey}";
+        return BrowserStorageKeys.SplitterOrientationKey(viewKey);
     }
 
     public void Dispose()
