@@ -29,7 +29,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
         await app.StopAsync();
     }
 
-    [Fact]
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/5489")]
     public async Task KafkaTest()
     {
         var appHostPath = Directory.GetFiles(AppContext.BaseDirectory, "KafkaBasic.AppHost.dll").Single();
