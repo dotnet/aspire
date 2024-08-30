@@ -102,7 +102,6 @@
     font-size: 12px;
     color: var(--foreground-subtext-rest);
     padding: 0 0.5em;
-    cursor: pointer;
     height: min-content;
 }
 

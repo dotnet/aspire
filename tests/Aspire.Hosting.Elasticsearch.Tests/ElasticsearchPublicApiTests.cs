@@ -74,7 +74,7 @@ public class ElasticsearchPublicApiTests
     public void CtorElasticsearchResourceShouldThrowWhenNameIsNull()
     {
         var builder = new DistributedApplicationBuilder([]);
-        builder.Configuration["Parameters:Password"] = "p@ssw0rd";
+        builder.Configuration["Parameters:Password"] = "p@ssw0rd1";
         var password = builder.AddParameter("Password");
         const string name = null!;
 
