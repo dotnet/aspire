@@ -1,4 +1,18 @@
 <Project>
+
+  <!---
+
+    1. runscript template .sh/.cmd in eng
+      - configurable path for this to have custom ones
+      - template has hooks for adding in commands, setup, post stuff
+    2. target that generates the script
+      - by running replacetext on the script with the commands
+    3. csproj has the commands
+
+    4. default command is just `dotnet test ..`
+    5. default helix targets file that invokes runtests.sh
+
+  -->
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
 
   <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.targets" />
@@ -10,13 +24,44 @@
     <DeployRunSettingsFile Condition="'$(DeployRunSettingsFile)' == ''">true</DeployRunSettingsFile>
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == ''">$(RepositoryEngineeringDir)testing\xunit.runner.json</XunitRunnerJson>
 
+    <RunTestsScriptTemplatePath Condition="'$(RunTestsScriptTemplatePath)' == '' and '$(OS)' == 'Windows_NT'">$(RepositoryEngineeringDir)testing\RunTestsTemplate.cmd.in</RunTestsScriptTemplatePath>
+    <RunTestsScriptTemplatePath Condition="'$(RunTestsScriptTemplatePath)' == '' and '$(OS)' != 'Windows_NT'">$(RepositoryEngineeringDir)testing\RunTestsTemplate.sh.in</RunTestsScriptTemplatePath>
+
     <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestSupportProject)' != 'true')">true</RunTestsOnHelix>
     <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestSupportProject)' == 'true' or '$(RunTestsOnHelix)' == 'true')">true</SkipTests>
+
+    <!-- FIXME: allow running without cov locally? -->
+    <RunWithCodeCoverage Condition="'$(RunWithCodeCoverage)' == ''">true</RunWithCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="$(RunSettingsFilePath)" CopyToOutputDirectory="PreserveNewest" Condition="'$(DeployRunSettingsFile)' == 'true'" />
     <None Include="$(XunitRunnerJson)" CopyToOutputDirectory="PreserveNewest" />
+    <None Condition="'$(RunWithCodeCoverage)' == 'true'" Include="$(RepoRoot)eng\CodeCoverage.config" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(RunTestsOnHelix)' == 'true' and '$(IsTestProject)' == 'true'">
+    <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' != 'Windows_NT'">$HELIX_CORRELATION_PAYLOAD</_HelixCorrelationPayloadEnvVar>
+    <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_CORRELATION_PAYLOAD%</_HelixCorrelationPayloadEnvVar>
+
+    <_LogsPathEnvVar Condition="'$(OS)' != 'Windows_NT'">$LOGS_PATH</_LogsPathEnvVar>
+    <_LogsPathEnvVar Condition="'$(OS)' == 'Windows_NT'">%LOGS_PATH%</_LogsPathEnvVar>
+
+    <_ExtraTestArgsEnvVar Condition="'$(OS)' != 'Windows_NT'">$ExtraTestArgs</_ExtraTestArgsEnvVar>
+    <_ExtraTestArgsEnvVar Condition="'$(OS)' == 'Windows_NT'">%ExtraTestArgs%</_ExtraTestArgsEnvVar>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(RunTestsOnHelix)' == 'true' and '$(IsTestProject)' == 'true'">
+    <_TestCoverageCommand Include="${COVERAGE_TOOL_CMD} collect" />
+    <_TestCoverageCommand Include="--settings CodeCoverage.config" />
+    <!-- FIXME: _CodeCoverageReportFileNameSuffixEnvVar -->
+    <_TestCoverageCommand Include="--output $(_LogsPathEnvVar)/$(MSBuildProjectName)$(_CodeCoverageReportFileNameSuffixEnvVar).cobertura.xml" />
+
+    <TestBlameArguments Include="--blame-hang" />
+    <TestBlameArguments Include="--blame-hang-dump-type full" />
+    <TestBlameArguments Include="--blame-hang-timeout 10m" />
+    <TestBlameArguments Include="--blame-crash" />
+    <TestBlameArguments Include="--blame-crash-dump-type full" />
   </ItemGroup>
 
   <Target Name="ZipTestArchive" AfterTargets="Build" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true'">
@@ -56,6 +101,66 @@
     <WriteLinesToFile File="$(TestArchiveTestsDir)$(MSBuildProjectName).tests.list"
                       Lines="@(TestClassName->Distinct())"
                       Overwrite="true" />
+  </Target>
+
+  <UsingTask TaskName="GenerateRunScript"
+      TaskFactory="RoslynCodeTaskFactory"
+      AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <TemplateFile ParameterType="System.String" Required="true" />
+      <Output ParameterType="System.String" Required="true" />
+      <PreCommands ParameterType="System.String[]" Required="false" />
+      <RunCommands ParameterType="System.String[]" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+          if (RunCommands.Length == 0)
+          {
+            Log.LogError($"No {nameof(RunCommands)} specified for template file {TemplateFile}.");
+            return false;
+          }
+          Directory.CreateDirectory(Path.GetDirectoryName(Output));
+          var sourceText = File.ReadAllText(TemplateFile);
+
+          if (PreCommands?.Length > 0)
+          {
+            sourceText = sourceText.Replace("@PreCommands@", string.Join(Environment.NewLine, PreCommands));
+          }
+          else
+          {
+            sourceText = sourceText.Replace("@PreCommands@", "");
+          }
+
+          sourceText = sourceText.Replace("@RunCommands@", string.Join(Environment.NewLine, RunCommands));
+
+          File.WriteAllText(Output, sourceText);
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="GenerateRunScript" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true' and '$(IsTestProject)' == 'true'">
+    <PropertyGroup>
+      <_TestBlameArgumentsProperty>@(TestBlameArguments, ' ')</_TestBlameArgumentsProperty>
+      <_TestCoverageCommandProperty>@(_TestCoverageCommand, ' ')</_TestCoverageCommandProperty>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <!--<RunScriptPreCommand />-->
+
+      <RunScriptRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'" Include="$(_TestCoverageCommandProperty) &quot;dotnet test -s .runsettings $(MSBuildProjectName).dll --ResultsDirectory:${LOGS_PATH} $(_TestBlameArgumentsProperty) $(_ExtraTestArgsEnvVar) &quot;" />
+      <RunScriptRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'" Include="dotnet test -s .runsettings $(MSBuildProjectName).dll --ResultsDirectory:${LOGS_PATH} $(_TestBlameArgumentsProperty) $(_ExtraTestArgsEnvVar)" />
+    </ItemGroup>
+
+    <!-- FIXME: null checks -->
+    <GenerateRunScript
+        TemplateFile="$(RunTestsScriptTemplatePath)"
+        Output="$(OutDir)RunTests.sh"
+        PreCommands="@(RunScriptPreCommand)"
+        RunCommands="@(RunScriptRunCommand)"
+    />
   </Target>
 
   <Import Project="$(TestsSharedDir)Aspire.Workload.Testing.targets" Condition="'$(IsWorkloadTestProject)' == 'true'" />

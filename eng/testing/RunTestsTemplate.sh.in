@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+EXECUTION_DIR=$(dirname $0)
+if [[ -n "$3" ]]; then
+    SCENARIO=$3
+fi
+
+if [[ -z "$HELIX_WORKITEM_UPLOAD_ROOT" ]]; then
+    LOGS_PATH="$EXECUTION_DIR/logs"
+    COVERAGE_TOOL_CMD=dotnet-coverage
+else
+    LOGS_PATH="$HELIX_WORKITEM_UPLOAD_ROOT/logs"
+    COVERAGE_TOOL_CMD=$HELIX_CORRELATION_PAYLOAD/dotnet-coverage/dotnet-coverage
+fi
+
+# PreCommands
+@PreCommands@
+
+# RunCommands
+@RunCommands@
