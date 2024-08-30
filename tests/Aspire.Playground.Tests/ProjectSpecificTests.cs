@@ -29,7 +29,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
         await app.StopAsync();
     }
 
-    [Fact(Skip = "https://github.com/dotnet/aspire/issues/5489")]
+    [Fact]
     public async Task KafkaTest()
     {
         var appHostPath = Directory.GetFiles(AppContext.BaseDirectory, "KafkaBasic.AppHost.dll").Single();
@@ -39,6 +39,10 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
         await app.StartAsync();
         await app.WaitForResources().WaitAsync(TimeSpan.FromMinutes(2));
 
+        // Wait for the producer to start sending messages
+        await app.WaitForTextAsync("Hello, World! 10").WaitAsync(TimeSpan.FromMinutes(5));
+
+        // Wait for the consumer to receive some messages
         await WaitForAllTextAsync(app,
             [
                 "Hello, World! 343",
