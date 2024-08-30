@@ -16,13 +16,11 @@
       <!-- needed for Aspire.Hosting.Container.Tests -->
       <HelixPreCommand Include="$(_EnvVarSetKeyword) DOCKER_BUILDKIT=1" />
 
-      <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="-- RunConfiguration.TestSessionTimeout=$TEST_TIMEOUT" />
-      <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="-- RunConfiguration.TestSessionTimeout=%TEST_TIMEOUT%" />
     </ItemGroup>
 
     <PropertyGroup>
-      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
-      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
+      <!--<_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>-->
+      <_TestRunCommand>@(_TestRunCommandArguments, ' ')</_TestRunCommand>
 
       <HelixPreCommands>$(HelixPreCommands);@(HelixPreCommand)</HelixPreCommands>
     </PropertyGroup>

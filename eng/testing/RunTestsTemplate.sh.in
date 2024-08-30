@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
+set -x
+
 EXECUTION_DIR=$(dirname $0)
-if [[ -n "$3" ]]; then
-    SCENARIO=$3
-fi
+
+TEST_TIMEOUT=${TEST_TIMEOUT:-600000}
 
 if [[ -z "$HELIX_WORKITEM_UPLOAD_ROOT" ]]; then
     LOGS_PATH="$EXECUTION_DIR/logs"

@@ -59,18 +59,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <_TestCoverageCommand Include="$(_HelixCorrelationPayloadEnvVar)/dotnet-coverage/dotnet-coverage collect" />
-    <_TestCoverageCommand Include="--settings $(_HelixCorrelationPayloadEnvVar)/support-data/CodeCoverage.config" />
-    <_TestCoverageCommand Include="--output $(_HelixLogsPath)/$(_TestNameEnvVar)$(_CodeCoverageReportFileNameSuffixEnvVar).cobertura.xml" />
-
-    <_TestBlameArguments Include="--blame-hang" />
-    <_TestBlameArguments Include="--blame-hang-dump-type full" />
-    <_TestBlameArguments Include="--blame-hang-timeout 10m" />
-    <_TestBlameArguments Include="--blame-crash" />
-    <_TestBlameArguments Include="--blame-crash-dump-type full" />
-
-    <_TestRunCommandArguments Include="dotnet test -s .runsettings $(_TestNameEnvVar).dll --ResultsDirectory:$(_HelixLogsPath)" />
-    <_TestRunCommandArguments Include="@(_TestBlameArguments, ' ')" />
+    <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="chmod +x RunTests.sh &amp;&amp; ./RunTests.sh" />
   </ItemGroup>
 
   <Import Project="$(MSBuildThisFileDirectory)send-to-helix-$(TestCategory).targets" />
