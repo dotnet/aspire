@@ -158,5 +158,5 @@ public static class KnownResourceStates
     /// <summary>
     /// List of terminal states.
     /// </summary>
-    public static readonly string[] TerminalStates = [Finished, FailedToStart, Exited];
+    public static readonly IReadOnlyList<string> TerminalStates = [Finished, FailedToStart, Exited];
 }
