@@ -12,7 +12,8 @@ namespace Aspire.Hosting.Azure;
 /// <param name="configureConstruct">Callback to populate the construct with Azure resources.</param>
 public class AzureStorageResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
     AzureConstructResource(name, configureConstruct),
-    IResourceWithEndpoints
+    IResourceWithEndpoints,
+    IResourceWithAzureFunctionsConfig
 {
     private EndpointReference EmulatorBlobEndpoint => new(this, "blob");
     private EndpointReference EmulatorQueueEndpoint => new(this, "queue");
@@ -42,7 +43,7 @@ public class AzureStorageResource(string name, Action<ResourceModuleConstruct> c
     /// Gets the connection string for the Azure Storage emulator.
     /// </summary>
     /// <returns></returns>
-    public ReferenceExpression GetEmulatorConnectionString() => IsEmulator
+    internal ReferenceExpression GetEmulatorConnectionString() => IsEmulator
        ? ReferenceExpression.Create($"{AzureStorageEmulatorConnectionString.Create(blobPort: EmulatorBlobEndpoint.Port, queuePort: EmulatorQueueEndpoint.Port, tablePort: EmulatorTableEndpoint.Port)}")
        : throw new InvalidOperationException("The Azure Storage resource is not running in the local emulator.");
 
@@ -57,4 +58,17 @@ public class AzureStorageResource(string name, Action<ResourceModuleConstruct> c
     internal ReferenceExpression GetBlobConnectionString() => IsEmulator
         ? ReferenceExpression.Create($"{AzureStorageEmulatorConnectionString.Create(blobPort: EmulatorBlobEndpoint.Port)}")
         : ReferenceExpression.Create($"{BlobEndpoint}");
+
+    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
+    {
+        if (IsEmulator)
+        {
+            target[connectionName] = GetEmulatorConnectionString();
+        }
+        else
+        {
+            target[$"{connectionName}__blobServiceUri"] = BlobEndpoint;
+            target[$"{connectionName}__queueServiceUri"] = QueueEndpoint;
+        }
+    }
 }

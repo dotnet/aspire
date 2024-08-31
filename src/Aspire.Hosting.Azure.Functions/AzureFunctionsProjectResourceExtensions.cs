@@ -30,7 +30,7 @@ public static class AzureFunctionsProjectResourceExtensions
             builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
             {
                 var removeStorage = true;
-                // Look at all of the resources and if non of them use the default storage, then we can remove it.
+                // Look at all of the resources and if none of them use the default storage, then we can remove it.
                 // This is because we're unable to cleanly add a resource to the builder from within a callback.
                 foreach (var item in data.Model.Resources.OfType<AzureFunctionsProjectResource>())
                 {
@@ -111,15 +111,8 @@ public static class AzureFunctionsProjectResourceExtensions
                 context.EnvironmentVariables["ASPNETCORE_FORWARDEDHEADERS_ENABLED"] = "true";
                 context.EnvironmentVariables["FUNCTIONS_WORKER_RUNTIME"] = "dotnet-isolated";
 
-                if (resource.HostStorage.IsEmulator)
-                {
-                    context.EnvironmentVariables["Storage"] = resource.HostStorage.GetEmulatorConnectionString();
-                }
-                else
-                {
-                    context.EnvironmentVariables["Storage__blobServiceUri"] = resource.HostStorage.BlobEndpoint;
-                    context.EnvironmentVariables["Storage__queueServiceUri"] = resource.HostStorage.QueueEndpoint;
-                }
+                // Set the storage connection string.
+                ((IResourceWithAzureFunctionsConfig)resource.HostStorage).ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, "Storage");
             })
             .WithOtlpExporter()
             .WithHttpEndpoint()

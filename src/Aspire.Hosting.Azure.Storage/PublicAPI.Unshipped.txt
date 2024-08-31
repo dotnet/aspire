@@ -1,2 +1,2 @@
 #nullable enable
-Aspire.Hosting.Azure.AzureStorageResource.GetEmulatorConnectionString() -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
+
