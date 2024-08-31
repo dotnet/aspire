@@ -402,11 +402,27 @@ public static class ProjectResourceBuilderExtensions
             if (!kestrelEndpointsByScheme.Any())
             {
                 var urlsFromApplicationUrl = launchProfile.ApplicationUrl?.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? [];
+                Dictionary<string, int> endpointCountByScheme = [];
                 foreach (var url in urlsFromApplicationUrl)
                 {
                     var uri = new Uri(url);
 
-                    builder.WithEndpoint(uri.Scheme, e =>
+                    // Keep track of how many endpoints we have for each scheme
+                    endpointCountByScheme.TryGetValue(uri.Scheme, out var count);
+                    endpointCountByScheme[uri.Scheme] = count + 1;
+
+                    // If we have multiple for the same scheme, we differentiate them by appending a number.
+                    // We only do this starting with the second endpoint, so that the first stays just http/https.
+                    // This allows us to keep the same behavior as "dotnet run".
+                    // Also, note that we only do this in Run mode, as in Publish mode those extra endpoints
+                    // with generic names would not be easily usable.
+                    var endpointName = uri.Scheme;
+                    if (endpointCountByScheme[uri.Scheme] > 1)
+                    {
+                        endpointName += endpointCountByScheme[uri.Scheme];
+                    }
+
+                    builder.WithEndpoint(endpointName, e =>
                     {
                         e.Port = uri.Port;
                         e.UriScheme = uri.Scheme;
