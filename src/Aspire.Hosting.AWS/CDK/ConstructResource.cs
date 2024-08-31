@@ -6,7 +6,7 @@ using Constructs;
 
 namespace Aspire.Hosting.AWS.CDK;
 
-/// <inheritdoc cref="Aspire.Hosting.AWS.CDK.IConstructResource" />
+/// <inheritdoc cref="IConstructResource" />
 internal class ConstructResource(string name, IConstruct construct, IResourceWithConstruct parent) : Resource(name), IConstructResource
 {
     /// <inheritdoc/>
@@ -16,7 +16,7 @@ internal class ConstructResource(string name, IConstruct construct, IResourceWit
     public IResourceWithConstruct Parent { get; } = parent;
 }
 
-/// <inheritdoc cref="Aspire.Hosting.AWS.CDK.ConstructResource" />
+/// <inheritdoc cref="ConstructResource" />
 internal sealed class ConstructResource<T>(string name, T construct, IResourceWithConstruct parent) : ConstructResource(name, construct, parent), IConstructResource<T>
     where T : IConstruct
 {
