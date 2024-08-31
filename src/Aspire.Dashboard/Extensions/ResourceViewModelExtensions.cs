@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
@@ -27,9 +27,9 @@ internal static class ResourceViewModelExtensions
         return resource.KnownState is KnownResourceState.Exited or KnownResourceState.Finished or KnownResourceState.FailedToStart;
     }
 
-    public static bool IsStartingOrBuilding(this ResourceViewModel resource)
+    public static bool IsStartingOrBuildingOrWaiting(this ResourceViewModel resource)
     {
-        return resource.KnownState is KnownResourceState.Starting or KnownResourceState.Building;
+        return resource.KnownState is KnownResourceState.Starting or KnownResourceState.Building or KnownResourceState.Waiting;
     }
 
     public static bool HasNoState(this ResourceViewModel resource) => string.IsNullOrEmpty(resource.State);

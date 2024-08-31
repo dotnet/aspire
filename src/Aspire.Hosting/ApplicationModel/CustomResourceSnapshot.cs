@@ -149,4 +149,14 @@ public static class KnownResourceStates
     /// The finished state. Useful for showing the resource has finished.
     /// </summary>
     public static readonly string Finished = nameof(Finished);
+
+    /// <summary>
+    /// The waiting state. Useful for showing the resource is waiting for a dependency.
+    /// </summary>
+    public static readonly string Waiting = nameof(Waiting);
+
+    /// <summary>
+    /// List of terminal states.
+    /// </summary>
+    public static readonly IReadOnlyList<string> TerminalStates = [Finished, FailedToStart, Exited];
 }
