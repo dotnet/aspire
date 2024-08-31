@@ -39,6 +39,10 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
         await app.StartAsync();
         await app.WaitForResources().WaitAsync(TimeSpan.FromMinutes(2));
 
+        // Wait for the producer to start sending messages
+        await app.WaitForTextAsync("Hello, World!").WaitAsync(TimeSpan.FromMinutes(5));
+
+        // Wait for the consumer to receive some messages
         await WaitForAllTextAsync(app,
             [
                 "Hello, World! 343",
