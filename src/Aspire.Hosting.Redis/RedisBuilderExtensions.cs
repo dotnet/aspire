@@ -6,6 +6,9 @@ using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Utils;
+using HealthChecks.Redis;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting;
 
@@ -29,10 +32,17 @@ public static class RedisBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         var redis = new RedisResource(name);
+
         return builder.AddResource(redis)
                       .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
                       .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
-                      .WithImageRegistry(RedisContainerImageTags.Registry);
+                      .WithImageRegistry(RedisContainerImageTags.Registry)
+                      .WithAnnotation(new HealthCheckAnnotation(CheckHealth));
+
+        static async Task CheckHealth(IServiceProvider services, CancellationToken cancellationToken)
+        {
+            await Task.CompletedTask.ConfigureAwait(false);
+        }
     }
 
     /// <summary>
