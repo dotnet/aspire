@@ -6,9 +6,7 @@ using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Utils;
-using HealthChecks.Redis;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting;
 
@@ -33,16 +31,24 @@ public static class RedisBuilderExtensions
 
         var redis = new RedisResource(name);
 
+        builder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>(async (@event, ct) =>
+        {
+            var connectionString = await @event.GetConnectionStringAsync(redis.Name, ct).ConfigureAwait(false);
+            builder.Configuration["hackedinconnectionstring"] = connectionString;
+        });
+
+        var hcb = builder.Services.AddHealthChecks().AddRedis(sp =>
+            {
+                return builder.Configuration["hackedinconnectionstring"]!;
+            },
+            name: $"{redis.Name}_check"
+        );
+
         return builder.AddResource(redis)
                       .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
                       .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
                       .WithImageRegistry(RedisContainerImageTags.Registry)
-                      .WithAnnotation(new HealthCheckAnnotation(CheckHealth));
-
-        static async Task CheckHealth(IServiceProvider services, CancellationToken cancellationToken)
-        {
-            await Task.CompletedTask.ConfigureAwait(false);
-        }
+                      .WithAnnotation(new HealthCheckAnnotation($"{redis.Name}_check"));
     }
 
     /// <summary>

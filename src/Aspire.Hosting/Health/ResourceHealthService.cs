@@ -2,11 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Health;
 
-internal class ResourceHealthService(ILogger<ResourceHealthService> logger, IServiceProvider services) : IResourceHealthService
+internal class ResourceHealthService(ILogger<ResourceHealthService> logger, HealthCheckService healthService) : IResourceHealthService
 {
     public async Task WaitUntilResourceHealthyAsync(IResource resource, CancellationToken cancellationToken)
     {
@@ -14,14 +15,10 @@ internal class ResourceHealthService(ILogger<ResourceHealthService> logger, ISer
 
         if (resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var annotations))
         {
-            var checkTasks = new List<Task>();
-            foreach (var annotation in annotations)
+            do
             {
-                var checkTask = annotation.WaitUntilResourceHealthyAsync(services, cancellationToken);
-                checkTasks.Add(checkTask);
-            }
-
-            await Task.WhenAll(checkTasks).ConfigureAwait(false);
+                var report = await healthService.CheckHealthAsync(cancellationToken).ConfigureAwait(false);
+            } while (true);
         }
 
         logger.LogInformation("Waiting for resource {ResourceName} has become healthy", resource.Name);
