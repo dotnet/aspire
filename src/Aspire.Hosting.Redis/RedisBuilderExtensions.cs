@@ -33,7 +33,7 @@ public static class RedisBuilderExtensions
 
         builder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>(async (@event, ct) =>
         {
-            var connectionString = await @event.GetConnectionStringAsync(redis.Name, ct).ConfigureAwait(false);
+            var connectionString = await redis.GetConnectionStringAsync(ct).ConfigureAwait(false);
             builder.Configuration["hackedinconnectionstring"] = connectionString;
         });
 

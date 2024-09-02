@@ -18,6 +18,13 @@ internal class ResourceHealthService(ILogger<ResourceHealthService> logger, Heal
             do
             {
                 var report = await healthService.CheckHealthAsync(cancellationToken).ConfigureAwait(false);
+                if (annotations.All(e => report.Entries.Any(r => r.Key == e.Key && r.Value.Status == HealthStatus.Healthy)))
+                {
+                    break;
+                }
+
+                logger.LogError("Not healthy yet!");
+                await Task.Delay(100, cancellationToken).ConfigureAwait(false);
             } while (true);
         }
 

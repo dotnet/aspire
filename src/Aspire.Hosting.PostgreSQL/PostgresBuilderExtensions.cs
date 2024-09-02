@@ -6,6 +6,7 @@ using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -38,6 +39,20 @@ public static class PostgresBuilderExtensions
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 
         var postgresServer = new PostgresServerResource(name, userName?.Resource, passwordParameter);
+
+        builder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>(async (@event, ct) =>
+        {
+            var connectionString = await postgresServer.GetConnectionStringAsync(ct).ConfigureAwait(false);
+            builder.Configuration[$"{postgresServer.Name}_builtin_connectionstring"] = connectionString;
+        });
+
+        builder.Services.AddHealthChecks().AddNpgSql(sp =>
+            {
+                return builder.Configuration[$"{name}_builtin_connectionstring"]!;
+            },
+            name: $"{name}_check"
+        );
+
         return builder.AddResource(postgresServer)
                       .WithEndpoint(port: port, targetPort: 5432, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.
                       .WithImage(PostgresContainerImageTags.Image, PostgresContainerImageTags.Tag)
@@ -48,7 +63,8 @@ public static class PostgresBuilderExtensions
                       {
                           context.EnvironmentVariables[UserEnvVarName] = postgresServer.UserNameReference;
                           context.EnvironmentVariables[PasswordEnvVarName] = postgresServer.PasswordParameter;
-                      });
+                      })
+                      .WithAnnotation(new HealthCheckAnnotation($"{postgresServer.Name}_check"));
     }
 
     /// <summary>
