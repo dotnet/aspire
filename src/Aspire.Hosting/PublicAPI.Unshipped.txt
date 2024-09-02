@@ -27,9 +27,6 @@ Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.init -> void
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation.HealthCheckAnnotation(string! key) -> void
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation.Key.get -> string!
-Aspire.Hosting.ApplicationModel.ResourceCreatedEvent
-Aspire.Hosting.ApplicationModel.ResourceCreatedEvent.Resource.get -> Aspire.Hosting.ApplicationModel.IResource!
-Aspire.Hosting.ApplicationModel.ResourceCreatedEvent.ResourceCreatedEvent(Aspire.Hosting.ApplicationModel.IResource! resource) -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, System.Func<Aspire.Hosting.ApplicationModel.ResourceEvent!, bool>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ResourceEvent!>!
 Aspire.Hosting.DistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!

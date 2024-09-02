@@ -40,14 +40,15 @@ public static class PostgresBuilderExtensions
 
         var postgresServer = new PostgresServerResource(name, userName?.Resource, passwordParameter);
 
+        string? connectionString = null;
+
         builder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>(async (@event, ct) =>
         {
-            var connectionString = await postgresServer.GetConnectionStringAsync(ct).ConfigureAwait(false);
-            builder.Configuration[$"{postgresServer.Name}_builtin_connectionstring"] = connectionString;
+            connectionString = await postgresServer.GetConnectionStringAsync(ct).ConfigureAwait(false);
         });
 
         builder.Services.AddHealthChecks()
-                        .AddNpgSql(sp => builder.Configuration[$"{name}_builtin_connectionstring"]!, name: $"{name}_check");
+                        .AddNpgSql(sp => connectionString!, name: $"{name}_check");
 
         return builder.AddResource(postgresServer)
                       .WithEndpoint(port: port, targetPort: 5432, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.
