@@ -89,7 +89,8 @@ public static class CDKExtensions
             {
                 Properties = [],
                 ResourceType = GetResourceType<Construct>(resource),
-            });
+            })
+            .ExcludeFromManifest();
     }
 
     /// <summary>
