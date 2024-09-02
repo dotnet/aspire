@@ -13,9 +13,9 @@ public class ConfigurationTests
 
     [Fact]
     public void HealthCheckIsEnabledByDefault()
-        => Assert.True(new MicrosoftDataSqlClientSettings().HealthChecks);
+        => Assert.False(new MicrosoftDataSqlClientSettings().DisableHealthChecks);
 
     [Fact]
     public void TracingIsEnabledByDefault()
-        => Assert.True(new MicrosoftDataSqlClientSettings().Tracing);
+        => Assert.False(new MicrosoftDataSqlClientSettings().DisableTracing);
 }

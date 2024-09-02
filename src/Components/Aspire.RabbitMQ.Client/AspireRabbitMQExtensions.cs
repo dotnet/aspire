@@ -119,7 +119,7 @@ public static class AspireRabbitMQExtensions
 
         builder.Services.AddSingleton<RabbitMQEventSourceLogForwarder>();
 
-        if (settings.Tracing)
+        if (!settings.DisableTracing)
         {
             // Note that RabbitMQ.Client v6.6 doesn't have built-in support for tracing. See https://github.com/rabbitmq/rabbitmq-dotnet-client/pull/1261
 
@@ -127,7 +127,7 @@ public static class AspireRabbitMQExtensions
                 .WithTracing(traceBuilder => traceBuilder.AddSource(ActivitySourceName));
         }
 
-        if (settings.HealthChecks)
+        if (!settings.DisableHealthChecks)
         {
             builder.TryAddHealthCheck(new HealthCheckRegistration(
                 serviceKey is null ? "RabbitMQ.Client" : $"RabbitMQ.Client_{connectionName}",

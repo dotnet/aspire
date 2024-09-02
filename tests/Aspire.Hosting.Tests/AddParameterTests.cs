@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -47,7 +50,7 @@ public class AddParameterTests
     }
 
     [Fact]
-    public void MissingParametersAreFailedToStart()
+    public void MissingParametersAreConfigurationMissing()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
@@ -64,7 +67,9 @@ public class AddParameterTests
 
         var state = annotation.InitialSnapshot;
 
-        Assert.Equal("FailedToStart", state.State);
+        Assert.NotNull(state.State);
+        Assert.Equal("Configuration missing", state.State.Text);
+        Assert.Equal(KnownResourceStateStyles.Error, state.State.Style);
         Assert.Collection(state.Properties,
             prop =>
             {
@@ -81,5 +86,38 @@ public class AddParameterTests
                 Assert.Equal("Value", prop.Name);
                 Assert.Contains("configuration key 'Parameters:pass' is missing", prop.Value?.ToString());
             });
+
+        // verify that the logging hook is registered
+        Assert.Contains(app.Services.GetServices<IDistributedApplicationLifecycleHook>(), hook => hook.GetType().Name == "WriteParameterLogsHook");
+    }
+
+    [Fact]
+    public void ParametersWithConfigurationValueDoNotGetDefaultValue()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Parameters:pass"] = "ValueFromConfiguration"
+        });
+        var parameter = appBuilder.AddParameter("pass");
+        parameter.Resource.Default = new TestParameterDefault("DefaultValue");
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
+        Assert.Equal("ValueFromConfiguration", parameterResource.Value);
+    }
+
+    private sealed class TestParameterDefault(string defaultValue) : ParameterDefault
+    {
+        public override string GetDefaultValue() => defaultValue;
+
+        public override void WriteToManifest(ManifestPublishingContext context)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

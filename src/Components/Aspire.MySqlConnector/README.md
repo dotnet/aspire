@@ -67,8 +67,8 @@ The .NET Aspire MySQL component supports [Microsoft.Extensions.Configuration](ht
 {
   "Aspire": {
     "MySqlConnector": {
-      "HealthChecks": false,
-      "Tracing": false
+      "DisableHealthChecks": true,
+      "DisableTracing": true
     }
   }
 }
@@ -79,7 +79,7 @@ The .NET Aspire MySQL component supports [Microsoft.Extensions.Configuration](ht
 Also you can pass the `Action<MySqlConnectorSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-builder.AddMySqlDataSource("mysql", settings => settings.HealthChecks = false);
+builder.AddMySqlDataSource("mysql", settings => settings.DisableHealthChecks = true);
 ```
 
 ## AppHost extensions

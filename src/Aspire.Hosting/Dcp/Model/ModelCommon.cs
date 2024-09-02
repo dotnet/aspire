@@ -23,6 +23,7 @@ internal abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMet
     public const string EndpointNameAnnotation = "endpoint-name";
     public const string ResourceNameAnnotation = "resource-name";
     public const string OtelServiceNameAnnotation = "otel-service-name";
+    public const string OtelServiceInstanceIdAnnotation = "otel-service-instance-id";
     public const string ResourceStateAnnotation = "resource-state";
 
     public string? AppModelResourceName => Metadata.Annotations?.TryGetValue(ResourceNameAnnotation, out var value) is true ? value : null;
@@ -54,15 +55,20 @@ internal abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMet
 
     public bool TryGetAnnotationAsObjectList<TValue>(string annotationName, [NotNullWhen(true)] out List<TValue>? list)
     {
+        return TryGetAnnotationAsObjectList<TValue>(Metadata.Annotations, annotationName, out list);
+    }
+
+    internal static bool TryGetAnnotationAsObjectList<TValue>(IDictionary<string, string>? annotations, string annotationName, [NotNullWhen(true)] out List<TValue>? list)
+    {
         list = null;
 
-        if (Metadata.Annotations is null)
+        if (annotations is null)
         {
             return false;
         }
 
         string? annotationValue;
-        bool found = Metadata.Annotations.TryGetValue(annotationName, out annotationValue);
+        bool found = annotations.TryGetValue(annotationName, out annotationValue);
         if (!found || string.IsNullOrWhiteSpace(annotationValue))
         {
             return false;
@@ -223,6 +229,8 @@ internal static class Rules
 
 internal static class Logs
 {
+    public const string StreamTypeStartupStdOut = "startup_stdout";
+    public const string StreamTypeStartupStdErr = "startup_stderr";
     public const string StreamTypeStdOut = "stdout";
     public const string StreamTypeStdErr = "stderr";
     public const string StreamTypeAll = "all";

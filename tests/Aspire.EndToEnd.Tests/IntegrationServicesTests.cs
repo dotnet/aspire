@@ -4,9 +4,9 @@
 using System.Runtime.InteropServices;
 using Xunit;
 using Xunit.Abstractions;
-using Xunit.Sdk;
 using Aspire.TestProject;
 using Aspire.Workload.Tests;
+using Microsoft.DotNet.XUnitExtensions;
 
 namespace Aspire.EndToEnd.Tests;
 
@@ -23,14 +23,9 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
 
     [Theory]
     [Trait("scenario", "basicservices")]
-    [InlineData(TestResourceNames.mongodb)]
-    [InlineData(TestResourceNames.mysql)]
-    [InlineData(TestResourceNames.efmysql)]
     [InlineData(TestResourceNames.postgres)]
     [InlineData(TestResourceNames.efnpgsql)]
-    [InlineData(TestResourceNames.rabbitmq)]
     [InlineData(TestResourceNames.redis)]
-    [InlineData(TestResourceNames.sqlserver)]
     public Task VerifyComponentWorks(TestResourceNames resourceName)
         => RunTestAsync(async () =>
         {
@@ -49,45 +44,28 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
             }
         });
 
-    [ConditionalFact]
-    [SkipOnCI("https://github.com/dotnet/aspire/issues/3161")]
-    [Trait("scenario", "oracle")]
-    public Task VerifyOracleComponentWorks()
-        => VerifyComponentWorks(TestResourceNames.oracledatabase);
+    [Fact]
+    [Trait("scenario", "eventhubs")]
+    public Task VerifyAzureEventHubsComponentWorks()
+        => VerifyComponentWorks(TestResourceNames.eventhubs);
 
-    [ConditionalFact]
+    [ConditionalTheory]
     [Trait("scenario", "cosmos")]
-    public Task VerifyCosmosComponentWorks()
+    [InlineData(TestResourceNames.cosmos)]
+    [InlineData(TestResourceNames.efcosmos)]
+    public Task VerifyCosmosComponentWorks(TestResourceNames resourceName)
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
         {
-            throw new SkipException($"Skipping 'cosmos' test because the emulator isn't supported on macOS ARM64.");
+            throw new SkipTestException($"Skipping 'cosmos' test because the emulator isn't supported on macOS ARM64.");
         }
 
-        return VerifyComponentWorks(TestResourceNames.cosmos);
+        return VerifyComponentWorks(resourceName);
     }
-
-    [Fact]
-    [Trait("scenario", "basicservices")]
-    public Task KafkaComponentCanProduceAndConsume()
-        => RunTestAsync(async() =>
-        {
-            _integrationServicesFixture.EnsureAppHasResources(TestResourceNames.kafka);
-            string topic = $"topic-{Guid.NewGuid()}";
-
-            var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/kafka/produce/{topic}");
-            var responseContent = await response.Content.ReadAsStringAsync();
-            Assert.True(response.IsSuccessStatusCode, responseContent);
-
-            response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/kafka/consume/{topic}");
-            responseContent = await response.Content.ReadAsStringAsync();
-            Assert.True(response.IsSuccessStatusCode, responseContent);
-        });
 
     [Fact]
     // Include all the scenarios here so this test gets run for all of them.
     [Trait("scenario", "cosmos")]
-    [Trait("scenario", "oracle")]
     [Trait("scenario", "basicservices")]
     public Task VerifyHealthyOnIntegrationServiceA()
         => RunTestAsync(async () =>
@@ -99,14 +77,14 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
 
     private async Task RunTestAsync(Func<Task> test)
     {
-        _integrationServicesFixture.EnsureAppHostRunning();
+        _integrationServicesFixture.Project.EnsureAppHostRunning();
         try
         {
             await test();
         }
         catch
         {
-            await _integrationServicesFixture.DumpDockerInfoAsync();
+            await _integrationServicesFixture.Project.DumpDockerInfoAsync();
             throw;
         }
     }

@@ -3,8 +3,12 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting Node Nodejs</PackageTags>
+    <PackageTags>aspire integration hosting Node Nodejs</PackageTags>
     <Description>Node.js support for .NET Aspire.</Description>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>95</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>

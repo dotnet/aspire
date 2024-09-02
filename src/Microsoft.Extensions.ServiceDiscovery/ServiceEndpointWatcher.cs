@@ -32,6 +32,7 @@ internal sealed partial class ServiceEndpointWatcher(
     private ServiceEndpointSource? _cachedEndpoints;
     private Task _refreshTask = Task.CompletedTask;
     private volatile CacheStatus _cacheState;
+    private IDisposable? _changeTokenRegistration;
 
     /// <summary>
     /// Gets the service name.
@@ -60,6 +61,8 @@ internal sealed partial class ServiceEndpointWatcher(
     public ValueTask<ServiceEndpointSource> GetEndpointsAsync(CancellationToken cancellationToken = default)
     {
         ThrowIfNoProviders();
+        ObjectDisposedException.ThrowIf(_disposalCancellation.IsCancellationRequested, this);
+        cancellationToken.ThrowIfCancellationRequested();
 
         // If the cache is valid, return the cached value.
         if (_cachedEndpoints is { ChangeToken.HasChanged: false } cached)
@@ -74,11 +77,15 @@ internal sealed partial class ServiceEndpointWatcher(
         async ValueTask<ServiceEndpointSource> GetEndpointsInternal(CancellationToken cancellationToken)
         {
             ServiceEndpointSource? result;
+            var disposalToken = _disposalCancellation.Token;
             do
             {
+                disposalToken.ThrowIfCancellationRequested();
+                cancellationToken.ThrowIfCancellationRequested();
                 await RefreshAsync(force: false).WaitAsync(cancellationToken).ConfigureAwait(false);
                 result = _cachedEndpoints;
             } while (result is null);
+
             return result;
         }
     }
@@ -89,7 +96,7 @@ internal sealed partial class ServiceEndpointWatcher(
         lock (_lock)
         {
             // If the cache is invalid or needs invalidation, refresh the cache.
-            if (_refreshTask.IsCompleted && (_cacheState == CacheStatus.Invalid || _cachedEndpoints is null or { ChangeToken.HasChanged: true } || force))
+            if (!_disposalCancellation.IsCancellationRequested && _refreshTask.IsCompleted && (_cacheState == CacheStatus.Invalid || _cachedEndpoints is null or { ChangeToken.HasChanged: true } || force))
             {
                 // Indicate that the cache is being updated and start a new refresh task.
                 _cacheState = CacheStatus.Refreshing;
@@ -128,10 +135,18 @@ internal sealed partial class ServiceEndpointWatcher(
         CacheStatus newCacheState;
         try
         {
+            lock (_lock)
+            {
+                // Dispose the existing change token registration, if any.
+                _changeTokenRegistration?.Dispose();
+                _changeTokenRegistration = null;
+            }
+
             Log.ResolvingEndpoints(_logger, ServiceName);
             var builder = new ServiceEndpointBuilder();
             foreach (var provider in _providers)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 await provider.PopulateAsync(builder, cancellationToken).ConfigureAwait(false);
             }
 
@@ -143,13 +158,12 @@ internal sealed partial class ServiceEndpointWatcher(
                 // Check if we need to poll for updates or if we can register for change notification callbacks.
                 if (endpoints.ChangeToken.ActiveChangeCallbacks)
                 {
-                    // Initiate a background refresh, if necessary.
-                    endpoints.ChangeToken.RegisterChangeCallback(static state => _ = ((ServiceEndpointWatcher)state!).RefreshAsync(force: false), this);
-                    if (_pollingTimer is { } timer)
-                    {
-                        _pollingTimer = null;
-                        timer.Dispose();
-                    }
+                    // Initiate a background refresh when the change token fires.
+                    _changeTokenRegistration = endpoints.ChangeToken.RegisterChangeCallback(static state => _ = ((ServiceEndpointWatcher)state!).RefreshAsync(force: false), this);
+
+                    // Dispose the existing timer, if any, since we are reliant on change tokens for updates.
+                    _pollingTimer?.Dispose();
+                    _pollingTimer = null;
                 }
                 else
                 {
@@ -182,7 +196,14 @@ internal sealed partial class ServiceEndpointWatcher(
 
         if (OnEndpointsUpdated is { } callback)
         {
-            callback(new(newEndpoints, error));
+            try
+            {
+                callback(new(newEndpoints, error));
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Error notifying observers of updated endpoints.");
+            }
         }
 
         lock (_lock)
@@ -211,6 +232,13 @@ internal sealed partial class ServiceEndpointWatcher(
     {
         lock (_lock)
         {
+            if (_disposalCancellation.IsCancellationRequested)
+            {
+                _pollingTimer?.Dispose();
+                _pollingTimer = null;
+                return;
+            }
+
             if (_pollingTimer is null)
             {
                 _pollingTimer = _timeProvider.CreateTimer(s_pollingAction, this, _options.RefreshPeriod, TimeSpan.Zero);
@@ -225,16 +253,24 @@ internal sealed partial class ServiceEndpointWatcher(
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
-        lock (_lock)
+        try
         {
-            if (_pollingTimer is { } timer)
-            {
-                _pollingTimer = null;
-                timer.Dispose();
-            }
+            _disposalCancellation.Cancel();
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Error cancelling disposal cancellation token.");
         }
 
-        _disposalCancellation.Cancel();
+        lock (_lock)
+        {
+            _changeTokenRegistration?.Dispose();
+            _changeTokenRegistration = null;
+
+            _pollingTimer?.Dispose();
+            _pollingTimer = null;
+        }
+
         if (_refreshTask is { } task)
         {
             await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);

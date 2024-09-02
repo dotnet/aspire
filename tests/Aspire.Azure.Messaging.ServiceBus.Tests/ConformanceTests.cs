@@ -32,7 +32,7 @@ public abstract class ConformanceTests : ConformanceTests<ServiceBusClient, Azur
               "Messaging": {
                 "ServiceBus": {
                   "Namespace": "YOUR_NAMESPACE",
-                  "HealthChecks": true,
+                  "DisableHealthChecks": false,
                   "ClientOptions": {
                     "ConnectionIdleTimeout": "00:01",
                     "EnableCrossEntityTransactions": true,
@@ -61,7 +61,7 @@ public abstract class ConformanceTests : ConformanceTests<ServiceBusClient, Azur
     // When credentials are not available, we switch to using raw connection string (otherwise we get CredentialUnavailableException)
     protected KeyValuePair<string, string?> GetMainConfigEntry(string? key)
         => CanConnectToServer
-                ? new(CreateConfigKey("Aspire:Azure:Messaging:ServiceBus", key, nameof(AzureMessagingServiceBusSettings.Namespace)), FullyQualifiedNamespace)
+                ? new(CreateConfigKey("Aspire:Azure:Messaging:ServiceBus", key, nameof(AzureMessagingServiceBusSettings.FullyQualifiedNamespace)), FullyQualifiedNamespace)
                 : new(CreateConfigKey("Aspire:Azure:Messaging:ServiceBus", key, nameof(AzureMessagingServiceBusSettings.ConnectionString)), ConnectionString);
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureMessagingServiceBusSettings>? configure = null, string? key = null)
@@ -89,7 +89,7 @@ public abstract class ConformanceTests : ConformanceTests<ServiceBusClient, Azur
         => throw new NotImplementedException();
 
     protected override void SetTracing(AzureMessagingServiceBusSettings options, bool enabled)
-        => options.Tracing = enabled;
+        => options.DisableTracing = !enabled;
 
     public static RemoteInvokeOptions EnableTracingForAzureSdk()
         => new()

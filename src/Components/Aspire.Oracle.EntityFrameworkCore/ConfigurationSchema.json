@@ -41,6 +41,7 @@
       }
     }
   },
+  "type": "object",
   "properties": {
     "Aspire": {
       "type": "object",
@@ -59,14 +60,20 @@
                   "type": "string",
                   "description": "The connection string of the Oracle database to connect to."
                 },
-                "HealthChecks": {
+                "DisableHealthChecks": {
                   "type": "boolean",
-                  "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not. The default value is true."
+                  "description": "Gets or sets a boolean value that indicates whether the database health check is disabled or not.",
+                  "default": false
                 },
-                "Retry": {
+                "DisableRetry": {
                   "type": "boolean",
-                  "description": "Gets or sets whether retries should be enabled.",
-                  "default": true
+                  "description": "Gets or sets whether retries should be disabled.",
+                  "default": false
+                },
+                "DisableTracing": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
+                  "default": false
                 }
               },
               "description": "Provides the client configuration settings for connecting to a Oracle database using EntityFrameworkCore."
@@ -75,6 +82,5 @@
         }
       }
     }
-  },
-  "type": "object"
+  }
 }

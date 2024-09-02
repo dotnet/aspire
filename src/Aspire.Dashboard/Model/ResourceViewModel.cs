@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using Aspire.Dashboard.Extensions;
 using Google.Protobuf.WellKnownTypes;
 
 namespace Aspire.Dashboard.Model;
@@ -23,6 +23,7 @@ public sealed class ResourceViewModel
     public required ImmutableArray<UrlViewModel> Urls { get; init; }
     public required FrozenDictionary<string, Value> Properties { get; init; }
     public required ImmutableArray<CommandViewModel> Commands { get; init; }
+    public KnownResourceState? KnownState { get; init; }
 
     internal bool MatchesFilter(string filter)
     {
@@ -30,12 +31,12 @@ public sealed class ResourceViewModel
         return Name.Contains(filter, StringComparisons.UserTextSearch);
     }
 
-    public static string GetResourceName(ResourceViewModel resource, ConcurrentDictionary<string, ResourceViewModel> allResources)
+    public static string GetResourceName(ResourceViewModel resource, IDictionary<string, ResourceViewModel> allResources)
     {
         var count = 0;
         foreach (var (_, item) in allResources)
         {
-            if (item.State == ResourceStates.HiddenState)
+            if (item.IsHiddenState())
             {
                 continue;
             }
@@ -45,6 +46,8 @@ public sealed class ResourceViewModel
                 count++;
                 if (count >= 2)
                 {
+                    // There are multiple resources with the same display name so they're part of a replica set.
+                    // Need to use the name which has a unique ID to tell them apart.
                     return resource.Name;
                 }
             }
@@ -54,6 +57,7 @@ public sealed class ResourceViewModel
     }
 }
 
+[DebuggerDisplay("CommandType = {CommandType}, DisplayName = {DisplayName}")]
 public sealed class CommandViewModel
 {
     public string CommandType { get; }
@@ -73,6 +77,7 @@ public sealed class CommandViewModel
     }
 }
 
+[DebuggerDisplay("Name = {Name}, Value = {Value}, FromSpec = {FromSpec}, IsValueMasked = {IsValueMasked}")]
 public sealed class EnvironmentVariableViewModel
 {
     public string Name { get; }
@@ -83,14 +88,16 @@ public sealed class EnvironmentVariableViewModel
 
     public EnvironmentVariableViewModel(string name, string? value, bool fromSpec)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-
+        // Name should always have a value, but somehow an empty/whitespace name can reach this point.
+        // Better to allow the dashboard to run with an env var with no name than break when loading resources.
+        // https://github.com/dotnet/aspire/issues/5309
         Name = name;
         Value = value;
         FromSpec = fromSpec;
     }
 }
 
+[DebuggerDisplay("Name = {Name}, Url = {Url}, IsInternal = {IsInternal}")]
 public sealed class UrlViewModel
 {
     public string Name { get; }
@@ -106,14 +113,4 @@ public sealed class UrlViewModel
         Url = url;
         IsInternal = isInternal;
     }
-}
-
-public static class ResourceStates
-{
-    public const string FinishedState = "Finished";
-    public const string ExitedState = "Exited";
-    public const string FailedToStartState = "FailedToStart";
-    public const string StartingState = "Starting";
-    public const string RunningState = "Running";
-    public const string HiddenState = "Hidden";
 }

@@ -26,14 +26,14 @@ public static class AspireEventHubsExtensions
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingEventHubsProcessorSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:EventHubs:{TClient}" section, where {TClient} is the type of Event Hubs client being configured, i.e. EventProcessorClient.</remarks>
-    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingEventHubsBaseSettings.ConnectionString"/> nor <see cref="AzureMessagingEventHubsBaseSettings.Namespace"/> is provided.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingEventHubsSettings.ConnectionString"/> nor <see cref="AzureMessagingEventHubsSettings.FullyQualifiedNamespace"/> is provided.</exception>
     public static void AddAzureEventProcessorClient(
         this IHostApplicationBuilder builder,
         string connectionName,
         Action<AzureMessagingEventHubsProcessorSettings>? configureSettings = null,
         Action<IAzureClientBuilder<EventProcessorClient, EventProcessorClientOptions>>? configureClientBuilder = null)
     {
-        new EventProcessorClientComponent(builder.Configuration)
+        new EventProcessorClientComponent()
             .AddClient(builder, DefaultConfigSectionName + nameof(EventProcessorClient),
                 configureSettings, configureClientBuilder, connectionName, serviceKey: null);
     }
@@ -46,7 +46,7 @@ public static class AspireEventHubsExtensions
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingEventHubsProcessorSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:EventHubs:{TClient}" section, where {TClient} is the type of Event Hubs client being configured, i.e. EventProcessorClient.</remarks>
-    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingEventHubsBaseSettings.ConnectionString"/> nor <see cref="AzureMessagingEventHubsBaseSettings.Namespace"/> is provided.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingEventHubsSettings.ConnectionString"/> nor <see cref="AzureMessagingEventHubsSettings.FullyQualifiedNamespace"/> is provided.</exception>
     public static void AddKeyedAzureEventProcessorClient(
         this IHostApplicationBuilder builder,
         string name,
@@ -59,7 +59,7 @@ public static class AspireEventHubsExtensions
             .GetKeyedConfigurationSectionName(name, DefaultConfigSectionName +
                                                     nameof(EventProcessorClient));
 
-        new EventProcessorClientComponent(builder.Configuration)
+        new EventProcessorClientComponent()
             .AddClient(builder, configurationSectionName, configureSettings,
                 configureClientBuilder, connectionName: name, serviceKey: name);
     }
@@ -72,7 +72,7 @@ public static class AspireEventHubsExtensions
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingEventHubsPartitionReceiverSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:EventHubs:{TClient}" section, where {TClient} is the type of Event Hubs client being configured, i.e. EventProcessorClient.</remarks>
-    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingEventHubsBaseSettings.ConnectionString"/> nor <see cref="AzureMessagingEventHubsBaseSettings.Namespace"/> is provided.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingEventHubsSettings.ConnectionString"/> nor <see cref="AzureMessagingEventHubsSettings.FullyQualifiedNamespace"/> is provided.</exception>
     public static void AddAzurePartitionReceiverClient(
         this IHostApplicationBuilder builder,
         string connectionName,
@@ -92,7 +92,7 @@ public static class AspireEventHubsExtensions
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingEventHubsPartitionReceiverSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:EventHubs:{TClient}" section, where {TClient} is the type of Event Hubs client being configured, i.e. EventProcessorClient.</remarks>
-    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingEventHubsBaseSettings.ConnectionString"/> nor <see cref="AzureMessagingEventHubsBaseSettings.Namespace"/> is provided.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingEventHubsSettings.ConnectionString"/> nor <see cref="AzureMessagingEventHubsSettings.FullyQualifiedNamespace"/> is provided.</exception>
     public static void AddKeyedAzurePartitionReceiverClient(
         this IHostApplicationBuilder builder,
         string name,
@@ -118,7 +118,7 @@ public static class AspireEventHubsExtensions
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingEventHubsProducerSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:EventHubs:{TClient}" section, where {TClient} is the type of Event Hubs client being configured, i.e. EventProcessorClient.</remarks>
-    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingEventHubsBaseSettings.ConnectionString"/> nor <see cref="AzureMessagingEventHubsBaseSettings.Namespace"/> is provided.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingEventHubsSettings.ConnectionString"/> nor <see cref="AzureMessagingEventHubsSettings.FullyQualifiedNamespace"/> is provided.</exception>
     public static void AddAzureEventHubProducerClient(
         this IHostApplicationBuilder builder,
         string connectionName,
@@ -138,7 +138,7 @@ public static class AspireEventHubsExtensions
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingEventHubsProducerSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:EventHubs:{TClient}" section, where {TClient} is the type of Event Hubs client being configured, i.e. EventProcessorClient.</remarks>
-    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingEventHubsBaseSettings.ConnectionString"/> nor <see cref="AzureMessagingEventHubsBaseSettings.Namespace"/> is provided.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingEventHubsSettings.ConnectionString"/> nor <see cref="AzureMessagingEventHubsSettings.FullyQualifiedNamespace"/> is provided.</exception>
     public static void AddKeyedAzureEventHubProducerClient(
         this IHostApplicationBuilder builder,
         string name,
@@ -157,6 +157,53 @@ public static class AspireEventHubsExtensions
     }
 
     /// <summary>
+    /// Registers <see cref="EventHubBufferedProducerClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingEventHubsBufferedProducerSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
+    /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:EventHubs:{TClient}" section, where {TClient} is the type of Event Hubs client being configured, i.e. EventProcessorClient.</remarks>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingEventHubsSettings.ConnectionString"/> nor <see cref="AzureMessagingEventHubsSettings.FullyQualifiedNamespace"/> is provided.</exception>
+    public static void AddAzureEventHubBufferedProducerClient(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<AzureMessagingEventHubsBufferedProducerSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<EventHubBufferedProducerClient, EventHubBufferedProducerClientOptions>>?
+            configureClientBuilder = null)
+    {
+        new EventHubBufferedProducerClientComponent()
+            .AddClient(builder, DefaultConfigSectionName + nameof(EventHubBufferedProducerClient), configureSettings,
+                configureClientBuilder, connectionName, serviceKey: null);
+    }
+
+    /// <summary>
+    /// Registers <see cref="EventHubBufferedProducerClient"/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder"/> to read config from and add services to.</param>
+    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingEventHubsBufferedProducerSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:EventHubs:{TClient}" section, where {TClient} is the type of Event Hubs client being configured, i.e. EventProcessorClient.</remarks>
+    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
+    /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:EventHubs:{TClient}" section, where {TClient} is the type of Event Hubs client being configured, i.e. EventProcessorClient.</remarks>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingEventHubsSettings.ConnectionString"/> nor <see cref="AzureMessagingEventHubsSettings.FullyQualifiedNamespace"/> is provided.</exception>
+    public static void AddKeyedAzureEventHubBufferedProducerClient(
+        this IHostApplicationBuilder builder,
+        string name,
+        Action<AzureMessagingEventHubsBufferedProducerSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<EventHubBufferedProducerClient, EventHubBufferedProducerClientOptions>>? configureClientBuilder = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        string configurationSectionName = EventHubBufferedProducerClientComponent
+            .GetKeyedConfigurationSectionName(name, DefaultConfigSectionName + nameof(EventHubBufferedProducerClient));
+
+        new EventHubBufferedProducerClientComponent()
+            .AddClient(builder, configurationSectionName, configureSettings, configureClientBuilder,
+                connectionName: name, serviceKey: name);
+    }
+
+    /// <summary>
     /// Registers <see cref="EventHubConsumerClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
@@ -164,7 +211,7 @@ public static class AspireEventHubsExtensions
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingEventHubsConsumerSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:EventHubs:{TClient}" section, where {TClient} is the type of Event Hubs client being configured, i.e. EventProcessorClient.</remarks>
-    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingEventHubsBaseSettings.ConnectionString"/> nor <see cref="AzureMessagingEventHubsBaseSettings.Namespace"/> is provided.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingEventHubsSettings.ConnectionString"/> nor <see cref="AzureMessagingEventHubsSettings.FullyQualifiedNamespace"/> is provided.</exception>
     public static void AddAzureEventHubConsumerClient(
         this IHostApplicationBuilder builder,
         string connectionName,
@@ -184,7 +231,8 @@ public static class AspireEventHubsExtensions
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingEventHubsConsumerSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:EventHubs:{TClient}" section, where {TClient} is the type of Event Hubs client being configured, i.e. EventProcessorClient.</remarks>
-    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingEventHubsBaseSettings.ConnectionString"/> nor <see cref="AzureMessagingEventHubsBaseSettings.Namespace"/> is provided.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingEventHubsSettings.ConnectionString"/> nor <see cref="AzureMessagingEventHubsSettings.FullyQualifiedNamespace"/> is provided.</exception>
+    /// <exception cref="ArgumentException">Thrown when the name argument is null or empty.</exception>
     public static void AddKeyedAzureEventHubConsumerClient(
         this IHostApplicationBuilder builder,
         string name,

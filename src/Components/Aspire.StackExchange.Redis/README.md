@@ -74,8 +74,8 @@ The Redis component supports [Microsoft.Extensions.Configuration](https://learn.
           "ConnectTimeout": 3000,
           "ConnectRetry": 2
         },
-        "HealthChecks": false,
-        "Tracing": true
+        "DisableHealthChecks": true,
+        "DisableTracing": false
       }
     }
   }
@@ -87,7 +87,7 @@ The Redis component supports [Microsoft.Extensions.Configuration](https://learn.
 You can also pass the `Action<StackExchangeRedisSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-builder.AddRedisClient("cache", settings => settings.HealthChecks = false);
+builder.AddRedisClient("cache", settings => settings.DisableHealthChecks = true);
 ```
 
 You can also setup the [ConfigurationOptions](https://stackexchange.github.io/StackExchange.Redis/Configuration.html#configuration-options) using the `Action<ConfigurationOptions> configureOptions` delegate parameter of the `AddRedisClient` method. For example to set the connection timeout:

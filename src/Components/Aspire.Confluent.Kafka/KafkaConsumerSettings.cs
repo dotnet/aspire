@@ -22,14 +22,20 @@ public sealed class KafkaConsumerSettings
     public ConsumerConfig Config { get; } = new ConsumerConfig();
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether collecting metrics is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
     /// </summary>
-    public bool Metrics { get; set; } = true;
+    /// <value>
+    /// The default value is <see langword="false" />.
+    /// </value>
+    public bool DisableMetrics { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the Kafka health check is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the Kafka health check is disabled or not.
     /// </summary>
-    public bool HealthChecks { get; set; } = true;
+    /// <value>
+    /// The default value is <see langword="false" />.
+    /// </value>
+    public bool DisableHealthChecks { get; set; }
 
     internal void Consolidate()
     {
@@ -40,7 +46,7 @@ public sealed class KafkaConsumerSettings
             Config.BootstrapServers = ConnectionString;
         }
 
-        if (Metrics)
+        if (!DisableMetrics)
         {
             Config.StatisticsIntervalMs ??= 1000;
         }

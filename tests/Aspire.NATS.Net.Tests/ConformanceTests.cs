@@ -18,7 +18,7 @@ public class ConformanceTests : ConformanceTests<INatsConnection, NatsClientSett
     public ConformanceTests(NatsContainerFixture containerFixture)
     {
         _containerFixture = containerFixture;
-        _connectionString = RequiresDockerTheoryAttribute.IsSupported
+        _connectionString = RequiresDockerAttribute.IsSupported
             ? _containerFixture.GetConnectionString()
             : "nats://apire-host:4222";
     }
@@ -53,17 +53,17 @@ public class ConformanceTests : ConformanceTests<INatsConnection, NatsClientSett
 
     protected override bool CanCreateClientWithoutConnectingToServer => false;
 
-    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
+    protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
 
     protected override void TriggerActivity(INatsConnection service)
     {
     }
 
     protected override void SetHealthCheck(NatsClientSettings options, bool enabled)
-        => options.HealthChecks = enabled;
+        => options.DisableHealthChecks = !enabled;
 
     protected override void SetTracing(NatsClientSettings options, bool enabled)
-        => options.Tracing = enabled;
+        => options.DisableTracing = !enabled;
 
     protected override void SetMetrics(NatsClientSettings options, bool enabled)
         => throw new NotImplementedException();
@@ -74,9 +74,9 @@ public class ConformanceTests : ConformanceTests<INatsConnection, NatsClientSett
                                                      "Nats": {
                                                        "Client": {
                                                          "ConnectionString": "YOUR_CONNECTION_STRING",
-                                                         "HealthChecks": false,
-                                                         "Tracing": true,
-                                                         "Metrics": true
+                                                         "DisableHealthChecks": true,
+                                                         "DisableTracing": false,
+                                                         "DisableMetrics": false
                                                        }
                                                      }
                                                    }

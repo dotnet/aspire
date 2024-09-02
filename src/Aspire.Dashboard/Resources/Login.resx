@@ -117,24 +117,28 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="AuthorizedUser" xml:space="preserve">
+    <value>Authorized User</value>
+    <comment>Placeholder text for the name of the authorized user when no name claim exists</comment>
+  </data>
   <data name="Header" xml:space="preserve">
     <value>{0} dashboard</value>
     <comment>{0} is an application name</comment>
   </data>
-  <data name="HelpPopupText" xml:space="preserve">
-    <value>Look for the token in the console output:</value>
-  </data>
   <data name="HelpScreenshotAltText" xml:space="preserve">
-    <value>Screenshot of console output showing where to find the dashboard frontend token</value>
+    <value>Screenshot of example console output showing where to find the dashboard frontend token. A red box highlights the token at the end of a url. The token is the value of a query parameter named 't'.</value>
   </data>
   <data name="InvalidTokenErrorMessage" xml:space="preserve">
     <value>Invalid token. Please try again</value>
+  </data>
+  <data name="LoggedInAs" xml:space="preserve">
+    <value>Logged in as:</value>
   </data>
   <data name="LogInButtonText" xml:space="preserve">
     <value>Log in</value>
   </data>
   <data name="MoreInfoLinkText" xml:space="preserve">
-    <value>More info</value>
+    <value>More information</value>
   </data>
   <data name="PageTitle" xml:space="preserve">
     <value>{0} login</value>
@@ -142,6 +146,12 @@
   </data>
   <data name="TextFieldPlaceholder" xml:space="preserve">
     <value>Enter token to log in...</value>
+  </data>
+  <data name="TokenHelpTextLine1" xml:space="preserve">
+    <value>Copy the highlighted token from the console to the login page and log in.</value>
+  </data>
+  <data name="TokenHelpTextLine2" xml:space="preserve">
+    <value>Alternatively, click on the console link to automatically log in. The address might not be correct when the dashboard is running in a container and the external port is mapped to a different value.</value>
   </data>
   <data name="TokenRequiredErrorMessage" xml:space="preserve">
     <value>Token is required</value>

@@ -61,6 +61,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Authorized User.
+        /// </summary>
+        public static string AuthorizedUser {
+            get {
+                return ResourceManager.GetString("AuthorizedUser", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {0} dashboard.
         /// </summary>
         public static string Header {
@@ -70,16 +79,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Look for the token in the console output:.
-        /// </summary>
-        public static string HelpPopupText {
-            get {
-                return ResourceManager.GetString("HelpPopupText", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Screenshot of console output showing where to find the dashboard frontend token.
+        ///   Looks up a localized string similar to Screenshot of example console output showing where to find the dashboard frontend token. A red box highlights the token at the end of a url. The token is the value of a query parameter named &apos;t&apos;..
         /// </summary>
         public static string HelpScreenshotAltText {
             get {
@@ -97,6 +97,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Logged in as:.
+        /// </summary>
+        public static string LoggedInAs {
+            get {
+                return ResourceManager.GetString("LoggedInAs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Log in.
         /// </summary>
         public static string LogInButtonText {
@@ -106,7 +115,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to More info.
+        ///   Looks up a localized string similar to More information.
         /// </summary>
         public static string MoreInfoLinkText {
             get {
@@ -129,6 +138,24 @@ namespace Aspire.Dashboard.Resources {
         public static string TextFieldPlaceholder {
             get {
                 return ResourceManager.GetString("TextFieldPlaceholder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Copy the highlighted token from the console to the login page and log in..
+        /// </summary>
+        public static string TokenHelpTextLine1 {
+            get {
+                return ResourceManager.GetString("TokenHelpTextLine1", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Alternatively, click on the console link to automatically log in. The address might not be correct when the dashboard is running in a container and the external port is mapped to a different value..
+        /// </summary>
+        public static string TokenHelpTextLine2 {
+            get {
+                return ResourceManager.GetString("TokenHelpTextLine2", resourceCulture);
             }
         }
         

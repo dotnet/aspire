@@ -32,7 +32,7 @@ public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureSearchS
               "Search": {
                 "Documents": {
                   "Endpoint": "http://YOUR_URI",
-                  "Tracing": true,
+                  "DisableTracing": false,
                   "ClientOptions": {
                     "Retry": {
                       "Mode": "Fixed",
@@ -49,7 +49,7 @@ public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureSearchS
     protected override (string json, string error)[] InvalidJsonToErrorMessage =>
         [
             ("""{"Aspire": { "Azure": { "Search":{ "Documents": {"Endpoint": "YOUR_URI"}}}}}""", "Value does not match format \"uri\""),
-            ("""{"Aspire": { "Azure": { "Search":{ "Documents": {"Endpoint": "http://YOUR_URI", "Tracing": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Azure": { "Search":{ "Documents": {"Endpoint": "http://YOUR_URI", "DisableTracing": "true"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         ];
 
     protected override string ActivitySourceName => "Azure.Search.Documents.SearchIndexClient";
@@ -91,13 +91,13 @@ public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureSearchS
         => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
 
     protected override void SetHealthCheck(AzureSearchSettings options, bool enabled)
-        => options.HealthChecks = enabled;
+        => options.DisableHealthChecks = !enabled;
 
     protected override void SetMetrics(AzureSearchSettings options, bool enabled)
         => throw new NotImplementedException();
 
     protected override void SetTracing(AzureSearchSettings options, bool enabled)
-        => options.Tracing = enabled;
+        => options.DisableTracing = !enabled;
 
     protected override void TriggerActivity(SearchIndexClient service)
         => service.GetIndex("my-index");

@@ -26,7 +26,7 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
     // IConnectionMultiplexer can be created only via call to ConnectionMultiplexer.Connect
     protected override bool CanCreateClientWithoutConnectingToServer => false;
 
-    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
+    protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
 
     protected override bool SupportsKeyedRegistrations => true;
 
@@ -50,8 +50,8 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
                 },
                 "ConnectionString": "amqp://localhost:5672",
                 "MaxConnectRetryCount": 10,
-                "HealthChecks": true,
-                "Tracing": false
+                "DisableHealthChecks": false,
+                "DisableTracing": true
               }
             }
           }
@@ -69,7 +69,7 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
     {
-        var connectionString = RequiresDockerTheoryAttribute.IsSupported ?
+        var connectionString = RequiresDockerAttribute.IsSupported ?
             _containerFixture.GetConnectionString() :
             "amqp://localhost:5672";
 
@@ -90,18 +90,18 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
         }
     }
 
-    protected override void SetHealthCheck(RabbitMQClientSettings settings, bool enabled)
-        => settings.HealthChecks = enabled;
+    protected override void SetHealthCheck(RabbitMQClientSettings options, bool enabled)
+        => options.DisableHealthChecks = !enabled;
 
     protected override void DisableRetries(RabbitMQClientSettings options)
     {
         options.MaxConnectRetryCount = 0;
     }
 
-    protected override void SetTracing(RabbitMQClientSettings settings, bool enabled)
-        => settings.Tracing = enabled;
+    protected override void SetTracing(RabbitMQClientSettings options, bool enabled)
+        => options.DisableTracing = !enabled;
 
-    protected override void SetMetrics(RabbitMQClientSettings settings, bool enabled)
+    protected override void SetMetrics(RabbitMQClientSettings options, bool enabled)
         => throw new NotImplementedException();
 
     protected override void TriggerActivity(IConnection service)

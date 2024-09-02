@@ -9,6 +9,20 @@ namespace Aspire.Dashboard.Tests;
 
 public class DurationFormatterTests
 {
+    [Theory]
+    [InlineData(0, "μs")]
+    [InlineData(1, "μs")]
+    [InlineData(1_000, "μs")]
+    [InlineData(1_000_000, "ms")]
+    [InlineData(1_000_000_000, "s")]
+    [InlineData(1_000_000_000_000, "h")]
+    [InlineData(1_000_000_000_000_000, "h")]
+    [InlineData(1_000_000_000_000_000_000, "h")]
+    public void GetUnit(long ticks, string unit)
+    {
+        Assert.Equal(unit, DurationFormatter.GetUnit(TimeSpan.FromTicks(ticks)));
+    }
+
     [Fact]
     public void KeepsMicrosecondsTheSame()
     {

@@ -68,8 +68,6 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <returns>An <see cref="EndpointReferenceExpression"/> representing the specified <see cref="EndpointProperty"/>.</returns>
     public EndpointReferenceExpression Property(EndpointProperty property)
     {
-        ArgumentNullException.ThrowIfNull(property);
-
         return new(this, property);
     }
 

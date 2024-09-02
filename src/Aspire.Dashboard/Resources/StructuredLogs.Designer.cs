@@ -60,29 +60,29 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to A maximum of {0} structured logs are stored. Old structured logs are automatically removed..
+        /// </summary>
+        public static string MessageExceededLimitBody {
+            get {
+                return ResourceManager.GetString("MessageExceededLimitBody", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Exceeded structured log limit.
+        /// </summary>
+        public static string MessageExceededLimitTitle {
+            get {
+                return ResourceManager.GetString("MessageExceededLimitTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Add filter.
         /// </summary>
         public static string StructuredLogsAddFilter {
             get {
                 return ResourceManager.GetString("StructuredLogsAddFilter", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to (All).
-        /// </summary>
-        public static string StructuredLogsAllApplications {
-            get {
-                return ResourceManager.GetString("StructuredLogsAllApplications", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to All.
-        /// </summary>
-        public static string StructuredLogsAllTypes {
-            get {
-                return ResourceManager.GetString("StructuredLogsAllTypes", resourceCulture);
             }
         }
         
@@ -105,7 +105,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Filters: .
+        ///   Looks up a localized string similar to Filters.
         /// </summary>
         public static string StructuredLogsFilters {
             get {
@@ -128,6 +128,15 @@ namespace Aspire.Dashboard.Resources {
         public static string StructuredLogsLevelColumnHeader {
             get {
                 return ResourceManager.GetString("StructuredLogsLevelColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Level.
+        /// </summary>
+        public static string StructuredLogsLevels {
+            get {
+                return ResourceManager.GetString("StructuredLogsLevels", resourceCulture);
             }
         }
         

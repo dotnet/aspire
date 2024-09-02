@@ -70,7 +70,7 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
 
                 // Resiliency:
                 // Connection resiliency automatically retries failed database commands
-                if (settings.Retry)
+                if (!settings.DisableRetry)
                 {
                     builder.EnableRetryOnFailure();
                 }
@@ -111,13 +111,13 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
         void ConfigureRetry()
         {
 #pragma warning disable EF1001 // Internal EF Core API usage.
-            if (settings.Retry || settings.CommandTimeout.HasValue)
+            if (!settings.DisableRetry || settings.CommandTimeout.HasValue)
             {
                 builder.PatchServiceDescriptor<TContext>(optionsBuilder => optionsBuilder.UseSqlServer(options =>
                 {
                     var extension = optionsBuilder.Options.FindExtension<SqlServerOptionsExtension>();
 
-                    if (settings.Retry)
+                    if (!settings.DisableRetry)
                     {
                         var executionStrategy = extension?.ExecutionStrategyFactory?.Invoke(new ExecutionStrategyDependencies(null!, optionsBuilder.Options, null!));
 
@@ -127,13 +127,13 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
                             {
                                 // Keep custom Retry strategy.
                                 // Any sub-class of SqlServerRetryingExecutionStrategy is a valid retry strategy
-                                // which shouldn't be replaced even with Retry == true
+                                // which shouldn't be replaced even with DisableRetry == false
                             }
                             else if (executionStrategy.GetType() != typeof(SqlServerExecutionStrategy))
                             {
                                 // Check SqlServerExecutionStrategy specifically (no 'is'), any sub-class is treated as a custom strategy.
 
-                                throw new InvalidOperationException($"{nameof(MicrosoftEntityFrameworkCoreSqlServerSettings)}.Retry can't be set when a custom Execution Strategy is configured.");
+                                throw new InvalidOperationException($"{nameof(MicrosoftEntityFrameworkCoreSqlServerSettings)}.{nameof(MicrosoftEntityFrameworkCoreSqlServerSettings.DisableRetry)} needs to be set when a custom Execution Strategy is configured.");
                             }
                             else
                             {
@@ -165,7 +165,7 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
 
     private static void ConfigureInstrumentation<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, MicrosoftEntityFrameworkCoreSqlServerSettings settings) where TContext : DbContext
     {
-        if (settings.Tracing)
+        if (!settings.DisableTracing)
         {
             builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
             {
@@ -173,7 +173,7 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
             });
         }
 
-        if (settings.HealthChecks)
+        if (!settings.DisableHealthChecks)
         {
             builder.TryAddHealthCheck(
                 name: typeof(TContext).Name,

@@ -65,9 +65,11 @@ public static class AspireTablesExtensions
 
     private sealed class TableServiceComponent : AzureComponent<AzureDataTablesSettings, TableServiceClient, TableClientOptions>
     {
-        protected override IAzureClientBuilder<TableServiceClient, TableClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureDataTablesSettings settings, string connectionName, string configurationSectionName)
+        protected override IAzureClientBuilder<TableServiceClient, TableClientOptions> AddClient(
+            AzureClientFactoryBuilder azureFactoryBuilder, AzureDataTablesSettings settings, string connectionName,
+            string configurationSectionName)
         {
-            return azureFactoryBuilder.RegisterClientFactory<TableServiceClient, TableClientOptions>((options, cred) =>
+            return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<TableServiceClient, TableClientOptions>((options, cred) =>
             {
                 var connectionString = settings.ConnectionString;
                 if (string.IsNullOrEmpty(connectionString) && settings.ServiceUri is null)
@@ -97,12 +99,12 @@ public static class AspireTablesExtensions
             => new AzureTableServiceHealthCheck(client, new AzureTableServiceHealthCheckOptions());
 
         protected override bool GetHealthCheckEnabled(AzureDataTablesSettings settings)
-            => settings.HealthChecks;
+            => !settings.DisableHealthChecks;
 
         protected override TokenCredential? GetTokenCredential(AzureDataTablesSettings settings)
             => settings.Credential;
 
         protected override bool GetTracingEnabled(AzureDataTablesSettings settings)
-            => settings.Tracing;
+            => !settings.DisableTracing;
     }
 }

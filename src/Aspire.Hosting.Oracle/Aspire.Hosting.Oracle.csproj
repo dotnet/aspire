@@ -3,8 +3,12 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting oracle sql</PackageTags>
+    <PackageTags>aspire integration hosting oracle sql</PackageTags>
     <Description>Oracle Database support for .NET Aspire.</Description>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>20</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>

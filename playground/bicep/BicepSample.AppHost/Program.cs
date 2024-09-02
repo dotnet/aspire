@@ -59,7 +59,7 @@ var serviceBus = builder.AddAzureServiceBus("sb")
                         .AddTopic("topic1", ["subscription1", "subscription2"])
                         .AddTopic("topic2", ["subscription1"]);
 var signalr = builder.AddAzureSignalR("signalr");
-
+var webpubsub = builder.AddAzureWebPubSub("wps");
 builder.AddProject<Projects.BicepSample_ApiService>("api")
        .WithExternalHttpEndpoints()
        .WithReference(sqlServer)
@@ -74,15 +74,19 @@ builder.AddProject<Projects.BicepSample_ApiService>("api")
        .WithReference(redis)
        .WithReference(serviceBus)
        .WithReference(signalr)
+       .WithReference(webpubsub)
        .WithEnvironment("bicepValue_test", bicep1.GetOutput("test"))
        .WithEnvironment("bicepValue0", bicep1.GetOutput("val0"))
        .WithEnvironment("bicepValue1", bicep1.GetOutput("val1"));
 
+#if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code
-// to test end developer dashboard launch experience. Refer to Directory.Build.props
-// for the path to the dashboard binary (defaults to the Aspire.Dashboard bin output
-// in the artifacts dir).
+// or build with `/p:SkipDashboardReference=true`, to test end developer
+// dashboard launch experience, Refer to Directory.Build.props for the path to
+// the dashboard binary (defaults to the Aspire.Dashboard bin output in the
+// artifacts dir).
 builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
+#endif
 
 builder.Build().Run();

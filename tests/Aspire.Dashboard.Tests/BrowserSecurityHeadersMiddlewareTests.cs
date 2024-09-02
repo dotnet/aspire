@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Authentication.OtlpConnection;
+using Aspire.Dashboard.Authentication.Connection;
 using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.FileProviders;
@@ -43,13 +43,31 @@ public class BrowserSecurityHeadersMiddlewareTests
         Assert.Contains("default-src", httpContext.Response.Headers.ContentSecurityPolicy.ToString());
     }
 
+    [Theory]
+    [InlineData("https", "img-src data: https:;")]
+    [InlineData("http", "img-src data: http: https:;")]
+    public async Task InvokeAsync_Scheme_ImageSourceChangesOnScheme(string scheme, string expectedContent)
+    {
+        // Arrange
+        var middleware = CreateMiddleware(environmentName: "Production");
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Scheme = scheme;
+
+        // Act
+        await middleware.InvokeAsync(httpContext);
+
+        // Assert
+        Assert.NotEqual(StringValues.Empty, httpContext.Response.Headers.ContentSecurityPolicy);
+        Assert.Contains(expectedContent, httpContext.Response.Headers.ContentSecurityPolicy.ToString());
+    }
+
     [Fact]
     public async Task InvokeAsync_Otlp_NotAdded()
     {
         // Arrange
         var middleware = CreateMiddleware(environmentName: "Production");
         var httpContext = new DefaultHttpContext();
-        httpContext.Features.Set<IOtlpConnectionFeature>(new OtlpConnectionFeature());
+        httpContext.Features.Set<IConnectionTypeFeature>(new TestConnectionTypeFeature { ConnectionTypes = [ConnectionType.Otlp] });
 
         // Act
         await middleware.InvokeAsync(httpContext);
@@ -58,8 +76,9 @@ public class BrowserSecurityHeadersMiddlewareTests
         Assert.Equal(StringValues.Empty, httpContext.Response.Headers.ContentSecurityPolicy);
     }
 
-    private sealed class OtlpConnectionFeature : IOtlpConnectionFeature
+    private sealed class TestConnectionTypeFeature : IConnectionTypeFeature
     {
+        public required List<ConnectionType> ConnectionTypes { get; init; }
     }
 
     private static BrowserSecurityHeadersMiddleware CreateMiddleware(string environmentName) =>

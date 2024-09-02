@@ -1,0 +1,60 @@
+
+/*
+    Workaround for issue in fluent-anchored-region when the content
+    is near the top-right corner of the screen. Addressed in
+    https://github.com/microsoft/fluentui-blazor/pull/1795 which
+    we can use instead when it is available
+*/
+.profile-menu-container ::deep .fluent-profile-menu fluent-anchored-region {
+    transform: unset !important;
+    left: unset;
+    right: -4px;
+}
+
+::deep fluent-button[appearance=stealth]:not(:hover):not(:active)::part(control) {
+    background-color: var(--neutral-layer-floating);
+}
+
+::deep fluent-button[appearance=stealth]:hover::part(control) {
+    background-color: var(--neutral-fill-secondary-hover);
+}
+
+::deep .fluent-profile-menu > .fluent-persona {
+    margin: 0 4px;
+}
+
+::deep .fluent-profile-menu > .fluent-persona > .initials {
+    font-size: var(--type-ramp-minus-1-font-size);
+}
+
+::deep .full-name,
+::deep .user-id {
+    color: var(--neutral-foreground-rest);
+    max-width: 200px;
+    overflow-x: hidden;
+    text-overflow: ellipsis;
+}
+
+::deep .full-name {
+    font-size: var(--type-ramp-base-font-size);
+}
+
+::deep .user-id {
+    font-size: var(--type-ramp-minus-1-font-size);
+    font-weight: normal;
+    max-width: 200px;
+}
+
+::deep .inner-persona-container {
+    height: 100%;
+}
+
+::deep .fluent-persona.inner-persona {
+    margin-right: 40px;
+    align-items: normal;
+}
+
+/* The form takes up space and throws off the alignment if we don't change its display */
+::deep .sign-out-form {
+    display: flex;
+}

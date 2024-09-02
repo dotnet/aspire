@@ -21,7 +21,7 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
 
     protected override bool SupportsKeyedRegistrations => true;
 
-    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
+    protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
 
     protected override string ValidJsonConfig => """
         {
@@ -29,9 +29,9 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
             "MongoDB": {
               "Driver": {
                 "ConnectionString": "YOUR_CONNECTION_STRING",
-                "HealthChecks": true,
+                "DisableHealthChecks": false,
                 "HealthCheckTimeout": 100,
-                "Tracing": true
+                "DisableTracing": false
               }
             }
           }
@@ -45,9 +45,9 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
     {
-        ("""{"Aspire": { "MongoDB":{ "Driver": { "HealthChecks": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
+        ("""{"Aspire": { "MongoDB":{ "Driver": { "DisableHealthChecks": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
         ("""{"Aspire": { "MongoDB":{ "Driver": { "HealthCheckTimeout": "10000"}}}}""", "Value is \"string\" but should be \"integer\""),
-        ("""{"Aspire": { "MongoDB":{ "Driver": { "Tracing": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
+        ("""{"Aspire": { "MongoDB":{ "Driver": { "DisableTracing": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
     };
 
     protected override string[] RequiredLogCategories => [
@@ -58,7 +58,7 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
     {
-        var connectionString = RequiresDockerTheoryAttribute.IsSupported ?
+        var connectionString = RequiresDockerAttribute.IsSupported ?
             $"{_containerFixture.GetConnectionString()}test_db" :
             "mongodb://root:password@localhost:27017/test_db";
 
@@ -84,7 +84,7 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
 
     protected override void SetHealthCheck(MongoDBSettings options, bool enabled)
     {
-        options.HealthChecks = enabled;
+        options.DisableHealthChecks = !enabled;
         options.HealthCheckTimeout = 10;
     }
 
@@ -92,7 +92,7 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>,
 
     protected override void SetTracing(MongoDBSettings options, bool enabled)
     {
-        options.Tracing = enabled;
+        options.DisableTracing = !enabled;
     }
 
     protected override void TriggerActivity(IMongoClient service)

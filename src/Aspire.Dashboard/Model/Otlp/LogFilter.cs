@@ -4,36 +4,54 @@
 using System.Diagnostics;
 using System.Globalization;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Resources;
+using Microsoft.Extensions.Localization;
 
 namespace Aspire.Dashboard.Model.Otlp;
 
 [DebuggerDisplay("{FilterText,nq}")]
 public class LogFilter
 {
+    public const string KnownMessageField = "log.message";
+    public const string KnownCategoryField = "log.category";
+    public const string KnownApplicationField = "log.application";
+    public const string KnownTraceIdField = "log.traceid";
+    public const string KnownSpanIdField = "log.spanid";
+    public const string KnownOriginalFormatField = "log.originalformat";
+
     public string Field { get; set; } = default!;
     public FilterCondition Condition { get; set; }
     public string Value { get; set; } = default!;
 
-    public string FilterText => $"{Field} {ConditionToString(Condition)} {Value}";
+    public string DebuggerDisplayText => $"{Field} {ConditionToString(Condition, null)} {Value}";
 
-    public static List<string> GetAllPropertyNames(List<string> propertyKeys)
+    public string GetDisplayText(IStringLocalizer<Logs> loc) => $"{ResolveFieldName(Field)} {ConditionToString(Condition, loc)} {Value}";
+
+    public static string ResolveFieldName(string name)
     {
-        var result = new List<string> { "Message", "Category", "Application", "TraceId", "SpanId", "OriginalFormat" };
-        result.AddRange(propertyKeys);
-        return result;
+        return name switch
+        {
+            KnownMessageField => "Message",
+            KnownApplicationField => "Application",
+            KnownTraceIdField => "TraceId",
+            KnownSpanIdField => "SpanId",
+            KnownOriginalFormatField => "OriginalFormat",
+            KnownCategoryField => "Category",
+            _ => name
+        };
     }
 
-    public static string ConditionToString(FilterCondition c) =>
+    public static string ConditionToString(FilterCondition c, IStringLocalizer<Logs>? loc) =>
         c switch
         {
             FilterCondition.Equals => "==",
-            FilterCondition.Contains => "contains",
+            FilterCondition.Contains => loc?[nameof(Logs.LogContains)] ?? "contains",
             FilterCondition.GreaterThan => ">",
             FilterCondition.LessThan => "<",
             FilterCondition.GreaterThanOrEqual => ">=",
             FilterCondition.LessThanOrEqual => "<=",
             FilterCondition.NotEqual => "!=",
-            FilterCondition.NotContains => "not contains",
+            FilterCondition.NotContains => loc?[nameof(Logs.LogNotContains)] ?? "not contains",
             _ => throw new ArgumentOutOfRangeException(nameof(c), c, null)
         };
 
@@ -83,12 +101,12 @@ public class LogFilter
     {
         return Field switch
         {
-            "Message" => x.Message,
-            "Application" => x.Application.ApplicationName,
-            "TraceId" => x.TraceId,
-            "SpanId" => x.SpanId,
-            "OriginalFormat" => x.OriginalFormat,
-            "Category" => x.Scope.ScopeName,
+            KnownMessageField => x.Message,
+            KnownApplicationField => x.Application.ApplicationName,
+            KnownTraceIdField => x.TraceId,
+            KnownSpanIdField => x.SpanId,
+            KnownOriginalFormatField => x.OriginalFormat,
+            KnownCategoryField => x.Scope.ScopeName,
             _ => x.Attributes.GetValue(Field)
         };
     }
@@ -111,6 +129,11 @@ public class LogFilter
                         return input.Where(x => func((int)x.Severity, (double)value));
                     }
                     return input;
+                }
+            case nameof(OtlpLogEntry.Message):
+                {
+                    var func = ConditionToFuncString(Condition);
+                    return input.Where(x => func(x.Message, Value));
                 }
             default:
                 {

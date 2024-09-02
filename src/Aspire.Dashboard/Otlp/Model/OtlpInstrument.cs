@@ -12,13 +12,28 @@ using OpenTelemetry.Proto.Metrics.V1;
 namespace Aspire.Dashboard.Otlp.Model;
 
 [DebuggerDisplay("Name = {Name}, Unit = {Unit}, Type = {Type}")]
-public class OtlpInstrument
+public class OtlpInstrumentSummary
 {
     public required string Name { get; init; }
     public required string Description { get; init; }
     public required string Unit { get; init; }
     public required OtlpInstrumentType Type { get; init; }
     public required OtlpMeter Parent { get; init; }
+
+    public OtlpInstrumentKey GetKey() => new(Parent.MeterName, Name);
+}
+
+public class OtlpInstrumentData
+{
+    public required OtlpInstrumentSummary Summary { get; init; }
+    public required List<DimensionScope> Dimensions { get; init; }
+    public required Dictionary<string, List<string>> KnownAttributeValues { get; init; }
+}
+
+[DebuggerDisplay("Name = {Summary.Name}, Unit = {Summary.Unit}, Type = {Summary.Type}")]
+public class OtlpInstrument
+{
+    public required OtlpInstrumentSummary Summary { get; init; }
     public required TelemetryLimitOptions Options { get; init; }
 
     public Dictionary<ReadOnlyMemory<KeyValuePair<string, string>>, DimensionScope> Dimensions { get; } = new(ScopeAttributesComparer.Instance);
@@ -31,31 +46,31 @@ public class OtlpInstrument
             case Metric.DataOneofCase.Gauge:
                 foreach (var d in metric.Gauge.DataPoints)
                 {
-                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d);
+                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Options);
                 }
                 break;
             case Metric.DataOneofCase.Sum:
                 foreach (var d in metric.Sum.DataPoints)
                 {
-                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d);
+                    FindScope(d.Attributes, ref tempAttributes).AddPointValue(d, Options);
                 }
                 break;
             case Metric.DataOneofCase.Histogram:
                 foreach (var d in metric.Histogram.DataPoints)
                 {
-                    FindScope(d.Attributes, ref tempAttributes).AddHistogramValue(d);
+                    FindScope(d.Attributes, ref tempAttributes).AddHistogramValue(d, Options);
                 }
                 break;
         }
     }
 
-    public OtlpInstrumentKey GetKey() => new(Parent.MeterName, Name);
-
     private DimensionScope FindScope(RepeatedField<KeyValue> attributes, ref KeyValuePair<string, string>[]? tempAttributes)
     {
         // We want to find the dimension scope that matches the attributes, but we don't want to allocate.
         // Copy values to a temporary reusable array.
-        OtlpHelpers.CopyKeyValuePairs(attributes, Options, out var copyCount, ref tempAttributes);
+        //
+        // A meter can have attributes. Merge these with the data point attributes when creating a dimension.
+        OtlpHelpers.CopyKeyValuePairs(attributes, Summary.Parent.Attributes, Options, out var copyCount, ref tempAttributes);
         Array.Sort(tempAttributes, 0, copyCount, KeyValuePairComparer.Instance);
 
         var comparableAttributes = tempAttributes.AsMemory(0, copyCount);
@@ -107,11 +122,7 @@ public class OtlpInstrument
     {
         var newInstrument = new OtlpInstrument
         {
-            Name = instrument.Name,
-            Description = instrument.Description,
-            Parent = instrument.Parent,
-            Type = instrument.Type,
-            Unit = instrument.Unit,
+            Summary = instrument.Summary,
             Options = instrument.Options,
         };
 

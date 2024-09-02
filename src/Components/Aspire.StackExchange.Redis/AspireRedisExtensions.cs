@@ -80,17 +80,14 @@ public static class AspireRedisExtensions
 
         configureSettings?.Invoke(settings);
 
-        // see comments on ConfigurationOptionsFactory for why a factory is used here
-        builder.Services.TryAdd(ServiceDescriptor.Transient(typeof(IOptionsFactory<ConfigurationOptions>),
-            sp => new ConfigurationOptionsFactory(
-                settings,
-                sp.GetServices<IConfigureOptions<ConfigurationOptions>>(),
-                sp.GetServices<IPostConfigureOptions<ConfigurationOptions>>(),
-                sp.GetServices<IValidateOptions<ConfigurationOptions>>())));
+        var optionsName = serviceKey is null ? Options.Options.DefaultName : connectionName;
 
-        string? optionsName = serviceKey is null ? null : connectionName;
+        // see comments on ConfigurationOptionsFactory for why a factory is used here
+        builder.Services.AddKeyedTransient(optionsName, (sp, _) => new RedisSettingsAdapterService { Settings = settings });
+        builder.Services.TryAddTransient<IOptionsFactory<ConfigurationOptions>, ConfigurationOptionsFactory>();
+
         builder.Services.Configure<ConfigurationOptions>(
-            optionsName ?? Options.Options.DefaultName,
+            optionsName,
             configurationOptions =>
             {
                 BindToConfiguration(configurationOptions, configSection);
@@ -107,7 +104,7 @@ public static class AspireRedisExtensions
             builder.Services.AddKeyedSingleton<IConnectionMultiplexer>(serviceKey, (sp, _) => CreateConnection(sp, connectionName, configurationSectionName, optionsName));
         }
 
-        if (settings.Tracing)
+        if (!settings.DisableTracing)
         {
             // Supports distributed tracing
             // We don't call AddRedisInstrumentation() here as it results in the TelemetryHostedService trying to resolve & connect to IConnectionMultiplexer
@@ -125,7 +122,7 @@ public static class AspireRedisExtensions
                 });
         }
 
-        if (settings.HealthChecks)
+        if (!settings.DisableHealthChecks)
         {
             var healthCheckName = serviceKey is null ? "StackExchange.Redis" : $"StackExchange.Redis_{connectionName}";
 
@@ -140,7 +137,7 @@ public static class AspireRedisExtensions
         }
     }
 
-    private static ConnectionMultiplexer CreateConnection(IServiceProvider serviceProvider, string connectionName, string configurationSectionName, string? optionsName)
+    private static ConnectionMultiplexer CreateConnection(IServiceProvider serviceProvider, string connectionName, string configurationSectionName, string optionsName)
     {
         var connection = ConnectionMultiplexer.Connect(GetConfigurationOptions(serviceProvider, connectionName, configurationSectionName, optionsName));
 
@@ -151,9 +148,9 @@ public static class AspireRedisExtensions
         return connection;
     }
 
-    private static ConfigurationOptions GetConfigurationOptions(IServiceProvider serviceProvider, string connectionName, string configurationSectionName, string? optionsName)
+    private static ConfigurationOptions GetConfigurationOptions(IServiceProvider serviceProvider, string connectionName, string configurationSectionName, string optionsName)
     {
-        var configurationOptions = optionsName is null ?
+        var configurationOptions = string.IsNullOrEmpty(optionsName) ?
             serviceProvider.GetRequiredService<IOptions<ConfigurationOptions>>().Value :
             serviceProvider.GetRequiredService<IOptionsMonitor<ConfigurationOptions>>().Get(optionsName);
 
@@ -177,6 +174,15 @@ public static class AspireRedisExtensions
     }
 
     /// <summary>
+    /// Used to pass StackExchangeRedisSettings instances to the ConfigurationOptionsFactory.
+    /// </summary>
+    /// <remarks>Not using StackExchangeRedisSettings itself because it is a public type that someone else could register in DI.</remarks>
+    private sealed class RedisSettingsAdapterService
+    {
+        public required StackExchangeRedisSettings Settings { get; init; }
+    }
+
+    /// <summary>
     /// ConfigurationOptionsFactory parses a ConfigurationOptions options object from Configuration.
     /// </summary>
     /// <remarks>
@@ -189,17 +195,20 @@ public static class AspireRedisExtensions
     /// </remarks>
     private sealed class ConfigurationOptionsFactory : OptionsFactory<ConfigurationOptions>
     {
-        private readonly StackExchangeRedisSettings _settings;
+        private readonly IServiceProvider _serviceProvider;
 
-        public ConfigurationOptionsFactory(StackExchangeRedisSettings settings, IEnumerable<IConfigureOptions<ConfigurationOptions>> setups, IEnumerable<IPostConfigureOptions<ConfigurationOptions>> postConfigures, IEnumerable<IValidateOptions<ConfigurationOptions>> validations)
+        public ConfigurationOptionsFactory(IServiceProvider serviceProvider, IEnumerable<IConfigureOptions<ConfigurationOptions>> setups, IEnumerable<IPostConfigureOptions<ConfigurationOptions>> postConfigures, IEnumerable<IValidateOptions<ConfigurationOptions>> validations)
             : base(setups, postConfigures, validations)
         {
-            _settings = settings;
+            _serviceProvider = serviceProvider;
         }
 
         protected override ConfigurationOptions CreateInstance(string name)
         {
-            var connectionString = _settings.ConnectionString;
+            // Don't fail if the options name isn't found. Just return a blank ConfigurationOptions to be consistent
+            // with the regular OptionsFactory.
+            var settings = _serviceProvider.GetKeyedService<RedisSettingsAdapterService>(name);
+            var connectionString = settings?.Settings.ConnectionString;
 
             var options = connectionString is not null ?
                 ConfigurationOptions.Parse(connectionString) :

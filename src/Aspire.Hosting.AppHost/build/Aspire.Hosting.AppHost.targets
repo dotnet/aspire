@@ -5,10 +5,16 @@
     <RunWorkingDirectory Condition=" '$(RunWorkingDirectory)' == '' and '$(EnableDefaultRunWorkingDirectory)' != 'false' ">$(MSBuildProjectDirectory)</RunWorkingDirectory>
     <AspireGeneratedClassesVisibility Condition="'$(AspireGeneratedClassesVisibility)' == ''">public</AspireGeneratedClassesVisibility>
     <_AspireIntermediatePath>$(IntermediateOutputPath)Aspire\</_AspireIntermediatePath>
+    <_GeneratedClassNameFixupRegex>(((?&lt;=\.)|^)(?=\d)|\W)</_GeneratedClassNameFixupRegex>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectCapability Include="Aspire" Condition=" '$(IsAspireHost)' == 'true' " />
+  </ItemGroup>
+
+  <ItemGroup>
+    <JsonSchemaSegment Include="$(MSBuildThisFileDirectory)..\AspireAppHostConfiguration.json"
+                       FilePathPattern="appsettings\..*json" />
   </ItemGroup>
 
   <Target Name="_CreateAspireProjectResources">
@@ -24,8 +30,8 @@
           DependsOnTargets="_CreateAspireProjectResources">
     <ItemGroup>
       <AspireProjectMetadataSource Include="@(_AspireProjectResource)" Condition="'@(_AspireProjectResource)' != ''">
-        <ClassName Condition="%(_AspireProjectResource.AspireProjectMetadataTypeName) == ''">$([System.IO.Path]::GetFileNameWithoutExtension(%(_AspireProjectResource.Identity)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
-        <ClassName Condition="%(_AspireProjectResource.AspireProjectMetadataTypeName) != ''">$([System.String]::Copy(%(_AspireProjectResource.AspireProjectMetadataTypeName)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
+        <ClassName Condition="%(_AspireProjectResource.AspireProjectMetadataTypeName) == ''">$([System.Text.RegularExpressions.Regex]::Replace($([System.IO.Path]::GetFileNameWithoutExtension(%(_AspireProjectResource.Identity))), $(_GeneratedClassNameFixupRegex), '_'))</ClassName>
+        <ClassName Condition="%(_AspireProjectResource.AspireProjectMetadataTypeName) != ''">$([System.Text.RegularExpressions.Regex]::Replace(%(_AspireProjectResource.AspireProjectMetadataTypeName), $(_GeneratedClassNameFixupRegex), '_'))</ClassName>
         <ProjectPath>$([System.IO.Path]::GetFullPath(%(_AspireProjectResource.Identity)))</ProjectPath>
       </AspireProjectMetadataSource>
 		</ItemGroup>
@@ -53,7 +59,6 @@ namespace Projects%3B
     <WriteLinesToFile File="$(_AspireIntermediatePath)references\%(AspireProjectMetadataSource.ClassName).ProjectMetadata.g.cs"
                       Overwrite="true"
                       Lines="%(AspireProjectMetadataSource.Source)"
-                      Encoding="Unicode"
                       Condition="%(AspireProjectMetadataSource.ClassName) != ''"
                       WriteOnlyWhenDifferent="true" />
     <ItemGroup>
@@ -66,7 +71,7 @@ namespace Projects%3B
   <Target Name="CreateAspireHostProjectMetadataSources">
     <ItemGroup>
       <AspireHostProjectMetadataSource Include="$(MSBuildProjectDirectory)">
-        <ClassName>$([System.IO.Path]::GetFileNameWithoutExtension($(MSBuildProjectFile)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
+        <ClassName>$([System.Text.RegularExpressions.Regex]::Replace($([System.IO.Path]::GetFileNameWithoutExtension($(MSBuildProjectFile))), $(_GeneratedClassNameFixupRegex), '_'))</ClassName>
         <ProjectPath>$(MSBuildProjectDirectory)</ProjectPath>
       </AspireHostProjectMetadataSource>
     </ItemGroup>
@@ -95,7 +100,6 @@ namespace Projects%3B
     <WriteLinesToFile File="$(_AspireIntermediatePath)references\_AppHost.ProjectMetadata.g.cs"
                       Overwrite="true"
                       Lines="%(AspireHostProjectMetadataSource.Source)"
-                      Encoding="Unicode"
                       WriteOnlyWhenDifferent="true" />
     <ItemGroup>
       <FileWrites Include="$(_AspireIntermediatePath)references\_AppHost.ProjectMetadata.g.cs" />
@@ -245,6 +249,12 @@ namespace Projects%3B
     </PropertyGroup>
 
     <MakeDir Directories="$(AspireManifestPublishOutputPath)" />
+  </Target>
+
+  <Target Name="__ErrorOnMininumWorkloadVersionMissing" BeforeTargets="PrepareForBuild"
+    Condition="'$(IsAspireHost)' == 'true' and ('$(AspireHostingSDKVersion)' == '' or $([MSBuild]::VersionLessThan('$(AspireHostingSDKVersion)', '8.2.0')))">
+    <Error Code="ASPIRE005"
+      Text="$(MSBuildProjectName) project requires a newer version of the .NET Aspire Workload to work correctly. Please run `dotnet workload update`." />
   </Target>
 
   <!-- Entrypoint to allow for generation of an aspire manifest to a given location -->

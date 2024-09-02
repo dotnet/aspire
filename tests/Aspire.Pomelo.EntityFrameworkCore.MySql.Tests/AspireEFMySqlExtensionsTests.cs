@@ -22,7 +22,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
     private static readonly MySqlServerVersion s_serverVersion = new(new Version(MySqlContainerImageTags.Tag));
     private static readonly string s_serverVersionString = s_serverVersion.ToString();
     private readonly MySqlContainerFixture _containerFixture;
-    private string ConnectionString => RequiresDockerTheoryAttribute.IsSupported
+    private string ConnectionString => RequiresDockerAttribute.IsSupported
                                             ? _containerFixture.GetConnectionString()
                                             : "Server=localhost;User ID=root;Password=pass;Database=test";
 
@@ -98,7 +98,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", s_serverVersionString),
             new KeyValuePair<string, string?>("ConnectionStrings:mysql", ConnectionString),
-            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:Retry", "true")
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:DisableRetry", "false")
         ]);
 
         builder.AddMySqlDbContext<TestDbContext>("mysql", configureDbContextOptions: optionsBuilder =>
@@ -141,7 +141,7 @@ public class AspireEFMySqlExtensionsTests : IClassFixture<MySqlContainerFixture>
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", s_serverVersionString),
             new KeyValuePair<string, string?>("ConnectionStrings:mysql", ConnectionString),
-            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:Retry", "false")
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:DisableRetry", "true")
         ]);
 
         builder.AddMySqlDbContext<TestDbContext>("mysql", configureDbContextOptions: optionsBuilder =>

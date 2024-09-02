@@ -2,8 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.RegularExpressions;
-using Aspire.V1;
+using Aspire.ResourceService.Proto.V1;
 using Grpc.Core;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting.Dashboard;
@@ -15,8 +16,9 @@ namespace Aspire.Hosting.Dashboard;
 /// An instance of this type is created for every gRPC service call, so it may not hold onto any state
 /// required beyond a single request. Longer-scoped data is stored in <see cref="DashboardServiceData"/>.
 /// </remarks>
+[Authorize(Policy = ResourceServiceApiKeyAuthorization.PolicyName)]
 internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime)
-    : V1.DashboardService.DashboardServiceBase
+    : Aspire.ResourceService.Proto.V1.DashboardService.DashboardServiceBase
 {
     // Calls that consume or produce streams must create a linked cancellation token
     // with IHostApplicationLifetime.ApplicationStopping to ensure eager cancellation
@@ -131,7 +133,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
 
             await foreach (var group in subscription.WithCancellation(cts.Token).ConfigureAwait(false))
             {
-                WatchResourceConsoleLogsUpdate update = new();
+                var update = new WatchResourceConsoleLogsUpdate();
 
                 foreach (var (lineNumber, content, isErrorMessage) in group)
                 {

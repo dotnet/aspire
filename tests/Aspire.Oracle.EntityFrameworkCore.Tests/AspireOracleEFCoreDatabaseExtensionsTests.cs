@@ -79,7 +79,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:orclconnection", ConnectionString),
-            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:Retry", "true"),
+            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:DisableRetry", "false"),
             new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:CommandTimeout", "608")
         ]);
 
@@ -124,7 +124,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:orclconnection", ConnectionString),
-            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:Retry", "false"),
+            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:DisableRetry", "true"),
         ]);
 
         builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection", configureDbContextOptions: optionsBuilder =>
@@ -298,6 +298,38 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
         var exception = Record.Exception(() => builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection"));
 
         Assert.Null(exception);
+    }
+
+    [Fact]
+    public void CanPassNoInstrumentationSettingsToDbContext()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:orclconnection", ConnectionString)
+        ]);
+
+        builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection", o => o.InstrumentationOptions = null);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+        Assert.NotNull(context);
+    }
+
+    [Fact]
+    public void CanPassSettingsToDbContext()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:orclconnection", ConnectionString)
+        ]);
+
+        builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection", o => o.InstrumentationOptions = s => s.SetDbStatementForText = true);
+
+        using var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+        Assert.NotNull(context);
     }
 
     public class TestDbContext2 : DbContext

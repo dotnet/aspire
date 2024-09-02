@@ -12,15 +12,16 @@ using Xunit;
 
 namespace Aspire.Azure.AI.OpenAI.Tests;
 
-public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettings>
+public class ConformanceTests : ConformanceTests<AzureOpenAIClient, AzureOpenAISettings>
 {
     protected const string Endpoint = "https://aspireopenaitests.openai.azure.com/";
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
-    protected override string[] RequiredLogCategories => new string[] {
-        "Azure.Core"
-    };
+    protected override string[] RequiredLogCategories => [
+        // since we don't have a way to connect to the server, we can't test the actual calls
+        "Azure.Identity"
+    ];
 
     protected override bool SupportsKeyedRegistrations => true;
 
@@ -31,15 +32,9 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
               "AI": {
                 "OpenAI": {
                   "Endpoint": "http://YOUR_URI",
-                  "Tracing": true,
+                  "DisableTracing": false,
                   "ClientOptions": {
-                    "ConnectionIdleTimeout": "00:10",
-                    "EnableCrossEntityTransactions": true,
-                    "RetryOptions": {
-                      "Mode": "Fixed",
-                      "MaxDelay": "00:00:30"  
-                    },
-                    "TransportType": "AmqpWebSockets"
+                    "NetworkTimeout": "00:00:02"
                   }
                 }
               }
@@ -51,10 +46,10 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
             ("""{"Aspire": { "Azure": { "AI":{ "OpenAI": {"Endpoint": "YOUR_URI"}}}}}""", "Value does not match format \"uri\""),
-            ("""{"Aspire": { "Azure": { "AI":{ "OpenAI": {"Endpoint": "http://YOUR_URI", "Tracing": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Azure": { "AI":{ "OpenAI": {"Endpoint": "http://YOUR_URI", "DisableTracing": "true"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
-    protected override string ActivitySourceName => "Azure.AI.OpenAI.OpenAIClient";
+    protected override string ActivitySourceName => "OpenAI.ChatClient";
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
@@ -85,10 +80,12 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
     }
 
     [Fact]
+    [ActiveIssue("OpenAI library doesn't support tracing yet - https://github.com/openai/openai-dotnet/pull/107/")]
     public void TracingEnablesTheRightActivitySource()
         => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
 
     [Fact]
+    [ActiveIssue("OpenAI library doesn't support tracing yet - https://github.com/openai/openai-dotnet/pull/107/")]
     public void TracingEnablesTheRightActivitySource_Keyed()
         => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
 
@@ -99,8 +96,8 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
         => throw new NotImplementedException();
 
     protected override void SetTracing(AzureOpenAISettings options, bool enabled)
-        => options.Tracing = enabled;
+        => options.DisableTracing = !enabled;
 
-    protected override void TriggerActivity(OpenAIClient service)
-        => service.GetCompletions(new CompletionsOptions { DeploymentName = "dummy-gpt" });
+    protected override void TriggerActivity(AzureOpenAIClient service)
+        => service.GetChatClient("dummy").CompleteChat("dummy gpt");
 }

@@ -8,6 +8,7 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Utils;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Azure;
 using Azure.Core;
@@ -32,7 +33,9 @@ internal sealed class AzureProvisioner(
     ILogger<AzureProvisioner> logger,
     IServiceProvider serviceProvider,
     ResourceNotificationService notificationService,
-    ResourceLoggerService loggerService) : IDistributedApplicationLifecycleHook
+    ResourceLoggerService loggerService,
+    IDistributedApplicationEventing eventing
+    ) : IDistributedApplicationLifecycleHook
 {
     internal const string AspireResourceNameTag = "aspire-resource-name";
 
@@ -139,7 +142,7 @@ internal sealed class AzureProvisioner(
             _ = AfterProvisionAsync(r);
         }
 
-        // This is fuly async so we can just fire and forget
+        // This is fully async so we can just fire and forget
         _ = Task.Run(() => ProvisionAzureResources(
             configuration,
             logger,
@@ -217,6 +220,9 @@ internal sealed class AzureProvisioner(
 
     private async Task ProcessResourceAsync(IConfiguration configuration, Lazy<Task<ProvisioningContext>> provisioningContextLazy, IAzureResource resource, CancellationToken cancellationToken)
     {
+        var beforeResourceStartedEvent = new BeforeResourceStartedEvent(resource, serviceProvider);
+        await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
+
         IAzureResourceProvisioner? SelectProvisioner(IAzureResource resource)
         {
             var type = resource.GetType();

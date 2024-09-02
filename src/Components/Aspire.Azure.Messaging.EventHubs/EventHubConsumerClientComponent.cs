@@ -24,18 +24,34 @@ internal sealed class EventHubConsumerClientComponent : EventHubsComponent<Azure
         config.Bind(settings);
     }
 
-    protected override IAzureClientBuilder<EventHubConsumerClient, EventHubConsumerClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureMessagingEventHubsConsumerSettings settings,
+    protected override IAzureClientBuilder<EventHubConsumerClient, EventHubConsumerClientOptions> AddClient(
+        AzureClientFactoryBuilder azureFactoryBuilder, AzureMessagingEventHubsConsumerSettings settings,
         string connectionName, string configurationSectionName)
     {
-        return azureFactoryBuilder.RegisterClientFactory<EventHubConsumerClient, EventHubConsumerClientOptions>((options, cred) =>
+        return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<EventHubConsumerClient, EventHubConsumerClientOptions>((options, cred) =>
         {
             EnsureConnectionStringOrNamespaceProvided(settings, connectionName, configurationSectionName);
 
-            return !string.IsNullOrEmpty(settings.ConnectionString) ?
-                new EventHubConsumerClient(settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName,
-                    settings.ConnectionString, options) :
-                new EventHubConsumerClient(settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName,
-                    settings.Namespace, settings.EventHubName, cred, options);
+            var consumerGroup = settings.ConsumerGroup ?? EventHubConsumerClient.DefaultConsumerGroupName;
+
+            // If no connection is provided use TokenCredential
+            if (string.IsNullOrEmpty(settings.ConnectionString))
+            {
+                return new EventHubConsumerClient(consumerGroup, settings.FullyQualifiedNamespace, settings.EventHubName, cred, options);
+            }
+            else
+            {
+                // If no specific EventHubName is provided, it has to be in the connection string
+                if (string.IsNullOrEmpty(settings.EventHubName))
+                {
+                    return new EventHubConsumerClient(consumerGroup, settings.ConnectionString, options);
+                }
+                else
+                {
+                    return new EventHubConsumerClient(consumerGroup, settings.ConnectionString, settings.EventHubName, options);
+                }
+            }
+
         }, requiresCredential: false);
     }
 }

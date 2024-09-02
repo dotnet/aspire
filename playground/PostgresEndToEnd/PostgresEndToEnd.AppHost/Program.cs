@@ -13,13 +13,15 @@ var db4 = pg3.AddDatabase("db4");
 // Containerized resources.
 var db5 = builder.AddPostgres("pg4").WithPgAdmin().PublishAsContainer().AddDatabase("db5");
 var db6 = builder.AddPostgres("pg5").WithPgAdmin().PublishAsContainer().AddDatabase("db6");
-var pg6 = builder.AddPostgres("pg6").WithPgAdmin().PublishAsContainer();
+var pg6 = builder.AddPostgres("pg6").WithPgAdmin(c => c.WithHostPort(8999).WithImageTag("8.3")).PublishAsContainer();
 var db7 = pg6.AddDatabase("db7");
 var db8 = pg6.AddDatabase("db8");
 var db9 = pg6.AddDatabase("db9", "db8"); // different connection string (db9) on same database as db8
 
 // External resources.
 var db10 = builder.AddPostgres("pg10").WithPgAdmin().PublishAsConnectionString().AddDatabase("db10");
+
+var db11 = builder.AddPostgres("pg11").WithPgWeb().AddDatabase("postgres");
 
 builder.AddProject<Projects.PostgresEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()
@@ -32,13 +34,16 @@ builder.AddProject<Projects.PostgresEndToEnd_ApiService>("api")
        .WithReference(db7)
        .WithReference(db8)
        .WithReference(db9)
-       .WithReference(db10);
-
+       .WithReference(db10)
+       .WithReference(db11);
+#if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code
-// to test end developer dashboard launch experience. Refer to Directory.Build.props
-// for the path to the dashboard binary (defaults to the Aspire.Dashboard bin output
-// in the artifacts dir).
+// or build with `/p:SkipDashboardReference=true`, to test end developer
+// dashboard launch experience, Refer to Directory.Build.props for the path to
+// the dashboard binary (defaults to the Aspire.Dashboard bin output in the
+// artifacts dir).
 builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
+#endif
 
 builder.Build().Run();

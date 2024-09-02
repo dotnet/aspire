@@ -16,7 +16,7 @@
       "persistenceScope": "templateGroup"
     },
     {
-      "id": "CreateTestsProject",
+      "id": "TestFramework",
       "isVisible": true,
       "persistenceScope": "templateGroup"
     }

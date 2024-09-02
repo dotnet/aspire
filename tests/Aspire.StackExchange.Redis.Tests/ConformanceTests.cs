@@ -19,7 +19,7 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
-    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
+    protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
 
     protected override bool SupportsKeyedRegistrations => true;
 
@@ -34,8 +34,8 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
             "StackExchange": {
               "Redis": {
                 "ConnectionString": "YOUR_ENDPOINT",
-                "HealthChecks": true,
-                "Tracing": false,
+                "DisableHealthChecks": false,
+                "DisableTracing": true,
                 "ConfigurationOptions": {
                   "CheckCertificateRevocation": true,
                   "ConnectTimeout": 5,
@@ -64,7 +64,7 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
     {
-        string connectionString = RequiresDockerTheoryAttribute.IsSupported
+        string connectionString = RequiresDockerAttribute.IsSupported
                                     ? _containerFixture.GetConnectionString()
                                     : "localhost";
         configuration.AddInMemoryCollection([
@@ -84,13 +84,13 @@ public class ConformanceTests : ConformanceTests<IConnectionMultiplexer, StackEx
         }
     }
 
-    protected override void SetHealthCheck(StackExchangeRedisSettings settings, bool enabled)
-        => settings.HealthChecks = enabled;
+    protected override void SetHealthCheck(StackExchangeRedisSettings options, bool enabled)
+        => options.DisableHealthChecks = !enabled;
 
-    protected override void SetTracing(StackExchangeRedisSettings settings, bool enabled)
-        => settings.Tracing = enabled;
+    protected override void SetTracing(StackExchangeRedisSettings options, bool enabled)
+        => options.DisableTracing = !enabled;
 
-    protected override void SetMetrics(StackExchangeRedisSettings settings, bool enabled)
+    protected override void SetMetrics(StackExchangeRedisSettings options, bool enabled)
         => throw new NotImplementedException();
 
     protected override void TriggerActivity(IConnectionMultiplexer service)

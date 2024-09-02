@@ -144,6 +144,10 @@ node_modules/
 /playground/**/.gitignore
 /playground/**/azure.yaml
 /playground/**/next-steps.md
+*.svclog
 
 # Ignore mono files on linux
 .mono/
+
+# Python virtual environments
+.venv

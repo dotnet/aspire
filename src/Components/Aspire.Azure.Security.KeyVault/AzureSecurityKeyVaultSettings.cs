@@ -25,20 +25,20 @@ public sealed class AzureSecurityKeyVaultSettings : IConnectionStringSettings
     public TokenCredential? Credential { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the Key Vault health check is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the Key Vault health check is disabled or not.
     /// </summary>
     /// <value>
-    /// The default value is <see langword="true"/>.
+    /// The default value is <see langword="false"/>.
     /// </value>
-    public bool HealthChecks { get; set; } = true;
+    public bool DisableHealthChecks { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
     /// </summary>
     /// <value>
-    /// The default value is <see langword="true"/>.
+    /// The default value is <see langword="false"/>.
     /// </value>
-    public bool Tracing { get; set; } = true;
+    public bool DisableTracing { get; set; }
 
     void IConnectionStringSettings.ParseConnectionString(string? connectionString)
     {

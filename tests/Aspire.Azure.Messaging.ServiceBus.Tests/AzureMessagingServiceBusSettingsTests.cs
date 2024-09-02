@@ -11,12 +11,12 @@ public class AzureMessagingServiceBusSettingsTests
     [Fact]
     public void TracingIsEnabledWhenAzureSwitchIsSet()
     {
-        RemoteExecutor.Invoke(() => EnsureTracingIsEnabledWhenAzureSwitchIsSet(false)).Dispose();
-        RemoteExecutor.Invoke(() => EnsureTracingIsEnabledWhenAzureSwitchIsSet(true), ConformanceTests.EnableTracingForAzureSdk()).Dispose();
+        RemoteExecutor.Invoke(() => EnsureTracingIsEnabledWhenAzureSwitchIsSet(true)).Dispose();
+        RemoteExecutor.Invoke(() => EnsureTracingIsEnabledWhenAzureSwitchIsSet(false), ConformanceTests.EnableTracingForAzureSdk()).Dispose();
     }
 
     private static void EnsureTracingIsEnabledWhenAzureSwitchIsSet(bool expectedValue)
     {
-        Assert.Equal(expectedValue, new AzureMessagingServiceBusSettings().Tracing);
+        Assert.Equal(expectedValue, new AzureMessagingServiceBusSettings().DisableTracing);
     }
 }

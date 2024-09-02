@@ -126,4 +126,13 @@
   <data name="NotFoundDetails" xml:space="preserve">
     <value>The page you requested could not be found</value>
   </data>
+  <data name="ErrorHandlerPageRequestId" xml:space="preserve">
+    <value>Request ID:</value>
+  </data>
+  <data name="ErrorHandlerPageSubtitle" xml:space="preserve">
+    <value>An error occurred while processing your request</value>
+  </data>
+  <data name="ErrorHandlerPageTitle" xml:space="preserve">
+    <value>Error</value>
+  </data>
 </root>

@@ -23,4 +23,5 @@
     <None Include="$(ReadMePath)" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <Import Project="$(RepositoryEngineeringDir)/apicompat/PublicApiAnalyzer.targets" />
 </Project>

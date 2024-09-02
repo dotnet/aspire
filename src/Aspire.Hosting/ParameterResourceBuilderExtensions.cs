@@ -2,7 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -58,11 +61,33 @@ public static class ParameterResourceBuilderExtensions
         }
         catch (DistributedApplicationException ex)
         {
-            state = state with { State = "FailedToStart", Properties = [.. state.Properties, new("Value", ex.Message)] };
+            state = state with
+            {
+                State = new ResourceStateSnapshot("Configuration missing", KnownResourceStateStyles.Error),
+                Properties = [.. state.Properties, new("Value", ex.Message)]
+            };
+
+            builder.Services.AddLifecycleHook((sp) => new WriteParameterLogsHook(
+                sp.GetRequiredService<ResourceLoggerService>(),
+                name,
+                ex.Message));
         }
 
         return builder.AddResource(resource)
                       .WithInitialState(state);
+    }
+
+    /// <summary>
+    /// Writes the message to the specified resource's logs.
+    /// </summary>
+    private sealed class WriteParameterLogsHook(ResourceLoggerService loggerService, string resourceName, string message) : IDistributedApplicationLifecycleHook
+    {
+        public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+        {
+            loggerService.GetLogger(resourceName).LogError(message);
+
+            return Task.CompletedTask;
+        }
     }
 
     /// <summary>
@@ -126,6 +151,10 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="minNumeric">The minimum number of numeric characters in the result.</param>
     /// <param name="minSpecial">The minimum number of special characters in the result.</param>
     /// <returns>The created <see cref="ParameterResource"/>.</returns>
+    /// <remarks>
+    /// To ensure the generated password has enough entropy, see the remarks in <see cref="GenerateParameterDefault"/>.<br/>
+    /// The value will be saved to the app host project's user secrets store when <see cref="DistributedApplicationExecutionContext.IsRunMode"/> is <c>true</c>.
+    /// </remarks>
     public static ParameterResource CreateDefaultPasswordParameter(
         IDistributedApplicationBuilder builder, string name,
         bool lower = true, bool upper = true, bool numeric = true, bool special = true,
@@ -133,7 +162,7 @@ public static class ParameterResourceBuilderExtensions
     {
         var generatedPassword = new GenerateParameterDefault
         {
-            MinLength = 22, // enough to give 128 bits of entropy when using the default 67 possible characters. See remarks in PasswordGenerator.Generate
+            MinLength = 22, // enough to give 128 bits of entropy when using the default 67 possible characters. See remarks in GenerateParameterDefault
             Lower = lower,
             Upper = upper,
             Numeric = numeric,
@@ -150,6 +179,9 @@ public static class ParameterResourceBuilderExtensions
     /// <summary>
     /// Creates a new <see cref="ParameterResource"/> that has a generated value using the <paramref name="parameterDefault"/>.
     /// </summary>
+    /// <remarks>
+    /// The value will be saved to the app host project's user secrets store when <see cref="DistributedApplicationExecutionContext.IsRunMode"/> is <c>true</c>.
+    /// </remarks>
     /// <param name="builder">Distributed application builder</param>
     /// <param name="name">Name of parameter resource</param>
     /// <param name="secret">Flag indicating whether the parameter should be regarded as secret.</param>
@@ -158,9 +190,15 @@ public static class ParameterResourceBuilderExtensions
     public static ParameterResource CreateGeneratedParameter(
         IDistributedApplicationBuilder builder, string name, bool secret, GenerateParameterDefault parameterDefault)
     {
-        var parameterResource = new ParameterResource(name, parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault), secret);
+        var parameterResource = new ParameterResource(name, defaultValue => GetParameterValue(builder.Configuration, name, defaultValue), secret)
+        {
+            Default = parameterDefault
+        };
 
-        parameterResource.Default = parameterDefault;
+        if (builder.ExecutionContext.IsRunMode && builder.AppHostAssembly is not null)
+        {
+            parameterResource.Default = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, name, parameterResource.Default);
+        }
 
         return parameterResource;
     }

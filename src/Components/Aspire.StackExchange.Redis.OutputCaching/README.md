@@ -77,8 +77,8 @@ The Redis OutputCache component supports [Microsoft.Extensions.Configuration](ht
           "ConnectTimeout": 3000,
           "ConnectRetry": 2
         },
-        "HealthChecks": false,
-        "Tracing": true
+        "DisableHealthChecks": true,
+        "DisableTracing": false
       }
     }
   }
@@ -90,7 +90,7 @@ The Redis OutputCache component supports [Microsoft.Extensions.Configuration](ht
 You can also pass the `Action<StackExchangeRedisSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-builder.AddRedisOutputCache("cache", settings => settings.HealthChecks = false);
+builder.AddRedisOutputCache("cache", settings => settings.DisableHealthChecks = true);
 ```
 
 You can also setup the [ConfigurationOptions](https://stackexchange.github.io/StackExchange.Redis/Configuration.html#configuration-options) using the `Action<ConfigurationOptions> configureOptions` delegate parameter of the `AddRedisOutputCache` method. For example to set the connection timeout:

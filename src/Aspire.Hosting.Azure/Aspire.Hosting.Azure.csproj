@@ -9,6 +9,10 @@
     <PackageIconFullPath>$(SharedDir)Azure_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <MinCodeCoverage>28</MinCodeCoverage>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessResult.cs" Link="Provisioning\Utils\ProcessResult.cs" />
     <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessSpec.cs" Link="Provisioning\Utils\ProcessSpec.cs" />
@@ -18,6 +22,10 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Bicep\*.bicep" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="**/*.targets;AspireAzureConfigurationSchema.json" Pack="true" PackagePath="%(RecursiveDir)%(Filename)%(Extension)"  />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,7 +39,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.Tests" />
   </ItemGroup>
 
 </Project>

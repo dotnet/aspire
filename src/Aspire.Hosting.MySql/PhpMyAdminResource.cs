@@ -4,9 +4,11 @@
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.MySql;
-internal sealed class PhpMyAdminContainerResource : ContainerResource
+
+/// <summary>
+/// Resource representing PhpMyAdmin container.
+/// </summary>
+/// <param name="name">Name of resource.</param>
+public sealed class PhpMyAdminContainerResource(string name) : ContainerResource(name)
 {
-    public PhpMyAdminContainerResource(string name) : base(name)
-    {
-    }
 }

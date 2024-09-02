@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.RabbitMQ;
 using Testcontainers.RabbitMq;
 using Xunit;
 
@@ -16,10 +17,9 @@ public sealed class RabbitMQContainerFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        if (RequiresDockerTheoryAttribute.IsSupported)
+        if (RequiresDockerAttribute.IsSupported)
         {
-            _container = new RabbitMqBuilder().Build();
-            await _container.StartAsync();
+            _container = await CreateContainerAsync();
         }
     }
 
@@ -29,5 +29,15 @@ public sealed class RabbitMQContainerFixture : IAsyncLifetime
         {
             await _container.DisposeAsync();
         }
+    }
+
+    public static async Task<RabbitMqContainer> CreateContainerAsync()
+    {
+        var container = new RabbitMqBuilder()
+            .WithImage($"{TestConstants.AspireTestContainerRegistry}/{RabbitMQContainerImageTags.Image}:{RabbitMQContainerImageTags.Tag}")
+            .Build();
+        await container.StartAsync();
+
+        return container;
     }
 }

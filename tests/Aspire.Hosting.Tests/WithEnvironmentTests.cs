@@ -3,12 +3,37 @@
 
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
 public class WithEnvironmentTests
 {
+    [Fact]
+    public async Task BuiltApplicationHasAccessToIServiceProviderViaEnvironmentCallbackContext()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var container = builder.AddContainer("container", "image")
+                               .WithEnvironment(context =>
+                               {
+                                   var sp = context.ExecutionContext.ServiceProvider;
+                                   context.EnvironmentVariables["SP_AVAILABLE"] = sp is not null ? "true" : "false";
+                               });
+
+        using var app = builder.Build();
+
+        var serviceProvider = app.Services.GetRequiredService<IServiceProvider>();
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            container.Resource,
+            serviceProvider: serviceProvider
+            );
+
+        Assert.Equal("true", config["SP_AVAILABLE"]);
+    }
+
     [Fact]
     public async Task EnvironmentReferencingEndpointPopulatesWithBindingUrl()
     {
@@ -24,7 +49,7 @@ public class WithEnvironmentTests
         var projectB = builder.AddProject<ProjectB>("projectB")
                                .WithEnvironment("myName", projectA.GetEndpoint("mybinding"));
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Equal("https://localhost:2000", config["myName"]);
     }
@@ -37,7 +62,23 @@ public class WithEnvironmentTests
         var project = builder.AddProject<ProjectA>("projectA")
             .WithEnvironment("myName", "value");
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(project.Resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(project.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+
+        Assert.Equal("value", config["myName"]);
+    }
+
+    [Fact]
+    public async Task SimpleEnvironmentWithNameAndReferenceExpressionValue()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var childExpression = ReferenceExpression.Create($"value");
+        var parameterExpression = ReferenceExpression.Create($"{childExpression}");
+
+        var project = builder.AddProject<ProjectA>("projectA")
+            .WithEnvironment("myName", parameterExpression);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(project.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Equal("value", config["myName"]);
     }
@@ -53,7 +94,7 @@ public class WithEnvironmentTests
         environmentValue = "value2";
 
         // Call environment variable callbacks.
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectA.Resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectA.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Equal("value2", config["myName"]);
     }
@@ -70,7 +111,7 @@ public class WithEnvironmentTests
         var projectA = builder.AddProject<ProjectA>("projectA")
             .WithEnvironment("MY_PARAMETER", parameter);
 
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectA.Resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectA.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Equal("MY_PARAMETER_VALUE", config["MY_PARAMETER"]);
     }
@@ -101,7 +142,11 @@ public class WithEnvironmentTests
         var projectA = builder.AddProject<ProjectA>("projectA")
             .WithEnvironment("MY_PARAMETER", parameter);
 
-        var exception = await Assert.ThrowsAsync<DistributedApplicationException>(async () => await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectA.Resource));
+        var exception = await Assert.ThrowsAsync<DistributedApplicationException>(async () => await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            projectA.Resource,
+            DistributedApplicationOperation.Run,
+            TestServiceProvider.Instance
+         ));
 
         Assert.Equal("Parameter resource could not be used because configuration key 'Parameters:parameter' is missing and the Parameter has no default value.", exception.Message);
     }
@@ -121,7 +166,7 @@ public class WithEnvironmentTests
         environmentValue = "value2";
 
         // Call environment variable callbacks.
-        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectA.Resource);
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectA.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Equal("value2", config["myName"]);
     }

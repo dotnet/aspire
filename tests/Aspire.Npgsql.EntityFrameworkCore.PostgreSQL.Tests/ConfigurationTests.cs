@@ -13,17 +13,17 @@ public class ConfigurationTests
 
     [Fact]
     public void HealthCheckIsEnabledByDefault()
-        => Assert.True(new NpgsqlEntityFrameworkCorePostgreSQLSettings().HealthChecks);
+        => Assert.False(new NpgsqlEntityFrameworkCorePostgreSQLSettings().DisableHealthChecks);
 
     [Fact]
     public void TracingIsEnabledByDefault()
-        => Assert.True(new NpgsqlEntityFrameworkCorePostgreSQLSettings().Tracing);
+        => Assert.False(new NpgsqlEntityFrameworkCorePostgreSQLSettings().DisableTracing);
 
     [Fact]
     public void MetricsAreEnabledByDefault()
-        => Assert.True(new NpgsqlEntityFrameworkCorePostgreSQLSettings().Metrics);
+        => Assert.False(new NpgsqlEntityFrameworkCorePostgreSQLSettings().DisableMetrics);
 
     [Fact]
     public void RetriesAreEnabledByDefault()
-        => Assert.True(new NpgsqlEntityFrameworkCorePostgreSQLSettings().Retry);
+        => Assert.False(new NpgsqlEntityFrameworkCorePostgreSQLSettings().DisableRetry);
 }

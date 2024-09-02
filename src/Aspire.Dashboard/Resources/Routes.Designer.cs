@@ -61,6 +61,33 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Request ID:.
+        /// </summary>
+        public static string ErrorHandlerPageRequestId {
+            get {
+                return ResourceManager.GetString("ErrorHandlerPageRequestId", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to An error occurred while processing your request.
+        /// </summary>
+        public static string ErrorHandlerPageSubtitle {
+            get {
+                return ResourceManager.GetString("ErrorHandlerPageSubtitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error.
+        /// </summary>
+        public static string ErrorHandlerPageTitle {
+            get {
+                return ResourceManager.GetString("ErrorHandlerPageTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Not found.
         /// </summary>
         public static string NotFoundDescription {

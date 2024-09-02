@@ -16,7 +16,7 @@ public class EnrichCosmosDbTests : ConformanceTests
     private const string ConnectionString = "Host=fake;Database=catalog";
     private const string DatabaseName = "TestDatabase";
 
-    protected override void RegisterComponent(HostApplicationBuilder builder, Action<EntityFrameworkCoreCosmosDBSettings>? configure = null, string? key = null)
+    protected override void RegisterComponent(HostApplicationBuilder builder, Action<EntityFrameworkCoreCosmosSettings>? configure = null, string? key = null)
     {
         builder.Services.AddDbContextPool<TestDbContext>(options => options.UseCosmos(ConnectionString, DatabaseName));
         builder.EnrichCosmosDbContext<TestDbContext>(configure);
@@ -131,6 +131,6 @@ public class EnrichCosmosDbTests : ConformanceTests
         using var host = builder.Build();
 
         var exception = Assert.Throws<InvalidOperationException>(host.Services.GetRequiredService<TestDbContext>);
-        Assert.Equal("Conflicting values for 'RequestTimeout' were found in EntityFrameworkCoreCosmosDBSettings and set in DbContextOptions<TestDbContext>.", exception.Message);
+        Assert.Equal("Conflicting values for 'RequestTimeout' were found in EntityFrameworkCoreCosmosSettings and set in DbContextOptions<TestDbContext>.", exception.Message);
     }
 }

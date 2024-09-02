@@ -9,9 +9,9 @@ public class ConfigurationTests
 {
     [Fact]
     public void ConnectionStringIsNullByDefault()
-        => Assert.Null(new AzureCosmosDBSettings().ConnectionString);
+        => Assert.Null(new MicrosoftAzureCosmosSettings().ConnectionString);
 
     [Fact]
     public void TracingIsEnabledByDefault()
-        => Assert.True(new AzureCosmosDBSettings().Tracing);
+        => Assert.False(new MicrosoftAzureCosmosSettings().DisableTracing);
 }

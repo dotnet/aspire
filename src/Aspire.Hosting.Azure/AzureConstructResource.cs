@@ -20,7 +20,7 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
     /// <summary>
     /// Callback for configuring construct.
     /// </summary>
-    public Action<ResourceModuleConstruct> ConfigureConstruct { get; } = configureConstruct;
+    public Action<ResourceModuleConstruct> ConfigureConstruct { get; internal set; } = configureConstruct;
 
     /// <inheritdoc/>
     public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
@@ -102,6 +102,23 @@ public static class AzureConstructResourceExtensions
     }
 
     /// <summary>
+    /// Configures the Azure construct resource.
+    /// </summary>
+    /// <typeparam name="T">Type of the CDK resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="configure">The configuration callback.</param>
+    /// <returns>The resource builder.</returns>
+    public static IResourceBuilder<T> ConfigureConstruct<T>(this IResourceBuilder<T> builder, Action<ResourceModuleConstruct> configure) 
+        where T : AzureConstructResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        builder.Resource.ConfigureConstruct += configure;
+        return builder;
+    }
+
+    /// <summary>
     /// Assigns an Aspire parameter resource to an Azure construct resource.
     /// </summary>
     /// <typeparam name="T">Type of the CDK resource.</typeparam>
@@ -109,6 +126,7 @@ public static class AzureConstructResourceExtensions
     /// <param name="propertySelector">Property selection expression.</param>
     /// <param name="parameterResourceBuilder">Aspire parameter resource builder.</param>
     /// <param name="parameterName">The name of the parameter to be assigned.</param>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
     public static void AssignProperty<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, IResourceBuilder<ParameterResource> parameterResourceBuilder, string? parameterName = null) where T: notnull
     {
         parameterName ??= parameterResourceBuilder.Resource.Name;
@@ -140,6 +158,7 @@ public static class AzureConstructResourceExtensions
     /// <param name="propertySelector">Property selection expression.</param>
     /// <param name="parameterName">The name of the parameter to be assigned.</param>
     /// <param name="outputReference">Aspire parameter resource builder.</param>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
     public static void AssignProperty<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, BicepOutputReference outputReference, string? parameterName = null) where T : notnull
     {
         parameterName ??= outputReference.Resource.Name;

@@ -2,10 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -17,7 +17,7 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
     public RenderFragment? Summary { get; set; }
 
     [Parameter]
-    public RenderFragment? Details { get; set; }
+    public RenderFragment<T>? Details { get; set; }
 
     [Parameter]
     public bool ShowDetails { get; set; }
@@ -49,22 +49,22 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
     public string? ViewKey { get; set; }
 
     [Parameter]
-    public RenderFragment? DetailsTitleTemplate { get; set; }
+    public RenderFragment<T>? DetailsTitleTemplate { get; set; }
 
     [Inject]
-    public required ProtectedLocalStorage ProtectedLocalStore { get; set; }
+    public required ILocalStorage LocalStore { get; init; }
 
     [Inject]
-    public required NavigationManager NavigationManager { get; set; }
+    public required NavigationManager NavigationManager { get; init; }
 
     [Inject]
-    public required IJSRuntime JS { get; set; }
+    public required IJSRuntime JS { get; init; }
 
     [Inject]
-    public required ShortcutManager ShortcutManager { get; set; }
+    public required ShortcutManager ShortcutManager { get; init; }
 
-    private readonly Icon _splitHorizontalIcon = new Icons.Regular.Size16.SplitHorizontal();
-    private readonly Icon _splitVerticalIcon = new Icons.Regular.Size16.SplitVertical();
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
 
     private string _panel1Size { get; set; } = "1fr";
     private string _panel2Size { get; set; } = "1fr";
@@ -86,7 +86,7 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
         {
             if (RememberOrientation)
             {
-                var orientationResult = await ProtectedLocalStore.SafeGetAsync<Orientation>(GetOrientationStorageKey());
+                var orientationResult = await LocalStore.GetUnprotectedAsync<Orientation>(GetOrientationStorageKey());
                 if (orientationResult.Success)
                 {
                     Orientation = orientationResult.Value;
@@ -95,10 +95,11 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
 
             if (RememberSize)
             {
-                var panel1FractionResult = await ProtectedLocalStore.SafeGetAsync<float>(GetSizeStorageKey());
+                var panel1FractionResult = await LocalStore.GetUnprotectedAsync<float>(GetSizeStorageKey());
                 if (panel1FractionResult.Success)
                 {
-                    SetPanelSizes(panel1FractionResult.Value);
+                    var fraction = Math.Clamp(panel1FractionResult.Value, 0, 1);
+                    SetPanelSizes(fraction);
                 }
             }
         }
@@ -107,6 +108,7 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
         // This is required because we only want to show details after resolving size and orientation
         // to avoid a flash of content in the wrong location.
         _internalShowDetails = ShowDetails;
+        SetPanelToFullScreenOnMobile();
     }
 
     private async Task HandleDismissAsync()
@@ -127,16 +129,16 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
 
         if (RememberOrientation)
         {
-            await ProtectedLocalStore.SetAsync(GetOrientationStorageKey(), Orientation);
+            await LocalStore.SetUnprotectedAsync(GetOrientationStorageKey(), Orientation);
         }
 
         if (RememberSize)
         {
-            var panel1FractionResult = await ProtectedLocalStore.SafeGetAsync<float>(GetSizeStorageKey());
+            var panel1FractionResult = await LocalStore.GetUnprotectedAsync<float>(GetSizeStorageKey());
             if (panel1FractionResult.Success)
             {
-                SetPanelSizes(panel1FractionResult.Value);
-
+                var fraction = Math.Clamp(panel1FractionResult.Value, 0, 1);
+                SetPanelSizes(fraction);
             }
             else
             {
@@ -169,7 +171,7 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
 
     private async Task SaveSizeToStorage(float panel1Fraction)
     {
-        await ProtectedLocalStore.SetAsync(GetSizeStorageKey(), panel1Fraction);
+        await LocalStore.SetUnprotectedAsync(GetSizeStorageKey(), panel1Fraction);
     }
 
     private void ResetPanelSizes()
@@ -183,6 +185,15 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
         // These need to not use culture-specific formatting because it needs to be a valid CSS value
         _panel1Size = string.Create(CultureInfo.InvariantCulture, $"{panel1Fraction:F3}fr");
         _panel2Size = string.Create(CultureInfo.InvariantCulture, $"{(1 - panel1Fraction):F3}fr");
+    }
+
+    private void SetPanelToFullScreenOnMobile()
+    {
+        if (!ViewportInformation.IsDesktop)
+        {
+            // panel 1 will have a height of 0, so its fraction of 1 is also 0
+            SetPanelSizes(panel1Fraction: 0);
+        }
     }
 
     public IReadOnlySet<AspireKeyboardShortcut> SubscribedShortcuts { get; } = new HashSet<AspireKeyboardShortcut>
@@ -283,13 +294,13 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
     private string GetSizeStorageKey()
     {
         var viewKey = ViewKey ?? NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-        return $"SplitterSize_{Orientation}_{viewKey}";
+        return BrowserStorageKeys.SplitterSizeKey(viewKey, Orientation);
     }
 
     private string GetOrientationStorageKey()
     {
         var viewKey = ViewKey ?? NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-        return $"SplitterOrientation_{viewKey}";
+        return BrowserStorageKeys.SplitterOrientationKey(viewKey);
     }
 
     public void Dispose()

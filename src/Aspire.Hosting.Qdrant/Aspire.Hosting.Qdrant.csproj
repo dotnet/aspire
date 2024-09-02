@@ -3,9 +3,13 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting qdrant</PackageTags>
+    <PackageTags>aspire integration hosting qdrant</PackageTags>
     <Description>Qdrant vector database support for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)QdrantLogo_256x.png</PackageIconFullPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>33</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,9 +20,4 @@
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
-  </ItemGroup>
-
 </Project>

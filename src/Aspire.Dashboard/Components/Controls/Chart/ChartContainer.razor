@@ -1,8 +1,6 @@
 ﻿@namespace Aspire.Dashboard.Components
 
-@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Otlp.Model
-@using Aspire.Dashboard.Otlp.Model.MetricValues
 @using Aspire.Dashboard.Resources
 @using Metrics = Aspire.Dashboard.Components.Pages.Metrics
 @inject IStringLocalizer<ControlsStrings> Loc
@@ -15,8 +13,8 @@ else
 {
     <div class="metrics-chart">
         <div class="metrics-chart-header">
-            <h3>@_instrument.Name</h3>
-            <p>@_instrument.Description</p>
+            <h3>@_instrument.Summary.Name</h3>
+            <p>@_instrument.Summary.Description</p>
         </div>
         <FluentTabs ActiveTabId="@($"tab-{ActiveView}")" OnTabChange="@OnTabChangeAsync">
             <FluentTab LabelClass="tab-label"
@@ -25,17 +23,17 @@ else
                        Label="@Loc[nameof(ControlsStrings.ChartContainerGraphTab)]"
                        Icon="@(new Icons.Regular.Size24.DataArea())">
                 <div class="metrics-chart-container metric-tab">
-                    <PlotlyChart InstrumentViewModel="_instrumentViewModel" Duration="Duration"/>
-                    <ChartFilters InstrumentViewModel="_instrumentViewModel" Instrument="_instrument" ViewModel="_viewModel"/>
+                    <PlotlyChart InstrumentViewModel="_instrumentViewModel" Duration="Duration" Applications="Applications"/>
+                    <ChartFilters InstrumentViewModel="_instrumentViewModel" Instrument="_instrument" DimensionFilters="@DimensionFilters" />
                 </div>
             </FluentTab>
             <FluentTab LabelClass="tab-label"
                        Id="@($"tab-{Metrics.MetricViewKind.Table}")"
                        Label="@Loc[nameof(ControlsStrings.ChartContainerTableTab)]"
                        Icon="@(new Icons.Regular.Size24.Table())">
-                <div class="metric-tab">
-                    <MetricTable InstrumentViewModel="_instrumentViewModel" Duration="Duration"/>
-                    <ChartFilters InstrumentViewModel="_instrumentViewModel" Instrument="_instrument" ViewModel="_viewModel"/>
+                <div class="metrics-chart-container metric-tab">
+                    <MetricTable InstrumentViewModel="_instrumentViewModel" Duration="Duration" Applications="Applications" />
+                    <ChartFilters InstrumentViewModel="_instrumentViewModel" Instrument="_instrument" DimensionFilters="@DimensionFilters"/>
                 </div>
             </FluentTab>
         </FluentTabs>
@@ -48,4 +46,7 @@ else
 
     [Parameter, EditorRequired]
     public required Func<Metrics.MetricViewKind, Task> OnViewChangedAsync { get; set; }
+
+    [Parameter]
+    public required List<OtlpApplication> Applications { get; set; }
 }

@@ -91,6 +91,11 @@ public static class CloudFormationExtensions
                 return;
             }
 
+            if (stackOutputReference.Resource.AWSSDKConfig != null)
+            {
+                SdkUtilities.ApplySDKConfig(ctx, stackOutputReference.Resource.AWSSDKConfig, false);
+            }
+
             ctx.Logger?.LogInformation("Getting CloudFormation stack output {Name} from resource {ResourceName}", stackOutputReference.Name, stackOutputReference.Resource.Name);
 
             ctx.EnvironmentVariables[name] = await stackOutputReference.GetValueAsync(ctx.CancellationToken).ConfigureAwait(false) ?? "";
@@ -156,17 +161,22 @@ public static class CloudFormationExtensions
     {
         cloudFormationResourceBuilder.WithAnnotation(new CloudFormationReferenceAnnotation(builder.Resource.Name));
 
-        builder.WithEnvironment(async context =>
+        builder.WithEnvironment(async ctx =>
         {
-            if (context.ExecutionContext.IsPublishMode)
+            if (ctx.ExecutionContext.IsPublishMode)
             {
                 return;
             }
 
+            if (cloudFormationResourceBuilder.Resource.AWSSDKConfig != null)
+            {
+                SdkUtilities.ApplySDKConfig(ctx, cloudFormationResourceBuilder.Resource.AWSSDKConfig, false);
+            }
+
             if (cloudFormationResourceBuilder.Resource.ProvisioningTaskCompletionSource is not null)
             {
-                context.Logger?.LogInformation("Waiting on CloudFormation resource {Name} ...", cloudFormationResourceBuilder.Resource.Name);
-                await cloudFormationResourceBuilder.Resource.ProvisioningTaskCompletionSource.Task.WaitAsync(context.CancellationToken).ConfigureAwait(false);
+                ctx.Logger?.LogInformation("Waiting on CloudFormation resource {Name} ...", cloudFormationResourceBuilder.Resource.Name);
+                await cloudFormationResourceBuilder.Resource.ProvisioningTaskCompletionSource.Task.WaitAsync(ctx.CancellationToken).ConfigureAwait(false);
             }
 
             if (cloudFormationResourceBuilder.Resource.Outputs == null)
@@ -179,7 +189,7 @@ public static class CloudFormationExtensions
             foreach (var output in cloudFormationResourceBuilder.Resource.Outputs)
             {
                 var envName = $"{configSection}__{output.OutputKey}";
-                context.EnvironmentVariables[envName] = output.OutputValue;
+                ctx.EnvironmentVariables[envName] = output.OutputValue;
             }
         });
 

@@ -1,21 +1,41 @@
 ﻿@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Model.Otlp
-@using Aspire.Dashboard.Otlp.Storage
 @using Aspire.Dashboard.Resources
-@using Microsoft.FluentUI.AspNetCore.Components;
 @implements IDialogContentComponent<FilterDialogViewModel>
+
 @inject IStringLocalizer<Dialogs> Loc
+@inject IStringLocalizer<Logs> LogsLoc
 
 <EditForm EditContext="@EditContext" OnValidSubmit="@Apply">
     <DataAnnotationsValidator />
 
-    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-        <FluentCombobox Placeholder="@Loc[nameof(Dialogs.FilterDialogFieldPlaceholder)]" Items=@Parameters @bind-Value="@_formModel.Parameter" Width="100%" Height="500px" />
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+        <div class="filter-input-container">
+            <FluentCombobox TOption="SelectViewModel<string>"
+                            Placeholder="@Loc[nameof(Dialogs.FilterDialogFieldPlaceholder)]"
+                            Label="@Loc[nameof(Dialogs.FilterDialogParameterInputLabel)]"
+                            Items="@_parameters"
+                            @bind-SelectedOption="@_formModel.Parameter"
+                            Width="100%"
+                            Height="500px"
+                            OptionText="@(c => c.Name)"
+                            OptionDisabled="@(c => c.Id is null)" />
+        </div>
 
-        <FluentSelect TOption="SelectViewModel<FilterCondition>" Items="@s_filterConditions" @bind-SelectedOption="@_formModel.Condition" aria-label="@Loc[Dialogs.FilterDialogConditionSelectLabel]" OptionText="@(i => i.Name)" Width="100%" />
+        <div class="filter-input-container">
+            <FluentSelect TOption="SelectViewModel<FilterCondition>"
+                          Items="@_filterConditions"
+                          @bind-SelectedOption="@_formModel.Condition"
+                          Label="@Loc[nameof(Dialogs.FilterDialogConditionInputLabel)]"
+                          OptionText="@(i => i.Name)"
+                          Width="100%" />
+        </div>
 
-        <FluentTextField @bind-Value="_formModel.Value" Placeholder="@Loc[nameof(Dialogs.FilterDialogTextValuePlaceholder)]" />
-        <ValidationMessage For="() => _formModel.Value" />
+        <div class="filter-input-container">
+            <FluentTextField @bind-Value="_formModel.Value"
+                             Label="@Loc[nameof(Dialogs.FilterDialogTextValuePlaceholder)]" />
+            <ValidationMessage For="() => _formModel.Value" />
+        </div>
 
         <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Right">
             <FluentButton OnClick="Cancel">@Loc[nameof(Dialogs.FilterDialogCancelButtonText)]</FluentButton>

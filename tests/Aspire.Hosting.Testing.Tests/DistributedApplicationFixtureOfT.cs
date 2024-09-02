@@ -1,17 +1,16 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 using Microsoft.Extensions.Hosting;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Aspire.Hosting.Testing.Tests;
 
-public class DistributedApplicationFixture<TEntryPoint> : DistributedApplicationFactory<TEntryPoint>, IAsyncLifetime where TEntryPoint : class
+public class DistributedApplicationFixture<TEntryPoint> : DistributedApplicationFactory, IAsyncLifetime where TEntryPoint : class
 {
     public DistributedApplicationFixture()
+        : base(typeof(TEntryPoint), [])
     {
-        if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null)
-        {
-            throw new SkipException("These tests can only run in local environments.");
-        }
     }
 
     protected override void OnBuilderCreating(DistributedApplicationOptions applicationOptions, HostApplicationBuilderSettings hostOptions)

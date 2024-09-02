@@ -18,7 +18,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Tests;
 public class ConfigurationServiceEndpointResolverTests
 {
     [Fact]
-    public async Task ResolveServiceEndpoint_Configuration_SingleResult()
+    public async Task ResolveServiceEndpoint_Configuration_SingleResult_NoScheme()
     {
         var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
@@ -87,8 +87,23 @@ public class ConfigurationServiceEndpointResolverTests
             Assert.Empty(initialResult.EndpointSource.Endpoints);
         }
 
+        // Specifying no scheme.
+        // We should get the HTTPS endpoint back, since it is explicitly allowed
+        await using ((watcher = watcherFactory.CreateWatcher("_foo.basket")).ConfigureAwait(false))
+        {
+            Assert.NotNull(watcher);
+            var tcs = new TaskCompletionSource<ServiceEndpointResolverResult>();
+            watcher.OnEndpointsUpdated = tcs.SetResult;
+            watcher.Start();
+            var initialResult = await tcs.Task.ConfigureAwait(false);
+            Assert.NotNull(initialResult);
+            Assert.True(initialResult.ResolvedSuccessfully);
+            var ep = Assert.Single(initialResult.EndpointSource.Endpoints);
+            Assert.Equal(new UriEndPoint(new Uri("https://localhost")), ep.EndPoint);
+        }
+
         // Specifying either https or http.
-        // The result should be that we only get the http endpoint back.
+        // We should only get the https endpoint back.
         await using ((watcher = watcherFactory.CreateWatcher("https+http://_foo.basket")).ConfigureAwait(false))
         {
             Assert.NotNull(watcher);
@@ -103,7 +118,7 @@ public class ConfigurationServiceEndpointResolverTests
         }
 
         // Specifying either https or http, but in reverse.
-        // The result should be that we only get the http endpoint back.
+        // We should only get the https endpoint back.
         await using ((watcher = watcherFactory.CreateWatcher("http+https://_foo.basket")).ConfigureAwait(false))
         {
             Assert.NotNull(watcher);
@@ -119,14 +134,152 @@ public class ConfigurationServiceEndpointResolverTests
     }
 
     [Fact]
+    public async Task ResolveServiceEndpoint_Configuration_DefaultEndpointName()
+    {
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["services:basket:default:0"] = "https://localhost:8080",
+            ["services:basket:otlp:0"] = "https://localhost:8888",
+        });
+        var services = new ServiceCollection()
+            .AddSingleton<IConfiguration>(config.Build())
+            .AddServiceDiscoveryCore()
+            .AddConfigurationServiceEndpointProvider(o =>
+            {
+                o.ShouldApplyHostNameMetadata = _ => true;
+            })
+            .Configure<ServiceDiscoveryOptions>(o =>
+            {
+                o.AllowAllSchemes = false;
+                o.AllowedSchemes = ["https"];
+            })
+            .BuildServiceProvider();
+        var watcherFactory = services.GetRequiredService<ServiceEndpointWatcherFactory>();
+        ServiceEndpointWatcher watcher;
+
+        // Explicitly specifying https as the scheme, but the endpoint section in configuration is the default value ("default").
+        // We should get the endpoint back because it is an https endpoint (allowed) with the default endpoint name.
+        await using ((watcher = watcherFactory.CreateWatcher("https://basket")).ConfigureAwait(false))
+        {
+            Assert.NotNull(watcher);
+            var tcs = new TaskCompletionSource<ServiceEndpointResolverResult>();
+            watcher.OnEndpointsUpdated = tcs.SetResult;
+            watcher.Start();
+            var initialResult = await tcs.Task.ConfigureAwait(false);
+            Assert.NotNull(initialResult);
+            Assert.True(initialResult.ResolvedSuccessfully);
+            Assert.Equal(1, initialResult.EndpointSource.Endpoints.Count);
+            Assert.Equal(new UriEndPoint(new Uri("https://localhost:8080")), initialResult.EndpointSource.Endpoints[0].EndPoint);
+
+            Assert.All(initialResult.EndpointSource.Endpoints, ep =>
+            {
+                var hostNameFeature = ep.Features.Get<IHostNameFeature>();
+                Assert.NotNull(hostNameFeature);
+                Assert.Equal("basket", hostNameFeature.HostName);
+            });
+        }
+
+        // Not specifying the scheme or endpoint name.
+        // We should get the endpoint back because it is an https endpoint (allowed) with the default endpoint name.
+        await using ((watcher = watcherFactory.CreateWatcher("basket")).ConfigureAwait(false))
+        {
+            Assert.NotNull(watcher);
+            var tcs = new TaskCompletionSource<ServiceEndpointResolverResult>();
+            watcher.OnEndpointsUpdated = tcs.SetResult;
+            watcher.Start();
+            var initialResult = await tcs.Task.ConfigureAwait(false);
+            Assert.NotNull(initialResult);
+            Assert.True(initialResult.ResolvedSuccessfully);
+            Assert.Equal(1, initialResult.EndpointSource.Endpoints.Count);
+            Assert.Equal(new UriEndPoint(new Uri("https://localhost:8080")), initialResult.EndpointSource.Endpoints[0].EndPoint);
+        }
+
+        // Not specifying the scheme, but specifying the default endpoint name.
+        // We should get the endpoint back because it is an https endpoint (allowed) with the default endpoint name.
+        await using ((watcher = watcherFactory.CreateWatcher("_default.basket")).ConfigureAwait(false))
+        {
+            Assert.NotNull(watcher);
+            var tcs = new TaskCompletionSource<ServiceEndpointResolverResult>();
+            watcher.OnEndpointsUpdated = tcs.SetResult;
+            watcher.Start();
+            var initialResult = await tcs.Task.ConfigureAwait(false);
+            Assert.NotNull(initialResult);
+            Assert.True(initialResult.ResolvedSuccessfully);
+            Assert.Equal(1, initialResult.EndpointSource.Endpoints.Count);
+            Assert.Equal(new UriEndPoint(new Uri("https://localhost:8080")), initialResult.EndpointSource.Endpoints[0].EndPoint);
+        }
+    }
+
+    /// <summary>
+    /// Checks that when there is no named endpoint, configuration resolves first from the "default" section, then sections named by the scheme names.
+    /// </summary>
+    [Theory]
+    [InlineData(true, true, "https://basket", "https://default-host:8080")]
+    [InlineData(false, true, "https://basket","https://https-host:8080")]
+    [InlineData(true, false, "https://basket", "https://default-host:8080")]
+    [InlineData(true, true, "basket", "https://default-host:8080")]
+    [InlineData(false, true, "basket", null)]
+    [InlineData(true, false, "basket", "https://default-host:8080")]
+    [InlineData(true, true, "http+https://basket", "https://default-host:8080")]
+    [InlineData(false, true, "http+https://basket","https://https-host:8080")]
+    [InlineData(true, false, "http+https://basket", "https://default-host:8080")]
+    public async Task ResolveServiceEndpoint_Configuration_DefaultEndpointName_ResolutionOrder(
+        bool includeDefault,
+        bool includeSchemeNamed,
+        string serviceName,
+        string? expectedResult)
+    {
+        var data = new Dictionary<string, string?>();
+        if (includeDefault)
+        {
+            data["services:basket:default:0"] = "https://default-host:8080";
+        }
+
+        if (includeSchemeNamed)
+        {
+            data["services:basket:https:0"] = "https://https-host:8080";
+        }
+
+        var config = new ConfigurationBuilder().AddInMemoryCollection(data);
+        var services = new ServiceCollection()
+            .AddSingleton<IConfiguration>(config.Build())
+            .AddServiceDiscoveryCore()
+            .AddConfigurationServiceEndpointProvider()
+            .BuildServiceProvider();
+        var watcherFactory = services.GetRequiredService<ServiceEndpointWatcherFactory>();
+        ServiceEndpointWatcher watcher;
+
+        // Scheme in query
+        await using ((watcher = watcherFactory.CreateWatcher(serviceName)).ConfigureAwait(false))
+        {
+            Assert.NotNull(watcher);
+            var tcs = new TaskCompletionSource<ServiceEndpointResolverResult>();
+            watcher.OnEndpointsUpdated = tcs.SetResult;
+            watcher.Start();
+            var initialResult = await tcs.Task.ConfigureAwait(false);
+            Assert.NotNull(initialResult);
+            Assert.True(initialResult.ResolvedSuccessfully);
+            if (expectedResult is not null)
+            {
+                Assert.Equal(1, initialResult.EndpointSource.Endpoints.Count);
+                Assert.Equal(new UriEndPoint(new Uri(expectedResult)), initialResult.EndpointSource.Endpoints[0].EndPoint);
+            }
+            else
+            {
+                Assert.Empty(initialResult.EndpointSource.Endpoints);
+            }
+        }
+    }
+
+    [Fact]
     public async Task ResolveServiceEndpoint_Configuration_MultipleResults()
     {
         var configSource = new MemoryConfigurationSource
         {
             InitialData = new Dictionary<string, string?>
             {
-                ["services:basket:http:0"] = "http://localhost:8080",
-                ["services:basket:http:1"] = "http://remotehost:9090",
+                ["services:basket:default:0"] = "http://localhost:8080",
+                ["services:basket:default:1"] = "http://remotehost:9090",
             }
         };
         var config = new ConfigurationBuilder().Add(configSource);
@@ -272,21 +425,6 @@ public class ConfigurationServiceEndpointResolverTests
                 var hostNameFeature = ep.Features.Get<IHostNameFeature>();
                 Assert.Null(hostNameFeature);
             });
-        }
-    }
-
-    public class MyConfigurationProvider : ConfigurationProvider, IConfigurationSource
-    {
-        public IConfigurationProvider Build(IConfigurationBuilder builder) => this;
-        public void SetValues(IEnumerable<KeyValuePair<string, string?>> values)
-        {
-            Data.Clear();
-            foreach (var (key, value) in values)
-            {
-                Data[key] = value;
-            }
-
-            OnReload();
         }
     }
 }

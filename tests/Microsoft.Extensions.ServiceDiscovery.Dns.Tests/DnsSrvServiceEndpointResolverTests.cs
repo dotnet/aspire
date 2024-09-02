@@ -73,7 +73,7 @@ public class DnsSrvServiceEndpointResolverTests
     }
 
     [Fact]
-    public async Task ResolveServiceEndpoint_Dns()
+    public async Task ResolveServiceEndpoint_DnsSrv()
     {
         var dnsClientMock = new FakeDnsClient
         {
@@ -91,7 +91,8 @@ public class DnsSrvServiceEndpointResolverTests
                     {
                         new ARecord(new ResourceRecordInfo("srv-a", ResourceRecordType.A, queryClass, 64, 0), IPAddress.Parse("10.10.10.10")),
                         new ARecord(new ResourceRecordInfo("srv-b", ResourceRecordType.AAAA, queryClass, 64, 0), IPAddress.IPv6Loopback),
-                        new CNameRecord(new ResourceRecordInfo("srv-c", ResourceRecordType.AAAA, queryClass, 64, 0), DnsString.Parse("remotehost"))
+                        new CNameRecord(new ResourceRecordInfo("srv-c", ResourceRecordType.AAAA, queryClass, 64, 0), DnsString.Parse("remotehost")),
+                        new TxtRecord(new ResourceRecordInfo("srv-a", ResourceRecordType.TXT, queryClass, 64, 0), ["some txt values"], ["some txt utf8 values"])
                     }
                 };
 
@@ -134,7 +135,7 @@ public class DnsSrvServiceEndpointResolverTests
     [InlineData(true)]
     [InlineData(false)]
     [Theory]
-    public async Task ResolveServiceEndpoint_Dns_MultipleProviders_PreventMixing(bool dnsFirst)
+    public async Task ResolveServiceEndpoint_DnsSrv_MultipleProviders_PreventMixing(bool dnsFirst)
     {
         var dnsClientMock = new FakeDnsClient
         {
@@ -152,7 +153,8 @@ public class DnsSrvServiceEndpointResolverTests
                     {
                         new ARecord(new ResourceRecordInfo("srv-a", ResourceRecordType.A, queryClass, 64, 0), IPAddress.Parse("10.10.10.10")),
                         new ARecord(new ResourceRecordInfo("srv-b", ResourceRecordType.AAAA, queryClass, 64, 0), IPAddress.IPv6Loopback),
-                        new CNameRecord(new ResourceRecordInfo("srv-c", ResourceRecordType.AAAA, queryClass, 64, 0), DnsString.Parse("remotehost"))
+                        new CNameRecord(new ResourceRecordInfo("srv-c", ResourceRecordType.AAAA, queryClass, 64, 0), DnsString.Parse("remotehost")),
+                        new TxtRecord(new ResourceRecordInfo("srv-a", ResourceRecordType.TXT, queryClass, 64, 0), ["some txt values"], ["some txt utf8 values"])
                     }
                 };
 
@@ -231,21 +233,6 @@ public class DnsSrvServiceEndpointResolverTests
                     Assert.Null(hostNameFeature);
                 });
             }
-        }
-    }
-
-    public class MyConfigurationProvider : ConfigurationProvider, IConfigurationSource
-    {
-        public IConfigurationProvider Build(IConfigurationBuilder builder) => this;
-        public void SetValues(IEnumerable<KeyValuePair<string, string?>> values)
-        {
-            Data.Clear();
-            foreach (var (key, value) in values)
-            {
-                Data[key] = value;
-            }
-
-            OnReload();
         }
     }
 }

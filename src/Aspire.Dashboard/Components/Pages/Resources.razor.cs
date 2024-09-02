@@ -4,11 +4,16 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
+using System.Text;
+using Aspire.Dashboard.Extensions;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -16,6 +21,16 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Resources : ComponentBase, IAsyncDisposable
 {
+    private const string TypeColumn = nameof(TypeColumn);
+    private const string NameColumn = nameof(NameColumn);
+    private const string StateColumn = nameof(StateColumn);
+    private const string StartTimeColumn = nameof(StartTimeColumn);
+    private const string SourceColumn = nameof(SourceColumn);
+    private const string EndpointsColumn = nameof(EndpointsColumn);
+    private const string LogsColumn = nameof(LogsColumn);
+    private const string DetailsColumn = nameof(DetailsColumn);
+    private const string CommandsColumn = nameof(CommandsColumn);
+
     private Subscription? _logsSubscription;
     private Dictionary<OtlpApplication, int>? _applicationUnviewedErrorCounts;
 
@@ -33,27 +48,34 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     public required BrowserTimeProvider TimeProvider { get; init; }
     [Inject]
     public required IJSRuntime JS { get; init; }
+    [Inject]
+    public required ProtectedSessionStorage SessionStorage { get; init; }
+    [Inject]
+    public required DimensionManager DimensionManager { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? VisibleTypes { get; set; }
 
     private ResourceViewModel? SelectedResource { get; set; }
 
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly ConcurrentDictionary<string, bool> _allResourceTypes = [];
-    private readonly ConcurrentDictionary<string, bool> _visibleResourceTypes;
+    private readonly ConcurrentDictionary<string, bool> _visibleResourceTypes = new(StringComparers.ResourceName);
     private string _filter = "";
     private bool _isTypeFilterVisible;
     private Task? _resourceSubscriptionTask;
     private bool _isLoading = true;
     private string? _elementIdBeforeDetailsViewOpened;
+    private GridColumnManager _manager = null!;
 
-    public Resources()
-    {
-        _visibleResourceTypes = new(StringComparers.ResourceType);
-    }
+    private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter)) && !resource.IsHiddenState();
 
-    private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter)) && resource.State != ResourceStates.HiddenState;
-
-    protected Task OnResourceTypeVisibilityChangedAsync(string resourceType, bool isVisible)
+    private Task OnResourceTypeVisibilityChangedAsync(string resourceType, bool isVisible)
     {
         if (isVisible)
         {
@@ -82,7 +104,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 var keysLeft = left.Keys;
                 var keysRight = right.Keys;
 
-                return keysLeft.Count == keysRight.Count && keysLeft.SequenceEqual(keysRight, StringComparers.ResourceType);
+                return keysLeft.Count == keysRight.Count && keysLeft.OrderBy(key => key, StringComparers.ResourceType).SequenceEqual(keysRight.OrderBy(key => key, StringComparers.ResourceType), StringComparers.ResourceType);
             }
 
             return SetEqualsKeys(_visibleResourceTypes, _allResourceTypes)
@@ -112,6 +134,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             {
                 _visibleResourceTypes.Clear();
             }
+
+            StateHasChanged();
         }
     }
 
@@ -125,6 +149,18 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
+        _manager = new GridColumnManager([
+            new GridColumn(Name: TypeColumn, DesktopWidth: "1fr", MobileWidth: "1fr"),
+            new GridColumn(Name: NameColumn, DesktopWidth: "1.5fr", MobileWidth: "1.5fr"),
+            new GridColumn(Name: StateColumn, DesktopWidth: "1.25fr"),
+            new GridColumn(Name: StartTimeColumn, DesktopWidth: "1.5fr"),
+            new GridColumn(Name: SourceColumn, DesktopWidth: "2.5fr"),
+            new GridColumn(Name: EndpointsColumn, DesktopWidth: "2.5fr", MobileWidth: "2fr"),
+            new GridColumn(Name: LogsColumn, DesktopWidth: "1fr"),
+            new GridColumn(Name: DetailsColumn, DesktopWidth: "1fr", MobileWidth: "1fr"),
+            new GridColumn(Name: CommandsColumn, DesktopWidth: "1fr", IsVisible: () => HasResourcesWithCommands)
+        ], DimensionManager);
+
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
         if (DashboardClient.IsEnabled)
@@ -148,6 +184,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
         async Task SubscribeResourcesAsync()
         {
+            var preselectedVisibleResourceTypes = VisibleTypes?.Split(',').ToHashSet();
+
             var (snapshot, subscription) = await DashboardClient.SubscribeResourcesAsync(_watchTaskCancellationTokenSource.Token);
 
             // Apply snapshot.
@@ -156,7 +194,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 var added = _resourceByName.TryAdd(resource.Name, resource);
 
                 _allResourceTypes.TryAdd(resource.ResourceType, true);
-                _visibleResourceTypes.TryAdd(resource.ResourceType, true);
+
+                if (preselectedVisibleResourceTypes is null || preselectedVisibleResourceTypes.Contains(resource.ResourceType))
+                {
+                    _visibleResourceTypes.TryAdd(resource.ResourceType, true);
+                }
 
                 Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
             }
@@ -206,7 +248,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         return false;
     }
 
-    private async Task ShowResourceDetailsAsync(ResourceViewModel resource, string buttonId)
+    private async Task ShowResourceDetailsAsync(ResourceViewModel resource, string? buttonId)
     {
         _elementIdBeforeDetailsViewOpened = buttonId;
 
@@ -224,6 +266,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     {
         SelectedResource = null;
 
+        await InvokeAsync(StateHasChanged);
+
         if (_elementIdBeforeDetailsViewOpened is not null && causedByUserAction)
         {
             await JS.InvokeVoidAsync("focusElement", _elementIdBeforeDetailsViewOpened);
@@ -239,7 +283,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         var count = 0;
         foreach (var (_, item) in _resourceByName)
         {
-            if (item.State == ResourceStates.HiddenState)
+            if (item.IsHiddenState())
             {
                 continue;
             }
@@ -257,7 +301,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         return false;
     }
 
-    private string? GetRowClass(ResourceViewModel resource)
+    private string GetRowClass(ResourceViewModel resource)
         => resource == SelectedResource ? "selected-row resource-row" : "resource-row";
 
     private async Task ExecuteResourceCommandAsync(ResourceViewModel resource, CommandViewModel command)
@@ -292,6 +336,75 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 }
             });
         }
+    }
+
+    private static (string Value, string? ContentAfterValue, string ValueToCopy, string Tooltip)? GetSourceColumnValueAndTooltip(ResourceViewModel resource)
+    {
+        // NOTE projects are also executables, so we have to check for projects first
+        if (resource.IsProject() && resource.TryGetProjectPath(out var projectPath))
+        {
+            return (Value: Path.GetFileName(projectPath), ContentAfterValue: null, ValueToCopy: projectPath, Tooltip: projectPath);
+        }
+
+        if (resource.TryGetExecutablePath(out var executablePath))
+        {
+            resource.TryGetExecutableArguments(out var arguments);
+            var argumentsString = arguments.IsDefaultOrEmpty ? "" : string.Join(" ", arguments);
+            var fullCommandLine = $"{executablePath} {argumentsString}";
+
+            return (Value: Path.GetFileName(executablePath), ContentAfterValue: argumentsString, ValueToCopy: fullCommandLine, Tooltip: fullCommandLine);
+        }
+
+        if (resource.TryGetContainerImage(out var containerImage))
+        {
+            return (Value: containerImage, ContentAfterValue: null, ValueToCopy: containerImage, Tooltip: containerImage);
+        }
+
+        if (resource.Properties.TryGetValue(KnownProperties.Resource.Source, out var value) && value.HasStringValue)
+        {
+            return (Value: value.StringValue, ContentAfterValue: null, ValueToCopy: value.StringValue, Tooltip: value.StringValue);
+        }
+
+        return null;
+    }
+
+    private string GetEndpointsTooltip(ResourceViewModel resource)
+    {
+        var displayedEndpoints = GetDisplayedEndpoints(resource, out var additionalMessage);
+
+        if (additionalMessage is not null)
+        {
+            return additionalMessage;
+        }
+
+        if (displayedEndpoints.Count == 1)
+        {
+            return displayedEndpoints.First().Text;
+        }
+
+        var maxShownEndpoints = 3;
+        var tooltipBuilder = new StringBuilder(string.Join(", ", displayedEndpoints.Take(maxShownEndpoints).Select(endpoint => endpoint.Text)));
+
+        if (displayedEndpoints.Count > maxShownEndpoints)
+        {
+            tooltipBuilder.Append(CultureInfo.CurrentCulture, $" + {displayedEndpoints.Count - maxShownEndpoints}");
+        }
+
+        return tooltipBuilder.ToString();
+    }
+
+    private List<DisplayedEndpoint> GetDisplayedEndpoints(ResourceViewModel resource, out string? additionalMessage)
+    {
+        if (resource.Urls.Length == 0)
+        {
+            // If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None
+            additionalMessage = ColumnsLoc[nameof(Columns.EndpointsColumnDisplayNone)];
+            return [];
+        }
+
+        additionalMessage = null;
+
+        return ResourceEndpointHelpers.GetEndpoints(resource, includeInternalUrls: false);
     }
 
     public async ValueTask DisposeAsync()

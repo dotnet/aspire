@@ -18,10 +18,10 @@ public static class QdrantBuilderExtensions
     private const string EnableStaticContentEnvVarName = "QDRANT__SERVICE__ENABLE_STATIC_CONTENT";
 
     /// <summary>
-    /// Adds a Qdrant resource to the application. A container is used for local development.  
+    /// Adds a Qdrant resource to the application. A container is used for local development.
     /// </summary>
     /// <remarks>
-    /// This version the package defaults to the v1.8.3 tag of the qdrant/qdrant container image.
+    /// This version the package defaults to the v1.8.4 tag of the qdrant/qdrant container image.
     /// The .NET client library uses the gRPC port by default to communicate and this resource exposes that endpoint.
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
@@ -36,6 +36,9 @@ public static class QdrantBuilderExtensions
         int? grpcPort = null,
         int? httpPort = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         var apiKeyParameter = apiKey?.Resource ??
             ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-Key", special: false);
         var qdrant = new QdrantServerResource(name, apiKeyParameter);
@@ -43,6 +46,10 @@ public static class QdrantBuilderExtensions
             .WithImage(QdrantContainerImageTags.Image, QdrantContainerImageTags.Tag)
             .WithImageRegistry(QdrantContainerImageTags.Registry)
             .WithHttpEndpoint(port: grpcPort, targetPort: QdrantPortGrpc, name: QdrantServerResource.PrimaryEndpointName)
+            .WithEndpoint(QdrantServerResource.PrimaryEndpointName, endpoint =>
+            {
+                endpoint.Transport = "http2";
+            })
             .WithHttpEndpoint(port: httpPort, targetPort: QdrantPortHttp, name: QdrantServerResource.HttpEndpointName)
             .WithEnvironment(context =>
             {
@@ -65,7 +72,12 @@ public static class QdrantBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<QdrantServerResource> WithDataVolume(this IResourceBuilder<QdrantServerResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/qdrant/storage", isReadOnly);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/qdrant/storage",
+            isReadOnly);
+    }
 
     /// <summary>
     /// Adds a bind mount for the data folder to a Qdrant container resource.
@@ -75,7 +87,12 @@ public static class QdrantBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<QdrantServerResource> WithDataBindMount(this IResourceBuilder<QdrantServerResource> builder, string source, bool isReadOnly = false)
-        => builder.WithBindMount(source, "/qdrant/storage", isReadOnly);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+
+        return builder.WithBindMount(source, "/qdrant/storage", isReadOnly);
+    }
 
     /// <summary>
     /// Add a reference to a Qdrant server to the resource.
@@ -86,6 +103,9 @@ public static class QdrantBuilderExtensions
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<QdrantServerResource> qdrantResource)
          where TDestination : IResourceWithEnvironment
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(qdrantResource);
+
         builder.WithEnvironment(context =>
         {
             // primary endpoint (gRPC)

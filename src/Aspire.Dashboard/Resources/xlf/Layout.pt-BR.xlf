@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
-        <source>Launch settings</source>
-        <target state="translated">Configurações de inicialização</target>
+        <source>Settings</source>
+        <target state="needs-review-translation">Configurações de inicialização</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutSettingsDialogClose">
@@ -44,17 +44,17 @@
       </trans-unit>
       <trans-unit id="MessageTelemetryBody">
         <source>Untrusted apps can send telemetry to the dashboard.</source>
-        <target state="new">Untrusted apps can send telemetry to the dashboard.</target>
+        <target state="translated">Aplicativos não confiáveis podem enviar telemetria para o painel.</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageTelemetryLink">
         <source>More information</source>
-        <target state="new">More information</target>
+        <target state="translated">Mais informações</target>
         <note />
       </trans-unit>
       <trans-unit id="MessageTelemetryTitle">
         <source>Telemetry endpoint is unsecured</source>
-        <target state="new">Telemetry endpoint is unsecured</target>
+        <target state="translated">O ponto de extremidade de telemetria não está protegido</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuConsoleLogsTab">
@@ -85,6 +85,11 @@
       <trans-unit id="NavMenuTracesTab">
         <source>Traces</source>
         <target state="translated">Rastreamentos</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PageLayoutViewFilters">
+        <source>View filters</source>
+        <target state="new">View filters</target>
         <note />
       </trans-unit>
     </body>

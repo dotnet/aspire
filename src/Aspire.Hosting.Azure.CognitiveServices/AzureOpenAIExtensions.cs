@@ -50,8 +50,12 @@ public static class AzureOpenAIExtensions
             var roleAssignment = cogServicesAccount.AssignRole(RoleDefinition.CognitiveServicesOpenAIContributor);
             roleAssignment.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
             roleAssignment.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);
+            // Disable local auth for AOAI since managed identity is used
+            cogServicesAccount.AssignProperty(x => x.Properties.DisableLocalAuth, "true");
 
             var resource = (AzureOpenAIResource)construct.Resource;
+
+            CognitiveServicesAccountDeployment? dependency = null;
 
             var cdkDeployments = new List<CognitiveServicesAccountDeployment>();
             foreach (var deployment in resource.Deployments)
@@ -65,6 +69,17 @@ public static class AzureOpenAIExtensions
                 cdkDeployment.AssignProperty(x => x.Sku.Name, $"'{deployment.SkuName}'");
                 cdkDeployment.AssignProperty(x => x.Sku.Capacity, $"{deployment.SkuCapacity}");
                 cdkDeployments.Add(cdkDeployment);
+
+                // Subsequent deployments need an explicit dependency on the previous one
+                // to ensure they are not created in parallel. This is equivalent to @batchSize(1)
+                // which can't be defined with the CDK
+
+                if (dependency != null)
+                {
+                    cdkDeployment.AddDependency(dependency);
+                }
+
+                dependency = cdkDeployment;
             }
 
             var resourceBuilder = builder.CreateResourceBuilder(resource);

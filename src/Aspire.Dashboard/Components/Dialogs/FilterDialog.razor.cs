@@ -12,16 +12,10 @@ namespace Aspire.Dashboard.Components.Dialogs;
 
 public partial class FilterDialog
 {
-    private static readonly List<SelectViewModel<FilterCondition>> s_filterConditions = new()
-    {
-        CreateFilterSelectViewModel(FilterCondition.Equals),
-        CreateFilterSelectViewModel(FilterCondition.Contains),
-        CreateFilterSelectViewModel(FilterCondition.NotEqual),
-        CreateFilterSelectViewModel(FilterCondition.NotContains),
-    };
+    private List<SelectViewModel<FilterCondition>> _filterConditions = null!;
 
-    private static SelectViewModel<FilterCondition> CreateFilterSelectViewModel(FilterCondition condition) =>
-        new SelectViewModel<FilterCondition> { Id = condition, Name = LogFilter.ConditionToString(condition) };
+    private SelectViewModel<FilterCondition> CreateFilterSelectViewModel(FilterCondition condition) =>
+        new SelectViewModel<FilterCondition> { Id = condition, Name = LogFilter.ConditionToString(condition, LogsLoc) };
 
     [CascadingParameter]
     public FluentDialog? Dialog { get; set; }
@@ -30,31 +24,53 @@ public partial class FilterDialog
     public FilterDialogViewModel Content { get; set; } = default!;
 
     [Inject]
-    public required TelemetryRepository TelemetryRepository { get; set; }
+    public required TelemetryRepository TelemetryRepository { get; init; }
 
     private LogDialogFormModel _formModel = default!;
+    private List<SelectViewModel<string>> _parameters = default!;
+
     public EditContext EditContext { get; private set; } = default!;
 
     protected override void OnInitialized()
     {
+        _filterConditions =
+        [
+            CreateFilterSelectViewModel(FilterCondition.Equals),
+            CreateFilterSelectViewModel(FilterCondition.Contains),
+            CreateFilterSelectViewModel(FilterCondition.NotEqual),
+            CreateFilterSelectViewModel(FilterCondition.NotContains)
+        ];
+
         _formModel = new LogDialogFormModel();
         EditContext = new EditContext(_formModel);
+    }
+
+    protected override void OnParametersSet()
+    {
+        var names = new List<string> { LogFilter.KnownMessageField, LogFilter.KnownCategoryField, LogFilter.KnownApplicationField, LogFilter.KnownTraceIdField, LogFilter.KnownSpanIdField, LogFilter.KnownOriginalFormatField };
+        var knownFields = names.Select(p => new SelectViewModel<string> { Id = p, Name = LogFilter.ResolveFieldName(p) }).ToList();
+        var customFields = Content.LogPropertyKeys.Select(p => new SelectViewModel<string> { Id = p, Name = LogFilter.ResolveFieldName(p) }).ToList();
+
+        _parameters =
+        [
+            .. knownFields,
+            new SelectViewModel<string> { Id = null, Name = "-" },
+            .. customFields
+        ];
 
         if (Content.Filter is { } logFilter)
         {
-            _formModel.Parameter = logFilter.Field;
-            _formModel.Condition = s_filterConditions.Single(c => c.Id == logFilter.Condition);
+            _formModel.Parameter = _parameters.SingleOrDefault(c => c.Id == logFilter.Field);
+            _formModel.Condition = _filterConditions.Single(c => c.Id == logFilter.Condition);
             _formModel.Value = logFilter.Value;
         }
         else
         {
-            _formModel.Parameter = "Message";
-            _formModel.Condition = s_filterConditions.Single(c => c.Id == FilterCondition.Contains);
+            _formModel.Parameter = _parameters.SingleOrDefault(c => c.Id == LogFilter.KnownMessageField);
+            _formModel.Condition = _filterConditions.Single(c => c.Id == FilterCondition.Contains);
             _formModel.Value = "";
         }
     }
-
-    public List<string> Parameters => LogFilter.GetAllPropertyNames(Content.LogPropertyKeys);
 
     private void Cancel()
     {
@@ -70,7 +86,7 @@ public partial class FilterDialog
     {
         if (Content.Filter is { } logFilter)
         {
-            logFilter.Field = _formModel.Parameter!;
+            logFilter.Field = _formModel.Parameter!.Id!;
             logFilter.Condition = _formModel.Condition!.Id;
             logFilter.Value = _formModel.Value!;
 
@@ -80,7 +96,7 @@ public partial class FilterDialog
         {
             var filter = new LogFilter
             {
-                Field = _formModel.Parameter!,
+                Field = _formModel.Parameter!.Id!,
                 Condition = _formModel.Condition!.Id,
                 Value = _formModel.Value!
             };
