@@ -46,12 +46,8 @@ public static class PostgresBuilderExtensions
             builder.Configuration[$"{postgresServer.Name}_builtin_connectionstring"] = connectionString;
         });
 
-        builder.Services.AddHealthChecks().AddNpgSql(sp =>
-            {
-                return builder.Configuration[$"{name}_builtin_connectionstring"]!;
-            },
-            name: $"{name}_check"
-        );
+        builder.Services.AddHealthChecks()
+                        .AddNpgSql(sp => builder.Configuration[$"{name}_builtin_connectionstring"]!, name: $"{name}_check");
 
         return builder.AddResource(postgresServer)
                       .WithEndpoint(port: port, targetPort: 5432, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.

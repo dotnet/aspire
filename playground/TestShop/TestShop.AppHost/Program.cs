@@ -22,7 +22,6 @@ var catalogDbApp = builder.AddProject<Projects.CatalogDb>("catalogdbapp")
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
                             .WithReference(catalogDb)
-                            .WaitFor(postgres)
                             .WithReplicas(2);
 
 var messaging = builder.AddRabbitMQ("messaging")
@@ -32,7 +31,6 @@ var messaging = builder.AddRabbitMQ("messaging")
 
 var basketService = builder.AddProject("basketservice", @"..\BasketService\BasketService.csproj")
                            .WithReference(basketCache)
-                           .WaitFor(basketCache)
                            .WithReference(messaging);
 
 builder.AddProject<Projects.MyFrontend>("frontend")

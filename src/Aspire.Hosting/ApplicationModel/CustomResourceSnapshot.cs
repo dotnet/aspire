@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -34,6 +35,11 @@ public sealed record CustomResourceSnapshot
     /// The exit code of the resource.
     /// </summary>
     public int? ExitCode { get; init; }
+
+    /// <summary>
+    /// The health status of the resource.
+    /// </summary>
+    public HealthStatus HealthStatus { get; init; } = HealthStatus.Unhealthy;
 
     /// <summary>
     /// The environment variables that should show up in the dashboard for this resource.

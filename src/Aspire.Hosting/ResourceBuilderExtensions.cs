@@ -3,9 +3,9 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Health;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
@@ -579,7 +579,6 @@ public static class ResourceBuilderExtensions
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (e, ct) =>
         {
             var rls = e.Services.GetRequiredService<ResourceLoggerService>();
-            var rhs = e.Services.GetRequiredService<IResourceHealthService>();
             var resourceLogger = rls.GetLogger(builder.Resource);
             resourceLogger.LogInformation("Waiting for resource '{Name}' to enter the '{State}' state.", dependency.Resource.Name, KnownResourceStates.Running);
 
@@ -611,7 +610,7 @@ public static class ResourceBuilderExtensions
             }
 
             // If we get to here the resource is running so we just need to check on whether it is healthy or not.
-            await rhs.WaitUntilResourceHealthyAsync(dependency.Resource, ct).ConfigureAwait(false);
+            await rns.WaitForResourceAsync(dependency.Resource.Name, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: ct).ConfigureAwait(false);
         });
 
         return builder;
