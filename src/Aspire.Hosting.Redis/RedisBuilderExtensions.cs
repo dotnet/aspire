@@ -31,18 +31,14 @@ public static class RedisBuilderExtensions
 
         var redis = new RedisResource(name);
 
+        string? connectionString = null;
+
         builder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>(async (@event, ct) =>
         {
-            var connectionString = await redis.GetConnectionStringAsync(ct).ConfigureAwait(false);
-            builder.Configuration["hackedinconnectionstring"] = connectionString;
+            connectionString = await redis.GetConnectionStringAsync(ct).ConfigureAwait(false);
         });
 
-        var hcb = builder.Services.AddHealthChecks().AddRedis(sp =>
-            {
-                return builder.Configuration["hackedinconnectionstring"]!;
-            },
-            name: $"{redis.Name}_check"
-        );
+        var hcb = builder.Services.AddHealthChecks().AddRedis(sp => connectionString!, name: $"{redis.Name}_check");
 
         return builder.AddResource(redis)
                       .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
