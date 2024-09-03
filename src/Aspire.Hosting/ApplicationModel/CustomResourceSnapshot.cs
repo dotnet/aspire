@@ -39,7 +39,7 @@ public sealed record CustomResourceSnapshot
     /// <summary>
     /// The health status of the resource.
     /// </summary>
-    public HealthStatus HealthStatus { get; init; } = HealthStatus.Unhealthy;
+    public HealthStatus? HealthStatus { get; init; }
 
     /// <summary>
     /// The environment variables that should show up in the dashboard for this resource.
