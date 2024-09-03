@@ -349,7 +349,7 @@ public partial class TraceDetail : ComponentBase
         _elementIdBeforeDetailsViewOpened = null;
     }
 
-    private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
+    private string GetResourceName(OtlpApplicationView app) => OtlpApplication.GetResourceName(app, _applications);
 
     public void Dispose()
     {

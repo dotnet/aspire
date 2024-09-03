@@ -228,6 +228,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
     }
 
     private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
+    private string GetResourceName(OtlpApplicationView app) => OtlpApplication.GetResourceName(app, _applications);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

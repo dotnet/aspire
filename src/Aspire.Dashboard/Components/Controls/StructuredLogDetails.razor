@@ -7,7 +7,7 @@
 <div class="structured-log-details-layout">
     <FluentToolbar Orientation="Orientation.Horizontal">
         <div>
-            @((MarkupString)string.Format(ControlsStrings.StructuredLogsDetailsResource, ViewModel.LogEntry.Application.ApplicationName))
+            @((MarkupString)string.Format(ControlsStrings.StructuredLogsDetailsResource, ViewModel.LogEntry.ApplicationView.Application.ApplicationName))
         </div>
         <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <div title="@FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, ViewModel.LogEntry.TimeStamp, MillisecondsDisplay.Full)">
