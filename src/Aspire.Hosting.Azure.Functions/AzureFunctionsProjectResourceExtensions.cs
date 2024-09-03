@@ -1,5 +1,4 @@
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting;
 
 namespace Aspire.Hosting.Azure;
 
@@ -17,8 +16,7 @@ public static class AzureFunctionsProjectResourceExtensions
     /// <returns></returns>
     public static IResourceBuilder<AzureFunctionsProjectResource> AddAzureFunctionsProject<TProject>(this IDistributedApplicationBuilder builder, string name) where TProject : IProjectMetadata, new()
     {
-        var projectDirectory = Path.GetDirectoryName(new TProject().ProjectPath)!;
-        var resource = new AzureFunctionsProjectResource(name, "func", projectDirectory);
+        var resource = new AzureFunctionsProjectResource(name);
 
         // Add the default storage resource if it doesn't already exist.
         var storage = builder.Resources.OfType<AzureStorageResource>().FirstOrDefault(r => r.Name == "azure-functions-default-storage");
@@ -90,19 +88,7 @@ public static class AzureFunctionsProjectResourceExtensions
         resource.HostStorage = storage;
 
         return builder.AddResource(resource)
-            .WithArgs(context =>
-            {
-                var http = resource.GetEndpoint("http");
-
-                context.Args.Add("host");
-                context.Args.Add("start");
-                context.Args.Add("--verbose");
-                context.Args.Add("--csharp");
-                context.Args.Add("--port");
-                context.Args.Add(http.Property(EndpointProperty.TargetPort));
-                context.Args.Add("--language-worker");
-                context.Args.Add("dotnet-isolated");
-            })
+            .WithAnnotation(new TProject())
             .WithEnvironment(context =>
             {
                 context.EnvironmentVariables["OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES"] = "true";
@@ -115,7 +101,7 @@ public static class AzureFunctionsProjectResourceExtensions
                 ((IResourceWithAzureFunctionsConfig)resource.HostStorage).ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, "Storage");
             })
             .WithOtlpExporter()
-            .WithHttpEndpoint()
+            .WithHttpEndpoint(env: "AZFUNCHOSTPORT")
             .WithManifestPublishingCallback(async (context) =>
             {
                 context.Writer.WriteString("type", "function.v0");
@@ -137,7 +123,7 @@ public static class AzureFunctionsProjectResourceExtensions
     }
 
     /// <summary>
-    /// 
+    ///
     /// </summary>
     /// <param name="builder"></param>
     /// <param name="storage"></param>
