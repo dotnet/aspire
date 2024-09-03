@@ -34,6 +34,9 @@
     <RunWithCodeCoverage Condition="'$(RunWithCodeCoverage)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</RunWithCodeCoverage>
     <!-- FIXME: move here from helix targets? -->
     <TestSessionTimeoutForHelix Condition="'$(TestSessionTimeoutForHelix)' == ''">600000</TestSessionTimeoutForHelix>
+
+    <RunScriptOutputRelativePath Condition="'$(RunScriptOutputRelativePath)' == '' and '$(OS)' != 'Windows_NT'">RunTests.sh</RunScriptOutputRelativePath>
+    <RunScriptOutputRelativePath Condition="'$(RunScriptOutputRelativePath)' == '' and '$(OS)' == 'Windows_NT'">RunTests.cmd</RunScriptOutputRelativePath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -150,9 +153,6 @@
     <PropertyGroup>
       <_TestBlameArgumentsProperty>@(TestBlameArguments, ' ')</_TestBlameArgumentsProperty>
       <_TestCoverageCommandProperty>@(_TestCoverageCommand, ' ')</_TestCoverageCommandProperty>
-
-      <_RunTestsScriptOutputFileName Condition="'$(OS)' != 'Windows_NT'">RunTests.sh</_RunTestsScriptOutputFileName>
-      <_RunTestsScriptOutputFileName Condition="'$(OS)' == 'Windows_NT'">RunTests.cmd</_RunTestsScriptOutputFileName>
     </PropertyGroup>
 
     <ItemGroup>
@@ -165,7 +165,7 @@
     <!-- FIXME: null checks -->
     <GenerateRunScript
         TemplateFile="$(RunTestsScriptTemplatePath)"
-        Output="$(OutDir)$(_RunTestsScriptOutputFileName)"
+        Output="$(OutDir)$(RunScriptOutputRelativePath)"
         PreCommands="@(RunScriptPreCommand)"
         RunCommands="@(RunScriptRunCommand)"
     />

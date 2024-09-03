@@ -27,8 +27,7 @@
     <PropertyGroup>
       <_WorkItemName>$([System.IO.Path]::GetFileNameWithoutExtension($(_E2ETestsArchivePath)))</_WorkItemName>
 
-      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
-      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
+      <_TestRunCommand>@(_TestRunCommandArguments, ' ')</_TestRunCommand>
     </PropertyGroup>
 
     <ItemGroup>

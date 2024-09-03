@@ -17,6 +17,9 @@
     <PlaygroundSourceDir>$(MSBuildThisFileDirectory)..\..\playground\</PlaygroundSourceDir>
     <TestsSharedDir>$(MSBuildThisFileDirectory)..\Shared\</TestsSharedDir>
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
+
+    <RunScriptOutputRelativePath Condition="'$(OS)' != 'Windows_NT'">$(DeployOutsideOfRepoSupportFilesRelativeDir)RunTests.sh</RunScriptOutputRelativePath>
+    <RunScriptOutputRelativePath Condition="'$(OS)' == 'Windows_NT'">$(DeployOutsideOfRepoSupportFilesRelativeDir)RunTests.cmd</RunScriptOutputRelativePath>
   </PropertyGroup>
 
   <ItemGroup>
