@@ -27,6 +27,43 @@ public static class ParameterResourceBuilderExtensions
         return builder.AddParameter(name, parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault), secret: secret);
     }
 
+    /// <summary>
+    /// Adds a parameter resource to the application, providing a default value to be used as a fallback.
+    /// </summary>
+    /// <param name="builder">Distributed application builder</param>
+    /// <param name="name">Name of parameter resource</param>
+    /// <param name="defaultValue">A string value that is used if the name is not found in the configuration</param>
+    /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
+    /// <returns>Resource builder for the parameter.</returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
+                                                     Justification = "third parameters are mutually exclusive.")]
+    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, string defaultValue, bool secret = false)
+    {
+        // An alternate implementation is to use some ConstantParameterDefault implementation that always returns the default value.
+        // However, doing this causes a "default": {} to be written to the manifest, which is not valid.
+        // And note that we ignore parameterDefault in the callback, because it can never be non-null, and we want our own default.
+        return builder.AddParameter(name, parameterDefault => builder.Configuration[$"Parameters:{name}"] ?? defaultValue, secret: secret);
+    }
+
+    /// <summary>
+    /// Adds a parameter resource to the application, providing a ParameterDefault to be used as a fallback.
+    /// </summary>
+    /// <param name="builder">Distributed application builder</param>
+    /// <param name="name">Name of parameter resource</param>
+    /// <param name="defaultValue">A ParameterDefault that is used if the name is not found in the configuration</param>
+    /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
+    /// <returns>Resource builder for the parameter.</returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
+                                                     Justification = "third parameters are mutually exclusive.")]
+    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, ParameterDefault defaultValue, bool secret = false)
+    {
+        return builder.AddParameter(
+            name,
+            parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault),
+            secret: secret,
+            parameterDefault: defaultValue);
+    }
+
     private static string GetParameterValue(IConfiguration configuration, string name, ParameterDefault? parameterDefault)
     {
         var configurationKey = $"Parameters:{name}";
@@ -39,10 +76,12 @@ public static class ParameterResourceBuilderExtensions
                                                                      string name,
                                                                      Func<ParameterDefault?, string> callback,
                                                                      bool secret = false,
-                                                                     bool connectionString = false)
+                                                                     bool connectionString = false,
+                                                                     ParameterDefault? parameterDefault = null)
     {
         var resource = new ParameterResource(name, callback, secret);
         resource.IsConnectionString = connectionString;
+        resource.Default = parameterDefault;
 
         var state = new CustomResourceSnapshot()
         {
