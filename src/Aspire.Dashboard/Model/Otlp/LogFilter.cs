@@ -160,7 +160,7 @@ public class LogFilter : IEquatable<LogFilter>
             return false;
         }
 
-        if (!string.Equals(Value.Trim(), other.Value.Trim(), StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(Value, other.Value, StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
