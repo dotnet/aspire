@@ -25,13 +25,6 @@ internal class ResourceNotificationHealthCheckPublisher(DistributedApplicationMo
                     HealthStatus = status
                 }).ConfigureAwait(false);
             }
-            else
-            {
-                await resourceNotificationService.PublishUpdateAsync(resource, s => s with
-                {
-                    HealthStatus = HealthStatus.Healthy
-                }).ConfigureAwait(false);
-            }
         }
     }
 }

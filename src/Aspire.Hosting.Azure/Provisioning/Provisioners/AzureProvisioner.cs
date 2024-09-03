@@ -94,6 +94,14 @@ internal sealed class AzureProvisioner(
             {
                 await notificationService.PublishUpdateAsync(child, stateFactory).ConfigureAwait(false);
             }
+
+            // Some IAzureResource instances are a surrogate for for another resource in the app model
+            // to ensure that resource events are published for the resource that the user expects
+            // we lookup the resource in the app model here and publish the update to it as well.
+            if (appModel.Resources.Where(r => r.Name == resource.Name).SingleOrDefault() is { } nonAzureResource)
+            {
+                await notificationService.PublishUpdateAsync(nonAzureResource, stateFactory).ConfigureAwait(false);
+            }
         }
 
         // After the resource is provisioned, set its state

@@ -609,8 +609,13 @@ public static class ResourceBuilderExtensions
                     );
             }
 
-            // If we get to here the resource is running so we just need to check on whether it is healthy or not.
-            await rns.WaitForResourceAsync(dependency.Resource.Name, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: ct).ConfigureAwait(false);
+            // If our dependency resource has health check annotations we want to wait until they turn healthy
+            // otherwise we don't care about their health status.
+            if (dependency.Resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var _))
+            {
+                resourceLogger.LogInformation("Waiting for resource '{Name}' to become healthy.", dependency.Resource.Name);
+                await rns.WaitForResourceAsync(dependency.Resource.Name, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: ct).ConfigureAwait(false);
+            }
         });
 
         return builder;

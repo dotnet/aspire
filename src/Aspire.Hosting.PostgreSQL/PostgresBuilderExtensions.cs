@@ -47,7 +47,16 @@ public static class PostgresBuilderExtensions
             connectionString = await postgresServer.GetConnectionStringAsync(ct).ConfigureAwait(false);
         });
 
-        builder.Services.AddHealthChecks().AddNpgSql(sp => connectionString!, name: $"{name}_check");
+        builder.Services.AddHealthChecks().AddNpgSql(sp => connectionString!, name: $"{name}_check", configure: (connection) =>
+        {
+            // HACK: The Npgsql client defaults to using the username in the connection string if the database is not specified. Here
+            //       we override this default behavior because we are working with a non-database scoped connection string. The Aspirified
+            //       package doesn't have to deal with this because it uses a datasource from DI which doesn't have this issue:
+            //
+            //       https://github.com/npgsql/npgsql/blob/c3b31c393de66a4b03fba0d45708d46a2acb06d2/src/Npgsql/NpgsqlConnection.cs#L445
+            //
+            connection.ConnectionString = connection.ConnectionString + ";Database=postgres;";
+        });
 
         return builder.AddResource(postgresServer)
                       .WithEndpoint(port: port, targetPort: 5432, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.
