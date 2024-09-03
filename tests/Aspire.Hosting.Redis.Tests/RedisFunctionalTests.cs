@@ -94,22 +94,22 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
             Assert.NotNull(databases);
             Assert.Collection(databases,
-                    db =>
-                    {
-                        Assert.Equal(redis1.Resource.Name, db.Name);
-                        Assert.Equal(redis1.Resource.PrimaryEndpoint.ContainerHost, db.Host);
-                        Assert.Equal(redis1.Resource.PrimaryEndpoint.Port, db.Port);
-                        Assert.Equal("STANDALONE", db.ConnectionType);
-                        Assert.Equal(0, db.Db);
-                    },
-                    db =>
-                    {
-                        Assert.Equal(redis2.Resource.Name, db.Name);
-                        Assert.Equal(redis2.Resource.PrimaryEndpoint.ContainerHost, db.Host);
-                        Assert.Equal(redis2.Resource.PrimaryEndpoint.Port, db.Port);
-                        Assert.Equal("STANDALONE", db.ConnectionType);
-                        Assert.Equal(0, db.Db);
-                    });
+            db =>
+            {
+                Assert.Equal(redis1.Resource.Name, db.Name);
+                Assert.Equal(redis1.Resource.PrimaryEndpoint.ContainerHost, db.Host);
+                Assert.Equal(redis1.Resource.PrimaryEndpoint.Port, db.Port);
+                Assert.Equal("STANDALONE", db.ConnectionType);
+                Assert.Equal(0, db.Db);
+            },
+            db =>
+            {
+                Assert.Equal(redis2.Resource.Name, db.Name);
+                Assert.Equal(redis2.Resource.PrimaryEndpoint.ContainerHost, db.Host);
+                Assert.Equal(redis2.Resource.PrimaryEndpoint.Port, db.Port);
+                Assert.Equal("STANDALONE", db.ConnectionType);
+                Assert.Equal(0, db.Db);
+            });
 
             foreach (var db in databases)
             {
