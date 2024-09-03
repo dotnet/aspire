@@ -15,7 +15,7 @@ public sealed class OpenAISettings
 
     /// <summary>
     /// Gets or sets a <see cref="Uri"/> referencing the OpenAI endpoint.
-    /// This is likely to be similar to "https://{account_name}.openai.com".
+    /// Leave empty to connect to OpenAI, or set it to use a service using an API compatible with OpenAI.
     /// </summary>
     public Uri? Endpoint { get; set; }
 
@@ -34,26 +34,19 @@ public sealed class OpenAISettings
 
     internal void ParseConnectionString(string? connectionString)
     {
-        if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+        var connectionBuilder = new DbConnectionStringBuilder
         {
-            Endpoint = uri;
+            ConnectionString = connectionString
+        };
+
+        if (connectionBuilder.ContainsKey(ConnectionStringEndpoint) && Uri.TryCreate(connectionBuilder[ConnectionStringEndpoint].ToString(), UriKind.Absolute, out var serviceUri))
+        {
+            Endpoint = serviceUri;
         }
-        else
+
+        if (connectionBuilder.ContainsKey(ConnectionStringKey))
         {
-            var connectionBuilder = new DbConnectionStringBuilder
-            {
-                ConnectionString = connectionString
-            };
-
-            if (connectionBuilder.ContainsKey(ConnectionStringEndpoint) && Uri.TryCreate(connectionBuilder[ConnectionStringEndpoint].ToString(), UriKind.Absolute, out var serviceUri))
-            {
-                Endpoint = serviceUri;
-            }
-
-            if (connectionBuilder.ContainsKey(ConnectionStringKey))
-            {
-                Key = connectionBuilder[ConnectionStringKey].ToString();
-            }
+            Key = connectionBuilder[ConnectionStringKey].ToString();
         }
     }
 }

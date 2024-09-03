@@ -5,7 +5,6 @@ using System.ClientModel;
 using Aspire.OpenAI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using OpenAI;
 
 namespace Microsoft.Extensions.Hosting;
@@ -39,8 +38,6 @@ public static class AspireOpenAIExtensions
 
     /// <summary>
     /// Registers <see cref="OpenAIClient"/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
-    ///
-    /// Additionally, registers the <see cref="OpenAIClient"/> as an <see cref="OpenAIClient"/> service.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
@@ -57,9 +54,6 @@ public static class AspireOpenAIExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         AddOpenAIClient(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureOptions, connectionName: name, serviceKey: name);
-
-        // Add the OpenAIClient service as OpenAIClient. That way the service can be resolved by both service Types.
-        builder.Services.TryAddKeyedSingleton(typeof(OpenAIClient), serviceKey: name, static (provider, key) => provider.GetRequiredKeyedService<OpenAIClient>(key));
     }
 
     private static void AddOpenAIClient(
@@ -98,16 +92,15 @@ public static class AspireOpenAIExtensions
 
         OpenAIClient ConfigureOpenAI(IServiceProvider serviceProvider)
         {
-            if (settings.Endpoint is not null && settings.Key is not null)
+            if (settings.Key is not null)
             {
                 return new OpenAIClient(new ApiKeyCredential(settings.Key), options);
             }
             else
             {
                 throw new InvalidOperationException(
-                        $"An OpenAIClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or either " +
-                        $"{nameof(settings.Endpoint)} and {nameof(settings.Key)} must both be provided " +
-                        $"in the '{configurationSectionName}' configuration section.");
+                        $"An OpenAIClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or " +
+                        $"{nameof(settings.Key)} must be provided in the '{configurationSectionName}' configuration section.");
             }
         }
     }
