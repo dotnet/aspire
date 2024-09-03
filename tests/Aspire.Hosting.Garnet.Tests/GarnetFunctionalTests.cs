@@ -108,7 +108,7 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration[$"ConnectionStrings:{garnet1.Resource.Name}"] = $"{await garnet1.Resource.ConnectionStringExpression.GetValueAsync(default)},allowAdmin = true";
+                    hb.Configuration[$"ConnectionStrings:{garnet1.Resource.Name}"] = $"{await garnet1.Resource.ConnectionStringExpression.GetValueAsync(default)}";
 
                     hb.AddRedisClient("garnet");
 
@@ -125,14 +125,11 @@ public class GarnetFunctionalTests(ITestOutputHelper testOutputHelper)
                             await db.StringSetAsync("key", "value");
                             var value = await db.StringGetAsync("key");
 
+                            // Force Garnet to save the keys
+                            // c.f. https://microsoft.github.io/garnet/docs/commands/checkpoint#save
+                            await db.ExecuteAsync("SAVE");
+
                             Assert.Equal("value", value);
-                            // Force Redis to save the keys (snapshotting)
-                            // c.f. https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/
-
-#pragma warning disable CS0618 // Type or member is obsolete
-                            await redisClient.GetServers().First().SaveAsync(SaveType.ForegroundSave);
-#pragma warning restore CS0618 // Type or member is obsolete
-
                         }, cts.Token);
                     }
                 }
