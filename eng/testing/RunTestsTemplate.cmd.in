@@ -1,0 +1,30 @@
+@echo off
+setlocal enabledelayedexpansion
+
+set EXECUTION_DIR=%~dp0
+
+if [%TEST_TIMEOUT%] == [] (
+  :: default timeout - 5 mins
+  TEST_TIMEOUT=600000
+)
+
+if [%HELIX_WORKITEM_UPLOAD_ROOT%] == [] (
+    LOGS_PATH="%EXECUTION_DIR%\logs"
+    COVERAGE_TOOL_CMD=dotnet-coverage.exe
+else
+    LOGS_PATH="%HELIX_WORKITEM_UPLOAD_ROOT%\logs"
+    COVERAGE_TOOL_CMD=%HELIX_CORRELATION_PAYLOAD%\dotnet-coverage\dotnet-coverage.exe
+fi
+
+:: PreCommands
+@PreCommands@
+
+:: RunCommands
+pushd %EXECUTION_DIR%
+@echo on
+@RunCommands@
+set EXIT_CODE=%ERRORLEVEL%
+@echo off
+popd
+
+exit /b %EXIT_CODE%

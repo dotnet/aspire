@@ -18,16 +18,6 @@
   </ItemGroup>
 
   <Target Name="BuildHelixWorkItemsForWorkloadTests">
-    <ItemGroup>
-      <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="${TEST_ARGS}" />
-      <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="%TEST_ARGS%" />
-    </ItemGroup>
-
-    <PropertyGroup>
-      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
-      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
-    </PropertyGroup>
-
     <ReadLinesFromFile File="$(TestArchiveTestsDirForWorkloadTests)$(TestProjectName).tests.list">
       <Output TaskParameter="Lines" ItemName="_WorkloadTestsClassNames" />
     </ReadLinesFromFile>
@@ -46,10 +36,12 @@
         <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=-%(TestNameSuffix)&quot;</PreCommands>
         <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;TEST_NAME_SUFFIX=%(TestNameSuffix)&quot;</PreCommands>
 
-        <PreCommands Condition="'$(OS)' == 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) set &quot;TEST_ARGS=--filter category^^!=failing^&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
-        <PreCommands Condition="'$(OS)' != 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) export &quot;TEST_ARGS=--filter category!=failing&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' == 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) set &quot;ExtraTestArgs=--filter category^^!=failing^&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) export &quot;ExtraTestArgs=--filter category!=failing&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
 
-        <Command>$(_TestRunCommand)</Command>
+        <!--<Command>$(_TestRunCommand)</Command>-->
+        <Command Condition="'$(OS)' != 'Windows_NT'">chmod +x RunTests.sh; ./RunTests.sh</Command>
+        <Command Condition="'$(OS)' == 'Windows_NT'">call RunTests.cmd</Command>
         <Timeout>$(_workItemTimeout)</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
