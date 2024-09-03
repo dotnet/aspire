@@ -10,7 +10,7 @@ using Microsoft.Extensions.Localization;
 namespace Aspire.Dashboard.Model.Otlp;
 
 [DebuggerDisplay("{FilterText,nq}")]
-public class LogFilter
+public class LogFilter : IEquatable<LogFilter>
 {
     public const string KnownMessageField = "log.message";
     public const string KnownCategoryField = "log.category";
@@ -141,5 +141,30 @@ public class LogFilter
                     return input.Where(x => func(GetFieldValue(x), Value));
                 }
         }
+    }
+
+    public bool Equals(LogFilter? other)
+    {
+        if (other == null)
+        {
+            return false;
+        }
+
+        if (Field != other.Field)
+        {
+            return false;
+        }
+
+        if (Condition != other.Condition)
+        {
+            return false;
+        }
+
+        if (!string.Equals(Value.Trim(), other.Value.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return true;
     }
 }
