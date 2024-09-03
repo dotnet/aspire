@@ -17,7 +17,6 @@ public class AppBarTests : PlaywrightTestsBase
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4851")]
     public async Task AppBar_Change_Theme()
     {
         // Arrange
