@@ -26,4 +26,6 @@ app.MapGet("/get", async (IConnectionMultiplexer connection) =>
     return redisValue.HasValue ? redisValue.ToString() : "(null)";
 });
 
+app.MapDefaultEndpoints();
+
 app.Run();
