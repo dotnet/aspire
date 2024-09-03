@@ -770,6 +770,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             }
         });
 
+        // ASP.NET Core authentication needs to have the correct default scheme for the configured frontend auth.
+        // This is required for ASP.NET Core/SignalR/Blazor to flow the authenticated user from the request and into the dashboard app.
         static string ConfigureDefaultAuthScheme(DashboardOptions dashboardOptions)
         {
             return dashboardOptions.Frontend.AuthMode switch
