@@ -33,9 +33,7 @@
     <!-- FIXME: allow running without cov locally? -->
     <RunWithCodeCoverage Condition="'$(RunWithCodeCoverage)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</RunWithCodeCoverage>
     <!-- FIXME: move here from helix targets? -->
-    <TestsSessionTimeoutForHelix Condition="'$(TestsSessionTimeoutForHelix)' == ''">600000</TestsSessionTimeoutForHelix>
-
-      <!--  -x- RunConfiguration.TestSessionTimeout=$TEST_TIMEOUT -->
+    <TestSessionTimeoutForHelix Condition="'$(TestSessionTimeoutForHelix)' == ''">600000</TestSessionTimeoutForHelix>
   </PropertyGroup>
 
   <ItemGroup>
@@ -56,9 +54,6 @@
 
     <_ExtraTestArgsEnvVar Condition="'$(OS)' != 'Windows_NT'">$ExtraTestArgs</_ExtraTestArgsEnvVar>
     <_ExtraTestArgsEnvVar Condition="'$(OS)' == 'Windows_NT'">%ExtraTestArgs%</_ExtraTestArgsEnvVar>
-
-    <_TestTimeoutEnvVar Condition="'$(OS)' != 'Windows_NT'">$TEST_TIMEOUT</_TestTimeoutEnvVar>
-    <_TestTimeoutEnvVar Condition="'$(OS)' == 'Windows_NT'">%TEST_TIMEOUT%</_TestTimeoutEnvVar>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(RunTestsOnHelix)' == 'true' and '$(IsTestProject)' == 'true'">
@@ -155,19 +150,22 @@
     <PropertyGroup>
       <_TestBlameArgumentsProperty>@(TestBlameArguments, ' ')</_TestBlameArgumentsProperty>
       <_TestCoverageCommandProperty>@(_TestCoverageCommand, ' ')</_TestCoverageCommandProperty>
+
+      <_RunTestsScriptOutputFileName Condition="'$(OS)' != 'Windows_NT'">RunTests.sh</_RunTestsScriptOutputFileName>
+      <_RunTestsScriptOutputFileName Condition="'$(OS)' == 'Windows_NT'">RunTests.cmd</_RunTestsScriptOutputFileName>
     </PropertyGroup>
 
     <ItemGroup>
       <!--<RunScriptPreCommand />-->
 
-      <RunScriptRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'" Include="$(_TestCoverageCommandProperty) &quot;dotnet test -s .runsettings $(MSBuildProjectName).dll --ResultsDirectory:${LOGS_PATH} $(_TestBlameArgumentsProperty) $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(_TestTimeoutEnvVar) &quot;" />
-      <RunScriptRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'" Include="dotnet test -s .runsettings $(MSBuildProjectName).dll --ResultsDirectory:${LOGS_PATH} $(_TestBlameArgumentsProperty) $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(_TestTimeoutEnvVar) " />
+      <RunScriptRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'" Include="$(_TestCoverageCommandProperty) &quot;dotnet test -s .runsettings $(MSBuildProjectName).dll --ResultsDirectory:${LOGS_PATH} $(_TestBlameArgumentsProperty) $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(TestSessionTimeoutForHelix) &quot;" />
+      <RunScriptRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'" Include="dotnet test -s .runsettings $(MSBuildProjectName).dll --ResultsDirectory:${LOGS_PATH} $(_TestBlameArgumentsProperty) $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(TestSessionTimeoutForHelix) " />
     </ItemGroup>
 
     <!-- FIXME: null checks -->
     <GenerateRunScript
         TemplateFile="$(RunTestsScriptTemplatePath)"
-        Output="$(OutDir)RunTests.sh"
+        Output="$(OutDir)$(_RunTestsScriptOutputFileName)"
         PreCommands="@(RunScriptPreCommand)"
         RunCommands="@(RunScriptRunCommand)"
     />

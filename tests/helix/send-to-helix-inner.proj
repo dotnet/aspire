@@ -57,6 +57,7 @@
 
   <ItemGroup>
     <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="chmod +x RunTests.sh &amp;&amp; ./RunTests.sh" />
+    <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="call RunTests.cmd" />
   </ItemGroup>
 
   <Import Project="$(MSBuildThisFileDirectory)send-to-helix-$(TestCategory).targets" />
