@@ -37,7 +37,10 @@ public partial class StructuredLogsTests : TestContext
         });
         navigationManager.NavigateTo(uri);
 
-        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false);
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        dimensionManager.InvokeOnBrowserDimensionsChanged(viewport);
 
         // Act
         var cut = RenderComponent<StructuredLogs>(builder =>
@@ -78,6 +81,9 @@ public partial class StructuredLogsTests : TestContext
 
         var searchModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Search/FluentSearch.razor.js", version));
         searchModule.SetupVoid("addAriaHidden", _ => true);
+
+        var keycodeModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/KeyCode/FluentKeyCode.razor.js", version));
+        keycodeModule.Setup<string>("RegisterKeyCode", _ => true);
 
         JSInterop.SetupVoid("initializeContinuousScroll");
 

@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Testing;
 using Aspire.TestProject;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -82,13 +83,6 @@ public class TestProgram : IDisposable
                     .AddDatabase(postgresDbName);
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(postgres);
             }
-            if (!resourcesToSkip.HasFlag(TestResourceNames.oracledatabase))
-            {
-                var oracleDbName = "freepdb1";
-                var oracleDatabase = AppBuilder.AddOracle("oracledatabase")
-                    .AddDatabase(oracleDbName);
-                IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(oracleDatabase);
-            }
             if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos) || !resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
             {
                 var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
@@ -101,6 +95,7 @@ public class TestProgram : IDisposable
             }
         }
 
+        AppBuilder.Services.AddHostedService<ResourceLoggerForwarderService>();
         AppBuilder.Services.AddLifecycleHook<EndPointWriterHook>();
         AppBuilder.Services.AddHttpClient();
     }

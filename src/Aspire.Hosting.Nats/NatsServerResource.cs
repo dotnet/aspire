@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -8,7 +11,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 
-public class NatsServerResource(string name) : ContainerResource(name), IResourceWithConnectionString
+public class NatsServerResource(string name) : ContainerResource(ThrowIfNull(name)), IResourceWithConnectionString
 {
     internal const string PrimaryEndpointName = "tcp";
     internal const string PrimaryNatsSchemeName = "nats";
@@ -26,4 +29,7 @@ public class NatsServerResource(string name) : ContainerResource(name), IResourc
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create(
             $"{PrimaryNatsSchemeName}://{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+
+    private static string ThrowIfNull([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
+        => argument ?? throw new ArgumentNullException(paramName);
 }

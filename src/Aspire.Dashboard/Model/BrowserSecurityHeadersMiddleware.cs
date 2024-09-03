@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Authentication.OtlpConnection;
+using Aspire.Dashboard.Authentication.Connection;
 
 namespace Aspire.Dashboard.Model;
 
@@ -63,7 +63,8 @@ internal sealed class BrowserSecurityHeadersMiddleware
     public Task InvokeAsync(HttpContext context)
     {
         // Don't set browser security headers on OTLP requests.
-        if (context.Features.Get<IOtlpConnectionFeature>() == null)
+        var feature = context.Features.Get<IConnectionTypeFeature>();
+        if (feature == null || !feature.ConnectionTypes.Contains(ConnectionType.Otlp))
         {
             context.Response.Headers.ContentSecurityPolicy = context.Request.IsHttps
                 ? _cspContentHttps

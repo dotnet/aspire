@@ -51,6 +51,9 @@ public static class GarnetBuilderExtensions
     public static IResourceBuilder<GarnetResource> AddGarnet(this IDistributedApplicationBuilder builder, string name,
         int? port = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         var garnet = new GarnetResource(name);
         return builder.AddResource(garnet)
             .WithEndpoint(port: port, targetPort: 6379, name: GarnetResource.PrimaryEndpointName)
@@ -79,6 +82,8 @@ public static class GarnetBuilderExtensions
     public static IResourceBuilder<GarnetResource> WithDataVolume(this IResourceBuilder<GarnetResource> builder,
         string? name = null, bool isReadOnly = false)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), GarnetContainerDataDirectory,
             isReadOnly);
         if (!isReadOnly)
@@ -110,6 +115,9 @@ public static class GarnetBuilderExtensions
     public static IResourceBuilder<GarnetResource> WithDataBindMount(this IResourceBuilder<GarnetResource> builder,
         string source, bool isReadOnly = false)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+
         builder.WithBindMount(source, GarnetContainerDataDirectory, isReadOnly);
         if (!isReadOnly)
         {
@@ -156,15 +164,19 @@ public static class GarnetBuilderExtensions
     /// <param name="interval">The interval between snapshot exports. Defaults to 60 seconds.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<GarnetResource> WithPersistence(this IResourceBuilder<GarnetResource> builder,
-        TimeSpan? interval = null) =>
-    builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
+        TimeSpan? interval = null)
     {
-        context.Args.Add("--checkpointdir");
-        context.Args.Add("/data/checkpoints");
-        context.Args.Add("--recover");
-        context.Args.Add("--aof");
-        context.Args.Add("--aof-commit-freq");
-        context.Args.Add((interval ?? TimeSpan.FromSeconds(60)).TotalMilliseconds.ToString(CultureInfo.InvariantCulture));
-        return Task.CompletedTask;
-    }), ResourceAnnotationMutationBehavior.Replace);
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
+        {
+            context.Args.Add("--checkpointdir");
+            context.Args.Add("/data/checkpoints");
+            context.Args.Add("--recover");
+            context.Args.Add("--aof");
+            context.Args.Add("--aof-commit-freq");
+            context.Args.Add((interval ?? TimeSpan.FromSeconds(60)).TotalMilliseconds.ToString(CultureInfo.InvariantCulture));
+            return Task.CompletedTask;
+        }), ResourceAnnotationMutationBehavior.Replace);
+    }
 }

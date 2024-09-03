@@ -7,10 +7,11 @@ using System.Globalization;
 using System.Net;
 using System.Reflection;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using Aspire.Dashboard.Authentication;
+using Aspire.Dashboard.Authentication.Connection;
 using Aspire.Dashboard.Authentication.OpenIdConnect;
 using Aspire.Dashboard.Authentication.OtlpApiKey;
-using Aspire.Dashboard.Authentication.OtlpConnection;
 using Aspire.Dashboard.Components;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
@@ -24,6 +25,7 @@ using Microsoft.AspNetCore.Authentication.Certificate;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -141,6 +143,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             // if the dashboard OTLP URL is configured to use HTTPS too
             builder.Services.Configure<HttpsRedirectionOptions>(options => options.HttpsPort = browserHttpsPort);
         }
+
+        builder.Services.AddSingleton<IPolicyEvaluator, AspirePolicyEvaluator>();
 
         ConfigureAuthentication(builder, dashboardOptions);
 
@@ -508,6 +512,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             {
                 configurationLoader.Endpoint(browserEndpointName, endpointConfiguration =>
                 {
+                    endpointConfiguration.ListenOptions.UseConnectionTypes([ConnectionType.Frontend]);
+
                     // Only the last endpoint is accessible. Tests should only need one but
                     // this will need to be improved if that changes.
                     _frontendEndPointAccessor ??= CreateEndPointAccessor(endpointConfiguration);
@@ -516,6 +522,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
             configurationLoader.Endpoint("OtlpGrpc", endpointConfiguration =>
             {
+                var connectionTypes = new List<ConnectionType> { ConnectionType.Otlp };
+
                 _otlpServiceGrpcEndPointAccessor ??= CreateEndPointAccessor(endpointConfiguration);
                 if (hasSingleEndpoint)
                 {
@@ -528,10 +536,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                             "The endpoint doesn't use TLS so browser access is only possible via a TLS terminating proxy.");
                     }
 
+                    connectionTypes.Add(ConnectionType.Frontend);
                     _frontendEndPointAccessor = _otlpServiceGrpcEndPointAccessor;
                 }
 
-                endpointConfiguration.ListenOptions.UseOtlpConnection();
+                endpointConfiguration.ListenOptions.UseConnectionTypes(connectionTypes.ToArray());
 
                 if (endpointConfiguration.HttpsOptions.ClientCertificateMode == ClientCertificateMode.RequireCertificate)
                 {
@@ -545,6 +554,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
             configurationLoader.Endpoint("OtlpHttp", endpointConfiguration =>
             {
+                var connectionTypes = new List<ConnectionType> { ConnectionType.Otlp };
+
                 _otlpServiceHttpEndPointAccessor ??= CreateEndPointAccessor(endpointConfiguration);
                 if (hasSingleEndpoint)
                 {
@@ -557,10 +568,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                             "The endpoint doesn't use TLS so browser access is only possible via a TLS terminating proxy.");
                     }
 
+                    connectionTypes.Add(ConnectionType.Frontend);
                     _frontendEndPointAccessor = _otlpServiceGrpcEndPointAccessor;
                 }
 
-                endpointConfiguration.ListenOptions.UseOtlpConnection();
+                endpointConfiguration.ListenOptions.UseConnectionTypes(connectionTypes.ToArray());
 
                 if (endpointConfiguration.HttpsOptions.ClientCertificateMode == ClientCertificateMode.RequireCertificate)
                 {
@@ -596,9 +608,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     {
         var authentication = builder.Services
             .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+            .AddScheme<FrontendCompositeAuthenticationHandlerOptions, FrontendCompositeAuthenticationHandler>(FrontendCompositeAuthenticationDefaults.AuthenticationScheme, o => { })
             .AddScheme<OtlpCompositeAuthenticationHandlerOptions, OtlpCompositeAuthenticationHandler>(OtlpCompositeAuthenticationDefaults.AuthenticationScheme, o => { })
             .AddScheme<OtlpApiKeyAuthenticationHandlerOptions, OtlpApiKeyAuthenticationHandler>(OtlpApiKeyAuthenticationDefaults.AuthenticationScheme, o => { })
-            .AddScheme<OtlpConnectionAuthenticationHandlerOptions, OtlpConnectionAuthenticationHandler>(OtlpConnectionAuthenticationDefaults.AuthenticationScheme, o => { })
+            .AddScheme<ConnectionTypeAuthenticationHandlerOptions, ConnectionTypeAuthenticationHandler>(ConnectionTypeAuthenticationDefaults.AuthenticationSchemeFrontend, o => o.RequiredConnectionType = ConnectionType.Frontend)
+            .AddScheme<ConnectionTypeAuthenticationHandlerOptions, ConnectionTypeAuthenticationHandler>(ConnectionTypeAuthenticationDefaults.AuthenticationSchemeOtlp, o => o.RequiredConnectionType = ConnectionType.Otlp)
             .AddCertificate(options =>
             {
                 // Bind options to configuration so they can be overridden by environment variables.
@@ -611,11 +625,15 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                         var options = context.HttpContext.RequestServices.GetRequiredService<IOptions<DashboardOptions>>().Value;
                         if (options.Otlp.AllowedCertificates is { Count: > 0 } allowList)
                         {
+                            string? certThumbprint = null;
+
                             var allowed = false;
                             foreach (var rule in allowList)
                             {
+                                certThumbprint ??= context.ClientCertificate.GetCertHashString(HashAlgorithmName.SHA256);
+
                                 // Thumbprint is hexadecimal and is case-insensitive.
-                                if (string.Equals(rule.Thumbprint, context.ClientCertificate.Thumbprint, StringComparison.OrdinalIgnoreCase))
+                                if (string.Equals(rule.Thumbprint, certThumbprint, StringComparison.OrdinalIgnoreCase))
                                 {
                                     allowed = true;
                                     break;
@@ -650,7 +668,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         switch (dashboardOptions.Frontend.AuthMode)
         {
             case FrontendAuthMode.OpenIdConnect:
-                authentication.AddPolicyScheme(FrontendAuthenticationDefaults.AuthenticationScheme, displayName: FrontendAuthenticationDefaults.AuthenticationScheme, o =>
+                authentication.AddPolicyScheme(FrontendAuthenticationDefaults.AuthenticationSchemeOpenIdConnect, displayName: FrontendAuthenticationDefaults.AuthenticationSchemeOpenIdConnect, o =>
                 {
                     // The frontend authentication scheme just redirects to OpenIdConnect and Cookie schemes, as appropriate.
                     o.ForwardDefault = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -689,7 +707,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 });
                 break;
             case FrontendAuthMode.BrowserToken:
-                authentication.AddPolicyScheme(FrontendAuthenticationDefaults.AuthenticationScheme, displayName: FrontendAuthenticationDefaults.AuthenticationScheme, o =>
+                authentication.AddPolicyScheme(FrontendAuthenticationDefaults.AuthenticationSchemeBrowserToken, displayName: FrontendAuthenticationDefaults.AuthenticationSchemeBrowserToken, o =>
                 {
                     o.ForwardDefault = CookieAuthenticationDefaults.AuthenticationScheme;
                 });
@@ -717,7 +735,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             options.AddPolicy(
                 name: OtlpAuthorization.PolicyName,
                 policy: new AuthorizationPolicyBuilder(OtlpCompositeAuthenticationDefaults.AuthenticationScheme)
-                    .RequireClaim(OtlpAuthorization.OtlpClaimName)
+                    .RequireClaim(OtlpAuthorization.OtlpClaimName, [bool.TrueString])
                     .Build());
 
             switch (dashboardOptions.Frontend.AuthMode)
@@ -725,26 +743,22 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 case FrontendAuthMode.OpenIdConnect:
                     options.AddPolicy(
                         name: FrontendAuthorizationDefaults.PolicyName,
-                        policy: new AuthorizationPolicyBuilder(FrontendAuthenticationDefaults.AuthenticationScheme)
+                        policy: new AuthorizationPolicyBuilder(FrontendCompositeAuthenticationDefaults.AuthenticationScheme)
                             .RequireOpenIdClaims(options: dashboardOptions.Frontend.OpenIdConnect)
                             .Build());
                     break;
                 case FrontendAuthMode.BrowserToken:
                     options.AddPolicy(
                         name: FrontendAuthorizationDefaults.PolicyName,
-                        policy: new AuthorizationPolicyBuilder(FrontendAuthenticationDefaults.AuthenticationScheme)
+                        policy: new AuthorizationPolicyBuilder(FrontendCompositeAuthenticationDefaults.AuthenticationScheme)
                             .RequireClaim(FrontendAuthorizationDefaults.BrowserTokenClaimName)
                             .Build());
                     break;
                 case FrontendAuthMode.Unsecured:
                     options.AddPolicy(
                         name: FrontendAuthorizationDefaults.PolicyName,
-                        policy: new AuthorizationPolicyBuilder()
-                            .RequireAssertion(_ =>
-                            {
-                                // Frontend is unsecured so our policy doesn't require anything.
-                                return true;
-                            })
+                        policy: new AuthorizationPolicyBuilder(FrontendCompositeAuthenticationDefaults.AuthenticationScheme)
+                            .RequireClaim(OtlpAuthorization.OtlpClaimName, [bool.FalseString])
                             .Build());
                     break;
                 default:
@@ -782,11 +796,6 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     }
 
     private static bool IsHttpsOrNull(Uri? uri) => uri == null || string.Equals(uri.Scheme, "https", StringComparison.Ordinal);
-
-    public static class FrontendAuthenticationDefaults
-    {
-        public const string AuthenticationScheme = "Frontend";
-    }
 }
 
 public record EndpointInfo(string Address, IPEndPoint EndPoint, bool isHttps);
@@ -795,4 +804,10 @@ public static class FrontendAuthorizationDefaults
 {
     public const string PolicyName = "Frontend";
     public const string BrowserTokenClaimName = "BrowserTokenClaim";
+}
+
+public static class FrontendAuthenticationDefaults
+{
+    public const string AuthenticationSchemeOpenIdConnect = "FrontendOpenIdConnect";
+    public const string AuthenticationSchemeBrowserToken = "FrontendBrowserToken";
 }

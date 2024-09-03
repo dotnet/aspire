@@ -21,6 +21,13 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs.StructuredLogsPageViewModel, StructuredLogs.StructuredLogsPageState>
 {
+    private const string ResourceColumn = nameof(ResourceColumn);
+    private const string LogLevelColumn = nameof(LogLevelColumn);
+    private const string TimestampColumn = nameof(TimestampColumn);
+    private const string MessageColumn = nameof(MessageColumn);
+    private const string TraceColumn = nameof(TraceColumn);
+    private const string DetailsColumn = nameof(DetailsColumn);
+
     private SelectViewModel<ResourceTypeDetails> _allApplication = default!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
@@ -34,9 +41,10 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private string? _elementIdBeforeDetailsViewOpened;
     private AspirePageContentLayout? _contentLayout;
     private string _filter = string.Empty;
+    private GridColumnManager _manager = null!;
 
     public string BasePath => DashboardUrls.StructuredLogsBasePath;
-    public string SessionStorageKey => "StructuredLogs_PageState";
+    public string SessionStorageKey => BrowserStorageKeys.StructuredLogsPageState;
     public StructuredLogsPageViewModel PageViewModel { get; set; } = null!;
 
     [Inject]
@@ -124,6 +132,15 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     protected override Task OnInitializedAsync()
     {
+        _manager = new GridColumnManager([
+            new GridColumn(Name: ResourceColumn, DesktopWidth: "2fr", MobileWidth: "1fr"),
+            new GridColumn(Name: LogLevelColumn, DesktopWidth: "1fr"),
+            new GridColumn(Name: TimestampColumn, DesktopWidth: "1.5fr"),
+            new GridColumn(Name: MessageColumn, DesktopWidth: "5fr", "2.5fr"),
+            new GridColumn(Name: TraceColumn, DesktopWidth: "1fr"),
+            new GridColumn(Name: DetailsColumn, DesktopWidth: "1fr", MobileWidth: "0.8fr")
+        ], DimensionManager);
+
         if (!string.IsNullOrEmpty(TraceId))
         {
             ViewModel.AddFilter(new LogFilter
@@ -396,7 +413,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     public void UpdateViewModelFromQuery(StructuredLogsPageViewModel viewModel)
     {
-        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
+        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _allApplication);
         ViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
 
         if (LogLevelText is not null && Enum.TryParse<LogLevel>(LogLevelText, ignoreCase: true, out var logLevel))

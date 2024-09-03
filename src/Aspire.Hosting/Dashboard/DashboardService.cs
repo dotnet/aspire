@@ -133,7 +133,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
 
             await foreach (var group in subscription.WithCancellation(cts.Token).ConfigureAwait(false))
             {
-                WatchResourceConsoleLogsUpdate update = new();
+                var update = new WatchResourceConsoleLogsUpdate();
 
                 foreach (var (lineNumber, content, isErrorMessage) in group)
                 {

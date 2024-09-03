@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Layout;
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -26,7 +27,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     private Subscription? _metricsSubscription;
 
     public string BasePath => DashboardUrls.MetricsBasePath;
-    public string SessionStorageKey => "Metrics_PageState";
+    public string SessionStorageKey => BrowserStorageKeys.MetricsPageState;
     public MetricsViewModel PageViewModel { get; set; } = null!;
 
     [Parameter]
@@ -59,6 +60,9 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     [Inject]
     public required ILogger<Metrics> Logger { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; init; }
 
     protected override Task OnInitializedAsync()
     {
@@ -117,9 +121,9 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public void UpdateViewModelFromQuery(MetricsViewModel viewModel)
     {
         viewModel.SelectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration);
-        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _selectApplication);
+        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _selectApplication);
         var selectedInstance = viewModel.SelectedApplication.Id?.GetApplicationKey();
-        viewModel.Instruments = selectedInstance != null ? TelemetryRepository.GetInstrumentsSummary(selectedInstance.Value) : null;
+        viewModel.Instruments = selectedInstance != null ? TelemetryRepository.GetInstrumentsSummaries(selectedInstance.Value) : null;
 
         viewModel.SelectedMeter = null;
         viewModel.SelectedInstrument = null;
@@ -130,12 +134,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             viewModel.SelectedMeter = viewModel.Instruments.FirstOrDefault(i => i.Parent.MeterName == MeterName)?.Parent;
             if (viewModel.SelectedMeter != null && !string.IsNullOrEmpty(InstrumentName))
             {
-                viewModel.SelectedInstrument = TelemetryRepository.GetInstrument(new GetInstrumentRequest
-                {
-                    ApplicationKey = selectedInstance!.Value,
-                    MeterName = MeterName,
-                    InstrumentName = InstrumentName
-                });
+                viewModel.SelectedInstrument = viewModel.Instruments.FirstOrDefault(i => i.Parent.MeterName == MeterName && i.Name == InstrumentName);
             }
         }
     }
@@ -156,7 +155,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             PageViewModel.SelectedInstrument != null)
         {
             var selectedInstance = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
-            var instruments = selectedInstance != null ? TelemetryRepository.GetInstrumentsSummary(selectedInstance.Value) : null;
+            var instruments = selectedInstance != null ? TelemetryRepository.GetInstrumentsSummaries(selectedInstance.Value) : null;
 
             if (instruments == null || ShouldClearSelectedMetrics(instruments))
             {
@@ -165,10 +164,13 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             }
         }
 
-        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
+        // On mobile, we actually *do* want to update the selected application immediately, since it will affect the tree of possible
+        // metrics to select from. So, we must also immediately close the window since the closing behavior is necessary if the url has changed.
+        var isChangeInToolbar = ViewportInformation.IsDesktop;
+        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: isChangeInToolbar);
     }
 
-    private bool ShouldClearSelectedMetrics(List<OtlpInstrument> instruments)
+    private bool ShouldClearSelectedMetrics(List<OtlpInstrumentSummary> instruments)
     {
         if (PageViewModel.SelectedMeter != null && !instruments.Any(i => i.Parent.MeterName == PageViewModel.SelectedMeter.MeterName))
         {
@@ -191,10 +193,10 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     {
         public FluentTreeItem? SelectedTreeItem { get; set; }
         public OtlpMeter? SelectedMeter { get; set; }
-        public OtlpInstrument? SelectedInstrument { get; set; }
+        public OtlpInstrumentSummary? SelectedInstrument { get; set; }
         public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }
         public SelectViewModel<TimeSpan> SelectedDuration { get; set; } = null!;
-        public List<OtlpInstrument>? Instruments { get; set; }
+        public List<OtlpInstrumentSummary>? Instruments { get; set; }
         public required MetricViewKind? SelectedViewKind { get; set; }
     }
 
@@ -220,7 +222,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             PageViewModel.SelectedMeter = meter;
             PageViewModel.SelectedInstrument = null;
         }
-        else if (PageViewModel.SelectedTreeItem?.Data is OtlpInstrument instrument)
+        else if (PageViewModel.SelectedTreeItem?.Data is OtlpInstrumentSummary instrument)
         {
             PageViewModel.SelectedMeter = instrument.Parent;
             PageViewModel.SelectedInstrument = instrument;
@@ -231,7 +233,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             PageViewModel.SelectedInstrument = null;
         }
 
-        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: false);
+        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: !ViewportInformation.IsDesktop);
     }
 
     public string GetUrlFromSerializableViewModel(MetricsPageState serializable)
@@ -269,7 +271,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
                 if (selectedApplicationKey != null)
                 {
                     // If there are more instruments than before then update the UI.
-                    var instruments = TelemetryRepository.GetInstrumentsSummary(selectedApplicationKey.Value);
+                    var instruments = TelemetryRepository.GetInstrumentsSummaries(selectedApplicationKey.Value);
 
                     if (PageViewModel.Instruments is null || instruments.Count > PageViewModel.Instruments.Count)
                     {
