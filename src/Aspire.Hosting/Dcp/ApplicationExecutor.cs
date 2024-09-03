@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text.Json;
 using System.Threading.Channels;
+using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
@@ -286,14 +287,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                         {
                             logStream.Cancellation.Cancel();
                         }
-
-                        if (_containersMap.TryGetValue(entry.ResourceName, out var _) ||
-                            _executablesMap.TryGetValue(entry.ResourceName, out var _))
-                        {
-                            // Clear out the backlog for containers and executables after the last subscriber leaves.
-                            // When a new subscriber is added, the full log will be replayed.
-                            loggerService.ClearBacklog(entry.ResourceName);
-                        }
                     }
                 }
 
@@ -484,29 +477,37 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     if (_logger.IsEnabled(LogLevel.Debug))
                     {
-                        _logger.LogDebug("Starting log streaming for {ResourceName}", resource.Metadata.Name);
+                        _logger.LogDebug("Starting log streaming for {ResourceName}.", resource.Metadata.Name);
                     }
 
                     // Pump the logs from the enumerable into the logger
-                    var logger = loggerService.GetLogger(resource.Metadata.Name);
+                    var logger = loggerService.GetInternalLogger(resource.Metadata.Name);
 
                     await foreach (var batch in enumerable.WithCancellation(cancellation.Token).ConfigureAwait(false))
                     {
                         foreach (var (content, isError) in batch)
                         {
-                            var level = isError ? LogLevel.Error : LogLevel.Information;
-                            logger.Log(level, 0, content, null, (s, _) => s);
+                            DateTime? timestamp = null;
+                            var resolvedContent = content;
+
+                            if (TimestampParser.TryParseConsoleTimestamp(resolvedContent, out var result))
+                            {
+                                resolvedContent = result.Value.ModifiedText;
+                                timestamp = result.Value.Timestamp.UtcDateTime;
+                            }
+
+                            logger(timestamp, resolvedContent, isError);
                         }
                     }
                 }
                 catch (OperationCanceledException)
                 {
                     // Ignore
-                    _logger.LogDebug("Log streaming for {ResourceName} was cancelled", resource.Metadata.Name);
+                    _logger.LogDebug("Log streaming for {ResourceName} was cancelled.", resource.Metadata.Name);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error streaming logs for {ResourceName}", resource.Metadata.Name);
+                    _logger.LogError(ex, "Error streaming logs for {ResourceName}.", resource.Metadata.Name);
                 }
             },
             cancellation.Token);
@@ -1163,6 +1164,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
     {
+        var beforeResourceStartedEvent = new BeforeResourceStartedEvent(er.ModelResource, serviceProvider);
+        await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
+
         ExecutableSpec spec;
         Func<Task<CustomResource>> createResource;
 
@@ -1327,11 +1331,23 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 throw new InvalidOperationException();
             }
 
-            var nameSuffix = GetRandomNameSuffix();
+            var nameSuffix = string.Empty;
+
+            if (container.GetContainerLifetimeType() == ContainerLifetimeType.Default)
+            {
+                nameSuffix = GetRandomNameSuffix();
+            }
+
             var containerObjectName = GetObjectNameForResource(container, nameSuffix);
             var ctr = Container.Create(containerObjectName, containerImageName);
 
             ctr.Spec.ContainerName = containerObjectName; // Use the same name for container orchestrator (Docker, Podman) resource and DCP object name.
+
+            if (container.GetContainerLifetimeType() == ContainerLifetimeType.Persistent)
+            {
+                ctr.Spec.Persistent = true;
+            }
+
             ctr.Annotate(CustomResource.ResourceNameAnnotation, container.Name);
             ctr.Annotate(CustomResource.OtelServiceNameAnnotation, container.Name);
             ctr.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, nameSuffix);
@@ -1420,6 +1436,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateContainerAsync(AppResource cr, ILogger resourceLogger, CancellationToken cancellationToken)
     {
+        var beforeResourceStartedEvent = new BeforeResourceStartedEvent(cr.ModelResource, serviceProvider);
+        await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
+
         var dcpContainerResource = (Container)cr.DcpResource;
         var modelContainerResource = cr.ModelResource;
 

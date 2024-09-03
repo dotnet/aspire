@@ -19,6 +19,9 @@ basketCache.WithRedisCommander(c =>
                     });
 #endif
 
+var catalogDbApp = builder.AddProject<Projects.CatalogDb>("catalogdbapp")
+                          .WithReference(catalogDb);
+
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
                             .WithReference(catalogDb)
                             .WithReplicas(2);
@@ -43,9 +46,6 @@ builder.AddProject<Projects.OrderProcessor>("orderprocessor", launchProfileName:
 builder.AddProject<Projects.ApiGateway>("apigateway")
        .WithReference(basketService)
        .WithReference(catalogService);
-
-builder.AddProject<Projects.CatalogDb>("catalogdbapp")
-       .WithReference(catalogDb);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
