@@ -27,7 +27,7 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
     {
         await using var context = await CreateNewBrowserContextAsync();
         await CheckDashboardHasResourcesAsync(
-            await _testFixture.Project!.OpenDashboardPageAsync(context).ConfigureAwait(false),
+            await _testFixture.Project!.OpenDashboardPageAsync(context),
             GetExpectedResources(_testFixture.Project!, hasRedisCache: HasRedisCache),
             timeoutSecs: DashboardResourcesWaitTimeoutSecs);
     }
@@ -40,7 +40,7 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
     {
         await using var context = await CreateNewBrowserContextAsync();
         var resourceRows = await CheckDashboardHasResourcesAsync(
-            await _testFixture.Project!.OpenDashboardPageAsync(context).ConfigureAwait(false),
+            await _testFixture.Project!.OpenDashboardPageAsync(context),
             GetExpectedResources(_testFixture.Project!, hasRedisCache: HasRedisCache),
             timeoutSecs: DashboardResourcesWaitTimeoutSecs);
 

@@ -108,7 +108,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
                 .ConfigureAwait(false);
 
             response.EnsureSuccessStatusCode();
-        }, cts.Token).ConfigureAwait(false);
+        }, cts.Token);
     }
 
     [Theory]
