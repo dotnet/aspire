@@ -56,7 +56,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
     {
         await ExecuteAsync(
             WatchResourcesInternal,
-            context.CancellationToken).ConfigureAwait(false);
+            context).ConfigureAwait(false);
 
         async Task WatchResourcesInternal(CancellationToken cancellationToken)
         {
@@ -107,7 +107,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
     {
         await ExecuteAsync(
             WatchResourceConsoleLogsInternal,
-            context.CancellationToken).ConfigureAwait(false);
+            context).ConfigureAwait(false);
 
         async Task WatchResourceConsoleLogsInternal(CancellationToken cancellationToken)
         {
@@ -132,9 +132,9 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         }
     }
 
-    private async Task ExecuteAsync(Func<CancellationToken, Task> execute, CancellationToken cancellationToken)
+    private async Task ExecuteAsync(Func<CancellationToken, Task> execute, ServerCallContext serverCallContext)
     {
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping, cancellationToken);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping, serverCallContext.CancellationToken);
 
         try
         {
@@ -150,7 +150,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         }
         catch (Exception ex)
         {
-            logger.LogDebug(ex, "Error executing service method.");
+            logger.LogError(ex, $"Error executing service method '{serverCallContext.Method}'.");
             throw;
         }
     }
