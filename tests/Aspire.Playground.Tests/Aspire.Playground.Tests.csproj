@@ -56,6 +56,8 @@
     <ProjectReference Include="$(PlaygroundSourceDir)nats/Nats.AppHost/Nats.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)seq/Seq.AppHost/Seq.AppHost.csproj" />
 
+    <ProjectReference Include="$(RepoRoot)tests\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+
     <Using Include="Aspire.Hosting.Testing" />
   </ItemGroup>
 

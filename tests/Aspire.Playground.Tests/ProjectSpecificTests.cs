@@ -3,6 +3,7 @@
 
 using Aspire.Hosting;
 using Aspire.Hosting.Tests.Utils;
+using Aspire.Components.Common.Tests;
 using SamplesIntegrationTests;
 using SamplesIntegrationTests.Infrastructure;
 using Xunit;
@@ -55,6 +56,8 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     }
 
     [Fact]
+    [RequiresDocker]
+    [RequiresTools(["func"])]
     public async Task AzureFunctionsTest()
     {
         var appHostPath = Directory.GetFiles(AppContext.BaseDirectory, "AzureFunctionsEndToEnd.AppHost.dll").Single();
