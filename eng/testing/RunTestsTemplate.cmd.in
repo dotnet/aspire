@@ -1,4 +1,4 @@
-@echo off
+::@echo off
 setlocal enabledelayedexpansion
 
 set EXECUTION_DIR=%~dp0
@@ -11,10 +11,10 @@ if [%TEST_TIMEOUT%] == [] (
 if [%HELIX_WORKITEM_UPLOAD_ROOT%] == [] (
     set LOGS_PATH="%EXECUTION_DIR%\logs"
     set COVERAGE_TOOL_CMD=dotnet-coverage.exe
-else
+) else (
     set LOGS_PATH="%HELIX_WORKITEM_UPLOAD_ROOT%\logs"
     set COVERAGE_TOOL_CMD=%HELIX_CORRELATION_PAYLOAD%\dotnet-coverage\dotnet-coverage.exe
-fi
+)
 
 set PATH=%PREPEND_PATH%;%PATH%
 
