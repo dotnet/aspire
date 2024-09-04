@@ -22,7 +22,7 @@
     <RunScriptOutputRelativePath Condition="'$(OS)' == 'Windows_NT'">$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\RunTests.cmd</RunScriptOutputRelativePath>
 
     <!-- FIXME: private properties -->
-    <RunScriptTestCommand>dotnet test -s .runsettings --ResultsDirectory:${LOGS_PATH} $(_TestBlameArgumentsProperty) $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(TestSessionTimeoutForHelix)</RunScriptTestCommand>
+    <RunScriptTestCommand>dotnet test -s .runsettings --results-directory ${LOGS_PATH} $(_TestBlameArgumentsProperty) $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(TestSessionTimeoutForHelix)</RunScriptTestCommand>
   </PropertyGroup>
 
   <ItemGroup>
