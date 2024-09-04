@@ -51,6 +51,9 @@
     <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' != 'Windows_NT'">$HELIX_CORRELATION_PAYLOAD</_HelixCorrelationPayloadEnvVar>
     <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_CORRELATION_PAYLOAD%</_HelixCorrelationPayloadEnvVar>
 
+    <_CodeCoverageToolEnvVar Condition="'$(OS)' != 'Windows_NT'">$COVERAGE_TOOL_CMD</_CodeCoverageToolEnvVar>
+    <_CodeCoverageToolEnvVar Condition="'$(OS)' == 'Windows_NT'">%COVERAGE_TOOL_CMD%</_CodeCoverageToolEnvVar>
+
     <_CodeCoverageReportFileNameSuffixEnvVar Condition="'$(OS)' != 'Windows_NT'">${CODE_COV_FILE_SUFFIX}</_CodeCoverageReportFileNameSuffixEnvVar>
     <_CodeCoverageReportFileNameSuffixEnvVar Condition="'$(OS)' == 'Windows_NT'">%CODE_COV_FILE_SUFFIX%</_CodeCoverageReportFileNameSuffixEnvVar>
 
@@ -62,7 +65,7 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(RunTestsOnHelix)' == 'true' and '$(IsTestProject)' == 'true'">
-    <_TestCoverageCommand Include="${COVERAGE_TOOL_CMD} collect" />
+    <_TestCoverageCommand Include="$(_CodeCoverageToolEnvVar) collect" />
     <_TestCoverageCommand Include="--settings CodeCoverage.config" />
     <!-- FIXME: _CodeCoverageReportFileNameSuffixEnvVar -->
     <_TestCoverageCommand Include="--output $(_LogsPathEnvVar)/$(MSBuildProjectName)$(_CodeCoverageReportFileNameSuffixEnvVar).cobertura.xml" />
