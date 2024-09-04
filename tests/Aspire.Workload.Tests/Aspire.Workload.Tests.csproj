@@ -16,6 +16,9 @@
 
     <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(ArchiveTests)' == 'true'">true</ExtractTestClassNamesForHelix>
     <ExtractTestClassNamesPrefix>Aspire.Workload.Tests</ExtractTestClassNamesPrefix>
+
+    <!-- 20 mins -->
+    <TestSessionTimeoutForHelix>1200000</TestSessionTimeoutForHelix>
   </PropertyGroup>
 
   <Import Project="..\Shared\WorkloadTesting\Aspire.Shared.WorkloadTesting.targets" />
