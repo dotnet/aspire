@@ -6,6 +6,7 @@ using static Microsoft.Playwright.Assertions;
 using Xunit;
 using Xunit.Abstractions;
 using Aspire.Hosting.Redis;
+using System.Collections.Generic;
 
 namespace Aspire.Workload.Tests;
 
@@ -103,7 +104,7 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
                     r => Assert.True(DateTime.TryParse(r, out _)),
                     r => Assert.True(int.TryParse(r, out var actualTempC) && actualTempC >= -20 && actualTempC <= 55),
                     r => Assert.True(int.TryParse(r, out var actualTempF) && actualTempF >= -5 && actualTempF <= 133),
-                    r => Assert.Contains(r, ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"]));
+                    r => Assert.Contains(r, new HashSet<string>{"Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"}));
             }
 
             return cellTexts;
