@@ -27,7 +27,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     private Subscription? _metricsSubscription;
 
     public string BasePath => DashboardUrls.MetricsBasePath;
-    public string SessionStorageKey => "Metrics_PageState";
+    public string SessionStorageKey => BrowserStorageKeys.MetricsPageState;
     public MetricsViewModel PageViewModel { get; set; } = null!;
 
     [Parameter]
@@ -43,7 +43,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "duration")]
-    public int DurationMinutes { get; set; }
+    public int? DurationMinutes { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "view")]
@@ -238,15 +238,11 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     public string GetUrlFromSerializableViewModel(MetricsPageState serializable)
     {
-        var duration = PageViewModel.SelectedDuration.Id != s_defaultDuration
-            ? (int?)serializable.DurationMinutes
-            : null;
-
         var url = DashboardUrls.MetricsUrl(
             resource: serializable.ApplicationName,
             meter: serializable.MeterName,
             instrument: serializable.InstrumentName,
-            duration: duration,
+            duration: serializable.DurationMinutes,
             view: serializable.ViewKind);
 
         return url;

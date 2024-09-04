@@ -104,6 +104,37 @@ public class ResourceNotificationService
     }
 
     /// <summary>
+    /// Waits until a resource satisfies the specified predicate.
+    /// </summary>
+    /// <remarks>
+    /// This method returns a task that will complete when the specified predicate returns <see langword="true" />.<br/>
+    /// If the predicate isn't satisfied before <paramref name="cancellationToken"/> is signaled, this method
+    /// will throw <see cref="OperationCanceledException"/>.
+    /// </remarks>
+    /// <param name="resourceName">The name of the resource.</param>
+    /// <param name="predicate">A predicate which is evaluated for each <see cref="ResourceEvent"/> for the selected resource.</param>
+    /// <param name="cancellationToken">A cancellation token that cancels the wait operation when signaled.</param>
+    /// <returns>A <see cref="Task{ResourceEvent}"/> representing the wait operation and which of the target states the resource reached.</returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
+                                                     Justification = "predicate and targetState(s) parameters are mutually exclusive.")]
+    public async Task<ResourceEvent> WaitForResourceAsync(string resourceName, Func<ResourceEvent, bool> predicate, CancellationToken cancellationToken = default)
+    {
+        using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_applicationStopping, cancellationToken);
+        var watchToken = watchCts.Token;
+        await foreach (var resourceEvent in WatchAsync(watchToken).ConfigureAwait(false))
+        {
+            if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName)
+                && resourceEvent.Snapshot.State?.Text is { Length: > 0 } statusText
+                && predicate(resourceEvent))
+            {
+                return resourceEvent;
+            }
+        }
+
+        throw new OperationCanceledException($"The operation was cancelled before the resource met the predicate condition.");
+    }
+
+    /// <summary>
     /// Watch for changes to the state for all resources.
     /// </summary>
     /// <returns></returns>

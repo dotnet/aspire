@@ -15,15 +15,19 @@ public sealed class DefaultInstrumentUnitResolver(IStringLocalizer<ControlsStrin
     {
         if (!string.IsNullOrEmpty(instrument.Unit))
         {
-            var unit = OtlpUnits.GetUnit(instrument.Unit.TrimStart('{').TrimEnd('}'));
-            if (pluralize)
+            var (unit, isRateUnit) = OtlpUnits.GetUnit(instrument.Unit.TrimStart('{').TrimEnd('}'));
+
+            // Don't pluralize rate units, e.g. We want "Bytes per second", not "Bytes per seconds".
+            if (pluralize && !isRateUnit)
             {
                 unit = unit.Pluralize();
             }
+
             if (titleCase)
             {
                 unit = unit.Titleize();
             }
+
             return unit;
         }
 

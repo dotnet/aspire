@@ -4,6 +4,8 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -548,5 +550,146 @@ public static class ResourceBuilderExtensions
     public static IResourceBuilder<T> ExcludeFromManifest<T>(this IResourceBuilder<T> builder) where T : IResource
     {
         return builder.WithAnnotation(ManifestPublishingCallbackAnnotation.Ignore);
+    }
+
+    /// <summary>
+    /// Waits for the dependency resource to enter the Running state before starting the resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder for the resource that will be waiting.</param>
+    /// <param name="dependency">The resource builder for the dependency resource.</param>
+    /// <returns>The resource builder.</returns>
+    /// <remarks>
+    /// <para>This method is useful when a resource should wait until another has started running. This can help
+    /// reduce errors in logs during local development where dependency resources.</para>
+    /// </remarks>
+    /// <example>
+    /// Start message queue before starting the worker service.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var messaging = builder.AddRabbitMQ("messaging");
+    /// builder.AddProject&lt;Projects.MyApp&gt;("myapp")
+    ///        .WithReference(messaging)
+    ///        .WaitFor(messaging);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T : IResource
+    {
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (e, ct) =>
+        {
+            var rls = e.Services.GetRequiredService<ResourceLoggerService>();
+            var resourceLogger = rls.GetLogger(builder.Resource);
+            resourceLogger.LogInformation("Waiting for resource '{Name}' to enter the '{State}' state.", dependency.Resource.Name, KnownResourceStates.Running);
+
+            var rns = e.Services.GetRequiredService<ResourceNotificationService>();
+            await rns.PublishUpdateAsync(builder.Resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
+            var resourceEvent = await rns.WaitForResourceAsync(dependency.Resource.Name, re => IsContinuableState(re.Snapshot), cancellationToken: ct).ConfigureAwait(false);
+            var snapshot = resourceEvent.Snapshot;
+
+            if (snapshot.State == KnownResourceStates.FailedToStart)
+            {
+                resourceLogger.LogError(
+                    "Dependency resource '{ResourceName}' failed to start.",
+                    dependency.Resource.Name
+                    );
+
+                throw new DistributedApplicationException($"Dependency resource '{dependency.Resource.Name}' failed to start.");
+            }
+            else if (snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited)
+            {
+                resourceLogger.LogError(
+                    "Resource '{ResourceName}' has entered the '{State}' state prematurely.",
+                    dependency.Resource.Name,
+                    snapshot.State.Text
+                    );
+
+                throw new DistributedApplicationException(
+                    $"Resource '{dependency.Resource.Name}' has entered the '{snapshot.State.Text}' state prematurely."
+                    );
+            }
+        });
+
+        return builder;
+
+        static bool IsContinuableState(CustomResourceSnapshot snapshot) =>
+            snapshot.State?.Text == KnownResourceStates.Running ||
+            snapshot.State?.Text == KnownResourceStates.Finished ||
+            snapshot.State?.Text == KnownResourceStates.Exited ||
+            snapshot.State?.Text == KnownResourceStates.FailedToStart;
+    }
+
+    /// <summary>
+    /// Waits for the dependency resource to enter the Exited or Finished state before starting the resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder for the resource that will be waiting.</param>
+    /// <param name="dependency">The resource builder for the dependency resource.</param>
+    /// <param name="exitCode">The exit code which is interpretted as successful.</param>
+    /// <returns>The resource builder.</returns>
+    /// <remarks>
+    /// <para>This method is useful when a resource should wait until another has completed. A common usage pattern
+    /// would be to include a console application that initializes the database schema or performs other one off
+    /// initialization tasks.</para>
+    /// <para>Note that this method has no impact at deployment time and only works for local development.</para>
+    /// </remarks>
+    /// <example>
+    /// Wait for database initialization app to complete running.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var pgsql = builder.AddPostgres("postgres");
+    /// var dbprep = builder.AddProject&lt;Projects.DbPrepApp&gt;("dbprep")
+    ///                     .WithReference(pgsql);
+    /// builder.AddProject&lt;Projects.DatabasePrepTool&gt;("dbprep")
+    ///        .WithReference(pgsql)
+    ///        .WaitForCompletion(dbprep);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WaitForCompletion<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, int exitCode = 0) where T : IResource
+    {
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (e, ct) =>
+        {
+            if (dependency.Resource.TryGetLastAnnotation<ReplicaAnnotation>(out var replicaAnnotation) && replicaAnnotation.Replicas > 1)
+            {
+                throw new DistributedApplicationException("WaitForCompletion cannot be used with resources that have replicas.");
+            }
+
+            var rls = e.Services.GetRequiredService<ResourceLoggerService>();
+            var resourceLogger = rls.GetLogger(builder.Resource);
+            resourceLogger.LogInformation($"Waiting for resource '{dependency.Resource.Name}' to complete.");
+
+            var rns = e.Services.GetRequiredService<ResourceNotificationService>();
+            await rns.PublishUpdateAsync(builder.Resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
+            var resourceEvent = await rns.WaitForResourceAsync(dependency.Resource.Name, re => IsKnownTerminalState(re.Snapshot), cancellationToken: ct).ConfigureAwait(false);
+            var snapshot = resourceEvent.Snapshot;
+
+            if (snapshot.State == KnownResourceStates.FailedToStart)
+            {
+                resourceLogger.LogError(
+                    "Dependency resource '{ResourceName}' failed to start.",
+                    dependency.Resource.Name
+                    );
+
+                throw new DistributedApplicationException($"Dependency resource '{dependency.Resource.Name}' failed to start.");
+            }
+            else if ((snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited)  && snapshot.ExitCode != exitCode)
+            {
+                resourceLogger.LogError(
+                    "Resource '{ResourceName}' has entered the '{State}' state with exit code '{ExitCode}'",
+                    dependency.Resource.Name,
+                    snapshot.State.Text,
+                    snapshot.ExitCode
+                    );
+
+                throw new DistributedApplicationException(
+                    $"Resource '{dependency.Resource.Name}' has entered the '{snapshot.State.Text}' state with exit code '{snapshot.ExitCode}'"
+                    );
+            }
+        });
+
+        return builder;
+
+        static bool IsKnownTerminalState(CustomResourceSnapshot snapshot) =>
+            KnownResourceStates.TerminalStates.Contains(snapshot.State?.Text) &&
+            snapshot.ExitCode is not null;
     }
 }

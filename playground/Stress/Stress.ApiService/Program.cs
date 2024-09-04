@@ -20,7 +20,29 @@ var app = builder.Build();
 
 app.Lifetime.ApplicationStarted.Register(ConsoleStresser.Stress);
 
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    _ = app.Services.GetRequiredService<TestMetrics>();
+});
+
 app.MapGet("/", () => "Hello world");
+
+app.MapGet("/write-console", () =>
+{
+    for (var i = 0; i < 5000; i++)
+    {
+        if (i % 500 == 0)
+        {
+            Console.Error.WriteLine($"{i} Error");
+        }
+        else
+        {
+            Console.Out.WriteLine($"{i} Out");
+        }
+    }
+
+    return "Console written";
+});
 
 app.MapGet("/increment-counter", (TestMetrics metrics) =>
 {
