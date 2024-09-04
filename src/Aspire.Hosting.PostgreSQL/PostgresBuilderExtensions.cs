@@ -47,7 +47,8 @@ public static class PostgresBuilderExtensions
             connectionString = await postgresServer.GetConnectionStringAsync(ct).ConfigureAwait(false);
         });
 
-        builder.Services.AddHealthChecks().AddNpgSql(sp => connectionString!, name: $"{name}_check", configure: (connection) =>
+        var healthCheckName = $"{name}_check";
+        builder.Services.AddHealthChecks().AddNpgSql(sp => connectionString!, name: healthCheckName, configure: (connection) =>
         {
             // HACK: The Npgsql client defaults to using the username in the connection string if the database is not specified. Here
             //       we override this default behavior because we are working with a non-database scoped connection string. The Aspirified
@@ -69,7 +70,7 @@ public static class PostgresBuilderExtensions
                           context.EnvironmentVariables[UserEnvVarName] = postgresServer.UserNameReference;
                           context.EnvironmentVariables[PasswordEnvVarName] = postgresServer.PasswordParameter;
                       })
-                      .WithAnnotation(new HealthCheckAnnotation($"{postgresServer.Name}_check"));
+                      .WithAnnotation(new HealthCheckAnnotation(healthCheckName);
     }
 
     /// <summary>
