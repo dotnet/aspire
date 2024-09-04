@@ -12,7 +12,7 @@
       repo by adding appropriate `Directory.Build.{props,targets}`, and `Directory.Packages.props`
       - and using a custom `nuget.config` which resolves the Aspire packages from the locally built packages
       - and a `Directory.Packages.Versions.props` is generated with PackageVersions taken from the repo
-        - This also adds properties named in `@(PropertyForHelixRun)` from the repo, like `$(NetCurrent)`
+        - This also adds properties named in `@(PropertyForHelixRun)` from the repo, like `$(DefaultTargetFramework)`
 
     Public Properties:
       `TestsRunningOutsideOfRepo` - When `true`, `@(*ReferenceForTests)` are converted to `PackageReferences`. Else they become
@@ -81,7 +81,7 @@
 
     <None Include="$(TestsSharedDir)\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
-    <PropertyForHelixRun Include="NetCurrent" />
+    <PropertyForHelixRun Include="DefaultTargetFramework" />
     <PropertyForHelixRun Include="XunitVersion" />
     <PropertyForHelixRun Include="XunitAnalyzersVersion" />
     <PropertyForHelixRun Include="XunitRunnerVisualStudioVersion" />

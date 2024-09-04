@@ -12,6 +12,7 @@
       This should get updated each time packages are shipped.
     -->
     <BaselineVersionForPackageValidation>8.0.1</BaselineVersionForPackageValidation>
+    <DefaultTargetFramework>net8.0</DefaultTargetFramework>
     <!-- dotnet 8.0 versions for running tests -->
     <DotNetRuntimeVersionForTesting>8.0.8</DotNetRuntimeVersionForTesting>
     <!-- dotnet 8.0 versions for running tests - used for workload tests -->

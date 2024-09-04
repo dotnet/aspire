@@ -124,9 +124,7 @@
       <UnexpectedPackages Include="@(AllPackages)" Exclude="@(ExpectedPackagePaths)" />
 
       <!-- Ignore these packages which are part of the workload. Existence of these would get checked
-           by the workload installation targets. -->
-      <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Aspire.Hosting.Sdk.'))" />
-      <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Aspire.ProjectTemplates.'))" />
+           by the workload installation targets. And their names don't correspond to project names. -->
       <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Microsoft.NET.Sdk.Aspire.Manifest-'))" />
 
       <!-- Exclude the packages with arch-specific nugets -->
