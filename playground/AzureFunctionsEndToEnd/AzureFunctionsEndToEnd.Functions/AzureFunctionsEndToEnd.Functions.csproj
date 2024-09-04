@@ -37,7 +37,6 @@
   <!-- HACK: Simulate running the Azure Functions project via `dotnet run` by spawning the host via a run command. -->
   <PropertyGroup>
     <RunCommand>func</RunCommand>
-    <RunArguments>start --no-build --csharp --verbose</RunArguments>
-     <RunWorkingDirectory>bin/output</RunWorkingDirectory>
+    <RunArguments>start --csharp --verbose</RunArguments>
   </PropertyGroup>
 </Project>
