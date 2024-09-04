@@ -33,7 +33,7 @@ public static class RedisBuilderExtensions
 
         string? connectionString = null;
 
-        builder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>(async (@event, ct) =>
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(redis, async (@event, ct) =>
         {
             connectionString = await redis.GetConnectionStringAsync(ct).ConfigureAwait(false);
         });
