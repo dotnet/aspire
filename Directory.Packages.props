@@ -31,7 +31,7 @@
     <PackageVersion Include="Azure.Storage.Queues" Version="12.19.1" />
     <PackageVersion Include="Microsoft.Azure.AppConfiguration.AspNetCore" Version="7.3.0" />
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.42.0" />
-    <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.26.1" />
+    <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.27.0" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.7.5" />
     <!-- Azure Management SDK for .NET dependencies -->
     <PackageVersion Include="Azure.Provisioning" Version="0.3.0" />
@@ -103,7 +103,7 @@
     <PackageVersion Include="Grpc.Tools" Version="2.65.0" />
     <PackageVersion Include="Humanizer.Core" Version="2.14.1" />
     <PackageVersion Include="KubernetesClient" Version="14.0.9" />
-    <PackageVersion Include="Microsoft.Data.SqlClient" Version="5.2.1" />
+    <PackageVersion Include="Microsoft.Data.SqlClient" Version="5.2.2" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.9.3" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.9.3" />
     <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1"/>

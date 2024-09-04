@@ -119,7 +119,12 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
 
     const resizeObserver = new ResizeObserver(entries => {
         for (let entry of entries) {
-            Plotly.Plots.resize(entry.target);
+            // Don't resize if not visible.
+            var display = window.getComputedStyle(entry.target).display;
+            var isHidden = !display || display === "none";
+            if (!isHidden) {
+                Plotly.Plots.resize(entry.target);
+            }
         }
     });
     plot.then(plotyDiv => {
