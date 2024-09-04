@@ -17,8 +17,7 @@ basketCache.WithRedisCommander(c =>
 #endif
 
 var catalogDbApp = builder.AddProject<Projects.CatalogDb>("catalogdbapp")
-                          .WithReference(catalogDb)
-                          .WaitFor(postgres);
+                          .WithReference(catalogDb);
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
                             .WithReference(catalogDb)
