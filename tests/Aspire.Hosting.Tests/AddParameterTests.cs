@@ -207,6 +207,20 @@ public class AddParameterTests
         Assert.Equal(expectedManifest, param1Manifest.ToString());
     }
 
+    [Fact]
+    public void ParametersWithDefaultValueObjectOverloadOnlyGetWrappedWhenTheyShould()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        // When using GenerateParameterDefault, it should get wrapped, since it has NeedsPersistence => true
+        var parameter1 = appBuilder.AddParameter("val1", new GenerateParameterDefault());
+        Assert.IsType<UserSecretsParameterDefault>(parameter1.Resource.Default);
+
+        // When using TestParameterDefault, it should *not* get wrapped, since it has NeedsPersistence => false
+        var parameter2 = appBuilder.AddParameter("val2", new TestParameterDefault("val"));
+        Assert.IsNotType<UserSecretsParameterDefault>(parameter2.Resource.Default);
+    }
+
     private sealed class TestParameterDefault(string defaultValue) : ParameterDefault
     {
         public override string GetDefaultValue() => defaultValue;
