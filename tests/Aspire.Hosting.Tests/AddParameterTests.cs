@@ -218,7 +218,7 @@ public class AddParameterTests
 
         // When using TestParameterDefault, it should *not* get wrapped, since it has NeedsPersistence => false
         var parameter2 = appBuilder.AddParameter("val2", new TestParameterDefault("val"));
-        Assert.IsNotType<UserSecretsParameterDefault>(parameter2.Resource.Default);
+        Assert.IsType<TestParameterDefault>(parameter2.Resource.Default);
     }
 
     private sealed class TestParameterDefault(string defaultValue) : ParameterDefault
