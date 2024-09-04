@@ -6,7 +6,6 @@ using static Microsoft.Playwright.Assertions;
 using Xunit;
 using Xunit.Abstractions;
 using Aspire.Hosting.Redis;
-using System.Collections.Generic;
 
 namespace Aspire.Workload.Tests;
 
