@@ -86,7 +86,7 @@ public static class AzureFunctionsProjectResourceExtensions
         }
 
         resource.HostStorage = storage;
-
+        
         return builder.AddResource(resource)
             .WithAnnotation(new TProject())
             .WithEnvironment(context =>

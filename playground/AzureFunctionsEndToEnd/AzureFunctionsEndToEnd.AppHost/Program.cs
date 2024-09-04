@@ -8,7 +8,7 @@ var blob = storage.AddBlobs("blob");
 
 var eventHubs = builder.AddAzureEventHubs("eventhubs").RunAsEmulator().AddEventHub("myhub");
 
-var funcApp = builder.AddAzureFunctionsProject<Projects.AzureFunctionsEndToEnd_Functions>("funcapp")
+var funcApp = builder.AddAzureFunctionsProject<Projects.AzureFunctionsEndToEnd_Functions>("funcapp") 
     .WithExternalHttpEndpoints()
     .WithReference(blob)
     .WithReference(queue)

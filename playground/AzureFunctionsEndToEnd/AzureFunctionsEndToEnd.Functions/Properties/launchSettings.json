@@ -2,7 +2,6 @@
   "profiles": {
     "AzureFunctionsEndToEnd_Functions": {
       "commandName": "Project",
-      "commandLineArgs": "--port 7264",
       "launchBrowser": false
     }
   }
