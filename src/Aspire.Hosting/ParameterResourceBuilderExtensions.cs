@@ -50,13 +50,24 @@ public static class ParameterResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">Distributed application builder</param>
     /// <param name="name">Name of parameter resource</param>
-    /// <param name="defaultValue">A ParameterDefault that is used if the name is not found in the configuration</param>
+    /// <param name="defaultValue">A <see cref="ParameterDefault"/> that is used if the name is not found in the configuration</param>
     /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
     /// <returns>Resource builder for the parameter.</returns>
+    /// <remarks>
+    /// If the passed in <see cref="ParameterDefault"/> needs it, its value gets persisted to the app host project's user secrets
+    /// store. This typically happens when the default value is generated, so that it stays stable across runs. This is only
+    /// relevant when <see cref="DistributedApplicationExecutionContext.IsRunMode"/> is <c>true</c>.
+    /// </remarks>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
                                                      Justification = "third parameters are mutually exclusive.")]
     public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, ParameterDefault defaultValue, bool secret = false)
     {
+        // If it needs persistence, wrap it in a UserSecretsParameterDefault
+        if (defaultValue.NeedsPersistence && builder.ExecutionContext.IsRunMode && builder.AppHostAssembly is not null)
+        {
+            defaultValue = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, name, defaultValue);
+        }
+
         return builder.AddParameter(
             name,
             parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault),
