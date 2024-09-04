@@ -35,6 +35,7 @@
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
 
     <ProjectReference Include="$(PlaygroundSourceDir)AzureStorageEndToEnd/AzureStorageEndToEnd.AppHost/AzureStorageEndToEnd.AppHost.csproj" />
+    <ProjectReference Include="$(PlaygroundSourceDir)AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.AppHost/AzureFunctionsEndToEnd.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)CosmosEndToEnd/CosmosEndToEnd.AppHost/CosmosEndToEnd.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)ParameterEndToEnd/ParameterEndToEnd.AppHost/ParameterEndToEnd.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)PostgresEndToEnd/PostgresEndToEnd.AppHost/PostgresEndToEnd.AppHost.csproj" />
