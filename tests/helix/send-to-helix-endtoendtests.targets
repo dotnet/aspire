@@ -32,7 +32,6 @@
     <ItemGroup>
       <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set TestsRunningOutsideOfRepo=true" />
       <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export TestsRunningOutsideOfRepo=true" />
-      <HelixPreCommand Include="$(_EnvVarSetKeyword) ExtraTestArgs=&quot;--filter scenario=$(_TestScenarioEnvVar)&quot;" />
 
       <_E2ETestScenarios Include="basicservices" />
       <_E2ETestScenarios Include="cosmos" />
@@ -44,6 +43,7 @@
 
         <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=$(_WorkItemName)&quot;</PreCommands>
         <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;TEST_SCENARIO=%(Identity)&quot;</PreCommands>
+        <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;ExtraTestArgs=--filter scenario=%(Identity)&quot;</PreCommands>
         <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=-%(Identity)&quot;</PreCommands>
 
         <Command>$(_TestRunCommand)</Command>
