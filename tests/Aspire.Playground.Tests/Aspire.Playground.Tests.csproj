@@ -18,8 +18,8 @@
     <TestsSharedDir>$(MSBuildThisFileDirectory)..\Shared\</TestsSharedDir>
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
 
-    <RunScriptOutputRelativePath Condition="'$(OS)' != 'Windows_NT'">$(DeployOutsideOfRepoSupportFilesRelativeDir)RunTests.sh</RunScriptOutputRelativePath>
-    <RunScriptOutputRelativePath Condition="'$(OS)' == 'Windows_NT'">$(DeployOutsideOfRepoSupportFilesRelativeDir)RunTests.cmd</RunScriptOutputRelativePath>
+    <RunScriptOutputRelativePath Condition="'$(OS)' != 'Windows_NT'">$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\RunTests.sh</RunScriptOutputRelativePath>
+    <RunScriptOutputRelativePath Condition="'$(OS)' == 'Windows_NT'">$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\RunTests.cmd</RunScriptOutputRelativePath>
   </PropertyGroup>
 
   <ItemGroup>

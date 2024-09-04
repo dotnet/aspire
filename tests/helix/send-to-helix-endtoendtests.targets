@@ -21,7 +21,6 @@
            Text="Could not find EndToEnd tests at %24(_E2ETestsArchivePath)=$(_E2ETestsArchivePath)" />
 
     <ItemGroup>
-      <_TestRunCommandArguments Include="--filter scenario=$(_TestScenarioEnvVar)" />
     </ItemGroup>
 
     <PropertyGroup>
@@ -33,6 +32,7 @@
     <ItemGroup>
       <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set TestsRunningOutsideOfRepo=true" />
       <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export TestsRunningOutsideOfRepo=true" />
+      <HelixPreCommand Include="$(_EnvVarSetKeyword) ExtraTestArgs=&quot;--filter scenario=$(_TestScenarioEnvVar)&quot;" />
 
       <_E2ETestScenarios Include="basicservices" />
       <_E2ETestScenarios Include="cosmos" />
