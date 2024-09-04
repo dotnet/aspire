@@ -63,7 +63,6 @@
     <PackageReference Include="xunit.assert" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
-    <PackageReference Include="Microsoft.DotNet.XUnitAssert" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(DeployOutsideOfRepoSupportFiles)' == 'true'">
