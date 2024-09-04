@@ -6,6 +6,7 @@ using Aspire.ResourceService.Proto.V1;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -17,7 +18,7 @@ namespace Aspire.Hosting.Dashboard;
 /// required beyond a single request. Longer-scoped data is stored in <see cref="DashboardServiceData"/>.
 /// </remarks>
 [Authorize(Policy = ResourceServiceApiKeyAuthorization.PolicyName)]
-internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime)
+internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime, ILogger<DashboardService> logger)
     : Aspire.ResourceService.Proto.V1.DashboardService.DashboardServiceBase
 {
     // Calls that consume or produce streams must create a linked cancellation token
@@ -53,18 +54,11 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         IServerStreamWriter<WatchResourcesUpdate> responseStream,
         ServerCallContext context)
     {
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping, context.CancellationToken);
+        await ExecuteAsync(
+            WatchResourcesInternal,
+            context.CancellationToken).ConfigureAwait(false);
 
-        try
-        {
-            await WatchResourcesInternal().ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is OperationCanceledException or IOException && cts.Token.IsCancellationRequested)
-        {
-            // Ignore cancellation and just return. Note that cancelled writes throw IOException.
-        }
-
-        async Task WatchResourcesInternal()
+        async Task WatchResourcesInternal(CancellationToken cancellationToken)
         {
             var (initialData, updates) = serviceData.SubscribeResources();
 
@@ -75,9 +69,9 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                 data.Resources.Add(Resource.FromSnapshot(resource));
             }
 
-            await responseStream.WriteAsync(new() { InitialData = data }).ConfigureAwait(false);
+            await responseStream.WriteAsync(new() { InitialData = data }, cancellationToken).ConfigureAwait(false);
 
-            await foreach (var batch in updates.WithCancellation(cts.Token).ConfigureAwait(false))
+            await foreach (var batch in updates.WithCancellation(cancellationToken).ConfigureAwait(false))
             {
                 WatchResourcesChanges changes = new();
 
@@ -101,7 +95,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                     changes.Value.Add(change);
                 }
 
-                await responseStream.WriteAsync(new() { Changes = changes }, cts.Token).ConfigureAwait(false);
+                await responseStream.WriteAsync(new() { Changes = changes }, cancellationToken).ConfigureAwait(false);
             }
         }
     }
@@ -111,18 +105,11 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         IServerStreamWriter<WatchResourceConsoleLogsUpdate> responseStream,
         ServerCallContext context)
     {
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping, context.CancellationToken);
+        await ExecuteAsync(
+            WatchResourceConsoleLogsInternal,
+            context.CancellationToken).ConfigureAwait(false);
 
-        try
-        {
-            await WatchResourceConsoleLogsInternal().ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is OperationCanceledException or IOException && cts.Token.IsCancellationRequested)
-        {
-            // Ignore cancellation and just return. Note that cancelled writes throw IOException.
-        }
-
-        async Task WatchResourceConsoleLogsInternal()
+        async Task WatchResourceConsoleLogsInternal(CancellationToken cancellationToken)
         {
             var subscription = serviceData.SubscribeConsoleLogs(request.ResourceName);
 
@@ -131,7 +118,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                 return;
             }
 
-            await foreach (var group in subscription.WithCancellation(cts.Token).ConfigureAwait(false))
+            await foreach (var group in subscription.WithCancellation(cancellationToken).ConfigureAwait(false))
             {
                 var update = new WatchResourceConsoleLogsUpdate();
 
@@ -140,8 +127,31 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                     update.LogLines.Add(new ConsoleLogLine() { LineNumber = lineNumber, Text = content, IsStdErr = isErrorMessage });
                 }
 
-                await responseStream.WriteAsync(update, cts.Token).ConfigureAwait(false);
+                await responseStream.WriteAsync(update, cancellationToken).ConfigureAwait(false);
             }
+        }
+    }
+
+    private async Task ExecuteAsync(Func<CancellationToken, Task> execute, CancellationToken cancellationToken)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping, cancellationToken);
+
+        try
+        {
+            await execute(cts.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cts.Token.IsCancellationRequested)
+        {
+            // Ignore cancellation and just return.
+        }
+        catch (IOException) when (cts.Token.IsCancellationRequested)
+        {
+            // Ignore cancellation and just return. Cancelled writes throw IOException.
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Error executing service method.");
+            throw;
         }
     }
 }
