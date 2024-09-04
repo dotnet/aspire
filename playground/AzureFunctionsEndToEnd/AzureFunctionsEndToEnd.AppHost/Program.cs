@@ -8,20 +8,16 @@ var blob = storage.AddBlobs("blob");
 
 var eventHubs = builder.AddAzureEventHubs("eventhubs").RunAsEmulator().AddEventHub("myhub");
 
-var funcApp = builder.AddAzureFunctionsProject<Projects.AzureFunctionsEndToEnd_Functions>("funcapp") 
+var funcApp = builder.AddAzureFunctionsProject<Projects.AzureFunctionsEndToEnd_Functions>("funcapp")
     .WithExternalHttpEndpoints()
     .WithReference(blob)
     .WithReference(queue)
     .WithReference(eventHubs);
 
-var apiService = builder.AddProject<Projects.AzureFunctionsEndToEnd_ApiService>("apiservice")
+builder.AddProject<Projects.AzureFunctionsEndToEnd_ApiService>("apiservice")
     .WithReference(queue)
     .WithReference(blob)
-    .WithReference(eventHubs);
-
-builder.AddProject<Projects.AzureFunctionsEndToEnd_Web>("webfrontend")
-    .WithExternalHttpEndpoints()
     .WithReference(funcApp)
-    .WithReference(apiService);
+    .WithReference(eventHubs);
 
 builder.Build().Run();

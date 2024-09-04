@@ -50,6 +50,12 @@ app.MapGet("/publish/eventhubs", async (EventHubProducerClient client, Cancellat
     return Results.Ok("Message sent to Azure EventHubs.");
 });
 
+app.MapGet("/", async (HttpClient client) =>
+{
+    var stream = await client.GetStreamAsync("http://funcapp/api/weatherforecast");
+    return Results.Stream(stream, "application/json");
+});
+
 app.MapDefaultEndpoints();
 
 app.Run();
