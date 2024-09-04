@@ -12,6 +12,11 @@
       This should get updated each time packages are shipped.
     -->
     <BaselineVersionForPackageValidation>8.0.1</BaselineVersionForPackageValidation>
+    <!-- dotnet 8.0 versions for running tests -->
+    <DotNetRuntimeVersionForTesting>8.0.8</DotNetRuntimeVersionForTesting>
+    <!-- dotnet 8.0 versions for running tests - used for workload tests -->
+    <DotNetSdkVersionForTesting>8.0.401</DotNetSdkVersionForTesting>
+
     <UseVSTestRunner>true</UseVSTestRunner>
     <!-- Enable to remove prerelease label. -->
     <StabilizePackageVersion Condition="'$(StabilizePackageVersion)' == ''">false</StabilizePackageVersion>

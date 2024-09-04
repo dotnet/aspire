@@ -5,7 +5,21 @@
     "allowPrerelease": true
   },
   "tools": {
-    "dotnet": "9.0.100-preview.7.24407.12"
+    "dotnet": "9.0.100-preview.7.24407.12",
+    "runtimes": {
+      "dotnet/x64": [
+        "$(DotNetRuntimeVersionForTesting)"
+      ],
+      "dotnet/arm64": [
+        "$(DotNetRuntimeVersionForTesting)"
+      ],
+      "aspnetcore/x64": [
+        "$(DotNetRuntimeVersionForTesting)"
+      ],
+      "aspnetcore/arm64": [
+        "$(DotNetRuntimeVersionForTesting)"
+      ]
+    }
   },
   "msbuild-sdks": {
     "Microsoft.DotNet.Arcade.Sdk": "9.0.0-beta.24453.1",
