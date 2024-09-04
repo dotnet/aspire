@@ -280,13 +280,6 @@ public class AppHostTests
                     new ("basketservice", "Application started"),
                     new ("postgres", "database system is ready to accept connections"),
                 ]),
-            new TestEndpoints("AzureFunctionsEndToEnd.AppHost",
-                resourceEndpoints: new() { { "funcapp", ["/api/weatherforecast"] } },
-                waitForTexts: [
-                    new ("funcapp", "MyAzureBlobTrigger: blobTrigger"),
-                    new ("funcapp", "MyAzureQueueTrigger: queueTrigger"),
-                    new ("funcapp", "MyEventHubTrigger: eventHubTrigger"),
-                ]),
         ];
 
         return candidates;

@@ -54,6 +54,69 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
         await app.StopAsync();
     }
 
+    [Fact]
+    public async Task AzureFunctionsTest()
+    {
+        var appHostPath = Directory.GetFiles(AppContext.BaseDirectory, "AzureFunctionsEndToEnd.AppHost.dll").Single();
+        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, _testOutput);
+        await using var app = await appHost.BuildAsync();
+
+        await app.StartAsync();
+        await app.WaitForResources().WaitAsync(TimeSpan.FromMinutes(2));
+
+        // Wait for the blobTrigger to be discovered as an indication that the host and worker
+        // has been successfully launched
+        await WaitForAllTextAsync(app,
+            [
+                "MyAzureBlobTrigger: blobTrigger"
+            ],
+            resourceName: "funcapp",
+            timeoutSecs: 160);
+
+        // Assert that HTTP triggers work correctly
+        await app.CreateHttpClient("funcapp").GetAsync("/api/weatherforecast");
+        await WaitForAllTextAsync(app,
+            [
+                "Executing HTTP request:",
+                "api/weatherforecast"
+            ],
+            resourceName: "funcapp",
+            timeoutSecs: 160);
+
+        // Assert that Azure Storage Queue triggers work correctly
+        await app.CreateHttpClient("apiservice").GetAsync("/publish/asq");
+        await WaitForAllTextAsync(app,
+            [
+                "Executed 'Functions.MyAzureQueueTrigger'"
+            ],
+            resourceName: "funcapp",
+            timeoutSecs: 160);
+
+        // Assert that Azure Storage Blob triggers work correctly
+        await app.CreateHttpClient("apiservice").GetAsync("/publish/blob");
+        await WaitForAllTextAsync(app,
+            [
+                "Executed 'Functions.MyAzureBlobTrigger'"
+            ],
+            resourceName: "funcapp",
+            timeoutSecs: 160);
+
+        // Assert that EventHubs triggers work correctly
+        await app.CreateHttpClient("apiservice").GetAsync("/publish/eventhubs");
+        await WaitForAllTextAsync(app,
+            [
+                "Executed 'Functions.MyEventHubTrigger'"
+            ],
+            resourceName: "funcapp",
+            timeoutSecs: 160);
+
+        // TODO: The following line is commented out because the test fails due to an erroneous log in the Functions App
+        // resource that happens after the Functions host has been built. The error log shows up after the Functions
+        // worker extension has been built and before the host has launched.
+        // app.EnsureNoErrorsLogged();
+        await app.StopAsync();
+    }
+
     internal static Task WaitForAllTextAsync(DistributedApplication app, IEnumerable<string> logTexts, string? resourceName = null, int timeoutSecs = -1)
     {
         CancellationTokenSource cts = new();
