@@ -10,8 +10,7 @@ namespace Aspire.Hosting.Azure;
 /// Regardless, we'll likely want to use a custom resource type for functions to permit us to
 /// grow from one implementation to the next.
 /// </remarks>
-public class AzureFunctionsProjectResource(string name)
-    : ProjectResource(name), IResourceWithEnvironment, IResourceWithArgs, IResourceWithServiceDiscovery
+public class AzureFunctionsProjectResource(string name) : ProjectResource(name)
 {
     internal AzureStorageResource? HostStorage { get; set; }
 }
