@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <AzureFunctionsVersion>v4</AzureFunctionsVersion>
@@ -37,7 +37,7 @@
   <!-- HACK: Simulate running the Azure Functions project via `dotnet run` by spawning the host via a run command. -->
   <PropertyGroup>
     <RunCommand>func</RunCommand>
-    <RunArguments>start --no-build --csharp --verbose --worker-runtime dotnetIsolated --port $(AZFUNCHOSTPORT)</RunArguments>
+    <RunArguments>start --no-build --csharp --verbose</RunArguments>
      <RunWorkingDirectory>bin/output</RunWorkingDirectory>
   </PropertyGroup>
 </Project>

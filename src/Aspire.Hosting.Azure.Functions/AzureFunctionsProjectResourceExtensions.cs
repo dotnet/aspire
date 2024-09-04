@@ -100,8 +100,14 @@ public static class AzureFunctionsProjectResourceExtensions
                 // Set the storage connection string.
                 ((IResourceWithAzureFunctionsConfig)resource.HostStorage).ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, "Storage");
             })
+            .WithArgs(context =>
+            {
+                var http = resource.GetEndpoint("http");
+                context.Args.Add("--port");
+                context.Args.Add(http.Property(EndpointProperty.TargetPort));
+            })
             .WithOtlpExporter()
-            .WithHttpEndpoint(env: "AZFUNCHOSTPORT")
+            .WithHttpEndpoint()
             .WithManifestPublishingCallback(async (context) =>
             {
                 context.Writer.WriteString("type", "function.v0");
