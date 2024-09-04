@@ -122,10 +122,13 @@ internal sealed class ContainerExec : CustomResource<ContainerExecSpec, Containe
     {
         var containerExec = new ContainerExec(new ContainerExecSpec
         {
+            ContainerName = containerName,
             Command = command,
-        });
-        containerExec.Kind = Dcp.ContainerExecKind;
-        containerExec.ApiVersion = Dcp.GroupVersion.ToString();
+        })
+        {
+            Kind = Dcp.ContainerExecKind,
+            ApiVersion = Dcp.GroupVersion.ToString()
+        };
         containerExec.Metadata.Name = name;
         containerExec.Metadata.NamespaceProperty = string.Empty;
 

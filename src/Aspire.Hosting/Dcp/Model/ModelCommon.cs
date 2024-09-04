@@ -261,13 +261,13 @@ internal sealed class HealthProbe
     public string? Type;
 
     /// <summary>
-    /// If <see cref="HealthProbe.Type"> is HTTP, this configures the health probe.
+    /// If <see cref="HealthProbe.Type"/> is HTTP, this configures the health probe.
     /// </summary>
     [JsonPropertyName("httpProbe")]
     public HttpHealthProbeConfig? HttpProbe { get; set; }
 
     /// <summary>
-    /// If <see cref="HealthProbe.Type"> is Executable, this configures the health probe.
+    /// If <see cref="HealthProbe.Type"/> is Executable, this configures the health probe.
     /// </summary>
     [JsonPropertyName("executableProbe")]
     public ExecutableHealthProbeConfig? ExecutableProbe { get; set; }
@@ -353,7 +353,7 @@ internal sealed class HealthProbeSchedule
     /// The schedule kind for the health probe. For valid values see <see cref="HealthProbeScheduleKind"/>.
     /// </summary>
     [JsonPropertyName("kind")]
-    public string? Kind { get; set; };
+    public string? Kind { get; set; }
 
     /// <summary>
     /// The interval at which the health probe should be run.
