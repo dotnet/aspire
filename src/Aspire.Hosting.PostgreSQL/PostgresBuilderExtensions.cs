@@ -42,7 +42,7 @@ public static class PostgresBuilderExtensions
 
         string? connectionString = null;
 
-        builder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>(async (@event, ct) =>
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(postgresServer, async (@event, ct) =>
         {
             connectionString = await postgresServer.GetConnectionStringAsync(ct).ConfigureAwait(false);
         });

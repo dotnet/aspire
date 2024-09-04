@@ -15,6 +15,10 @@ Aspire.Hosting.ApplicationModel.BeforeStartEvent
 Aspire.Hosting.ApplicationModel.BeforeStartEvent.BeforeStartEvent(System.IServiceProvider! services, Aspire.Hosting.ApplicationModel.DistributedApplicationModel! model) -> void
 Aspire.Hosting.ApplicationModel.BeforeStartEvent.Model.get -> Aspire.Hosting.ApplicationModel.DistributedApplicationModel!
 Aspire.Hosting.ApplicationModel.BeforeStartEvent.Services.get -> System.IServiceProvider!
+Aspire.Hosting.ApplicationModel.ConnectionStringAvailableEvent
+Aspire.Hosting.ApplicationModel.ConnectionStringAvailableEvent.ConnectionStringAvailableEvent(Aspire.Hosting.ApplicationModel.IResource! resource, System.IServiceProvider! services) -> void
+Aspire.Hosting.ApplicationModel.ConnectionStringAvailableEvent.Resource.get -> Aspire.Hosting.ApplicationModel.IResource!
+Aspire.Hosting.ApplicationModel.ConnectionStringAvailableEvent.Services.get -> System.IServiceProvider!
 Aspire.Hosting.ApplicationModel.ContainerLifetimeAnnotation
 Aspire.Hosting.ApplicationModel.ContainerLifetimeAnnotation.ContainerLifetimeAnnotation() -> void
 Aspire.Hosting.ApplicationModel.ContainerLifetimeAnnotation.LifetimeType.get -> Aspire.Hosting.ApplicationModel.ContainerLifetimeType

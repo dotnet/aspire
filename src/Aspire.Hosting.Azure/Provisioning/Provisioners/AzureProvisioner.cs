@@ -152,6 +152,7 @@ internal sealed class AzureProvisioner(
 
         // This is fully async so we can just fire and forget
         _ = Task.Run(() => ProvisionAzureResources(
+            appModel,
             configuration,
             logger,
             azureResources,
@@ -167,6 +168,7 @@ internal sealed class AzureProvisioner(
     }
 
     private async Task ProvisionAzureResources(
+        DistributedApplicationModel appModel,
         IConfiguration configuration,
         ILogger<AzureProvisioner> logger,
         IList<IAzureResource> azureResources,
@@ -192,7 +194,7 @@ internal sealed class AzureProvisioner(
 
         foreach (var resource in azureResources)
         {
-            tasks.Add(ProcessResourceAsync(configuration, provisioningContextLazy, resource, cancellationToken));
+            tasks.Add(ProcessResourceAsync(appModel, configuration, provisioningContextLazy, resource, cancellationToken));
         }
 
         var task = Task.WhenAll(tasks);
@@ -226,7 +228,7 @@ internal sealed class AzureProvisioner(
         }
     }
 
-    private async Task ProcessResourceAsync(IConfiguration configuration, Lazy<Task<ProvisioningContext>> provisioningContextLazy, IAzureResource resource, CancellationToken cancellationToken)
+    private async Task ProcessResourceAsync(DistributedApplicationModel appModel, IConfiguration configuration, Lazy<Task<ProvisioningContext>> provisioningContextLazy, IAzureResource resource, CancellationToken cancellationToken)
     {
         var beforeResourceStartedEvent = new BeforeResourceStartedEvent(resource, serviceProvider);
         await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
@@ -269,8 +271,8 @@ internal sealed class AzureProvisioner(
         else if (await provisioner.ConfigureResourceAsync(configuration, resource, cancellationToken).ConfigureAwait(false))
         {
             resource.ProvisioningTaskCompletionSource?.TrySetResult();
-
             resourceLogger.LogInformation("Using connection information stored in user secrets for {resourceName}.", resource.Name);
+            await PublishConnectionStringAvailableEventAsync().ConfigureAwait(false);
         }
         else
         {
@@ -286,6 +288,7 @@ internal sealed class AzureProvisioner(
                     cancellationToken).ConfigureAwait(false);
 
                 resource.ProvisioningTaskCompletionSource?.TrySetResult();
+                await PublishConnectionStringAvailableEventAsync().ConfigureAwait(false);
             }
             catch (AzureCliNotOnPathException ex)
             {
@@ -308,6 +311,14 @@ internal sealed class AzureProvisioner(
 
                 resource.ProvisioningTaskCompletionSource?.TrySetException(new InvalidOperationException($"Unable to resolve references from {resource.Name}"));
             }
+        }
+
+        async Task PublishConnectionStringAvailableEventAsync()
+        {
+            var resolvedResource = appModel.Resources.Single(r => r.Name == resource.Name);
+
+            var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(resolvedResource, serviceProvider);
+            await eventing.PublishAsync(connectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
         }
     }
 
