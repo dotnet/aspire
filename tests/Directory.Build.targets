@@ -46,6 +46,8 @@
   </ItemGroup>
 
   <PropertyGroup Condition="'$(RunTestsOnHelix)' == 'true' and '$(IsTestProject)' == 'true'">
+    <RunScriptTestCommand Condition="'$(RunScriptTestCommand)' == ''">dotnet test -s .runsettings $(MSBuildProjectName).dll --ResultsDirectory:${LOGS_PATH} $(_TestBlameArgumentsProperty) $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(TestSessionTimeoutForHelix)</RunScriptTestCommand>
+
     <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' != 'Windows_NT'">$HELIX_CORRELATION_PAYLOAD</_HelixCorrelationPayloadEnvVar>
     <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_CORRELATION_PAYLOAD%</_HelixCorrelationPayloadEnvVar>
 
@@ -150,24 +152,21 @@
   </UsingTask>
 
   <Target Name="GenerateRunScript" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true' and '$(IsTestProject)' == 'true'">
+    <!-- TODO: error empty run commands -->
     <PropertyGroup>
       <_TestBlameArgumentsProperty>@(TestBlameArguments, ' ')</_TestBlameArgumentsProperty>
       <_TestCoverageCommandProperty>@(_TestCoverageCommand, ' ')</_TestCoverageCommandProperty>
+
+      <RunScriptRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">$(_TestCoverageCommandProperty) &quot;$(RunScriptTestCommand)&quot;</RunScriptRunCommand>
+      <RunScriptRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">$(RunScriptTestCommand)</RunScriptRunCommand>
     </PropertyGroup>
-
-    <ItemGroup>
-      <!--<RunScriptPreCommand />-->
-
-      <RunScriptRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'" Include="$(_TestCoverageCommandProperty) &quot;dotnet test -s .runsettings $(MSBuildProjectName).dll --ResultsDirectory:${LOGS_PATH} $(_TestBlameArgumentsProperty) $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(TestSessionTimeoutForHelix) &quot;" />
-      <RunScriptRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'" Include="dotnet test -s .runsettings $(MSBuildProjectName).dll --ResultsDirectory:${LOGS_PATH} $(_TestBlameArgumentsProperty) $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(TestSessionTimeoutForHelix) " />
-    </ItemGroup>
 
     <!-- FIXME: null checks -->
     <GenerateRunScript
         TemplateFile="$(RunTestsScriptTemplatePath)"
         Output="$(OutDir)$(RunScriptOutputRelativePath)"
         PreCommands="@(RunScriptPreCommand)"
-        RunCommands="@(RunScriptRunCommand)"
+        RunCommands="$(RunScriptRunCommand)"
     />
   </Target>
 
