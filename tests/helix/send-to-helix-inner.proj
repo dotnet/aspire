@@ -108,6 +108,24 @@
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="(cd $HELIX_CORRELATION_PAYLOAD/create-dotnet-devcert%3B chmod +x ubuntu-create-dotnet-devcert.sh %3B ./ubuntu-create-dotnet-devcert.sh)" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(NeedsAzureFunctionsCli)' == 'true'">
+    <HelixCorrelationPayload
+          Condition="'$(OS)' == 'Windows_NT'"
+          Include="https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.5907/Azure.Functions.Cli.min.win-x64_net8.4.0.5907.zip"
+          Destination="azure-func-cli" />
+    <HelixCorrelationPayload
+          Condition="'$(OS)' != 'Windows_NT'"
+          Include="https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.5907/Azure.Functions.Cli.linux-x64_net8.4.0.5907.zip"
+          Destination="azure-func-cli" />
+
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="(cd ${HELIX_CORRELATION_PAYLOAD}/azure-func-cli/Azure; chmod +x func gozip)" />
+
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\azure-func-cli\Azure%3B%PATH%" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/azure-func-cli/Azure:$PATH" />
+
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="find $HELIX_CORRELATION_PAYLOAD/azure-func-cli -type d" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(HasDocker)' == 'true'">
     <HelixPreCommand Include="docker info" />
     <HelixPreCommand Include="docker ps" />

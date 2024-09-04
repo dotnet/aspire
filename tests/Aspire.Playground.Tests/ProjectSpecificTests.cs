@@ -60,14 +60,6 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     [RequiresTools(["func"])]
     public async Task AzureFunctionsTest()
     {
-        if (PlatformDetection.IsRunningOnHelix)
-        {
-            // Skip this test on Helix as it is not supported until we've
-            // configured the Azure Functions Core Tools to install on the
-            // CI machines.
-            return;
-        }
-
         var appHostPath = Directory.GetFiles(AppContext.BaseDirectory, "AzureFunctionsEndToEnd.AppHost.dll").Single();
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, _testOutput);
         await using var app = await appHost.BuildAsync();
