@@ -113,7 +113,7 @@ public class AddParameterTests
     }
 
     [Fact]
-    public async Task ParametersWithDefaultValueStringOverloadOnlyUsedIfNoConfigurationValue()
+    public async Task ParametersWithDefaultValueStringOverloadUsedRegardlessOfConfigurationValue()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
@@ -153,7 +153,7 @@ public class AddParameterTests
     }
 
     [Fact]
-    public async Task ParametersWithDefaultValueObjectOverloadOnlyUsedIfNoConfigurationValue()
+    public async Task ParametersWithDefaultValueObjectOverloadUsedRegardlessOfConfigurationValue()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
