@@ -3,7 +3,6 @@
 
 using Xunit;
 using Xunit.Abstractions;
-using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace Aspire.Workload.Tests;
