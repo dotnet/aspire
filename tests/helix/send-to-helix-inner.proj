@@ -110,7 +110,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(NeedsAzureFunctionsCli)' == 'true'">
-    <HelixCorrelationPayload Include="$(_AzureFunctionsCliDirectory)" />
+    <HelixCorrelationPayload Include="$(_AzureFunctionsCliDirectory)" DestinationPath="azure-func-cli" />
 
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="(cd ${HELIX_CORRELATION_PAYLOAD}/azure-func-cli/Azure; chmod +x func gozip)" />
 
