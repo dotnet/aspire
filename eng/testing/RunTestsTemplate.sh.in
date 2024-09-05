@@ -4,8 +4,6 @@ set -x
 
 EXECUTION_DIR=$(dirname $0)
 
-TEST_TIMEOUT=${TEST_TIMEOUT:-600000}
-
 if [[ -z "$HELIX_WORKITEM_UPLOAD_ROOT" ]]; then
     LOGS_PATH="$EXECUTION_DIR/logs"
     COVERAGE_TOOL_CMD=dotnet-coverage

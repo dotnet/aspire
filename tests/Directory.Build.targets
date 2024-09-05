@@ -46,7 +46,8 @@
   </ItemGroup>
 
   <PropertyGroup Condition="'$(RunTestsOnHelix)' == 'true' and '$(IsTestProject)' == 'true'">
-    <RunScriptTestCommand Condition="'$(RunScriptTestCommand)' == ''">dotnet test -s .runsettings $(MSBuildProjectName).dll --ResultsDirectory:${LOGS_PATH} $(_TestBlameArgumentsProperty) $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(TestSessionTimeoutForHelix)</RunScriptTestCommand>
+    <_ExtraTestArgsEnvVar Condition="'$(OS)' != 'Windows_NT'">$ExtraTestArgs</_ExtraTestArgsEnvVar>
+    <_ExtraTestArgsEnvVar Condition="'$(OS)' == 'Windows_NT'">%ExtraTestArgs%</_ExtraTestArgsEnvVar>
 
     <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' != 'Windows_NT'">$HELIX_CORRELATION_PAYLOAD</_HelixCorrelationPayloadEnvVar>
     <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_CORRELATION_PAYLOAD%</_HelixCorrelationPayloadEnvVar>
@@ -60,8 +61,7 @@
     <_LogsPathEnvVar Condition="'$(OS)' != 'Windows_NT'">$LOGS_PATH</_LogsPathEnvVar>
     <_LogsPathEnvVar Condition="'$(OS)' == 'Windows_NT'">%LOGS_PATH%</_LogsPathEnvVar>
 
-    <_ExtraTestArgsEnvVar Condition="'$(OS)' != 'Windows_NT'">$ExtraTestArgs</_ExtraTestArgsEnvVar>
-    <_ExtraTestArgsEnvVar Condition="'$(OS)' == 'Windows_NT'">%ExtraTestArgs%</_ExtraTestArgsEnvVar>
+    <RunScriptTestCommand Condition="'$(RunScriptTestCommand)' == ''">dotnet test -s .runsettings $(MSBuildProjectName).dll --ResultsDirectory:${LOGS_PATH} $(_TestBlameArgumentsProperty) $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(TestSessionTimeoutForHelix)</RunScriptTestCommand>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(RunTestsOnHelix)' == 'true' and '$(IsTestProject)' == 'true'">

@@ -3,11 +3,6 @@ setlocal enabledelayedexpansion
 
 set EXECUTION_DIR=%~dp0
 
-if [%TEST_TIMEOUT%] == [] (
-  :: default timeout - 5 mins
-  set TEST_TIMEOUT=600000
-)
-
 if [%HELIX_WORKITEM_UPLOAD_ROOT%] == [] (
     set LOGS_PATH="%EXECUTION_DIR%\logs"
     set COVERAGE_TOOL_CMD=dotnet-coverage.exe
