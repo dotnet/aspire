@@ -61,7 +61,7 @@
     <_LogsPathEnvVar Condition="'$(OS)' != 'Windows_NT'">$LOGS_PATH</_LogsPathEnvVar>
     <_LogsPathEnvVar Condition="'$(OS)' == 'Windows_NT'">%LOGS_PATH%</_LogsPathEnvVar>
 
-    <RunScriptTestCommand Condition="'$(RunScriptTestCommand)' == ''">dotnet test -s .runsettings $(MSBuildProjectName).dll --ResultsDirectory:${LOGS_PATH} $(_TestBlameArgumentsProperty) $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(TestSessionTimeoutForHelix)</RunScriptTestCommand>
+    <RunScriptTestCommand Condition="'$(RunScriptTestCommand)' == ''">dotnet test -s .runsettings $(MSBuildProjectName).dll --ResultsDirectory:$(_LogsPathEnvVar) $(_TestBlameArgumentsProperty) $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(TestSessionTimeoutForHelix)</RunScriptTestCommand>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(RunTestsOnHelix)' == 'true' and '$(IsTestProject)' == 'true'">
