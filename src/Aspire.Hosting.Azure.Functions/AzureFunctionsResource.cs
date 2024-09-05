@@ -5,14 +5,15 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
 
+/// <summary>
+/// Represents an Azure Functions project resource within the Aspire hosting environment.
+/// </summary>
 /// <remarks>
-/// This well-defined AzureFunctionsProjectResource type allows us to implement custom logic required by
-/// Azure Functions. Specifically, running the `func host` via coretools to support running a
-/// Functions host locally. We can imagine a future where we enable ProjectResource like behavior
-/// for Functions apps, in which case we could model the function app as a project resource.
-/// Regardless, we'll likely want to use a custom resource type for functions to permit us to
-/// grow from one implementation to the next.
-/// </remarks>
+/// This class is used to define and manage the configuration of an Azure Functions project,
+/// including its associated host storage. We create a strongly-typed resource for the Azure Functions
+/// to support Functions-specific customizations, like the mapping of connection strings and configurations
+/// for host storage.
+/// /// </remarks>
 public class AzureFunctionsProjectResource(string name) : ProjectResource(name)
 {
     internal AzureStorageResource? HostStorage { get; set; }

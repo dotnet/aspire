@@ -11,12 +11,12 @@ namespace Aspire.Hosting.Azure;
 public static class AzureFunctionsProjectResourceExtensions
 {
     /// <summary>
-    /// Add an Azure Functions project to the distributed application.
+    /// Adds an Azure Functions project to the distributed application.
     /// </summary>
-    /// <typeparam name="TProject"></typeparam>
-    /// <param name="builder"></param>
-    /// <param name="name"></param>
-    /// <returns></returns>
+    /// <typeparam name="TProject">The type of the project metadata, which must implement <see cref="IProjectMetadata"/> and have a parameterless constructor.</typeparam>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to which the Azure Functions project will be added.</param>
+    /// <param name="name">The name to associated with the Azure Functions project. This name will be used for service discovery when referenced in a dependency.</param>
+    /// <returns>An <see cref="IResourceBuilder{AzureFunctionsProjectResource}"/> for the added Azure Functions project resource.</returns>
     public static IResourceBuilder<AzureFunctionsProjectResource> AddAzureFunctionsProject<TProject>(this IDistributedApplicationBuilder builder, string name) where TProject : IProjectMetadata, new()
     {
         var resource = new AzureFunctionsProjectResource(name);
@@ -132,11 +132,11 @@ public static class AzureFunctionsProjectResourceExtensions
     }
 
     /// <summary>
-    ///
+    /// Configures the Azure Functions project resource to use the specified Azure Storage resource as its host storage.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="storage"></param>
-    /// <returns></returns>
+    /// <param name="builder">The resource builder for the Azure Functions project resource.</param>
+    /// <param name="storage">The resource builder for the Azure Storage resource to be used as host storage.</param>
+    /// <returns>The resource builder for the Azure Functions project resource, configured with the specified host storage.</returns>
     public static IResourceBuilder<AzureFunctionsProjectResource> WithHostStorage(this IResourceBuilder<AzureFunctionsProjectResource> builder, IResourceBuilder<AzureStorageResource> storage)
     {
         builder.Resource.HostStorage = storage.Resource;

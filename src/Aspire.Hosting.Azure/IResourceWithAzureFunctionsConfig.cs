@@ -13,7 +13,7 @@ public interface IResourceWithAzureFunctionsConfig : IResource
     /// <summary>
     /// Applies the Azure Functions configuration to the target dictionary.
     /// </summary>
-    /// <param name="target"></param>
-    /// <param name="connectionName"></param>
+    /// <param name="target">The dictionary to which the Azure Functions configuration will be applied.</param>
+    /// <param name="connectionName">The name of the connection key to be used for the given configuration.</param>
     void ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName);
 }
