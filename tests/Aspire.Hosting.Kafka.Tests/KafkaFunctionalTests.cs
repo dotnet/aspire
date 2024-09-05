@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Confluent.Kafka;
 using Microsoft.Extensions.Configuration;
@@ -73,7 +74,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Theory]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4909")]
+    //[ActiveIssue("https://github.com/dotnet/aspire/issues/4909")]
     [InlineData(true)]
     [InlineData(false)]
     [RequiresDocker]
@@ -101,12 +102,32 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
             else
             {
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
+                if (!Directory.Exists(bindMountPath))
+                {
+                    if (OperatingSystem.IsWindows())
+                    {
+                        Directory.CreateDirectory(bindMountPath);
+                    }
+                    else
+                    {
+                        // the docker container runs as a non-root user, so we need to grant other user's read/write permission
+                        // to the bind mount directory.
+                        const UnixFileMode BindMountPermissions =
+                            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                            UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
+                        Directory.CreateDirectory(bindMountPath, BindMountPermissions);
+                    }
+                }
                 kafka1.WithDataBindMount(bindMountPath);
             }
 
             using (var app = builder1.Build())
             {
                 await app.StartAsync();
+
+                await app.WaitForTextAsync("Server started, listening for requests...", kafka1.Resource.Name);
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
@@ -139,6 +160,9 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
                 {
                     // Stops the container, or the Volume/mount would still be in use
                     await app.StopAsync();
+                    //kafka shutdown has delay,so without delay to running instance using same data and second instance failed to start.
+                    await Task.Delay(TimeSpan.FromMinutes(1));
+
                 }
             }
 
@@ -157,6 +181,8 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
             using (var app = builder2.Build())
             {
                 await app.StartAsync();
+                await app.WaitForTextAsync("Server started, listening for requests...", kafka1.Resource.Name);
+                
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
