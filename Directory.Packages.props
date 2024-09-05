@@ -6,7 +6,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-    <TestcontainersPackageVersion>3.9.0</TestcontainersPackageVersion>
+    <TestcontainersPackageVersion>3.10.0</TestcontainersPackageVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- AWS SDK for .NET dependencies -->
