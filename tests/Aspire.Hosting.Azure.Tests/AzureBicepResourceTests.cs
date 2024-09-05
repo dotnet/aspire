@@ -1070,6 +1070,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             @description('')
             param location string = resourceGroup().location
+            
+            @description('')
+            param sku string = 'Free_F1'
+            
+            @description('')
+            param capacity int = 1
 
             @description('')
             param principalId string
@@ -1085,8 +1091,96 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 'aspire-resource-name': 'signalr'
               }
               sku: {
-                name: 'Free_F1'
-                capacity: 1
+                name: sku
+                capacity: capacity
+              }
+              kind: 'SignalR'
+              properties: {
+                features: [
+                  {
+                    flag: 'ServiceMode'
+                    value: 'Default'
+                  }
+                ]
+                cors: {
+                  allowedOrigins: [
+                    '*'
+                  ]
+                }
+              }
+            }
+
+            resource roleAssignment_35voRFfVj 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+              scope: signalRService_iD3Yrl49T
+              name: guid(signalRService_iD3Yrl49T.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '420fcaa2-552c-430f-98ca-3264be4806c7'))
+              properties: {
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '420fcaa2-552c-430f-98ca-3264be4806c7')
+                principalId: principalId
+                principalType: principalType
+              }
+            }
+
+            output hostName string = signalRService_iD3Yrl49T.properties.hostName
+
+            """;
+        output.WriteLine(manifest.BicepText);
+        Assert.Equal(expectedBicep, manifest.BicepText);
+    }
+
+    [Fact]
+    public async Task AddAzureSignalRWithParameters()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var signalr = builder.AddAzureSignalR("signalr")
+            .WithParameter("sku", "Standard_S1")
+            .WithParameter("capacity", 10);
+
+        var manifest = await ManifestUtils.GetManifestWithBicep(signalr.Resource);
+
+        var expectedManifest = """
+            {
+              "type": "azure.bicep.v0",
+              "connectionString": "Endpoint=https://{signalr.outputs.hostName};AuthType=azure",
+              "path": "signalr.module.bicep",
+              "params": {
+                "principalId": "",
+                "principalType": "",
+                "sku": "Standard_S1",
+                "capacity": 10
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
+
+        var expectedBicep = """
+            targetScope = 'resourceGroup'
+
+            @description('')
+            param location string = resourceGroup().location
+
+            @description('')
+            param sku string = 'Free_F1'
+
+            @description('')
+            param capacity int = 1
+
+            @description('')
+            param principalId string
+
+            @description('')
+            param principalType string
+
+
+            resource signalRService_iD3Yrl49T 'Microsoft.SignalRService/signalR@2022-02-01' = {
+              name: toLower(take('signalr${uniqueString(resourceGroup().id)}', 24))
+              location: location
+              tags: {
+                'aspire-resource-name': 'signalr'
+              }
+              sku: {
+                name: sku
+                capacity: capacity
               }
               kind: 'SignalR'
               properties: {

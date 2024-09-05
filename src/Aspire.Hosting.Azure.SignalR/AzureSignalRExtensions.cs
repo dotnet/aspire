@@ -16,6 +16,10 @@ public static class AzureSignalRExtensions
 {
     /// <summary>
     /// Adds an Azure SignalR resource to the application model.
+    /// Change sku: WithParameter("sku", "Standard_S1")
+    /// Supported sku values are Free_F1 Standard_S1 Premium_P1
+    /// Change capacity: WithParameter("capacity", 2)
+    /// Supported capacity values are 1 2 5 10 20 50 100
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -46,6 +50,11 @@ public static class AzureSignalRExtensions
             service.AddOutput("hostName", x => x.HostName);
 
             service.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+
+            // Supported values are Free_F1 Standard_S1 Premium_P1
+            service.AssignProperty(p => p.Sku.Name, new Parameter("sku", defaultValue: "Free_F1"));
+            // Supported values are 1 2 5 10 20 50 100
+            service.AssignProperty(p => p.Sku.Capacity, new Parameter("capacity", BicepType.Int, defaultValue: 1));
 
             var appServerRole = service.AssignRole(RoleDefinition.SignalRAppServer);
             appServerRole.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
