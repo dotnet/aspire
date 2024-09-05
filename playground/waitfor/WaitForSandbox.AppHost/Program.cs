@@ -4,7 +4,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var pg = builder.AddPostgres("pg")
-                .AsAzurePostgresFlexibleServer()
+//                .AsAzurePostgresFlexibleServer()
                 .WithPgAdmin();
 
 var db = pg.AddDatabase("db");
