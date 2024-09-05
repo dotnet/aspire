@@ -110,7 +110,16 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(NeedsAzureFunctionsCli)' == 'true'">
-    <HelixCorrelationPayload Include="$(_AzureFunctionsCliDirectory)" Destination="azure-func-cli" />
+    <HelixCorrelationPayload
+          Condition="'$(OS)' == 'Windows_NT'"
+          Include="azure-func-cli"
+          Destination="azure-func-cli"
+          Uri="https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.5907/Azure.Functions.Cli.min.win-x64_net8.4.0.5907.zip" />
+    <HelixCorrelationPayload
+          Condition="'$(OS)' != 'Windows_NT'"
+          Include="azure-func-cli"
+          Destination="azure-func-cli"
+          Uri="https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.5907/Azure.Functions.Cli.linux-x64_net8.4.0.5907.zip" />
 
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="(cd ${HELIX_CORRELATION_PAYLOAD}/azure-func-cli; chmod +x func gozip)" />
 
