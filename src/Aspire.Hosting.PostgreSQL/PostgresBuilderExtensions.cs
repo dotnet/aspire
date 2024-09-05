@@ -70,7 +70,7 @@ public static class PostgresBuilderExtensions
                           context.EnvironmentVariables[UserEnvVarName] = postgresServer.UserNameReference;
                           context.EnvironmentVariables[PasswordEnvVarName] = postgresServer.PasswordParameter;
                       })
-                      .WithAnnotation(new HealthCheckAnnotation(healthCheckName);
+                      .WithAnnotation(new HealthCheckAnnotation(healthCheckName));
     }
 
     /// <summary>

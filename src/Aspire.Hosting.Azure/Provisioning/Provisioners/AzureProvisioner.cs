@@ -41,21 +41,30 @@ internal sealed class AzureProvisioner(
 
     private readonly AzureProvisionerOptions _options = options.Value;
 
-    private static IResource PromoteAzureResourceFromAnnotation(IResource resource)
+    private static List<(IResource Resource, IAzureResource AzureResource)> GetAzureResourcesFromAppModel(DistributedApplicationModel appModel)
     {
         // Some resources do not derive from IAzureResource but can be handled
         // by the Azure provisioner because they have the AzureBicepResourceAnnotation
         // which holds a reference to the surrogate AzureBicepResource which implements
         // IAzureResource and can be used by the Azure Bicep Provisioner.
 
-        if (resource.Annotations.OfType<AzureBicepResourceAnnotation>().SingleOrDefault() is not { } azureSurrogate)
+        var azureResources = new List<(IResource, IAzureResource)>();
+        foreach (var resource in appModel.Resources)
         {
-            return resource;
+            if (resource is IAzureResource azureResource)
+            {
+                // If we are dealing with an Azure resource then we just return it.
+                azureResources.Add((resource, azureResource));
+            }
+            if (resource.Annotations.OfType<AzureBicepResourceAnnotation>().SingleOrDefault() is { } annotation)
+            {
+                // If we aren't an Azure resource and there is no surrogate, return null for
+                // the Azure resource in the tuple (we'll filter it out later.
+                azureResources.Add((resource, annotation.Resource));
+            }
         }
-        else
-        {
-            return azureSurrogate.Resource;
-        }
+
+        return azureResources;
     }
 
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
@@ -66,7 +75,8 @@ internal sealed class AzureProvisioner(
             return;
         }
 
-        var azureResources = appModel.Resources.Select(PromoteAzureResourceFromAnnotation).OfType<IAzureResource>().ToList();
+        var azureResources = GetAzureResourcesFromAppModel(appModel);
+
         if (azureResources.Count == 0)
         {
             return;
@@ -138,21 +148,20 @@ internal sealed class AzureProvisioner(
         // Mark all resources as starting
         foreach (var r in azureResources)
         {
-            r.ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            r.AzureResource!.ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            await UpdateStateAsync(r, s => s with
+            await UpdateStateAsync(r.AzureResource, s => s with
             {
                 State = new("Starting", KnownResourceStateStyles.Info)
             })
             .ConfigureAwait(false);
 
             // After the resource is provisioned, set its state
-            _ = AfterProvisionAsync(r);
+            _ = AfterProvisionAsync(r.AzureResource);
         }
 
         // This is fully async so we can just fire and forget
         _ = Task.Run(() => ProvisionAzureResources(
-            appModel,
             configuration,
             logger,
             azureResources,
@@ -168,10 +177,9 @@ internal sealed class AzureProvisioner(
     }
 
     private async Task ProvisionAzureResources(
-        DistributedApplicationModel appModel,
         IConfiguration configuration,
         ILogger<AzureProvisioner> logger,
-        IList<IAzureResource> azureResources,
+        IList<(IResource Resource, IAzureResource AzureResource)> azureResources,
         CancellationToken cancellationToken)
     {
         // Try to find the user secrets path so that provisioners can persist connection information.
@@ -194,7 +202,7 @@ internal sealed class AzureProvisioner(
 
         foreach (var resource in azureResources)
         {
-            tasks.Add(ProcessResourceAsync(appModel, configuration, provisioningContextLazy, resource, cancellationToken));
+            tasks.Add(ProcessResourceAsync(configuration, provisioningContextLazy, resource, cancellationToken));
         }
 
         var task = Task.WhenAll(tasks);
@@ -224,13 +232,13 @@ internal sealed class AzureProvisioner(
         // Set the completion source for all resources
         foreach (var resource in azureResources)
         {
-            resource.ProvisioningTaskCompletionSource?.TrySetResult();
+            resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
         }
     }
 
-    private async Task ProcessResourceAsync(DistributedApplicationModel appModel, IConfiguration configuration, Lazy<Task<ProvisioningContext>> provisioningContextLazy, IAzureResource resource, CancellationToken cancellationToken)
+    private async Task ProcessResourceAsync(IConfiguration configuration, Lazy<Task<ProvisioningContext>> provisioningContextLazy, (IResource Resource, IAzureResource AzureResource) resource, CancellationToken cancellationToken)
     {
-        var beforeResourceStartedEvent = new BeforeResourceStartedEvent(resource, serviceProvider);
+        var beforeResourceStartedEvent = new BeforeResourceStartedEvent(resource.Resource, serviceProvider);
         await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
 
         IAzureResourceProvisioner? SelectProvisioner(IAzureResource resource)
@@ -252,72 +260,69 @@ internal sealed class AzureProvisioner(
             return null;
         }
 
-        var provisioner = SelectProvisioner(resource);
+        var provisioner = SelectProvisioner(resource.AzureResource);
 
-        var resourceLogger = loggerService.GetLogger(resource);
+        var resourceLogger = loggerService.GetLogger(resource.AzureResource);
 
         if (provisioner is null)
         {
-            resource.ProvisioningTaskCompletionSource?.TrySetResult();
+            resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
 
             resourceLogger.LogWarning("No provisioner found for {resourceType} skipping.", resource.GetType().Name);
         }
-        else if (!provisioner.ShouldProvision(configuration, resource))
+        else if (!provisioner.ShouldProvision(configuration, resource.AzureResource))
         {
-            resource.ProvisioningTaskCompletionSource?.TrySetResult();
+            resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
 
-            resourceLogger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.Name);
+            resourceLogger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.AzureResource.Name);
         }
-        else if (await provisioner.ConfigureResourceAsync(configuration, resource, cancellationToken).ConfigureAwait(false))
+        else if (await provisioner.ConfigureResourceAsync(configuration, resource.AzureResource, cancellationToken).ConfigureAwait(false))
         {
-            resource.ProvisioningTaskCompletionSource?.TrySetResult();
-            resourceLogger.LogInformation("Using connection information stored in user secrets for {resourceName}.", resource.Name);
+            resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
+            resourceLogger.LogInformation("Using connection information stored in user secrets for {resourceName}.", resource.AzureResource.Name);
             await PublishConnectionStringAvailableEventAsync().ConfigureAwait(false);
         }
         else
         {
-            resourceLogger.LogInformation("Provisioning {resourceName}...", resource.Name);
+            resourceLogger.LogInformation("Provisioning {resourceName}...", resource.AzureResource.Name);
 
             try
             {
                 var provisioningContext = await provisioningContextLazy.Value.ConfigureAwait(false);
 
                 await provisioner.GetOrCreateResourceAsync(
-                    resource,
+                    resource.AzureResource,
                     provisioningContext,
                     cancellationToken).ConfigureAwait(false);
 
-                resource.ProvisioningTaskCompletionSource?.TrySetResult();
+                resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
                 await PublishConnectionStringAvailableEventAsync().ConfigureAwait(false);
             }
             catch (AzureCliNotOnPathException ex)
             {
                 resourceLogger.LogCritical("Using Azure resources during local development requires the installation of the Azure CLI. See https://aka.ms/dotnet/aspire/azcli for instructions.");
-                resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
+                resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetException(ex);
             }
             catch (MissingConfigurationException ex)
             {
                 resourceLogger.LogCritical("Resource could not be provisioned because Azure subscription, location, and resource group information is missing. See https://aka.ms/dotnet/aspire/azure/provisioning for more details.");
-                resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
+                resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetException(ex);
             }
             catch (JsonException ex)
             {
-                resourceLogger.LogError(ex, "Error provisioning {ResourceName} because user secrets file is not well-formed JSON.", resource.Name);
-                resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
+                resourceLogger.LogError(ex, "Error provisioning {ResourceName} because user secrets file is not well-formed JSON.", resource.AzureResource.Name);
+                resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetException(ex);
             }
             catch (Exception ex)
             {
-                resourceLogger.LogError(ex, "Error provisioning {ResourceName}.", resource.Name);
-
-                resource.ProvisioningTaskCompletionSource?.TrySetException(new InvalidOperationException($"Unable to resolve references from {resource.Name}"));
+                resourceLogger.LogError(ex, "Error provisioning {ResourceName}.", resource.AzureResource.Name);
+                resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetException(new InvalidOperationException($"Unable to resolve references from {resource.AzureResource.Name}"));
             }
         }
 
         async Task PublishConnectionStringAvailableEventAsync()
         {
-            var resolvedResource = appModel.Resources.Single(r => r.Name == resource.Name);
-
-            var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(resolvedResource, serviceProvider);
+            var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(resource.Resource, serviceProvider);
             await eventing.PublishAsync(connectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
         }
     }
