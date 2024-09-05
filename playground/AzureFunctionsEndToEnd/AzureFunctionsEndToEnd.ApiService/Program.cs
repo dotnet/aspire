@@ -1,7 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
+#if !SKIP_EVENTHUBS_EMULATION
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
+#endif
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
 
@@ -11,7 +13,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.AddAzureQueueClient("queue");
 builder.AddAzureBlobClient("blob");
+#if !SKIP_EVENTHUBS_EMULATION
 builder.AddAzureEventHubProducerClient("eventhubs", static settings => settings.EventHubName = "myhub");
+#endif
 
 var app = builder.Build();
 
@@ -43,12 +47,14 @@ app.MapGet("/publish/blob", async (BlobServiceClient client, CancellationToken c
     return Results.Ok("String uploaded to Azure Storage Blobs.");
 });
 
+#if !SKIP_EVENTHUBS_EMULATION
 app.MapGet("/publish/eventhubs", async (EventHubProducerClient client, CancellationToken cancellationToken, int length = 20) =>
 {
     var data = new BinaryData(Encoding.UTF8.GetBytes(RandomString(length)));
     await client.SendAsync([new EventData(data)]);
     return Results.Ok("Message sent to Azure EventHubs.");
 });
+#endif
 
 app.MapGet("/", async (HttpClient client) =>
 {

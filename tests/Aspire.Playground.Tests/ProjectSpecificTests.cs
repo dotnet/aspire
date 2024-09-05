@@ -105,6 +105,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             timeoutSecs: 160);
 
         // Assert that EventHubs triggers work correctly
+#if !SKIP_EVENTHUBS_EMULATION
         await app.CreateHttpClient("apiservice").GetAsync("/publish/eventhubs");
         await WaitForAllTextAsync(app,
             [
@@ -112,6 +113,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             ],
             resourceName: "funcapp",
             timeoutSecs: 160);
+#endif
 
         // TODO: The following line is commented out because the test fails due to an erroneous log in the Functions App
         // resource that happens after the Functions host has been built. The error log shows up after the Functions
