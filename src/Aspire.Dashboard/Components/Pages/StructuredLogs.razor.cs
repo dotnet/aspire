@@ -434,7 +434,10 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             if (filters.Count > 0)
             {
                 ViewModel.ClearFilters();
-                ViewModel.AddFilters(filters);
+                foreach (var filter in filters)
+                {
+                    ViewModel.AddFilter(filter);
+                }
             }
         }
 
