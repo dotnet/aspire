@@ -10,9 +10,6 @@ internal class ResourceNotificationHealthCheckPublisher(DistributedApplicationMo
 {
     public async Task PublishAsync(HealthReport report, CancellationToken cancellationToken)
     {
-        _ = model;
-        _ = resourceNotificationService;
-
         foreach (var resource in model.Resources)
         {
             if (resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var annotations))

@@ -38,14 +38,14 @@ public static class RedisBuilderExtensions
             connectionString = await redis.GetConnectionStringAsync(ct).ConfigureAwait(false);
         });
 
-        var healthCheckName = $"{name}_check";
-        builder.Services.AddHealthChecks().AddRedis(sp => connectionString!, name: healthCheckName);
+        var healthCheckKey = $"{name}_check";
+        builder.Services.AddHealthChecks().AddRedis(sp => connectionString!, name: healthCheckKey);
 
         return builder.AddResource(redis)
                       .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
                       .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
                       .WithImageRegistry(RedisContainerImageTags.Registry)
-                      .WithAnnotation(new HealthCheckAnnotation(healthCheckName));
+                      .WithAnnotation(new HealthCheckAnnotation(healthCheckKey));
     }
 
     /// <summary>

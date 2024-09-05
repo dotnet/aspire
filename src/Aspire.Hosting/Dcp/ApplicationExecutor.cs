@@ -1164,8 +1164,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
     {
-        var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(er.ModelResource, serviceProvider);
-        await eventing.PublishAsync(connectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
+        if (er.ModelResource is IResourceWithConnectionString)
+        {
+            var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(er.ModelResource, serviceProvider);
+            await eventing.PublishAsync(connectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
+        }
 
         var beforeResourceStartedEvent = new BeforeResourceStartedEvent(er.ModelResource, serviceProvider);
         await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
@@ -1439,8 +1442,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateContainerAsync(AppResource cr, ILogger resourceLogger, CancellationToken cancellationToken)
     {
-        var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(cr.ModelResource, serviceProvider);
-        await eventing.PublishAsync(connectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
+        if (cr.ModelResource is IResourceWithConnectionString)
+        {
+            var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(cr.ModelResource, serviceProvider);
+            await eventing.PublishAsync(connectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
+        }
 
         var beforeResourceStartedEvent = new BeforeResourceStartedEvent(cr.ModelResource, serviceProvider);
         await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
