@@ -17,11 +17,8 @@
   <!-- Import only when in-repo. For the out-of-repo case a parent Directory.Build.targets does the import -->
   <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.targets" Condition="'$(RepoRoot)' != ''" />
 
-  <PropertyGroup Condition="'$(SkipDashboardProjectReference)' == 'true'">
-    <DefineConstants>SKIP_DASHBOARD_REFERENCE;$(DefineConstants)</DefineConstants>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(SkipEventHubsEmulation)' == 'true'">
-    <DefineConstants>SKIP_EVENTHUBS_EMULATION;$(DefineConstants)</DefineConstants>
+  <PropertyGroup >
+    <DefineConstants Condition="'$(SkipDashboardProjectReference)' == 'true'">SKIP_DASHBOARD_REFERENCE;$(DefineConstants)</DefineConstants>
+    <DefineConstants Condition="'$(SkipEventHubsEmulation)' == 'true'">SKIP_EVENTHUBS_EMULATION;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
 </Project>
