@@ -82,44 +82,44 @@ internal sealed class AzureProvisioner(
             return;
         }
 
-        static IAzureResource? SelectParentAzureResource(IResource resource) => resource switch
+        static IResource? SelectParentResource(IResource resource) => resource switch
         {
             IAzureResource ar => ar,
-            IResourceWithParent rp => SelectParentAzureResource(rp.Parent),
+            IResourceWithParent rp => SelectParentResource(rp.Parent),
             _ => null
         };
 
-        // parent -> children lookup
-        var parentChildLookup = appModel.Resources.OfType<IResourceWithParent>()
-                                                  .Select(x => (Child: x, Root: SelectParentAzureResource(x.Parent)))
-                                                  .Where(x => x.Root is not null)
-                                                  .ToLookup(x => x.Root, x => x.Child);
+        // Create a map of parents to their children used to propogate state changes later.
+        var parentChildLookup = appModel.Resources.OfType<IResourceWithParent>().ToLookup(r => r.Parent);
 
         // Sets the state of the resource and all of its children
-        async Task UpdateStateAsync(IAzureResource resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
+        async Task UpdateStateAsync((IResource Resource, IAzureResource AzureResource) resource, Func<CustomResourceSnapshot, CustomResourceSnapshot> stateFactory)
         {
-            await notificationService.PublishUpdateAsync(resource, stateFactory).ConfigureAwait(false);
-
-            foreach (var child in parentChildLookup[resource])
-            {
-                await notificationService.PublishUpdateAsync(child, stateFactory).ConfigureAwait(false);
-            }
+            await notificationService.PublishUpdateAsync(resource.AzureResource, stateFactory).ConfigureAwait(false);
 
             // Some IAzureResource instances are a surrogate for for another resource in the app model
             // to ensure that resource events are published for the resource that the user expects
             // we lookup the resource in the app model here and publish the update to it as well.
-            if (appModel.Resources.Where(r => r.Name == resource.Name).SingleOrDefault() is { } nonAzureResource)
+            if (resource.Resource != resource.AzureResource)
             {
-                await notificationService.PublishUpdateAsync(nonAzureResource, stateFactory).ConfigureAwait(false);
+                await notificationService.PublishUpdateAsync(resource.Resource, stateFactory).ConfigureAwait(false);
+            }
+
+            // We basically want child resources to be moved into the same state as their parent resources whenever
+            // there is a state update. This is done for us in DCP so we replicate the behavior here in the Azure Provisioner.
+            var childResources = parentChildLookup[resource.Resource];
+            foreach (var child in childResources)
+            {
+                await notificationService.PublishUpdateAsync(child, stateFactory).ConfigureAwait(false);
             }
         }
 
         // After the resource is provisioned, set its state
-        async Task AfterProvisionAsync(IAzureResource resource)
+        async Task AfterProvisionAsync((IResource Resource, IAzureResource AzureResource) resource)
         {
             try
             {
-                await resource.ProvisioningTaskCompletionSource!.Task.ConfigureAwait(false);
+                await resource.AzureResource.ProvisioningTaskCompletionSource!.Task.ConfigureAwait(false);
 
                 await UpdateStateAsync(resource, s => s with
                 {
@@ -150,14 +150,14 @@ internal sealed class AzureProvisioner(
         {
             r.AzureResource!.ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            await UpdateStateAsync(r.AzureResource, s => s with
+            await UpdateStateAsync(r, s => s with
             {
                 State = new("Starting", KnownResourceStateStyles.Info)
             })
             .ConfigureAwait(false);
 
             // After the resource is provisioned, set its state
-            _ = AfterProvisionAsync(r.AzureResource);
+            _ = AfterProvisionAsync(r);
         }
 
         // This is fully async so we can just fire and forget
