@@ -23,10 +23,11 @@
     <_DotNetCoverageToolVersion>$([System.Text.RegularExpressions.Regex]::Match($(_DotNetToolJsonContent), '$(_DotNetCoverageVersionRegex)').Groups[1].Value)</_DotNetCoverageToolVersion>
     <_DotNetCoverageToolDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'tools', 'dotnet-coverage', $(_DotNetCoverageToolVersion)))</_DotNetCoverageToolDir>
 
+    <_AzureFunctionsCliDirectory>$(ArtifactsObjDir)azure-func-cli</_AzureFunctionsCliDirectory>
     <_CreateDotNetDevCertsDirectory>$(ArtifactsObjDir)create-dotnet-devcert</_CreateDotNetDevCertsDirectory>
     <_SupportDataStagingDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'support-data'))</_SupportDataStagingDir>
 
-    <PrepareDependenciesDependsOn>_StageDotNetCoverageTool;_StageCreateDotNetDevCertScripts</PrepareDependenciesDependsOn>
+    <PrepareDependenciesDependsOn>_StageDotNetCoverageTool;_StageCreateDotNetDevCertScripts;_StageAzureFunctionsCli</PrepareDependenciesDependsOn>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -109,14 +110,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(NeedsAzureFunctionsCli)' == 'true'">
-    <HelixCorrelationPayload
-          Condition="'$(OS)' == 'Windows_NT'"
-          Include="azure-func-cli"
-          Uri="https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.5907/Azure.Functions.Cli.min.win-x64_net8.4.0.5907.zip" />
-    <HelixCorrelationPayload
-          Condition="'$(OS)' != 'Windows_NT'"
-          Include="azure-func-cli"
-          Uri="https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.5907/Azure.Functions.Cli.linux-x64_net8.4.0.5907.zip" />
+    <HelixCorrelationPayload Include="$(_AzureFunctionsCliDirectory)" />
 
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="(cd ${HELIX_CORRELATION_PAYLOAD}/azure-func-cli/Azure; chmod +x func gozip)" />
 
@@ -169,6 +163,19 @@
   <Target Name="_StageCreateDotNetDevCertScripts" Condition="'$(NeedsCreateDotNetDevScripts)' == 'true' and '$(OS)' != 'Windows_NT' and !Exists($(_CreateDotNetDevCertsDirectory))">
     <DownloadFile SourceUrl="https://raw.githubusercontent.com/BorisWilhelms/create-dotnet-devcert/main/scripts/ubuntu-create-dotnet-devcert.sh" DestinationFolder="$(_CreateDotNetDevCertsDirectory)" />
     <DownloadFile SourceUrl="https://raw.githubusercontent.com/BorisWilhelms/create-dotnet-devcert/main/scripts/common.sh" DestinationFolder="$(_CreateDotNetDevCertsDirectory)" />
+  </Target>
+
+  <Target Name="_StageAzureFunctionsCli" Condition="'$(NeedsAzureFunctionsCli)' == 'true' and !Exists($(_AzureFunctionsCliDirectory))">
+    <PropertyGroup>
+      <_AzureFunctionsCliZipFileName Condition="'$(OS)' == 'Windows_NT'">Azure.Functions.Cli.min.win-x64_net8.4.0.5907.zip</_AzureFunctionsCliZipFileName>
+      <_AzureFunctionsCliZipFileName Condition="'$(OS)' != 'Windows_NT'">Azure.Functions.Cli.linux-x64_net8.4.0.5907.zip</_AzureFunctionsCliZipFileName>
+
+      <_AzureFunctionsCliUrl>https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.5907/$(_AzureFunctionsCliZipFileName)</_AzureFunctionsCliUrl>
+    </PropertyGroup>
+
+    <DownloadFile SourceUrl="$(_AzureFunctionsCliUrl)" DestinationFolder="$(ArtifactsObjDir)" />
+
+    <Unzip SourceFiles="$(ArtifactsObjDir)/$(_AzureFunctionsCliZipFileName)" DestinationFolder="$(_AzureFunctionsCliDirectory)" />
   </Target>
 
   <Target Name="BuildHelixWorkItems" DependsOnTargets="$(BuildHelixWorkItemsDependsOn)" BeforeTargets="Build">
