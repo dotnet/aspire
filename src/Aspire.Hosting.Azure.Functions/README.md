@@ -30,8 +30,8 @@ Add the following `PropertyGroup` in your .NET-based Azure Functions project.
 
 Add a reference to the .NET-based Azure Functions project in your `AppHost` project.
 
-```
-$ dotnet add reference ..\MyAzureFunctionsProject.csproj
+```dotnetcli
+dotnet add reference ..\MyAzureFunctionsProject.csproj
 ```
 
 In the _Program.cs_ file of `AppHost`, use the `AddAzureFunctionsProject` to configure the Functions project resource.
@@ -58,8 +58,6 @@ app.Run();
 
 > [!NOTE]
 > The Azure Functions integration currently only support Azure Storage Queues, Azure Storage Blobs, and Azure Event Hubs as resource dependencies.
-
-
 
 ## Feedback & contributing
 
