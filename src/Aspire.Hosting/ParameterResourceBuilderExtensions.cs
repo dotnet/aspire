@@ -28,29 +28,29 @@ public static class ParameterResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a parameter resource to the application, providing a default value to be used as a fallback.
+    /// Adds a parameter resource to the application with a given value.
     /// </summary>
     /// <param name="builder">Distributed application builder</param>
     /// <param name="name">Name of parameter resource</param>
-    /// <param name="defaultValue">A string value that is used if the name is not found in the configuration</param>
+    /// <param name="value">A string value to use for the paramater</param>
     /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
     /// <returns>Resource builder for the parameter.</returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
                                                      Justification = "third parameters are mutually exclusive.")]
-    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, string defaultValue, bool secret = false)
+    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, string value, bool secret = false)
     {
         // An alternate implementation is to use some ConstantParameterDefault implementation that always returns the default value.
         // However, doing this causes a "default": {} to be written to the manifest, which is not valid.
-        // And note that we ignore parameterDefault in the callback, because it can never be non-null, and we want our own default.
-        return builder.AddParameter(name, parameterDefault => builder.Configuration[$"Parameters:{name}"] ?? defaultValue, secret: secret);
+        // And note that we ignore parameterDefault in the callback, because it can never be non-null, and we want our own value.
+        return builder.AddParameter(name, parameterDefault => value, secret: secret);
     }
 
     /// <summary>
-    /// Adds a parameter resource to the application, providing a ParameterDefault to be used as a fallback.
+    /// Adds a parameter resource to the application, with a value coming from a ParameterDefault.
     /// </summary>
     /// <param name="builder">Distributed application builder</param>
     /// <param name="name">Name of parameter resource</param>
-    /// <param name="defaultValue">A <see cref="ParameterDefault"/> that is used if the name is not found in the configuration</param>
+    /// <param name="value">A <see cref="ParameterDefault"/> that is used to provide the parameter value</param>
     /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
     /// <returns>Resource builder for the parameter.</returns>
     /// <remarks>
@@ -60,19 +60,19 @@ public static class ParameterResourceBuilderExtensions
     /// </remarks>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
                                                      Justification = "third parameters are mutually exclusive.")]
-    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, ParameterDefault defaultValue, bool secret = false)
+    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, ParameterDefault value, bool secret = false)
     {
         // If it needs persistence, wrap it in a UserSecretsParameterDefault
-        if (defaultValue.NeedsPersistence && builder.ExecutionContext.IsRunMode && builder.AppHostAssembly is not null)
+        if (value.NeedsPersistence && builder.ExecutionContext.IsRunMode && builder.AppHostAssembly is not null)
         {
-            defaultValue = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, name, defaultValue);
+            value = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, name, value);
         }
 
         return builder.AddParameter(
             name,
-            parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault),
+            parameterDefault => parameterDefault!.GetDefaultValue(),
             secret: secret,
-            parameterDefault: defaultValue);
+            parameterDefault: value);
     }
 
     private static string GetParameterValue(IConfiguration configuration, string name, ParameterDefault? parameterDefault)

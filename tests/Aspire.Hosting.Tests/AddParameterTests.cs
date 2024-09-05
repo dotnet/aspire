@@ -130,11 +130,9 @@ public class AddParameterTests
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        // Make sure the config value is used for the first parameter
+        // In both cases, make sure the code value is used, regardless of the config value
         var parameterResource1 = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "val1");
-        Assert.Equal("ValueFromConfiguration", parameterResource1.Value);
-
-        // Make sure the default value is used for the second parameter, since there is no config value
+        Assert.Equal("DefaultValue1", parameterResource1.Value);
         var parameterResource2 = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "val2");
         Assert.Equal("DefaultValue2", parameterResource2.Value);
 
@@ -177,12 +175,10 @@ public class AddParameterTests
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        // Make sure the config value is used for the first parameter
-        var parameterResource1 = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "val1");
-        Assert.Equal("ValueFromConfiguration", parameterResource1.Value);
-
-        // Make sure the generated default value is used for the second parameter, since there is no config value
+        // In both cases, make sure the the generated default value is used, regardless of the config value
         // We can't test the exact value since it's random, but we can test the length
+        var parameterResource1 = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "val1");
+        Assert.Equal(10, parameterResource1.Value.Length);
         var parameterResource2 = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "val2");
         Assert.Equal(10, parameterResource2.Value.Length);
 
