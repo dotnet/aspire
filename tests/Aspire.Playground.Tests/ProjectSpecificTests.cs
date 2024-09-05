@@ -55,7 +55,8 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
         await app.StopAsync();
     }
 
-    [Fact(Skip = "Passes locally but fails in CI. Depends on unreleased Azure Functions Core Tools builds.")]
+    [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/5564", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     [RequiresDocker]
     [RequiresTools(["func"])]
     public async Task AzureFunctionsTest()
