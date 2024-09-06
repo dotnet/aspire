@@ -45,7 +45,7 @@ public static class RedisBuilderExtensions
                       .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
                       .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
                       .WithImageRegistry(RedisContainerImageTags.Registry)
-                      .WithAnnotation(new HealthCheckAnnotation(healthCheckKey));
+                      .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>

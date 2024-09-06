@@ -701,4 +701,23 @@ public static class ResourceBuilderExtensions
             KnownResourceStates.TerminalStates.Contains(snapshot.State?.Text) &&
             snapshot.ExitCode is not null;
     }
+
+    /// <summary>
+    /// Adds a <see cref="HealthCheckAnnotation"/> to the resource annotations to associate a resource with a named health check managed by the health check service.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="key">The key for the health check.</param>
+    /// <returns>The resource builder.</returns>
+    public static IResourceBuilder<T> WithHealthCheck<T>(this IResourceBuilder<T> builder, string key) where T: IResource
+    {
+        if (builder.Resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var annotations) && annotations.Any(a => a.Key == key))
+        {
+            throw new DistributedApplicationException($"Resource '{builder.Resource.Name}' already has a health check with key '{key}'.");
+        }
+
+        builder.WithAnnotation(new HealthCheckAnnotation(key));
+
+        return builder;
+    }
 }

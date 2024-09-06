@@ -86,7 +86,7 @@ public static class PostgresBuilderExtensions
                           context.EnvironmentVariables[UserEnvVarName] = postgresServer.UserNameReference;
                           context.EnvironmentVariables[PasswordEnvVarName] = postgresServer.PasswordParameter;
                       })
-                      .WithAnnotation(new HealthCheckAnnotation(healthCheckKey));
+                      .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -118,7 +118,7 @@ public static class PostgresBuilderExtensions
         builder.ApplicationBuilder.Services.AddHealthChecks().AddNpgSql(sp => connectionString!, name: healthCheckKey);
 
         return builder.ApplicationBuilder.AddResource(postgresDatabase)
-                                         .WithAnnotation(new HealthCheckAnnotation(healthCheckKey));
+                                         .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
