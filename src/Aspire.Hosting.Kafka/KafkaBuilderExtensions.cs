@@ -164,7 +164,7 @@ public static class KafkaBuilderExtensions
         var internalEndpoint = resource.InternalEndpoint;
 
         var advertisedListeners = context.ExecutionContext.IsRunMode
-            ? ReferenceExpression.Create($"PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:{primaryEndpoint.Property(EndpointProperty.Port)},PLAINTEXT_INTERNAL://{internalEndpoint.ContainerHost}:{internalEndpoint.Property(EndpointProperty.Port)}")
+            ? ReferenceExpression.Create($"PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:{primaryEndpoint.Property(EndpointProperty.Port)},PLAINTEXT_INTERNAL://{internalEndpoint.ContainerHost}:{internalEndpoint.Property(EndpointProperty.TargetPort)}")
             : ReferenceExpression.Create(
             $"PLAINTEXT://{primaryEndpoint.Property(EndpointProperty.Host)}:29092,PLAINTEXT_HOST://{primaryEndpoint.Property(EndpointProperty.Host)}:{primaryEndpoint.Property(EndpointProperty.Port)},PLAINTEXT_INTERNAL://{internalEndpoint.Property(EndpointProperty.Host)}:{internalEndpoint.Property(EndpointProperty.Port)}");
 

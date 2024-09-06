@@ -929,6 +929,14 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         foreach (var appResource in resources)
         {
+            if (appResource.DcpResource is Container container)
+            {
+                if (container.Spec.Networks?.Any() == true)
+                {
+                    containerHost = appResource.ModelResource.Name;
+                }
+            }
+
             foreach (var sp in appResource.ServicesProduced)
             {
                 var svc = (Service)sp.DcpResource;
