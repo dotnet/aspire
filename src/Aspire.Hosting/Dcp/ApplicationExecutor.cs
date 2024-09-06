@@ -122,6 +122,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         try
         {
             PrepareServices();
+            PrepareContainerNetworks();
             PrepareContainers();
             PrepareExecutables();
 
@@ -131,6 +132,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             WatchResourceChanges();
 
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
+
+            await CreateContainerNetworksAsync(cancellationToken).ConfigureAwait(false);
 
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
 
@@ -889,6 +892,18 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
+    private async Task CreateContainerNetworksAsync(CancellationToken cancellationToken)
+    {
+        var toCreate = _appResources.Where(r => r.DcpResource is ContainerNetwork);
+        foreach (var containerNetwork in toCreate)
+        {
+            if (containerNetwork.DcpResource is ContainerNetwork cn)
+            {
+                await kubernetesService.CreateAsync(cn, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
     private async Task CreateContainersAndExecutablesAsync(CancellationToken cancellationToken)
     {
         var toCreate = _appResources.Where(r => r.DcpResource is Container || r.DcpResource is Executable || r.DcpResource is ExecutableReplicaSet);
@@ -1323,6 +1338,20 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         return value;
     }
 
+    private void PrepareContainerNetworks()
+    {
+        var modelContainerResources = _model.GetContainerResources();
+
+        if (modelContainerResources.Any())
+        {
+            // We only create a container network if there are container resources defined
+            var networkModel = new ContainerNetworkResource("aspire-network");
+            var network = ContainerNetwork.Create(networkModel.Name);
+            _model.Resources.Add(networkModel);
+            _appResources.Add(new AppResource(networkModel, network));
+        }
+    }
+
     private void PrepareContainers()
     {
         var modelContainerResources = _model.GetContainerResources();
@@ -1376,6 +1405,15 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     ctr.Spec.VolumeMounts.Add(volumeSpec);
                 }
             }
+
+            ctr.Spec.Networks = new List<ContainerNetworkConnection>
+            {
+                new ContainerNetworkConnection
+                {
+                    Name = "aspire-network",
+                    Aliases = new List<string> { container.Name },
+                }
+            };
 
             var containerAppResource = new AppResource(container, ctr);
             AddServicesProducedInfo(container, ctr, containerAppResource);

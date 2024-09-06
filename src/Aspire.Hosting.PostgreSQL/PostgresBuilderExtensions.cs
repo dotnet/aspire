@@ -201,8 +201,8 @@ public static class PostgresBuilderExtensions
                         writer.WriteStartObject($"{serverIndex}");
                         writer.WriteString("Name", postgresInstance.Name);
                         writer.WriteString("Group", "Servers");
-                        writer.WriteString("Host", endpoint.ContainerHost);
-                        writer.WriteNumber("Port", endpoint.Port);
+                        writer.WriteString("Host", postgresInstance.Name);
+                        writer.WriteNumber("Port", (decimal)endpoint.TargetPort!);
                         writer.WriteString("Username", "postgres");
                         writer.WriteString("SSLMode", "prefer");
                         writer.WriteString("MaintenanceDB", "postgres");
@@ -269,11 +269,11 @@ public static class PostgresBuilderExtensions
     /// var postgres = builder.AddPostgres("postgres")
     ///    .WithPgWeb();
     /// var db = postgres.AddDatabase("db");
-    ///   
+    ///
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithReference(db);
-    ///  
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     /// <remarks>
