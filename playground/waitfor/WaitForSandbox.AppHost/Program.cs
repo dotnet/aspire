@@ -16,6 +16,7 @@ var dbsetup = builder.AddProject<Projects.WaitForSandbox_DbSetup>("dbsetup")
 builder.AddProject<Projects.WaitForSandbox_ApiService>("api")
        .WithExternalHttpEndpoints()
        .WaitForCompletion(dbsetup)
+       .WaitFor(db)
        .WithReference(db);
 
 #if !SKIP_DASHBOARD_REFERENCE
