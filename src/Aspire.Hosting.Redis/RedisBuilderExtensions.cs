@@ -39,7 +39,7 @@ public static class RedisBuilderExtensions
         });
 
         var healthCheckKey = $"{name}_check";
-        builder.Services.AddHealthChecks().AddRedis(sp => connectionString!, name: healthCheckKey);
+        builder.Services.AddHealthChecks().AddRedis(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
 
         return builder.AddResource(redis)
                       .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
