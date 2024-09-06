@@ -30,9 +30,6 @@ public partial class ResourceActions : ComponentBase
     [Parameter]
     public required EventCallback OnConsoleLogs { get; set; }
 
-    [Parameter]
-    public string? MenuButtonId { get; set; }
-
     private readonly List<MenuButtonItem> _menuItems = new();
 
     protected override void OnParametersSet()
