@@ -41,7 +41,8 @@ public class WaitForTests
         // Now that we know we successfully entered the Waiting state, we can swap
         // the dependency into a running state which will unblock startup and
         // we can continue executing.
-        await rns.PublishUpdateAsync(dependency.Resource, s => s with {
+        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        {
             State = KnownResourceStates.Running
         });
 
@@ -76,7 +77,7 @@ public class WaitForTests
         var waitingStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(nginx.Resource.Name, "Waiting", waitingStateCts.Token);
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
 
         // Now that we know we successfully entered the Waiting state, we can swap
         // the dependency into a running state which will unblock startup and
@@ -172,7 +173,7 @@ public class WaitForTests
         var waitingStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync(nginx.Resource.Name, "Waiting", waitingStateCts.Token);
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
 
         // Now that we know we successfully entered the Waiting state, we can swap
         // the dependency into a finished state which will unblock startup and
@@ -222,6 +223,47 @@ public class WaitForTests
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
         await rns.WaitForResourceAsync(nginx.Resource.Name, "FailedToStart", waitingStateCts.Token);
+
+        await startTask;
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task WaitForCompletionSucceedsIfDependentResourceEntersTerminalStateWithoutAnExitCode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var dependency = builder.AddResource(new CustomResource("test"));
+
+        var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
+                           .WithReference(dependency)
+                           .WaitForCompletion(dependency);
+
+        using var app = builder.Build();
+
+        // StartAsync will currently block until the dependency resource moves
+        // into a Finished state, so rather than awaiting it we'll hold onto the
+        // task so we can inspect the state of the Nginx resource which should
+        // be in a waiting state if everything is working correctly.
+        var startupCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var startTask = app.StartAsync(startupCts.Token);
+
+        // We don't want to wait forever for Nginx to move into a waiting state,
+        // it should be super quick, but we'll allow 60 seconds just in case the
+        // CI machine is chugging (also useful when collecting code coverage).
+        var waitingStateCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Waiting, waitingStateCts.Token);
+
+        // Now that we know we successfully entered the Waiting state, we can end the dependency
+        await rns.PublishUpdateAsync(dependency.Resource, s => s with
+        {
+            State = KnownResourceStates.Finished
+        });
+
+        await rns.WaitForResourceAsync(nginx.Resource.Name, KnownResourceStates.Running, waitingStateCts.Token);
 
         await startTask;
 
