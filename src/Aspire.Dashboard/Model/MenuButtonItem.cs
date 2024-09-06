@@ -8,7 +8,8 @@ namespace Aspire.Dashboard.Model;
 public class MenuButtonItem
 {
     public bool IsDivider { get; set; }
-    public string? Title { get; set; }
+    public string? Text { get; set; }
+    public string? Tooltip { get; set; }
     public Icon? Icon { get; set; }
     public Func<Task>? OnClick { get; set; }
 }

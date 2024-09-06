@@ -4,10 +4,10 @@
 
 @foreach (var highlightedCommand in Commands.Where(c => c.IsHighlighted))
 {
-    <FluentButton Appearance="Appearance.Lightweight" Title="@highlightedCommand.DisplayName" OnClick="@(() => CommandSelected.InvokeAsync(highlightedCommand))">
-        @if (!string.IsNullOrEmpty(highlightedCommand.IconContent))
+    <FluentButton Appearance="Appearance.Lightweight" Title="@(highlightedCommand.DisplayDescription ?? highlightedCommand.DisplayName)" OnClick="@(() => CommandSelected.InvokeAsync(highlightedCommand))">
+        @if (!string.IsNullOrEmpty(highlightedCommand.IconName) && CommandViewModel.ResolveIconName(highlightedCommand.IconName) is { } icon)
         {
-            <FluentIcon Value="@(new Icon(string.Empty, IconVariant.Regular, IconSize.Size20, highlightedCommand.IconContent))" />
+            <FluentIcon Value="icon" />
         }
         else
         {

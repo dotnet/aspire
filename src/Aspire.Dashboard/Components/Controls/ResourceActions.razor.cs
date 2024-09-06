@@ -41,13 +41,13 @@ public partial class ResourceActions : ComponentBase
 
         _menuItems.Add(new MenuButtonItem
         {
-            Title = Loc[nameof(Resources.Resources.ResourceActionViewDetailsText)],
+            Text = Loc[nameof(Resources.Resources.ResourceActionViewDetailsText)],
             Icon = s_viewDetailsIcon,
             OnClick = () => OnViewDetails.InvokeAsync(_menuButton?.MenuButtonId)
         });
         _menuItems.Add(new MenuButtonItem
         {
-            Title = Loc[nameof(Resources.Resources.ResourceActionConsoleLogsText)],
+            Text = Loc[nameof(Resources.Resources.ResourceActionConsoleLogsText)],
             Icon = s_consoleLogsIcon,
             OnClick = OnConsoleLogs.InvokeAsync
         });
@@ -59,10 +59,13 @@ public partial class ResourceActions : ComponentBase
 
             foreach (var command in menuCommands)
             {
+                var icon = (!string.IsNullOrEmpty(command.IconName) && CommandViewModel.ResolveIconName(command.IconName) is { } i) ? i : null;
+
                 _menuItems.Add(new MenuButtonItem
                 {
-                    Title = command.DisplayName,
-                    Icon = !string.IsNullOrEmpty(command.IconContent) ? new Icon(string.Empty, IconVariant.Regular, IconSize.Size20, command.IconContent) : null,
+                    Text = command.DisplayName,
+                    Tooltip = command.DisplayDescription,
+                    Icon = icon,
                     OnClick = () => CommandSelected.InvokeAsync(command)
                 });
             }

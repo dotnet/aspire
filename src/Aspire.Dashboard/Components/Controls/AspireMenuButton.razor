@@ -24,13 +24,12 @@
         }
         else
         {
-            <FluentMenuItem OnClick="() => HandleItemClicked(item)">
-                @item.Title
+            <FluentMenuItem OnClick="() => HandleItemClicked(item)" title="@item.Tooltip">
+                @item.Text
                 @if (item.Icon != null)
                 {
                     <span slot="start">
-                        <FluentIcon Value="@item.Icon"
-                                    Style="vertical-align: middle;" />
+                        <FluentIcon Value="@item.Icon" Style="vertical-align: middle;" />
                     </span>
                 }
             </FluentMenuItem>

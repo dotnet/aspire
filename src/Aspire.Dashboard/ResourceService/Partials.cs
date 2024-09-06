@@ -58,7 +58,7 @@ partial class Resource
         ImmutableArray<CommandViewModel> GetCommands()
         {
             return Commands
-                .Select(c => new CommandViewModel(c.CommandType, c.DisplayName, c.ConfirmationMessage, c.Parameter, c.IsHighlighted, c.IconContent))
+                .Select(c => new CommandViewModel(c.CommandType, c.DisplayName, c.HasDisplayDescription ? c.DisplayDescription : null, c.ConfirmationMessage, c.Parameter, c.IsHighlighted, c.HasIconName ? c.IconName : null))
                 .ToImmutableArray();
         }
 
