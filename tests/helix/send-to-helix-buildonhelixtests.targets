@@ -4,6 +4,7 @@
     <BuildHelixWorkItemsDependsOn>$(BuildHelixWorkItemsDependsOn);BuildHelixWorkItemsForBuildOnHelixTests</BuildHelixWorkItemsDependsOn>
     <NeedsWorkload>true</NeedsWorkload>
     <NeedsPlaywright>true</NeedsPlaywright>
+    <NeedsDapr>true</NeedsDapr>
 
     <WorkItemArchiveWildCard>$(TestArchiveTestsDirForBuildOnHelixTests)**/*.zip</WorkItemArchiveWildCard>
 

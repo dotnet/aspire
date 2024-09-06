@@ -41,7 +41,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         var sideCars = new List<ExecutableResource>();
 
         var fileName = this._options.DaprPath
-            ?? GetDefaultDaprPath()
+            ?? FileUtil.FindFullPathFromPath("dapr")
             ?? throw new DistributedApplicationException("Unable to locate the Dapr CLI.");
 
         foreach (var resource in appModel.Resources)
@@ -280,49 +280,6 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             };
         }
         return null;
-    }
-
-    /// <summary>
-    /// Return the first verified dapr path
-    /// </summary>
-    static string? GetDefaultDaprPath()
-    {
-        foreach (var path in GetAvailablePaths())
-        {
-            if (File.Exists(path))
-            {
-                return path;
-            }
-        }
-
-        return default;
-
-        // Return all the possible paths for dapr
-        static IEnumerable<string> GetAvailablePaths()
-        {
-            if (OperatingSystem.IsWindows())
-            {
-                var pathRoot = Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:";
-
-                // Installed windows paths:
-                yield return Path.Combine(pathRoot, "dapr", "dapr.exe");
-
-                yield break;
-            }
-
-            // Add $HOME/dapr path:
-            var homePath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            yield return Path.Combine(homePath, "dapr", "dapr");
-
-            // Linux & MacOS path:
-            yield return Path.Combine("/usr", "local", "bin", "dapr");
-
-            // MacOS Homebrew path:
-            if (OperatingSystem.IsMacOS() && Environment.GetEnvironmentVariable("HOMEBREW_PREFIX") is string homebrewPrefix)
-            {
-                yield return Path.Combine(homebrewPrefix, "bin", "dapr");
-            }
-        }
     }
 
     public void Dispose()

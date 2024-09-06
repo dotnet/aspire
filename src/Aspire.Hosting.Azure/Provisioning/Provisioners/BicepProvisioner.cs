@@ -123,7 +123,7 @@ internal sealed class BicepProvisioner(
 
         PopulateWellKnownParameters(resource, context);
 
-        if (FindFullPathFromPath("az") is not { } azPath)
+        if (FileUtil.FindFullPathFromPath("az") is not { } azPath)
         {
             throw new AzureCliNotOnPathException();
         }
@@ -393,30 +393,6 @@ internal sealed class BicepProvisioner(
         {
             await disposable.DisposeAsync().ConfigureAwait(false);
         }
-    }
-
-    private static string? FindFullPathFromPath(string command) => FindFullPathFromPath(command, Environment.GetEnvironmentVariable("PATH"), Path.PathSeparator, File.Exists);
-
-    private static string? FindFullPathFromPath(string command, string? pathVariable, char pathSeparator, Func<string, bool> fileExists)
-    {
-        Debug.Assert(!string.IsNullOrWhiteSpace(command));
-
-        if (OperatingSystem.IsWindows())
-        {
-            command += ".cmd";
-        }
-
-        foreach (var directory in (pathVariable ?? string.Empty).Split(pathSeparator))
-        {
-            var fullPath = Path.Combine(directory, command);
-
-            if (fileExists(fullPath))
-            {
-                return fullPath;
-            }
-        }
-
-        return null;
     }
 
     internal static string GetChecksum(AzureBicepResource resource, JsonObject parameters)
