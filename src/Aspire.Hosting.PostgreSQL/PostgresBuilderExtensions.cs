@@ -64,7 +64,7 @@ public static class PostgresBuilderExtensions
         });
 
         var healthCheckKey = $"{name}_check";
-        builder.Services.AddHealthChecks().AddNpgSql(sp => connectionString!, name: healthCheckKey, configure: (connection) =>
+        builder.Services.AddHealthChecks().AddNpgSql(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey, configure: (connection) =>
         {
             // HACK: The Npgsql client defaults to using the username in the connection string if the database is not specified. Here
             //       we override this default behavior because we are working with a non-database scoped connection string. The Aspirified
