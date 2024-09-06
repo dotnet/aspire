@@ -38,6 +38,14 @@ message ResourceCommand {
     // Clients must return any value provided by the server when invoking
     // the command.
     optional google.protobuf.Value parameter = 4;
+    // A flag that indicates whether the command is highlighted in the UI.
+    bool is_highlighted = 5;
+    // Optional icon name. This name should be a valid FluentUI icon name.
+    // https://aka.ms/fluentui-system-icons
+    optional string icon_name = 6;
+    // Optional description of the command, to be shown in the UI.
+    // Could be used as a tooltip. May be localized.
+    optional string display_description = 7;
 }
 
 // Represents a request to execute a command.
