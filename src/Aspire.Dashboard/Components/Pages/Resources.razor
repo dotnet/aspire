@@ -73,9 +73,6 @@
                                 SelectedValue="@SelectedResource"
                                 ViewKey="ResourcesList">
                 <Summary>
-                    @{
-                        var gridTemplateColumns = HasResourcesWithCommands ? "1fr 1.5fr 1.25fr 1.5fr 2.5fr 2.5fr 1fr 1fr 1fr" : "1fr 1.5fr 1.25fr 1.5fr 2.5fr 2.5fr 1fr 1fr";
-                    }
                     <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
                                     ResizeType="DataGridResizeType.Discrete"
                                     Virtualize="true"
@@ -113,24 +110,12 @@
                                                         DisplayedEndpoints="@GetDisplayedEndpoints(context, out var additionalMessage)"
                                                         AdditionalMessage="@additionalMessage" />
                             </AspireTemplateColumn>
-                            <AspireTemplateColumn ColumnId="@LogsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesLogsColumnHeader)]" Class="no-ellipsis">
-                                <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(resource: context.Name)" @onclick:stopPropagation="true">@ControlsStringsLoc[ControlsStrings.ViewAction]</FluentAnchor>
-                            </AspireTemplateColumn>
-                            <AspireTemplateColumn ColumnId="@DetailsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesDetailsColumnHeader)]" Sortable="false" Class="no-ellipsis">
-                                @{
-                                    var id = $"details-button-{context.Uid}";
-                                }
-                                <div @onclick:stopPropagation="true">
-                                    <FluentButton Appearance="Appearance.Lightweight"
-                                                  Id="@id"
-                                                  Title="@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]"
-                                                  OnClick="@(() => ShowResourceDetailsAsync(context, id))">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
-                                </div>
-                            </AspireTemplateColumn>
-                            <AspireTemplateColumn ColumnId="@CommandsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesCommandsColumnHeader)]">
-                                <div @onclick:stopPropagation="true">
-                                    <ResourceCommands Commands="@context.Commands"
-                                                      CommandSelected="async (command) => await ExecuteResourceCommandAsync(context, command)" />
+                            <AspireTemplateColumn ColumnId="@ActionsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesActionsColumnHeader)]">
+                                <div style="display: inline-block;" @onclick:stopPropagation="true">
+                                    <ResourceActions Commands="@context.Commands"
+                                                     CommandSelected="async (command) => await ExecuteResourceCommandAsync(context, command)"
+                                                     OnViewDetails="@((buttonId) => ShowResourceDetailsAsync(context, buttonId))"
+                                                     OnConsoleLogs="@(() => NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: context.Name)))" />
                                 </div>
                             </AspireTemplateColumn>
                         </ChildContent>
