@@ -19,20 +19,123 @@ public static class RedisBuilderExtensions
     /// </summary>
     /// <remarks>
     /// The default image is "redis" and the tag is "7.2.4".
+    /// Password resource will be added to the model at publish time.
     /// </remarks>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port to bind the underlying container to.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name, int? port = null)
+    /// <example>
+    /// Use in application host.
+    /// 
+    /// the example of adding <see cref="RedisResource"/> to application model.
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var redis = builder.AddRedis("redis",6379);
+    /// 
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithReference(redis);
+    ///   
+    /// builder.Build().Run(); 
+    /// </code>
+    ///
+    /// </example>
+    public static IResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name, int? port)
+    {
+        return builder.AddRedis(name, port, null);
+    }
+
+    /// <summary>
+    /// Adds a Redis container to the application model.
+    /// </summary>
+    /// <remarks>
+    /// The default image is "redis" and the tag is "7.2.4".
+    /// If a password parameter is not supplied, a password resource will be added to the model at publish time.
+    /// </remarks>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="port">The host port to bind the underlying container to.</param>
+    /// <param name="password">The parameter used to provide the password for the Redis resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <example>
+    /// Use in application host
+    /// <list type="bullet">
+    /// <item>
+    /// the example of adding <see cref="RedisResource"/> to application model without password
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var redis = builder.AddRedis("redis");
+    /// 
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithReference(redis);
+    ///   
+    /// builder.Build().Run(); 
+    /// </code>
+    /// </item>
+    /// <item>
+    /// the example of adding <see cref="RedisResource"/> to application model with password
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// 
+    /// builder.Configuration["Parameters:pass"] = "StrongPassword";
+    /// var password = builder.AddParameter("pass");
+    /// 
+    /// var redis = builder.AddRedis("redis", password: password);
+    ///
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithReference(redis);
+    ///   
+    /// builder.Build().Run(); 
+    /// </code>
+    /// </item>
+    /// </list>
+    /// </example>
+    public static IResourceBuilder<RedisResource> AddRedis(
+        this IDistributedApplicationBuilder builder,
+        string name,
+        int? port = null,
+        IResourceBuilder<ParameterResource>? password = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
 
-        var redis = new RedisResource(name);
+        var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
+
+        var redis = new RedisResource(name, passwordParameter);
         return builder.AddResource(redis)
-                      .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
-                      .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
-                      .WithImageRegistry(RedisContainerImageTags.Registry);
+            .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
+            .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
+            .WithImageRegistry(RedisContainerImageTags.Registry)
+            .EnsureCommandLineCallback();
+    }
+
+    private static IResourceBuilder<RedisResource> EnsureCommandLineCallback(this IResourceBuilder<RedisResource> builder)
+    {
+        if (!builder.Resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out _))
+        {
+            builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
+            {
+                if (builder.Resource.PasswordParameter is { } password)
+                {
+                    context.Args.Add("--requirepass");
+                    context.Args.Add(password);
+                }
+
+                if (builder.Resource.TryGetAnnotationsOfType<PersistenceAnnotation>(out var annotations))
+                {
+                    var persistenceAnnotation = annotations.Single();
+                    context.Args.Add("--save");
+                    context.Args.Add(
+                        (persistenceAnnotation.Interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
+                    context.Args.Add(persistenceAnnotation.KeysChangedThreshold.ToString(CultureInfo.InvariantCulture));
+                }
+
+                return Task.CompletedTask;
+            }));
+        }
+        return builder;
     }
 
     /// <summary>
@@ -80,6 +183,10 @@ public static class RedisBuilderExtensions
                     if (redisInstance.PrimaryEndpoint.IsAllocated)
                     {
                         var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.PrimaryEndpoint.ContainerHost}:{redisInstance.PrimaryEndpoint.Port}:0";
+                        if (redisInstance.PasswordParameter is not null)
+                        {
+                            hostString += $":{redisInstance.PasswordParameter.Value}";
+                        }
                         hostsVariableBuilder.Append(hostString);
                     }
                 }
@@ -192,13 +299,13 @@ public static class RedisBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
-        {
-            context.Args.Add("--save");
-            context.Args.Add(
-                (interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
-            context.Args.Add(keysChangedThreshold.ToString(CultureInfo.InvariantCulture));
-            return Task.CompletedTask;
-        }), ResourceAnnotationMutationBehavior.Replace);
+        return builder.WithAnnotation(new PersistenceAnnotation(interval, keysChangedThreshold), ResourceAnnotationMutationBehavior.Replace)
+            .EnsureCommandLineCallback();
+    }
+
+    private sealed class PersistenceAnnotation(TimeSpan? interval, long keysChangedThreshold) : IResourceAnnotation
+    {
+        public TimeSpan? Interval => interval;
+        public long KeysChangedThreshold => keysChangedThreshold;
     }
 }

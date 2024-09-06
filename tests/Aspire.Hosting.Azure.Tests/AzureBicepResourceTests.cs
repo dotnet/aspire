@@ -845,8 +845,9 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             .PublishAsAzureRedis();
 
         Assert.True(redis.Resource.IsContainer());
+        Assert.NotNull(redis.Resource.PasswordParameter);
 
-        Assert.Equal("localhost:12455", await redis.Resource.GetConnectionStringAsync());
+        Assert.Equal($"localhost:12455,password={redis.Resource.PasswordParameter.Value}", await redis.Resource.GetConnectionStringAsync());
 
         var manifest = await ManifestUtils.GetManifestWithBicep(redis.Resource);
 
