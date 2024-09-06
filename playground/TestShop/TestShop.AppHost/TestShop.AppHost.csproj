@@ -7,7 +7,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <IsAspireHost>true</IsAspireHost>
     <AssemblyName>TestShop.AppHost</AssemblyName>
-    <DcpDir>/Users/dnegstad/source/apiserver/main/bin/</DcpDir>
   </PropertyGroup>
 
   <ItemGroup>
