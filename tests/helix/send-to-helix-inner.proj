@@ -118,8 +118,6 @@
 
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\azure-func-cli%3B%PATH%" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/azure-func-cli:$PATH" />
-
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="find $HELIX_CORRELATION_PAYLOAD/azure-func-cli -type d" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(HasDocker)' == 'true'">
