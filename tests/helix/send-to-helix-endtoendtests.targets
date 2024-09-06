@@ -43,7 +43,7 @@
 
         <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=$(_WorkItemName)&quot;</PreCommands>
         <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;TEST_SCENARIO=%(Identity)&quot;</PreCommands>
-        <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;ExtraTestArgs=--filter scenario=%(Identity)&quot;</PreCommands>
+        <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;TestFilterArg=scenario=%(Identity)&quot;</PreCommands>
         <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=-%(Identity)&quot;</PreCommands>
 
         <Command>$(_TestRunCommand)</Command>

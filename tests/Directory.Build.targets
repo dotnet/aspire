@@ -49,6 +49,9 @@
     <_ExtraTestArgsEnvVar Condition="'$(OS)' != 'Windows_NT'">$ExtraTestArgs</_ExtraTestArgsEnvVar>
     <_ExtraTestArgsEnvVar Condition="'$(OS)' == 'Windows_NT'">%ExtraTestArgs%</_ExtraTestArgsEnvVar>
 
+    <_TestFilterArgEnvVar Condition="'$(OS)' != 'Windows_NT'">$TestFilterArg</_TestFilterArgEnvVar>
+    <_TestFilterArgEnvVar Condition="'$(OS)' == 'Windows_NT'">%TestFilterArg%</_TestFilterArgEnvVar>
+
     <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' != 'Windows_NT'">$HELIX_CORRELATION_PAYLOAD</_HelixCorrelationPayloadEnvVar>
     <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_CORRELATION_PAYLOAD%</_HelixCorrelationPayloadEnvVar>
 
@@ -158,7 +161,7 @@
       <_TestBlameArgumentsProperty>@(TestBlameArguments, ' ')</_TestBlameArgumentsProperty>
       <_TestCoverageCommandProperty>@(_TestCoverageCommand, ' ')</_TestCoverageCommandProperty>
 
-      <RunScriptTestCommand Condition="'$(RunScriptTestCommand)' == ''">dotnet test -s .runsettings $(MSBuildProjectName).dll --ResultsDirectory:$(_LogsPathEnvVar) $(_TestBlameArgumentsProperty) $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(TestSessionTimeoutForHelix)</RunScriptTestCommand>
+      <RunScriptTestCommand Condition="'$(RunScriptTestCommand)' == ''">dotnet test -s .runsettings $(MSBuildProjectName).dll --ResultsDirectory:$(_LogsPathEnvVar) $(_TestBlameArgumentsProperty) --filter &quot;$(_TestFilterArgEnvVar)&quot; $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(TestSessionTimeoutForHelix)</RunScriptTestCommand>
       <RunScriptRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">$(_TestCoverageCommandProperty) &quot;$(RunScriptTestCommand)&quot;</RunScriptRunCommand>
       <RunScriptRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">$(RunScriptTestCommand)</RunScriptRunCommand>
     </PropertyGroup>

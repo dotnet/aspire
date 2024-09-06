@@ -36,8 +36,8 @@
         <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=-%(TestNameSuffix)&quot;</PreCommands>
         <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;TEST_NAME_SUFFIX=%(TestNameSuffix)&quot;</PreCommands>
 
-        <PreCommands Condition="'$(OS)' == 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) set &quot;ExtraTestArgs=--filter category^^!=failing^&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
-        <PreCommands Condition="'$(OS)' != 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) export &quot;ExtraTestArgs=--filter category!=failing&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' == 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) set &quot;TestFilterArg=category^^!=failing^&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) export &quot;TestFilterArg=category!=failing&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
 
         <!--<Command>$(_TestRunCommand)</Command>-->
         <Command Condition="'$(OS)' != 'Windows_NT'">chmod +x RunTests.sh; ./RunTests.sh</Command>

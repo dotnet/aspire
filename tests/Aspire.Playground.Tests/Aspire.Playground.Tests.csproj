@@ -77,7 +77,8 @@
 
   <Target Name="_SetRunScriptTestCommand" BeforeTargets="GenerateRunScript" Condition="'$(ArchiveTests)' == 'true'">
     <PropertyGroup>
-      <RunScriptTestCommand>dotnet test -s .runsettings --results-directory ${LOGS_PATH} @(TestBlameArguments, ' ') $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(TestSessionTimeoutForHelix)</RunScriptTestCommand>
+      <!-- FIXME: improve this - repeating the whole command line here -->
+      <RunScriptTestCommand>dotnet test -s .runsettings --results-directory $(_LogsPathEnvVar) @(TestBlameArguments, ' ') --filter &quot;$(_TestFilterArgEnvVar)&quot; $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(TestSessionTimeoutForHelix)</RunScriptTestCommand>
     </PropertyGroup>
   </Target>
 
