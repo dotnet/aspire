@@ -44,6 +44,11 @@ public sealed record CustomResourceSnapshot
     /// The URLs that should show up in the dashboard for this resource.
     /// </summary>
     public ImmutableArray<UrlSnapshot> Urls { get; init; } = [];
+
+    /// <summary>
+    /// The volumes that should show up in the dashboard for this resource.
+    /// </summary>
+    public ImmutableArray<VolumeSnapshot> Volumes { get; init; } = [];
 }
 
 /// <summary>
@@ -76,6 +81,14 @@ public sealed record EnvironmentVariableSnapshot(string Name, string? Value, boo
 /// <param name="Url">The full uri.</param>
 /// <param name="IsInternal">Determines if this url is internal.</param>
 public sealed record UrlSnapshot(string Name, string Url, bool IsInternal);
+
+/// <summary>
+/// A snapshot of a volume, mounted to a container.
+/// </summary>
+/// <param name="Source">The name of the volume. Can be <c>null</c> if the mount is an anonymous volume.</param>
+/// <param name="Target">The target of the mount.</param>
+/// <param name="IsReadOnly">Whether the volume mount is read-only or not.</param>
+public sealed record VolumeSnapshot(string? Source, string Target, bool IsReadOnly);
 
 /// <summary>
 /// A snapshot of the resource property.

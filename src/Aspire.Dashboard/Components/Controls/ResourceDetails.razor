@@ -121,6 +121,22 @@
                               HighlightText="@_filter"
                               GridTemplateColumns="1fr 1.5fr" />
             </FluentAccordionItem>
+            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsVolumesHeader)]" Expanded="true">
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral" Circular="true">
+                        @FilteredVolumes.Count()
+                    </FluentBadge>
+                </div>
+                <PropertyGrid TItem="VolumeViewModel"
+                              Items="@FilteredVolumes"
+                              NameColumnValue="(vm) => vm.Source"
+                              ValueColumnValue="(vm) => vm.Target"
+                              IsNameSortable="false"
+                              IsValueSortable="false"
+                              EnableValueMasking="false"
+                              HighlightText="@_filter"
+                              GridTemplateColumns="1fr 1.5fr" />
+            </FluentAccordionItem>
         </FluentAccordion>
     </div>
 </div>

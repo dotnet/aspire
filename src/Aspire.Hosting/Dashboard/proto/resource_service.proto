@@ -117,6 +117,12 @@ message Url {
     bool is_internal = 3;
 }
 
+message Volume {
+    string source = 1;
+    string target = 2;
+    bool is_read_only = 3;
+}
+
 message ResourceProperty {
     // Name of the data item, e.g. "container.id", "executable.pid", "project.path", ...
     string name = 1;
@@ -155,6 +161,8 @@ message Resource {
     // Supported styles are "success", "info", "warning" and "error". Any other style
     // will be treated as "unknown".
     optional string state_style = 14;
+
+    repeated Volume volumes = 15;
 }
 
 ////////////////////////////////////////////

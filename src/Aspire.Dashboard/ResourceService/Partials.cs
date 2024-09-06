@@ -27,6 +27,7 @@ partial class Resource
                 Properties = Properties.ToFrozenDictionary(property => ValidateNotNull(property.Name), property => ValidateNotNull(property.Value), StringComparers.ResourcePropertyName),
                 Environment = GetEnvironment(),
                 Urls = GetUrls(),
+                Volumes = GetVolumes(),
                 State = HasState ? State : null,
                 KnownState = HasState ? Enum.TryParse(State, out KnownResourceState knownState) ? knownState : null : null,
                 StateStyle = HasStateStyle ? StateStyle : null,
@@ -53,6 +54,13 @@ partial class Resource
                     where parsedUri != null
                     select new UrlViewModel(u.Name, parsedUri, u.IsInternal))
                     .ToImmutableArray();
+        }
+
+        ImmutableArray<VolumeViewModel> GetVolumes()
+        {
+            return Volumes
+                .Select(v => new VolumeViewModel(v.Source, v.Target, v.IsReadOnly))
+                .ToImmutableArray();
         }
 
         ImmutableArray<CommandViewModel> GetCommands()
