@@ -53,7 +53,7 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="value">A <see cref="ParameterDefault"/> that is used to provide the parameter value</param>
     /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
     /// <param name="persist">Persist the value to the app host project's user secrets store. This is typically
-    /// sone when the value is generated, so that it stays stable across runs. This is only relevant when
+    /// done when the value is generated, so that it stays stable across runs. This is only relevant when
     /// <see cref="DistributedApplicationExecutionContext.IsRunMode"/> is <c>true</c>
     /// </param>
     /// <returns>Resource builder for the parameter.</returns>
