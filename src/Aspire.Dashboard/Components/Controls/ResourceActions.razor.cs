@@ -22,13 +22,13 @@ public partial class ResourceActions : ComponentBase
     public required IList<CommandViewModel> Commands { get; set; }
 
     [Parameter]
-    public EventCallback<CommandViewModel> CommandSelected { get; set; }
+    public required EventCallback<CommandViewModel> CommandSelected { get; set; }
 
     [Parameter]
-    public EventCallback<string> OnViewDetails { get; set; }
+    public required EventCallback<string> OnViewDetails { get; set; }
 
     [Parameter]
-    public EventCallback OnConsoleLogs { get; set; }
+    public required EventCallback OnConsoleLogs { get; set; }
 
     [Parameter]
     public string? MenuButtonId { get; set; }
@@ -42,13 +42,13 @@ public partial class ResourceActions : ComponentBase
         _menuItems.Add(new MenuButtonItem
         {
             Title = Loc[nameof(Resources.Resources.ResourceActionViewDetailsText)],
-            Icon = s_viewDetailsIcon.Content,
+            Icon = s_viewDetailsIcon,
             OnClick = () => OnViewDetails.InvokeAsync(_menuButton?.MenuButtonId)
         });
         _menuItems.Add(new MenuButtonItem
         {
             Title = Loc[nameof(Resources.Resources.ResourceActionConsoleLogsText)],
-            Icon = s_consoleLogsIcon.Content,
+            Icon = s_consoleLogsIcon,
             OnClick = OnConsoleLogs.InvokeAsync
         });
 
@@ -62,7 +62,7 @@ public partial class ResourceActions : ComponentBase
                 _menuItems.Add(new MenuButtonItem
                 {
                     Title = command.DisplayName,
-                    Icon = command.IconContent,
+                    Icon = !string.IsNullOrEmpty(command.IconContent) ? new Icon(string.Empty, IconVariant.Regular, IconSize.Size20, command.IconContent) : null,
                     OnClick = () => CommandSelected.InvokeAsync(command)
                 });
             }

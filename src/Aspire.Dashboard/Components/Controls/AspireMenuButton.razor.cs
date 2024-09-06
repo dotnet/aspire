@@ -41,7 +41,7 @@ public partial class AspireMenuButton : FluentComponentBase
 
     private async Task HandleItemClicked(MenuButtonItem item)
     {
-        if (item?.OnClick is {} onClick)
+        if (item.OnClick is {} onClick)
         {
             await onClick();
         }

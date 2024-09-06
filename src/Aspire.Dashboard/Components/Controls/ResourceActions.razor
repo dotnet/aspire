@@ -7,7 +7,7 @@
     <FluentButton Appearance="Appearance.Lightweight" Title="@highlightedCommand.DisplayName" OnClick="@(() => CommandSelected.InvokeAsync(highlightedCommand))">
         @if (!string.IsNullOrEmpty(highlightedCommand.IconContent))
         {
-            <FluentIcon Value="@(new Icon(highlightedCommand.CommandType, IconVariant.Regular, IconSize.Size20, highlightedCommand.IconContent))" />
+            <FluentIcon Value="@(new Icon(string.Empty, IconVariant.Regular, IconSize.Size20, highlightedCommand.IconContent))" />
         }
         else
         {
@@ -20,4 +20,4 @@
     ButtonAppearance="Appearance.Lightweight"
     Icon="@(new Icons.Regular.Size24.MoreHorizontal())"
     Items="@_menuItems"
-    @ref=_menuButton />
+    @ref="_menuButton" />

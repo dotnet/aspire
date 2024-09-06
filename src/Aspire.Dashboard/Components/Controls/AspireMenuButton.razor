@@ -26,10 +26,10 @@
         {
             <FluentMenuItem OnClick="() => HandleItemClicked(item)">
                 @item.Title
-                @if (!string.IsNullOrEmpty(item.Icon))
+                @if (item.Icon != null)
                 {
                     <span slot="start">
-                        <FluentIcon Value="@(new Icon(string.Empty, IconVariant.Regular, IconSize.Size20, item.Icon))"
+                        <FluentIcon Value="@item.Icon"
                                     Style="vertical-align: middle;" />
                     </span>
                 }
