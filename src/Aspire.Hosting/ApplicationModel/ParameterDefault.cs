@@ -22,12 +22,6 @@ public abstract class ParameterDefault
     /// </summary>
     /// <returns>The generated string value.</returns>
     public abstract string GetDefaultValue();
-
-    /// <summary>
-    /// Gets a value indicating whether the default value needs to be persisted from run to run.
-    /// This should be set to true for any implementation that generates a random value.
-    /// </summary>
-    internal virtual bool NeedsPersistence => false;
 }
 
 /// <summary>
@@ -167,7 +161,4 @@ public sealed class GenerateParameterDefault : ParameterDefault
     /// <inheritdoc/>
     public override string GetDefaultValue() =>
         PasswordGenerator.Generate(MinLength, Lower, Upper, Numeric, Special, MinLower, MinUpper, MinNumeric, MinSpecial);
-
-    // Set it to true because the generated value is random.
-    internal override bool NeedsPersistence => true;
 }

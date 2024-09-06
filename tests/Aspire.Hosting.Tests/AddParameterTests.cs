@@ -208,13 +208,13 @@ public class AddParameterTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        // When using GenerateParameterDefault, it should get wrapped, since it has NeedsPersistence => true
-        var parameter1 = appBuilder.AddParameter("val1", new GenerateParameterDefault());
+        // Here it should get wrapped in UserSecretsParameterDefault, since we pass persist: true
+        var parameter1 = appBuilder.AddParameter("val1", new GenerateParameterDefault(), persist: true);
         Assert.IsType<UserSecretsParameterDefault>(parameter1.Resource.Default);
 
-        // When using TestParameterDefault, it should *not* get wrapped, since it has NeedsPersistence => false
-        var parameter2 = appBuilder.AddParameter("val2", new TestParameterDefault("val"));
-        Assert.IsType<TestParameterDefault>(parameter2.Resource.Default);
+        // Here it should not get wrapped, since we don't pass the persist flag
+        var parameter2 = appBuilder.AddParameter("val2", new GenerateParameterDefault());
+        Assert.IsType<GenerateParameterDefault>(parameter2.Resource.Default);
     }
 
     private sealed class TestParameterDefault(string defaultValue) : ParameterDefault

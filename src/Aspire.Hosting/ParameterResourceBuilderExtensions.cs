@@ -52,18 +52,17 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="name">Name of parameter resource</param>
     /// <param name="value">A <see cref="ParameterDefault"/> that is used to provide the parameter value</param>
     /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
+    /// <param name="persist">Persist the value to the app host project's user secrets store. This is typically
+    /// sone when the value is generated, so that it stays stable across runs. This is only relevant when
+    /// <see cref="DistributedApplicationExecutionContext.IsRunMode"/> is <c>true</c>
+    /// </param>
     /// <returns>Resource builder for the parameter.</returns>
-    /// <remarks>
-    /// If the passed in <see cref="ParameterDefault"/> needs it, its value gets persisted to the app host project's user secrets
-    /// store. This typically happens when the default value is generated, so that it stays stable across runs. This is only
-    /// relevant when <see cref="DistributedApplicationExecutionContext.IsRunMode"/> is <c>true</c>.
-    /// </remarks>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
                                                      Justification = "third parameters are mutually exclusive.")]
-    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, ParameterDefault value, bool secret = false)
+    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, ParameterDefault value, bool secret = false, bool persist = false)
     {
         // If it needs persistence, wrap it in a UserSecretsParameterDefault
-        if (value.NeedsPersistence && builder.ExecutionContext.IsRunMode && builder.AppHostAssembly is not null)
+        if (persist && builder.ExecutionContext.IsRunMode && builder.AppHostAssembly is not null)
         {
             value = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, name, value);
         }
