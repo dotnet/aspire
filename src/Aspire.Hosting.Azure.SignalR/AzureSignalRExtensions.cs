@@ -52,9 +52,9 @@ public static class AzureSignalRExtensions
             service.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
 
             // Supported values are Free_F1 Standard_S1 Premium_P1
-            service.AssignProperty(p => p.Sku.Name, new Parameter("sku", defaultValue: "Free_F1"));
+            service.AssignProperty(p => p.Sku.Name, "'Free_F1'");
             // Supported values are 1 2 5 10 20 50 100
-            service.AssignProperty(p => p.Sku.Capacity, new Parameter("capacity", BicepType.Int, defaultValue: 1));
+            service.AssignProperty(p => p.Sku.Capacity, "1");
 
             var appServerRole = service.AssignRole(RoleDefinition.SignalRAppServer);
             appServerRole.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
