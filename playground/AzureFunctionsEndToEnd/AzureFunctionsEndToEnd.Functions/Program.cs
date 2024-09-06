@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 var host = new HostBuilder()
     .AddServiceDefaults()
-    .ConfigureFunctionsWorkerDefaults()
+    .ConfigureFunctionsWebApplication()
     .ConfigureServices(services =>
     {
         services.AddOpenTelemetry()
