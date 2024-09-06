@@ -25,8 +25,8 @@ public static class MilvusBuilderExtensions
     /// var milvus = builder.AddMilvus("milvus");
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithReference(milvus);
-    ///  
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     /// <remarks>
@@ -80,11 +80,11 @@ public static class MilvusBuilderExtensions
     ///
     /// var booksdb = builder.AddMilvus("milvus");
     ///   .AddDatabase("booksdb");
-    /// 
+    ///
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithReference(booksdb);
-    ///  
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     /// <param name="builder">The Milvus server resource builder.</param>
@@ -117,8 +117,8 @@ public static class MilvusBuilderExtensions
     ///   .WithAttu();
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithReference(milvus);
-    ///  
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     /// <param name="builder">The Milvus server resource builder.</param>
@@ -186,6 +186,6 @@ public static class MilvusBuilderExtensions
 
     private static void ConfigureAttuContainer(EnvironmentCallbackContext context, MilvusServerResource resource)
     {
-        context.EnvironmentVariables.Add("MILVUS_URL", $"{resource.PrimaryEndpoint.Scheme}://{resource.PrimaryEndpoint.ContainerHost}:{resource.PrimaryEndpoint.Port}");
+        context.EnvironmentVariables.Add("MILVUS_URL", $"{resource.PrimaryEndpoint.Scheme}://{resource.PrimaryEndpoint.ContainerHost}:{resource.PrimaryEndpoint.TargetPort}");
     }
 }

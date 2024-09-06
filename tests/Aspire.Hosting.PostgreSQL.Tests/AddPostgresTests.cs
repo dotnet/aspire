@@ -613,7 +613,7 @@ public class AddPostgresTests
 
         var fileContent = $"""
                 host = "{postgresDatabase.Parent.PrimaryEndpoint.ContainerHost}"
-                port = {postgresDatabase.Parent.PrimaryEndpoint.Port}
+                port = {postgresDatabase.Parent.PrimaryEndpoint.TargetPort}
                 user = "{user}"
                 password = "{postgresDatabase.Parent.PasswordParameter.Value}"
                 database = "{postgresDatabase.DatabaseName}"

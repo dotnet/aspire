@@ -106,7 +106,7 @@ public static class MySqlBuilderExtensions
                     var endpoint = singleInstance.PrimaryEndpoint;
                     phpMyAdminContainerBuilder.WithEnvironment(context =>
                     {
-                        context.EnvironmentVariables.Add("PMA_HOST", $"{endpoint.ContainerHost}:{endpoint.Port}");
+                        context.EnvironmentVariables.Add("PMA_HOST", $"{endpoint.ContainerHost}:{endpoint.TargetPort}");
                         context.EnvironmentVariables.Add("PMA_USER", "root");
                         context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.PasswordParameter.Value);
                     });
@@ -127,7 +127,7 @@ public static class MySqlBuilderExtensions
                     {
                         var endpoint = mySqlInstance.PrimaryEndpoint;
                         writer.WriteLine("$i++;");
-                        writer.WriteLine($"$cfg['Servers'][$i]['host'] = '{endpoint.ContainerHost}:{endpoint.Port}';");
+                        writer.WriteLine($"$cfg['Servers'][$i]['host'] = '{endpoint.ContainerHost}:{endpoint.TargetPort}';");
                         writer.WriteLine($"$cfg['Servers'][$i]['verbose'] = '{mySqlInstance.Name}';");
                         writer.WriteLine($"$cfg['Servers'][$i]['auth_type'] = 'cookie';");
                         writer.WriteLine($"$cfg['Servers'][$i]['user'] = 'root';");
@@ -157,7 +157,7 @@ public static class MySqlBuilderExtensions
     public static IResourceBuilder<PhpMyAdminContainerResource> WithHostPort(this IResourceBuilder<PhpMyAdminContainerResource> builder, int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        
+
         return builder.WithEndpoint("http", endpoint =>
         {
             endpoint.Port = port;
