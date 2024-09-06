@@ -563,6 +563,12 @@ public static class ResourceBuilderExtensions
     /// <remarks>
     /// <para>This method is useful when a resource should wait until another has started running. This can help
     /// reduce errors in logs during local development where dependency resources.</para>
+    /// <para>Some resources automatically register health checks with the application host container. For these
+    /// resources, calling <see cref="WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/> also results
+    /// in the resource being blocked from starting until the health checks associated with the dependency resource
+    /// return <see cref="HealthStatus.Healthy"/>.</para>
+    /// <para>The <see cref="WithHealthCheck{T}(IResourceBuilder{T}, string)"/> method can be used to associate
+    /// additional health checks with a resource.</para>
     /// </remarks>
     /// <example>
     /// Start message queue before starting the worker service.
@@ -709,6 +715,35 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="key">The key for the health check.</param>
     /// <returns>The resource builder.</returns>
+    /// <remarks>
+    /// <para>
+    /// The <see cref="WithHealthCheck{T}(IResourceBuilder{T}, string)"/> method is used in conjunction with
+    /// the <see cref="WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/> to associate a resource
+    /// registered in the application hosts dependency injection container. The <see cref="WithHealthCheck{T}(IResourceBuilder{T}, string)"/>
+    /// method does not inject the health check itself it is purely an association mechanism.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Define a custom health check and associate it with a resource.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var startAfter = DateTime.Now.AddSeconds(30);
+    /// 
+    /// builder.Services.AddHealthChecks().AddCheck(mycheck", () =>
+    /// {
+    ///     return DateTime.Now > startAfter ? HealthCheckResult.Healthy() : HealthCheckResult.Unhealthy();
+    /// });
+    ///
+    /// var pg = builder.AddPostgres("pg")
+    ///                 .WithHealthCheck("mycheck");
+    ///
+    /// builder.AddProject&lt;Projects.MyApp&gt;("myapp")
+    ///        .WithReference(pg)
+    ///        .WaitFor(pg); // This will result in waiting for the building check, and the
+    ///                      // custom check defined in the code.
+    /// </code>
+    /// </example>
     public static IResourceBuilder<T> WithHealthCheck<T>(this IResourceBuilder<T> builder, string key) where T: IResource
     {
         if (builder.Resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var annotations) && annotations.Any(a => a.Key == key))
