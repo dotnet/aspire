@@ -1,11 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Aspire.Dashboard.Extensions;
 using Google.Protobuf.WellKnownTypes;
+using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Model;
 
@@ -60,20 +62,50 @@ public sealed class ResourceViewModel
 [DebuggerDisplay("CommandType = {CommandType}, DisplayName = {DisplayName}")]
 public sealed class CommandViewModel
 {
+    private static readonly ConcurrentDictionary<string, CustomIcon?> s_iconCache = new();
+
     public string CommandType { get; }
     public string DisplayName { get; }
+    public string? DisplayDescription { get; }
     public string? ConfirmationMessage { get; }
     public Value? Parameter { get; }
+    public bool IsHighlighted { get; }
+    public string? IconName { get; }
 
-    public CommandViewModel(string commandType, string displayName, string? confirmationMessage, Value? parameter)
+    public CommandViewModel(string commandType, string displayName, string? displayDescription, string? confirmationMessage, Value? parameter, bool isHighlighted, string? iconName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(commandType);
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
 
         CommandType = commandType;
         DisplayName = displayName;
+        DisplayDescription = displayDescription;
         ConfirmationMessage = confirmationMessage;
         Parameter = parameter;
+        IsHighlighted = isHighlighted;
+        IconName = iconName;
+    }
+
+    public static CustomIcon? ResolveIconName(string iconName)
+    {
+        // Icons.GetInstance isn't efficent. Cache icon lookup.
+        return s_iconCache.GetOrAdd(iconName, static name =>
+        {
+            try
+            {
+                return Icons.GetInstance(new IconInfo
+                {
+                    Name = name,
+                    Variant = IconVariant.Regular,
+                    Size = IconSize.Size20
+                });
+            }
+            catch
+            {
+                // Icon name couldn't be found.
+                return null;
+            }
+        });
     }
 }
 
