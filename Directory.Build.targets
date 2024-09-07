@@ -29,12 +29,16 @@
    to copy the updated extensions.json file once the `_FunctionsExtensionUpdateMetadata` target has completed. -->
   <Target Name="_FunctionsAssignTargetPathsFix" AfterTargets="_FunctionsAssignTargetPaths" BeforeTargets="_FunctionsExtensionUpdateMetadata">
     <ItemGroup>
-      <None Remove="$(_FunctionsIntermediateExtensionUpdatedJsonPath)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" TargetPath="$(_FunctionsExtensionsJsonName)" />
-    </ItemGroup>
-  </Target>
-  <Target Name="_FunctionsAssignTargetPathsFix" AfterTargets="_FunctionsExtensionUpdateMetadata">
-    <ItemGroup>
-      <None Include="$(_FunctionsIntermediateExtensionUpdatedJsonPath)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" TargetPath="$(_FunctionsExtensionsJsonName)" />
+      <None Remove="$(_FunctionsIntermediateExtensionUpdatedJsonPath)"
+        CopyToOutputDirectory="PreserveNewest"
+        CopyToPublishDirectory="PreserveNewest"
+        TargetPath="$(_FunctionsExtensionsJsonName)" />
+      <None
+        Include="$(_FunctionsIntermediateExtensionUpdatedJsonPath)"
+        CopyToOutputDirectory="PreserveNewest"
+        CopyToPublishDirectory="PreserveNewest"
+        TargetPath="$(_FunctionsExtensionsJsonName)"
+        Condition="Exists('$(_FunctionsIntermediateExtensionUpdatedJsonPath)')"/>
     </ItemGroup>
   </Target>
 </Project>
