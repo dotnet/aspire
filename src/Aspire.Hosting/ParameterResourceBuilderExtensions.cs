@@ -111,7 +111,7 @@ public static class ParameterResourceBuilderExtensions
     /// </summary>
     /// <param name="parameter">Resource builder for the parameter</param>
     /// <returns>Resource builder for the parameter.</returns>
-    public static IResourceBuilder<ParameterResource> PublishValue(this IResourceBuilder<ParameterResource> parameter)
+    public static IResourceBuilder<ParameterResource> PublishDefaultValue(this IResourceBuilder<ParameterResource> parameter)
     {
         // If it already has a ParameterDefault, we don't need to do anything as it'll take care of writing to the manifest
         parameter.Resource.Default ??= new ConstantParameterDefault(parameter.Resource.Value);

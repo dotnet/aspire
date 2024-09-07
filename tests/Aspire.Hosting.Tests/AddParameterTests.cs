@@ -161,8 +161,8 @@ public class AddParameterTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        // PublishValue() should throw if the parameter doesn't have a value
-        Assert.Throws<DistributedApplicationException>(() => appBuilder.AddParameter("val").PublishValue());
+        // PublishDefaultValue() should throw if the parameter doesn't have a value
+        Assert.Throws<DistributedApplicationException>(() => appBuilder.AddParameter("val").PublishDefaultValue());
 
         appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
@@ -171,10 +171,10 @@ public class AddParameterTests
         });
 
         // We test all the combinations of {direct param, callback param} x {config value, no config value}
-        var parameter1 = appBuilder.AddParameter("val1", "DefaultValue1").PublishValue();
-        var parameter2 = appBuilder.AddParameter("val2", "DefaultValue2").PublishValue();
-        var parameter3 = appBuilder.AddParameter("val3", () => "DefaultValue3").PublishValue();
-        var parameter4 = appBuilder.AddParameter("val4", () => "DefaultValue4").PublishValue();
+        var parameter1 = appBuilder.AddParameter("val1", "DefaultValue1").PublishDefaultValue();
+        var parameter2 = appBuilder.AddParameter("val2", "DefaultValue2").PublishDefaultValue();
+        var parameter3 = appBuilder.AddParameter("val3", () => "DefaultValue3").PublishDefaultValue();
+        var parameter4 = appBuilder.AddParameter("val4", () => "DefaultValue4").PublishDefaultValue();
 
         using var app = appBuilder.Build();
 
@@ -186,7 +186,7 @@ public class AddParameterTests
             var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == $"val{i}");
             Assert.Equal($"DefaultValue{i}", parameterResource.Value);
 
-            // The manifest should include the default value, since we called PublishValue()
+            // The manifest should include the default value, since we called PublishDefaultValue()
             var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == $"val{i}"));
             var expectedManifest = $$"""
                 {
@@ -222,11 +222,11 @@ public class AddParameterTests
             MinLength = 10,
         };
 
-        // We test all the combinations of {PublishValue(), no PublishValue() call} x {config value, no config value}
+        // We test all the combinations of {PublishDefaultValue(), no PublishDefaultValue() call} x {config value, no config value}
         var parameter1 = appBuilder.AddParameter("val1", genParam);
         var parameter2 = appBuilder.AddParameter("val2", genParam);
-        var parameter3 = appBuilder.AddParameter("val3", genParam).PublishValue();
-        var parameter4 = appBuilder.AddParameter("val4", genParam).PublishValue();
+        var parameter3 = appBuilder.AddParameter("val3", genParam).PublishDefaultValue();
+        var parameter4 = appBuilder.AddParameter("val4", genParam).PublishDefaultValue();
 
         using var app = appBuilder.Build();
 
@@ -240,7 +240,7 @@ public class AddParameterTests
             Assert.Equal(10, parameterResource.Value.Length);
 
             // The manifest should include the fields for the generated default value
-            // Note that the PublishValue() call doesn't affect the manifest in this case, since
+            // Note that the PublishDefaultValue() call doesn't affect the manifest in this case, since
             // we are already providing a GenerateParameterDefault
             var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == $"val{i}"));
             var expectedManifest = $$"""
