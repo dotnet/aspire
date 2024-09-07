@@ -231,6 +231,7 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [RequiresDocker]
     public async Task WaitForCompletionSucceedsIfDependentResourceEntersTerminalStateWithoutAnExitCode()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
