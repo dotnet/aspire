@@ -46,6 +46,37 @@ public static class ParameterResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds a parameter resource to the application with a value coming from a callback function.
+    /// </summary>
+    /// <param name="builder">Distributed application builder</param>
+    /// <param name="name">Name of parameter resource</param>
+    /// <param name="valueGetter">A callback function that returns the value of the parameter</param>
+    /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
+    /// <returns>Resource builder for the parameter.</returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
+                                                     Justification = "third parameters are mutually exclusive.")]
+    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, Func<string> valueGetter, bool secret = false)
+    {
+        return builder.AddParameter(name, parameterDefault => valueGetter(), secret: secret);
+    }
+
+    /// <summary>
+    /// Adds a parameter resource to the application, with a value coming from configuration.
+    /// </summary>
+    /// <param name="builder">Distributed application builder</param>
+    /// <param name="name">Name of parameter resource</param>
+    /// <param name="configurationKey">Configuration key used to get the value of the parameter</param>
+    /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
+    /// <returns>Resource builder for the parameter.</returns>
+    public static IResourceBuilder<ParameterResource> AddParameterFromConfiguration(this IDistributedApplicationBuilder builder, string name, string configurationKey, bool secret = false)
+    {
+        return builder.AddParameter(
+            name,
+            parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault, configurationKey),
+            secret, configurationKey: configurationKey);
+    }
+
+    /// <summary>
     /// Adds a parameter resource to the application, with a value coming from a ParameterDefault.
     /// </summary>
     /// <param name="builder">Distributed application builder</param>
@@ -74,9 +105,26 @@ public static class ParameterResourceBuilderExtensions
             parameterDefault: value);
     }
 
-    private static string GetParameterValue(IConfiguration configuration, string name, ParameterDefault? parameterDefault)
+    /// <summary>
+    /// Causes the value of the parameter to be published to the manifest.
+    /// </summary>
+    /// <param name="parameter">Resource builder for the parameter</param>
+    /// <returns>Resource builder for the parameter.</returns>
+    public static IResourceBuilder<ParameterResource> PublishValue(this IResourceBuilder<ParameterResource> parameter)
     {
-        var configurationKey = $"Parameters:{name}";
+        if (parameter.Resource.Value is null)
+        {
+            throw new DistributedApplicationException($"Parameter resource '{parameter.Resource.Name}' does not have a value.");
+        }
+
+        // If it already has a ParameterDefault, we don't need to do anything as it'll take care of writing to the manifest
+        parameter.Resource.Default ??= new ConstantParameterDefault(parameter.Resource.Value);
+        return parameter;
+    }
+
+    private static string GetParameterValue(IConfiguration configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
+    {
+        configurationKey ??= $"Parameters:{name}";
         return configuration[configurationKey]
             ?? parameterDefault?.GetDefaultValue()
             ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing and the Parameter has no default value."); ;
@@ -87,11 +135,14 @@ public static class ParameterResourceBuilderExtensions
                                                                      Func<ParameterDefault?, string> callback,
                                                                      bool secret = false,
                                                                      bool connectionString = false,
-                                                                     ParameterDefault? parameterDefault = null)
+                                                                     ParameterDefault? parameterDefault = null,
+                                                                     string? configurationKey = null)
     {
         var resource = new ParameterResource(name, callback, secret);
         resource.IsConnectionString = connectionString;
         resource.Default = parameterDefault;
+
+        configurationKey ??= connectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}";
 
         var state = new CustomResourceSnapshot()
         {
@@ -100,7 +151,7 @@ public static class ParameterResourceBuilderExtensions
             State = KnownResourceStates.Hidden,
             Properties = [
                 new("parameter.secret", secret.ToString()),
-                new(CustomResourceKnownProperties.Source, connectionString ? $"ConnectionStrings:{name}" : $"Parameters:{name}")
+                new(CustomResourceKnownProperties.Source, configurationKey)
             ]
         };
 

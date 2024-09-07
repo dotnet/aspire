@@ -162,3 +162,13 @@ public sealed class GenerateParameterDefault : ParameterDefault
     public override string GetDefaultValue() =>
         PasswordGenerator.Generate(MinLength, Lower, Upper, Numeric, Special, MinLower, MinUpper, MinNumeric, MinSpecial);
 }
+
+// Simple parameter default that just returns a constant value, at both runtime and publish time.
+class ConstantParameterDefault(string value): ParameterDefault
+{
+    public override string GetDefaultValue() => value;
+    public override void WriteToManifest(ManifestPublishingContext context)
+    {
+        context.Writer.WriteString("value", value);
+    }
+}
