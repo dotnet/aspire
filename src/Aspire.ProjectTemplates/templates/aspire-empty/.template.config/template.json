@@ -12,6 +12,7 @@
   ],
   "name": ".NET Aspire Empty App",
   "defaultName": "AspireApp",
+  "generatorVersions": "[1.0.0.0-*)",
   "description": "A project template for creating an empty .NET Aspire app.",
   "shortName": "aspire",
   "sourceName": "AspireApplication.1",
@@ -227,6 +228,7 @@
       "id": "set-startup-project",
       "description": "Sets the startup project in the solution",
       "actionId": "5BECCC32-4D5A-4476-A0F9-BD2E81AF0689",
+      "manualInstructions": [ ],
       "condition": "(hostIdentifier == \"vs\")",
       "args": {
         "projects": "0"
