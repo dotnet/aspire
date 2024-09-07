@@ -75,6 +75,8 @@ app.Run();
 
 The Azure Functions integration currently only support Azure Storage Queues, Azure Storage Blobs, and Azure Event Hubs as resource references.
 
+The Azure Functions integration does not currently support OpenTelemetry from the locally running Azure Functions host.
+
 Due to a [current bug in the Azure Functions Core Tools](https://github.com/Azure/azure-functions-core-tools/issues/3594), the Functions host may fail
 to find the target project to build:
 
