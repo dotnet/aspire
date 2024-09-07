@@ -5,16 +5,17 @@ using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Tests;
 
-public class WaitForTests
+public class WaitForTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     [RequiresDocker]
     public async Task EnsureDependentResourceMovesIntoWaitingState()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
 
         var dependency = builder.AddResource(new CustomResource("test"));
         var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
@@ -55,7 +56,7 @@ public class WaitForTests
     [RequiresDocker]
     public async Task WaitForCompletionWaitsForTerminalStateOfDependencyResource()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
 
         var dependency = builder.AddResource(new CustomResource("test"));
         var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
@@ -103,7 +104,7 @@ public class WaitForTests
     [RequiresDocker]
     public async Task WaitForThrowsIfResourceMovesToTerminalStateBeforeRunning()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
 
         var dependency = builder.AddResource(new CustomResource("test"));
         var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
@@ -151,8 +152,8 @@ public class WaitForTests
     [RequiresDocker]
     public async Task EnsureDependencyResourceThatReturnsNonMatchingExitCodeResultsInDependentResourceFailingToStart()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+        
         var dependency = builder.AddResource(new CustomResource("test"));
         var nginx = builder.AddContainer("nginx", "mcr.microsoft.com/cbl-mariner/base/nginx", "1.22")
                            .WithReference(dependency)
@@ -198,7 +199,7 @@ public class WaitForTests
     [RequiresDocker]
     public async Task DependencyWithGreaterThan1ReplicaAnnotationCausesDependentResourceToFailToStart()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
 
         var dependency = builder.AddResource(new CustomResource("test"))
                                 .WithAnnotation(new ReplicaAnnotation(2));
@@ -232,7 +233,7 @@ public class WaitForTests
     [Fact]
     public async Task WaitForCompletionSucceedsIfDependentResourceEntersTerminalStateWithoutAnExitCode()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
 
         var dependency = builder.AddResource(new CustomResource("test"));
 
