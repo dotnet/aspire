@@ -228,7 +228,11 @@
       "id": "set-startup-project",
       "description": "Sets the startup project in the solution",
       "actionId": "5BECCC32-4D5A-4476-A0F9-BD2E81AF0689",
-      "manualInstructions": [ ],
+      "manualInstructions": [
+        {
+          "text": "Set the startup project in the solution"
+        }
+      ],
       "condition": "(hostIdentifier == \"vs\")",
       "args": {
         "projects": "0"

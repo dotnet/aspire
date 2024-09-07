@@ -25,6 +25,7 @@
   "symbols/skipRestore/description": "Si se especifica, se omite la restauración automática del proyecto durante la creación.",
   "symbols/NoHttps/description": "Si se va a desactivar HTTPS.",
   "postActions/set-startup-project/description": "Establece el proyecto de inicio en la solución",
+  "postActions/set-startup-project/manualInstructions/default/text": "Set the startup project in the solution",
   "postActions/restore/description": "Restaure los paquetes NuGet necesarios para este proyecto.",
   "postActions/restore/manualInstructions/default/text": "Ejecutar \"dotnet restore\""
 }

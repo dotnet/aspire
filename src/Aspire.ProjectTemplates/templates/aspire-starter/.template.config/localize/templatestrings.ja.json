@@ -25,6 +25,7 @@
   "symbols/skipRestore/description": "指定した場合、作成時にプロジェクトの自動復元がスキップされます。",
   "symbols/NoHttps/description": "HTTPS をオフにするかどうか。",
   "postActions/set-startup-project/description": "ソリューションのスタートアップ プロジェクトを設定します",
+  "postActions/set-startup-project/manualInstructions/default/text": "Set the startup project in the solution",
   "postActions/restore/description": "このプロジェクトに必要な NuGet パッケージを復元します。",
   "postActions/restore/manualInstructions/default/text": "'dotnet restore' を実行する"
 }
