@@ -78,16 +78,14 @@ The Azure Functions integration currently only support Azure Storage Queues, Azu
 Due to a [current bug in the Azure Functions Core Tools](https://github.com/Azure/azure-functions-core-tools/issues/3594), the Functions host may fail
 to find the target project to build:
 
-```
-Can't determine Project to build. Expected 1 .csproj or .fsproj but found 2
-```
+> Can't determine Project to build. Expected 1 .csproj or .fsproj but found 2
 
 To work around this issue, run the following commands in the Functions project directory:
 
 ```dotnetcli
-$ cd Company.FunctionApp
-$ rm bin/ obj/
-$ func start --csharp
+cd Company.FunctionApp
+rm bin/ obj/
+func start --csharp
 ```
 
 Then, update the `RunArguments` in the project file as follows:
