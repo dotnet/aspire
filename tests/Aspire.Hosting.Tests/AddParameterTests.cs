@@ -161,6 +161,9 @@ public class AddParameterTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
+        // PublishValue() should throw if the parameter doesn't have a value
+        Assert.Throws<DistributedApplicationException>(() => appBuilder.AddParameter("val").PublishValue());
+
         appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Parameters:val1"] = "ValueFromConfiguration1",

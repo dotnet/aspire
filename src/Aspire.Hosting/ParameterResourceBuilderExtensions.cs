@@ -73,7 +73,8 @@ public static class ParameterResourceBuilderExtensions
         return builder.AddParameter(
             name,
             parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault, configurationKey),
-            secret, configurationKey: configurationKey);
+            secret,
+            configurationKey: configurationKey);
     }
 
     /// <summary>
@@ -112,11 +113,6 @@ public static class ParameterResourceBuilderExtensions
     /// <returns>Resource builder for the parameter.</returns>
     public static IResourceBuilder<ParameterResource> PublishValue(this IResourceBuilder<ParameterResource> parameter)
     {
-        if (parameter.Resource.Value is null)
-        {
-            throw new DistributedApplicationException($"Parameter resource '{parameter.Resource.Name}' does not have a value.");
-        }
-
         // If it already has a ParameterDefault, we don't need to do anything as it'll take care of writing to the manifest
         parameter.Resource.Default ??= new ConstantParameterDefault(parameter.Resource.Value);
         return parameter;
