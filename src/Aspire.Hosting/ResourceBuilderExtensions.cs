@@ -284,7 +284,10 @@ public static class ResourceBuilderExtensions
         {
             var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
 
-            context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional);
+            context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional)
+            {
+                ConnectionName = connectionName
+            };
         });
     }
 
