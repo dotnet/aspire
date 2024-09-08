@@ -590,8 +590,10 @@ public class ProjectResourceTests
             arg => Assert.Equal("http://localhost:1234", arg));
     }
 
-    [Fact]
-    public async Task AddProjectWithWildcardUrlInLaunchSettings()
+    [Theory]
+    [InlineData(true, "localhost")]
+    [InlineData(false, "*")]
+    public async Task AddProjectWithWildcardUrlInLaunchSettings(bool isProxied, string expectedHost)
     {
         var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Run);
 
@@ -600,11 +602,13 @@ public class ProjectResourceTests
             {
                 Assert.Equal("*", e.TargetHost);
                 e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p0");
+                e.IsProxied = isProxied;
             })
             .WithEndpoint("https", e =>
             {
                 Assert.Equal("*", e.TargetHost);
                 e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p1");
+                e.IsProxied = isProxied;
             });
 
         using var app = appBuilder.Build();
@@ -616,8 +620,20 @@ public class ProjectResourceTests
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
-        Assert.Equal("http://*:p0;https://*:p1", config["ASPNETCORE_URLS"]);
-        Assert.Equal("5033", config["ASPNETCORE_HTTPS_PORT"]);
+        var http = resource.GetEndpoint("http");
+        var https = resource.GetEndpoint("https");
+
+        if (isProxied)
+        {
+            // When the end point is proxied, the host should be localhost and the port should match the targetPortExpression
+            Assert.Equal($"http://{expectedHost}:p0;https://{expectedHost}:p1", config["ASPNETCORE_URLS"]);
+        }
+        else
+        {
+            Assert.Equal($"http://{expectedHost}:{http.TargetPort};https://{expectedHost}:{https.TargetPort}", config["ASPNETCORE_URLS"]);
+        }
+
+        Assert.Equal(https.Port.ToString(), config["ASPNETCORE_HTTPS_PORT"]);
     }
 
     internal static IDistributedApplicationBuilder CreateBuilder(string[]? args = null, DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)
@@ -663,7 +679,7 @@ public class ProjectResourceTests
         {
             Profiles = new()
             {
-                ["http"] = new ()
+                ["http"] = new()
                 {
                     CommandName = "Project",
                     CommandLineArgs = "arg1 arg2",
