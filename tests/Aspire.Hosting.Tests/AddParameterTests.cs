@@ -168,7 +168,7 @@ public class AddParameterTests
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    public async Task ParametersWithDefaultValueGetPublishedIfMethodIsCalled(bool useCallback, bool hasConfig)
+    public async Task ParametersWithDefaultValueGetPublishedIfPublishFlagIsPassed(bool useCallback, bool hasConfig)
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
@@ -182,11 +182,11 @@ public class AddParameterTests
 
         if (useCallback)
         {
-            appBuilder.AddParameter("pass", () => "DefaultValue").PublishDefaultValue();
+            appBuilder.AddParameter("pass", () => "DefaultValue", publishValue: true);
         }
         else
         {
-            appBuilder.AddParameter("pass", "DefaultValue").PublishDefaultValue();
+            appBuilder.AddParameter("pass", "DefaultValue", publishValue: true);
         }
 
         using var app = appBuilder.Build();
@@ -196,7 +196,7 @@ public class AddParameterTests
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "pass");
         Assert.Equal($"DefaultValue", parameterResource.Value);
 
-        // The manifest should include the default value, since we called PublishDefaultValue()
+        // The manifest should include the default value, since we passed publishValue: true
         var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass"));
         var expectedManifest = $$"""
             {
@@ -215,22 +215,10 @@ public class AddParameterTests
         Assert.Equal(expectedManifest, paramManifest.ToString());
     }
 
-    [Fact]
-    public void PublishDefaultValueThrowsIsThereIsNoValue()
-    {
-        var appBuilder = DistributedApplication.CreateBuilder();
-
-        // PublishDefaultValue() should throw if the parameter doesn't have a value
-        Assert.Throws<DistributedApplicationException>(() => appBuilder.AddParameter("val").PublishDefaultValue());
-    }
-
     [Theory]
-    // We test all the combinations of {PublishDefaultValue(), no PublishDefaultValue() call} x {config value, no config value}
-    [InlineData(false, false)]
-    [InlineData(false, true)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public async Task ParametersWithDefaultValueObjectOverloadUsedRegardlessOfConfigurationValue(bool callPublish, bool hasConfig)
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ParametersWithDefaultValueObjectOverloadUsedRegardlessOfConfigurationValue(bool hasConfig)
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
@@ -245,10 +233,6 @@ public class AddParameterTests
         var genParam = new GenerateParameterDefault { MinLength = 10 };
 
         var parameter = appBuilder.AddParameter("pass", genParam);
-        if (callPublish)
-        {
-            parameter = parameter.PublishDefaultValue();
-        }
 
         using var app = appBuilder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -259,8 +243,6 @@ public class AddParameterTests
         Assert.Equal(10, parameterResource.Value.Length);
 
         // The manifest should include the fields for the generated default value
-        // Note that the PublishDefaultValue() call doesn't affect the manifest in this case, since
-        // we are already providing a GenerateParameterDefault
         var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass"));
         var expectedManifest = $$"""
             {

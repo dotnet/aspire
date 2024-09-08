@@ -33,16 +33,14 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="builder">Distributed application builder</param>
     /// <param name="name">Name of parameter resource</param>
     /// <param name="value">A string value to use for the paramater</param>
+    /// <param name="publishValue">Indicates whether the value should be published to the manifest.</param>
     /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
     /// <returns>Resource builder for the parameter.</returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
                                                      Justification = "third parameters are mutually exclusive.")]
-    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, string value, bool secret = false)
+    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, string value, bool publishValue = false, bool secret = false)
     {
-        // An alternate implementation is to use some ConstantParameterDefault implementation that always returns the default value.
-        // However, doing this causes a "default": {} to be written to the manifest, which is not valid.
-        // And note that we ignore parameterDefault in the callback, because it can never be non-null, and we want our own value.
-        return builder.AddParameter(name, parameterDefault => value, secret: secret);
+        return builder.AddParameter(name, () => value, publishValue, secret);
     }
 
     /// <summary>
@@ -51,13 +49,19 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="builder">Distributed application builder</param>
     /// <param name="name">Name of parameter resource</param>
     /// <param name="valueGetter">A callback function that returns the value of the parameter</param>
+    /// <param name="publishValue">Indicates whether the value should be published to the manifest.</param>
     /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
     /// <returns>Resource builder for the parameter.</returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
                                                      Justification = "third parameters are mutually exclusive.")]
-    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, Func<string> valueGetter, bool secret = false)
+    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, Func<string> valueGetter, bool publishValue = false, bool secret = false)
     {
-        return builder.AddParameter(name, parameterDefault => valueGetter(), secret: secret);
+        var val = valueGetter();
+
+        return builder.AddParameter(name,
+            parameterDefault => val, // we ignore parameterDefault, as we always want our own value
+            secret: secret,
+            parameterDefault: publishValue ? new ConstantParameterDefault(val): null);
     }
 
     /// <summary>
@@ -104,18 +108,6 @@ public static class ParameterResourceBuilderExtensions
             parameterDefault => parameterDefault!.GetDefaultValue(),
             secret: secret,
             parameterDefault: value);
-    }
-
-    /// <summary>
-    /// Causes the value of the parameter to be published to the manifest.
-    /// </summary>
-    /// <param name="parameter">Resource builder for the parameter</param>
-    /// <returns>Resource builder for the parameter.</returns>
-    public static IResourceBuilder<ParameterResource> PublishDefaultValue(this IResourceBuilder<ParameterResource> parameter)
-    {
-        // If it already has a ParameterDefault, we don't need to do anything as it'll take care of writing to the manifest
-        parameter.Resource.Default ??= new ConstantParameterDefault(parameter.Resource.Value);
-        return parameter;
     }
 
     private static string GetParameterValue(IConfiguration configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
