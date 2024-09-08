@@ -19,7 +19,7 @@
     "@opentelemetry/sdk-trace-web": "^1.25.1"
   },
   "devDependencies": {
-    "webpack": "^5.93.0",
+    "webpack": "^5.94.0",
     "webpack-cli": "^5.1.4"
   }
 }
