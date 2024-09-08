@@ -5,6 +5,7 @@
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <ExtensionsCsProjDirectory Condition="'$(RepoRoot)' == '' or '$(ContinuousIntegrationBuild)' == 'true'">$(MSBuildProjectDirectory)/../WorkerExtensions</ExtensionsCsProjDirectory>
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

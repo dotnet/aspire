@@ -56,7 +56,6 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/5564", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     [RequiresDocker]
     [RequiresTools(["func"])]
     public async Task AzureFunctionsTest()
