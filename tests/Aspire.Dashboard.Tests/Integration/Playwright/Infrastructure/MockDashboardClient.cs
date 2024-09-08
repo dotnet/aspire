@@ -6,7 +6,7 @@ using System.Collections.Immutable;
 using Aspire.Dashboard.Model;
 using Google.Protobuf.WellKnownTypes;
 
-namespace Aspire.Dashboard.Tests.Integration.Playwright;
+namespace Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
 
 public sealed class MockDashboardClient : IDashboardClient
 {
@@ -18,7 +18,7 @@ public sealed class MockDashboardClient : IDashboardClient
         CreationTimeStamp = DateTime.Now,
         Environment = ImmutableArray<EnvironmentVariableViewModel>.Empty,
         ResourceType = KnownResourceTypes.Project,
-        Properties = new []
+        Properties = new[]
         {
             new KeyValuePair<string, Value>(KnownProperties.Project.Path, new Value()
             {

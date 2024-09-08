@@ -40,6 +40,47 @@ partial class Resource
             resource.Properties.Add(new ResourceProperty { Name = property.Name, Value = property.Value });
         }
 
+        // Disable start/stop/restart commands until host/DCP infrastructure is ready.
+        /*
+        if (snapshot.ResourceType is KnownResourceTypes.Project or KnownResourceTypes.Container or KnownResourceTypes.Executable)
+        {
+            if (snapshot.State is "Exited" or "Finished" or "FailedToStart")
+            {
+                resource.Commands.Add(new ResourceCommand
+                {
+                    CommandType = "Start",
+                    ConfirmationMessage = "ConfirmationMessage!",
+                    DisplayName = "Start",
+                    DisplayDescription = "Start resource",
+                    IsHighlighted = true,
+                    IconName = "Play"
+                });
+            }
+            else
+            {
+                resource.Commands.Add(new ResourceCommand
+                {
+                    CommandType = "Stop",
+                    ConfirmationMessage = "ConfirmationMessage!",
+                    DisplayName = "Stop",
+                    DisplayDescription = "Stop resource",
+                    IsHighlighted = true,
+                    IconName = "Stop"
+                });
+            }
+
+            resource.Commands.Add(new ResourceCommand
+            {
+                CommandType = "Restart",
+                ConfirmationMessage = "ConfirmationMessage!",
+                DisplayName = "Restart",
+                DisplayDescription = "Restart resource",
+                IsHighlighted = false,
+                IconName = "ArrowCounterclockwise"
+            });
+        }
+        */
+
         return resource;
     }
 }

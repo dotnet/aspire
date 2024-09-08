@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "AzureFunctionsEndToEnd_Functions": {
+      "commandName": "Project",
+      "launchBrowser": false
+    }
+  }
+}

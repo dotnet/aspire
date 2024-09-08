@@ -21,8 +21,6 @@
 <div id="metric-table-container" style="height: 40vh; overflow-y: auto; width:1200px;">
     @* ItemKey is to preserve row focus by associating rows with their associated time *@
     <FluentDataGrid
-        ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(ControlsStringsLoc)"
-        ResizeType="DataGridResizeType.Discrete"
         Items="@_metricsView"
         ItemSize="46"
         Virtualize="true"
@@ -37,7 +35,7 @@
             {
                 foreach (var (percentile, underlineColor) in percentileColumns)
                 {
-                    <AspireTemplateColumn Title="@((_metricsView.FirstOrDefault() as HistogramMetricView)?.Percentiles[percentile].Name ?? (_instrument is not null ? $"P{percentile} {InstrumentUnitResolver.ResolveDisplayedUnit(_instrument, titleCase: true, pluralize: true)}" : $"P{percentile}"))">
+                    <TemplateColumn Title="@((_metricsView.FirstOrDefault() as HistogramMetricView)?.Percentiles[percentile].Name ?? (_instrument is not null ? $"P{percentile} {InstrumentUnitResolver.ResolveDisplayedUnit(_instrument, titleCase: true, pluralize: true)}" : $"P{percentile}"))">
                         @if (context is HistogramMetricView histogramMetric)
                         {
                             var percentileData = histogramMetric.Percentiles[percentile];
@@ -51,13 +49,13 @@
                                 <FluentIcon Style="vertical-align: text-bottom" Value="@icon" Title="@title"/>
                             }
                         }
-                    </AspireTemplateColumn>
+                    </TemplateColumn>
                 }
             }
             else if (_metrics.Values.All(value => value is MetricValueView))
             {
                 <!-- if we're switching between grid types, this could be false -->
-                <AspireTemplateColumn Title="@_unitColumnHeader">
+                <TemplateColumn Title="@_unitColumnHeader">
                     @{
                         var metricValueView = context as MetricValueView;
                     }
@@ -78,11 +76,11 @@
                             <FluentIcon Style="vertical-align: text-bottom" Value="@icon" Title="@title"/>
                         }
                     }
-                </AspireTemplateColumn>
+                </TemplateColumn>
             }
             @if (_exemplars.Count > 0)
             {
-                <AspireTemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableExemplarsColumnHeader)]">
+                <TemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableExemplarsColumnHeader)]">
                     @if (context.Exemplars.Count > 0)
                     {
                         @* min-width ensures a consistent button width up to 999 metrics *@
@@ -95,7 +93,7 @@
                     {
                         <span>0</span>
                     }
-                </AspireTemplateColumn>
+                </TemplateColumn>
             }
         </ChildContent>
         <EmptyContent>
