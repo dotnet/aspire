@@ -371,7 +371,7 @@ public static class ProjectResourceBuilderExtensions
                         e.Port = endpoint.BindingAddress.Port;
                     }
                     e.UriScheme = endpoint.BindingAddress.Scheme;
-                    e.TargetHostAddress = endpoint.BindingAddress.Host;
+                    e.TargetHost = endpoint.BindingAddress.Host;
 
                     adjustTransport(e, endpoint.Protocols);
                     // Keep track of the host separately since EndpointAnnotation doesn't have a host property
@@ -427,7 +427,7 @@ public static class ProjectResourceBuilderExtensions
                     builder.WithEndpoint(endpointName, e =>
                     {
                         e.Port = bindingAddress.Port;
-                        e.TargetHostAddress = bindingAddress.Host;
+                        e.TargetHost = bindingAddress.Host;
                         e.UriScheme = bindingAddress.Scheme;
                         e.FromLaunchProfile = true;
                         adjustTransport(e);
@@ -643,7 +643,7 @@ public static class ProjectResourceBuilderExtensions
                     processedHttpsPort = true;
                 }
 
-                aspnetCoreUrls.Append($"{e.Property(EndpointProperty.Scheme)}://{e.EndpointAnnotation.TargetHostAddress}:{e.Property(EndpointProperty.TargetPort)}");
+                aspnetCoreUrls.Append($"{e.Property(EndpointProperty.Scheme)}://{e.EndpointAnnotation.TargetHost}:{e.Property(EndpointProperty.TargetPort)}");
                 first = false;
             }
 

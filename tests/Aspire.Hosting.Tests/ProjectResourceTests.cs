@@ -598,10 +598,12 @@ public class ProjectResourceTests
         appBuilder.AddProject<TestProjectWithWildcardUrlInLaunchSettings>("projectName")
             .WithEndpoint("http", e =>
             {
+                Assert.Equal("*", e.TargetHost);
                 e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p0");
             })
             .WithEndpoint("https", e =>
             {
+                Assert.Equal("*", e.TargetHost);
                 e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p1");
             });
 
