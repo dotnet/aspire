@@ -56,12 +56,10 @@ public static class ParameterResourceBuilderExtensions
                                                      Justification = "third parameters are mutually exclusive.")]
     public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, Func<string> valueGetter, bool publishValue = false, bool secret = false)
     {
-        var val = valueGetter();
-
         return builder.AddParameter(name,
-            parameterDefault => val, // we ignore parameterDefault, as we always want our own value
+            parameterDefault => parameterDefault != null ? parameterDefault.GetDefaultValue() : valueGetter(),
             secret: secret,
-            parameterDefault: publishValue ? new ConstantParameterDefault(val): null);
+            parameterDefault: publishValue ? new ConstantParameterDefault(valueGetter) : null);
     }
 
     /// <summary>

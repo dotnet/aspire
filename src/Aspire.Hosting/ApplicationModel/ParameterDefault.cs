@@ -164,11 +164,23 @@ public sealed class GenerateParameterDefault : ParameterDefault
 }
 
 // Simple parameter default that just returns a constant value, at both runtime and publish time.
-class ConstantParameterDefault(string value): ParameterDefault
+class ConstantParameterDefault(Func<string> valueGetter) : ParameterDefault
 {
-    public override string GetDefaultValue() => value;
+    private string? _value;
+    private bool _hasValue;
+
+    public override string GetDefaultValue()
+    {
+        if (!_hasValue)
+        {
+            _value = valueGetter();
+            _hasValue = true;
+        }
+        return _value!;
+    }
+
     public override void WriteToManifest(ManifestPublishingContext context)
     {
-        context.Writer.WriteString("value", value);
+        context.Writer.WriteString("value", GetDefaultValue());
     }
 }
