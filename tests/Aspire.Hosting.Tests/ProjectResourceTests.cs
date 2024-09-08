@@ -590,6 +590,34 @@ public class ProjectResourceTests
             arg => Assert.Equal("http://localhost:1234", arg));
     }
 
+    [Fact]
+    public async Task AddProjectWithWildcardUrlInLaunchSettings()
+    {
+        var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Run);
+
+        appBuilder.AddProject<TestProjectWithWildcardUrlInLaunchSettings>("projectName")
+            .WithEndpoint("http", e =>
+            {
+                e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p0");
+            })
+            .WithEndpoint("https", e =>
+            {
+                e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p1");
+            });
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+
+        Assert.Equal("http://*:p0;https://*:p1", config["ASPNETCORE_URLS"]);
+        Assert.Equal("5033", config["ASPNETCORE_HTTPS_PORT"]);
+    }
+
     internal static IDistributedApplicationBuilder CreateBuilder(string[]? args = null, DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)
     {
         var resolvedArgs = new List<string>();
@@ -660,6 +688,27 @@ public class ProjectResourceTests
                     CommandLineArgs = "arg1 arg2",
                     LaunchBrowser = true,
                     ApplicationUrl = "https://localhost:7144;http://localhost:5193;http://localhost:5194;https://localhost:7145;https://localhost:7146",
+                    EnvironmentVariables = new()
+                    {
+                        ["ASPNETCORE_ENVIRONMENT"] = "Development"
+                    }
+                }
+            };
+        }
+    }
+
+    private sealed class TestProjectWithWildcardUrlInLaunchSettings : BaseProjectWithProfileAndConfig
+    {
+        public TestProjectWithWildcardUrlInLaunchSettings()
+        {
+            Profiles = new()
+            {
+                ["https"] = new()
+                {
+                    CommandName = "Project",
+                    CommandLineArgs = "arg1 arg2",
+                    LaunchBrowser = true,
+                    ApplicationUrl = "http://*:5031;https://*:5033",
                     EnvironmentVariables = new()
                     {
                         ["ASPNETCORE_ENVIRONMENT"] = "Development"
