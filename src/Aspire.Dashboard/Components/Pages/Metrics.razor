@@ -91,7 +91,7 @@
                                             TGridItem="OtlpInstrumentSummary">
                                             <ChildContent>
                                                 <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader)]">
-                                                    <FluentAnchor Href="@DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedApplication.Name, meter: context.Parent.MeterName, instrument: context.Name)" Appearance="Appearance.Lightweight">
+                                                    <FluentAnchor Href="@DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedApplication.Name, meter: context.Parent.MeterName, instrument: context.Name, duration: DurationMinutes, view: ViewKindName)" Appearance="Appearance.Lightweight">
                                                         @context.Name
                                                     </FluentAnchor>
                                                 </TemplateColumn>

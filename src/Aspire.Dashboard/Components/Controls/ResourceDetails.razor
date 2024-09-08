@@ -7,7 +7,7 @@
 <div class="resource-details-layout">
 
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(Resource?.Name)" slot="end">View logs</FluentAnchor>
+        <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(Resource?.Name)" slot="end">@Loc[Resources.ResourceDetailsViewConsoleLogs]</FluentAnchor>
 
         @if (ShowSpecOnlyToggle)
         {
