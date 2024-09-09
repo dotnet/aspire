@@ -33,14 +33,14 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="builder">Distributed application builder</param>
     /// <param name="name">Name of parameter resource</param>
     /// <param name="value">A string value to use for the paramater</param>
-    /// <param name="publishValue">Indicates whether the value should be published to the manifest.</param>
+    /// <param name="publishValueAsDefault">Indicates whether the value should be published to the manifest.</param>
     /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
     /// <returns>Resource builder for the parameter.</returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
                                                      Justification = "third parameters are mutually exclusive.")]
-    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, string value, bool publishValue = false, bool secret = false)
+    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, string value, bool publishValueAsDefault = false, bool secret = false)
     {
-        return builder.AddParameter(name, () => value, publishValue, secret);
+        return builder.AddParameter(name, () => value, publishValueAsDefault, secret);
     }
 
     /// <summary>
@@ -49,17 +49,17 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="builder">Distributed application builder</param>
     /// <param name="name">Name of parameter resource</param>
     /// <param name="valueGetter">A callback function that returns the value of the parameter</param>
-    /// <param name="publishValue">Indicates whether the value should be published to the manifest.</param>
+    /// <param name="publishValueAsDefault">Indicates whether the value should be published to the manifest.</param>
     /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
     /// <returns>Resource builder for the parameter.</returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
                                                      Justification = "third parameters are mutually exclusive.")]
-    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, Func<string> valueGetter, bool publishValue = false, bool secret = false)
+    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, Func<string> valueGetter, bool publishValueAsDefault = false, bool secret = false)
     {
         return builder.AddParameter(name,
             parameterDefault => parameterDefault != null ? parameterDefault.GetDefaultValue() : valueGetter(),
             secret: secret,
-            parameterDefault: publishValue ? new ConstantParameterDefault(valueGetter) : null);
+            parameterDefault: publishValueAsDefault ? new ConstantParameterDefault(valueGetter) : null);
     }
 
     /// <summary>

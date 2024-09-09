@@ -182,11 +182,11 @@ public class AddParameterTests
 
         if (useCallback)
         {
-            appBuilder.AddParameter("pass", () => "DefaultValue", publishValue: true);
+            appBuilder.AddParameter("pass", () => "DefaultValue", publishValueAsDefault: true);
         }
         else
         {
-            appBuilder.AddParameter("pass", "DefaultValue", publishValue: true);
+            appBuilder.AddParameter("pass", "DefaultValue", publishValueAsDefault: true);
         }
 
         using var app = appBuilder.Build();
@@ -196,7 +196,7 @@ public class AddParameterTests
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "pass");
         Assert.Equal($"DefaultValue", parameterResource.Value);
 
-        // The manifest should include the default value, since we passed publishValue: true
+        // The manifest should include the default value, since we passed publishValueAsDefault: true
         var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass"));
         var expectedManifest = $$"""
             {
