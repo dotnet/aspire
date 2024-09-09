@@ -8,8 +8,4 @@ using Microsoft.Extensions.Hosting;
 [assembly: ConfigurationSchema("Aspire:OpenAI", typeof(OpenAISettings))]
 [assembly: ConfigurationSchema("Aspire:OpenAI:ClientOptions", typeof(AspireOpenAIExtensions))]
 
-[assembly: LoggingCategories(
-    "Azure",
-    "Azure.Core",
-    "Azure.Identity"
-)]
+[assembly: LoggingCategories()]

@@ -1,17 +1,7 @@
 {
   "definitions": {
     "logLevel": {
-      "properties": {
-        "Azure": {
-          "$ref": "#/definitions/logLevelThreshold"
-        },
-        "Azure.Core": {
-          "$ref": "#/definitions/logLevelThreshold"
-        },
-        "Azure.Identity": {
-          "$ref": "#/definitions/logLevelThreshold"
-        }
-      }
+      "properties": {}
     }
   },
   "type": "object",
@@ -22,6 +12,11 @@
         "OpenAI": {
           "type": "object",
           "properties": {
+            "DisableMetrics": {
+              "type": "boolean",
+              "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",
+              "default": false
+            },
             "DisableTracing": {
               "type": "boolean",
               "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.",
@@ -30,7 +25,7 @@
             "Endpoint": {
               "type": "string",
               "format": "uri",
-              "description": "Gets or sets a 'System.Uri' referencing the OpenAI endpoint. Leave empty to connect to OpenAI, or set it to use a service using an API compatible with OpenAI."
+              "description": "Gets or sets a 'System.Uri' referencing the OpenAI REST API endpoint. Leave empty to connect to OpenAI, or set it to use a service using an API compatible with OpenAI."
             },
             "Key": {
               "type": "string",

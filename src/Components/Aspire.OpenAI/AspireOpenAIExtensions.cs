@@ -66,10 +66,8 @@ public static class AspireOpenAIExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var configSection = builder.Configuration.GetSection(configurationSectionName);
-
         var settings = new OpenAISettings();
-        configSection.Bind(settings);
+        builder.Configuration.GetSection(configurationSectionName).Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -91,6 +89,18 @@ public static class AspireOpenAIExtensions
         else
         {
             builder.Services.AddKeyedSingleton(serviceKey, (sp, key) => ConfigureOpenAI(sp));
+        }
+
+        if (!settings.DisableTracing)
+        {
+            builder.Services.AddOpenTelemetry()
+                .WithTracing(traceBuilder => traceBuilder.AddSource("OpenAI.*"));
+        }
+
+        if (!settings.DisableMetrics)
+        {
+            builder.Services.AddOpenTelemetry()
+                .WithMetrics(b => b.AddMeter("OpenAI.*"));
         }
 
         OpenAIClient ConfigureOpenAI(IServiceProvider serviceProvider)
