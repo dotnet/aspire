@@ -14,7 +14,7 @@ namespace Aspire.Hosting.Azure;
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureConstruct">Callback to configure the Azure Service Bus resource.</param>
 public class AzureServiceBusResource(string name, Action<ResourceModuleConstruct> configureConstruct)
-    : AzureConstructResource(name, configureConstruct), IResourceWithConnectionString
+    : AzureConstructResource(name, configureConstruct), IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
 {
     internal List<(string Name, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusQueue>? Configure)> Queues { get; } = [];
     internal List<(string Name, Action<IResourceBuilder<AzureServiceBusResource>, ResourceModuleConstruct, ServiceBusTopic>? Configure)> Topics { get; } = [];
@@ -30,4 +30,9 @@ public class AzureServiceBusResource(string name, Action<ResourceModuleConstruct
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create($"{ServiceBusEndpoint}");
+
+    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
+    {
+        target[$"{connectionName}__fullyQualifiedNamespace"] = ServiceBusEndpoint;
+    }
 }

@@ -4,6 +4,7 @@
     <BuildHelixWorkItemsDependsOn>$(BuildHelixWorkItemsDependsOn);BuildHelixWorkItemsForBuildOnHelixTests</BuildHelixWorkItemsDependsOn>
     <NeedsWorkload>true</NeedsWorkload>
     <NeedsPlaywright>true</NeedsPlaywright>
+    <NeedsAzureFunctionsCli>true</NeedsAzureFunctionsCli>
 
     <WorkItemArchiveWildCard>$(TestArchiveTestsDirForBuildOnHelixTests)**/*.zip</WorkItemArchiveWildCard>
 

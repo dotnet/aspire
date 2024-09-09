@@ -117,6 +117,18 @@ message Url {
     bool is_internal = 3;
 }
 
+// Data about a volume mounted to a container.
+message Volume {
+    // The source of the volume, such as "TestShop.AppHost-postgres-data".
+    string source = 1;
+    // The target path in the container, such as "/var/lib/postgresql/data".
+    string target = 2;
+    // The type of the mount, such as "bind" or "volume".
+    string mount_type = 3;
+    // Whether the volume is mounted as read-only or not.
+    bool is_read_only = 4;
+}
+
 message ResourceProperty {
     // Name of the data item, e.g. "container.id", "executable.pid", "project.path", ...
     string name = 1;
@@ -155,6 +167,9 @@ message Resource {
     // Supported styles are "success", "info", "warning" and "error". Any other style
     // will be treated as "unknown".
     optional string state_style = 14;
+
+    // The set of volumes mounted to the resource. Only applies to containers.
+    repeated Volume volumes = 15;
 }
 
 ////////////////////////////////////////////

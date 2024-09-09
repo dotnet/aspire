@@ -279,7 +279,7 @@ public class AppHostTests
                     new ("catalogdbapp", "Application started"),
                     new ("basketservice", "Application started"),
                     new ("postgres", "database system is ready to accept connections"),
-                ])
+                ]),
         ];
 
         return candidates;

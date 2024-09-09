@@ -284,7 +284,10 @@ public static class ResourceBuilderExtensions
         {
             var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
 
-            context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional);
+            context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional)
+            {
+                ConnectionName = connectionName
+            };
         });
     }
 
@@ -670,7 +673,7 @@ public static class ResourceBuilderExtensions
 
             var rls = e.Services.GetRequiredService<ResourceLoggerService>();
             var resourceLogger = rls.GetLogger(builder.Resource);
-            resourceLogger.LogInformation($"Waiting for resource '{dependency.Resource.Name}' to complete.");
+            resourceLogger.LogInformation("Waiting for resource '{Name}' to complete.", dependency.Resource.Name);
 
             var rns = e.Services.GetRequiredService<ResourceNotificationService>();
             await rns.PublishUpdateAsync(builder.Resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
@@ -686,7 +689,7 @@ public static class ResourceBuilderExtensions
 
                 throw new DistributedApplicationException($"Dependency resource '{dependency.Resource.Name}' failed to start.");
             }
-            else if ((snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited)  && snapshot.ExitCode != exitCode)
+            else if ((snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited) && snapshot.ExitCode is not null && snapshot.ExitCode != exitCode)
             {
                 resourceLogger.LogError(
                     "Resource '{ResourceName}' has entered the '{State}' state with exit code '{ExitCode}'",
@@ -704,7 +707,7 @@ public static class ResourceBuilderExtensions
         return builder;
 
         static bool IsKnownTerminalState(CustomResourceSnapshot snapshot) =>
-            KnownResourceStates.TerminalStates.Contains(snapshot.State?.Text) &&
+            KnownResourceStates.TerminalStates.Contains(snapshot.State?.Text) ||
             snapshot.ExitCode is not null;
     }
 
@@ -744,7 +747,7 @@ public static class ResourceBuilderExtensions
     ///                      // custom check defined in the code.
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> WithHealthCheck<T>(this IResourceBuilder<T> builder, string key) where T: IResource
+    public static IResourceBuilder<T> WithHealthCheck<T>(this IResourceBuilder<T> builder, string key) where T : IResource
     {
         if (builder.Resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var annotations) && annotations.Any(a => a.Key == key))
         {

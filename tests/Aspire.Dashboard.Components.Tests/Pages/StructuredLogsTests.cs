@@ -41,7 +41,7 @@ public partial class StructuredLogsTests : TestContext
         var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
 
         var dimensionManager = Services.GetRequiredService<DimensionManager>();
-        dimensionManager.InvokeOnBrowserDimensionsChanged(viewport);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
 
         // Act
         var cut = RenderComponent<StructuredLogs>(builder =>
@@ -84,7 +84,7 @@ public partial class StructuredLogsTests : TestContext
         var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
 
         var dimensionManager = Services.GetRequiredService<DimensionManager>();
-        dimensionManager.InvokeOnBrowserDimensionsChanged(viewport);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
 
         // Act
         var cut = RenderComponent<StructuredLogs>(builder =>

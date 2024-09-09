@@ -620,3 +620,7 @@ fluent-data-grid-cell.no-ellipsis {
 .layout fluent-toolbar > .fluent-input-label {
     margin-bottom: 0;
 }
+
+.page-content-container fluent-toolbar::part(end) {
+    flex-wrap: wrap;
+}
