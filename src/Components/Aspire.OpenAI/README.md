@@ -1,17 +1,17 @@
 # Aspire.OpenAI library
 
-Registers [OpenAIClient](https://learn.microsoft.com/dotnet/api/azure.ai.openai.openaiclient) as a singleton in the DI container for connecting to Azure OpenAI or OpenAI. Enables corresponding logging and telemetry.
+Registers [OpenAIClient](https://github.com/openai/openai-dotnet?tab=readme-ov-file#using-the-openaiclient-class) as a singleton in the DI container for using the OpenAI REST API. Enables corresponding logging and telemetry.
 
 ## Getting started
 
 ### Prerequisites
 
-- Azure subscription - [create one for free](https://azure.microsoft.com/free/)
-- Azure OpenAI or OpenAI account - [create an Azure OpenAI Service resource](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource)
+- An OpenAI REST API compatible service like OpenAI.com, Azure AI OpenAI, ollama.com and others.
+- A API key.
 
 ### Install the package
 
-Install the .NET Aspire Azure OpenAI library with [NuGet](https://www.nuget.org):
+Install the .NET Aspire OpenAI library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.OpenAI
@@ -19,51 +19,35 @@ dotnet add package Aspire.OpenAI
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddAzureOpenAIClient` extension method to register an `OpenAIClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddOpenAIClient` extension method to register an `OpenAIClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
-builder.AddAzureOpenAIClient("openaiConnectionName");
+builder.AddOpenAIClient("openaiConnectionName");
 ```
 
-You can then retrieve the `AzureOpenAIClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:
+You can then retrieve the `OpenAIClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:
 
 ```csharp
-private readonly AzureOpenAIClient _client;
+private readonly OpenAIClient _client;
 
-public CognitiveController(AzureOpenAIClient client)
+public ChatController(OpenAIClient client)
 {
     _client = client;
 }
 ```
 
-Additionally, you can retrieve the `AzureOpenAIClient` object using the base `OpenAIClient` service type. This allows for code that is not dependent on Azure OpenAI-specific features to not depend directly on Azure types.
-
-See the [Azure OpenAI Service quickstarts](https://learn.microsoft.com/azure/ai-services/openai/quickstart) for examples on using the `AzureOpenAIClient`.
+To learn how to use the `OpenAIClient` class refer to [Using the OpenAIClient class](https://github.com/openai/openai-dotnet?tab=readme-ov-file#using-the-openaiclient-class).
 
 ## Configuration
 
-The .NET Aspire Azure OpenAI library provides multiple options to configure the Azure OpenAI Service based on the requirements and conventions of your project. Note that either an `Endpoint` or a `ConnectionString` is required to be supplied.
+The .NET Aspire OpenAI library provides multiple options to configure the OpenAI service based on the requirements and conventions of your project. Note that either an `Endpoint` or a `ConnectionString` is required to be supplied.
 
 ### Use a connection string
 
-A connection can be constructed from the __Keys and Endpoint__ tab with the format `Endpoint={endpoint};Key={key};`. You can provide the name of the connection string when calling `builder.AddAzureOpenAIClient()`:
+A connection can be constructed from an __Endpoint__ and a __Key__ value with the format `Endpoint={endpoint};Key={key};`. If the `Endpoint` value is omitted the default OpenAI endpoint will be used. You can provide the name of the connection string when calling `builder.AddOpenAIClient()`:
 
 ```csharp
-builder.AddAzureOpenAIClient("openaiConnectionName");
-```
-
-And then the connection string will be retrieved from the `ConnectionStrings` configuration section. Two connection formats are supported:
-
-#### Account Endpoint
-
-The recommended approach is to use an Endpoint, which works with the `AzureOpenAISettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
-
-```json
-{
-  "ConnectionStrings": {
-    "openaiConnectionName": "https://{account_name}.openai.azure.com/"
-  }
-}
+builder.AddOpenAIClient("openaiConnectionName");
 ```
 
 #### Connection string
@@ -73,26 +57,24 @@ Alternatively, a custom connection string can be used.
 ```json
 {
   "ConnectionStrings": {
-    "openaiConnectionName": "Endpoint=https://{account_name}.openai.azure.com/;Key={account_key};"
+    "openaiConnectionName": "Endpoint=https://{openai_rest_api_url}Key={account_key};"
   }
 }
 ```
 
-In order to connect to the non-Azure OpenAI service, drop the Endpoint property and only set the Key property to set the API key (https://platform.openai.com/account/api-keys).
+To obtain an API key on openai.com, first [create a new OpenAI account](https://platform.openai.com/signup) or [log in](https://platform.openai.com/login). 
+Next, navigate to the [API key page](https://platform.openai.com/account/api-keys) and select "Create new secret key", optionally naming the key.
+Make sure to save your API key somewhere safe and do not share it with anyone.
 
 ### Use configuration providers
 
-The .NET Aspire Azure OpenAI library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureOpenAISettings` and `AzureOpenAIClientOptions` from configuration by using the `Aspire:OpenAI` key. Example `appsettings.json` that configures some of the options:
+The .NET Aspire OpenAI library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `OpenAISettings` and `OpenAIClientOptions` from configuration by using the `Aspire:OpenAI` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
   "Aspire": {
-    "Azure": {
-      "AI": {
-        "OpenAI": {
-          "DisableTracing": false,
-        }
-      }
+    "OpenAI": {
+      "DisableTracing": false,
     }
   }
 }
@@ -100,46 +82,40 @@ The .NET Aspire Azure OpenAI library supports [Microsoft.Extensions.Configuratio
 
 ### Use inline delegates
 
-You can also pass the `Action<AzureOpenAISettings> configureSettings` delegate to set up some or all the options inline, for example to disable tracing from code:
+You can also pass the `Action<OpenAISettings> configureSettings` delegate to set up some or all the options inline, for example to disable tracing from code:
 
 ```csharp
-builder.AddAzureOpenAIClient("openaiConnectionName", settings => settings.DisableTracing = true);
+builder.AddOpenAIClient("openaiConnectionName", settings => settings.DisableTracing = true);
 ```
 
-You can also setup the [AzureOpenAIClientOptions](https://learn.microsoft.com/dotnet/api/azure.ai.openai.openaiclientoptions) using the optional `Action<IAzureClientBuilder<AzureOpenAIClient, AzureOpenAIClientOptions>> configureClientBuilder` parameter of the `AddAzureOpenAIClient` method. For example, to set the client ID for this client:
+You can also setup the `OpenAIClientOptions` using the optional `Action<OpenAIClientOptions>? configureOptions` parameter of the `AddOpenAIClient` method. For example, to set a custom `NetworkTimeout` value for this client:
 
 ```csharp
-builder.AddAzureOpenAIClient("openaiConnectionName", configureClientBuilder: configureClientBuilder: builder => builder.ConfigureOptions(options => options.NetworkTimeout = TimeSpan.FromSeconds(2)));
+builder.AddOpenAIClient("openaiConnectionName", configureOptions: options => options.NetworkTimeout = TimeSpan.FromSeconds(2));
 ```
 
 ## AppHost extensions
 
-In your AppHost project, install the Aspire Azure Cognitive Services Hosting library with [NuGet](https://www.nuget.org):
+There is no specific AppHost extension corresponding to the OpenAI integration. Instead a connection string resource can be registered:
 
-```dotnetcli
-dotnet add package Aspire.Hosting.Azure.CognitiveServices
-```
-
-Then, in the _Program.cs_ file of `AppHost`, add an Azure OpenAI service and consume the connection using the following methods:
+In the _Program.cs_ file of `AppHost`, add an OpenAI REST API connection string name:
 
 ```csharp
-var openai = builder.ExecutionContext.IsPublishMode
-    ? builder.AddAzureOpenAI("openai")
-    : builder.AddConnectionString("openai");
+var openai = builder.AddConnectionString("openai");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(openai);
 ```
 
-The `AddAzureOpenAI` method adds an Azure OpenAI resource to the builder. Or `AddConnectionString` can be used to read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:openai` config key. The `WithReference` method passes that connection information into a connection string named `openai` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
+The `AddConnectionString` can be used to read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:openai` config key. The `WithReference` method passes that connection information into a connection string named `openai` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
-builder.AddAzureOpenAIClient("openai");
+builder.AddOpenAIClient("openai");
 ```
 
 ## Additional documentation
 
-* https://learn.microsoft.com/dotnet/api/overview/azure/ai.openai-readme
+* https://github.com/openai/openai-dotnet
 * https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
 ## Feedback & contributing

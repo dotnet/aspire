@@ -78,7 +78,10 @@ public static class AspireOpenAIExtensions
 
         configureSettings?.Invoke(settings);
 
-        var options = new OpenAIClientOptions();
+        var options = settings.Endpoint is null
+            ? new OpenAIClientOptions()
+            : new OpenAIClientOptions { Endpoint = settings.Endpoint };
+
         configureOptions?.Invoke(options);
 
         if (serviceKey is null)
@@ -100,7 +103,7 @@ public static class AspireOpenAIExtensions
             {
                 throw new InvalidOperationException(
                         $"An OpenAIClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or " +
-                        $"{nameof(settings.Key)} must be provided in the '{configurationSectionName}' configuration section.");
+                        $"specify a {nameof(settings.Key)} in the '{configurationSectionName}' configuration section.");
             }
         }
     }

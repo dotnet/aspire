@@ -14,7 +14,7 @@ public sealed class OpenAISettings
     private const string ConnectionStringKey = "Key";
 
     /// <summary>
-    /// Gets or sets a <see cref="Uri"/> referencing the OpenAI endpoint.
+    /// Gets or sets a <see cref="Uri"/> referencing the OpenAI REST API endpoint.
     /// Leave empty to connect to OpenAI, or set it to use a service using an API compatible with OpenAI.
     /// </summary>
     public Uri? Endpoint { get; set; }
