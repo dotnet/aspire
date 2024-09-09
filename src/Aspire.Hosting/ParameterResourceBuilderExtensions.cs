@@ -56,6 +56,9 @@ public static class ParameterResourceBuilderExtensions
                                                      Justification = "third parameters are mutually exclusive.")]
     public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, Func<string> valueGetter, bool publishValueAsDefault = false, bool secret = false)
     {
+        // If publishValueAsDefault is set, we wrap the valueGetter in a ConstantParameterDefault, which gives
+        // us both the runtime value and the value to publish to the manifest.
+        // Otherwise, we just use the valueGetter directly, which only gives us the runtime value.
         return builder.AddParameter(name,
             parameterDefault => parameterDefault != null ? parameterDefault.GetDefaultValue() : valueGetter(),
             secret: secret,
