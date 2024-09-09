@@ -13,7 +13,7 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Elasticsearch" />
     <ProjectReference Include="..\Elasticsearch.ApiService\Elasticsearch.ApiService.csproj" />
-    <PackageReference Include="System.IO.Hashing" Version="8.0.0" />
+    <PackageReference Include="System.IO.Hashing" />
   </ItemGroup>
 
   <ItemGroup>
