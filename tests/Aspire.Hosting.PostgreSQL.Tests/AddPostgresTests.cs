@@ -15,6 +15,14 @@ namespace Aspire.Hosting.PostgreSQL.Tests;
 public class AddPostgresTests
 {
     [Fact]
+    public void AddPostgresAddsHealthCheckAnnotationToResource()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var redis = builder.AddPostgres("postgres");
+        Assert.Single(redis.Resource.Annotations, a => a is HealthCheckAnnotation hca && hca.Key == "postgres_check");
+    }
+
+    [Fact]
     public void AddPostgresAddsGeneratedPasswordParameterWithUserSecretsParameterDefaultInRunMode()
     {
         using var appBuilder = TestDistributedApplicationBuilder.Create();

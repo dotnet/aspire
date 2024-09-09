@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using Aspire.Hosting.Dcp.Model;
+using HealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -35,6 +36,11 @@ public sealed record CustomResourceSnapshot
     /// The exit code of the resource.
     /// </summary>
     public int? ExitCode { get; init; }
+
+    /// <summary>
+    /// The health status of the resource.
+    /// </summary>
+    public HealthStatus? HealthStatus { get; init; }
 
     /// <summary>
     /// The environment variables that should show up in the dashboard for this resource.
