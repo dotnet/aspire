@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Aspire.Dashboard.Extensions;
-using Aspire.Dashboard.Components.Resize;
+
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -27,11 +27,10 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private const string StartTimeColumn = nameof(StartTimeColumn);
     private const string SourceColumn = nameof(SourceColumn);
     private const string EndpointsColumn = nameof(EndpointsColumn);
-    private const string LogsColumn = nameof(LogsColumn);
-    private const string DetailsColumn = nameof(DetailsColumn);
-    private const string CommandsColumn = nameof(CommandsColumn);
+    private const string ActionsColumn = nameof(ActionsColumn);
 
     private Subscription? _logsSubscription;
+    private IList<GridColumn>? _gridColumns;
     private Dictionary<OtlpApplication, int>? _applicationUnviewedErrorCounts;
 
     [Inject]
@@ -139,8 +138,6 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         }
     }
 
-    private bool HasResourcesWithCommands => _resourceByName.Any(r => r.Value.Commands.Any());
-
     private IQueryable<ResourceViewModel>? FilteredResources => _resourceByName.Values.Where(Filter).OrderBy(e => e.ResourceType).ThenBy(e => e.Name).AsQueryable();
 
     private readonly GridSort<ResourceViewModel> _nameSort = GridSort<ResourceViewModel>.ByAscending(p => p.Name);
@@ -149,18 +146,15 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
-        _manager = new GridColumnManager([
-            new GridColumn(Name: TypeColumn, DesktopWidth: "1fr", MobileWidth: "1fr"),
+        _gridColumns = [
+            new GridColumn(Name: TypeColumn, DesktopWidth: "1fr"),
             new GridColumn(Name: NameColumn, DesktopWidth: "1.5fr", MobileWidth: "1.5fr"),
-            new GridColumn(Name: StateColumn, DesktopWidth: "1.25fr"),
+            new GridColumn(Name: StateColumn, DesktopWidth: "1.25fr", MobileWidth: "1.25fr"),
             new GridColumn(Name: StartTimeColumn, DesktopWidth: "1.5fr"),
             new GridColumn(Name: SourceColumn, DesktopWidth: "2.5fr"),
             new GridColumn(Name: EndpointsColumn, DesktopWidth: "2.5fr", MobileWidth: "2fr"),
-            new GridColumn(Name: LogsColumn, DesktopWidth: "1fr"),
-            new GridColumn(Name: DetailsColumn, DesktopWidth: "1fr", MobileWidth: "1fr"),
-            new GridColumn(Name: CommandsColumn, DesktopWidth: "1fr", IsVisible: () => HasResourcesWithCommands)
-        ], DimensionManager);
-
+            new GridColumn(Name: ActionsColumn, DesktopWidth: "1.5fr", MobileWidth: "1fr")
+        ];
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
         if (DashboardClient.IsEnabled)

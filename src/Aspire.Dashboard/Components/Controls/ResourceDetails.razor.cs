@@ -44,6 +44,12 @@ public partial class ResourceDetails
         .Where(v => v.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) || v.Text.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true)
         .AsQueryable();
 
+    private IQueryable<VolumeViewModel> FilteredVolumes =>
+        Resource.Volumes.Where(vm =>
+            vm.Source?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true ||
+            vm.Target?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true
+        ).AsQueryable();
+
     private IQueryable<SummaryValue> FilteredResourceValues => GetResourceValues()
         .Where(v => _showAll || v.KnownProperty != null)
         .Where(v => v.Key.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) || v.Tooltip.Contains(_filter, StringComparison.CurrentCultureIgnoreCase))
