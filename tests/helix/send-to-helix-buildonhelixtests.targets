@@ -28,12 +28,6 @@
   <!-- `dotnet build` + `dotnet test` on helix -->
   <Target Name="BuildHelixWorkItemsForBuildOnHelixTests">
     <PropertyGroup>
-      <_TestRunCommand>@(_TestRunCommandArguments, ' ')</_TestRunCommand>
-
-      <!-- FIXME: move this to the runscript? -->
-      <_TestRunCommand>dotnet build -bl:$(_HelixLogsPath)/build.binlog $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
-
-      <!-- FIXME: add a PREPEND_PATH to the run script -->
       <_SetPathEnvVar Condition="'$(OS)' != 'Windows_NT'">PATH=${SDK_FOR_WORKLOAD_TESTING_PATH}:$PATH</_SetPathEnvVar>
       <_SetPathEnvVar Condition="'$(OS)' == 'Windows_NT'">PATH=%SDK_FOR_WORKLOAD_TESTING_PATH%%3B%PATH%</_SetPathEnvVar>
     </PropertyGroup>
@@ -46,8 +40,7 @@
 
         <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;$(_SetPathEnvVar)&quot;</PreCommands>
 
-        <!-- FIXME: instead .. cd in the runtests script -->
-        <Command>cd tests/%(FileName) %3B $(_TestRunCommand)</Command>
+        <Command>$(_TestRunCommand)</Command>
         <Timeout>00:15:00</Timeout>
         <Timeout Condition="'%(FileName)' == 'Aspire.Playground.Tests'">00:25:00</Timeout>
 

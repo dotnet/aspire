@@ -2,15 +2,10 @@
 
   <!---
 
-    1. runscript template .sh/.cmd in eng
-      - configurable path for this to have custom ones
-      - template has hooks for adding in commands, setup, post stuff
-    2. target that generates the script
-      - by running replacetext on the script with the commands
-    3. csproj has the commands
+    Properties:
+      $(RunScriptTestBaseCommand)
+      $(UsesTestFilterOnHelix)
 
-    4. default command is just `dotnet test ..`
-    5. default helix targets file that invokes runtests.sh
 
   -->
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
@@ -37,6 +32,8 @@
 
     <RunScriptOutputRelativePath Condition="'$(RunScriptOutputRelativePath)' == '' and '$(OS)' != 'Windows_NT'">RunTests.sh</RunScriptOutputRelativePath>
     <RunScriptOutputRelativePath Condition="'$(RunScriptOutputRelativePath)' == '' and '$(OS)' == 'Windows_NT'">RunTests.cmd</RunScriptOutputRelativePath>
+
+    <RunScriptTestBaseCommand Condition="'$(RunScriptTestBaseCommand)' == ''">dotnet test -s .runsettings $(MSBuildProjectName).dll</RunScriptTestBaseCommand>
   </PropertyGroup>
 
   <ItemGroup>
@@ -68,7 +65,6 @@
   <ItemGroup Condition="'$(RunTestsOnHelix)' == 'true' and '$(IsTestProject)' == 'true'">
     <_TestCoverageCommand Include="$(_CodeCoverageToolEnvVar) collect" />
     <_TestCoverageCommand Include="--settings CodeCoverage.config" />
-    <!-- FIXME: _CodeCoverageReportFileNameSuffixEnvVar -->
     <_TestCoverageCommand Include="--output $(_LogsPathEnvVar)/$(MSBuildProjectName)$(_CodeCoverageReportFileNameSuffixEnvVar).cobertura.xml" />
 
     <TestBlameArguments Include="--blame-hang" />
@@ -156,14 +152,15 @@
   </UsingTask>
 
   <Target Name="GenerateRunScript" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true' and '$(IsTestProject)' == 'true'">
-    <!-- TODO: error empty run commands -->
-    <PropertyGroup>
-      <!-- FIXME: this is in a target, properties not required -->
-      <_TestBlameArgumentsProperty>@(TestBlameArguments, ' ')</_TestBlameArgumentsProperty>
-      <_TestCoverageCommandProperty>@(_TestCoverageCommand, ' ')</_TestCoverageCommandProperty>
+    <PropertyGroup Condition="'$(RunScriptTestCommand)' == ''">
+      <RunScriptTestCommand>$(RunScriptTestBaseCommand)</RunScriptTestCommand>
+      <RunScriptTestCommand>$(RunScriptTestCommand) --ResultsDirectory:$(_LogsPathEnvVar) @(TestBlameArguments, ' ')</RunScriptTestCommand>
+      <RunScriptTestCommand Condition="'$(UsesTestFilterOnHelix)' == 'true'">$(RunScriptTestCommand) --filter &quot;$(_TestFilterArgEnvVar)&quot;</RunScriptTestCommand>
+      <RunScriptTestCommand>$(RunScriptTestCommand) $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(TestSessionTimeoutForHelix)</RunScriptTestCommand>
+    </PropertyGroup>
 
-      <RunScriptTestCommand Condition="'$(RunScriptTestCommand)' == ''">dotnet test -s .runsettings $(MSBuildProjectName).dll --ResultsDirectory:$(_LogsPathEnvVar) $(_TestBlameArgumentsProperty) --filter &quot;$(_TestFilterArgEnvVar)&quot; $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(TestSessionTimeoutForHelix)</RunScriptTestCommand>
-      <RunScriptRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">$(_TestCoverageCommandProperty) &quot;$(RunScriptTestCommand)&quot;</RunScriptRunCommand>
+    <PropertyGroup>
+      <RunScriptRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;$(RunScriptTestCommand)&quot;</RunScriptRunCommand>
       <RunScriptRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">$(RunScriptTestCommand)</RunScriptRunCommand>
     </PropertyGroup>
 

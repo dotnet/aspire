@@ -15,6 +15,10 @@
 
     <!-- This is useful for local runs -->
     <VSTestResultsDirectory>$(ArtifactsTestResultsDir)</VSTestResultsDirectory>
+
+    <!-- FIXME: private? -->
+    <_ShellCommandSeparator Condition="'$(OS)' == 'Windows_NT'">&amp;</_ShellCommandSeparator>
+    <_ShellCommandSeparator Condition="'$(OS)' != 'Windows_NT'">&amp;&amp;</_ShellCommandSeparator>
   </PropertyGroup>
 
   <PropertyGroup>

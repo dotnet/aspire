@@ -18,8 +18,9 @@
     <TestsSharedDir>$(MSBuildThisFileDirectory)..\Shared\</TestsSharedDir>
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
 
-    <RunScriptOutputRelativePath Condition="'$(OS)' != 'Windows_NT'">$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\RunTests.sh</RunScriptOutputRelativePath>
-    <RunScriptOutputRelativePath Condition="'$(OS)' == 'Windows_NT'">$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\RunTests.cmd</RunScriptOutputRelativePath>
+    <RunScriptOutputRelativePath>$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\RunTests</RunScriptOutputRelativePath>
+    <RunScriptOutputRelativePath Condition="'$(OS)' != 'Windows_NT'">$(RunScriptOutputRelativePath).sh</RunScriptOutputRelativePath>
+    <RunScriptOutputRelativePath Condition="'$(OS)' == 'Windows_NT'">$(RunScriptOutputRelativePath).cmd</RunScriptOutputRelativePath>
 
     <!-- Skip EventHubs emulation in CI environments where Docker Desktop is not available.
           For more information, see https://github.com/dotnet/aspire/issues/5325. -->
@@ -73,6 +74,13 @@
     <Using Include="Aspire.Hosting.Testing" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <!-- This is different from the default command because we build the project on helix -->
+    <RunScriptTestBaseCommand>cd tests/$(MSBuildProjectName)</RunScriptTestBaseCommand>
+    <RunScriptTestBaseCommand>$(RunScriptTestBaseCommand) $(_ShellCommandSeparator) dotnet build -bl:$(_HelixLogsPath)/build.binlog</RunScriptTestBaseCommand>
+    <RunScriptTestBaseCommand>$(RunScriptTestBaseCommand) $(_ShellCommandSeparator) dotnet test -s .runsettings</RunScriptTestBaseCommand>
+  </PropertyGroup>
+
   <ItemGroup Condition="'$(ArchiveTests)' == 'true'" Label="Prepare archive dir for helix">
     <None Include="$(MSBuildProjectDirectory)\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)tests\Aspire.Components.Common.Tests\Requires*.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
@@ -87,12 +95,4 @@
          the tests run from a subdir - tests/Aspire.Playground.Tests/ -->
     <None Include="$(RepositoryEngineeringDir)CodeCoverage.config" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
-
-  <Target Name="_SetRunScriptTestCommand" BeforeTargets="GenerateRunScript" Condition="'$(ArchiveTests)' == 'true'">
-    <PropertyGroup>
-      <!-- FIXME: improve this - repeating the whole command line here -->
-      <RunScriptTestCommand>dotnet test -s .runsettings --results-directory $(_LogsPathEnvVar) @(TestBlameArguments, ' ') --filter &quot;$(_TestFilterArgEnvVar)&quot; $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(TestSessionTimeoutForHelix)</RunScriptTestCommand>
-    </PropertyGroup>
-  </Target>
-
 </Project>

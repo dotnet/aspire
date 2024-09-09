@@ -19,9 +19,6 @@
     </ItemGroup>
 
     <PropertyGroup>
-      <!--<_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>-->
-      <_TestRunCommand>@(_TestRunCommandArguments, ' ')</_TestRunCommand>
-
       <HelixPreCommands>$(HelixPreCommands);@(HelixPreCommand)</HelixPreCommands>
     </PropertyGroup>
 

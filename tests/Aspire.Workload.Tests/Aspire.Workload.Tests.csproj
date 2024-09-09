@@ -9,6 +9,7 @@
     <XunitRunnerJson>xunit.runner.json</XunitRunnerJson>
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
     <TestArchiveTestsDir>$(TestArchiveTestsDirForWorkloadTests)</TestArchiveTestsDir>
+    <UsesTestFilterOnHelix>true</UsesTestFilterOnHelix>
 
     <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(CODESPACES)' == 'true'">true</InstallBrowsersForPlaywright>
     <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(ArchiveTests)' == 'true' and '$(ContinuousIntegrationBuild)' == 'true'">true</InstallBrowsersForPlaywright>
