@@ -14,6 +14,7 @@
     <AspireProjectOrPackageReference Include="Aspire.Azure.Storage.Blobs" />
     <AspireProjectOrPackageReference Include="Aspire.Azure.Storage.Queues" />
     <AspireProjectOrPackageReference Include="Aspire.Azure.Messaging.EventHubs" />
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Messaging.ServiceBus" />
   </ItemGroup>
 
 </Project>

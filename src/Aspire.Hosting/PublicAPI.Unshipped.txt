@@ -32,11 +32,23 @@ Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.get -> Micro
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.init -> void
 Aspire.Hosting.ApplicationModel.EndpointAnnotation.TargetHost.get -> string!
 Aspire.Hosting.ApplicationModel.EndpointAnnotation.TargetHost.set -> void
+Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Volumes.get -> System.Collections.Immutable.ImmutableArray<Aspire.Hosting.ApplicationModel.VolumeSnapshot!>
+Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Volumes.init -> void
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation.HealthCheckAnnotation(string! key) -> void
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation.Key.get -> string!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, System.Func<Aspire.Hosting.ApplicationModel.ResourceEvent!, bool>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ResourceEvent!>!
+Aspire.Hosting.ApplicationModel.VolumeSnapshot
+Aspire.Hosting.ApplicationModel.VolumeSnapshot.IsReadOnly.get -> bool
+Aspire.Hosting.ApplicationModel.VolumeSnapshot.IsReadOnly.init -> void
+Aspire.Hosting.ApplicationModel.VolumeSnapshot.MountType.get -> string!
+Aspire.Hosting.ApplicationModel.VolumeSnapshot.MountType.init -> void
+Aspire.Hosting.ApplicationModel.VolumeSnapshot.Source.get -> string?
+Aspire.Hosting.ApplicationModel.VolumeSnapshot.Source.init -> void
+Aspire.Hosting.ApplicationModel.VolumeSnapshot.Target.get -> string!
+Aspire.Hosting.ApplicationModel.VolumeSnapshot.Target.init -> void
+Aspire.Hosting.ApplicationModel.VolumeSnapshot.VolumeSnapshot(string? Source, string! Target, string! MountType, bool IsReadOnly) -> void
 Aspire.Hosting.DistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!
 Aspire.Hosting.Eventing.DistributedApplicationEventing
 Aspire.Hosting.Eventing.DistributedApplicationEventing.DistributedApplicationEventing() -> void

@@ -3,6 +3,7 @@ using System.Text;
 #if !SKIP_EVENTHUBS_EMULATION
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
+using Azure.Messaging.ServiceBus;
 #endif
 using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
@@ -15,6 +16,7 @@ builder.AddAzureQueueClient("queue");
 builder.AddAzureBlobClient("blob");
 #if !SKIP_EVENTHUBS_EMULATION
 builder.AddAzureEventHubProducerClient("eventhubs", static settings => settings.EventHubName = "myhub");
+builder.AddAzureServiceBusClient("messaging");
 #endif
 
 var app = builder.Build();
@@ -53,6 +55,13 @@ app.MapGet("/publish/eventhubs", async (EventHubProducerClient client, Cancellat
     var data = new BinaryData(Encoding.UTF8.GetBytes(RandomString(length)));
     await client.SendAsync([new EventData(data)]);
     return Results.Ok("Message sent to Azure EventHubs.");
+});
+app.MapGet("/publish/asb", async (ServiceBusClient client, CancellationToken cancellationToken, int length = 20) =>
+{
+    var sender = client.CreateSender("myqueue");
+    var message = new ServiceBusMessage(Encoding.UTF8.GetBytes(RandomString(length)));
+    await sender.SendMessageAsync(message, cancellationToken);
+    return Results.Ok("Message sent to Azure Service Bus.");
 });
 #endif
 
