@@ -6,6 +6,11 @@ var builder = DistributedApplication.CreateBuilder(args);
 var elasticsearch = builder.AddElasticsearch("elasticsearch")
     .WithDataVolume();
 
+// To run with HTTPS, uncomment the following line
+//var elasticsearch = builder.AddElasticsearch("elasticsearch")
+//    .WithDataVolume()
+//    .RunElasticWithHttpsDevCertificate(port: 9200);
+
 builder.AddProject<Projects.Elasticsearch_ApiService>("elasticsearch-apiservice")
     .WithReference(elasticsearch);
 
