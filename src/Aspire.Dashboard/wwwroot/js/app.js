@@ -37,9 +37,18 @@ function getFluentMenuItemForTarget(element) {
     return null;
 }
 
+function addClickAndKeyboardListener(element, callback) {
+    element.addEventListener("click", callback);
+    element.addEventListener("keydown", function (e) {
+        if (e.keyCode === 13 || e.keyCode === 32) {
+            callback(e);
+        }
+    });
+}
+
 // Register a global click event listener to handle copy button clicks.
 // Required because an "onclick" attribute is denied by CSP.
-document.addEventListener("click", function (e) {
+addClickAndKeyboardListener(document, function (e) {
     // The copy 'button' could either be a button or a menu item.
     const targetElement = isElementTagName(e.target, "fluent-button") ? e.target : getFluentMenuItemForTarget(e.target)
     if (targetElement && targetElement.getAttribute("data-copybutton")) {
@@ -347,7 +356,7 @@ window.registerOpenTextVisualizerOnClick = function(layout) {
         }
     }
 
-    document.addEventListener('click', onClickListener);
+    addClickAndKeyboardListener(document, onClickListener);
 
     return {
         onClickListener: onClickListener,
@@ -356,4 +365,5 @@ window.registerOpenTextVisualizerOnClick = function(layout) {
 
 window.unregisterOpenTextVisualizerOnClick = function (obj) {
     document.removeEventListener('click', obj.onClickListener);
+    document.removeEventListener('keydown', obj.onClickListener);
 }

@@ -269,11 +269,23 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     [JSInvokable]
     public async Task OpenTextVisualizerAsync(IJSStreamReference valueStream, string valueDescription)
     {
-        var width = ViewportInformation.IsDesktop ? "75vw" : "100vw";
+        string width;
+        if (ViewportInformation.IsDesktop || !ViewportInformation.IsUltraLowWidth)
+        {
+            width = "85vw";
+        }
+        else
+        {
+            width = "100vw";
+        }
+
+        var height = ViewportInformation.IsUltraLowHeight ? "100vh" : null;
+
         var parameters = new DialogParameters
         {
             Title = valueDescription,
-            Width = $"min(1000px, {width})",
+            Width = width,
+            Height = height,
             TrapFocus = true,
             Modal = true,
             PreventScroll = true,
