@@ -106,14 +106,13 @@ public static class AzureFunctionsProjectResourceExtensions
     }
 
     /// <summary>
-    /// Injects azure function specific connection information into the environment variables of the azure functions
+    /// Injects Azure Functions specific connection information into the environment variables of the azure functions
     /// project resource.
     /// </summary>
     /// <typeparam name="TSource">The resource that implements the <see cref="IResourceWithAzureFunctionsConfig"/>.</typeparam>
     /// <param name="destination">The resource where connection information will be injected.</param>
     /// <param name="source">The resource from which to extract the connection string.</param>
     /// <param name="connectionName">An override of the source resource's name for the connection name. The resulting connection name will be connectionName if this is not null.</param>
-    /// <returns></returns>
     public static IResourceBuilder<AzureFunctionsProjectResource> WithReference<TSource>(this IResourceBuilder<AzureFunctionsProjectResource> destination, IResourceBuilder<TSource> source, string? connectionName = null)
         where TSource : IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
     {
