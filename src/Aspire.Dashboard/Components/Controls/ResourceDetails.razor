@@ -137,7 +137,17 @@
                                   IsValueSortable="false"
                                   EnableValueMasking="false"
                                   HighlightText="@_filter"
-                                  GridTemplateColumns="1fr 1.5fr" />
+                                  GridTemplateColumns="1fr 1.5fr">
+                        <ExtraValueContent>
+                            <div>
+                                @if (context.IsReadOnly)
+                                {
+                                    <FluentIcon Value="@(new Icons.Regular.Size12.LockClosed())" />
+                                }
+                                @context.MountType
+                            </div>
+                        </ExtraValueContent>
+                    </PropertyGrid>
                 </FluentAccordionItem>
             }
         </FluentAccordion>

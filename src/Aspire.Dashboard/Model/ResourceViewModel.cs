@@ -148,4 +148,4 @@ public sealed class UrlViewModel
     }
 }
 
-public sealed record class VolumeViewModel(string? Source, string Target, bool IsReadOnly);
+public sealed record class VolumeViewModel(string? Source, string Target, string MountType, bool IsReadOnly);
