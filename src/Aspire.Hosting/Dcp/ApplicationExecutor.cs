@@ -931,7 +931,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 sp.EndpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(
                     sp.EndpointAnnotation,
-                    "localhost",
+                    sp.EndpointAnnotation.IsProxied ? svc.AllocatedAddress! : "localhost",
                     (int)svc.AllocatedPort!,
                     containerHostAddress: appResource.ModelResource.IsContainer() ? containerHost : null,
                     targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""");
@@ -967,7 +967,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 svc.Spec.Protocol = PortProtocol.FromProtocolType(endpoint.Protocol);
                 svc.Spec.Address = endpoint.TargetHost switch
                 {
-                    "*" => "0.0.0.0",
+                    "*" or "+" => "0.0.0.0",
                     _ => endpoint.TargetHost
                 };
                 svc.Spec.AddressAllocationMode = endpoint.IsProxied ? AddressAllocationModes.Localhost : AddressAllocationModes.Proxyless;
