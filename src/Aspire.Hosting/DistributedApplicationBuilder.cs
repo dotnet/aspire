@@ -162,10 +162,18 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
         _innerBuilder.Services.AddSingleton(options);
         _innerBuilder.Services.AddSingleton<ResourceNotificationService>();
-        _innerBuilder.Services.AddSingleton<IHealthCheckPublisher, ResourceNotificationHealthCheckPublisher>();
-        _innerBuilder.Services.AddSingleton<ResourceLoggerService>();
         _innerBuilder.Services.AddSingleton<IDistributedApplicationEventing>(Eventing);
         _innerBuilder.Services.AddHealthChecks();
+
+        // Healthchecks
+        _innerBuilder.Services.AddSingleton<IHealthCheckPublisher, ResourceNotificationHealthCheckPublisher>();
+        _innerBuilder.Services.AddHostedService<ResourceHealthCheckScheduler>();
+        _innerBuilder.Services.AddSingleton<ResourceLoggerService>();
+        _innerBuilder.Services.Configure<HealthCheckPublisherOptions>(options =>
+        {
+            // Disable health checks from running!
+            options.Predicate = (check) => false;
+        });
 
         if (ExecutionContext.IsRunMode)
         {
