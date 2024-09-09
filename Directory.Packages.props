@@ -93,7 +93,7 @@
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsHttpResiliencePackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(MicrosoftExtensionsTimeProviderTestingVersion)" />
     <!-- external dependencies -->
-    <PackageVersion Include="Confluent.Kafka" Version="2.5.2" />
+    <PackageVersion Include="Confluent.Kafka" Version="2.5.3" />
     <PackageVersion Include="Dapper" Version="2.1.44" />
     <PackageVersion Include="DnsClient" Version="1.8.0" />
     <PackageVersion Include="Elastic.Clients.Elasticsearch" Version="8.15.2" />
