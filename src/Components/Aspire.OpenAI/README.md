@@ -1,6 +1,6 @@
 # Aspire.OpenAI library
 
-Registers [OpenAIClient](https://github.com/openai/openai-dotnet?tab=readme-ov-file#using-the-openaiclient-class) as a singleton in the DI container for using the OpenAI REST API. Enables corresponding logging and telemetry.
+Registers [OpenAIClient](https://github.com/openai/openai-dotnet?tab=readme-ov-file#using-the-openaiclient-class) as a singleton in the DI container for using the OpenAI REST API. Enables corresponding metrics, logging and telemetry.
 
 ## Getting started
 

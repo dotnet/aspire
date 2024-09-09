@@ -606,7 +606,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaitForSandbox.Common", "pl
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.OpenAI", "src\Components\Aspire.OpenAI\Aspire.OpenAI.csproj", "{F5421CC9-7303-4455-8A8D-F548143D7909}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspireOpenAI.Tests", "tests\Aspire.OpenAI.Tests\AspireOpenAI.Tests.csproj", "{C7B77A8D-719E-479E-A063-08A3859B713E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.OpenAI.Tests", "tests\Aspire.OpenAI.Tests\Aspire.OpenAI.Tests.csproj", "{C7B77A8D-719E-479E-A063-08A3859B713E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
