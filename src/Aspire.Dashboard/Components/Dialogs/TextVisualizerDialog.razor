@@ -9,9 +9,15 @@
 <FluentDialogHeader ShowDismiss="true">
     <div class="visualizer-title-grid">
         <FluentIcon Value="@(new Icons.Regular.Size24.SlideSearch())" Style="grid-area: dialog-icon; align-self: center;" />
-        <FluentLabel Typo="Typography.PaneHeader" Class="col-long-content" Style="grid-area: dialog-title;">
-            @Content.Description
-        </FluentLabel>
+
+        @if (!ViewportInformation.IsMobile)
+        {
+            // Since it's redundant information, we don't need to show the description on mobile
+            // since it may be cut off
+            <FluentLabel Typo="Typography.PaneHeader" Class="col-long-content" Style="grid-area: dialog-title;">
+                @Content.Description
+            </FluentLabel>
+        }
 
         <div Style="grid-area: dialog-format;">
             <FluentMenuButton id="@_openSelectFormatButtonId"

@@ -52,6 +52,9 @@ public partial class TextVisualizerDialog : ComponentBase, IAsyncDisposable
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
 
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         await ThemeManager.EnsureEffectiveThemeAsync();
