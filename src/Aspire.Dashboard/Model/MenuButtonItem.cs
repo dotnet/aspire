@@ -12,4 +12,5 @@ public class MenuButtonItem
     public string? Tooltip { get; set; }
     public Icon? Icon { get; set; }
     public Func<Task>? OnClick { get; set; }
+    public bool IsDisabled { get; set; }
 }
