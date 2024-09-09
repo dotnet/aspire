@@ -169,8 +169,8 @@ public static class AzureEventHubsExtensions
             var tableEndpoint = storage.GetEndpoint("table");
 
             context.EnvironmentVariables.Add("ACCEPT_EULA", "Y");
-            context.EnvironmentVariables.Add("BLOB_SERVER", $"{blobEndpoint.ContainerHost}:{blobEndpoint.TargetPort}");
-            context.EnvironmentVariables.Add("METADATA_SERVER", $"{tableEndpoint.ContainerHost}:{tableEndpoint.TargetPort}");
+            context.EnvironmentVariables.Add("BLOB_SERVER", $"{blobEndpoint.ContainerHost}:{blobEndpoint.ContainerPort}");
+            context.EnvironmentVariables.Add("METADATA_SERVER", $"{tableEndpoint.ContainerHost}:{tableEndpoint.ContainerPort}");
         }));
 
         if (configureContainer != null)

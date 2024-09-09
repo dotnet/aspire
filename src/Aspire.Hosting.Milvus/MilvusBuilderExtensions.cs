@@ -186,6 +186,6 @@ public static class MilvusBuilderExtensions
 
     private static void ConfigureAttuContainer(EnvironmentCallbackContext context, MilvusServerResource resource)
     {
-        context.EnvironmentVariables.Add("MILVUS_URL", $"{resource.PrimaryEndpoint.Scheme}://{resource.PrimaryEndpoint.ContainerHost}:{resource.PrimaryEndpoint.TargetPort}");
+        context.EnvironmentVariables.Add("MILVUS_URL", $"{resource.PrimaryEndpoint.Scheme}://{resource.PrimaryEndpoint.ContainerHost}:{resource.PrimaryEndpoint.ContainerPort}");
     }
 }

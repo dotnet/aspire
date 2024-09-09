@@ -202,7 +202,7 @@ public static class PostgresBuilderExtensions
                         writer.WriteString("Name", postgresInstance.Name);
                         writer.WriteString("Group", "Servers");
                         writer.WriteString("Host", endpoint.ContainerHost);
-                        writer.WriteNumber("Port", (decimal)endpoint.TargetPort!);
+                        writer.WriteNumber("Port", (decimal)endpoint.ContainerPort!);
                         writer.WriteString("Username", "postgres");
                         writer.WriteString("SSLMode", "prefer");
                         writer.WriteString("MaintenanceDB", "postgres");
@@ -322,7 +322,7 @@ public static class PostgresBuilderExtensions
 
                     var fileContent = $"""
                         host = "{postgresDatabase.Parent.PrimaryEndpoint.ContainerHost}"
-                        port = {postgresDatabase.Parent.PrimaryEndpoint.TargetPort}
+                        port = {postgresDatabase.Parent.PrimaryEndpoint.ContainerPort}
                         user = "{user}"
                         password = "{postgresDatabase.Parent.PasswordParameter.Value}"
                         database = "{postgresDatabase.DatabaseName}"

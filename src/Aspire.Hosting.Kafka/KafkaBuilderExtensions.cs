@@ -92,7 +92,7 @@ public static class KafkaBuilderExtensions
         static void ConfigureKafkaUIContainer(EnvironmentCallbackContext context, EndpointReference endpoint, int index)
         {
             var bootstrapServers = context.ExecutionContext.IsRunMode
-                ? ReferenceExpression.Create($"{endpoint.ContainerHost}:{endpoint.Property(EndpointProperty.TargetPort)}")
+                ? ReferenceExpression.Create($"{endpoint.ContainerHost}:{endpoint.Property(EndpointProperty.ContainerPort)}")
                 : ReferenceExpression.Create($"{endpoint.Property(EndpointProperty.Host)}:{endpoint.Property(EndpointProperty.Port)}");
 
             context.EnvironmentVariables.Add($"KAFKA_CLUSTERS_{index}_NAME", endpoint.Resource.Name);
@@ -164,7 +164,7 @@ public static class KafkaBuilderExtensions
         var internalEndpoint = resource.InternalEndpoint;
 
         var advertisedListeners = context.ExecutionContext.IsRunMode
-            ? ReferenceExpression.Create($"PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:{primaryEndpoint.Property(EndpointProperty.Port)},PLAINTEXT_INTERNAL://{internalEndpoint.ContainerHost}:{internalEndpoint.Property(EndpointProperty.TargetPort)}")
+            ? ReferenceExpression.Create($"PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:{primaryEndpoint.Property(EndpointProperty.Port)},PLAINTEXT_INTERNAL://{internalEndpoint.ContainerHost}:{internalEndpoint.Property(EndpointProperty.ContainerPort)}")
             : ReferenceExpression.Create(
             $"PLAINTEXT://{primaryEndpoint.Property(EndpointProperty.Host)}:29092,PLAINTEXT_HOST://{primaryEndpoint.Property(EndpointProperty.Host)}:{primaryEndpoint.Property(EndpointProperty.Port)},PLAINTEXT_INTERNAL://{internalEndpoint.Property(EndpointProperty.Host)}:{internalEndpoint.Property(EndpointProperty.Port)}");
 

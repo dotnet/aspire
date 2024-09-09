@@ -100,7 +100,7 @@ public static class RedisBuilderExtensions
                 {
                     if (redisInstance.PrimaryEndpoint.IsAllocated)
                     {
-                        var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.PrimaryEndpoint.ContainerHost}:{redisInstance.PrimaryEndpoint.TargetPort}:0";
+                        var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.PrimaryEndpoint.ContainerHost}:{redisInstance.PrimaryEndpoint.ContainerPort}:0";
                         hostsVariableBuilder.Append(hostString);
                     }
                 }
