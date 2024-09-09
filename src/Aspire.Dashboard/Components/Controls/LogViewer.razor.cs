@@ -52,7 +52,7 @@ public sealed partial class LogViewer
         if (firstRender)
         {
             await JS.InvokeVoidAsync("initializeContinuousScroll");
-            DimensionManager.OnBrowserDimensionsChanged += OnBrowserResize;
+            DimensionManager.OnViewportInformationChanged += OnBrowserResize;
         }
     }
 
@@ -120,6 +120,6 @@ public sealed partial class LogViewer
     public async ValueTask DisposeAsync()
     {
         await _cancellationSeries.ClearAsync();
-        DimensionManager.OnBrowserDimensionsChanged -= OnBrowserResize;
+        DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
     }
 }

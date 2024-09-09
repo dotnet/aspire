@@ -55,6 +55,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="Aspire.Dashboard.Components.Resize" />
     <Using Include="Aspire.Dashboard.Model.BrowserStorage" />
   </ItemGroup>
 

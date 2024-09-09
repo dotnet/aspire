@@ -29,6 +29,7 @@ public partial class TraceDetail : ComponentBase
     private readonly List<string> _collapsedSpanIds = [];
     private string? _elementIdBeforeDetailsViewOpened;
     private GridColumnManager _manager = null!;
+    private IList<GridColumn> _gridColumns = null!;
 
     [Parameter]
     public required string TraceId { get; set; }
@@ -60,11 +61,11 @@ public partial class TraceDetail : ComponentBase
 
     protected override void OnInitialized()
     {
-        _manager = new GridColumnManager([
+        _gridColumns = [
             new GridColumn(Name: NameColumn, DesktopWidth: "4fr", MobileWidth: "4fr"),
             new GridColumn(Name: TicksColumn, DesktopWidth: "12fr", MobileWidth: "12fr"),
             new GridColumn(Name: DetailsColumn, DesktopWidth: "85px", MobileWidth: null)
-        ], DimensionManager);
+        ];
 
         foreach (var resolver in OutgoingPeerResolvers)
         {
