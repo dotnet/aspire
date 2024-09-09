@@ -584,6 +584,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     {
         var containerId = container.Status?.ContainerId;
         var urls = GetUrls(container);
+        var volumes = GetVolumes(container);
 
         var environment = GetEnvironmentVariables(container.Status?.EffectiveEnv ?? container.Spec.Env, container.Spec.Env);
         var state = container.AppModelInitialState == KnownResourceStates.Hidden ? KnownResourceStates.Hidden : container.Status?.State;
@@ -603,7 +604,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             ],
             EnvironmentVariables = environment,
             CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
-            Urls = urls
+            Urls = urls,
+            Volumes = volumes
         };
 
         ImmutableArray<int> GetPorts()
@@ -751,6 +753,16 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
 
         return urls.ToImmutable();
+    }
+
+    private static ImmutableArray<VolumeSnapshot> GetVolumes(CustomResource resource)
+    {
+        if (resource is Container container)
+        {
+            return container.Spec.VolumeMounts?.Select(v => new VolumeSnapshot(v.Source, v.Target ?? "", v.Type, v.IsReadOnly)).ToImmutableArray() ?? [];
+        }
+
+        return [];
     }
 
     private static ImmutableArray<EnvironmentVariableSnapshot> GetEnvironmentVariables(List<EnvVar>? effectiveSource, List<EnvVar>? specSource)
