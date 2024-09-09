@@ -1,4 +1,4 @@
-import './plotly-2.32.0.min.js'
+import './plotly-2.35.0.min.js'
 
 export function initializeChart(id, traces, exemplarTrace, rangeStartTime, rangeEndTime, serverLocale, chartInterop) {
     registerLocale(serverLocale);
