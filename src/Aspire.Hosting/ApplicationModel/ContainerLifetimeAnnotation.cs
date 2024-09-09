@@ -8,7 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Lifetime modes for container resources
 /// </summary>
-public enum ContainerLifetimeType
+public enum ContainerLifetime
 {
     /// <summary>
     /// The default lifetime behavior should apply. This will create the resource when the AppHost starts and dispose of it when the AppHost shuts down.
@@ -17,7 +17,7 @@ public enum ContainerLifetimeType
     /// <summary>
     /// The resource is persistent and will not be disposed of when the AppHost shuts down.
     /// </summary>
-    Persistent,
+    CreateIfNotExistsPersistOnExit,
 }
 
 /// <summary>
@@ -29,5 +29,5 @@ public sealed class ContainerLifetimeAnnotation : IResourceAnnotation
     /// <summary>
     /// Gets or sets the lifetime type for the container resource.
     /// </summary>
-    public required ContainerLifetimeType LifetimeType { get; set; }
+    public required ContainerLifetime Lifetime { get; set; }
 }
