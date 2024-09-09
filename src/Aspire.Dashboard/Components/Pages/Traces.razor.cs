@@ -3,7 +3,6 @@
 
 using System.Globalization;
 using Aspire.Dashboard.Components.Layout;
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;

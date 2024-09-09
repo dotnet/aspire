@@ -4,7 +4,6 @@
 using System.Globalization;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Layout;
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;

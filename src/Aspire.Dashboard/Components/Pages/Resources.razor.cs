@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Aspire.Dashboard.Extensions;
-using Aspire.Dashboard.Components.Resize;
+
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
