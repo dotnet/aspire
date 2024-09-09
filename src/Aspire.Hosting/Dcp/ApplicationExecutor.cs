@@ -931,7 +931,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 sp.EndpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(
                     sp.EndpointAnnotation,
-                    sp.EndpointAnnotation.IsProxied ? svc.AllocatedAddress! : "localhost",
+                    "localhost",
                     (int)svc.AllocatedPort!,
                     containerHostAddress: appResource.ModelResource.IsContainer() ? containerHost : null,
                     targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""");
