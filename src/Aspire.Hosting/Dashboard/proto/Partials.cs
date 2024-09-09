@@ -42,7 +42,13 @@ partial class Resource
 
         foreach (var volume in snapshot.Volumes)
         {
-            resource.Volumes.Add(new Volume { Source = volume.Source, Target = volume.Target, IsReadOnly = volume.IsReadOnly });
+            resource.Volumes.Add(new Volume
+            {
+                Source = volume.Source,
+                Target = volume.Target,
+                MountType = volume.MountType,
+                IsReadOnly = volume.IsReadOnly
+            });
         }
 
         // Disable start/stop/restart commands until host/DCP infrastructure is ready.

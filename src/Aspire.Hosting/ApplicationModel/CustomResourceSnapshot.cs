@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using Aspire.Hosting.Dcp.Model;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -87,8 +88,9 @@ public sealed record UrlSnapshot(string Name, string Url, bool IsInternal);
 /// </summary>
 /// <param name="Source">The name of the volume. Can be <c>null</c> if the mount is an anonymous volume.</param>
 /// <param name="Target">The target of the mount.</param>
+/// <param name="MountType">Gets the mount type, such as <see cref="VolumeMountType.Bind"/> or <see cref="VolumeMountType.Volume"/></param>
 /// <param name="IsReadOnly">Whether the volume mount is read-only or not.</param>
-public sealed record VolumeSnapshot(string? Source, string Target, bool IsReadOnly);
+public sealed record VolumeSnapshot(string? Source, string Target, string MountType, bool IsReadOnly);
 
 /// <summary>
 /// A snapshot of the resource property.

@@ -759,7 +759,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     {
         if (resource is Container container)
         {
-            return container.Spec.VolumeMounts?.Select(v => new VolumeSnapshot(v.Source, v.Target ?? "", v.IsReadOnly)).ToImmutableArray() ?? [];
+            return container.Spec.VolumeMounts?.Select(v => new VolumeSnapshot(v.Source, v.Target ?? "", v.Type, v.IsReadOnly)).ToImmutableArray() ?? [];
         }
 
         return [];
