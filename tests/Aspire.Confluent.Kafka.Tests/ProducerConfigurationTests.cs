@@ -206,6 +206,37 @@ public class ProducerConfigurationTests
         }
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CanPullAProducerBuilderAlreadyInContainerAndOverrideBootstrapServersWithAspireConnectionString(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var producerBuilder = new ProducerBuilder<string, string>([new KeyValuePair<string, string>("bootstrap.servers", "localhost:9093")]);
+        builder.Services.AddSingleton(producerBuilder);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:messaging", CommonHelpers.TestingEndpoint)
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddKeyedKafkaProducer<string, string>("messaging");
+        }
+        else
+        {
+            builder.AddKafkaProducer<string, string>("messaging");
+        }
+
+        using var host = builder.Build();
+        var connectionFactory = useKeyed ?
+            host.Services.GetRequiredKeyedService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value, "messaging") :
+            host.Services.GetRequiredService(ReflectionHelpers.ProducerConnectionFactoryStringKeyStringValueType.Value);
+
+        var config = GetProducerConfig(connectionFactory)!;
+
+        Assert.Equal(CommonHelpers.TestingEndpoint, config.BootstrapServers);
+    }
+
     [Fact]
     public void ProducerConfigOptionsFromConfig()
     {

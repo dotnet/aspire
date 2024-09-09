@@ -157,13 +157,22 @@ public static class AspireKafkaProducerExtensions
     }
 
     private static ProducerConnectionFactory<TKey, TValue> CreateProducerConnectionFactory<TKey, TValue>(IServiceProvider serviceProvider, Action<IServiceProvider, ProducerBuilder<TKey, TValue>>? configureBuilder, KafkaProducerSettings settings)
-        => new(CreateProducerBuilder(serviceProvider, configureBuilder, settings), settings.Config);
+        => new(CreateProducerBuilder(serviceProvider, serviceProvider.GetRequiredService<IServiceProviderIsService>(), configureBuilder, settings), settings.Config);
 
-    private static ProducerBuilder<TKey, TValue> CreateProducerBuilder<TKey, TValue>(IServiceProvider serviceProvider, Action<IServiceProvider, ProducerBuilder<TKey, TValue>>? configureBuilder, KafkaProducerSettings settings)
+    private static ProducerBuilder<TKey, TValue> CreateProducerBuilder<TKey, TValue>(IServiceProvider serviceProvider, IServiceProviderIsService serviceProviderIsService, Action<IServiceProvider, ProducerBuilder<TKey, TValue>>? configureBuilder, KafkaProducerSettings settings)
     {
-        settings.Validate();
+        ProducerBuilder<TKey, TValue> builder;
+        if (serviceProviderIsService.IsService(typeof(ProducerBuilder<TKey, TValue>)))
+        {
+            builder = serviceProvider.GetRequiredService<ProducerBuilder<TKey, TValue>>();
+            builder.OverrideConnectionString(settings.ConnectionString!);
+        }
+        else
+        {
+            settings.Validate();
+            builder = new ProducerBuilder<TKey, TValue>(settings.Config);
+        }
 
-        ProducerBuilder<TKey, TValue> builder = new(settings.Config);
         ILogger logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(ConfluentKafkaCommon.LogCategoryName);
         configureBuilder?.Invoke(serviceProvider, builder);
 

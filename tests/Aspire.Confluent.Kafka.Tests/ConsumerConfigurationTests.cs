@@ -216,6 +216,39 @@ public class ConsumerConfigurationTests
         }
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CanPullAConsumerBuilderAlreadyInContainerAndOverrideBootstrapServersWithAspireConnectionString(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        var consumerBuilder = new ConsumerBuilder<string, string>([new KeyValuePair<string, string>("bootstrap.servers", "localhost:9093")]);
+        builder.Services.AddSingleton(consumerBuilder);
+        var key = useKeyed ? "messaging" : null;
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:messaging", CommonHelpers.TestingEndpoint),
+            new KeyValuePair<string, string?>(ProducerConformanceTests.CreateConfigKey("Aspire:Confluent:Kafka:Consumer", key, "Config:GroupId"), "unused")
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddKeyedKafkaConsumer<string, string>("messaging");
+        }
+        else
+        {
+            builder.AddKafkaConsumer<string, string>("messaging");
+        }
+
+        using var host = builder.Build();
+        var connectionFactory = useKeyed
+            ? host.Services.GetRequiredKeyedService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value, "messaging")
+            : host.Services.GetRequiredService(ReflectionHelpers.ConsumerConnectionFactoryStringKeyStringValueType.Value);
+
+        var config = GetConsumerConfig(connectionFactory)!;
+
+        Assert.Equal(CommonHelpers.TestingEndpoint, config.BootstrapServers);
+    }
+
     [Fact]
     public void ConsumerConfigOptionsFromConfig()
     {
