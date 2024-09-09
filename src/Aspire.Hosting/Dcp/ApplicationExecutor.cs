@@ -122,7 +122,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         try
         {
             PrepareServices();
-            PrepareContainerNetworks();
             PrepareContainers();
             PrepareExecutables();
 
@@ -1346,20 +1345,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         return value;
     }
 
-    private void PrepareContainerNetworks()
-    {
-        var modelContainerResources = _model.GetContainerResources();
-
-        if (modelContainerResources.Any())
-        {
-            // We only create a container network if there are container resources defined
-            var networkModel = new ContainerNetworkResource("aspire-network");
-            var network = ContainerNetwork.Create(networkModel.Name);
-            _model.Resources.Add(networkModel);
-            _appResources.Add(new AppResource(networkModel, network));
-        }
-    }
-
     private void PrepareContainers()
     {
         var modelContainerResources = _model.GetContainerResources();
@@ -1473,6 +1458,14 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
 
             var tasks = new List<Task>();
+
+            // Create a custom container network for Aspire if there are container resources
+            if (containerResources.Any())
+            {
+                // The network will be created with a unique postfix to avoid conflicts with other Aspire AppHost networks
+                tasks.Add(kubernetesService.CreateAsync(ContainerNetwork.Create("aspire-network"), cancellationToken));
+            }
+
             foreach (var cr in containerResources)
             {
                 tasks.Add(CreateContainerAsyncCore(cr, cancellationToken));
