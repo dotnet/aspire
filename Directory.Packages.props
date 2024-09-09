@@ -114,7 +114,7 @@
     <PackageVersion Include="NATS.Net" Version="2.3.3" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.3" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
-    <PackageVersion Include="OpenAI" Version="2.0.0-beta.7" />
+    <PackageVersion Include="OpenAI" Version="2.0.0-beta.11" />
     <PackageVersion Include="Oracle.EntityFrameworkCore" Version="8.23.50" />
     <PackageVersion Include="Oracle.ManagedDataAccess.OpenTelemetry" Version="23.5.0" />
     <PackageVersion Include="Polly.Core" Version="8.4.1" />
