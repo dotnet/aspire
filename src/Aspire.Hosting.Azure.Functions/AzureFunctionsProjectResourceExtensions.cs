@@ -39,44 +39,6 @@ public static class AzureFunctionsProjectResourceExtensions
                     {
                         removeStorage = false;
                     }
-
-                    // Before the resource starts, we want to apply the azure functions specific environment variables.
-                    // we look at all of the environment variables and apply the configuration for any resources that implement IResourceWithAzureFunctionsConfig.
-                    item.Annotations.Add(new EnvironmentCallbackAnnotation(static context =>
-                    {
-                        var functionsConfigMapping = new Dictionary<string, IResourceWithAzureFunctionsConfig>();
-                        var valuesToRemove = new List<string>();
-
-                        foreach (var (envName, val) in context.EnvironmentVariables)
-                        {
-                            var (name, config) = val switch
-                            {
-                                IResourceWithAzureFunctionsConfig c => (c.Name, c),
-                                ConnectionStringReference conn when conn.Resource is IResourceWithAzureFunctionsConfig c => (conn.ConnectionName ?? c.Name, c),
-                                _ => ("", null)
-                            };
-
-                            if (config is not null)
-                            {
-                                valuesToRemove.Add(envName);
-                                functionsConfigMapping[name] = config;
-                            }
-                        }
-
-                        // REVIEW: We need to remove the existing values before adding the new ones as there's a conflict with the connection strings.
-                        // we don't want to do this because it'll stop the aspire components from working in functions projects.
-                        foreach (var envName in valuesToRemove)
-                        {
-                            context.EnvironmentVariables.Remove(envName);
-                        }
-
-                        foreach (var (name, config) in functionsConfigMapping)
-                        {
-                            config.ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, name);
-                        }
-
-                        return Task.CompletedTask;
-                    }));
                 }
 
                 if (removeStorage)
@@ -141,5 +103,28 @@ public static class AzureFunctionsProjectResourceExtensions
     {
         builder.Resource.HostStorage = storage.Resource;
         return builder;
+    }
+
+    /// <summary>
+    /// Injects azure function specific connection information into the environment variables of the azure functions
+    /// project resource.
+    /// </summary>
+    /// <typeparam name="TSource">The resource that implements the <see cref="IResourceWithAzureFunctionsConfig"/>.</typeparam>
+    /// <param name="destination">The resource where connection information will be injected.</param>
+    /// <param name="source">The resource from which to extract the connection string.</param>
+    /// <param name="connectionName">An override of the source resource's name for the connection name. The resulting connection name will be connectionName if this is not null.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureFunctionsProjectResource> WithReference<TSource>(this IResourceBuilder<AzureFunctionsProjectResource> destination, IResourceBuilder<TSource> source, string? connectionName = null)
+        where TSource : IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
+    {
+        // REVIEW: There's a conflict with the connection strings formats and various azure functions extensions
+        // we want to keep injecting the normal connection strings as this will currently stop the aspire components from working in functions projects.
+
+        return destination.WithEnvironment(context =>
+        {
+            connectionName ??= source.Resource.Name;
+
+            source.Resource.ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, connectionName);
+        });
     }
 }
