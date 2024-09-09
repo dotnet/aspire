@@ -30,6 +30,8 @@ Aspire.Hosting.ApplicationModel.ConnectionStringReference.ConnectionName.get -> 
 Aspire.Hosting.ApplicationModel.ConnectionStringReference.ConnectionName.set -> void
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.get -> Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus?
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.init -> void
+Aspire.Hosting.ApplicationModel.EndpointAnnotation.TargetHost.get -> string!
+Aspire.Hosting.ApplicationModel.EndpointAnnotation.TargetHost.set -> void
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Volumes.get -> System.Collections.Immutable.ImmutableArray<Aspire.Hosting.ApplicationModel.VolumeSnapshot!>
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Volumes.init -> void
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation

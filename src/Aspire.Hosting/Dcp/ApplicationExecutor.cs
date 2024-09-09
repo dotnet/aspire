@@ -943,7 +943,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 sp.EndpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(
                     sp.EndpointAnnotation,
-                    sp.EndpointAnnotation.IsProxied ? svc.AllocatedAddress! : "localhost",
+                    "localhost",
                     (int)svc.AllocatedPort!,
                     containerHostAddress: appResource.ModelResource.IsContainer() ? containerHost : null,
                     targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""");
@@ -977,6 +977,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 var port = _options.Value.RandomizePorts && endpoint.IsProxied ? null : endpoint.Port;
                 svc.Spec.Port = port;
                 svc.Spec.Protocol = PortProtocol.FromProtocolType(endpoint.Protocol);
+                svc.Spec.Address = endpoint.TargetHost switch
+                {
+                    "*" or "+" => "0.0.0.0",
+                    _ => endpoint.TargetHost
+                };
                 svc.Spec.AddressAllocationMode = endpoint.IsProxied ? AddressAllocationModes.Localhost : AddressAllocationModes.Proxyless;
 
                 // So we can associate the service with the resource that produced it and the endpoint it represents.
