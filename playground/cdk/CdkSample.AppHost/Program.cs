@@ -3,104 +3,111 @@
 
 #pragma warning disable AZPROVISION001 // Because we use the CDK callbacks.
 
-using Aspire.Hosting.Azure;
-using Azure.Provisioning.KeyVaults;
-using Azure.ResourceManager.ApplicationInsights.Models;
-using Azure.ResourceManager.OperationalInsights.Models;
+//using Aspire.Hosting.Azure;
+//using Azure.Provisioning.KeyVaults;
+//using Azure.ResourceManager.ApplicationInsights.Models;
+//using Azure.ResourceManager.OperationalInsights.Models;
+
+using Azure.Provisioning.Expressions;
+using Azure.Provisioning.KeyVault;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var cosmosdb = builder.AddAzureCosmosDB("cosmos").AddDatabase("cosmosdb");
+//var cosmosdb = builder.AddAzureCosmosDB("cosmos").AddDatabase("cosmosdb");
 
-var sku = builder.AddParameter("storagesku");
-var locationOverride = builder.AddParameter("locationOverride");
-var storage = builder.AddAzureStorage("storage", (_, _, account) =>
-{
-    account.AssignProperty(sa => sa.Sku.Name, sku);
-    account.AssignProperty(sa => sa.Location, locationOverride);
-});
+//var sku = builder.AddParameter("storagesku");
+//var locationOverride = builder.AddParameter("locationOverride");
+//var storage = builder.AddAzureStorage("storage", (_, _, account) =>
+//{
+//    account.AssignProperty(sa => sa.Sku.Name, sku);
+//    account.AssignProperty(sa => sa.Location, locationOverride);
+//});
 
-var blobs = storage.AddBlobs("blobs");
+//var blobs = storage.AddBlobs("blobs");
 
-var sqldb = builder.AddSqlServer("sql").AsAzureSqlDatabase().AddDatabase("sqldb");
+//var sqldb = builder.AddSqlServer("sql").AsAzureSqlDatabase().AddDatabase("sqldb");
 
 var signaturesecret = builder.AddParameter("signaturesecret");
 var keyvault = builder.AddAzureKeyVault("mykv", (_, construct, keyVault) =>
 {
-    var secret = new KeyVaultSecret(construct, name: "mysecret");
-    secret.AssignProperty(x => x.Properties.Value, signaturesecret);
-});
-
-var cache = builder.AddRedis("cache").AsAzureRedis();
-
-var pgsqlAdministratorLogin = builder.AddParameter("pgsqlAdministratorLogin");
-var pgsqlAdministratorLoginPassword = builder.AddParameter("pgsqlAdministratorLoginPassword", secret: true);
-var pgsqldb = builder.AddPostgres("pgsql", pgsqlAdministratorLogin, pgsqlAdministratorLoginPassword)
-                   .AsAzurePostgresFlexibleServer()
-                   .AddDatabase("pgsqldb");
-
-var pgsql2 = builder.AddPostgres("pgsql2").AsAzurePostgresFlexibleServer();
-
-var sb = builder.AddAzureServiceBus("servicebus")
-    .AddQueue("queue1",
-        (_, construct, queue) =>
-        {
-            queue.Properties.MaxDeliveryCount = 5;
-            queue.Properties.LockDuration = TimeSpan.FromMinutes(5);
-        })
-    .AddTopic("topic1",
-        (_, construct, topic) =>
-        {
-            topic.Properties.EnablePartitioning = true;
-        })
-    .AddTopic("topic2")
-    .AddSubscription("topic1", "subscription1",
-        (_, construct, subscription) =>
-        {
-            subscription.Properties.LockDuration = TimeSpan.FromMinutes(5);
-            subscription.Properties.RequiresSession = true;
-        })
-    .AddSubscription("topic1", "subscription2")
-    .AddTopic("topic3", new[] { "sub1", "sub2" });
-
-var appConfig = builder.AddAzureAppConfiguration("appConfig");
-
-var search = builder.AddAzureSearch("search");
-
-var signalr = builder.AddAzureSignalR("signalr");
-
-var logAnalyticsWorkspace = builder.AddAzureLogAnalyticsWorkspace(
-    "logAnalyticsWorkspace",
-    (_, _, logAnalyticsWorkspace) =>
+    var secret = new KeyVaultSecret("mysecret")
     {
-        logAnalyticsWorkspace.Properties.Sku = new OperationalInsightsWorkspaceSku(OperationalInsightsWorkspaceSkuName.PerNode);
-    });
-
-var appInsights = builder.AddAzureApplicationInsights(
-    "appInsights",
-    (_, _, appInsights) =>
-{
-    appInsights.AssignProperty(
-        p => p.WorkspaceResourceId,
-        logAnalyticsWorkspace.Resource.WorkspaceId,
-        AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId);
-
-    appInsights.Properties.IngestionMode = ComponentIngestionMode.LogAnalytics;
+        Parent = keyVault,
+        Properties = new SecretProperties { Value = new IdentifierExpression(signaturesecret.Resource.Name) } // TODO: is this right? Can we make this implicit?
+    };
+    construct.Add(secret);
 });
+
+//var cache = builder.AddRedis("cache").AsAzureRedis();
+
+//var pgsqlAdministratorLogin = builder.AddParameter("pgsqlAdministratorLogin");
+//var pgsqlAdministratorLoginPassword = builder.AddParameter("pgsqlAdministratorLoginPassword", secret: true);
+//var pgsqldb = builder.AddPostgres("pgsql", pgsqlAdministratorLogin, pgsqlAdministratorLoginPassword)
+//                   .AsAzurePostgresFlexibleServer()
+//                   .AddDatabase("pgsqldb");
+
+//var pgsql2 = builder.AddPostgres("pgsql2").AsAzurePostgresFlexibleServer();
+
+//var sb = builder.AddAzureServiceBus("servicebus")
+//    .AddQueue("queue1",
+//        (_, construct, queue) =>
+//        {
+//            queue.Properties.MaxDeliveryCount = 5;
+//            queue.Properties.LockDuration = TimeSpan.FromMinutes(5);
+//        })
+//    .AddTopic("topic1",
+//        (_, construct, topic) =>
+//        {
+//            topic.Properties.EnablePartitioning = true;
+//        })
+//    .AddTopic("topic2")
+//    .AddSubscription("topic1", "subscription1",
+//        (_, construct, subscription) =>
+//        {
+//            subscription.Properties.LockDuration = TimeSpan.FromMinutes(5);
+//            subscription.Properties.RequiresSession = true;
+//        })
+//    .AddSubscription("topic1", "subscription2")
+//    .AddTopic("topic3", new[] { "sub1", "sub2" });
+
+//var appConfig = builder.AddAzureAppConfiguration("appConfig");
+
+//var search = builder.AddAzureSearch("search");
+
+//var signalr = builder.AddAzureSignalR("signalr");
+
+//var logAnalyticsWorkspace = builder.AddAzureLogAnalyticsWorkspace(
+//    "logAnalyticsWorkspace",
+//    (_, _, logAnalyticsWorkspace) =>
+//    {
+//        logAnalyticsWorkspace.Properties.Sku = new OperationalInsightsWorkspaceSku(OperationalInsightsWorkspaceSkuName.PerNode);
+//    });
+
+//var appInsights = builder.AddAzureApplicationInsights(
+//    "appInsights",
+//    (_, _, appInsights) =>
+//{
+//    appInsights.AssignProperty(
+//        p => p.WorkspaceResourceId,
+//        logAnalyticsWorkspace.Resource.WorkspaceId,
+//        AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId);
+
+//    appInsights.Properties.IngestionMode = ComponentIngestionMode.LogAnalytics;
+//});
 
 builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithExternalHttpEndpoints()
-    .WithReference(signalr)
-    .WithReference(blobs)
-    .WithReference(sqldb)
-    .WithReference(keyvault)
-    .WithReference(cache)
-    .WithReference(cosmosdb)
-    .WithReference(pgsqldb)
-    .WithReference(sb)
-    .WithReference(appConfig)
-    .WithReference(search)
-    .WithReference(appInsights);
+    //.WithReference(signalr)
+    //.WithReference(blobs)
+    //.WithReference(sqldb)
+    .WithReference(keyvault);
+    //.WithReference(cache)
+    //.WithReference(cosmosdb)
+    //.WithReference(pgsqldb)
+    //.WithReference(sb)
+    //.WithReference(appConfig)
+    //.WithReference(search)
+    //.WithReference(appInsights);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
