@@ -153,6 +153,9 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         _applications = TelemetryRepository.GetApplications();
         _applicationViewModels = ApplicationsSelectHelpers.CreateApplications(_applications);
         _applicationViewModels.Insert(0, _selectApplication);
+
+        PageViewModel.ApplicationNames = _applications.Select(a => a.ApplicationName).ToImmutableHashSet(StringComparers.OtlpApplicationName);
+
         UpdateSubscription();
     }
 
@@ -226,6 +229,69 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         public required MetricViewKind? SelectedViewKind { get; set; }
 
         public required ImmutableArray<DashpageDefinition> Dashpages { get; init; }
+
+        public ImmutableHashSet<string> ApplicationNames { get; set; } = [];
+
+        internal bool IsDashpageAvailable(DashpageDefinition dashpage)
+        {
+            if (dashpage.Charts.Count == 0)
+            {
+                return false;
+            }
+
+            bool foundOne = false;
+            bool allExplicitResources = true;
+
+            foreach (var chart in dashpage.Charts)
+            {
+                bool isInstrumentAvailable = IsInstrumentAvailable(chart.InstrumentName);
+
+                if (isInstrumentAvailable)
+                {
+                    foundOne = true;
+                }
+                else if (chart.IsRequired)
+                {
+                    // A required chart's instrument isn't available.
+                    return false;
+                }
+
+                if (chart.ResourceName is not null)
+                {
+                    if (IsResourceAvailable(chart.ResourceName))
+                    {
+                        foundOne = true;
+                    }
+                    else
+                    {
+                        // A chart's explicit resource isn't available.
+                        return false;
+                    }
+                }
+                else
+                {
+                    allExplicitResources = false;
+                }
+            }
+
+            if (!allExplicitResources && SelectedApplication.Id is null)
+            {
+                // No resource is selected and at least one chart doesn't specify an explicit resource.
+                return false;
+            }
+
+            return foundOne;
+
+            bool IsInstrumentAvailable(string instrumentName)
+            {
+                return Instruments?.Any(i => string.Equals(i.Name, instrumentName, StringComparisons.OtlpInstrumentName)) ?? false;
+            }
+
+            bool IsResourceAvailable(string resourceName)
+            {
+                return ApplicationNames.Contains(resourceName);
+            }
+        }
     }
 
     [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -318,5 +384,4 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         _applicationsSubscription?.Dispose();
         _metricsSubscription?.Dispose();
     }
-
 }
