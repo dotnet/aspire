@@ -13,6 +13,11 @@ namespace Aspire.OpenAI.Tests;
 
 public class ConformanceTests : ConformanceTests<OpenAIClient, OpenAISettings>
 {
+    static ConformanceTests()
+    {
+        AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);
+    }
+
     protected const string ConnectionString = "Endpoint=https://api.openai.com/;Key=fake";
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
@@ -63,12 +68,10 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, OpenAISettings>
     }
 
     [Fact]
-    [ActiveIssue("OpenAI library doesn't support tracing yet - https://github.com/openai/openai-dotnet/pull/107/")]
     public void TracingEnablesTheRightActivitySource()
         => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
 
     [Fact]
-    [ActiveIssue("OpenAI library doesn't support tracing yet - https://github.com/openai/openai-dotnet/pull/107/")]
     public void TracingEnablesTheRightActivitySource_Keyed()
         => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
 
