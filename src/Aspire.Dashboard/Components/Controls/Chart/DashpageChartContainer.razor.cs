@@ -5,5 +5,7 @@ namespace Aspire.Dashboard.Components;
 
 public partial class DashpageChartContainer
 {
+    private readonly string _filterButtonId = $"filter-button-{Guid.NewGuid():N}";
+    private bool _filterPopupOpen;
 }
 

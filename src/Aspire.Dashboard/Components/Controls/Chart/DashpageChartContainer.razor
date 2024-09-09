@@ -8,6 +8,7 @@
 @using Aspire.Dashboard.Components.Controls.Chart
 
 @inject IStringLocalizer<ControlsStrings> Loc
+@inject IStringLocalizer<StructuredLogs> StructuredLogsLoc
 
 @if (Instrument is null)
 {
@@ -17,7 +18,28 @@ else
 {
     <div>
         <div class="dashpage-chart-header">
-            <h5 title="@Instrument.Name" style="margin-bottom: 0; overflow: hidden; text-overflow: ellipsis;">@Instrument.Name</h5>
+            <h5 title="@Instrument.Name"
+                style="margin-bottom: 0; overflow: hidden; text-overflow: ellipsis; display: inline-block; max-width: 90%">@Instrument.Name</h5>
+
+            @if (DimensionFilters.Count > 0)
+            {
+                <FluentButton Id="@_filterButtonId"
+                              Appearance="Appearance.Stealth"
+                              Style="float: right; padding-bottom: 8px"
+                              aria-label="@StructuredLogsLoc[nameof(StructuredLogs.StructuredLogsAddFilter)]"
+                              OnClick="() => _filterPopupOpen = !_filterPopupOpen">
+                    <FluentIcon Value="@(new Icons.Regular.Size16.Filter())"/>
+                </FluentButton>
+
+                <FluentPopover AnchorId="@_filterButtonId"
+                               @bind-Open="_filterPopupOpen"
+                               AutoFocus="true"
+                               HorizontalPosition="HorizontalPosition.Left">
+                    <Body>
+                        <ChartFilters InstrumentViewModel="@ViewModel" Instrument="@Instrument" DimensionFilters="@DimensionFilters"/>
+                    </Body>
+                </FluentPopover>
+            }
         </div>
 
         <div class="dashpage-chart-body">

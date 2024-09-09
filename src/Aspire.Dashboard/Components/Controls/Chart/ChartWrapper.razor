@@ -3,7 +3,11 @@
 
 <div class="metric-tab">
     <PlotlyChart InstrumentViewModel="@InstrumentViewModel" Duration="Duration" Applications="Applications" IsDashpage="@IsDashpage"/>
-    <ChartFilters InstrumentViewModel="@InstrumentViewModel" Instrument="@Instrument" DimensionFilters="@DimensionFilters" />
+
+    @if (!IsDashpage)
+    {
+        <ChartFilters InstrumentViewModel="@InstrumentViewModel" Instrument="@Instrument" DimensionFilters="@DimensionFilters" />
+    }
 </div>
 
 @code {

@@ -1,5 +1,6 @@
 ::deep .dashpage-chart-header {
     padding-left: 0;
+    margin-bottom: 5px;
 }
 
 ::deep .dashpage-chart-body {
