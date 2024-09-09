@@ -158,6 +158,7 @@
   <Target Name="GenerateRunScript" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true' and '$(IsTestProject)' == 'true'">
     <!-- TODO: error empty run commands -->
     <PropertyGroup>
+      <!-- FIXME: this is in a target, properties not required -->
       <_TestBlameArgumentsProperty>@(TestBlameArguments, ' ')</_TestBlameArgumentsProperty>
       <_TestCoverageCommandProperty>@(_TestCoverageCommand, ' ')</_TestCoverageCommandProperty>
 
