@@ -58,9 +58,6 @@
     <_TestRunCommand Condition="'$(OS)' == 'Windows_NT'">call RunTests.cmd</_TestRunCommand>
   </PropertyGroup>
 
-  <ItemGroup>
-  </ItemGroup>
-
   <Import Project="$(MSBuildThisFileDirectory)send-to-helix-$(TestCategory).targets" />
 
   <ItemGroup>
@@ -190,6 +187,7 @@
     <Message Text="Building for TestCategory=$(TestCategory)" Importance="High" />
     <Message Text="HelixCorrelationPayload: %(HelixCorrelationPayload.Identity)" Condition="'$(HelixDryRun)' == 'true' and @(HelixWorkItem->Count()) > 0" Importance="High" />
     <Message Text="HelixWorkItem: %(HelixWorkItem.Identity), Command: %(HelixWorkItem.Command), PreCommands: %(HelixWorkItem.PreCommands) with PayloadArchive: %(HelixWorkItem.PayloadArchive)" Condition="'$(HelixDryRun)' == 'true' and @(HelixWorkItem->Count()) > 0" Importance="High" />
+    <Error Text="HelixWorkItem: %(HelixWorkItem.Identity) missing Command" Condition="'$(HelixDryRun)' == 'true' and '%(HelixWorkItem.Command)' == ''" />
     <Error Text="Stopping the build for dry run" Condition="'$(HelixDryRun)' == 'true'" />
   </Target>
 </Project>
