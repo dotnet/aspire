@@ -296,6 +296,9 @@
   <data name="ResourceDetailsEnvironmentVariablesHeader" xml:space="preserve">
     <value>Environment variables</value>
   </data>
+  <data name="ResourceDetailsVolumesHeader" xml:space="preserve">
+    <value>Volumes</value>
+  </data>
   <data name="ResourceDetailsResourceHeader" xml:space="preserve">
     <value>Resource</value>
   </data>
