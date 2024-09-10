@@ -1,7 +1,14 @@
 resource mykv 'Microsoft.KeyVault/vaults@2019-09-01' = {
     name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
     location: resourceGroup().location
-    properties: { }
+    properties: {
+        tenantId: tenant().tenantId
+        sku: {
+            family: 'A'
+            name: 'standard'
+        }
+        enableRbacAuthorization: true
+    }
     tags: {
         'aspire-resource-name': 'mykv'
     }

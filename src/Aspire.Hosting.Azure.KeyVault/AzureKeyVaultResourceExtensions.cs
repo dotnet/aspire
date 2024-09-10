@@ -46,6 +46,15 @@ public static class AzureKeyVaultResourceExtensions
             var keyVault = new KeyVaultService(construct.Resource.Name)
             {
                 Properties = new KeyVaultProperties()
+                {
+                    TenantId = new MemberExpression(new FunctionCallExpression(new IdentifierExpression("tenant")), "tenantId"),
+                    Sku = new KeyVaultSku()
+                    {
+                        Family = KeyVaultSkuFamily.A,
+                        Name = KeyVaultSkuName.Standard
+                    },
+                    EnableRbacAuthorization = true
+                }
             };
             construct.Add(keyVault);
 
