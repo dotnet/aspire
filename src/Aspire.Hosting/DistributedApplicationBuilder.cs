@@ -166,18 +166,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
         _innerBuilder.Services.AddSingleton(options);
         _innerBuilder.Services.AddSingleton<ResourceNotificationService>();
+        _innerBuilder.Services.AddSingleton<ResourceLoggerService>();
         _innerBuilder.Services.AddSingleton<IDistributedApplicationEventing>(Eventing);
         _innerBuilder.Services.AddHealthChecks();
 
-        // Healthchecks
-        _innerBuilder.Services.AddSingleton<IHealthCheckPublisher, ResourceNotificationHealthCheckPublisher>();
-        _innerBuilder.Services.AddHostedService<ResourceHealthCheckScheduler>();
-        _innerBuilder.Services.AddSingleton<ResourceLoggerService>();
-        _innerBuilder.Services.Configure<HealthCheckPublisherOptions>(options =>
-        {
-            // Disable health checks from running!
-            options.Predicate = (check) => false;
-        });
+        ConfigureHealthChecks();
 
         if (ExecutionContext.IsRunMode)
         {
@@ -261,6 +254,24 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Services.AddSingleton(ExecutionContext);
         LogBuilderConstructed(this);
+    }
+
+    private void ConfigureHealthChecks()
+    {
+        // Healthchecks: We always disable all checks when we start regardless of whether we are in run mode
+        //               or publish mode. If we are in run mode we add a health check publisher and a "scheduler"
+        //               the job of the scheduler at this point is to enable running of checks once resources
+        //               associated with those checks transition into the Running state.
+        _innerBuilder.Services.Configure<HealthCheckPublisherOptions>(options =>
+        {
+            // Disable health checks from running!
+            options.Predicate = (check) => false;
+        });
+        if (ExecutionContext.IsRunMode)
+        {
+            _innerBuilder.Services.AddSingleton<IHealthCheckPublisher, ResourceNotificationHealthCheckPublisher>();
+            _innerBuilder.Services.AddHostedService<ResourceHealthCheckScheduler>();
+        }
     }
 
     private void MapTransportOptionsFromCustomKeys(TransportOptions options)
