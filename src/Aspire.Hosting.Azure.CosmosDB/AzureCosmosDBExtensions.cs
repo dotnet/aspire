@@ -100,12 +100,12 @@ public static class AzureCosmosExtensions
                    Tag = "latest"
                });
 
-        if (configureContainer != null)
-        {
-            var surrogate = new AzureCosmosDBEmulatorResource(builder.Resource);
-            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
-            configureContainer(surrogateBuilder);
-        }
+        var surrogate = new AzureCosmosDBEmulatorResource(builder.Resource);
+        var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
+        // Set a low default number of partitions to improve container startup time
+        surrogateBuilder.WithEnvironment("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", "1");
+
+        configureContainer?.Invoke(surrogateBuilder);
 
         return builder;
     }
