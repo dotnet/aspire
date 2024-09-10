@@ -198,7 +198,6 @@ public class AppHostTests
                 ]),
             new TestEndpoints("Keycloak.AppHost",
                 resourceEndpoints: new() { { "apiservice", ["/alive", "/health"] } }),
-
             new TestEndpoints("Mongo.AppHost",
                 resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
                 waitForTexts: [
