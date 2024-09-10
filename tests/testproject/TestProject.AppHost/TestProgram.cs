@@ -8,6 +8,7 @@ using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Testing;
 using Aspire.TestProject;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 public class TestProgram : IDisposable
 {
@@ -94,6 +95,18 @@ public class TestProgram : IDisposable
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(eventHub);
             }
         }
+
+        AppBuilder.Services.AddLogging(logging =>
+        {
+            logging.ClearProviders();
+            logging.AddSimpleConsole(configure =>
+            {
+                configure.SingleLine = true;
+            });
+            logging.SetMinimumLevel(LogLevel.Debug);
+            logging.AddFilter("Aspire", LogLevel.Debug);
+            logging.AddFilter(builder.Environment.ApplicationName, LogLevel.Debug);
+        });
 
         AppBuilder.Services.AddHostedService<ResourceLoggerForwarderService>();
         AppBuilder.Services.AddLifecycleHook<EndPointWriterHook>();
