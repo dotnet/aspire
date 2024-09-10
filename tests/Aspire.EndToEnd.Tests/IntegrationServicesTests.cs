@@ -32,6 +32,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
             _integrationServicesFixture.EnsureAppHasResources(resourceName);
             try
             {
+                _testOutput.WriteLine($"**** Sending request for {resourceName}");
                 var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/{resourceName}/verify");
                 var responseContent = await response.Content.ReadAsStringAsync();
 

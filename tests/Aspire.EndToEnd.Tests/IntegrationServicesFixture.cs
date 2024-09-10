@@ -6,6 +6,9 @@ using Xunit;
 using Xunit.Abstractions;
 using Aspire.TestProject;
 using Aspire.Workload.Tests;
+using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
+using Xunit.Sdk;
 
 namespace Aspire.EndToEnd.Tests;
 
@@ -24,6 +27,8 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 #endif
 
     public static string? TestScenario { get; } = EnvironmentVariables.TestScenario;
+    private const int DefaultWaitForTextsTimeoutSecs = 8 * 60;
+
     public Dictionary<string, ProjectInfo> Projects => Project?.InfoTable ?? throw new InvalidOperationException("Project is not initialized");
     private TestResourceNames _resourcesToSkip;
     private readonly IMessageSink _diagnosticMessageSink;
@@ -82,10 +87,59 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
             extraArgs += $"--skip-resources {skipArg}";
         }
         await Project.StartAppHostAsync([extraArgs]);
+        var waitForTextsTask = WaitForAllTextAsync(TimeSpan.FromSeconds(DefaultWaitForTextsTimeoutSecs));
 
         foreach (var project in Projects.Values)
         {
             project.Client = AspireProject.Client.Value;
+        }
+
+        await waitForTextsTask;
+    }
+
+    public async Task WaitForAllTextAsync(TimeSpan timeSpan)
+    {
+        string[] waitForTexts = GetWaitForTexts();
+        if (waitForTexts.Length == 0)
+        {
+            return;
+        }
+
+        ConcurrentDictionary<string, Regex> waitForTextRegexes = new();
+        foreach (var waitForText in waitForTexts)
+        {
+            waitForTextRegexes.TryAdd(waitForText, new Regex(waitForText));
+        }
+
+        TaskCompletionSource tcs = new();
+        Project.AppHostProcess!.OutputDataReceived += (_, e) => CheckText(e.Data);
+        Project.AppHostProcess!.ErrorDataReceived += (_, e) => CheckText(e.Data);
+
+        try
+        {
+            await tcs.Task.WaitAsync(timeSpan);
+        }
+        catch (TimeoutException te)
+        {
+            throw new XunitException($"Timed out waiting for the following texts after {timeSpan.TotalSeconds} secs: '{string.Join("', '", waitForTextRegexes.Keys)}'", te);
+        }
+
+        void CheckText(string? line)
+        {
+            if (string.IsNullOrEmpty(line))
+            {
+                return;
+            }
+
+            if (waitForTextRegexes.Where(r => r.Value.IsMatch(line)).Select(kvp => kvp.Key).FirstOrDefault() is string matched)
+            {
+                waitForTextRegexes.TryRemove(matched, out _);
+            }
+
+            if (waitForTextRegexes.IsEmpty)
+            {
+                tcs.TrySetResult();
+            }
         }
     }
 
@@ -165,4 +219,13 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
         return resourcesToSkip;
     }
+
+    private static string[] GetWaitForTexts() => TestScenario switch
+    {
+        "cosmos" => [
+                    "TestProject.AppHost.Resources.cosmos\\[0\\] .* Started$",
+                    "TestProject.AppHost.Resources.integrationservicea\\[0\\] .* Application started"
+                    ],
+        _ => []
+    };
 }
