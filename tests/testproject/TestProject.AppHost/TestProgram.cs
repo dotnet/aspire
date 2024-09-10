@@ -86,7 +86,9 @@ public class TestProgram : IDisposable
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.cosmos) || !resourcesToSkip.HasFlag(TestResourceNames.efcosmos))
             {
-                var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").RunAsEmulator();
+                var cosmos = AppBuilder
+                                .AddAzureCosmosDB("cosmos")
+                                .RunAsEmulator(resource => resource.WithEnvironment("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", "2"));
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(cosmos);
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
