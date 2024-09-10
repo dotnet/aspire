@@ -68,7 +68,7 @@ public class CosmosFunctionalTests(ITestOutputHelper testOutputHelper)
 
             var results = await container.GetItemQueryIterator<int>(query).ReadNextAsync(token);
 
-            Assert.True(results.Count > 0);
+            Assert.True(results.Count == 1);
             Assert.True(results.First() == 1);
         }, cts.Token);
     }
