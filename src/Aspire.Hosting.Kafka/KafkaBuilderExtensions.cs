@@ -129,7 +129,9 @@ public static class KafkaBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), Target, isReadOnly);
+        return builder
+            .WithEnvironment(ConfigureLogDirs)
+            .WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), Target, isReadOnly);
     }
 
     /// <summary>
@@ -144,7 +146,9 @@ public static class KafkaBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(source);
 
-        return builder.WithBindMount(source, Target, isReadOnly);
+        return builder
+            .WithEnvironment(ConfigureLogDirs)
+            .WithBindMount(source, Target, isReadOnly);
     }
 
     private static void ConfigureKafkaContainer(EnvironmentCallbackContext context, KafkaServerResource resource)
@@ -170,7 +174,14 @@ public static class KafkaBuilderExtensions
             $"PLAINTEXT://{primaryEndpoint.Property(EndpointProperty.Host)}:29092,PLAINTEXT_HOST://{primaryEndpoint.Property(EndpointProperty.Host)}:{primaryEndpoint.Property(EndpointProperty.Port)},PLAINTEXT_INTERNAL://{internalEndpoint.Property(EndpointProperty.Host)}:{internalEndpoint.Property(EndpointProperty.Port)}");
 
         context.EnvironmentVariables["KAFKA_ADVERTISED_LISTENERS"] = advertisedListeners;
+    }
 
+    /// <summary>
+    /// Only need to call this if we want to persistent kafka data
+    /// </summary>
+    /// <param name="context"></param>
+    private static void ConfigureLogDirs(EnvironmentCallbackContext context)
+    {
         context.EnvironmentVariables["KAFKA_LOG_DIRS"] = Target;
     }
 }
