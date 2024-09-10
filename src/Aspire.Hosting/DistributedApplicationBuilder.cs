@@ -258,19 +258,30 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     private void ConfigureHealthChecks()
     {
-        // Healthchecks: We always disable all checks when we start regardless of whether we are in run mode
-        //               or publish mode. If we are in run mode we add a health check publisher and a "scheduler"
-        //               the job of the scheduler at this point is to enable running of checks once resources
-        //               associated with those checks transition into the Running state.
-        _innerBuilder.Services.Configure<HealthCheckPublisherOptions>(options =>
+        _innerBuilder.Services.AddSingleton<IConfigureOptions<HealthCheckPublisherOptions>>(sp =>
         {
-            // Disable health checks from running!
-            options.Predicate = (check) => false;
+            return new ConfigureOptions<HealthCheckPublisherOptions>(options =>
+            {
+                if (ExecutionContext.IsRunMode)
+                {
+                    // In run mode we route requests to the health check scheduler.
+                    var hcs = sp.GetRequiredService<ResourceHealthCheckScheduler>();
+                    options.Predicate = hcs.Predicate;
+                    options.Period = TimeSpan.FromSeconds(5);
+                }
+                else
+                {
+                    // In publish mode we don't run any checks.
+                    options.Predicate = (check) => false;
+                }
+            });
         });
+
         if (ExecutionContext.IsRunMode)
         {
             _innerBuilder.Services.AddSingleton<IHealthCheckPublisher, ResourceNotificationHealthCheckPublisher>();
-            _innerBuilder.Services.AddHostedService<ResourceHealthCheckScheduler>();
+            _innerBuilder.Services.AddSingleton<ResourceHealthCheckScheduler>();
+            _innerBuilder.Services.AddHostedService<ResourceHealthCheckScheduler>(sp => sp.GetRequiredService<ResourceHealthCheckScheduler>());
         }
     }
 

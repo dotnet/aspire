@@ -4,44 +4,36 @@
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Health;
 
-internal class ResourceHealthCheckScheduler(IOptions<HealthCheckPublisherOptions> healthCheckPublisherOptions, ResourceNotificationService resourceNotificationService, DistributedApplicationModel model) : BackgroundService, IHostedLifecycleService
+internal class ResourceHealthCheckScheduler : BackgroundService
 {
-    public Task StartedAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    private readonly ResourceNotificationService _resourceNotificationService;
+    private readonly DistributedApplicationModel _model;
+    private readonly Dictionary<string, bool> _checkEnablement = new();
 
-    public Task StartingAsync(CancellationToken cancellationToken)
+    public ResourceHealthCheckScheduler(ResourceNotificationService resourceNotificationService, DistributedApplicationModel model)
     {
-        // When we startup pre-populate the list of checks and set them
-        // all to false so we don't run any initially.
+        _resourceNotificationService = resourceNotificationService ?? throw new ArgumentNullException(nameof(resourceNotificationService));
+        _model = model ?? throw new ArgumentNullException(nameof(model));
+
         foreach (var resource in model.Resources)
         {
             UpdateCheckEnablement(resource, false);
         }
 
-        healthCheckPublisherOptions.Value.Period = TimeSpan.FromSeconds(5);
-        healthCheckPublisherOptions.Value.Predicate = ShouldRunCheck;
-
-        return Task.CompletedTask;
+        Predicate = (check) =>
+        {
+            return _checkEnablement.TryGetValue(check.Name, out var enabled) ? enabled : false;
+        };
     }
 
-    private readonly Dictionary<string, bool> _checkEnablement = new();
-
-    private bool ShouldRunCheck(HealthCheckRegistration check)
-    {
-        // We don't run any health checks that aren't associated with a resource.
-        return _checkEnablement.TryGetValue(check.Name, out var enabled) ? enabled : false;
-    }
-
-    public Task StoppedAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-
-    public Task StoppingAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    public Func<HealthCheckRegistration, bool> Predicate { get; init; }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var resourceEvents = resourceNotificationService.WatchAsync(stoppingToken);
+        var resourceEvents = _resourceNotificationService.WatchAsync(stoppingToken);
 
         await foreach (var resourceEvent in resourceEvents)
         {
