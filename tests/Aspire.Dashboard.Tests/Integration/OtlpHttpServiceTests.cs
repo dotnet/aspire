@@ -243,7 +243,6 @@ public class OtlpHttpServiceTests
     [Theory]
     [InlineData("PUT")]
     [InlineData("DELETE")]
-    [InlineData("GET")]
     public async Task CallService_OtlpHttpEndPoint_UnsupportedMethods_Failure(string method)
     {
         // Arrange

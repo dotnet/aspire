@@ -60,6 +60,8 @@ public static class PythonProjectResourceBuilderExtensions
     public static IResourceBuilder<PythonProjectResource> AddPythonProject(
         this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath, params string[] scriptArgs)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         return builder.AddPythonProject(name, projectDirectory, scriptPath, ".venv", scriptArgs);
     }
 
@@ -108,7 +110,12 @@ public static class PythonProjectResourceBuilderExtensions
         this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath,
         string virtualEnvironmentPath, params string[] scriptArgs)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(projectDirectory);
+        ArgumentNullException.ThrowIfNull(scriptPath);
         ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
+        ArgumentNullException.ThrowIfNull(scriptArgs);
 
         projectDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectDirectory));
         var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)

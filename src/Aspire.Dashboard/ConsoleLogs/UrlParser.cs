@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Aspire.Dashboard.ConsoleLogs;
+
 public static partial class UrlParser
 {
     private static readonly Regex s_urlRegEx = GenerateUrlRegEx();

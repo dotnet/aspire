@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
@@ -16,7 +17,7 @@ namespace Aspire.Dashboard.Components.Tests.Controls;
 [UseCulture("en-US")]
 public class PlotlyChartTests : TestContext
 {
-    private const string ContainerHtml = "<div id=\"plotly-chart-container\" style=\"width:650px; height:450px;\"></div>";
+    private static string GetContainerHtml(string divId) => $"""<div id="{divId}" class="plotly-chart-container"></div>""";
 
     [Fact]
     public void Render_NoInstrument_NoPlotlyInvocations()
@@ -30,10 +31,11 @@ public class PlotlyChartTests : TestContext
         var cut = RenderComponent<PlotlyChart>(builder =>
         {
             builder.Add(p => p.InstrumentViewModel, model);
+            builder.Add(p => p.ViewportInformation, new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
         });
 
         // Assert
-        cut.MarkupMatches(ContainerHtml);
+        cut.MarkupMatches(GetContainerHtml(cut.Instance.ChartDivId));
 
         Assert.Collection(JSInterop.Invocations,
             i =>
@@ -52,15 +54,18 @@ public class PlotlyChartTests : TestContext
         var options = new TelemetryLimitOptions();
         var instrument = new OtlpInstrument
         {
-            Name = "Name-<b>Bold</b>",
-            Unit = "Unit-<b>Bold</b>",
-            Options = options,
-            Description = "Description-<b>Bold</b>",
-            Parent = new OtlpMeter(new InstrumentationScope
+            Summary = new OtlpInstrumentSummary
             {
-                Name = "Parent-Name-<b>Bold</b>"
-            }, options),
-            Type = OtlpInstrumentType.Sum
+                Name = "Name-<b>Bold</b>",
+                Unit = "Unit-<b>Bold</b>",
+                Description = "Description-<b>Bold</b>",
+                Parent = new OtlpMeter(new InstrumentationScope
+                {
+                    Name = "Parent-Name-<b>Bold</b>"
+                }, options),
+                Type = OtlpInstrumentType.Sum
+            },
+            Options = options,
         };
 
         var model = new InstrumentViewModel();
@@ -72,20 +77,18 @@ public class PlotlyChartTests : TestContext
             TimeUnixNano = long.MaxValue
         }, options);
 
-        await model.UpdateDataAsync(instrument, new List<DimensionScope>
-        {
-            dimension
-        });
+        await model.UpdateDataAsync(instrument.Summary, [dimension]);
 
         // Act
         var cut = RenderComponent<PlotlyChart>(builder =>
         {
             builder.Add(p => p.InstrumentViewModel, model);
             builder.Add(p => p.Duration, TimeSpan.FromSeconds(1));
+            builder.Add(p => p.ViewportInformation, new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
         });
 
         // Assert
-        cut.MarkupMatches(ContainerHtml);
+        cut.MarkupMatches(GetContainerHtml(cut.Instance.ChartDivId));
 
         Assert.Collection(JSInterop.Invocations,
             i =>
@@ -96,7 +99,7 @@ public class PlotlyChartTests : TestContext
             i =>
             {
                 Assert.Equal("initializeChart", i.Identifier);
-                Assert.Equal("plotly-chart-container", i.Arguments[0]);
+                Assert.Equal(cut.Instance.ChartDivId, i.Arguments[0]);
                 Assert.Collection((IEnumerable<PlotlyTrace>)i.Arguments[1]!, trace =>
                 {
                     Assert.Equal("Unit-&lt;b&gt;Bold&lt;/b&gt;", trace.Name);

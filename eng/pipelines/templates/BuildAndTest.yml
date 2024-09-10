@@ -21,14 +21,41 @@ parameters:
     default: false
 
 steps:
-  - script: ${{ parameters.buildScript }}
-            -restore -build
-            -pack
-            -configuration ${{ parameters.buildConfig }}
-            /p:ArchiveTests=true
-            /bl:${{ parameters.repoLogPath }}/build.binlog
-            $(_OfficialBuildIdArgs)
-    displayName: Build
+  # Internal pipeline: Build with pack+sign+archive
+  - ${{ if ne(parameters.runAsPublic, 'true') }}:
+    - script: ${{ parameters.buildScript }}
+              -restore -build
+              -pack
+              -sign $(_SignArgs)
+              -publish $(_PublishArgs)
+              -configuration ${{ parameters.buildConfig }}
+              /p:ArchiveTests=true
+              /bl:${{ parameters.repoLogPath }}/build.binlog
+              $(_OfficialBuildIdArgs)
+      displayName: Build
+
+  # Public pipeline - helix tests
+  - ${{ if eq(parameters.runAsPublic, 'true') }}:
+    - script: ${{ parameters.buildScript }}
+              -restore -build
+              -configuration ${{ parameters.buildConfig }}
+              -pack
+              /p:ArchiveTests=${{ lower(eq(parameters.runHelixTests, 'true')) }}
+              /bl:${{ parameters.repoLogPath }}/build.binlog
+              $(_OfficialBuildIdArgs)
+      displayName: Build
+
+  # Run on windows, either for internal pipeline, or for public+non-helix-tests job
+  - ${{ if and(eq(parameters.isWindows, 'true'), or(ne(parameters.runAsPublic, 'true'), ne(parameters.runHelixTests, 'true'))) }}:
+    - script: ${{ parameters.buildScript }}
+        -restore -build
+        -sign $(_SignArgs)
+        -publish $(_PublishArgs)
+        -configuration $(_BuildConfig)
+        /bl:${{ parameters.repoLogPath }}/build-workloads.binlog
+        -projects eng\workloads\workloads.csproj
+        $(_InternalBuildArgs)
+      displayName: Build Workloads
 
   - ${{ if or(ne(parameters.runAsPublic, 'true'), ne(parameters.runHelixTests, 'true')) }}:
     - ${{ if ne(parameters.isWindows, 'true') }}:
@@ -89,6 +116,17 @@ steps:
         HelixBuild: $(Build.BuildNumber)
         HelixAccessToken: $(HelixApiAccessToken)
 
+  - ${{ if eq(parameters.runHelixTests, 'true') }}:
+    - task: CopyFiles@2
+      inputs:
+        Contents: '${{ parameters.repoArtifactsPath }}/helixresults/**/*.trx'
+        TargetFolder: '${{ parameters.repoArtifactsPath }}/log/$(_BuildConfig)/TestResults'
+        flattenFolders: true
+        OverWrite: true
+      displayName: Gather helix trx files
+      continueOnError: true
+      condition: always()
+
   - task: CopyFiles@2
     inputs:
       Contents: '${{ parameters.repoArtifactsPath }}/**/*.cobertura.xml'
@@ -113,27 +151,6 @@ steps:
 
   # Run on windows, for internal pipeline, or public+non-helix-tests job
   - ${{ if and(eq(parameters.isWindows, 'true'), or(ne(parameters.runAsPublic, 'true'), ne(parameters.runHelixTests, 'true'))) }}:
-    - script: ${{ parameters.buildScript }}
-              -pack
-              -sign $(_SignArgs)
-              -publish $(_PublishArgs)
-              -configuration ${{ parameters.buildConfig }}
-              /bl:${{ parameters.repoLogPath }}/pack.binlog
-              /p:Restore=false /p:Build=false
-              $(_OfficialBuildIdArgs)
-      displayName: Pack, Sign, and Publish
-
-    - script: ${{ parameters.buildScript }}
-        -restore -build
-        -pack
-        -sign $(_SignArgs)
-        -publish $(_PublishArgs)
-        -configuration $(_BuildConfig)
-        /bl:${{ parameters.repoLogPath }}/build-workloads.binlog
-        -projects eng\workloads\workloads.csproj
-        $(_InternalBuildArgs)
-      displayName: Build Workloads
-
     - ${{ if eq(parameters.runAsPublic, 'true') }}:
       - task: PublishPipelineArtifact@1
         displayName: Publish VSDrop MSIs

@@ -28,7 +28,7 @@ public partial class StructuredLogDetails
             .Where(ApplyFilter).AsQueryable();
 
     private IQueryable<LogEntryPropertyViewModel> FilteredResourceItems =>
-        ViewModel.LogEntry.Application.AllProperties().Select(p => new LogEntryPropertyViewModel { Name = p.Key, Value = p.Value })
+        ViewModel.LogEntry.ApplicationView.AllProperties().Select(p => new LogEntryPropertyViewModel { Name = p.Key, Value = p.Value })
             .Where(ApplyFilter).AsQueryable();
 
     private string _filter = "";

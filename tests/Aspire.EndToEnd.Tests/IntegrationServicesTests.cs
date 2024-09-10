@@ -26,8 +26,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [InlineData(TestResourceNames.postgres)]
     [InlineData(TestResourceNames.efnpgsql)]
     [InlineData(TestResourceNames.redis)]
-    [InlineData(TestResourceNames.sqlserver)]
-    [InlineData(TestResourceNames.efsqlserver)]
     public Task VerifyComponentWorks(TestResourceNames resourceName)
         => RunTestAsync(async () =>
         {
@@ -51,12 +49,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     public Task VerifyAzureEventHubsComponentWorks()
         => VerifyComponentWorks(TestResourceNames.eventhubs);
 
-    [ConditionalFact]
-    [SkipOnCI("https://github.com/dotnet/aspire/issues/3161")]
-    [Trait("scenario", "oracle")]
-    public Task VerifyOracleComponentWorks()
-        => VerifyComponentWorks(TestResourceNames.oracledatabase);
-
     [ConditionalTheory]
     [Trait("scenario", "cosmos")]
     [InlineData(TestResourceNames.cosmos)]
@@ -74,7 +66,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [Fact]
     // Include all the scenarios here so this test gets run for all of them.
     [Trait("scenario", "cosmos")]
-    [Trait("scenario", "oracle")]
     [Trait("scenario", "basicservices")]
     public Task VerifyHealthyOnIntegrationServiceA()
         => RunTestAsync(async () =>

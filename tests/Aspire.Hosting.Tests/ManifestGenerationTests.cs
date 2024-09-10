@@ -416,10 +416,8 @@ public class ManifestGenerationTests
                     "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
                     "HTTP_PORTS": "{integrationservicea.bindings.http.targetPort}",
                     "SKIP_RESOURCES": "None",
-                    "ConnectionStrings__tempdb": "{tempdb.connectionString}",
                     "ConnectionStrings__redis": "{redis.connectionString}",
                     "ConnectionStrings__postgresdb": "{postgresdb.connectionString}",
-                    "ConnectionStrings__freepdb1": "{freepdb1.connectionString}",
                     "ConnectionStrings__cosmos": "{cosmos.connectionString}",
                     "ConnectionStrings__eventhubns": "{eventhubns.connectionString}"
                   },
@@ -435,27 +433,6 @@ public class ManifestGenerationTests
                       "transport": "http"
                     }
                   }
-                },
-                "sqlserver": {
-                  "type": "container.v0",
-                  "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver-password.value};TrustServerCertificate=true",
-                  "image": "{{SqlServerContainerImageTags.Registry}}/{{SqlServerContainerImageTags.Image}}:{{SqlServerContainerImageTags.Tag}}",
-                  "env": {
-                    "ACCEPT_EULA": "Y",
-                    "MSSQL_SA_PASSWORD": "{sqlserver-password.value}"
-                  },
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 1433
-                    }
-                  }
-                },
-                "tempdb": {
-                  "type": "value.v0",
-                  "connectionString": "{sqlserver.connectionString};Database=tempdb"
                 },
                 "redis": {
                   "type": "container.v0",
@@ -494,26 +471,6 @@ public class ManifestGenerationTests
                   "type": "value.v0",
                   "connectionString": "{postgres.connectionString};Database=postgresdb"
                 },
-                "oracledatabase": {
-                  "type": "container.v0",
-                  "connectionString": "user id=system;password={oracledatabase-password.value};data source={oracledatabase.bindings.tcp.host}:{oracledatabase.bindings.tcp.port}",
-                  "image": "{{OracleContainerImageTags.Registry}}/{{OracleContainerImageTags.Image}}:{{OracleContainerImageTags.Tag}}",
-                  "env": {
-                    "ORACLE_PWD": "{oracledatabase-password.value}"
-                  },
-                  "bindings": {
-                    "tcp": {
-                      "scheme": "tcp",
-                      "protocol": "tcp",
-                      "transport": "tcp",
-                      "targetPort": 1521
-                    }
-                  }
-                },
-                "freepdb1": {
-                  "type": "value.v0",
-                  "connectionString": "{oracledatabase.connectionString}/freepdb1"
-                },
                 "cosmos": {
                   "type": "azure.bicep.v0",
                   "connectionString": "{cosmos.secretOutputs.connectionString}",
@@ -531,42 +488,9 @@ public class ManifestGenerationTests
                     "principalType": ""
                   }
                 },
-                "sqlserver-password": {
-                  "type": "parameter.v0",
-                  "value": "{sqlserver-password.inputs.value}",
-                  "inputs": {
-                    "value": {
-                      "type": "string",
-                      "secret": true,
-                      "default": {
-                        "generate": {
-                          "minLength": 22,
-                          "minLower": 1,
-                          "minUpper": 1,
-                          "minNumeric": 1
-                        }
-                      }
-                    }
-                  }
-                },
                 "postgres-password": {
                   "type": "parameter.v0",
                   "value": "{postgres-password.inputs.value}",
-                  "inputs": {
-                    "value": {
-                      "type": "string",
-                      "secret": true,
-                      "default": {
-                        "generate": {
-                          "minLength": 22
-                        }
-                      }
-                    }
-                  }
-                },
-                "oracledatabase-password": {
-                  "type": "parameter.v0",
-                  "value": "{oracledatabase-password.inputs.value}",
                   "inputs": {
                     "value": {
                       "type": "string",

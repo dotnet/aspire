@@ -88,8 +88,8 @@
         <note />
       </trans-unit>
       <trans-unit id="PageLayoutViewFilters">
-        <source>View Filters</source>
-        <target state="new">View Filters</target>
+        <source>View filters</source>
+        <target state="new">View filters</target>
         <note />
       </trans-unit>
     </body>

@@ -10,7 +10,6 @@ import {
 } from "/_content/Microsoft.FluentUI.AspNetCore.Components/Microsoft.FluentUI.AspNetCore.Components.lib.module.js";
 
 const currentThemeCookieName = "currentTheme";
-const themeSettingSystem = "System";
 const themeSettingDark = "Dark";
 const themeSettingLight = "Light";
 const darkThemeLuminance = 0.19;
@@ -26,14 +25,20 @@ export function updateTheme(specifiedTheme) {
 
     applyTheme(effectiveTheme);
     setThemeCookie(specifiedTheme);
+
+    return effectiveTheme;
 }
 
 /**
- * Returns the value of the currentTheme cookie, or System if the cookie is not set.
+ * Returns the value of the currentTheme cookie.
  * @returns {string}
  */
 export function getThemeCookieValue() {
-    return getCookieValue(currentThemeCookieName) ?? themeSettingSystem;
+    return getCookieValue(currentThemeCookieName);
+}
+
+export function getCurrentTheme() {
+    return getEffectiveTheme(getThemeCookieValue());
 }
 
 /**
@@ -55,7 +60,15 @@ function getSystemTheme() {
  * @param {string} theme
  */
 function setThemeCookie(theme) {
-    document.cookie = `${currentThemeCookieName}=${theme}`;
+    if (theme == themeSettingDark || theme == themeSettingLight) {
+        // Cookie will expire after 1 year. Using a much larger value won't have an impact because
+        // Chrome limits expiration to 400 days: https://developer.chrome.com/blog/cookie-max-age-expires
+        // The cookie is reset when the dashboard loads to creating a sliding expiration.
+        document.cookie = `${currentThemeCookieName}=${theme}; Path=/; expires=${new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 365).toGMTString()}`;
+    } else {
+        // Delete cookie for other values (e.g. System)
+        document.cookie = `${currentThemeCookieName}=; Path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
+    }
 }
 
 /**
@@ -72,7 +85,7 @@ function setThemeOnDocument(theme) {
 }
 
 /**
- * 
+ *
  * @param {string} theme The theme to use. Should be Light or Dark.
  */
 function setBaseLayerLuminance(theme) {
@@ -114,7 +127,7 @@ function getEffectiveTheme(specifiedTheme) {
 }
 
 /**
- * 
+ *
  * @param {string} theme The theme to use. Should be Light or Dark
  * @returns {string}
  */
@@ -165,7 +178,7 @@ function applyTheme(theme) {
 }
 
 /**
- * 
+ *
  * @param {Palette} palette
  * @param {number} baseLayerLuminance
  * @returns {number}
@@ -175,7 +188,7 @@ function neutralLayer1Index(palette, baseLayerLuminance) {
 }
 
 /**
- * 
+ *
  * @param {Palette} palette
  * @param {Swatch} reference
  * @param {number} baseLayerLuminance
@@ -193,7 +206,7 @@ function neutralLayerHoverAlgorithm(palette, reference, baseLayerLuminance, laye
 }
 
 /**
- * 
+ *
  * @param {Swatch} color
  * @returns {boolean}
  */
@@ -254,6 +267,12 @@ function initializeTheme() {
     const effectiveTheme = getEffectiveTheme(themeCookieValue);
 
     applyTheme(effectiveTheme);
+
+    // If a theme cookie has been set then set it again on page load.
+    // This updates the cookie expiration date and creates a sliding expiration.
+    if (themeCookieValue) {
+        setThemeCookie(themeCookieValue);
+    }
 }
 
 createAdditionalDesignTokens();

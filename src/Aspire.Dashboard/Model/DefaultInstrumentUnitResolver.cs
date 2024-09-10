@@ -11,19 +11,23 @@ namespace Aspire.Dashboard.Model;
 
 public sealed class DefaultInstrumentUnitResolver(IStringLocalizer<ControlsStrings> loc) : IInstrumentUnitResolver
 {
-    public string ResolveDisplayedUnit(OtlpInstrument instrument, bool titleCase, bool pluralize)
+    public string ResolveDisplayedUnit(OtlpInstrumentSummary instrument, bool titleCase, bool pluralize)
     {
         if (!string.IsNullOrEmpty(instrument.Unit))
         {
-            var unit = OtlpUnits.GetUnit(instrument.Unit.TrimStart('{').TrimEnd('}'));
-            if (pluralize)
+            var (unit, isRateUnit) = OtlpUnits.GetUnit(instrument.Unit.TrimStart('{').TrimEnd('}'));
+
+            // Don't pluralize rate units, e.g. We want "Bytes per second", not "Bytes per seconds".
+            if (pluralize && !isRateUnit)
             {
                 unit = unit.Pluralize();
             }
+
             if (titleCase)
             {
                 unit = unit.Titleize();
             }
+
             return unit;
         }
 

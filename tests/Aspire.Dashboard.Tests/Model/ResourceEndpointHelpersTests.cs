@@ -198,6 +198,7 @@ public sealed class ResourceEndpointHelpersTests
             CreationTimeStamp = DateTime.UtcNow,
             Environment = [],
             Urls = urls,
+            Volumes = [],
             Properties = FrozenDictionary<string, Value>.Empty,
             State = null,
             KnownState = null,

@@ -29,6 +29,9 @@ public partial class ResourceSelect
     [Parameter]
     public string? AriaLabel { get; set; }
 
+    [Parameter]
+    public bool CanSelectGrouping { get; set; }
+
     [Inject]
     public required IJSRuntime JS { get; init; }
 

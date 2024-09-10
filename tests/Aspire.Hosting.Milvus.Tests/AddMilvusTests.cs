@@ -89,13 +89,12 @@ public class AddMilvusTests
         var connectionStringResource = milvus.Resource as IResourceWithConnectionString;
 
         var connectionString = await connectionStringResource.GetConnectionStringAsync();
-        Assert.Equal($"Endpoint=http://localhost:19530;Key=pass", connectionString);
+        Assert.Equal($"Endpoint=http://localhost:19530;Key=root:pass", connectionString);
     }
 
     [Fact]
     public async Task MilvusClientAppWithReferenceContainsConnectionStrings()
     {
-        using var testProgram = CreateTestProgram();
         var appBuilder = DistributedApplication.CreateBuilder();
 
         appBuilder.Configuration["Parameters:apikey"] = "pass";
@@ -113,7 +112,7 @@ public class AddMilvusTests
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(1, servicesKeysCount);
 
-        Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__my-milvus" && kvp.Value == "Endpoint=http://localhost:19530;Key=pass");
+        Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__my-milvus" && kvp.Value == "Endpoint=http://localhost:19530;Key=root:pass");
 
         var container1 = appBuilder.AddContainer("container1", "fake")
             .WithReference(milvus);
@@ -124,7 +123,7 @@ public class AddMilvusTests
         var containerServicesKeysCount = containerConfig.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(1, containerServicesKeysCount);
 
-        Assert.Contains(containerConfig, kvp => kvp.Key == "ConnectionStrings__my-milvus" && kvp.Value == "Endpoint=http://localhost:19530;Key=pass");
+        Assert.Contains(containerConfig, kvp => kvp.Key == "ConnectionStrings__my-milvus" && kvp.Value == "Endpoint=http://localhost:19530;Key=root:pass");
     }
 
     [Fact]
@@ -142,7 +141,7 @@ public class AddMilvusTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "Endpoint={milvus.bindings.grpc.url};Key={apikey.value}",
+              "connectionString": "Endpoint={milvus.bindings.grpc.url};Key=root:{apikey.value}",
               "image": "{{MilvusContainerImageTags.Registry}}/{{MilvusContainerImageTags.Image}}:{{MilvusContainerImageTags.Tag}}",
               "args": [
                 "milvus",
@@ -153,7 +152,8 @@ public class AddMilvusTests
                 "COMMON_STORAGETYPE": "local",
                 "ETCD_USE_EMBED": "true",
                 "ETCD_DATA_DIR": "/var/lib/milvus/etcd",
-                "COMMON_SECURITY_AUTHORIZATIONENABLED": "true"
+                "COMMON_SECURITY_AUTHORIZATIONENABLED": "true",
+                "COMMON_SECURITY_DEFAULTROOTPASSWORD": "{apikey.value}"
               },
               "bindings": {
                 "grpc": {
@@ -203,8 +203,6 @@ public class AddMilvusTests
         Assert.Equal("http2", grpcEndpoint.Transport);
         Assert.Equal("http", grpcEndpoint.UriScheme);
     }
-
-    private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<AddMilvusTests>(args);
 
     private sealed class ProjectA : IProjectMetadata
     {

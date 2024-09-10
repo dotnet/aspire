@@ -5,6 +5,7 @@ using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Model.Otlp;
@@ -37,7 +38,10 @@ public partial class StructuredLogsTests : TestContext
         });
         navigationManager.NavigateTo(uri);
 
-        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false);
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
 
         // Act
         var cut = RenderComponent<StructuredLogs>(builder =>
@@ -61,6 +65,45 @@ public partial class StructuredLogsTests : TestContext
             });
     }
 
+    [Fact]
+    public void Render_DuplicateFilters_SingleFilterAdded()
+    {
+        // Arrange
+        SetupStructureLogsServices();
+
+        var logFilter = new LogFilter { Field = "TestField", Condition = FilterCondition.Contains, Value = "TestValue" };
+        var serializedFilter = LogFilterFormatter.SerializeLogFiltersToString([logFilter]);
+
+        var navigationManager = Services.GetRequiredService<NavigationManager>();
+        var uri = navigationManager.GetUriWithQueryParameters(new Dictionary<string, object?>
+        {
+            ["filters"] = serializedFilter + "+" + serializedFilter,
+        });
+        navigationManager.NavigateTo(uri);
+
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        // Act
+        var cut = RenderComponent<StructuredLogs>(builder =>
+        {
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        // Assert
+        var viewModel = Services.GetRequiredService<StructuredLogsViewModel>();
+
+        Assert.Collection(viewModel.Filters,
+            f =>
+            {
+                Assert.Equal(logFilter.Field, f.Field);
+                Assert.Equal(logFilter.Condition, f.Condition);
+                Assert.Equal(logFilter.Value, f.Value);
+            });
+    }
+
     private void SetupStructureLogsServices()
     {
         var version = typeof(FluentMain).Assembly.GetName().Version!;
@@ -78,6 +121,9 @@ public partial class StructuredLogsTests : TestContext
 
         var searchModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Search/FluentSearch.razor.js", version));
         searchModule.SetupVoid("addAriaHidden", _ => true);
+
+        var keycodeModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/KeyCode/FluentKeyCode.razor.js", version));
+        keycodeModule.Setup<string>("RegisterKeyCode", _ => true);
 
         JSInterop.SetupVoid("initializeContinuousScroll");
 

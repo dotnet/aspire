@@ -34,17 +34,21 @@ public class StructuredLogsViewModel
         _logs = null;
     }
 
-    public void AddFilters(IEnumerable<LogFilter> filters)
-    {
-        _filters.AddRange(filters);
-        _logs = null;
-    }
-
     public void AddFilter(LogFilter filter)
     {
+        // Don't add duplicate filters.
+        foreach (var existingFilter in _filters)
+        {
+            if (existingFilter.Equals(filter))
+            {
+                return;
+            }
+        }
+
         _filters.Add(filter);
         _logs = null;
     }
+
     public bool RemoveFilter(LogFilter filter)
     {
         if (_filters.Remove(filter))
@@ -54,6 +58,7 @@ public class StructuredLogsViewModel
         }
         return false;
     }
+
     public int StartIndex { get => _logsStartIndex; set => SetValue(ref _logsStartIndex, value); }
     public int? Count { get => _logsCount; set => SetValue(ref _logsCount, value); }
     public LogLevel? LogLevel { get => _logLevel; set => SetValue(ref _logLevel, value); }

@@ -47,7 +47,7 @@ internal static class MetricsSetupHelpers
         context.Services.AddSingleton<IDialogService, DialogService>();
     }
 
-    internal static void SetupMetricsPage(TestContext context)
+    internal static void SetupMetricsPage(TestContext context, ISessionStorage? sessionStorage = null)
     {
         var version = typeof(FluentMain).Assembly.GetName().Version!;
 
@@ -66,6 +66,9 @@ internal static class MetricsSetupHelpers
         var searchModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Search/FluentSearch.razor.js", version));
         searchModule.SetupVoid("addAriaHidden", _ => true);
 
+        var keycodeModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/KeyCode/FluentKeyCode.razor.js", version));
+        keycodeModule.Setup<string>("RegisterKeyCode", _ => true);
+
         MetricsSetupHelpers.SetupChartContainer(context);
 
         context.Services.AddLocalization();
@@ -75,11 +78,12 @@ internal static class MetricsSetupHelpers
         context.Services.AddSingleton<DimensionManager>();
         context.Services.AddSingleton<IDialogService, DialogService>();
         context.Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
-        context.Services.AddSingleton<ISessionStorage, TestSessionStorage>();
+        context.Services.AddSingleton<ISessionStorage>(sessionStorage ?? new TestSessionStorage());
         context.Services.AddSingleton<ILocalStorage, TestLocalStorage>();
         context.Services.AddSingleton<ShortcutManager>();
         context.Services.AddSingleton<LibraryConfiguration>();
         context.Services.AddSingleton<IKeyCodeService, KeyCodeService>();
+        context.Services.AddSingleton<IEffectiveThemeResolver, TestEffectiveThemeResolver>();
         context.Services.AddSingleton<ThemeManager>();
     }
 

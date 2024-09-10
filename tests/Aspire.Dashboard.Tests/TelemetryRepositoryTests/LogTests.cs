@@ -194,27 +194,27 @@ public class LogTests
 
         var unviewedCounts1 = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.True(unviewedCounts1.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "1"))!, out var unviewedCount1));
+        Assert.True(unviewedCounts1.TryGetValue(new ApplicationKey("TestService", "1"), out var unviewedCount1));
         Assert.Equal(2, unviewedCount1);
 
-        Assert.True(unviewedCounts1.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "2"))!, out var unviewedCount2));
+        Assert.True(unviewedCounts1.TryGetValue(new ApplicationKey("TestService", "2"), out var unviewedCount2));
         Assert.Equal(1, unviewedCount2);
 
         repository.MarkViewedErrorLogs(new ApplicationKey("TestService", "1"));
 
         var unviewedCounts2 = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.False(unviewedCounts2.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "1"))!, out _));
+        Assert.False(unviewedCounts2.TryGetValue(new ApplicationKey("TestService", "1"), out _));
 
-        Assert.True(unviewedCounts2.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "2"))!, out unviewedCount2));
+        Assert.True(unviewedCounts2.TryGetValue(new ApplicationKey("TestService", "2"), out unviewedCount2));
         Assert.Equal(1, unviewedCount2);
 
         repository.MarkViewedErrorLogs(null);
 
         var unviewedCounts3 = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.False(unviewedCounts3.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "1"))!, out _));
-        Assert.False(unviewedCounts3.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "2"))!, out _));
+        Assert.False(unviewedCounts3.TryGetValue(new ApplicationKey("TestService", "1"), out _));
+        Assert.False(unviewedCounts3.TryGetValue(new ApplicationKey("TestService", "2"), out _));
     }
 
     [Fact]
@@ -265,8 +265,8 @@ public class LogTests
 
         var unviewedCounts = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.False(unviewedCounts.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "1"))!, out _));
-        Assert.False(unviewedCounts.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "2"))!, out _));
+        Assert.False(unviewedCounts.TryGetValue(new ApplicationKey("TestService", "1"), out _));
+        Assert.False(unviewedCounts.TryGetValue(new ApplicationKey("TestService", "2"), out _));
     }
 
     [Fact]
@@ -317,8 +317,8 @@ public class LogTests
 
         var unviewedCounts = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.False(unviewedCounts.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "1"))!, out _));
-        Assert.True(unviewedCounts.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "2"))!, out var unviewedCount));
+        Assert.False(unviewedCounts.TryGetValue(new ApplicationKey("TestService", "1"), out _));
+        Assert.True(unviewedCounts.TryGetValue(new ApplicationKey("TestService", "2"), out var unviewedCount));
         Assert.Equal(1, unviewedCount);
     }
 
@@ -355,7 +355,7 @@ public class LogTests
 
         var unviewedCounts = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.True(unviewedCounts.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "1"))!, out var unviewedCount));
+        Assert.True(unviewedCounts.TryGetValue(new ApplicationKey("TestService", "1"), out var unviewedCount));
         Assert.Equal(1, unviewedCount);
     }
 
@@ -854,5 +854,94 @@ public class LogTests
                         Assert.Equal("Value!", p.Value);
                     });
             });
+    }
+
+    [Fact]
+    public void GetLogs_MultipleInstances()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "app1", instanceId: "123"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(1), message: "message-1", attributes: [KeyValuePair.Create("key-1", "value-1")]) }
+                    }
+                }
+            },
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "app1", instanceId: "456"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(2), message: "message-2", attributes: [KeyValuePair.Create("key-2", "value-2")]) }
+                    }
+                }
+            },
+            new ResourceLogs
+            {
+                Resource = CreateResource(name: "app2"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        Scope = CreateScope("TestLogger"),
+                        LogRecords = { CreateLogRecord(time: s_testTime.AddMinutes(3)) }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var appKey = new ApplicationKey("app1", InstanceId: null);
+        var logs = repository.GetLogs(new GetLogsContext
+        {
+            ApplicationKey = appKey,
+            StartIndex = 0,
+            Count = 10,
+            Filters = []
+        });
+        Assert.Collection(logs.Items,
+            app =>
+            {
+                Assert.Equal("message-1", app.Message);
+                Assert.Equal("TestLogger", app.Scope.ScopeName);
+                Assert.Collection(app.Attributes,
+                    p =>
+                    {
+                        Assert.Equal("key-1", p.Key);
+                        Assert.Equal("value-1", p.Value);
+                    });
+            },
+            app =>
+            {
+                Assert.Equal("message-2", app.Message);
+                Assert.Equal("TestLogger", app.Scope.ScopeName);
+                Assert.Collection(app.Attributes,
+                    p =>
+                    {
+                        Assert.Equal("key-2", p.Key);
+                        Assert.Equal("value-2", p.Value);
+                    });
+            });
+
+        var propertyKeys = repository.GetLogPropertyKeys(appKey)!;
+        Assert.Collection(propertyKeys,
+            s => Assert.Equal("key-1", s),
+            s => Assert.Equal("key-2", s));
     }
 }
