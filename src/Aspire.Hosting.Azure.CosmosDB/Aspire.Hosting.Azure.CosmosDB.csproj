@@ -22,5 +22,9 @@
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.CosmosDB" />
   </ItemGroup>
+  
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.CosmosDB.Tests" />
+  </ItemGroup>
 
 </Project>

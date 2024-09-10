@@ -34,6 +34,7 @@ public class CosmosFunctionalTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create(options => { }, testOutputHelper);
 
         var databaseName = "db1";
+        var containerName = "container1";
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
         var db = cosmos.AddDatabase(databaseName)
@@ -56,14 +57,14 @@ public class CosmosFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await host.StartAsync();
 
-        // This needs to be outside the pipeline because the CosmosClient is disposed,
+        // This needs to be outside the pipeline because when the CosmosClient is disposed,
         // there is an exception in the pipeline
         using var cosmosClient = host.Services.GetRequiredService<CosmosClient>();
 
         await pipeline.ExecuteAsync(async token =>
         {
             Database database = await cosmosClient.CreateDatabaseIfNotExistsAsync(databaseName, cancellationToken: token);
-            Container container = await database.CreateContainerIfNotExistsAsync("container1", "/id", cancellationToken: token);
+            Container container = await database.CreateContainerIfNotExistsAsync(containerName, "/id", cancellationToken: token);
             var query = new QueryDefinition("SELECT VALUE 1");
 
             var results = await container.GetItemQueryIterator<int>(query).ReadNextAsync(token);
@@ -71,5 +72,133 @@ public class CosmosFunctionalTests(ITestOutputHelper testOutputHelper)
             Assert.True(results.Count == 1);
             Assert.True(results.First() == 1);
         }, cts.Token);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task WithDataVolumeShouldPersistStateBetweenUsages()
+    {
+        // Use a volume to do a snapshot save
+
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        var pipeline = new ResiliencePipelineBuilder()
+            .AddRetry(new()
+            {
+                MaxRetryAttempts = 10,
+                Delay = TimeSpan.FromSeconds(10),
+                BackoffType = DelayBackoffType.Linear,
+                ShouldHandle = new PredicateBuilder().Handle<HttpRequestException>()
+            })
+            .Build();
+
+        var databaseName = "db";
+        var containerName = "container";
+
+        using var builder1 = TestDistributedApplicationBuilder.Create(options => { }, testOutputHelper);
+        var cosmos1 = builder1.AddAzureCosmosDB("cosmos");
+
+        // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
+        var volumeName = VolumeNameGenerator.CreateVolumeName(cosmos1, nameof(WithDataVolumeShouldPersistStateBetweenUsages));
+
+        var db1 = cosmos1.AddDatabase(databaseName)
+                       .RunAsEmulator(emulator => emulator.WithDataVolume(volumeName));
+
+        // if the volume already exists (because of a crashing previous run), delete it
+        DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
+
+        var testObject = new { id = "1", data = "assertionValue" };
+
+        using (var app = builder1.Build())
+        {
+            await app.StartAsync();
+
+            try
+            {
+                var hb = Host.CreateApplicationBuilder();
+
+                hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    [$"ConnectionStrings:{db1.Resource.Name}"] = await db1.Resource.ConnectionStringExpression.GetValueAsync(default)
+                });
+
+                hb.AddAzureCosmosClient(db1.Resource.Name);
+
+                using (var host = hb.Build())
+                {
+                    await host.StartAsync();
+
+                    // This needs to be outside the pipeline because when the CosmosClient is disposed,
+                    // there is an exception in the pipeline
+                    using var cosmosClient = host.Services.GetRequiredService<CosmosClient>();
+
+                    await pipeline.ExecuteAsync(async token =>
+                    {
+                        Database database = await cosmosClient.CreateDatabaseIfNotExistsAsync(databaseName, cancellationToken: token);
+                        Container container = await database.CreateContainerIfNotExistsAsync(containerName, "/id", cancellationToken: token);
+
+                        await container.CreateItemAsync(testObject, cancellationToken: token);
+                    }, cts.Token);
+
+                }
+            }
+            finally
+            {
+                // Stops the container, or the Volume/mount would still be in use
+                await app.StopAsync();
+            }
+        }
+
+        using var builder2 = TestDistributedApplicationBuilder.Create(options => { }, testOutputHelper);
+
+        var cosmos2 = builder2.AddAzureCosmosDB("cosmos");
+        var db2 = cosmos2.AddDatabase(databaseName)
+                       .RunAsEmulator(emulator => emulator.WithDataVolume(volumeName));
+
+        using (var app = builder2.Build())
+        {
+            await app.StartAsync();
+
+            try
+            {
+                var hb = Host.CreateApplicationBuilder();
+
+                hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    [$"ConnectionStrings:{db2.Resource.Name}"] = await db2.Resource.ConnectionStringExpression.GetValueAsync(default)
+                });
+
+                hb.AddAzureCosmosClient(db2.Resource.Name);
+
+                using (var host = hb.Build())
+                {
+                    await host.StartAsync();
+
+                    // This needs to be outside the pipeline because when the CosmosClient is disposed,
+                    // there is an exception in the pipeline
+                    using var cosmosClient = host.Services.GetRequiredService<CosmosClient>();
+
+                    await pipeline.ExecuteAsync(async token =>
+                    {
+                        var container = cosmosClient.GetContainer(databaseName, containerName);
+
+                        QueryDefinition query = new("SELECT VALUE data FROM c WHERE c.id = '1'");
+
+                        // run query and check the value
+                        var results = await container.GetItemQueryIterator<string>(query).ReadNextAsync(token);
+
+                        Assert.True(results.Count == 1);
+                        Assert.True(results.First() == testObject.data);
+
+                    }, cts.Token);
+                }
+            }
+            finally
+            {
+                // Stops the container, or the Volume/mount would still be in use
+                await app.StopAsync();
+            }
+        }
+
+        DockerUtils.AttemptDeleteDockerVolume(volumeName);
     }
 }
