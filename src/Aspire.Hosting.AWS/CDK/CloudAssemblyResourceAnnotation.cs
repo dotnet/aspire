@@ -12,7 +12,7 @@ namespace Aspire.Hosting.AWS.CDK;
 /// </summary>
 /// <param name="stackArtifact"></param>
 [DebuggerDisplay("Type = {GetType().Name,nq}, StackName = {StackArtifact.StackName}")]
-internal sealed class StackArtifactResourceAnnotation(CloudFormationStackArtifact stackArtifact) : IResourceAnnotation
+internal sealed class CloudAssemblyResourceAnnotation(CloudFormationStackArtifact stackArtifact) : IResourceAnnotation
 {
     public CloudFormationStackArtifact StackArtifact { get; } = stackArtifact;
 }

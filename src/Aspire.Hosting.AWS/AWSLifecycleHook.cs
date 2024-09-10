@@ -79,7 +79,7 @@ internal sealed class AWSLifecycleHook(
                 var stackArtifact = cloudAssembly.Stacks.FirstOrDefault(stack => stack.StackName == stackResource.StackName)
                                     ?? throw new InvalidOperationException($"Stack '{stackResource.StackName}' not found in synthesized cloud assembly.");
                 // Annotate the resource with information for writing the manifest and provisioning.
-                stackResource.Annotations.Add(new StackArtifactResourceAnnotation(stackArtifact));
+                stackResource.Annotations.Add(new CloudAssemblyResourceAnnotation(stackArtifact));
             }
         }
     }

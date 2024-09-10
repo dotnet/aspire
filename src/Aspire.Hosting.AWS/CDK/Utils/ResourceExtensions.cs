@@ -14,11 +14,11 @@ internal static class ResourceExtensions
     /// </summary>
     /// <param name="resource"></param>
     /// <param name="stackArtifact"></param>
-    /// <returns>False when no <see cref="StackArtifactResourceAnnotation"/> is not found as annotation of the resource.</returns>
+    /// <returns>False when no <see cref="CloudAssemblyResourceAnnotation"/> is not found as annotation of the resource.</returns>
     public static bool TryGetStackArtifact(this IStackResource resource, [NotNullWhen(true)] out CloudFormationStackArtifact? stackArtifact)
     {
         stackArtifact = default;
-        if (!resource.TryGetAnnotationsOfType<StackArtifactResourceAnnotation>(out var annotations))
+        if (!resource.TryGetAnnotationsOfType<CloudAssemblyResourceAnnotation>(out var annotations))
         {
             return false;
         }
