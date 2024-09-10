@@ -33,7 +33,7 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="builder">Distributed application builder</param>
     /// <param name="name">Name of parameter resource</param>
     /// <param name="value">A string value to use for the paramater</param>
-    /// <param name="publishValueAsDefault">Indicates whether the value should be published to the manifest.</param>
+    /// <param name="publishValueAsDefault">Indicates whether the value should be published to the manifest. This is not meant for sensitive data.</param>
     /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
     /// <returns>Resource builder for the parameter.</returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
@@ -49,7 +49,7 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="builder">Distributed application builder</param>
     /// <param name="name">Name of parameter resource</param>
     /// <param name="valueGetter">A callback function that returns the value of the parameter</param>
-    /// <param name="publishValueAsDefault">Indicates whether the value should be published to the manifest.</param>
+    /// <param name="publishValueAsDefault">Indicates whether the value should be published to the manifest. This is not meant for sensitive data.</param>
     /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
     /// <returns>Resource builder for the parameter.</returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
