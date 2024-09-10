@@ -55,7 +55,6 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
             EndpointProperty.Port => "port",
             EndpointProperty.Scheme => "scheme",
             EndpointProperty.TargetPort => "targetPort",
-            EndpointProperty.ContainerPort => "containerPort",
             _ => throw new InvalidOperationException($"The property '{property}' is not supported for the endpoint '{EndpointName}'.")
         };
 
