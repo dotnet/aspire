@@ -590,6 +590,52 @@ public class ProjectResourceTests
             arg => Assert.Equal("http://localhost:1234", arg));
     }
 
+    [Theory]
+    [InlineData(true, "localhost")]
+    [InlineData(false, "*")]
+    public async Task AddProjectWithWildcardUrlInLaunchSettings(bool isProxied, string expectedHost)
+    {
+        var appBuilder = CreateBuilder(operation: DistributedApplicationOperation.Run);
+
+        appBuilder.AddProject<TestProjectWithWildcardUrlInLaunchSettings>("projectName")
+            .WithEndpoint("http", e =>
+            {
+                Assert.Equal("*", e.TargetHost);
+                e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p0");
+                e.IsProxied = isProxied;
+            })
+            .WithEndpoint("https", e =>
+            {
+                Assert.Equal("*", e.TargetHost);
+                e.AllocatedEndpoint = new(e, "localhost", e.Port!.Value, targetPortExpression: "p1");
+                e.IsProxied = isProxied;
+            });
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+
+        var http = resource.GetEndpoint("http");
+        var https = resource.GetEndpoint("https");
+
+        if (isProxied)
+        {
+            // When the end point is proxied, the host should be localhost and the port should match the targetPortExpression
+            Assert.Equal($"http://{expectedHost}:p0;https://{expectedHost}:p1", config["ASPNETCORE_URLS"]);
+        }
+        else
+        {
+            Assert.Equal($"http://{expectedHost}:{http.TargetPort};https://{expectedHost}:{https.TargetPort}", config["ASPNETCORE_URLS"]);
+        }
+
+        Assert.Equal(https.Port.ToString(), config["ASPNETCORE_HTTPS_PORT"]);
+    }
+
     internal static IDistributedApplicationBuilder CreateBuilder(string[]? args = null, DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)
     {
         var resolvedArgs = new List<string>();
@@ -633,7 +679,7 @@ public class ProjectResourceTests
         {
             Profiles = new()
             {
-                ["http"] = new ()
+                ["http"] = new()
                 {
                     CommandName = "Project",
                     CommandLineArgs = "arg1 arg2",
@@ -660,6 +706,27 @@ public class ProjectResourceTests
                     CommandLineArgs = "arg1 arg2",
                     LaunchBrowser = true,
                     ApplicationUrl = "https://localhost:7144;http://localhost:5193;http://localhost:5194;https://localhost:7145;https://localhost:7146",
+                    EnvironmentVariables = new()
+                    {
+                        ["ASPNETCORE_ENVIRONMENT"] = "Development"
+                    }
+                }
+            };
+        }
+    }
+
+    private sealed class TestProjectWithWildcardUrlInLaunchSettings : BaseProjectWithProfileAndConfig
+    {
+        public TestProjectWithWildcardUrlInLaunchSettings()
+        {
+            Profiles = new()
+            {
+                ["https"] = new()
+                {
+                    CommandName = "Project",
+                    CommandLineArgs = "arg1 arg2",
+                    LaunchBrowser = true,
+                    ApplicationUrl = "http://*:5031;https://*:5033",
                     EnvironmentVariables = new()
                     {
                         ["ASPNETCORE_ENVIRONMENT"] = "Development"
