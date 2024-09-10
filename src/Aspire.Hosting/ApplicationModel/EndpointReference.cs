@@ -82,11 +82,6 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     public int? TargetPort => EndpointAnnotation.TargetPort;
 
     /// <summary>
-    /// Returns the port to use when referencing this endpoint from a container.
-    /// </summary>
-    public int? ContainerPort => Resource.IsContainer() ? EndpointAnnotation.TargetPort : AllocatedEndpoint.Port;
-
-    /// <summary>
     /// Gets the host for this endpoint.
     /// </summary>
     public string Host => AllocatedEndpoint.Address ?? "localhost";
@@ -182,7 +177,6 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
         EndpointProperty.Port => new(Endpoint.Port.ToString(CultureInfo.InvariantCulture)),
         EndpointProperty.Scheme => new(Endpoint.Scheme),
         EndpointProperty.TargetPort => new(ComputeTargetPort()),
-        EndpointProperty.ContainerPort => new(ComputeContainerPort()),
         _ => throw new InvalidOperationException($"The property '{Property}' is not supported for the endpoint '{Endpoint.EndpointName}'.")
     };
 
@@ -199,16 +193,6 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
         // Instead, we return an expression that will be resolved at runtime by the orchestrator.
         return Endpoint.AllocatedEndpoint.TargetPortExpression
             ?? throw new InvalidOperationException("The endpoint does not have an associated TargetPortExpression from the orchestrator.");
-    }
-
-    private string? ComputeContainerPort()
-    {
-        if (Endpoint.Resource.IsContainer())
-        {
-            return ComputeTargetPort();
-        }
-
-        return Endpoint.Port.ToString(CultureInfo.InvariantCulture);
     }
 
     IEnumerable<object> IValueWithReferences.References => [Endpoint];
@@ -243,8 +227,4 @@ public enum EndpointProperty
     /// The target port of the endpoint.
     /// </summary>
     TargetPort,
-    /// <summary>
-    /// The port of the endpoint when consumed from a container
-    /// </summary>
-    ContainerPort,
 }

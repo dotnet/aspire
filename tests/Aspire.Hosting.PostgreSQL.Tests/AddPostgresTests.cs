@@ -611,9 +611,11 @@ public class AddPostgresTests
     {
         var user = postgresDatabase.Parent.UserNameParameter?.Value ?? "postgres";
 
+        // We're hardcoding references to container resources based on a default Aspire network
+        // This will need to be refactored once updated service discovery APIs are available
         var fileContent = $"""
-                host = "{postgresDatabase.Parent.PrimaryEndpoint.ContainerHost}"
-                port = {postgresDatabase.Parent.PrimaryEndpoint.ContainerPort}
+                host = "{postgresDatabase.Parent.Name}"
+                port = {postgresDatabase.Parent.PrimaryEndpoint.TargetPort}
                 user = "{user}"
                 password = "{postgresDatabase.Parent.PasswordParameter.Value}"
                 database = "{postgresDatabase.DatabaseName}"

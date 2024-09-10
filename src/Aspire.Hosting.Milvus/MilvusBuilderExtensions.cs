@@ -186,6 +186,8 @@ public static class MilvusBuilderExtensions
 
     private static void ConfigureAttuContainer(EnvironmentCallbackContext context, MilvusServerResource resource)
     {
-        context.EnvironmentVariables.Add("MILVUS_URL", $"{resource.PrimaryEndpoint.Scheme}://{resource.PrimaryEndpoint.ContainerHost}:{resource.PrimaryEndpoint.ContainerPort}");
+        // Attu assumes Milvus is being accessed over a default Aspire container network and hardcodes the resource address
+        // This will need to be refactored once updated service discovery APIs are available
+        context.EnvironmentVariables.Add("MILVUS_URL", $"{resource.PrimaryEndpoint.Scheme}://{resource.Name}:{resource.PrimaryEndpoint.TargetPort}");
     }
 }
