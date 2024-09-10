@@ -191,7 +191,8 @@ public class AppHostTests
                     new ("milvus", "Milvus Proxy successfully initialized and ready to serve"),
                 ]),
             new TestEndpoints("CosmosEndToEnd.AppHost",
-                resourceEndpoints: new() { { "api", ["/alive", "/health", "/", "/ef"] } },
+                resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
+                // "/ef" - disabled due to https://github.com/dotnet/aspire/issues/5415
                 waitForTexts: [
                     new ("cosmos", "Started$"),
                     new ("api", "Application started")
