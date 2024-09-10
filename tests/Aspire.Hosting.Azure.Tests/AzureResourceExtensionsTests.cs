@@ -185,7 +185,7 @@ public class AzureResourceExtensionsTests
         cosmos.RunAsEmulator();
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(cosmos.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
-        Assert.Equal("2", config["AZURE_COSMOS_EMULATOR_PARTITION_COUNT"]);
+        Assert.Equal("1", config["AZURE_COSMOS_EMULATOR_PARTITION_COUNT"]);
     }
 
     [Fact]
