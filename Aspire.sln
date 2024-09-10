@@ -604,6 +604,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaitForSandbox.DbSetup", "p
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaitForSandbox.Common", "playground\waitfor\WaitForSandbox.Common\WaitForSandbox.Common.csproj", "{F0C976EF-EE26-4EA9-B324-0CD21DCEA140}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Azure.CosmosDB.Tests", "tests\Aspire.Hosting.Azure.CosmosDB.Tests\Aspire.Hosting.Azure.CosmosDB.Tests.csproj", "{1FFFCFFD-7136-4C63-BD8B-73F5FDFA6F1A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1590,6 +1592,10 @@ Global
 		{F0C976EF-EE26-4EA9-B324-0CD21DCEA140}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F0C976EF-EE26-4EA9-B324-0CD21DCEA140}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F0C976EF-EE26-4EA9-B324-0CD21DCEA140}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1FFFCFFD-7136-4C63-BD8B-73F5FDFA6F1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1FFFCFFD-7136-4C63-BD8B-73F5FDFA6F1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1FFFCFFD-7136-4C63-BD8B-73F5FDFA6F1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1FFFCFFD-7136-4C63-BD8B-73F5FDFA6F1A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1881,6 +1887,7 @@ Global
 		{C554C480-3DA7-4D62-A09A-3F3F743D7A66} = {3FF3F00C-95C0-46FC-B2BE-A3920C71E393}
 		{37BC5B4A-3F96-4BB0-92E6-81666F4324E4} = {3FF3F00C-95C0-46FC-B2BE-A3920C71E393}
 		{F0C976EF-EE26-4EA9-B324-0CD21DCEA140} = {3FF3F00C-95C0-46FC-B2BE-A3920C71E393}
+		{1FFFCFFD-7136-4C63-BD8B-73F5FDFA6F1A} = {C424395C-1235-41A4-BF55-07880A04368C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
