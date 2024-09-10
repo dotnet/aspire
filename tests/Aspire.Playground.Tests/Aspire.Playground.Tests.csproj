@@ -20,6 +20,9 @@
 
     <!-- We build the project on helix -->
     <RunScriptTestRequiresBuild>true</RunScriptTestRequiresBuild>
+    <RunScriptTestBaseCommand>dotnet test --no-build -s .runsettings</RunScriptTestBaseCommand>
+    <!-- 20 mins -->
+    <TestSessionTimeoutForHelix>1200000</TestSessionTimeoutForHelix>
 
     <RunScriptOutputRelativePath>$(DeployOutsideOfRepoSupportFilesRelativeDir)tests/$(MSBuildProjectName)/RunTests</RunScriptOutputRelativePath>
     <RunScriptOutputRelativePath Condition="'$(OS)' != 'Windows_NT'">$(RunScriptOutputRelativePath).sh</RunScriptOutputRelativePath>
