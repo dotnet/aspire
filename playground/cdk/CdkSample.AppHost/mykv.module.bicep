@@ -19,6 +19,9 @@ resource KeyVaultAdministrator_mykv 'Microsoft.Authorization/roleAssignments@202
     scope: mykv
 }
 
+@secure()
+param signaturesecret string
+
 resource mysecret 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
     name: take('mysecret-${uniqueString(resourceGroup().id)}', 127)
     properties: {

@@ -6,7 +6,8 @@
       "value": "{signaturesecret.inputs.value}",
       "inputs": {
         "value": {
-          "type": "string"
+          "type": "string",
+          "secret": true
         }
       }
     },
@@ -16,7 +17,8 @@
       "path": "mykv.module.bicep",
       "params": {
         "principalId": "",
-        "principalType": ""
+        "principalType": "",
+        "signaturesecret": "{signaturesecret.value}"
       }
     },
     "api": {

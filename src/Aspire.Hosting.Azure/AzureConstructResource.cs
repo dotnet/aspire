@@ -4,6 +4,7 @@
 #pragma warning disable AZPROVISION001
 
 using System.Diagnostics;
+using System.Linq.Expressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -107,7 +108,7 @@ public static class AzureConstructResourceExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="configure">The configuration callback.</param>
     /// <returns>The resource builder.</returns>
-    public static IResourceBuilder<T> ConfigureConstruct<T>(this IResourceBuilder<T> builder, Action<ResourceModuleConstruct> configure) 
+    public static IResourceBuilder<T> ConfigureConstruct<T>(this IResourceBuilder<T> builder, Action<ResourceModuleConstruct> configure)
         where T : AzureConstructResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -117,37 +118,49 @@ public static class AzureConstructResourceExtensions
         return builder;
     }
 
-    ///// <summary>
-    ///// Assigns an Aspire parameter resource to an Azure construct resource.
-    ///// </summary>
-    ///// <typeparam name="T">Type of the CDK resource.</typeparam>
-    ///// <param name="resource">The CDK resource.</param>
-    ///// <param name="propertySelector">Property selection expression.</param>
-    ///// <param name="parameterResourceBuilder">Aspire parameter resource builder.</param>
-    ///// <param name="parameterName">The name of the parameter to be assigned.</param>
-    //[System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
-    //public static void AssignProperty<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, IResourceBuilder<ParameterResource> parameterResourceBuilder, string? parameterName = null) where T: notnull
-    //{
-    //    parameterName ??= parameterResourceBuilder.Resource.Name;
+    /// <summary>
+    /// TODO
+    /// </summary>
+    /// <param name="parameterResourceBuilder"></param>
+    /// <param name="construct"></param>
+    /// <param name="parameterName"></param>
+    /// <returns></returns>
+    public static BicepParameter AsBicepParameter(this IResourceBuilder<ParameterResource> parameterResourceBuilder, ResourceModuleConstruct construct, string? parameterName = null)
+    {
+        ArgumentNullException.ThrowIfNull(parameterResourceBuilder);
+        ArgumentNullException.ThrowIfNull(construct);
 
-    //    if (resource.Scope is not ResourceModuleConstruct construct)
-    //    {
-    //        throw new ArgumentException("Cannot bind Aspire parameter resource to this construct.", nameof(resource));
-    //    }
+        parameterName ??= parameterResourceBuilder.Resource.Name;
 
-    //    construct.Resource.Parameters[parameterName] = parameterResourceBuilder.Resource;
+        construct.Resource.Parameters[parameterName] = parameterResourceBuilder.Resource;
 
-    //    if (resource.Scope.GetParameters().Any(p => p.Name == parameterName))
-    //    {
-    //        var parameter = resource.Scope.GetParameters().Single(p => p.Name == parameterName);
-    //        resource.AssignProperty(propertySelector, parameter.Name);
-    //    }
-    //    else
-    //    {
-    //        var parameter = new Parameter(parameterName, isSecure: parameterResourceBuilder.Resource.Secret);
-    //        resource.AssignProperty(propertySelector, parameter);
-    //    }
-    //}
+        var parameter = construct.GetParameters().FirstOrDefault(p => p.ResourceName == parameterName);
+        if (parameter is null)
+        {
+            parameter = new BicepParameter(parameterName, typeof(string))
+            {
+                IsSecure = parameterResourceBuilder.Resource.Secret
+            };
+            construct.Add(parameter);
+        }
+
+        return parameter;
+    }
+
+    /// <summary>
+    /// Assigns an Aspire parameter resource to an Azure construct resource.
+    /// </summary>
+    /// <typeparam name="T">Type of the CDK resource.</typeparam>
+    /// <param name="resource">The CDK resource.</param>
+    /// <param name="propertySelector">Property selection expression.</param>
+    /// <param name="parameterResourceBuilder">Aspire parameter resource builder.</param>
+    /// <param name="parameterName">The name of the parameter to be assigned.</param>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
+    [Obsolete("This API is no longer supported and always throws.")]
+    public static void AssignProperty<T>(this global::Azure.Provisioning.Primitives.Resource resource, Expression<Func<T, object?>> propertySelector, IResourceBuilder<ParameterResource> parameterResourceBuilder, string? parameterName = null) where T : notnull
+    {
+        throw new NotSupportedException("");
+    }
 
     ///// <summary>
     ///// Assigns an Aspire Bicep output reference to an Azure construct resource.

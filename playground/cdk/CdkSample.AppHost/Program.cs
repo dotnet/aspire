@@ -8,7 +8,6 @@
 //using Azure.ResourceManager.ApplicationInsights.Models;
 //using Azure.ResourceManager.OperationalInsights.Models;
 
-using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -27,13 +26,13 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 //var sqldb = builder.AddSqlServer("sql").AsAzureSqlDatabase().AddDatabase("sqldb");
 
-var signaturesecret = builder.AddParameter("signaturesecret");
+var signaturesecret = builder.AddParameter("signaturesecret", secret: true);
 var keyvault = builder.AddAzureKeyVault("mykv", (_, construct, keyVault) =>
 {
     var secret = new KeyVaultSecret("mysecret")
     {
         Parent = keyVault,
-        Properties = new SecretProperties { Value = new IdentifierExpression(signaturesecret.Resource.Name) } // TODO: is this right? Can we make this implicit?
+        Properties = new SecretProperties { Value = signaturesecret.AsBicepParameter(construct) }
     };
     construct.Add(secret);
 });
