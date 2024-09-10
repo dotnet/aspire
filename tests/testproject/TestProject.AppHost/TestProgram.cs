@@ -88,7 +88,7 @@ public class TestProgram : IDisposable
             {
                 var cosmos = AppBuilder
                                 .AddAzureCosmosDB("cosmos")
-                                .RunAsEmulator(resource => resource.WithEnvironment("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", "2"));
+                                .RunAsEmulator();
                 IntegrationServiceABuilder = IntegrationServiceABuilder.WithReference(cosmos);
             }
             if (!resourcesToSkip.HasFlag(TestResourceNames.eventhubs))
