@@ -8,7 +8,6 @@ using System.Text;
 using Aspire.Dashboard.Extensions;
 
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
@@ -31,7 +30,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     private Subscription? _logsSubscription;
     private IList<GridColumn>? _gridColumns;
-    private Dictionary<OtlpApplication, int>? _applicationUnviewedErrorCounts;
+    private Dictionary<ApplicationKey, int>? _applicationUnviewedErrorCounts;
 
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
@@ -224,7 +223,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         }
     }
 
-    private bool ApplicationErrorCountsChanged(Dictionary<OtlpApplication, int> newApplicationUnviewedErrorCounts)
+    private bool ApplicationErrorCountsChanged(Dictionary<ApplicationKey, int> newApplicationUnviewedErrorCounts)
     {
         if (_applicationUnviewedErrorCounts == null || _applicationUnviewedErrorCounts.Count != newApplicationUnviewedErrorCounts.Count)
         {

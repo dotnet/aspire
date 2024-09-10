@@ -59,7 +59,7 @@
                             <AspireTemplateColumn ColumnId="@SpansColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Traces.TracesSpansColumnHeader)]">
                                 <FluentOverflow>
                                     <ChildContent>
-                                        @foreach (var item in context.Spans.GroupBy(s => s.Source).OrderBy(g => g.Min(s => s.StartTime)))
+                                        @foreach (var item in context.Spans.GroupBy(s => s.Source.Application).OrderBy(g => g.Min(s => s.StartTime)))
                                         {
                                             <FluentOverflowItem>
                                                 <span class="trace-tag trace-service-tag" title="@(GetSpansTooltip(item))" style="border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(item.Key)));">
