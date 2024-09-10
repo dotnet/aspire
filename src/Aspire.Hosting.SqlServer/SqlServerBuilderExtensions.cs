@@ -85,7 +85,19 @@ public static class SqlServerBuilderExtensions
 
         builder.Resource.AddDatabase(name, databaseName);
         var sqlServerDatabase = new SqlServerDatabaseResource(name, databaseName, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(sqlServerDatabase);
+
+        string? connectionString = null;
+
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(sqlServerDatabase, async (@event, ct) =>
+        {
+            connectionString = await sqlServerDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddSqlServer(sp => connectionString!, name: healthCheckKey);
+
+        return builder.ApplicationBuilder.AddResource(sqlServerDatabase)
+                                         .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>

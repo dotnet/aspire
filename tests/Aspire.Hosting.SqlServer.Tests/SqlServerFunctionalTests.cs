@@ -2,12 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
+using Npgsql;
 using Polly;
 using Xunit;
 using Xunit.Abstractions;
@@ -16,6 +19,109 @@ namespace Aspire.Hosting.SqlServer.Tests;
 
 public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 {
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWaitForOnSqlServerBlocksDependentResources()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
+        builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
+        {
+            return healthCheckTcs.Task;
+        });
+
+        var resource = builder.AddSqlServer("postgres")
+                              .WithHealthCheck("blocking_check");
+
+        var dependentResource = builder.AddSqlServer("dependentresource")
+                                       .WaitFor(resource);
+
+        using var app = builder.Build();
+
+        var pendingStart = app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+
+        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
+
+        await rns.WaitForResourceAsync(resource.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await pendingStart;
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWaitForOnPostgresDatabaseBlocksDependentResources()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
+        builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
+        {
+            return healthCheckTcs.Task;
+        });
+
+        var postgres = builder.AddPostgres("postgres")
+                              .WithHealthCheck("blocking_check");
+
+        var db = postgres.AddDatabase("db");
+
+        var dependentResource = builder.AddPostgres("dependentresource")
+                                       .WaitFor(db); // Wait on the database instead of the server!
+
+        using var app = builder.Build();
+
+        var pendingStart = app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        // What for the postgres server to start.
+        await rns.WaitForResourceAsync(postgres.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        // The database should adopt the state of the parent resource.
+        await rns.WaitForResourceAsync(db.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        // Wait for the dependent resource to be in the Waiting state.
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+
+        // Now unblock the health check.
+        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
+
+        // ... and wait for the resource as a whole to move into the health state.
+        await rns.WaitForResourceAsync(postgres.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+
+        // Create the database.
+        var connectionString = await postgres.Resource.GetConnectionStringAsync(cts.Token);
+        using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync(cts.Token);
+
+        var command = connection.CreateCommand();
+        command.CommandText = "CREATE DATABASE db;";
+        await command.ExecuteNonQueryAsync(cts.Token);
+
+        // ... then wait for the database to turn healthy.
+        await rns.WaitForResourceAsync(db.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+
+        // ... then the dependent resource should be able to move into a running state.
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await pendingStart; // Startup should now complete.
+
+        // ... but we'll shut everything down immediately because we are done.
+        await app.StopAsync();
+    }
+
     [Fact]
     [RequiresDocker]
     public async Task VerifySqlServerResource()
