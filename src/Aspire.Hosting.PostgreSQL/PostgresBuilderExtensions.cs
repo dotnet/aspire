@@ -202,7 +202,7 @@ public static class PostgresBuilderExtensions
                         writer.WriteString("Name", postgresInstance.Name);
                         writer.WriteString("Group", "Servers");
                         writer.WriteString("Host", endpoint.ContainerHost);
-                        writer.WriteNumber("Port", (decimal)endpoint.ContainerPort!);
+                        writer.WriteNumber("Port", (int)endpoint.ContainerPort!);
                         writer.WriteString("Username", "postgres");
                         writer.WriteString("SSLMode", "prefer");
                         writer.WriteString("MaintenanceDB", "postgres");
