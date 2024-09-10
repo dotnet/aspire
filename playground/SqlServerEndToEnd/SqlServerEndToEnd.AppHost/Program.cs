@@ -15,8 +15,8 @@ var dbsetup = builder.AddProject<Projects.SqlServerEndToEnd_DbSetup>("dbsetup")
 
 builder.AddProject<Projects.SqlServerEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()
-       .WithReference(db1)
-       .WithReference(db2)
+       .WithReference(db1).WaitFor(db1)
+       .WithReference(db2).WaitFor(db2)
        .WaitForCompletion(dbsetup);
 
 #if !SKIP_DASHBOARD_REFERENCE
