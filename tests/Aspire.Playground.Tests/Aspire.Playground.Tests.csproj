@@ -18,6 +18,9 @@
     <TestsSharedDir>$(MSBuildThisFileDirectory)..\Shared\</TestsSharedDir>
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
 
+    <!-- We build the project on helix -->
+    <RunScriptTestRequiresBuild>true</RunScriptTestRequiresBuild>
+
     <RunScriptOutputRelativePath>$(DeployOutsideOfRepoSupportFilesRelativeDir)tests/$(MSBuildProjectName)/RunTests</RunScriptOutputRelativePath>
     <RunScriptOutputRelativePath Condition="'$(OS)' != 'Windows_NT'">$(RunScriptOutputRelativePath).sh</RunScriptOutputRelativePath>
     <RunScriptOutputRelativePath Condition="'$(OS)' == 'Windows_NT'">$(RunScriptOutputRelativePath).cmd</RunScriptOutputRelativePath>
@@ -75,7 +78,6 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <!-- This is different from the default command because we build the project on helix -->
     <RunScriptTestBaseCommand>dotnet test -s .runsettings</RunScriptTestBaseCommand>
   </PropertyGroup>
 

@@ -5,7 +5,7 @@
     Properties:
       $(RunScriptTestBaseCommand)
       $(UsesTestFilterOnHelix)
-
+      $(RunTestsRequiresBuild)
 
   -->
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
@@ -25,15 +25,14 @@
     <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestSupportProject)' != 'true')">true</RunTestsOnHelix>
     <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestSupportProject)' == 'true' or '$(RunTestsOnHelix)' == 'true')">true</SkipTests>
 
-    <!-- FIXME: allow running without cov locally? -->
     <RunWithCodeCoverage Condition="'$(RunWithCodeCoverage)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</RunWithCodeCoverage>
-    <!-- FIXME: move here from helix targets? -->
     <TestSessionTimeoutForHelix Condition="'$(TestSessionTimeoutForHelix)' == ''">600000</TestSessionTimeoutForHelix>
 
     <RunScriptOutputRelativePath Condition="'$(RunScriptOutputRelativePath)' == '' and '$(OS)' != 'Windows_NT'">RunTests.sh</RunScriptOutputRelativePath>
     <RunScriptOutputRelativePath Condition="'$(RunScriptOutputRelativePath)' == '' and '$(OS)' == 'Windows_NT'">RunTests.cmd</RunScriptOutputRelativePath>
 
-    <RunScriptTestBaseCommand Condition="'$(RunScriptTestBaseCommand)' == ''">dotnet test -s .runsettings $(MSBuildProjectName).dll</RunScriptTestBaseCommand>
+    <RunScriptTestBaseCommand Condition="'$(RunScriptTestBaseCommand)' == '' and '$(RunScriptTestRequiresBuild)' != 'true'">dotnet test -s .runsettings $(MSBuildProjectName).dll</RunScriptTestBaseCommand>
+    <RunScriptTestBaseCommand Condition="'$(RunScriptTestBaseCommand)' == '' and '$(RunScriptTestRequiresBuild)' == 'true'">dotnet test -s .runsettings</RunScriptTestBaseCommand>
   </PropertyGroup>
 
   <ItemGroup>
@@ -157,7 +156,13 @@
   <Target Name="GenerateRunScript" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true' and '$(IsTestProject)' == 'true'">
     <PropertyGroup Condition="'$(RunScriptTestCommand)' == ''">
       <RunScriptTestCommand>$(RunScriptTestBaseCommand)</RunScriptTestCommand>
-      <RunScriptTestCommand>$(RunScriptTestCommand) --ResultsDirectory:$(_LogsPathEnvVar) @(TestBlameArguments, ' ')</RunScriptTestCommand>
+
+      <!-- command line differs when running `dotnet test .. assembly.dll`
+           vs `dotnet test` with a projet file -->
+      <RunScriptTestCommand Condition="'$(RunScriptTestRequiresBuild)' != 'true'">$(RunScriptTestCommand) --ResultsDirectory:$(_LogsPathEnvVar)</RunScriptTestCommand>
+      <RunScriptTestCommand Condition="'$(RunScriptTestRequiresBuild)' == 'true'">$(RunScriptTestCommand) --results-directory $(_LogsPathEnvVar)</RunScriptTestCommand>
+
+      <RunScriptTestCommand>$(RunScriptTestCommand) @(TestBlameArguments, ' ')</RunScriptTestCommand>
       <RunScriptTestCommand Condition="'$(UsesTestFilterOnHelix)' == 'true'">$(RunScriptTestCommand) --filter &quot;$(_TestFilterArgEnvVar)&quot;</RunScriptTestCommand>
       <RunScriptTestCommand>$(RunScriptTestCommand) $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(TestSessionTimeoutForHelix)</RunScriptTestCommand>
     </PropertyGroup>
