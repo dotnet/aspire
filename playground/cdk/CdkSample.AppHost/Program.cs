@@ -3,24 +3,20 @@
 
 #pragma warning disable AZPROVISION001 // Because we use the CDK callbacks.
 
-//using Aspire.Hosting.Azure;
-//using Azure.Provisioning.KeyVaults;
-//using Azure.ResourceManager.ApplicationInsights.Models;
-//using Azure.ResourceManager.OperationalInsights.Models;
-
 using Azure.Provisioning.KeyVault;
+using Azure.Provisioning.Storage;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
 //var cosmosdb = builder.AddAzureCosmosDB("cosmos").AddDatabase("cosmosdb");
 
-//var sku = builder.AddParameter("storagesku");
-//var locationOverride = builder.AddParameter("locationOverride");
-//var storage = builder.AddAzureStorage("storage", (_, _, account) =>
-//{
-//    account.AssignProperty(sa => sa.Sku.Name, sku);
-//    account.AssignProperty(sa => sa.Location, locationOverride);
-//});
+var sku = builder.AddParameter("storagesku");
+var locationOverride = builder.AddParameter("locationOverride");
+var storage = builder.AddAzureStorage("storage", (_, construct, account) =>
+{
+    account.Sku = new StorageSku() { Name = sku.AsBicepParameter(construct) };
+    account.Location = locationOverride.AsBicepParameter(construct);
+});
 
 //var blobs = storage.AddBlobs("blobs");
 

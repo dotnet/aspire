@@ -4,10 +4,10 @@
 #pragma warning disable AZPROVISION001
 
 using System.Diagnostics;
-using System.Linq.Expressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
+using Azure.Provisioning.Expressions;
 
 namespace Aspire.Hosting;
 
@@ -148,6 +148,22 @@ public static class AzureConstructResourceExtensions
     }
 
     /// <summary>
+    /// TODO: we don't want this in our public API.
+    /// either make it shared source, or have the CDK do this for us
+    /// </summary>
+    /// <param name="construct"></param>
+    /// <returns></returns>
+    public static BicepParameter AddLocationParameter(this ResourceModuleConstruct construct)
+    {
+        var locationParam = new BicepParameter("location", typeof(string))
+        {
+            Value = BicepFunction.GetResourceGroup().Location,
+        };
+        construct.Add(locationParam);
+        return locationParam;
+    }
+
+    /// <summary>
     /// Assigns an Aspire parameter resource to an Azure construct resource.
     /// </summary>
     /// <typeparam name="T">Type of the CDK resource.</typeparam>
@@ -157,7 +173,7 @@ public static class AzureConstructResourceExtensions
     /// <param name="parameterName">The name of the parameter to be assigned.</param>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
     [Obsolete("This API is no longer supported and always throws.")]
-    public static void AssignProperty<T>(this global::Azure.Provisioning.Primitives.Resource resource, Expression<Func<T, object?>> propertySelector, IResourceBuilder<ParameterResource> parameterResourceBuilder, string? parameterName = null) where T : notnull
+    public static void AssignProperty<T>(this global::Azure.Provisioning.Primitives.Resource resource, System.Linq.Expressions.Expression<Func<T, object?>> propertySelector, IResourceBuilder<ParameterResource> parameterResourceBuilder, string? parameterName = null) where T : notnull
     {
         throw new NotSupportedException("");
     }

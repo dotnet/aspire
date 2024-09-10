@@ -1,6 +1,8 @@
+param location string = resourceGroup().location
+
 resource mykv 'Microsoft.KeyVault/vaults@2019-09-01' = {
     name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
-    location: resourceGroup().location
+    location: location
     properties: {
         tenantId: tenant().tenantId
         sku: {

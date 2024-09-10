@@ -6,8 +6,9 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning;
+using Azure.Provisioning.Authorization;
+using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Storage;
-using Azure.ResourceManager.Storage.Models;
 
 namespace Aspire.Hosting;
 
@@ -43,44 +44,49 @@ public static class AzureStorageExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var storageAccount = construct.AddStorageAccount(
-                name: name,
-                kind: StorageKind.StorageV2,
-                sku: StorageSkuName.StandardGrs
-                );
+            var storageAccount = new StorageAccount(name)
+            {
+                Location = construct.AddLocationParameter(),
+                Kind = StorageKind.StorageV2,
+                Sku = new StorageSku() { Name = StorageSkuName.StandardGrs },
+                NetworkRuleSet = new StorageAccountNetworkRuleSet()
+                {
+                    // Unfortunately Azure Storage does not list ACA as one of the resource types in which
+                    // the AzureServices firewall policy works. This means that we need this Azure Storage
+                    // account to have its default action set to Allow.
+                    DefaultAction = StorageNetworkDefaultAction.Allow
+                },
+                Tags = { { "aspire-resource-name", construct.Resource.Name } },
+                // Set the minimum TLS version to 1.2 to ensure resources provisioned are compliant
+                // with the pending deprecation of TLS 1.0 and 1.1.
+                MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_2,
+                // Disable shared key access to the storage account as managed identity is configured
+                // to access the storage account by default.
+                AllowSharedKeyAccess = false,
+            };
+            construct.Add(storageAccount);
 
-            // Unfortunately Azure Storage does not list ACA as one of the resource types in which
-            // the AzureServices firewall policy works. This means that we need this Azure Storage
-            // account to have its default action set to Allow.
-            storageAccount.AssignProperty(p => p.NetworkRuleSet.DefaultAction, "'Allow'");
+            var blobs = new BlobService("blobs") { Parent = storageAccount };
+            construct.Add(blobs);
 
-            storageAccount.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+            void AssignRole(StorageBuiltInRole role)
+            {
+                construct.Add(new RoleAssignment($"{StorageBuiltInRole.GetBuiltInRoleName(role)}_{storageAccount.ResourceName}")
+                {
+                    Scope = new IdentifierExpression(storageAccount.ResourceName),
+                    PrincipalType = construct.PrincipalTypeParameter,
+                    RoleDefinitionId = BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", role.ToString()),
+                    PrincipalId = construct.PrincipalIdParameter
+                });
+            }
 
-            // Set the minimum TLS version to 1.2 to ensure resources provisioned are compliant
-            // with the pending deprecation of TLS 1.0 and 1.1.
-            storageAccount.AssignProperty(p => p.MinimumTlsVersion, "'TLS1_2'");
+            AssignRole(StorageBuiltInRole.StorageBlobDataContributor);
+            AssignRole(StorageBuiltInRole.StorageTableDataContributor);
+            AssignRole(StorageBuiltInRole.StorageQueueDataContributor);
 
-            // Disable shared key access to the storage account as managed identity is configured
-            // to access the storage account by default.
-            storageAccount.AssignProperty(p => p.AllowSharedKeyAccess, "false");
-
-            var blobService = new BlobService(construct);
-
-            var blobRole = storageAccount.AssignRole(RoleDefinition.StorageBlobDataContributor);
-            blobRole.AssignProperty(p => p.PrincipalId, construct.PrincipalIdParameter);
-            blobRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
-
-            var tableRole = storageAccount.AssignRole(RoleDefinition.StorageTableDataContributor);
-            tableRole.AssignProperty(p => p.PrincipalId, construct.PrincipalIdParameter);
-            tableRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
-
-            var queueRole = storageAccount.AssignRole(RoleDefinition.StorageQueueDataContributor);
-            queueRole.AssignProperty(p => p.PrincipalId, construct.PrincipalIdParameter);
-            queueRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
-
-            storageAccount.AddOutput("blobEndpoint", sa => sa.PrimaryEndpoints.BlobUri);
-            storageAccount.AddOutput("queueEndpoint", sa => sa.PrimaryEndpoints.QueueUri);
-            storageAccount.AddOutput("tableEndpoint", sa => sa.PrimaryEndpoints.TableUri);
+            construct.Add(new BicepOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.BlobUri });
+            construct.Add(new BicepOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.QueueUri });
+            construct.Add(new BicepOutput("tableEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.TableUri });
 
             var resource = (AzureStorageResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);

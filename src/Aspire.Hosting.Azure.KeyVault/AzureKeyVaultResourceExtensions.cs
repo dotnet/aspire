@@ -43,12 +43,9 @@ public static class AzureKeyVaultResourceExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var locationParam = new BicepParameter("location", typeof(string));
-            construct.Add(locationParam);
-
             var keyVault = new KeyVaultService(construct.Resource.Name)
             {
-                Location = locationParam,
+                Location = construct.AddLocationParameter(),
                 Properties = new KeyVaultProperties()
                 {
                     TenantId = new MemberExpression(new FunctionCallExpression(new IdentifierExpression("tenant")), "tenantId"),
