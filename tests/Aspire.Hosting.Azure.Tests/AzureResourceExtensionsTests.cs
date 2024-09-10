@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Xunit;
 
@@ -172,5 +173,31 @@ public class AzureResourceExtensionsTests
 
         var actualTag = containerImageAnnotation.Tag;
         Assert.Equal(imageTag ?? "latest", actualTag);
+    }
+
+    [Fact]
+    public async Task AddAzureCosmosDBWithEmulatorGetDefaultNumberOfPartitions()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos");
+
+        cosmos.RunAsEmulator();
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(cosmos.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+
+        Assert.Equal("2", config["AZURE_COSMOS_EMULATOR_PARTITION_COUNT"]);
+    }
+
+    [Fact]
+    public async Task AddAzureCosmosDBWithEmulatorCanOverrideNumberOfPartitions()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos");
+
+        cosmos.RunAsEmulator(r => r.WithEnvironment("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", "30"));
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(cosmos.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+
+        Assert.Equal("30", config["AZURE_COSMOS_EMULATOR_PARTITION_COUNT"]);
     }
 }
