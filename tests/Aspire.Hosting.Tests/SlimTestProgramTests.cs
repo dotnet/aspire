@@ -17,7 +17,7 @@ public class SlimTestProgramTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/5637")]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/5637", TestPlatforms.Windows)]
     public async Task TestProjectStartsAndStopsCleanly()
     {
         var testProgram = _slimTestProgramFixture.TestProgram;
@@ -42,7 +42,7 @@ public class SlimTestProgramTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/5637")]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/5637", TestPlatforms.Windows)]
     public async Task TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatch()
     {
         var testProgram = _slimTestProgramFixture.TestProgram;
@@ -61,7 +61,7 @@ public class SlimTestProgramTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/5637")]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/5637", TestPlatforms.Windows)]
     public async Task TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatchForReplicatedServices()
     {
         var testProgram = _slimTestProgramFixture.TestProgram;
