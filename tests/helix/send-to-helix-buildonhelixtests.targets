@@ -40,7 +40,7 @@
 
         <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;$(_SetPathEnvVar)&quot;</PreCommands>
 
-        <Command>$(_TestRunCommand)</Command>
+        <Command>cd tests/%(FileName) $(_ShellCommandSeparator) dotnet build -bl:$(_HelixLogsPath)/build.binlog $(_ShellCommandSeparator) $(_TestRunCommand)</Command>
         <Timeout>00:15:00</Timeout>
         <Timeout Condition="'%(FileName)' == 'Aspire.Playground.Tests'">00:25:00</Timeout>
 

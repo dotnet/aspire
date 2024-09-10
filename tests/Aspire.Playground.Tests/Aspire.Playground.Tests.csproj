@@ -75,9 +75,7 @@
 
   <PropertyGroup>
     <!-- This is different from the default command because we build the project on helix -->
-    <RunScriptTestBaseCommand>cd tests/$(MSBuildProjectName)</RunScriptTestBaseCommand>
-    <RunScriptTestBaseCommand>$(RunScriptTestBaseCommand) $(_ShellCommandSeparator) dotnet build -bl:$(_HelixLogsPath)/build.binlog</RunScriptTestBaseCommand>
-    <RunScriptTestBaseCommand>$(RunScriptTestBaseCommand) $(_ShellCommandSeparator) dotnet test -s .runsettings</RunScriptTestBaseCommand>
+    <RunScriptTestBaseCommand>dotnet test -s .runsettings</RunScriptTestBaseCommand>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(ArchiveTests)' == 'true'" Label="Prepare archive dir for helix">
@@ -93,5 +91,15 @@
     <!-- The default targets expect the test assembly to be in the root dir, but we have
          the tests run from a subdir - tests/Aspire.Playground.Tests/ -->
     <None Include="$(RepositoryEngineeringDir)CodeCoverage.config" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Remove the blame-hang-timeout for playground tests, as it is pretty much one
+         main test running - 'TestEndpointsReturnOk'. IOW, the blame-hang timeout
+         would have to be at least as long as the full TestSession timeout. -->
+
+    <TestBlameArguments Remove="@(_TestBlameArguments)" />
+    <TestBlameArguments Include="--blame-crash" />
+    <TestBlameArguments Include="--blame-crash-dump-type full" />
   </ItemGroup>
 </Project>
