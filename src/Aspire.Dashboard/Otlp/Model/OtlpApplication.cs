@@ -1,13 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
-using OpenTelemetry.Proto.Resource.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
 
@@ -26,50 +27,18 @@ public class OtlpApplication
     private readonly ReaderWriterLockSlim _metricsLock = new();
     private readonly Dictionary<string, OtlpMeter> _meters = new();
     private readonly Dictionary<OtlpInstrumentKey, OtlpInstrument> _instruments = new();
+    private readonly ConcurrentDictionary<KeyValuePair<string, string>[], OtlpApplicationView> _applicationViews = new(ApplicationViewKeyComparer.Instance);
 
     private readonly ILogger _logger;
     private readonly TelemetryLimitOptions _options;
 
-    public KeyValuePair<string, string>[] Properties { get; }
-
-    public OtlpApplication(string name, string instanceId, Resource resource, ILogger logger, TelemetryLimitOptions options)
+    public OtlpApplication(string name, string instanceId, ILogger logger, TelemetryLimitOptions options)
     {
-        var properties = new List<KeyValuePair<string, string>>();
-        foreach (var attribute in resource.Attributes)
-        {
-            switch (attribute.Key)
-            {
-                case SERVICE_NAME:
-                case SERVICE_INSTANCE_ID:
-                    // Values passed in via ctor and set to members. Don't add to properties collection.
-                    break;
-                default:
-                    properties.Add(new KeyValuePair<string, string>(attribute.Key, attribute.Value.GetString()));
-                    break;
-
-            }
-        }
-        Properties = properties.ToArray();
-
         ApplicationName = name;
         InstanceId = instanceId;
 
         _logger = logger;
         _options = options;
-    }
-
-    public Dictionary<string, string> AllProperties()
-    {
-        var props = new Dictionary<string, string>();
-        props.Add(SERVICE_NAME, ApplicationName);
-        props.Add(SERVICE_INSTANCE_ID, InstanceId);
-
-        foreach (var kv in Properties)
-        {
-            props.TryAdd(kv.Key, kv.Value);
-        }
-
-        return props;
     }
 
     public void AddMetrics(AddContext context, RepeatedField<ScopeMetrics> scopeMetrics)
@@ -92,11 +61,14 @@ public class OtlpApplication
                         {
                             _instruments.Add(instrumentKey, instrument = new OtlpInstrument
                             {
-                                Name = metric.Name,
-                                Description = metric.Description,
-                                Unit = metric.Unit,
-                                Type = MapMetricType(metric.DataCase),
-                                Parent = GetMeter(sm.Scope),
+                                Summary = new OtlpInstrumentSummary
+                                {
+                                    Name = metric.Name,
+                                    Description = metric.Description,
+                                    Unit = metric.Unit,
+                                    Type = MapMetricType(metric.DataCase),
+                                    Parent = GetMeter(sm.Scope)
+                                },
                                 Options = _options
                             });
                         }
@@ -156,16 +128,16 @@ public class OtlpApplication
         }
     }
 
-    public List<OtlpInstrument> GetInstrumentsSummary()
+    public List<OtlpInstrumentSummary> GetInstrumentsSummary()
     {
         _metricsLock.EnterReadLock();
 
         try
         {
-            var instruments = new List<OtlpInstrument>(_instruments.Count);
+            var instruments = new List<OtlpInstrumentSummary>(_instruments.Count);
             foreach (var instrument in _instruments)
             {
-                instruments.Add(OtlpInstrument.Clone(instrument.Value, cloneData: false, valuesStart: null, valuesEnd: null));
+                instruments.Add(instrument.Value.Summary);
             }
             return instruments;
         }
@@ -181,6 +153,9 @@ public class OtlpApplication
             .GroupBy(application => application.ApplicationName, StringComparers.ResourceName)
             .ToDictionary(grouping => grouping.Key, grouping => grouping.ToList());
     }
+
+    public static string GetResourceName(OtlpApplicationView app, List<OtlpApplication> allApplications) =>
+        GetResourceName(app.Application, allApplications);
 
     public static string GetResourceName(OtlpApplication app, List<OtlpApplication> allApplications)
     {
@@ -212,5 +187,70 @@ public class OtlpApplication
         }
 
         return app.ApplicationName;
+    }
+
+    internal List<OtlpApplicationView> GetViews() => _applicationViews.Values.ToList();
+
+    internal OtlpApplicationView GetView(RepeatedField<KeyValue> attributes)
+    {
+        // Inefficient to create this to possibly throw it away.
+        var view = new OtlpApplicationView(this, attributes);
+
+        if (_applicationViews.TryGetValue(view.Properties, out var applicationView))
+        {
+            return applicationView;
+        }
+
+        return _applicationViews.GetOrAdd(view.Properties, view);
+    }
+
+    /// <summary>
+    /// Application views are equal when all properties are equal.
+    /// </summary>
+    private sealed class ApplicationViewKeyComparer : IEqualityComparer<KeyValuePair<string, string>[]>
+    {
+        public static readonly ApplicationViewKeyComparer Instance = new();
+
+        public bool Equals(KeyValuePair<string, string>[]? x, KeyValuePair<string, string>[]? y)
+        {
+            if (x == y)
+            {
+                return true;
+            }
+            if (x == null || y == null)
+            {
+                return false;
+            }
+            if (x.Length != y.Length)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < x.Length; i++)
+            {
+                if (!string.Equals(x[i].Key, y[i].Key, StringComparisons.OtlpAttribute))
+                {
+                    return false;
+                }
+                if (!string.Equals(x[i].Value, y[i].Value, StringComparisons.OtlpAttribute))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public int GetHashCode([DisallowNull] KeyValuePair<string, string>[] obj)
+        {
+            var hashCode = new HashCode();
+            for (var i = 0; i < obj.Length; i++)
+            {
+                hashCode.Add(StringComparers.OtlpAttribute.GetHashCode(obj[i].Key));
+                hashCode.Add(StringComparers.OtlpAttribute.GetHashCode(obj[i].Value));
+            }
+
+            return hashCode.ToHashCode();
+        }
     }
 }

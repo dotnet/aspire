@@ -1,4 +1,5 @@
-﻿@using Aspire.Dashboard.Model
+﻿@using Aspire.Dashboard.Components.Controls.Grid
+@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
@@ -9,7 +10,7 @@
 <div class="span-details-layout">
     <FluentToolbar Orientation="Orientation.Horizontal">
         <div>
-            @((MarkupString)string.Format(ControlsStrings.SpanDetailsResource, ViewModel.Span.Source.ApplicationName))
+            @((MarkupString)string.Format(ControlsStrings.SpanDetailsResource, ViewModel.Span.Source.Application.ApplicationName))
         </div>
         <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <div>
@@ -115,18 +116,20 @@
                         @FilteredSpanLinks.Count()
                     </FluentBadge>
                 </div>
-                <FluentDataGrid TGridItem="SpanLinkViewModel"
+                <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
+                                ResizeType="DataGridResizeType.Discrete"
+                                TGridItem="SpanLinkViewModel"
                                 Items="@FilteredSpanLinks"
                                 Style="width:100%"
                                 GenerateHeader="GenerateHeaderOption.Sticky"
                                 GridTemplateColumns="4fr 1fr"
                                 ShowHover="true">
-                    <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">
+                    <AspireTemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">
                         @WriteSpanLink(context)
-                    </TemplateColumn>
-                    <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsDetailsColumnHeader)]">
+                    </AspireTemplateColumn>
+                    <AspireTemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsDetailsColumnHeader)]">
                         <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewDetailsAsync(context))">@Loc[nameof(ControlsStrings.ViewAction)]</FluentButton>
-                    </TemplateColumn>
+                    </AspireTemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
             <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsBacklinksHeader)]" Expanded="true">
@@ -135,18 +138,20 @@
                         @FilteredSpanBacklinks.Count()
                     </FluentBadge>
                 </div>
-                <FluentDataGrid TGridItem="SpanLinkViewModel"
+                <FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
+                                ResizeType="DataGridResizeType.Discrete"
+                                TGridItem="SpanLinkViewModel"
                                 Items="@FilteredSpanBacklinks"
                                 Style="width:100%"
                                 GenerateHeader="GenerateHeaderOption.Sticky"
                                 GridTemplateColumns="4fr 1fr"
                                 ShowHover="true">
-                    <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">
+                    <AspireTemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">
                         @WriteSpanLink(context)
-                    </TemplateColumn>
-                    <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsDetailsColumnHeader)]">
+                    </AspireTemplateColumn>
+                    <AspireTemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsDetailsColumnHeader)]">
                         <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewDetailsAsync(context))">@Loc[nameof(ControlsStrings.ViewAction)]</FluentButton>
-                    </TemplateColumn>
+                    </AspireTemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
         </FluentAccordion>

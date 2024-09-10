@@ -15,21 +15,29 @@ partial class Resource
     /// </summary>
     public ResourceViewModel ToViewModel()
     {
-        return new()
+        try
         {
-            Name = ValidateNotNull(Name),
-            ResourceType = ValidateNotNull(ResourceType),
-            DisplayName = ValidateNotNull(DisplayName),
-            Uid = ValidateNotNull(Uid),
-            CreationTimeStamp = ValidateNotNull(CreatedAt).ToDateTime(),
-            Properties = Properties.ToFrozenDictionary(property => ValidateNotNull(property.Name), property => ValidateNotNull(property.Value), StringComparers.ResourcePropertyName),
-            Environment = GetEnvironment(),
-            Urls = GetUrls(),
-            State = HasState ? State : null,
-            KnownState = HasState ? Enum.TryParse(State, out KnownResourceState knownState) ? knownState : null : null,
-            StateStyle = HasStateStyle ? StateStyle : null,
-            Commands = GetCommands()
-        };
+            return new()
+            {
+                Name = ValidateNotNull(Name),
+                ResourceType = ValidateNotNull(ResourceType),
+                DisplayName = ValidateNotNull(DisplayName),
+                Uid = ValidateNotNull(Uid),
+                CreationTimeStamp = ValidateNotNull(CreatedAt).ToDateTime(),
+                Properties = Properties.ToFrozenDictionary(property => ValidateNotNull(property.Name), property => ValidateNotNull(property.Value), StringComparers.ResourcePropertyName),
+                Environment = GetEnvironment(),
+                Urls = GetUrls(),
+                Volumes = GetVolumes(),
+                State = HasState ? State : null,
+                KnownState = HasState ? Enum.TryParse(State, out KnownResourceState knownState) ? knownState : null : null,
+                StateStyle = HasStateStyle ? StateStyle : null,
+                Commands = GetCommands()
+            };
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($@"Error converting resource ""{Name}"" to {nameof(ResourceViewModel)}.", ex);
+        }
 
         ImmutableArray<EnvironmentVariableViewModel> GetEnvironment()
         {
@@ -48,10 +56,17 @@ partial class Resource
                     .ToImmutableArray();
         }
 
+        ImmutableArray<VolumeViewModel> GetVolumes()
+        {
+            return Volumes
+                .Select(v => new VolumeViewModel(v.Source, v.Target, v.MountType, v.IsReadOnly))
+                .ToImmutableArray();
+        }
+
         ImmutableArray<CommandViewModel> GetCommands()
         {
             return Commands
-                .Select(c => new CommandViewModel(c.CommandType, c.DisplayName, c.ConfirmationMessage, c.Parameter))
+                .Select(c => new CommandViewModel(c.CommandType, c.DisplayName, c.HasDisplayDescription ? c.DisplayDescription : null, c.ConfirmationMessage, c.Parameter, c.IsHighlighted, c.HasIconName ? c.IconName : null))
                 .ToImmutableArray();
         }
 

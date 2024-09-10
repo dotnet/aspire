@@ -371,6 +371,8 @@ public static class ProjectResourceBuilderExtensions
                         e.Port = endpoint.BindingAddress.Port;
                     }
                     e.UriScheme = endpoint.BindingAddress.Scheme;
+                    e.TargetHost = endpoint.BindingAddress.Host;
+
                     adjustTransport(e, endpoint.Protocols);
                     // Keep track of the host separately since EndpointAnnotation doesn't have a host property
                     builder.Resource.KestrelEndpointAnnotationHosts[e] = endpoint.BindingAddress.Host;
@@ -402,14 +404,31 @@ public static class ProjectResourceBuilderExtensions
             if (!kestrelEndpointsByScheme.Any())
             {
                 var urlsFromApplicationUrl = launchProfile.ApplicationUrl?.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? [];
+                Dictionary<string, int> endpointCountByScheme = [];
                 foreach (var url in urlsFromApplicationUrl)
                 {
-                    var uri = new Uri(url);
+                    var bindingAddress = BindingAddress.Parse(url);
 
-                    builder.WithEndpoint(uri.Scheme, e =>
+                    // Keep track of how many endpoints we have for each scheme
+                    endpointCountByScheme.TryGetValue(bindingAddress.Scheme, out var count);
+                    endpointCountByScheme[bindingAddress.Scheme] = count + 1;
+
+                    // If we have multiple for the same scheme, we differentiate them by appending a number.
+                    // We only do this starting with the second endpoint, so that the first stays just http/https.
+                    // This allows us to keep the same behavior as "dotnet run".
+                    // Also, note that we only do this in Run mode, as in Publish mode those extra endpoints
+                    // with generic names would not be easily usable.
+                    var endpointName = bindingAddress.Scheme;
+                    if (endpointCountByScheme[bindingAddress.Scheme] > 1)
                     {
-                        e.Port = uri.Port;
-                        e.UriScheme = uri.Scheme;
+                        endpointName += endpointCountByScheme[bindingAddress.Scheme];
+                    }
+
+                    builder.WithEndpoint(endpointName, e =>
+                    {
+                        e.Port = bindingAddress.Port;
+                        e.TargetHost = bindingAddress.Host;
+                        e.UriScheme = bindingAddress.Scheme;
                         e.FromLaunchProfile = true;
                         adjustTransport(e);
                     },
@@ -624,7 +643,10 @@ public static class ProjectResourceBuilderExtensions
                     processedHttpsPort = true;
                 }
 
-                aspnetCoreUrls.Append($"{e.Property(EndpointProperty.Scheme)}://localhost:{e.Property(EndpointProperty.TargetPort)}");
+                // If the endpoint is proxied, we will use localhost as the target host since DCP will be forwarding the traffic
+                var targetHost = e.EndpointAnnotation.IsProxied ? "localhost" : e.EndpointAnnotation.TargetHost;
+
+                aspnetCoreUrls.Append($"{e.Property(EndpointProperty.Scheme)}://{targetHost}:{e.Property(EndpointProperty.TargetPort)}");
                 first = false;
             }
 

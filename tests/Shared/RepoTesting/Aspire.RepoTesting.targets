@@ -64,15 +64,6 @@
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="Microsoft.DotNet.XUnitAssert" />
-
-    <!-- And corresponding version properties used by `PackageVersion` items
-         in Directory.Packages.Helix.props -->
-    <PropertyForHelixRun Include="XunitVersion" />
-    <PropertyForHelixRun Include="XunitAnalyzersVersion" />
-    <PropertyForHelixRun Include="XunitRunnerVisualStudioVersion" />
-    <PropertyForHelixRun Include="MSTestTestAdapterVersion" />
-    <PropertyForHelixRun Include="MicrosoftNETTestSdkVersion" />
-    <PropertyForHelixRun Include="MicrosoftDotNetXUnitAssertVersion" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(DeployOutsideOfRepoSupportFiles)' == 'true'">
@@ -91,6 +82,12 @@
     <None Include="$(TestsSharedDir)\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
 
     <PropertyForHelixRun Include="NetCurrent" />
+    <PropertyForHelixRun Include="XunitVersion" />
+    <PropertyForHelixRun Include="XunitAnalyzersVersion" />
+    <PropertyForHelixRun Include="XunitRunnerVisualStudioVersion" />
+    <PropertyForHelixRun Include="MSTestTestAdapterVersion" />
+    <PropertyForHelixRun Include="MicrosoftNETTestSdkVersion" />
+    <PropertyForHelixRun Include="MicrosoftDotNetXUnitAssertVersion" />
   </ItemGroup>
 
   <Target Name="_UpdateArchiveSourcePath" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true' and '$(DeployOutsideOfRepoSupportFilesRelativeDir)' != ''">
@@ -145,5 +142,10 @@
     <Import Project="$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets" Condition="Exists('$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets')" />
     <Import Project="$(RepoRoot)src\Aspire.Hosting.Sdk\SDK\Sdk.targets" Condition="Exists('$(RepoRoot)src\Aspire.Hosting.Sdk\SDK\Sdk.targets')" />
   </ImportGroup>
+
+  <PropertyGroup Condition="'$(RepoRoot)' != 'null' and '$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'">
+    <!-- This is for in-repo testing and required for Aspire.Hosting.AppHost targets loading correctly. On real projects, this comes from SDK.props in Aspire.Hosting.SDK. -->
+    <AspireHostingSDKVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion)</AspireHostingSDKVersion>
+  </PropertyGroup>
 
 </Project>

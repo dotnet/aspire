@@ -39,13 +39,13 @@
 
       <NuGetsToBuildForWorkloadTesting
                       Include="$(_ShippingPackagesDir)Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier).nupkg"
-                      Project="$(RepoRoot)eng/dashboardpack/dashboardpack.csproj"
+                      Project="$(RepoRoot)eng/dashboardpack/Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier).csproj"
                       Properties="@(DefaultPropertiesForNuGetBuild, ';');@(_PropertiesForNuGetBuilds, ';')"
                       Descriptor="Dashboard pack"/>
 
       <NuGetsToBuildForWorkloadTesting
                       Include="$(_ShippingPackagesDir)Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier).nupkg"
-                      Project="$(RepoRoot)eng/dcppack/dcppack.csproj"
+                      Project="$(RepoRoot)eng/dcppack/Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier).csproj"
                       Properties="@(DefaultPropertiesForNuGetBuild, ';');@(_PropertiesForNuGetBuilds, ';')"
                       Descriptor="Dcp pack"/>
     </ItemGroup>
@@ -57,10 +57,10 @@
       Explicitly invoke Build on these two projects so the GenerateTextReplacementFiles target gets triggered.
       This can be removed once the workloadtesting targets support a custom list of targets to invoke
     -->
-    <MSBuild Projects="$(RepoRoot)eng/dcppack/dcppack.csproj"
+    <MSBuild Projects="$(RepoRoot)eng/dcppack/Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier).csproj"
               Properties="$(_CombinedProps)"
               Targets="Restore;Build" />
-    <MSBuild Projects="$(RepoRoot)eng/dashboardpack/dashboardpack.csproj"
+    <MSBuild Projects="$(RepoRoot)eng/dashboardpack/Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier).csproj"
               Properties="$(_CombinedProps)"
               Targets="Restore;Build" />
   </Target>
@@ -111,10 +111,15 @@
       <UnexpectedPackages Include="@(AllPackages)" Exclude="@(ExpectedPackagePaths)" />
 
       <!-- Ignore these packages which are part of the workload. Existence of these would get checked
-            by the workload installation targets. And their names don't correspond to project names. -->
+           by the workload installation targets. -->
+      <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Aspire.Hosting.Sdk.'))" />
+      <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Aspire.ProjectTemplates.'))" />
       <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Microsoft.NET.Sdk.Aspire.Manifest-'))" />
-      <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Aspire.Hosting.Orchestration.'))" />
+
+      <!-- Exclude the packages with arch-specific nugets -->
       <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Aspire.Dashboard.Sdk.'))" />
+      <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Aspire.Hosting.Orchestration.'))" />
+
     </ItemGroup>
 
     <Warning Text="Found some unexpected packages in '$(ArtifactsShippingPackagesDir)', which might mean that the list of expected packages is incorrect: @(UnexpectedPackages -> '%(FileName)%(Extension)', ', '). Use %24(SkipPackageCheckForWorkloadTesting)='true' to skip this."
