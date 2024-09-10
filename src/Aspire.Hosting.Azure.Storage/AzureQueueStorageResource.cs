@@ -12,7 +12,8 @@ namespace Aspire.Hosting.Azure;
 /// <param name="storage">The <see cref="AzureStorageResource"/> that the resource is stored in.</param>
 public class AzureQueueStorageResource(string name, AzureStorageResource storage) : Resource(name),
     IResourceWithConnectionString,
-    IResourceWithParent<AzureStorageResource>
+    IResourceWithParent<AzureStorageResource>,
+    IResourceWithAzureFunctionsConfig
 {
     /// <summary>
     /// Gets the parent AzureStorageResource of this AzureQueueStorageResource.
@@ -24,4 +25,16 @@ public class AzureQueueStorageResource(string name, AzureStorageResource storage
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         Parent.GetQueueConnectionString();
+
+    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
+    {
+        if (Parent.IsEmulator)
+        {
+            target[connectionName] = Parent.GetEmulatorConnectionString();
+        }
+        else
+        {
+            target[$"{connectionName}__queueServiceUri"] = Parent.QueueEndpoint;
+        }
+    }
 }

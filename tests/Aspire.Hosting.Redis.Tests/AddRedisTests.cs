@@ -13,6 +13,14 @@ namespace Aspire.Hosting.Redis.Tests;
 public class AddRedisTests
 {
     [Fact]
+    public void AddRedisAddsHealthCheckAnnotationToResource()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var redis = builder.AddRedis("redis");
+        Assert.Single(redis.Resource.Annotations, a => a is HealthCheckAnnotation hca && hca.Key == "redis_check");
+    }
+
+    [Fact]
     public void AddRedisContainerWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
