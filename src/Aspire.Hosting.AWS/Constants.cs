@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 namespace Aspire.Hosting.AWS;
-internal sealed class Constants
+internal static class Constants
 {
 
     /// <summary>

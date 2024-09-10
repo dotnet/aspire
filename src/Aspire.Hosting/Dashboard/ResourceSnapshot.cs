@@ -21,6 +21,7 @@ internal abstract class ResourceSnapshot
     public required int? ExitCode { get; init; }
     public required DateTime? CreationTimeStamp { get; init; }
     public required ImmutableArray<EnvironmentVariableSnapshot> Environment { get; init; }
+    public required ImmutableArray<VolumeSnapshot> Volumes { get; init; }
 
     public required ImmutableArray<UrlSnapshot> Urls { get; init; }
 

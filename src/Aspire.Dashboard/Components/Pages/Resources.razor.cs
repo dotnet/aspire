@@ -6,9 +6,8 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Aspire.Dashboard.Extensions;
-using Aspire.Dashboard.Components.Resize;
+
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
@@ -30,7 +29,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private const string ActionsColumn = nameof(ActionsColumn);
 
     private Subscription? _logsSubscription;
-    private Dictionary<OtlpApplication, int>? _applicationUnviewedErrorCounts;
+    private IList<GridColumn>? _gridColumns;
+    private Dictionary<ApplicationKey, int>? _applicationUnviewedErrorCounts;
 
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
@@ -145,16 +145,15 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
-        _manager = new GridColumnManager([
-            new GridColumn(Name: TypeColumn, DesktopWidth: "1fr", MobileWidth: "1fr"),
+        _gridColumns = [
+            new GridColumn(Name: TypeColumn, DesktopWidth: "1fr"),
             new GridColumn(Name: NameColumn, DesktopWidth: "1.5fr", MobileWidth: "1.5fr"),
-            new GridColumn(Name: StateColumn, DesktopWidth: "1.25fr"),
+            new GridColumn(Name: StateColumn, DesktopWidth: "1.25fr", MobileWidth: "1.25fr"),
             new GridColumn(Name: StartTimeColumn, DesktopWidth: "1.5fr"),
             new GridColumn(Name: SourceColumn, DesktopWidth: "2.5fr"),
             new GridColumn(Name: EndpointsColumn, DesktopWidth: "2.5fr", MobileWidth: "2fr"),
             new GridColumn(Name: ActionsColumn, DesktopWidth: "1.5fr", MobileWidth: "1fr")
-        ], DimensionManager);
-
+        ];
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
         if (DashboardClient.IsEnabled)
@@ -224,7 +223,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         }
     }
 
-    private bool ApplicationErrorCountsChanged(Dictionary<OtlpApplication, int> newApplicationUnviewedErrorCounts)
+    private bool ApplicationErrorCountsChanged(Dictionary<ApplicationKey, int> newApplicationUnviewedErrorCounts)
     {
         if (_applicationUnviewedErrorCounts == null || _applicationUnviewedErrorCounts.Count != newApplicationUnviewedErrorCounts.Count)
         {
