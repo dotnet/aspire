@@ -18,7 +18,7 @@ var storage = builder.AddAzureStorage("storage", (_, construct, account) =>
     account.Location = locationOverride.AsBicepParameter(construct);
 });
 
-//var blobs = storage.AddBlobs("blobs");
+var blobs = storage.AddBlobs("blobs");
 
 //var sqldb = builder.AddSqlServer("sql").AsAzureSqlDatabase().AddDatabase("sqldb");
 
@@ -35,13 +35,13 @@ var keyvault = builder.AddAzureKeyVault("mykv", (_, construct, keyVault) =>
 
 //var cache = builder.AddRedis("cache").AsAzureRedis();
 
-//var pgsqlAdministratorLogin = builder.AddParameter("pgsqlAdministratorLogin");
-//var pgsqlAdministratorLoginPassword = builder.AddParameter("pgsqlAdministratorLoginPassword", secret: true);
-//var pgsqldb = builder.AddPostgres("pgsql", pgsqlAdministratorLogin, pgsqlAdministratorLoginPassword)
-//                   .AsAzurePostgresFlexibleServer()
-//                   .AddDatabase("pgsqldb");
+var pgsqlAdministratorLogin = builder.AddParameter("pgsqlAdministratorLogin");
+var pgsqlAdministratorLoginPassword = builder.AddParameter("pgsqlAdministratorLoginPassword", secret: true);
+var pgsqldb = builder.AddPostgres("pgsql", pgsqlAdministratorLogin, pgsqlAdministratorLoginPassword)
+                   .AsAzurePostgresFlexibleServer()
+                   .AddDatabase("pgsqldb");
 
-//var pgsql2 = builder.AddPostgres("pgsql2").AsAzurePostgresFlexibleServer();
+var pgsql2 = builder.AddPostgres("pgsql2").AsAzurePostgresFlexibleServer();
 
 //var sb = builder.AddAzureServiceBus("servicebus")
 //    .AddQueue("queue1",
@@ -93,12 +93,12 @@ var keyvault = builder.AddAzureKeyVault("mykv", (_, construct, keyVault) =>
 builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithExternalHttpEndpoints()
     //.WithReference(signalr)
-    //.WithReference(blobs)
+    .WithReference(blobs)
     //.WithReference(sqldb)
-    .WithReference(keyvault);
+    .WithReference(keyvault)
     //.WithReference(cache)
     //.WithReference(cosmosdb)
-    //.WithReference(pgsqldb)
+    .WithReference(pgsqldb);
     //.WithReference(sb)
     //.WithReference(appConfig)
     //.WithReference(search)
