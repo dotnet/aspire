@@ -133,20 +133,6 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
             chartInterop.invokeMethodAsync('ViewSpan', pointTraceData.traceId, pointTraceData.spanId);
         }
     });
-
-    const resizeObserver = new ResizeObserver(entries => {
-        for (let entry of entries) {
-            // Don't resize if not visible.
-            var display = window.getComputedStyle(entry.target).display;
-            var isHidden = !display || display === "none";
-            if (!isHidden) {
-                Plotly.Plots.resize(entry.target);
-            }
-        }
-    });
-    plot.then(plotyDiv => {
-        resizeObserver.observe(plotyDiv);
-    });
 }
 
 export function updateChart(id, traces, exemplarTrace, rangeStartTime, rangeEndTime) {

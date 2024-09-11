@@ -10,7 +10,7 @@
 @inject IStringLocalizer<ControlsStrings> Loc
 @inject IStringLocalizer<StructuredLogs> StructuredLogsLoc
 
-@if (Instrument is null)
+@if (InstrumentData is null)
 {
     <div>@Loc[nameof(ControlsStrings.ChartContainerUnableToDisplay)]</div>
 }
@@ -18,8 +18,8 @@ else
 {
     <div>
         <div class="dashpage-chart-header">
-            <h5 title="@Instrument.Name"
-                style="margin-bottom: 0; overflow: hidden; text-overflow: ellipsis; display: inline-block; max-width: 90%">@Instrument.Name</h5>
+            <h5 title="@InstrumentData.Summary.Name"
+                style="margin-bottom: 0; overflow: hidden; text-overflow: ellipsis; display: inline-block; max-width: 90%">@InstrumentData.Summary.Name</h5>
 
             @if (DimensionFilters.Count > 0)
             {
@@ -36,7 +36,7 @@ else
                                AutoFocus="true"
                                HorizontalPosition="HorizontalPosition.Left">
                     <Body>
-                        <ChartFilters InstrumentViewModel="@ViewModel" Instrument="@Instrument" DimensionFilters="@DimensionFilters"/>
+                        <ChartFilters InstrumentViewModel="@ViewModel" InstrumentData="@InstrumentData" DimensionFilters="@DimensionFilters"/>
                     </Body>
                 </FluentPopover>
             }
@@ -47,7 +47,7 @@ else
             {
                 <ChartWrapper Applications="@Applications"
                           Duration="@Duration"
-                          Instrument="@Instrument"
+                          InstrumentData="@InstrumentData"
                           InstrumentViewModel="@ViewModel"
                           DimensionFilters="@DimensionFilters"
                           IsDashpage="true"/>
@@ -56,7 +56,7 @@ else
             {
                 <MetricTableWrapper Applications="@Applications"
                                 Duration="@Duration"
-                                Instrument="@Instrument"
+                                InstrumentData="@InstrumentData"
                                 InstrumentViewModel="@ViewModel"
                                 DimensionFilters="@DimensionFilters"/>
             }

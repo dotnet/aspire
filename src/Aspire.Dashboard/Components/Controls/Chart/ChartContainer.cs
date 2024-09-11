@@ -44,8 +44,8 @@ public abstract class ChartContainer : ComponentBase, IAsyncDisposable
     public List<DimensionFilterViewModel> DimensionFilters { get; } = [];
     public string? PreviousMeterName { get; set; }
     public string? PreviousInstrumentName { get; set; }
-    public OtlpInstrument? Instrument { get; private set; }
     public InstrumentViewModel ViewModel { get; } = new InstrumentViewModel();
+    protected OtlpInstrumentData? InstrumentData { get; private set; }
 
     protected override void OnInitialized()
     {
@@ -76,33 +76,33 @@ public abstract class ChartContainer : ComponentBase, IAsyncDisposable
         var timer = _tickTimer;
         while (await timer!.WaitForNextTickAsync())
         {
-            Instrument = GetInstrument();
-            if (Instrument == null)
+            InstrumentData = GetInstrument();
+            if (InstrumentData == null)
             {
                 continue;
             }
 
-            if (Instrument.Dimensions.Count > _renderedDimensionsCount)
+            if (InstrumentData.Dimensions.Count > _renderedDimensionsCount)
             {
                 // Re-render the entire control if the number of dimensions has changed.
-                _renderedDimensionsCount = Instrument.Dimensions.Count;
+                _renderedDimensionsCount = InstrumentData.Dimensions.Count;
                 await InvokeAsync(StateHasChanged);
             }
             else
             {
-                await UpdateInstrumentDataAsync(Instrument);
+                await UpdateInstrumentDataAsync(InstrumentData);
             }
         }
     }
 
     public async Task DimensionValuesChangedAsync(DimensionFilterViewModel dimensionViewModel)
     {
-        if (Instrument == null)
+        if (InstrumentData == null)
         {
             return;
         }
 
-        await UpdateInstrumentDataAsync(Instrument);
+        await UpdateInstrumentDataAsync(InstrumentData);
     }
 
     private async Task UpdateInstrumentDataAsync(OtlpInstrumentData instrument)
@@ -110,7 +110,7 @@ public abstract class ChartContainer : ComponentBase, IAsyncDisposable
         var matchedDimensions = instrument.Dimensions.Where(MatchDimension).ToList();
 
         // Only update data in plotly
-        await ViewModel.UpdateDataAsync(instrument, matchedDimensions);
+        await ViewModel.UpdateDataAsync(instrument.Summary, matchedDimensions);
     }
 
     private bool MatchDimension(DimensionScope dimension)
@@ -151,9 +151,9 @@ public abstract class ChartContainer : ComponentBase, IAsyncDisposable
 
     protected override async Task OnParametersSetAsync()
     {
-        Instrument = GetInstrument();
+        InstrumentData = GetInstrument();
 
-        if (Instrument == null)
+        if (InstrumentData == null)
         {
             return;
         }
@@ -167,7 +167,7 @@ public abstract class ChartContainer : ComponentBase, IAsyncDisposable
         DimensionFilters.Clear();
         DimensionFilters.AddRange(filters);
 
-        await UpdateInstrumentDataAsync(Instrument);
+        await UpdateInstrumentDataAsync(InstrumentData);
     }
 
     private OtlpInstrumentData? GetInstrument()
@@ -201,9 +201,9 @@ public abstract class ChartContainer : ComponentBase, IAsyncDisposable
     private List<DimensionFilterViewModel> CreateUpdatedFilters(bool hasInstrumentChanged)
     {
         var filters = new List<DimensionFilterViewModel>();
-        if (Instrument != null)
+        if (InstrumentData != null)
         {
-            foreach (var item in Instrument.KnownAttributeValues.OrderBy(kvp => kvp.Key))
+            foreach (var item in InstrumentData.KnownAttributeValues.OrderBy(kvp => kvp.Key))
             {
                 var dimensionModel = new DimensionFilterViewModel
                 {

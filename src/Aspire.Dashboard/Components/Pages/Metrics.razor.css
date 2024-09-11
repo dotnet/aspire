@@ -34,7 +34,7 @@
 }
 
 @media (min-width: 768px) {
-    ::deep .metrics-chart {
+    ::deep .metrics-chart-header {
         padding-left: 40px;
     }
 }

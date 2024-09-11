@@ -152,5 +152,11 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("MetricsViewAttributesToolbar", resourceCulture);
             }
         }
+        
+        public static string DashpagesSectionName {
+            get {
+                return ResourceManager.GetString("DashpagesSectionName", resourceCulture);
+            }
+        }
     }
 }
