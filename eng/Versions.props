@@ -17,7 +17,6 @@
     <DotNetRuntimeVersionForTesting>8.0.8</DotNetRuntimeVersionForTesting>
     <!-- dotnet 8.0 versions for running tests - used for workload tests -->
     <DotNetSdkVersionForTesting>8.0.401</DotNetSdkVersionForTesting>
-
     <UseVSTestRunner>true</UseVSTestRunner>
     <!-- Enable to remove prerelease label. -->
     <StabilizePackageVersion Condition="'$(StabilizePackageVersion)' == ''">false</StabilizePackageVersion>
@@ -35,10 +34,10 @@
     <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.7.1</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
     <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.7.1</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
     <!-- Other -->
-    <MicrosoftDotNetRemoteExecutorPackageVersion>9.0.0-beta.24453.1</MicrosoftDotNetRemoteExecutorPackageVersion>
-    <MicrosoftDotNetXUnitExtensionsPackageVersion>9.0.0-beta.24453.1</MicrosoftDotNetXUnitExtensionsPackageVersion>
-    <MicrosoftDotNetBuildTasksInstallersPackageVersion>9.0.0-beta.24453.1</MicrosoftDotNetBuildTasksInstallersPackageVersion>
-    <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>9.0.0-beta.24453.1</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
+    <MicrosoftDotNetRemoteExecutorPackageVersion>9.0.0-beta.24459.6</MicrosoftDotNetRemoteExecutorPackageVersion>
+    <MicrosoftDotNetXUnitExtensionsPackageVersion>9.0.0-beta.24459.6</MicrosoftDotNetXUnitExtensionsPackageVersion>
+    <MicrosoftDotNetBuildTasksInstallersPackageVersion>9.0.0-beta.24459.6</MicrosoftDotNetBuildTasksInstallersPackageVersion>
+    <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>9.0.0-beta.24459.6</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
     <MicrosoftExtensionsHttpResiliencePackageVersion>8.8.0</MicrosoftExtensionsHttpResiliencePackageVersion>
     <MicrosoftExtensionsDiagnosticsTestingPackageVersion>8.8.0</MicrosoftExtensionsDiagnosticsTestingPackageVersion>
     <MicrosoftExtensionsConfigurationAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsConfigurationAbstractionsPackageVersion>
