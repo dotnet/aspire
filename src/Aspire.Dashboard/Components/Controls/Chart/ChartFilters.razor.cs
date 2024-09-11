@@ -22,6 +22,9 @@ public partial class ChartFilters
     [Parameter, EditorRequired]
     public required List<DimensionFilterViewModel> DimensionFilters { get; set; }
 
+    [Parameter]
+    public bool IsInsideModal { get; set; }
+
     public bool ShowCounts { get; set; }
 
     private GridColumnManager _manager = null!;

@@ -6,7 +6,7 @@
 
     @if (!IsDashpage)
     {
-        <ChartFilters InstrumentViewModel="@InstrumentViewModel" InstrumentData="@InstrumentData" DimensionFilters="@DimensionFilters" />
+        <ChartFilters IsInsideModal="@IsDashpage" InstrumentViewModel="@InstrumentViewModel" InstrumentData="@InstrumentData" DimensionFilters="@DimensionFilters" />
     }
 </div>
 

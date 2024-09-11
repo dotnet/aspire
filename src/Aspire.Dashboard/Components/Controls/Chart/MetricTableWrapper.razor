@@ -1,8 +1,13 @@
 ﻿@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Otlp.Model
+
 <div class="metric-tab">
     <MetricTable InstrumentViewModel="@InstrumentViewModel" Duration="Duration" Applications="Applications" />
-    <ChartFilters InstrumentViewModel="@InstrumentViewModel" InstrumentData="@InstrumentData" DimensionFilters="@DimensionFilters"/>
+
+    @if (!IsDashpage)
+    {
+        <ChartFilters IsInsideModal="@IsDashpage" InstrumentViewModel="@InstrumentViewModel" InstrumentData="@InstrumentData" DimensionFilters="@DimensionFilters"/>
+    }
 </div>
 
 @code {
@@ -21,4 +26,6 @@
     [Parameter, EditorRequired]
     public required InstrumentViewModel InstrumentViewModel { get; set; }
 
+    [Parameter]
+    public bool IsDashpage { get; set; }
 }

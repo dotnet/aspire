@@ -6,7 +6,7 @@
 @using Aspire.Dashboard.Model
 @inject IStringLocalizer<ControlsStrings> Loc
 
-<div class="metrics-filters-container">
+<div class="@(!IsInsideModal ? "metrics-filters-standalone-container" : "metrics-filters-modal-container")">
     @if (DimensionFilters.Count > 0)
     {
         <div class="metrics-filters-section">

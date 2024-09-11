@@ -38,7 +38,7 @@
         padding-left: 40px;
     }
 
-    ::deep .metrics-filters-container {
+    ::deep .metrics-filters-standalone-container {
         width: 600px;
     }
 }
@@ -54,7 +54,7 @@
     white-space: nowrap;
 }
 
-::deep .metrics-chart-container {
+::deep .metric-tab {
     grid-area: chart;
     display: flex;
     flex-direction: row;
