@@ -475,7 +475,7 @@ public class AddPostgresTests
         Assert.Equal(pg1.Resource.Name, servers.GetProperty("1").GetProperty("Name").GetString());
         Assert.Equal("Servers", servers.GetProperty("1").GetProperty("Group").GetString());
         Assert.Equal("mypostgres1", servers.GetProperty("1").GetProperty("Host").GetString());
-        Assert.Equal(5001, servers.GetProperty("1").GetProperty("Port").GetInt32());
+        Assert.Equal(5432, servers.GetProperty("1").GetProperty("Port").GetInt32());
         Assert.Equal("postgres", servers.GetProperty("1").GetProperty("Username").GetString());
         Assert.Equal("prefer", servers.GetProperty("1").GetProperty("SSLMode").GetString());
         Assert.Equal("postgres", servers.GetProperty("1").GetProperty("MaintenanceDB").GetString());

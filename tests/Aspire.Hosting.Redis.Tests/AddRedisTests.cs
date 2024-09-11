@@ -180,7 +180,7 @@ public class AddRedisTests
             DistributedApplicationOperation.Run,
             TestServiceProvider.Instance);
 
-        Assert.Equal($"myredis1:{redis.Resource.Name}:5001:0", config["REDIS_HOSTS"]);
+        Assert.Equal($"myredis1:{redis.Resource.Name}:6379:0", config["REDIS_HOSTS"]);
     }
 
     [Fact]
@@ -204,7 +204,7 @@ public class AddRedisTests
             DistributedApplicationOperation.Run,
             TestServiceProvider.Instance);
 
-        Assert.Equal($"myredis1:{redis1.Resource.Name}:5001:0,myredis2:host2:5002:0", config["REDIS_HOSTS"]);
+        Assert.Equal($"myredis1:{redis1.Resource.Name}:6379:0,myredis2:host2:6379:0", config["REDIS_HOSTS"]);
     }
 
     [Theory]
