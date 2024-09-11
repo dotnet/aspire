@@ -5,23 +5,41 @@
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 
-<FluentGrid Spacing="3" AdaptiveRendering="true" Justify="JustifyContent.FlexStart">
+<FluentGrid Spacing="3" AdaptiveRendering="true" Justify="JustifyContent.FlexStart" Class="dashpage-chart-grid">
     @foreach (var chart in SelectedDashpage.Charts)
     {
         if (Instruments.FirstOrDefault(i => i.Name == chart.InstrumentName) is { } instrument)
         {
-            <FluentGridItem md="6" lg="4">
-                <FluentCard AreaRestricted="true">
-                    <DashpageChartContainer
-                        ApplicationKey="@(SelectedApplication.Id!.GetApplicationKey())"
-                        MeterName="@(instrument.Parent.MeterName)"
-                        InstrumentName="@(instrument.Name)"
-                        Duration="@SelectedDuration.Id"
-                        ActiveView="@(SelectedViewKind ?? Metrics.MetricViewKind.Graph)"
-                        OnViewChangedAsync="@OnViewChangedAsync"
-                        Applications="@Applications" />
-                </FluentCard>
-            </FluentGridItem>
+            @if (ViewportInformation.IsDesktop)
+            {
+                <FluentGridItem sm="12" md="6" lg="4" Class="dashpage-chart-grid-item">
+                    <FluentCard AreaRestricted="true">
+                        <DashpageChartContainer
+                            ApplicationKey="@(SelectedApplication.Id!.GetApplicationKey())"
+                            MeterName="@(instrument.Parent.MeterName)"
+                            InstrumentName="@(instrument.Name)"
+                            Duration="@SelectedDuration.Id"
+                            ActiveView="@(SelectedViewKind ?? Metrics.MetricViewKind.Graph)"
+                            OnViewChangedAsync="@OnViewChangedAsync"
+                            Applications="@Applications" />
+                    </FluentCard>
+                </FluentGridItem>
+            }
+            else
+            {
+                <div class="dashpage-chart-grid-item">
+                    <FluentCard AreaRestricted="true">
+                        <DashpageChartContainer
+                            ApplicationKey="@(SelectedApplication.Id!.GetApplicationKey())"
+                            MeterName="@(instrument.Parent.MeterName)"
+                            InstrumentName="@(instrument.Name)"
+                            Duration="@SelectedDuration.Id"
+                            ActiveView="@(SelectedViewKind ?? Metrics.MetricViewKind.Graph)"
+                            OnViewChangedAsync="@OnViewChangedAsync"
+                            Applications="@Applications" />
+                    </FluentCard>
+                </div>
+            }
         }
     }
 </FluentGrid>
@@ -50,4 +68,7 @@
 
     [Parameter, EditorRequired]
     public required SelectViewModel<TimeSpan> SelectedDuration { get; set; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
 }
