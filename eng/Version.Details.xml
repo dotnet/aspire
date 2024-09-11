@@ -159,5 +159,9 @@
       <Sha>65260b148c869ada772a5843863c54737cd2361e</Sha>
       <SourceBuild RepoName="arcade" ManagedOnly="true" />
     </Dependency>
+    <Dependency Name="Microsoft.NETCore.App.Ref" Version="8.0.8">
+      <Uri>https://github.com/dotnet/runtime</Uri>
+      <Sha>08338fcaa5c9b9a8190abb99222fed12aaba956c</Sha>
+    </Dependency>
   </ToolsetDependencies>
 </Dependencies>
