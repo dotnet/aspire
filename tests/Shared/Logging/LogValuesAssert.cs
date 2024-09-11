@@ -40,9 +40,11 @@ public static class LogValuesAssert
         {
             if (!actualValues.Contains(expectedPair, comparer))
             {
-                throw new EqualException(
+                throw EqualException.ForMismatchedStrings(
                     expected: GetString(expectedValues),
-                    actual: GetString(actualValues));
+                    actual: GetString(actualValues),
+                    expectedIndex: 0,
+                    actualIndex: 0);
             }
         }
     }

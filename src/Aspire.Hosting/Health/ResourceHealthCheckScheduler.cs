@@ -35,7 +35,7 @@ internal class ResourceHealthCheckScheduler : BackgroundService
     {
         var resourceEvents = _resourceNotificationService.WatchAsync(stoppingToken);
 
-        await foreach (var resourceEvent in resourceEvents)
+        await foreach (var resourceEvent in resourceEvents.ConfigureAwait(false))
         {
             if (resourceEvent.Snapshot.State == KnownResourceStates.Running)
             {

@@ -139,7 +139,7 @@ public class DistributedApplicationTests
         var lifecycleHookDescriptors = testProgram.AppBuilder.Services.Where(sd => sd.ServiceType == typeof(IDistributedApplicationLifecycleHook));
 
         Assert.Single(lifecycleHookDescriptors.Where(sd => sd.ImplementationFactory == callback1));
-        Assert.Empty(lifecycleHookDescriptors.Where(sd => sd.ImplementationFactory == callback2));
+        Assert.DoesNotContain(lifecycleHookDescriptors, sd => sd.ImplementationFactory == callback2);
     }
 
     [Fact]
