@@ -152,7 +152,7 @@ internal static class TelemetryTestHelpers
             ParentSpanId = parentSpanId is null ? ByteString.Empty : ByteString.CopyFrom(Encoding.UTF8.GetBytes(parentSpanId)),
             StartTimeUnixNano = DateTimeToUnixNanoseconds(startTime),
             EndTimeUnixNano = DateTimeToUnixNanoseconds(endTime),
-            Name = "Test span"
+            Name = $"Test span. Id: {spanId}"
         };
         if (events != null)
         {

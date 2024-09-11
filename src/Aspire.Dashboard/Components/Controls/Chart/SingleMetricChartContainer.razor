@@ -16,17 +16,17 @@
 else
 {
     <div class="metrics-chart">
-        <div class="metrics-chart-header" style="@($"padding-left: 40px")">
-            <h3>@Instrument.Name</h3>
-            <p>@Instrument.Description</p>
+        <div class="metrics-chart-header" style="padding-left: 40px">
+            <h3>@Instrument.Summary.Name</h3>
+            <p>@Instrument.Summary.Description</p>
         </div>
 
         <FluentTabs ActiveTabId="@($"tab-{ActiveView}")" OnTabChange="@OnTabChangeAsync">
             <FluentTab LabelClass="tab-label"
-                       Id="@($"tab-{Metrics.MetricViewKind.Graph}")"
-                       aria-label="@Loc[nameof(ControlsStrings.ChartContainerGraphAccessibleLabel)]"
-                       Label="@Loc[nameof(ControlsStrings.ChartContainerGraphTab)]"
-                       Icon="@(new Icons.Regular.Size24.DataArea())">
+                   Id="@($"tab-{Metrics.MetricViewKind.Graph}")"
+                   aria-label="@Loc[nameof(ControlsStrings.ChartContainerGraphAccessibleLabel)]"
+                   Label="@Loc[nameof(ControlsStrings.ChartContainerGraphTab)]"
+                   Icon="@(new Icons.Regular.Size24.DataArea())">
                 <ChartWrapper Applications="@Applications"
                               Duration="@Duration"
                               Instrument="@Instrument"

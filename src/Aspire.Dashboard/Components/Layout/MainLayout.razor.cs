@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Dialogs;
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
@@ -64,6 +63,9 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     [Inject]
     public required IOptionsMonitor<DashboardOptions> Options { get; init; }
 
+    [Inject]
+    public required ILocalStorage LocalStorage { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
 
@@ -102,22 +104,32 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         if (Options.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
         {
-            // ShowMessageBarAsync must come after an await. Otherwise it will NRE.
-            // I think this order allows the message bar provider to be fully initialized.
-            await MessageService.ShowMessageBarAsync(options =>
+            var dismissedResult = await LocalStorage.GetUnprotectedAsync<bool>(BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey);
+            var skipMessage = dismissedResult.Success && dismissedResult.Value;
+
+            if (!skipMessage)
             {
-                options.Title = Loc[nameof(Resources.Layout.MessageTelemetryTitle)];
-                options.Body = Loc[nameof(Resources.Layout.MessageTelemetryBody)];
-                options.Link = new()
+                // ShowMessageBarAsync must come after an await. Otherwise it will NRE.
+                // I think this order allows the message bar provider to be fully initialized.
+                await MessageService.ShowMessageBarAsync(options =>
                 {
-                    Text = Loc[nameof(Resources.Layout.MessageTelemetryLink)],
-                    Href = "https://aka.ms/dotnet/aspire/telemetry-unsecured",
-                    Target = "_blank"
-                };
-                options.Intent = MessageIntent.Warning;
-                options.Section = MessageBarSection;
-                options.AllowDismiss = true;
-            });
+                    options.Title = Loc[nameof(Resources.Layout.MessageTelemetryTitle)];
+                    options.Body = Loc[nameof(Resources.Layout.MessageTelemetryBody)];
+                    options.Link = new()
+                    {
+                        Text = Loc[nameof(Resources.Layout.MessageTelemetryLink)],
+                        Href = "https://aka.ms/dotnet/aspire/telemetry-unsecured",
+                        Target = "_blank"
+                    };
+                    options.Intent = MessageIntent.Warning;
+                    options.Section = MessageBarSection;
+                    options.AllowDismiss = true;
+                    options.OnClose = async m =>
+                    {
+                        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey, true);
+                    };
+                });
+            }
         }
     }
 

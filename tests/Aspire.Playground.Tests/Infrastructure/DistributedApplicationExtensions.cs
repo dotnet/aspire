@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
@@ -13,7 +13,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using SamplesIntegrationTests.Infrastructure;
-using Xunit;
+using Xunit.Sdk;
 
 namespace SamplesIntegrationTests.Infrastructure;
 
@@ -134,8 +134,10 @@ public static partial class DistributedApplicationExtensions
 
         var (appHostlogs, resourceLogs) = app.GetLogs();
 
-        Assert.DoesNotContain(appHostlogs, log => log.Level >= LogLevel.Error);
-        Assert.DoesNotContain(resourceLogs, log => log.Category is { Length: > 0 } category && assertableResourceLogNames.Contains(category) && log.Level >= LogLevel.Error);
+        // Ignoring log entries from DefaultHealthCheckService for now. Once we have dashboard integration for health checks
+        // we'll filter out these log messages from the apphost completely but its useful for debugging for now.
+        AssertDoesNotContain(appHostlogs, log => log.Level >= LogLevel.Error && log.Category != "Microsoft.Extensions.Diagnostics.HealthChecks.DefaultHealthCheckService");
+        AssertDoesNotContain(resourceLogs, log => log.Category is { Length: > 0 } category && assertableResourceLogNames.Contains(category) && log.Level >= LogLevel.Error);
 
         static bool ShouldAssertErrorsForResource(IResource resource)
         {
@@ -147,6 +149,17 @@ public static partial class DistributedApplicationExtensions
                     and not NodeAppResource
                 // Dapr resources write to stderr about deprecated --components-path flag
                 && !resource.Name.EndsWith("-dapr-cli");
+        }
+
+        static void AssertDoesNotContain(IReadOnlyList<FakeLogRecord> logs, Func<FakeLogRecord, bool> predicate)
+        {
+            foreach (var log in logs)
+            {
+                if (predicate(log))
+                {
+                    throw new XunitException($"Error found in the logs: {log}");
+                }
+            }
         }
     }
 

@@ -87,8 +87,8 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
                 // Use a deterministic volume name to prevent them from exhausting the machines if deletion fails
                 volumeName = VolumeNameGenerator.CreateVolumeName(mongodb1, nameof(WithDataShouldPersistStateBetweenUsages));
 
-                // if the volume already exists (because of a crashing previous run), try to delete it
-                DockerUtils.AttemptDeleteDockerVolume(volumeName);
+                // if the volume already exists (because of a crashing previous run), delete it
+                DockerUtils.AttemptDeleteDockerVolume(volumeName, throwOnFailure: true);
                 mongodb1.WithDataVolume(volumeName);
             }
             else

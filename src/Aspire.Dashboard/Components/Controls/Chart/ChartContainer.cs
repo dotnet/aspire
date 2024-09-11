@@ -105,9 +105,9 @@ public abstract class ChartContainer : ComponentBase, IAsyncDisposable
         await UpdateInstrumentDataAsync(Instrument);
     }
 
-    private async Task UpdateInstrumentDataAsync(OtlpInstrument instrument)
+    private async Task UpdateInstrumentDataAsync(OtlpInstrumentData instrument)
     {
-        var matchedDimensions = instrument.Dimensions.Values.Where(MatchDimension).ToList();
+        var matchedDimensions = instrument.Dimensions.Where(MatchDimension).ToList();
 
         // Only update data in plotly
         await ViewModel.UpdateDataAsync(instrument, matchedDimensions);
@@ -170,7 +170,7 @@ public abstract class ChartContainer : ComponentBase, IAsyncDisposable
         await UpdateInstrumentDataAsync(Instrument);
     }
 
-    private OtlpInstrument? GetInstrument()
+    private OtlpInstrumentData? GetInstrument()
     {
         var endDate = DateTime.UtcNow;
         // Get more data than is being displayed. Histogram graph uses some historical data to calculate bucket counts.

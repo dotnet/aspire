@@ -7,7 +7,7 @@ namespace Aspire.Hosting.Utils;
 
 public sealed class DockerUtils
 {
-    public static void AttemptDeleteDockerVolume(string volumeName)
+    public static void AttemptDeleteDockerVolume(string volumeName, bool throwOnFailure = false)
     {
         for (var i = 0; i < 3; i++)
         {
@@ -27,6 +27,29 @@ public sealed class DockerUtils
                 {
                     break;
                 }
+            }
+        }
+
+        if (throwOnFailure)
+        {
+            if (Process.Start("docker", $"volume inspect {volumeName}") is { } process)
+            {
+                var exited = process.WaitForExit(TimeSpan.FromSeconds(3));
+                var exitCode = process.ExitCode;
+                process.Kill(entireProcessTree: true);
+                process.Dispose();
+                if (!exited)
+                {
+                    throw new InvalidOperationException($"Failed to inspect the deleted volume named '{volumeName}', the inspect process did not exit.");
+                }
+                if (exitCode == 0)
+                {
+                    throw new InvalidOperationException($"Failed to delete docker volume named '{volumeName}'. Attempted to inspect the volume and it still exists.");
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException($"Failed to inspect the deleted volume named '{volumeName}', the inspect process did not start.");
             }
         }
     }

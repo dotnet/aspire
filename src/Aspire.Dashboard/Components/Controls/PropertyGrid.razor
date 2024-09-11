@@ -1,20 +1,23 @@
-﻿@using Aspire.Dashboard.Resources
+﻿@using Aspire.Dashboard.Components.Controls.Grid
+@using Aspire.Dashboard.Resources
 @typeparam TItem
 @inject IStringLocalizer<ControlsStrings> Loc
 
-<FluentDataGrid Items="@Items"
+<FluentDataGrid ResizeLabel="@AspireFluentDataGridHeaderCell.GetResizeLabel(Loc)"
+                ResizeType="DataGridResizeType.Discrete"
+                Items="@Items"
                 ResizableColumns="true"
                 Style="width:100%"
                 GenerateHeader="@GenerateHeader"
                 GridTemplateColumns="@GridTemplateColumns"
                 ShowHover="true">
-    <TemplateColumn Title="@(NameColumnTitle ?? Loc[nameof(ControlsStrings.NameColumnHeader)])" Class="nameColumn" SortBy="@NameSort" Sortable="@IsNameSortable">
+    <AspireTemplateColumn Title="@(NameColumnTitle ?? Loc[nameof(ControlsStrings.NameColumnHeader)])" Class="nameColumn" SortBy="@NameSort" Sortable="@IsNameSortable">
         <GridValue
             ValueDescription="@(NameColumnTitle ?? Loc[nameof(ControlsStrings.NameColumnHeader)])"
             Value="@NameColumnValue(context)"
             HighlightText="@HighlightText" />
-    </TemplateColumn>
-    <TemplateColumn Title="@(ValueColumnTitle ?? Loc[nameof(ControlsStrings.PropertyGridValueColumnHeader)])" Class="valueColumn" SortBy="@ValueSort" Sortable="@IsValueSortable">
+    </AspireTemplateColumn>
+    <AspireTemplateColumn Title="@(ValueColumnTitle ?? Loc[nameof(ControlsStrings.PropertyGridValueColumnHeader)])" Class="valueColumn" SortBy="@ValueSort" Sortable="@IsValueSortable">
         <GridValue
             ValueDescription="@(ValueColumnTitle ?? Loc[nameof(ControlsStrings.PropertyGridValueColumnHeader)])"
             Value="@ValueColumnValue(context)" HighlightText="@HighlightText"
@@ -22,6 +25,6 @@
             IsMaskedChanged="(newValue) => OnIsMaskedChanged(context, newValue)"
             TextVisualizerTitle="@NameColumnValue(context)"/>
         @ExtraValueContent(context)
-    </TemplateColumn>
+    </AspireTemplateColumn>
 </FluentDataGrid>
 

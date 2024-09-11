@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -75,7 +74,7 @@ public partial class GridValue
     public required IJSRuntime JS { get; init; }
 
     [CascadingParameter]
-    public required ViewportInformation ViewportInformation { get; init; }
+    public required ViewportInformation ViewportInformation { get; set; }
 
     private readonly Icon _maskIcon = new Icons.Regular.Size16.EyeOff();
     private readonly Icon _unmaskIcon = new Icons.Regular.Size16.Eye();

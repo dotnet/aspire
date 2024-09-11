@@ -21,6 +21,8 @@ var db9 = pg6.AddDatabase("db9", "db8"); // different connection string (db9) on
 // External resources.
 var db10 = builder.AddPostgres("pg10").WithPgAdmin().PublishAsConnectionString().AddDatabase("db10");
 
+var db11 = builder.AddPostgres("pg11").WithPgWeb().AddDatabase("postgres");
+
 builder.AddProject<Projects.PostgresEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()
        .WithReference(db1)
@@ -32,8 +34,8 @@ builder.AddProject<Projects.PostgresEndToEnd_ApiService>("api")
        .WithReference(db7)
        .WithReference(db8)
        .WithReference(db9)
-       .WithReference(db10);
-
+       .WithReference(db10)
+       .WithReference(db11);
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

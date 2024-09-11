@@ -32,7 +32,7 @@
       <ExcludeAssets Condition="'%(ExcludeAssets)' == '' and '%(IsAspireProjectResource)' == 'true'">all</ExcludeAssets>
       <Private Condition="'%(Private)' == '' and '%(IsAspireProjectResource)' == 'true'">false</Private>
     </ProjectReference>
-    
+
   </ItemGroup>
 
   <Target Name="__WarnOnAspireCapabilityMissing" BeforeTargets="PrepareForBuild" Condition="!@(ProjectCapability->AnyHaveMetadataValue('Identity', 'Aspire'))">
@@ -41,6 +41,49 @@
 
   <Target Name="__WarnOnMininumVsVersionMissing" BeforeTargets="PrepareForBuild" Condition="'$(BuildingInsideVisualStudio)' == 'true' and $([MSBuild]::VersionLessThan('$(MSBuildVersion)', '17.10.0'))">
     <Warning Code="ASPIRE003" Text="$(MSBuildProjectName) is a .NET Aspire AppHost project that requires Visual Studio version 17.10 or above to work correctly. You are using version $(MSBuildVersion)." />
+  </Target>
+
+  <!-- This target extracts the version of Aspire.Hosting.AppHost referenced by the project, and adds
+       a reference to Aspire.Dashboard.Sdk and Aspire.Hosting.Orchestration for the build-time platform using
+       the same version. This is done here dynamically to avoid having to pull in DCP and Dashboard packages
+       for all of the platforms. This mechanism can be disabled by setting `SkipAddAspireDefaultReferences` to `true` -->
+  <Target Name="AddReferenceToDashboardAndDCP" BeforeTargets="Restore;CollectPackageReferences" Condition="'$(SkipAddAspireDefaultReferences)' != 'true'">
+
+    <!-- First, we assume project is not using Central Package Management, and we try to extract the version
+         from PackageReference Items. -->
+    <ItemGroup>
+      <_AppHostPackageReference Include="@(PackageReference)" Condition="'%(Identity)' == 'Aspire.Hosting.AppHost'" />
+    </ItemGroup>
+
+    <!-- Extract the Version metadata -->
+    <PropertyGroup>
+      <_AppHostVersion>%(_AppHostPackageReference.Version)</_AppHostVersion>
+    </PropertyGroup>
+
+    <!-- If the version is still empty, then we assume the project is using Central Package Management, 
+         and we try to extract the PackageVersion Items. -->
+    <ItemGroup Condition="'$(_AppHostVersion)' == ''">
+      <_AppHostPackageReference />
+      <_AppHostPackageReference Include="@(PackageVersion)" Condition="'%(Identity)' == 'Aspire.Hosting.AppHost'" />
+    </ItemGroup>
+
+    <PropertyGroup Condition="'$(_AppHostVersion)' == ''">
+      <_AppHostVersion>%(_AppHostPackageReference.Version)</_AppHostVersion>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(_AppHostVersion)' != ''">
+      <__CurrentAppHostVersionMessage> You are using version $(_AppHostVersion).</__CurrentAppHostVersionMessage>
+    </PropertyGroup>
+
+    <!-- At this point, we should have the version either by CPM or PackageReference, so we fail if not.  -->
+    <Error Condition="'$(_AppHostVersion)' == '' or $([MSBuild]::VersionLessThan('$(_AppHostVersion)', '8.2.0'))" 
+       Text="$(MSBuildProjectName) is a .NET Aspire AppHost project that needs a package reference to Aspire.Hosting.AppHost version 8.2.0 or above to work correctly.$(__CurrentAppHostVersionMessage)" />
+
+    <!-- Now that we have the version, we add the package references -->
+    <ItemGroup>
+      <PackageReference Include="Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier)" Version="$(_AppHostVersion)" IsImplicitlyDefined="true" />
+      <PackageReference Include="Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier)" Version="$(_AppHostVersion)" IsImplicitlyDefined="true" />
+    </ItemGroup>
   </Target>
 
 </Project>

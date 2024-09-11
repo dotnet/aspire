@@ -22,8 +22,8 @@ public class TimestampParserTests
 
     [Theory]
     [InlineData("2023-10-10T15:05:30.123456789Z", true, "", "2023-10-10T15:05:30.123456789Z")]
-    [InlineData("2023-10-10T15:05:30.123456789Z ", true, " ", "2023-10-10T15:05:30.123456789Z")]
-    [InlineData("2023-10-10T15:05:30.123456789Z with some text after it", true, " with some text after it", "2023-10-10T15:05:30.123456789Z")]
+    [InlineData("2023-10-10T15:05:30.123456789Z ", true, "", "2023-10-10T15:05:30.123456789Z")]
+    [InlineData("2023-10-10T15:05:30.123456789Z with some text after it", true, "with some text after it", "2023-10-10T15:05:30.123456789Z")]
     [InlineData("With some text before it 2023-10-10T15:05:30.123456789Z", false, null, null)]
     public void TryColorizeTimestamp_ReturnsCorrectResult(string input, bool expectedResult, string? expectedOutput, string? expectedTimestamp)
     {
