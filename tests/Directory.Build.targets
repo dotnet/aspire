@@ -28,6 +28,7 @@
     <RunWithCodeCoverage Condition="'$(RunWithCodeCoverage)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</RunWithCodeCoverage>
     <TestSessionTimeoutForHelix Condition="'$(TestSessionTimeoutForHelix)' == ''">600000</TestSessionTimeoutForHelix>
 
+    <!-- FIXME: move these to props? -->
     <RunScriptOutputRelativePath Condition="'$(RunScriptOutputRelativePath)' == '' and '$(OS)' != 'Windows_NT'">RunTests.sh</RunScriptOutputRelativePath>
     <RunScriptOutputRelativePath Condition="'$(RunScriptOutputRelativePath)' == '' and '$(OS)' == 'Windows_NT'">RunTests.cmd</RunScriptOutputRelativePath>
 
@@ -40,26 +41,6 @@
     <None Include="$(XunitRunnerJson)" CopyToOutputDirectory="PreserveNewest" />
     <None Condition="'$(RunWithCodeCoverage)' == 'true'" Include="$(RepoRoot)eng\CodeCoverage.config" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
-
-  <PropertyGroup Condition="'$(RunTestsOnHelix)' == 'true' and '$(IsTestProject)' == 'true'">
-    <_ExtraTestArgsEnvVar Condition="'$(OS)' != 'Windows_NT'">$ExtraTestArgs</_ExtraTestArgsEnvVar>
-    <_ExtraTestArgsEnvVar Condition="'$(OS)' == 'Windows_NT'">%ExtraTestArgs%</_ExtraTestArgsEnvVar>
-
-    <_TestFilterArgEnvVar Condition="'$(OS)' != 'Windows_NT'">$TestFilterArg</_TestFilterArgEnvVar>
-    <_TestFilterArgEnvVar Condition="'$(OS)' == 'Windows_NT'">%TestFilterArg%</_TestFilterArgEnvVar>
-
-    <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' != 'Windows_NT'">$HELIX_CORRELATION_PAYLOAD</_HelixCorrelationPayloadEnvVar>
-    <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_CORRELATION_PAYLOAD%</_HelixCorrelationPayloadEnvVar>
-
-    <_CodeCoverageToolEnvVar Condition="'$(OS)' != 'Windows_NT'">$COVERAGE_TOOL_CMD</_CodeCoverageToolEnvVar>
-    <_CodeCoverageToolEnvVar Condition="'$(OS)' == 'Windows_NT'">%COVERAGE_TOOL_CMD%</_CodeCoverageToolEnvVar>
-
-    <_CodeCoverageReportFileNameSuffixEnvVar Condition="'$(OS)' != 'Windows_NT'">${CODE_COV_FILE_SUFFIX}</_CodeCoverageReportFileNameSuffixEnvVar>
-    <_CodeCoverageReportFileNameSuffixEnvVar Condition="'$(OS)' == 'Windows_NT'">%CODE_COV_FILE_SUFFIX%</_CodeCoverageReportFileNameSuffixEnvVar>
-
-    <_LogsPathEnvVar Condition="'$(OS)' != 'Windows_NT'">$LOGS_PATH</_LogsPathEnvVar>
-    <_LogsPathEnvVar Condition="'$(OS)' == 'Windows_NT'">%LOGS_PATH%</_LogsPathEnvVar>
-  </PropertyGroup>
 
   <ItemGroup Condition="'$(RunTestsOnHelix)' == 'true' and '$(IsTestProject)' == 'true'">
     <_TestCoverageCommand Include="$(_CodeCoverageToolEnvVar) collect" />

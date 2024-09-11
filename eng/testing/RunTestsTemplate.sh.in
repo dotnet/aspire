@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -x
+set -e
 
 EXECUTION_DIR=$(dirname $0)
 

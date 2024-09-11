@@ -13,11 +13,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <HelixPreCommand Include="$(_EnvVarSetKeyword) SkipDashboardProjectReference=true" />
-    <HelixPreCommand Include="$(_EnvVarSetKeyword) TestsRunningOutsideOfRepo=true" />
-    <!-- required for tests that build docker images, like Aspire.Playground.Tests -->
-    <HelixPreCommand Include="$(_EnvVarSetKeyword) DOCKER_BUILDKIT=1" />
-
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set NUGET_PACKAGES=%HELIX_WORKITEM_ROOT%\nuget-cache\" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export NUGET_PACKAGES=$HELIX_WORKITEM_ROOT/nuget-cache/" />
 
@@ -40,7 +35,8 @@
 
         <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;$(_SetPathEnvVar)&quot;</PreCommands>
 
-        <Command>cd tests/%(FileName) $(_ShellCommandSeparator) dotnet build -bl:$(_HelixLogsPath)/build.binlog $(_ShellCommandSeparator) $(_TestRunCommand)</Command>
+        <!--<Command>cd tests/%(FileName) $(_ShellCommandSeparator) dotnet build -bl:$(_HelixLogsPath)/build.binlog $(_ShellCommandSeparator) $(_TestRunCommand)</Command>-->
+        <Command>$(_TestRunCommand)</Command>
         <Timeout>00:15:00</Timeout>
         <Timeout Condition="'%(FileName)' == 'Aspire.Playground.Tests'">00:25:00</Timeout>
 

@@ -15,10 +15,33 @@
 
     <!-- This is useful for local runs -->
     <VSTestResultsDirectory>$(ArtifactsTestResultsDir)</VSTestResultsDirectory>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <_EnvVarSetKeyword Condition="'$(OS)' == 'Windows_NT'">set</_EnvVarSetKeyword>
+    <_EnvVarSetKeyword Condition="'$(OS)' != 'Windows_NT'">export</_EnvVarSetKeyword>
 
     <!-- FIXME: private? -->
     <_ShellCommandSeparator Condition="'$(OS)' == 'Windows_NT'">&amp;</_ShellCommandSeparator>
     <_ShellCommandSeparator Condition="'$(OS)' != 'Windows_NT'">&amp;&amp;</_ShellCommandSeparator>
+
+    <_ExtraTestArgsEnvVar Condition="'$(OS)' != 'Windows_NT'">$ExtraTestArgs</_ExtraTestArgsEnvVar>
+    <_ExtraTestArgsEnvVar Condition="'$(OS)' == 'Windows_NT'">%ExtraTestArgs%</_ExtraTestArgsEnvVar>
+
+    <_TestFilterArgEnvVar Condition="'$(OS)' != 'Windows_NT'">$TestFilterArg</_TestFilterArgEnvVar>
+    <_TestFilterArgEnvVar Condition="'$(OS)' == 'Windows_NT'">%TestFilterArg%</_TestFilterArgEnvVar>
+
+    <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' != 'Windows_NT'">$HELIX_CORRELATION_PAYLOAD</_HelixCorrelationPayloadEnvVar>
+    <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_CORRELATION_PAYLOAD%</_HelixCorrelationPayloadEnvVar>
+
+    <_CodeCoverageToolEnvVar Condition="'$(OS)' != 'Windows_NT'">$COVERAGE_TOOL_CMD</_CodeCoverageToolEnvVar>
+    <_CodeCoverageToolEnvVar Condition="'$(OS)' == 'Windows_NT'">%COVERAGE_TOOL_CMD%</_CodeCoverageToolEnvVar>
+
+    <_CodeCoverageReportFileNameSuffixEnvVar Condition="'$(OS)' != 'Windows_NT'">${CODE_COV_FILE_SUFFIX}</_CodeCoverageReportFileNameSuffixEnvVar>
+    <_CodeCoverageReportFileNameSuffixEnvVar Condition="'$(OS)' == 'Windows_NT'">%CODE_COV_FILE_SUFFIX%</_CodeCoverageReportFileNameSuffixEnvVar>
+
+    <_LogsPathEnvVar Condition="'$(OS)' != 'Windows_NT'">$LOGS_PATH</_LogsPathEnvVar>
+    <_LogsPathEnvVar Condition="'$(OS)' == 'Windows_NT'">%LOGS_PATH%</_LogsPathEnvVar>
   </PropertyGroup>
 
   <PropertyGroup>

@@ -45,9 +45,6 @@
     <_TestAssemblyRootDirEnvVar Condition="'$(OS)' != 'Windows_NT'">${HELIX_WORKITEM_ROOT}</_TestAssemblyRootDirEnvVar>
     <_TestAssemblyRootDirEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_WORKITEM_ROOT%</_TestAssemblyRootDirEnvVar>
 
-    <_EnvVarSetKeyword Condition="'$(OS)' == 'Windows_NT'">set</_EnvVarSetKeyword>
-    <_EnvVarSetKeyword Condition="'$(OS)' != 'Windows_NT'">export</_EnvVarSetKeyword>
-
     <_ShutdownDockerContainersCommand Condition="'$(OS)' != 'Windows_NT'">for f in `docker ps -aq`%3B do docker stop $f%3B docker rm $f%3B done</_ShutdownDockerContainersCommand>
     <_DeleteDockerVolumesCommand Condition="'$(OS)' != 'Windows_NT'">for f in `docker volume ls -q`%3B do docker volume rm $f%3B done</_DeleteDockerVolumesCommand>
 

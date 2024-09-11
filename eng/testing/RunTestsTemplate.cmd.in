@@ -24,4 +24,9 @@ set EXIT_CODE=%ERRORLEVEL%
 @echo off
 popd
 
-exit /b %EXIT_CODE%
+:error
+if [%EXIT_CODE%] == [] (
+    exit /b %ERRORLEVEL%
+) else (
+    exit /b %EXIT_CODE%
+)

@@ -24,7 +24,7 @@
     <!-- 20 mins -->
     <TestSessionTimeoutForHelix>1200000</TestSessionTimeoutForHelix>
 
-    <RunScriptOutputRelativePath>$(DeployOutsideOfRepoSupportFilesRelativeDir)tests/$(MSBuildProjectName)/RunTests</RunScriptOutputRelativePath>
+    <RunScriptOutputRelativePath>$(DeployOutsideOfRepoSupportFilesRelativeDir)/RunTests</RunScriptOutputRelativePath>
     <RunScriptOutputRelativePath Condition="'$(OS)' != 'Windows_NT'">$(RunScriptOutputRelativePath).sh</RunScriptOutputRelativePath>
     <RunScriptOutputRelativePath Condition="'$(OS)' == 'Windows_NT'">$(RunScriptOutputRelativePath).cmd</RunScriptOutputRelativePath>
 
@@ -96,6 +96,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <RunScriptPreCommand Include="$(_EnvVarSetKeyword) SkipDashboardProjectReference=true" />
+    <RunScriptPreCommand Include="$(_EnvVarSetKeyword) TestsRunningOutsideOfRepo=true" />
+    <!-- required for tests that build docker images -->
+    <RunScriptPreCommand Include="$(_EnvVarSetKeyword) DOCKER_BUILDKIT=1" />
+
+    <RunScriptPreCommand Include="cd tests/$(MSBuildProjectName)" />
+    <RunScriptPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="dotnet build -bl:$(_LogsPathEnvVar)/build.binlog" />
+    <RunScriptPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="dotnet build -bl:$(_LogsPathEnvVar)/build.binlog || goto :error" />
+
     <!-- Remove the blame-hang-timeout for playground tests, as it is pretty much one
          main test running - 'TestEndpointsReturnOk'. IOW, the blame-hang timeout
          would have to be at least as long as the full TestSession timeout. -->
