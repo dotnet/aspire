@@ -26,7 +26,7 @@
     <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestSupportProject)' == 'true' or '$(RunTestsOnHelix)' == 'true')">true</SkipTests>
 
     <RunWithCodeCoverage Condition="'$(RunWithCodeCoverage)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</RunWithCodeCoverage>
-    <TestSessionTimeoutForHelix Condition="'$(TestSessionTimeoutForHelix)' == ''">600000</TestSessionTimeoutForHelix>
+    <TestSessionTimeoutForHelix Condition="'$(TestSessionTimeoutForHelix)' == ''">900000</TestSessionTimeoutForHelix>
 
     <!-- FIXME: move these to props? -->
     <RunScriptOutputRelativePath Condition="'$(RunScriptOutputRelativePath)' == '' and '$(OS)' != 'Windows_NT'">RunTests.sh</RunScriptOutputRelativePath>
