@@ -21,7 +21,7 @@ public class BuildEnvironment
     public TestTargetFramework              TargetFramework               { get; init; }
     public DirectoryInfo?                   RepoRoot                      { get; init; }
 
-    public const TestTargetFramework        DefaultTargetFramework = TestTargetFramework.Net80;
+    public const TestTargetFramework        DefaultTargetFramework = TestTargetFramework.Net90;
     public static readonly string           TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "testassets");
     public static readonly string           TestRootPath = Path.Combine(Path.GetTempPath(), "testroot");
 
@@ -34,7 +34,12 @@ public class BuildEnvironment
 
     public static BuildEnvironment ForNet80 => s_instance_80.Value;
     public static BuildEnvironment ForNet90 => s_instance_90.Value;
-    public static BuildEnvironment ForDefaultFramework => ForNet90;
+    public static BuildEnvironment ForDefaultFramework => DefaultTargetFramework switch
+    {
+        TestTargetFramework.Net80 => ForNet80,
+        TestTargetFramework.Net90 => ForNet90,
+        _ => throw new ArgumentOutOfRangeException(nameof(DefaultTargetFramework))
+    };
 
     public BuildEnvironment(bool useSystemDotNet = false, TestTargetFramework targetFramework = DefaultTargetFramework)
     {
@@ -225,4 +230,14 @@ public enum TestTargetFramework
 {
     Net80,
     Net90
+}
+
+public static class TestTargetFrameworkExtensions
+{
+    public static string ToTFMString(this TestTargetFramework tfm) => tfm switch
+    {
+        TestTargetFramework.Net80 => "net8.0",
+        TestTargetFramework.Net90 => "net9.0",
+        _ => throw new ArgumentOutOfRangeException(nameof(tfm))
+    };
 }

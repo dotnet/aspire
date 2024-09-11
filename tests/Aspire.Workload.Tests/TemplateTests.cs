@@ -48,6 +48,10 @@ public partial class TemplateTests : WorkloadTestsBase
         string id = GetNewProjectId(prefix: $"aspire_{config}");
         await using var project = await AspireProject.CreateNewTemplateProjectAsync(id, "aspire", _testOutput, buildEnvironment: BuildEnvironment.ForDefaultFramework);
 
+        string projectPath = Path.Combine(project.AppHostProjectDirectory, $"{id}.AppHost.csproj");
+        string tfmLine = File.ReadAllLines(projectPath).Where(l => l.Contains("<TargetFramework>")).Single();
+        Assert.Matches($"^ *<TargetFramework>{BuildEnvironment.DefaultTargetFramework.ToTFMString()}</TargetFramework>$", tfmLine);
+
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
         await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
 
