@@ -448,17 +448,15 @@ public class AddPostgresTests
         builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
     }
 
-    [Theory]
-    [InlineData("host.docker.internal")]
-    [InlineData("host.containers.internal")]
-    public async Task WithPostgresProducesValidServersJsonFile(string containerHost)
+    [Fact]
+    public async Task WithPostgresProducesValidServersJsonFile()
     {
         var builder = DistributedApplication.CreateBuilder();
         var pg1 = builder.AddPostgres("mypostgres1").WithPgAdmin(pga => pga.WithHostPort(8081));
         var pg2 = builder.AddPostgres("mypostgres2").WithPgAdmin(pga => pga.WithHostPort(8081));
 
         // Add fake allocated endpoints.
-        pg1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
+        pg1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
         pg2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002, "host2"));
 
         var pgadmin = builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
@@ -476,7 +474,7 @@ public class AddPostgresTests
         // Make sure the first server is correct.
         Assert.Equal(pg1.Resource.Name, servers.GetProperty("1").GetProperty("Name").GetString());
         Assert.Equal("Servers", servers.GetProperty("1").GetProperty("Group").GetString());
-        Assert.Equal(containerHost, servers.GetProperty("1").GetProperty("Host").GetString());
+        Assert.Equal("mypostgres1", servers.GetProperty("1").GetProperty("Host").GetString());
         Assert.Equal(5001, servers.GetProperty("1").GetProperty("Port").GetInt32());
         Assert.Equal("postgres", servers.GetProperty("1").GetProperty("Username").GetString());
         Assert.Equal("prefer", servers.GetProperty("1").GetProperty("SSLMode").GetString());
@@ -494,17 +492,15 @@ public class AddPostgresTests
         Assert.Equal($"echo '{pg2.Resource.PasswordParameter.Value}'", servers.GetProperty("2").GetProperty("PasswordExecCommand").GetString());
     }
 
-    [Theory]
-    [InlineData("host.docker.internal")]
-    [InlineData("host.containers.internal")]
-    public async Task WithPgwebProducesValidBookmarkFiles(string containerHost)
+    [Fact]
+    public async Task WithPgwebProducesValidBookmarkFiles()
     {
         var builder = DistributedApplication.CreateBuilder();
         var pg1 = builder.AddPostgres("mypostgres1").WithPgWeb(pga => pga.WithHostPort(8081));
         var pg2 = builder.AddPostgres("mypostgres2").WithPgWeb(pga => pga.WithHostPort(8081));
 
         // Add fake allocated endpoints.
-        pg1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
+        pg1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
         pg2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002, "host2"));
 
         var db1 = pg1.AddDatabase("db1");

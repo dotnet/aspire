@@ -231,8 +231,7 @@ public class AddMySqlTests
     }
 
     [Theory]
-    [InlineData("host.docker.internal")]
-    [InlineData("host.containers.internal")]
+    [InlineData("mySql")]
     public async Task SingleMySqlInstanceProducesCorrectMySqlHostsVariable(string containerHost)
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -266,17 +265,15 @@ public class AddMySqlTests
         Assert.Equal("/etc/phpmyadmin/config.user.inc.php", volume.Target);
     }
 
-    [Theory]
-    [InlineData("host.docker.internal")]
-    [InlineData("host.containers.internal")]
-    public void WithPhpMyAdminProducesValidServerConfigFile(string containerHost)
+    [Fact]
+    public void WithPhpMyAdminProducesValidServerConfigFile()
     {
         var builder = DistributedApplication.CreateBuilder();
         var mysql1 = builder.AddMySql("mysql1").WithPhpMyAdmin(c => c.WithHostPort(8081));
         var mysql2 = builder.AddMySql("mysql2").WithPhpMyAdmin(c => c.WithHostPort(8081));
 
         // Add fake allocated endpoints.
-        mysql1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
+        mysql1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
         mysql2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002, "host3"));
 
         var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
@@ -291,7 +288,7 @@ public class AddMySqlTests
         var fileContents = new StreamReader(stream).ReadToEnd();
 
         // check to see that the two hosts are in the file
-        string pattern1 = $@"\$cfg\['Servers'\]\[\$i\]\['host'\] = '{containerHost}:5001';";
+        string pattern1 = $@"\$cfg\['Servers'\]\[\$i\]\['host'\] = 'mysql1:5001';";
         string pattern2 = @"\$cfg\['Servers'\]\[\$i\]\['host'\] = 'host3:5002';";
         Match match1 = Regex.Match(fileContents, pattern1);
         Assert.True(match1.Success);
