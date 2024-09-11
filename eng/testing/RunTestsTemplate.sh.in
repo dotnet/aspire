@@ -17,6 +17,9 @@ if [[ -n "$PREPEND_PATH" ]]; then
     export PATH=$PREPEND_PATH:$PATH
 fi
 
+PATH_FOR_DOTNET=$(dirname $(which dotnet))
+export SDK_FOR_WORKLOAD_TESTING_PATH=${SDK_FOR_WORKLOAD_TESTING_PATH:-$PATH_FOR_DOTNET}
+
 # PreCommands
 @PreCommands@
 
