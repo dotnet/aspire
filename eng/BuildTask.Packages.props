@@ -1,0 +1,26 @@
+<Project>
+
+    <!-- Don't go higher than binding redirects entries in the toolset MSBuild.exe.config file. --> 
+    <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
+      <PackageVersion Update="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
+      <PackageVersion Update="System.Collections.Immutable" Version="8.0.0" />
+      <PackageVersion Update="System.Reflection.Metadata" Version="8.0.0" />
+      <PackageVersion Update="System.Reflection.MetadataLoadContext" Version="8.0.0" />
+      <PackageVersion Update="System.Resources.Extensions" Version="8.0.0" />
+      <PackageVersion Update="System.Text.Encodings.Web" Version="8.0.0" />
+      <PackageVersion Update="System.Text.Json" Version="8.0.3" />
+      <PackageVersion Update="System.Threading.Tasks.Dataflow" Version="8.0.0" />
+  
+      <!-- Packages that transitively bring above dependencies in. -->
+      <PackageVersion Update="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
+      <PackageVersion Update="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+      <PackageVersion Update="Microsoft.Extensions.DependencyModel" Version="8.0.0" />
+      <PackageVersion Update="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+    </ItemGroup>
+  
+    <!-- Suppress System.Text.Json/8.0.0 advisory as desktop msbuild doesn't yet provide binding redirects for the non-vulnerable version (8.0.4). -->
+    <ItemGroup>
+      <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-hh2w-p6rv-4g7w" />
+    </ItemGroup>
+  
+  </Project>
