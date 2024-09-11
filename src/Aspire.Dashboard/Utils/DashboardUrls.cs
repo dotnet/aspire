@@ -29,7 +29,7 @@ internal static class DashboardUrls
         return url;
     }
 
-    public static string MetricsUrl(string? resource = null, string? meter = null, string? instrument = null, int? duration = null, string? view = null)
+    public static string MetricsUrl(string? resource = null, string? meter = null, string? instrument = null, int? duration = null, string? view = null, string? dashpage = null)
     {
         var url = $"/{MetricsBasePath}";
         if (resource != null)
@@ -44,6 +44,11 @@ internal static class DashboardUrls
             {
                 url = QueryHelpers.AddQueryString(url, "instrument", instrument);
             }
+        }
+        if (dashpage is not null)
+        {
+            // dashpage must be querystring parameters because it's valid for the name to contain forward slashes.
+            url = QueryHelpers.AddQueryString(url, "dashpage", dashpage);
         }
         if (duration != null)
         {

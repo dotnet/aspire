@@ -45,6 +45,10 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public string? InstrumentName { get; set; }
 
     [Parameter]
+    [SupplyParameterFromQuery(Name = "dashpage")]
+    public string? DashpageName { get; set; }
+
+    [Parameter]
     [SupplyParameterFromQuery(Name = "duration")]
     public int? DurationMinutes { get; set; }
 
@@ -70,7 +74,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         _durations =
         [
@@ -95,7 +99,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             SelectedApplication = _selectApplication,
             SelectedDuration = _durations.Single(d => d.Id == s_defaultDuration),
             SelectedViewKind = null,
-            Dashpages = await DashpagePersistence.GetDashpagesAsync(CancellationToken.None)
+            Dashpages = []
         };
 
         UpdateApplications();
@@ -109,6 +113,9 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     protected override async Task OnParametersSetAsync()
     {
+        var dashpages = await DashpagePersistence.GetDashpagesAsync(CancellationToken.None);
+        PageViewModel.Dashpages = dashpages;
+
         await this.InitializeViewModelAsync();
         UpdateSubscription();
     }
@@ -121,7 +128,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             MeterName = PageViewModel.SelectedMeter?.MeterName,
             InstrumentName = PageViewModel.SelectedInstrument?.Name,
             DurationMinutes = (int)PageViewModel.SelectedDuration.Id.TotalMinutes,
-            ViewKind = PageViewModel.SelectedViewKind?.ToString()
+            ViewKind = PageViewModel.SelectedViewKind?.ToString(),
+            DashpageName = PageViewModel.SelectedDashpage?.Name
         };
     }
 
@@ -143,6 +151,12 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             {
                 viewModel.SelectedInstrument = viewModel.Instruments.FirstOrDefault(i => i.Parent.MeterName == MeterName && i.Name == InstrumentName);
             }
+        }
+
+        if (!string.IsNullOrEmpty(DashpageName) &&
+            viewModel.Dashpages.FirstOrDefault(page => page.Name.Equals(DashpageName, StringComparisons.OtlpInstrumentName)) is { } dashpage)
+        {
+            viewModel.SelectedDashpage = dashpage;
         }
     }
 
@@ -229,7 +243,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
         public required MetricViewKind? SelectedViewKind { get; set; }
 
-        public required ImmutableArray<DashpageDefinition> Dashpages { get; init; }
+        public required ImmutableArray<DashpageDefinition> Dashpages { get; set; }
 
         public ImmutableHashSet<string> ApplicationNames { get; set; } = [];
 
@@ -311,6 +325,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         public string? InstrumentName { get; set; }
         public int DurationMinutes { get; set; }
         public required string? ViewKind { get; set; }
+        public string? DashpageName { get; set; }
     }
 
     #endregion
@@ -340,7 +355,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             meter: serializable.MeterName,
             instrument: serializable.InstrumentName,
             duration: serializable.DurationMinutes,
-            view: serializable.ViewKind);
+            view: serializable.ViewKind,
+            dashpage: serializable.DashpageName);
 
         return url;
     }
