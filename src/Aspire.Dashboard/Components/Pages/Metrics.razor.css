@@ -37,6 +37,10 @@
     ::deep .metrics-chart-header {
         padding-left: 40px;
     }
+
+    ::deep .metrics-filters-container {
+        width: 600px;
+    }
 }
 
 ::deep .metrics-chart-header {
@@ -63,10 +67,6 @@
     padding-left: 40px;
 }
 
-::deep .metrics-filters-container {
-    width: 600px;
-}
-
 ::deep .metrics-filters-section {
     margin-bottom: 15px;
 }
@@ -91,6 +91,7 @@
 
 ::deep .plotly-chart-container-single-metric-view {
     margin-left: -40px;
+    margin-bottom: 10px;
 }
 
 ::deep .plotly-chart-container {
