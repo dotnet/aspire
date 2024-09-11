@@ -120,7 +120,7 @@
       AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>
       <TemplateFile ParameterType="System.String" Required="true" />
-      <Output ParameterType="System.String" Required="true" />
+      <OutputFile ParameterType="System.String" Required="true" />
       <PreCommands ParameterType="System.String[]" Required="false" />
       <RunCommands ParameterType="System.String[]" Required="true" />
     </ParameterGroup>
@@ -128,12 +128,28 @@
       <Using Namespace="System.IO" />
       <Code Type="Fragment" Language="cs">
         <![CDATA[
+          #nullable enable
+
+          if (!File.Exists(TemplateFile))
+          {
+            Log.LogError($"Cannot find {nameof(TemplateFile)} '{TemplateFile}' .");
+            return false;
+          }
           if (RunCommands.Length == 0)
           {
             Log.LogError($"No {nameof(RunCommands)} specified for template file {TemplateFile}.");
             return false;
           }
-          Directory.CreateDirectory(Path.GetDirectoryName(Output));
+          string? outputDir = Path.GetDirectoryName(OutputFile);
+          if (!string.IsNullOrEmpty(outputDir))
+          {
+            if (!Directory.Exists(outputDir))
+            {
+              Log.LogError($"Cannot find directory for {nameof(OutputFile)} '{outputDir}' .");
+              return false;
+            }
+            Directory.CreateDirectory(outputDir);
+          }
           var sourceText = File.ReadAllText(TemplateFile);
 
           if (PreCommands?.Length > 0)
@@ -147,18 +163,21 @@
 
           sourceText = sourceText.Replace("@RunCommands@", string.Join(Environment.NewLine, RunCommands));
 
-          File.WriteAllText(Output, sourceText);
+          File.WriteAllText(OutputFile, sourceText);
         ]]>
       </Code>
     </Task>
   </UsingTask>
 
   <Target Name="GenerateRunScript" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true' and '$(IsTestProject)' == 'true'">
+    <Error Text="%24(RunScriptOutputRelativePath) is unset." Condition="'$(RunScriptOutputRelativePath)' == ''" />
+    <Error Text="%24(RunTestsScriptTemplatePath) is unset." Condition="'$(RunTestsScriptTemplatePath)' == ''" />
+
     <PropertyGroup Condition="'$(RunScriptTestCommand)' == ''">
       <RunScriptTestCommand>$(RunScriptTestBaseCommand)</RunScriptTestCommand>
 
       <!-- command line differs when running `dotnet test .. assembly.dll`
-           vs `dotnet test` with a projet file -->
+            vs `dotnet test` with a project file -->
       <RunScriptTestCommand Condition="'$(RunScriptTestRequiresBuild)' != 'true'">$(RunScriptTestCommand) --ResultsDirectory:$(_LogsPathEnvVar)</RunScriptTestCommand>
       <RunScriptTestCommand Condition="'$(RunScriptTestRequiresBuild)' == 'true'">$(RunScriptTestCommand) --results-directory $(_LogsPathEnvVar)</RunScriptTestCommand>
 
@@ -168,16 +187,15 @@
     </PropertyGroup>
 
     <PropertyGroup>
-      <RunScriptRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;$(RunScriptTestCommand)&quot;</RunScriptRunCommand>
-      <RunScriptRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">$(RunScriptTestCommand)</RunScriptRunCommand>
+      <_RunScriptRunCommandWithOptionalCoverage Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;$(RunScriptTestCommand)&quot;</_RunScriptRunCommandWithOptionalCoverage>
+      <_RunScriptRunCommandWithOptionalCoverage Condition="'$(RunWithCodeCoverage)' != 'true'">$(RunScriptTestCommand)</_RunScriptRunCommandWithOptionalCoverage>
     </PropertyGroup>
 
-    <!-- FIXME: null checks -->
     <GenerateRunScript
         TemplateFile="$(RunTestsScriptTemplatePath)"
-        Output="$(OutDir)$(RunScriptOutputRelativePath)"
+        OutputFile="$(OutDir)$(RunScriptOutputRelativePath)"
         PreCommands="@(RunScriptPreCommand)"
-        RunCommands="$(RunScriptRunCommand)"
+        RunCommands="$(_RunScriptRunCommandWithOptionalCoverage)"
     />
   </Target>
 

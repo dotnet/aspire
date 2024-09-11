@@ -80,10 +80,6 @@
     <Using Include="Aspire.Hosting.Testing" />
   </ItemGroup>
 
-  <PropertyGroup>
-    <RunScriptTestBaseCommand>dotnet test -s .runsettings</RunScriptTestBaseCommand>
-  </PropertyGroup>
-
   <ItemGroup Condition="'$(ArchiveTests)' == 'true'" Label="Prepare archive dir for helix">
     <None Include="$(MSBuildProjectDirectory)\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)tests\Aspire.Components.Common.Tests\Requires*.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
