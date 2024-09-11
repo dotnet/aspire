@@ -64,6 +64,13 @@ public static class AzurePostgresExtensions
             var administratorLoginPassword = new BicepParameter("administratorLoginPassword", typeof(string)) { IsSecure = true };
             construct.Add(administratorLoginPassword);
 
+            var kvNameParam = new BicepParameter("keyVaultName", typeof(string));
+            construct.Add(kvNameParam);
+
+            var keyVault = KeyVaultService.FromExisting("keyVault");
+            keyVault.Name = kvNameParam;
+            construct.Add(keyVault);
+
             var postgres = new PostgreSqlFlexibleServer(construct.Resource.Name, ServerResourceVersion)
             {
                 Location = construct.AddLocationParameter(),
@@ -122,13 +129,6 @@ public static class AzurePostgresExtensions
                 };
                 construct.Add(pgsqlDatabase);
             }
-
-            var kvNameParam = new BicepParameter("keyVaultName", typeof(string));
-            construct.Add(kvNameParam);
-
-            var keyVault = KeyVaultService.FromExisting("keyVault");
-            keyVault.Name = kvNameParam;
-            construct.Add(keyVault);
 
             var secret = new KeyVaultSecret("connectionString")
             {

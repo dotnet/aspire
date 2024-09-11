@@ -33,7 +33,7 @@ var keyvault = builder.AddAzureKeyVault("mykv", (_, construct, keyVault) =>
     construct.Add(secret);
 });
 
-//var cache = builder.AddRedis("cache").AsAzureRedis();
+var cache = builder.AddRedis("cache").AsAzureRedis();
 
 var pgsqlAdministratorLogin = builder.AddParameter("pgsqlAdministratorLogin");
 var pgsqlAdministratorLoginPassword = builder.AddParameter("pgsqlAdministratorLoginPassword", secret: true);
@@ -96,7 +96,7 @@ builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithReference(blobs)
     //.WithReference(sqldb)
     .WithReference(keyvault)
-    //.WithReference(cache)
+    .WithReference(cache)
     //.WithReference(cosmosdb)
     .WithReference(pgsqldb);
     //.WithReference(sb)

@@ -3,9 +3,14 @@ param administratorLogin string
 @secure()
 param administratorLoginPassword string
 
+param keyVaultName string
+
 param location string = resourceGroup().location
 
-param keyVaultName string
+resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
+    name: keyVaultName
+    location: resourceGroup().location
+}
 
 resource pgsql 'Microsoft.DBforPostgreSQL/flexibleServers@2023-03-01-preview' = {
     name: take('pgsql${uniqueString(resourceGroup().id)}', 24)
@@ -47,11 +52,6 @@ resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flex
 resource pgsqldb 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-03-01-preview' = {
     name: 'pgsqldb'
     parent: pgsql
-}
-
-resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
-    name: keyVaultName
-    location: resourceGroup().location
 }
 
 resource connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
