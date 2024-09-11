@@ -239,4 +239,9 @@
     <Compile Include="$(SharedDir)ConsoleLogs\LogEntry.cs" Link="Utils\ConsoleLogs\LogEntry.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\TimestampParser.cs" Link="Utils\ConsoleLogs\TimestampParser.cs" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="wwwroot\js\README.md" />
+    <None Include="wwwroot\js\README.md" />
+  </ItemGroup>
 </Project>
