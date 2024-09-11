@@ -163,5 +163,9 @@
       <Uri>https://github.com/dotnet/runtime</Uri>
       <Sha>08338fcaa5c9b9a8190abb99222fed12aaba956c</Sha>
     </Dependency>
+    <Dependency Name="Microsoft.DotNet.ApiCompat.Task" Version="8.0.401">
+      <Uri>https://github.com/dotnet/sdk</Uri>
+      <Sha>d8b0a51fbe701b5f506fad891acb27a98d4fd15e</Sha>
+    </Dependency>
   </ToolsetDependencies>
 </Dependencies>
