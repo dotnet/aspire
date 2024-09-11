@@ -15,12 +15,12 @@ fluent-toolbar[orientation=horizontal] {
 }
 
 fluent-toolbar::part(positioning-region) {
-    row-gap: 8px;
+    row-gap: calc(var(--design-unit) * 1.5px);
 }
 
 fluent-toolbar::part(end) {
     flex-wrap: wrap;
-    row-gap: 8px;
+    row-gap: calc(var(--design-unit) * 1.5px);
 }
 
 /* Hide any web components that haven't been */
