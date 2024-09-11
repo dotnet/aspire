@@ -484,8 +484,8 @@ public class AddPostgresTests
         // Make sure the second server is correct.
         Assert.Equal(pg2.Resource.Name, servers.GetProperty("2").GetProperty("Name").GetString());
         Assert.Equal("Servers", servers.GetProperty("2").GetProperty("Group").GetString());
-        Assert.Equal("host2", servers.GetProperty("2").GetProperty("Host").GetString());
-        Assert.Equal(5002, servers.GetProperty("2").GetProperty("Port").GetInt32());
+        Assert.Equal("mypostgres2", servers.GetProperty("2").GetProperty("Host").GetString());
+        Assert.Equal(5432, servers.GetProperty("2").GetProperty("Port").GetInt32());
         Assert.Equal("postgres", servers.GetProperty("2").GetProperty("Username").GetString());
         Assert.Equal("prefer", servers.GetProperty("2").GetProperty("SSLMode").GetString());
         Assert.Equal("postgres", servers.GetProperty("2").GetProperty("MaintenanceDB").GetString());
