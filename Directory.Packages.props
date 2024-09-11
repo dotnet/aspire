@@ -92,6 +92,14 @@
     <PackageVersion Include="Microsoft.Extensions.Primitives" Version="$(MicrosoftExtensionsPrimitivesPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsHttpResiliencePackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(MicrosoftExtensionsTimeProviderTestingVersion)" />
+    <!-- NuGet dependencies -->
+    <PackageVersion Include="NuGet.ProjectModel" Version="6.11.0" />
+    <PackageVersion Include="NuGet.Commands" Version="6.11.0" />
+    <PackageVersion Include="NuGet.Packaging" Version="6.11.0" />
+    <!-- MSBuild dependencies -->
+    <PackageVersion Include="Microsoft.Build" Version="17.8.3" />
+    <PackageVersion Include="Microsoft.Build.Framework" Version="17.8.3" />
+    <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="17.8.3" />
     <!-- external dependencies -->
     <PackageVersion Include="Confluent.Kafka" Version="2.5.2" />
     <PackageVersion Include="Dapper" Version="2.1.44" />

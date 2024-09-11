@@ -1,10 +1,19 @@
-<Project Sdk="Microsoft.Build.NoTargets">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <Import Project="$(SharedDir)Workload.targets" />
 
   <PropertyGroup>
+    <TargetFrameworks>$(DefaultTargetFramework);$(NetFrameworkToolCurrent);</TargetFrameworks>
     <PackageTags>aspire hosting sdk</PackageTags>
     <Description>.NET Aspire Hosting SDK. Enabled via &lt;IsAspireHost&gt;true&lt;/IsAspireHost&gt;.</Description>
+    <UsePublicApiAnalyzers>false</UsePublicApiAnalyzers>
+    <!--
+      CS1591: Missing XML comment for publicly visible type or member 'Type_or_Member'
+      CS8002: Referenced assembly does not have a strong name
+    -->
+    <NoWarn>$(NoWarn);CS1591;CS8002</NoWarn>
+    <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
+    <IsBuildTaskProject>true</IsBuildTaskProject>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -16,6 +25,16 @@
     <None Update="SDK\AutoImport.props;SDK\*.targets" Pack="true" PackagePath="Sdk\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Update="SDK\Sdk.in.props" Pack="true" PerformTextReplacement="True" PackagePath="Sdk\Sdk.props" CopyToOutputDirectory="PreserveNewest" />
     <None Update="SDK\Sdk.in.targets" Pack="true" PerformTextReplacement="True" PackagePath="Sdk\Sdk.targets" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NuGet.ProjectModel" />
+    <PackageReference Include="Microsoft.Build" />
+    <PackageReference Include="Microsoft.Build.Framework" />
+    <PackageReference Include="Microsoft.Build.Utilities.Core" />
+    <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="NuGet.Commands" />
+    <PackageReference Include="NuGet.Packaging" />
   </ItemGroup>
 
 </Project>

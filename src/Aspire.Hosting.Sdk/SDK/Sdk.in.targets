@@ -43,6 +43,16 @@
     <Warning Code="ASPIRE003" Text="$(MSBuildProjectName) is a .NET Aspire AppHost project that requires Visual Studio version 17.10 or above to work correctly. You are using version $(MSBuildVersion)." />
   </Target>
 
+  <PropertyGroup>
+    <AspireHostingTasksRoot>$(MSBuildThisFileDirectory)..\tools\</AspireHostingTasksRoot>
+    <AspireHostingTasksTFM Condition=" '$(MSBuildRuntimeType)' == 'Core'">net8.0</AspireHostingTasksTFM>
+    <AspireHostingTasksTFM Condition=" '$(MicrosoftNETBuildTasksTFM)' == ''">net472</AspireHostingTasksTFM>
+    <AspireHostingTasksDirectory>$(AspireHostingTasksRoot)$(AspireHostingTasksTFM)\</AspireHostingTasksDirectory>
+    <AspireHostingTasksAssembly>$(AspireHostingTasksDirectory)Aspire.Hosting.Sdk.dll</AspireHostingTasksAssembly>
+  </PropertyGroup>
+
+  <UsingTask TaskName="FindBestRidForPlatform" AssemblyFile="$(AspireHostingTasksAssembly)" />
+
   <!-- This target extracts the version of Aspire.Hosting.AppHost referenced by the project, and adds
        a reference to Aspire.Dashboard.Sdk and Aspire.Hosting.Orchestration for the build-time platform using
        the same version. This is done here dynamically to avoid having to pull in DCP and Dashboard packages
@@ -83,10 +93,29 @@
     <Error Condition="'$(_AppHostVersion)' == ''" 
        Text="$(MSBuildProjectName) is a .NET Aspire AppHost project that needs a package reference to Aspire.Hosting.AppHost version 8.2.0 or above to work correctly." />
 
+    <!--The following is the list of the RIDs that we currently multitarget for DCP and Dashboard packages-->
+    <ItemGroup>
+      <_DashboardAndDCPSupportedTargetingRIDs Include="win-x64" />
+      <_DashboardAndDCPSupportedTargetingRIDs Include="win-x86" />
+      <_DashboardAndDCPSupportedTargetingRIDs Include="win-arm64" />
+      <_DashboardAndDCPSupportedTargetingRIDs Include="linux-x64" />
+      <_DashboardAndDCPSupportedTargetingRIDs Include="linux-arm64" />
+      <_DashboardAndDCPSupportedTargetingRIDs Include="osx-x64" />
+      <_DashboardAndDCPSupportedTargetingRIDs Include="osx-arm64" />
+    </ItemGroup>
+
+    <!--We need to find what the best RID match is for the platform's runtime identifier-->
+    <FindBestRidForPlatform RuntimeGraphPath="$(BundledRuntimeIdentifierGraphFile)"
+                            SupportedRids="@(_DashboardAndDCPSupportedTargetingRIDs)"
+                            NETCoreSdkRuntimeIdentifier="$(NETCoreSdkRuntimeIdentifier)">
+      <Output TaskParameter="BestRidForPlatform" PropertyName="_DashboardAndDcpRID" />
+    </FindBestRidForPlatform>
+
+    
     <!-- Now that we have the version, we add the package references -->
     <ItemGroup>
-      <PackageReference Include="Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier)" Version="$(_AppHostVersion)" IsImplicitlyDefined="true" />
-      <PackageReference Include="Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier)" Version="$(_AppHostVersion)" IsImplicitlyDefined="true" />
+      <PackageReference Include="Aspire.Dashboard.Sdk.$(_DashboardAndDcpRID)" Version="$(_AppHostVersion)" IsImplicitlyDefined="true" />
+      <PackageReference Include="Aspire.Hosting.Orchestration.$(_DashboardAndDcpRID)" Version="$(_AppHostVersion)" IsImplicitlyDefined="true" />
     </ItemGroup>
   </Target>
 

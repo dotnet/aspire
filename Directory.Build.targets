@@ -24,4 +24,5 @@
   </ItemGroup>
 
   <Import Project="$(RepositoryEngineeringDir)/apicompat/PublicApiAnalyzer.targets" />
+  <Import Project="$(RepositoryEngineeringDir)BuildTask.targets" Condition="'$(IsBuildTaskProject)' == 'true'" />
 </Project>
