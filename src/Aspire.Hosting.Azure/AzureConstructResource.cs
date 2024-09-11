@@ -242,4 +242,37 @@ public class ResourceModuleConstruct : Infrastructure
     public BicepParameter PrincipalNameParameter => new BicepParameter("principalName", typeof(string));
 
     internal IEnumerable<BicepParameter> GetParameters() => GetResources().OfType<BicepParameter>();
+
+    /// <inheritdoc />
+    protected override IEnumerable<Statement> Compile(ProvisioningContext? context = null)
+    {
+        var statements = base.Compile(context).ToList();
+
+        int parameterCount = 0;
+        int outputCount = 0;
+        // we are done once we know all the remaining statements are outputs
+        for (var i = 0; i < statements.Count - outputCount;)
+        {
+            // sort the parameters so they appear at the top of the bicep
+            if (statements[i] is ParameterStatement parameterStatement)
+            {
+                statements.RemoveAt(i);
+                statements.Insert(parameterCount, parameterStatement);
+                parameterCount++;
+            }
+            // ensure that outputs are at the bottom of the bicep
+            else if (statements[i] is OutputStatement outputStatement)
+            {
+                statements.RemoveAt(i);
+                statements.Add(outputStatement);
+                outputCount++;
+
+                // continue and don't increment 'i', so we see the next statement that just moved into this index
+                continue;
+            }
+            i++;
+        }
+
+        return statements;
+    }
 }

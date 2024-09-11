@@ -1,5 +1,12 @@
 param location string = resourceGroup().location
 
+@secure()
+param signaturesecret string
+
+param principalId string
+
+param principalType string
+
 resource mykv 'Microsoft.KeyVault/vaults@2019-09-01' = {
     name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
     location: location
@@ -16,8 +23,6 @@ resource mykv 'Microsoft.KeyVault/vaults@2019-09-01' = {
     }
 }
 
-output vaultUri string = mykv.properties.vaultUri
-
 resource KeyVaultAdministrator_mykv 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
     name: guid(resourceGroup().id, 'KeyVaultAdministrator_mykv')
     properties: {
@@ -28,9 +33,6 @@ resource KeyVaultAdministrator_mykv 'Microsoft.Authorization/roleAssignments@202
     scope: mykv
 }
 
-@secure()
-param signaturesecret string
-
 resource mysecret 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
     name: take('mysecret-${uniqueString(resourceGroup().id)}', 127)
     properties: {
@@ -39,6 +41,4 @@ resource mysecret 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
     parent: mykv
 }
 
-param principalId string
-
-param principalType string
+output vaultUri string = mykv.properties.vaultUri

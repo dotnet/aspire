@@ -1,5 +1,13 @@
 param location string = resourceGroup().location
 
+param storagesku string
+
+param locationOverride string
+
+param principalId string
+
+param principalType string
+
 resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
     name: take('storage${uniqueString(resourceGroup().id)}', 24)
     kind: 'StorageV2'
@@ -59,11 +67,3 @@ output blobEndpoint string = storage.properties.primaryEndpoints.blob
 output queueEndpoint string = storage.properties.primaryEndpoints.queue
 
 output tableEndpoint string = storage.properties.primaryEndpoints.table
-
-param storagesku string
-
-param locationOverride string
-
-param principalId string
-
-param principalType string

@@ -5,6 +5,8 @@ param administratorLoginPassword string
 
 param location string = resourceGroup().location
 
+param keyVaultName string
+
 resource pgsql 'Microsoft.DBforPostgreSQL/flexibleServers@2023-03-01-preview' = {
     name: take('pgsql${uniqueString(resourceGroup().id)}', 24)
     location: location
@@ -46,8 +48,6 @@ resource pgsqldb 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-03-01
     name: 'pgsqldb'
     parent: pgsql
 }
-
-param keyVaultName string
 
 resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
     name: keyVaultName
