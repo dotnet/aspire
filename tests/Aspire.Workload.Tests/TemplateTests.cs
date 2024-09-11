@@ -35,7 +35,7 @@ public partial class TemplateTests : WorkloadTestsBase
                                             "aspire-starter",
                                             _testOutput,
                                             buildEnvironment: BuildEnvironment.ForDefaultFramework,
-                                            extraArgs: $"-t {testType}").ConfigureAwait(false);
+                                            extraArgs: $"-t {testType}");
 
         await AssertTestProjectRunAsync(project.TestsProjectDirectory, testType, _testOutput, config);
     }
@@ -136,7 +136,7 @@ public partial class TemplateTests : WorkloadTestsBase
             "aspire",
             _testOutput,
             buildEnvironment: testSpecificBuildEnvironment,
-            extraArgs: "--no-https").ConfigureAwait(false);
+            extraArgs: "--no-https");
 
         await project.BuildAsync();
         using var buildCmd = new DotNetCommand(_testOutput, buildEnv: testSpecificBuildEnvironment, label: "first-run")
@@ -154,7 +154,7 @@ public partial class TemplateTests : WorkloadTestsBase
         {
             await using var context = await CreateNewBrowserContextAsync();
             var page = await project.OpenDashboardPageAsync(context);
-            await CheckDashboardHasResourcesAsync(page, []).ConfigureAwait(false);
+            await CheckDashboardHasResourcesAsync(page, []);
         }
     }
 
