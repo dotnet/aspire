@@ -30,9 +30,11 @@ public class BuildEnvironment
     public static bool IsRunningOnCI => IsRunningOnHelix || IsRunningOnCIBuildMachine;
 
     private static readonly Lazy<BuildEnvironment> s_instance_80 = new(() => new BuildEnvironment(targetFramework: TestTargetFramework.Net80));
+    private static readonly Lazy<BuildEnvironment> s_instance_90 = new(() => new BuildEnvironment(targetFramework: TestTargetFramework.Net90));
 
     public static BuildEnvironment ForNet80 => s_instance_80.Value;
-    public static BuildEnvironment ForDefaultFramework => ForNet80;
+    public static BuildEnvironment ForNet90 => s_instance_90.Value;
+    public static BuildEnvironment ForDefaultFramework => ForNet90;
 
     public BuildEnvironment(bool useSystemDotNet = false, TestTargetFramework targetFramework = DefaultTargetFramework)
     {
