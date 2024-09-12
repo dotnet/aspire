@@ -124,8 +124,8 @@ public static class AzurePostgresExtensions
                 var databaseName = databaseNames.Value;
                 var pgsqlDatabase = new PostgreSqlFlexibleServerDatabase(resourceName, DatabaseResourceVersion)
                 {
-                    Name = databaseName,
-                    Parent = postgres
+                    Parent = postgres,
+                    Name = databaseName
                 };
                 construct.Add(pgsqlDatabase);
             }

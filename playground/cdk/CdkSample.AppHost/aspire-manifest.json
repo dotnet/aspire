@@ -41,6 +41,19 @@
       "type": "value.v0",
       "connectionString": "{storage.outputs.blobEndpoint}"
     },
+    "sql": {
+      "type": "azure.bicep.v0",
+      "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
+      "path": "sql.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalName": ""
+      }
+    },
+    "sqldb": {
+      "type": "value.v0",
+      "connectionString": "{sql.connectionString};Database=sqldb"
+    },
     "signaturesecret": {
       "type": "parameter.v0",
       "value": "{signaturesecret.inputs.value}",
@@ -122,6 +135,7 @@
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{api.bindings.http.targetPort}",
         "ConnectionStrings__blobs": "{blobs.connectionString}",
+        "ConnectionStrings__sqldb": "{sqldb.connectionString}",
         "ConnectionStrings__mykv": "{mykv.connectionString}",
         "ConnectionStrings__cache": "{cache.connectionString}",
         "ConnectionStrings__cosmos": "{cosmos.connectionString}",

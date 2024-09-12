@@ -20,7 +20,7 @@ var storage = builder.AddAzureStorage("storage", (_, construct, account) =>
 
 var blobs = storage.AddBlobs("blobs");
 
-//var sqldb = builder.AddSqlServer("sql").AsAzureSqlDatabase().AddDatabase("sqldb");
+var sqldb = builder.AddSqlServer("sql").AsAzureSqlDatabase().AddDatabase("sqldb");
 
 var signaturesecret = builder.AddParameter("signaturesecret", secret: true);
 var keyvault = builder.AddAzureKeyVault("mykv", (_, construct, keyVault) =>
@@ -94,7 +94,7 @@ builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithExternalHttpEndpoints()
     //.WithReference(signalr)
     .WithReference(blobs)
-    //.WithReference(sqldb)
+    .WithReference(sqldb)
     .WithReference(keyvault)
     .WithReference(cache)
     .WithReference(cosmosdb)
