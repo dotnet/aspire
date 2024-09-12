@@ -60,7 +60,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    public async Task VerifyWaitForOnSqlServerBlocksDependentResources()
+    public async Task VerifyWaitForOnSqlServerDatabaseBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
