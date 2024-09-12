@@ -106,7 +106,9 @@ public static class MySqlBuilderExtensions
                     var endpoint = singleInstance.PrimaryEndpoint;
                     phpMyAdminContainerBuilder.WithEnvironment(context =>
                     {
-                        context.EnvironmentVariables.Add("PMA_HOST", $"{endpoint.ContainerHost}:{endpoint.Port}");
+                        // PhpMyAdmin assumes MySql is being accessed over a default Aspire container network and hardcodes the resource address
+                        // This will need to be refactored once updated service discovery APIs are available
+                        context.EnvironmentVariables.Add("PMA_HOST", $"{endpoint.Resource.Name}:{endpoint.TargetPort}");
                         context.EnvironmentVariables.Add("PMA_USER", "root");
                         context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.PasswordParameter.Value);
                     });
@@ -127,7 +129,9 @@ public static class MySqlBuilderExtensions
                     {
                         var endpoint = mySqlInstance.PrimaryEndpoint;
                         writer.WriteLine("$i++;");
-                        writer.WriteLine($"$cfg['Servers'][$i]['host'] = '{endpoint.ContainerHost}:{endpoint.Port}';");
+                        // PhpMyAdmin assumes MySql is being accessed over a default Aspire container network and hardcodes the resource address
+                        // This will need to be refactored once updated service discovery APIs are available
+                        writer.WriteLine($"$cfg['Servers'][$i]['host'] = '{endpoint.Resource.Name}:{endpoint.TargetPort}';");
                         writer.WriteLine($"$cfg['Servers'][$i]['verbose'] = '{mySqlInstance.Name}';");
                         writer.WriteLine($"$cfg['Servers'][$i]['auth_type'] = 'cookie';");
                         writer.WriteLine($"$cfg['Servers'][$i]['user'] = 'root';");
@@ -157,7 +161,7 @@ public static class MySqlBuilderExtensions
     public static IResourceBuilder<PhpMyAdminContainerResource> WithHostPort(this IResourceBuilder<PhpMyAdminContainerResource> builder, int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        
+
         return builder.WithEndpoint("http", endpoint =>
         {
             endpoint.Port = port;
