@@ -23,6 +23,8 @@ public class GridColumnManager : ComponentBase, IDisposable
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
 
+    public ViewportInformation ViewportInformation => _gridViewportInformation ?? DimensionManager.ViewportInformation;
+
     protected override void OnInitialized()
     {
         DimensionManager.OnViewportSizeChanged += OnViewportSizeChanged;

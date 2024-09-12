@@ -19,6 +19,9 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Runtime.WorkloadTesting.Internal" />
+
+    <AdditionalSharedFrameworkToInstallArguments Include="-Runtime dotnet -Version $(DotNetRuntimeVersionForTesting)" />
+    <AdditionalSharedFrameworkToInstallArguments Include="-Runtime aspnetcore -Version $(DotNetRuntimeVersionForTesting)" />
   </ItemGroup>
 
   <Target Name="_GetNuGetsToBuild" Returns="@(NuGetsToBuildForWorkloadTesting)">
@@ -65,7 +68,7 @@
               Targets="Restore;Build" />
   </Target>
 
-  <Target Name="_GetWorkloadsToInstall" DependsOnTargets="_SetPackageVersionForWorkloadsTesting" Returns="@(WorkloadIdForTesting);@(WorkloadCombinationsToInstall)">
+  <Target Name="_GetWorkloadsToInstall" DependsOnTargets="_SetPackageVersionForWorkloadsTesting" Returns="@(WorkloadIdForTesting);@(WorkloadCombinationsToInstall);@(AdditionalSharedFrameworkToInstallArguments)">
     <ItemGroup>
       <WorkloadIdForTesting Include="aspire"
                             ManifestName="Microsoft.NET.Sdk.Aspire"
@@ -74,6 +77,16 @@
 
       <WorkloadCombinationsToInstall Include="latest" Variants="latest" />
     </ItemGroup>
+  </Target>
+
+  <Target Name="_InstallSharedFrameworksForWorkloadTesting" AfterTargets="ProvisionDotNetForWorkloadTesting">
+    <Exec Condition="'%(AdditionalSharedFrameworkToInstallArguments.Identity)' != '' and !$([MSBuild]::IsOSPlatform('windows'))"
+          IgnoreStandardErrorWarningFormat="true"
+          Command="$(_DotNetInstallScriptPath) -InstallDir $(_SdkWithNoWorkloadPath) -SkipNonVersionedFiles %(AdditionalSharedFrameworkToInstallArguments.Identity)" />
+
+    <Exec Condition="'%(AdditionalSharedFrameworkToInstallArguments.Identity)' != '' and $([MSBuild]::IsOSPlatform('windows'))"
+          IgnoreStandardErrorWarningFormat="true"
+          Command='powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; $(_DotNetInstallScriptPath) -InstallDir $(_SdkWithNoWorkloadPath) -SkipNonVersionedFiles %(AdditionalSharedFrameworkToInstallArguments.Identity)"' />
   </Target>
 
   <Target Name="CheckForWorkloadInstalled" BeforeTargets="VSTest" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
@@ -111,7 +124,7 @@
       <UnexpectedPackages Include="@(AllPackages)" Exclude="@(ExpectedPackagePaths)" />
 
       <!-- Ignore these packages which are part of the workload. Existence of these would get checked
-           by the workload installation targets. -->
+           by the workload installation targets. And their names don't correspond to project names. -->
       <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Aspire.Hosting.Sdk.'))" />
       <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Aspire.ProjectTemplates.'))" />
       <UnexpectedPackages Remove="@(UnexpectedPackages)" Condition="$([System.String]::Copy('%(UnexpectedPackages.FileName)').StartsWith('Microsoft.NET.Sdk.Aspire.Manifest-'))" />
