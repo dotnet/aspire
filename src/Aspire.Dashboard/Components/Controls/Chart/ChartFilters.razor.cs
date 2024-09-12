@@ -23,7 +23,7 @@ public partial class ChartFilters
     public required List<DimensionFilterViewModel> DimensionFilters { get; set; }
 
     [Parameter]
-    public bool IsInsideModal { get; set; }
+    public bool IsRenderedInsideModal { get; set; }
 
     public bool ShowCounts { get; set; }
 

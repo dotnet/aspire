@@ -37,7 +37,7 @@ else
                                AutoFocus="true"
                                HorizontalPosition="HorizontalPosition.Left">
                     <Body>
-                        <ChartFilters IsInsideModal="true" InstrumentViewModel="@ViewModel" InstrumentData="@InstrumentData" DimensionFilters="@DimensionFilters"/>
+                        <ChartFilters IsRenderedInsideModal="true" InstrumentViewModel="@ViewModel" InstrumentData="@InstrumentData" DimensionFilters="@DimensionFilters"/>
                     </Body>
                 </FluentPopover>
             }
@@ -51,7 +51,7 @@ else
                           InstrumentData="@InstrumentData"
                           InstrumentViewModel="@ViewModel"
                           DimensionFilters="@DimensionFilters"
-                          IsDashpage="true"/>
+                          IsRenderedInsideModal="true"/>
             }
             else
             {
@@ -60,7 +60,7 @@ else
                                 InstrumentData="@InstrumentData"
                                 InstrumentViewModel="@ViewModel"
                                 DimensionFilters="@DimensionFilters"
-                                IsDashpage="true"/>
+                                IsRenderedInsideModal="true"/>
             }
         </div>
     </div>

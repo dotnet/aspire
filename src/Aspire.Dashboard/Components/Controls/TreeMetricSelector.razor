@@ -3,8 +3,6 @@
 
 @inject IStringLocalizer<Metrics> Loc
 
-@inject IStringLocalizer<Metrics> Loc
-
 <FluentTreeView Id="metric-selector" Class="metrics-tree" @bind-CurrentSelected="@PageViewModel.SelectedTreeItem" @bind-CurrentSelected:after="HandleSelectedTreeItemChangedAsync">
     <ChildContent>
         @if (PageViewModel.Dashpages.Length is not 0)
