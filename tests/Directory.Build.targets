@@ -8,6 +8,7 @@
     <VSTestRunSettingsFile Condition="'$(VSTestRunSettingsFile)' == ''">$(RunSettingsFilePath)</VSTestRunSettingsFile>
 
     <DeployRunSettingsFile Condition="'$(DeployRunSettingsFile)' == ''">true</DeployRunSettingsFile>
+    <XunitRunnerJson Condition="'$(XunitRunnerJson)' == '' and '$(ArchiveTests)' == 'true'">$(RepoRoot)tests\helix\xunit.runner.json</XunitRunnerJson>
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == ''">$(RepositoryEngineeringDir)testing\xunit.runner.json</XunitRunnerJson>
 
     <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestSupportProject)' != 'true')">true</RunTestsOnHelix>
