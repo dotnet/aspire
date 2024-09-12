@@ -17,7 +17,6 @@
     <DotNetRuntimeVersionForTesting>8.0.8</DotNetRuntimeVersionForTesting>
     <!-- dotnet 8.0 versions for running tests - used for workload tests -->
     <DotNetSdkVersionForTesting>8.0.401</DotNetSdkVersionForTesting>
-
     <UseVSTestRunner>true</UseVSTestRunner>
     <!-- Enable to remove prerelease label. -->
     <StabilizePackageVersion Condition="'$(StabilizePackageVersion)' == ''">false</StabilizePackageVersion>
@@ -27,13 +26,13 @@
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->
     <MicrosoftDotnetSdkInternalPackageVersion>8.0.100-rtm.23512.16</MicrosoftDotnetSdkInternalPackageVersion>
     <!-- DCP -->
-    <MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>0.7.1</MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>0.7.1</MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>
-    <MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>0.7.1</MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>0.7.1</MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>
-    <MicrosoftDeveloperControlPlanewindows386PackageVersion>0.7.1</MicrosoftDeveloperControlPlanewindows386PackageVersion>
-    <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.7.1</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.7.1</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>0.7.2</MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>0.7.2</MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>0.7.2</MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>0.7.2</MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanewindows386PackageVersion>0.7.2</MicrosoftDeveloperControlPlanewindows386PackageVersion>
+    <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.7.2</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.7.2</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
     <!-- Other -->
     <MicrosoftDotNetRemoteExecutorPackageVersion>9.0.0-beta.24453.1</MicrosoftDotNetRemoteExecutorPackageVersion>
     <MicrosoftDotNetXUnitExtensionsPackageVersion>9.0.0-beta.24453.1</MicrosoftDotNetXUnitExtensionsPackageVersion>
