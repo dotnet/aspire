@@ -134,6 +134,15 @@
         "principalType": ""
       }
     },
+    "appConfig": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{appConfig.outputs.appConfigEndpoint}",
+      "path": "appConfig.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": ""
+      }
+    },
     "search": {
       "type": "azure.bicep.v0",
       "connectionString": "{search.outputs.connectionString}",
@@ -181,7 +190,9 @@
         "ConnectionStrings__cosmos": "{cosmos.connectionString}",
         "ConnectionStrings__pgsqldb": "{pgsqldb.connectionString}",
         "ConnectionStrings__servicebus": "{servicebus.connectionString}",
-        "ConnectionStrings__search": "{search.connectionString}"
+        "ConnectionStrings__appConfig": "{appConfig.connectionString}",
+        "ConnectionStrings__search": "{search.connectionString}",
+        "APPLICATIONINSIGHTS_CONNECTION_STRING": "{appInsights.connectionString}"
       },
       "bindings": {
         "http": {

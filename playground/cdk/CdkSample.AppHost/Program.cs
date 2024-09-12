@@ -73,7 +73,7 @@ var sb = builder.AddAzureServiceBus("servicebus")
     .AddSubscription("topic1", "subscription2")
     .AddTopic("topic3", new[] { "sub1", "sub2" });
 
-//var appConfig = builder.AddAzureAppConfiguration("appConfig");
+var appConfig = builder.AddAzureAppConfiguration("appConfig");
 
 var search = builder.AddAzureSearch("search");
 
@@ -94,11 +94,6 @@ var appInsights = builder.AddAzureApplicationInsights(
     logAnalyticsWorkspace,
     (_, _, appInsights) =>
 {
-    //appInsights.AssignProperty(
-    //    p => p.WorkspaceResourceId,
-    //    logAnalyticsWorkspace.Resource.WorkspaceId,
-    //    AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId);
-
     appInsights.IngestionMode = ComponentIngestionMode.LogAnalytics;
 });
 
@@ -112,9 +107,9 @@ builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithReference(cosmosdb)
     .WithReference(pgsqldb)
     .WithReference(sb)
-    //.WithReference(appConfig)
-    .WithReference(search);
-    //.WithReference(appInsights);
+    .WithReference(appConfig)
+    .WithReference(search)
+    .WithReference(appInsights);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
