@@ -83,7 +83,7 @@ public class ResourceLoggerServiceTests
         logsLoop = ConsoleLoggingTestHelpers.WatchForLogsAsync(service, 100, testResource);
         allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
 
-        Assert.Equal(0, allLogs.Count);
+        Assert.Empty(allLogs);
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public class ResourceLoggerServiceTests
         allLogs = await logsLoop.WaitAsync(TimeSpan.FromSeconds(15));
 
         // The backlog should be cleared so only new logs are received
-        Assert.Equal(1, allLogs.Count);
+        Assert.Single(allLogs);
         Assert.Equal("2000-12-29T20:59:59.0000000Z The third log", allLogs[0].Content);
     }
 

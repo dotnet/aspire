@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Web;
 using Aspire.Dashboard.Components.Controls.Chart;
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;

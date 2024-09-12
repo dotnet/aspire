@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -14,6 +14,7 @@
     <AspireProjectOrPackageReference Include="Aspire.Azure.Storage.Blobs" />
     <AspireProjectOrPackageReference Include="Aspire.Azure.Storage.Queues" />
     <AspireProjectOrPackageReference Include="Aspire.Azure.Messaging.EventHubs" />
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Messaging.ServiceBus" />
   </ItemGroup>
 
 </Project>

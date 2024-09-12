@@ -168,6 +168,18 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds the arguments to be passed to a container resource when the container is started.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="args">The arguments to be passed to the container when it is started.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, params object[] args) where T : IResourceWithArgs
+    {
+        return builder.WithArgs(context => context.Args.AddRange(args));
+    }
+
+    /// <summary>
     /// Adds a callback to be executed with a list of command-line arguments when a container resource is started.
     /// </summary>
     /// <typeparam name="T"></typeparam>
