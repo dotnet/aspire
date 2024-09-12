@@ -235,18 +235,18 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Gets the lifetime type of the container for the specified resoruce. Defaults to <see cref="ContainerLifetimeType.Default"/> if
+    /// Gets the lifetime type of the container for the specified resoruce. Defaults to <see cref="ContainerLifetime.Default"/> if
     /// no <see cref="ContainerLifetimeAnnotation"/> is found.
     /// </summary>
     /// <param name="resource">The resource to the get the ContainerLifetimeType for.</param>
-    /// <returns>The <see cref="ContainerLifetimeType"/> from the <see cref="ContainerLifetimeAnnotation"/> for the resource (if the annotation exists). Defaults to <see cref="ContainerLifetimeType.Default"/> if the annotation is not set.</returns>
-    internal static ContainerLifetimeType GetContainerLifetimeType(this IResource resource)
+    /// <returns>The <see cref="ContainerLifetime"/> from the <see cref="ContainerLifetimeAnnotation"/> for the resource (if the annotation exists). Defaults to <see cref="ContainerLifetime.Default"/> if the annotation is not set.</returns>
+    internal static ContainerLifetime GetContainerLifetimeType(this IResource resource)
     {
         if (resource.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
         {
-            return lifetimeAnnotation.LifetimeType;
+            return lifetimeAnnotation.Lifetime;
         }
 
-        return ContainerLifetimeType.Default;
+        return ContainerLifetime.Default;
     }
 }
