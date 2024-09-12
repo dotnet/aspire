@@ -18,7 +18,7 @@
             @if (ViewportInformation.IsDesktop)
             {
                 <FluentGridItem sm="12" md="6" lg="4" Class="dashpage-chart-grid-item">
-                    <FluentCard AreaRestricted="true">
+                    <FluentCard AreaRestricted="false">
                         <DashpageChartContainer
                             ApplicationKey="@(SelectedApplication.Id!.GetApplicationKey())"
                             MeterName="@(instrument.Parent.MeterName)"

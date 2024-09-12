@@ -1,7 +1,7 @@
 ﻿@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Otlp.Model
 
-<div class="@(!IsDashpage ? "metric-tab metric-standalone-tab" : "metric-dashpage-tab")">
+<div class="@(!IsDashpage ? "metric-tab metric-standalone-tab left-pad-on-desktop" : "metric-tab")">
     <MetricTable InstrumentViewModel="@InstrumentViewModel" Duration="Duration" Applications="Applications" />
 
     @if (!IsDashpage)

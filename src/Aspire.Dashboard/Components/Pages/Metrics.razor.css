@@ -37,10 +37,6 @@
         gap: calc(var(--design-unit) * 4px);
     }
 
-    ::deep .metrics-chart-header {
-        padding-left: 40px;
-    }
-
     ::deep .metrics-filters-standalone-container {
         width: 600px;
     }
@@ -157,16 +153,12 @@
     width: 100%;
 }
 
-::deep .metric-standalone-tab > .metric-table-container {
+::deep .metric-tab > .metric-table-container {
     height: 40vh;
 }
 
-::deep .metric-dashpage-tab > .metric-table-container {
-    max-height: 40vh;
-}
-
 @media (min-width: 768px) {
-    ::deep .metric-standalone-tab > .metric-table-container {
+    ::deep .left-pad-on-desktop {
         padding-left: 40px;
     }
 }
