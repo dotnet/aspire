@@ -15,7 +15,7 @@ public partial class AppHostTemplateTests : WorkloadTestsBase
     }
 
     [Fact]
-    public async Task EnsureProjectsReferencing8_1_0WorkloadCanBuild()
+    public async Task EnsureProjectsReferencing8_1_0AppHostWithNewerWorkloadCanBuild()
     {
         string projectId = "aspire-can-reference-8.1.0";
         await using var project = await AspireProject.CreateNewTemplateProjectAsync(
