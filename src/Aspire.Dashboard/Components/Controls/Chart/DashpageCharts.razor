@@ -40,7 +40,7 @@
     public required DashpageDefinition SelectedDashpage { get; set; }
 
     [Parameter, EditorRequired]
-    public required List<OtlpInstrument> Instruments { get; set; }
+    public required List<OtlpInstrumentSummary> Instruments { get; set; }
 
     [Parameter, EditorRequired]
     public required Func<Metrics.MetricViewKind, Task> OnViewChangedAsync { get; set; }

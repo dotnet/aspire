@@ -10,7 +10,7 @@ namespace Aspire.Dashboard.Components;
 public partial class ChartFilters
 {
     [Parameter, EditorRequired]
-    public required OtlpInstrumentData Instrument { get; set; }
+    public required OtlpInstrumentData InstrumentData { get; set; }
 
     [Parameter, EditorRequired]
     public required InstrumentViewModel InstrumentViewModel { get; set; }

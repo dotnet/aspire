@@ -2,7 +2,7 @@
 @using Aspire.Dashboard.Otlp.Model
 <div class="metric-tab">
     <MetricTable InstrumentViewModel="@InstrumentViewModel" Duration="Duration" Applications="Applications" />
-    <ChartFilters InstrumentViewModel="@InstrumentViewModel" Instrument="@Instrument" DimensionFilters="@DimensionFilters"/>
+    <ChartFilters InstrumentViewModel="@InstrumentViewModel" InstrumentData="@InstrumentData" DimensionFilters="@DimensionFilters"/>
 </div>
 
 @code {
@@ -16,7 +16,7 @@
     public required List<DimensionFilterViewModel> DimensionFilters { get; set; }
 
     [Parameter, EditorRequired]
-    public required OtlpInstrument Instrument { get; set; }
+    public required OtlpInstrumentData InstrumentData { get; set; }
 
     [Parameter, EditorRequired]
     public required InstrumentViewModel InstrumentViewModel { get; set; }
