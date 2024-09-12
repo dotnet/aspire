@@ -54,6 +54,11 @@ public static class PostgresBuilderExtensions
         {
             connectionString = await postgresServer.GetConnectionStringAsync(ct).ConfigureAwait(false);
 
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{postgresServer}' resource but the connection string was null.");
+            }
+
             var lookup = builder.Resources.OfType<PostgresDatabaseResource>().ToDictionary(d => d.Name);
 
             foreach (var databaseName in postgresServer.Databases)
@@ -133,6 +138,11 @@ public static class PostgresBuilderExtensions
         builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(postgresDatabase, async (@event, ct) =>
         {
             connectionString = await postgresDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{postgresDatabase}' resource but the connection string was null.");
+            }
         });
 
         var healthCheckKey = $"{name}_check";
@@ -201,8 +211,10 @@ public static class PostgresBuilderExtensions
                         writer.WriteStartObject($"{serverIndex}");
                         writer.WriteString("Name", postgresInstance.Name);
                         writer.WriteString("Group", "Servers");
-                        writer.WriteString("Host", endpoint.ContainerHost);
-                        writer.WriteNumber("Port", endpoint.Port);
+                        // PgAdmin assumes Postgres is being accessed over a default Aspire container network and hardcodes the resource address
+                        // This will need to be refactored once updated service discovery APIs are available
+                        writer.WriteString("Host", endpoint.Resource.Name);
+                        writer.WriteNumber("Port", (int)endpoint.TargetPort!);
                         writer.WriteString("Username", "postgres");
                         writer.WriteString("SSLMode", "prefer");
                         writer.WriteString("MaintenanceDB", "postgres");
@@ -269,11 +281,11 @@ public static class PostgresBuilderExtensions
     /// var postgres = builder.AddPostgres("postgres")
     ///    .WithPgWeb();
     /// var db = postgres.AddDatabase("db");
-    ///   
+    ///
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithReference(db);
-    ///  
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     /// <remarks>
@@ -320,9 +332,11 @@ public static class PostgresBuilderExtensions
                 {
                     var user = postgresDatabase.Parent.UserNameParameter?.Value ?? "postgres";
 
+                    // PgAdmin assumes Postgres is being accessed over a default Aspire container network and hardcodes the resource address
+                    // This will need to be refactored once updated service discovery APIs are available
                     var fileContent = $"""
-                        host = "{postgresDatabase.Parent.PrimaryEndpoint.ContainerHost}"
-                        port = {postgresDatabase.Parent.PrimaryEndpoint.Port}
+                        host = "{postgresDatabase.Parent.Name}"
+                        port = {postgresDatabase.Parent.PrimaryEndpoint.TargetPort}
                         user = "{user}"
                         password = "{postgresDatabase.Parent.PasswordParameter.Value}"
                         database = "{postgresDatabase.DatabaseName}"

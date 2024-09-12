@@ -7,7 +7,7 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 
 partial class ServiceEndpointWatcher
 {
-    private sealed partial class Log
+    private static partial class Log
     {
         [LoggerMessage(1, LogLevel.Debug, "Resolving endpoints for service '{ServiceName}'.", EventName = "ResolvingEndpoints")]
         public static partial void ResolvingEndpoints(ILogger logger, string serviceName);

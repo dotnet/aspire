@@ -24,6 +24,7 @@ public class ResourceOutgoingPeerResolverTests
             Environment = [],
             Properties = FrozenDictionary<string, Value>.Empty,
             Urls = servicePort is null || servicePort is null ? [] : [new UrlViewModel(name, new($"http://{serviceAddress}:{servicePort}"), isInternal: false)],
+            Volumes = [],
             State = null,
             KnownState = null,
             StateStyle = null,

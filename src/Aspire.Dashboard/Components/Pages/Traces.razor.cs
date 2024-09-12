@@ -3,7 +3,6 @@
 
 using System.Globalization;
 using Aspire.Dashboard.Components.Layout;
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -26,7 +25,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
     private const string SpansColumn = nameof(SpansColumn);
     private const string DurationColumn = nameof(DurationColumn);
     private const string DetailsColumn = nameof(DetailsColumn);
-
+    private IList<GridColumn> _gridColumns = null!;
     private SelectViewModel<ResourceTypeDetails> _allApplication = null!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
@@ -131,13 +130,13 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
 
     protected override Task OnInitializedAsync()
     {
-        _manager = new GridColumnManager([
+        _gridColumns = [
             new GridColumn(Name: TimestampColumn, DesktopWidth: "0.8fr", MobileWidth: "0.8fr"),
             new GridColumn(Name: NameColumn, DesktopWidth: "2fr", MobileWidth: "2fr"),
             new GridColumn(Name: SpansColumn, DesktopWidth: "3fr"),
             new GridColumn(Name: DurationColumn, DesktopWidth: "0.8fr"),
             new GridColumn(Name: DetailsColumn, DesktopWidth: "0.5fr", MobileWidth: "1fr")
-        ], DimensionManager);
+        ];
 
         _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = ControlsStringsLoc[name: nameof(ControlsStrings.All)] };
         PageViewModel = new TracesPageViewModel { SelectedApplication = _allApplication };
@@ -150,6 +149,11 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
         }));
 
         return Task.CompletedTask;
+    }
+
+    private void DimensionManager_OnViewportSizeChanged(object sender, ViewportSizeChangedEventArgs e)
+    {
+        throw new NotImplementedException();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -224,6 +228,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
     }
 
     private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
+    private string GetResourceName(OtlpApplicationView app) => OtlpApplication.GetResourceName(app, _applications);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -235,7 +240,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
         if (firstRender)
         {
             await JS.InvokeVoidAsync("initializeContinuousScroll");
-            DimensionManager.OnBrowserDimensionsChanged += OnBrowserResize;
+            DimensionManager.OnViewportInformationChanged += OnBrowserResize;
         }
     }
 
@@ -252,7 +257,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
     {
         _applicationsSubscription?.Dispose();
         _tracesSubscription?.Dispose();
-        DimensionManager.OnBrowserDimensionsChanged -= OnBrowserResize;
+        DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
     }
 
     public void UpdateViewModelFromQuery(TracesPageViewModel viewModel)

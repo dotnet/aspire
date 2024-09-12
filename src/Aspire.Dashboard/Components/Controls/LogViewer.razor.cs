@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Extensions;
@@ -52,7 +51,7 @@ public sealed partial class LogViewer
         if (firstRender)
         {
             await JS.InvokeVoidAsync("initializeContinuousScroll");
-            DimensionManager.OnBrowserDimensionsChanged += OnBrowserResize;
+            DimensionManager.OnViewportInformationChanged += OnBrowserResize;
         }
     }
 
@@ -120,6 +119,6 @@ public sealed partial class LogViewer
     public async ValueTask DisposeAsync()
     {
         await _cancellationSeries.ClearAsync();
-        DimensionManager.OnBrowserDimensionsChanged -= OnBrowserResize;
+        DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
     }
 }

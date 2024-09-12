@@ -315,7 +315,7 @@ public class ResourceNotificationTests
 
         logs = logger.Collector.GetSnapshot();
 
-        Assert.Empty(logs.Where(l => l.Level == LogLevel.Debug));
+        Assert.DoesNotContain(logs, l => l.Level == LogLevel.Debug);
         Assert.DoesNotContain(logs, l => l.Level == LogLevel.Debug && l.Message.Contains("Resource resource1/resource1 changed state: SomeState"));
 
         logger.Collector.Clear();
@@ -335,7 +335,7 @@ public class ResourceNotificationTests
 
         logs = logger.Collector.GetSnapshot();
 
-        Assert.Empty(logs.Where(l => l.Level == LogLevel.Debug));
+        Assert.DoesNotContain(logs, l => l.Level == LogLevel.Debug);
         Assert.DoesNotContain(logs, l => l.Level == LogLevel.Debug && l.Message.Contains("Resource resource1/resource1 changed state:"));
 
         logger.Collector.Clear();
@@ -345,7 +345,7 @@ public class ResourceNotificationTests
 
         logs = logger.Collector.GetSnapshot();
 
-        Assert.Empty(logs.Where(l => l.Level == LogLevel.Debug));
+        Assert.DoesNotContain(logs, l => l.Level == LogLevel.Debug);
         Assert.DoesNotContain(logs, l => l.Level == LogLevel.Debug && l.Message.Contains("Resource resource1/resource1 changed state:"));
 
         logger.Collector.Clear();
@@ -355,7 +355,7 @@ public class ResourceNotificationTests
 
         logs = logger.Collector.GetSnapshot();
 
-        Assert.Empty(logs.Where(l => l.Level == LogLevel.Debug));
+        Assert.DoesNotContain(logs, l => l.Level == LogLevel.Debug);
         Assert.DoesNotContain(logs, l => l.Level == LogLevel.Debug && l.Message.Contains("Resource resource1/resource1 changed state:"));
 
         logger.Collector.Clear();

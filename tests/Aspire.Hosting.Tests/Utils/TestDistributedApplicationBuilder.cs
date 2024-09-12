@@ -45,6 +45,11 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
         return new TestDistributedApplicationBuilder(options => options.Args = args);
     }
 
+    public static TestDistributedApplicationBuilder Create(ITestOutputHelper testOutputHelper, params string[] args)
+    {
+        return new TestDistributedApplicationBuilder(options => options.Args = args, testOutputHelper);
+    }
+
     public static TestDistributedApplicationBuilder Create(Action<DistributedApplicationOptions>? configureOptions, ITestOutputHelper? testOutputHelper = null)
     {
         return new TestDistributedApplicationBuilder(configureOptions, testOutputHelper);
@@ -96,6 +101,7 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
     {
         Services.AddXunitLogging(testOutputHelper);
         Services.AddHostedService<ResourceLoggerForwarderService>();
+        Services.AddLogging(builder => builder.AddFilter("Aspire.Hosting", LogLevel.Trace));
         return this;
     }
 

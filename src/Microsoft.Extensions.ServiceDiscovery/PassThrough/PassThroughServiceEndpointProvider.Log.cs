@@ -7,7 +7,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.PassThrough;
 
 internal sealed partial class PassThroughServiceEndpointProvider
 {
-    private sealed partial class Log
+    private static partial class Log
     {
         [LoggerMessage(1, LogLevel.Debug, "Using pass-through service endpoint provider for service '{ServiceName}'.", EventName = "UsingPassThrough")]
         internal static partial void UsingPassThrough(ILogger logger, string serviceName);

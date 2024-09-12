@@ -168,6 +168,18 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds the arguments to be passed to a container resource when the container is started.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="args">The arguments to be passed to the container when it is started.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, params object[] args) where T : IResourceWithArgs
+    {
+        return builder.WithArgs(context => context.Args.AddRange(args));
+    }
+
+    /// <summary>
     /// Adds a callback to be executed with a list of command-line arguments when a container resource is started.
     /// </summary>
     /// <typeparam name="T"></typeparam>
@@ -284,7 +296,10 @@ public static class ResourceBuilderExtensions
         {
             var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
 
-            context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional);
+            context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional)
+            {
+                ConnectionName = connectionName
+            };
         });
     }
 
@@ -593,7 +608,7 @@ public static class ResourceBuilderExtensions
             var resourceEvent = await rns.WaitForResourceAsync(dependency.Resource.Name, re => IsContinuableState(re.Snapshot), cancellationToken: ct).ConfigureAwait(false);
             var snapshot = resourceEvent.Snapshot;
 
-            if (snapshot.State == KnownResourceStates.FailedToStart)
+            if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
             {
                 resourceLogger.LogError(
                     "Dependency resource '{ResourceName}' failed to start.",
@@ -670,14 +685,14 @@ public static class ResourceBuilderExtensions
 
             var rls = e.Services.GetRequiredService<ResourceLoggerService>();
             var resourceLogger = rls.GetLogger(builder.Resource);
-            resourceLogger.LogInformation($"Waiting for resource '{dependency.Resource.Name}' to complete.");
+            resourceLogger.LogInformation("Waiting for resource '{Name}' to complete.", dependency.Resource.Name);
 
             var rns = e.Services.GetRequiredService<ResourceNotificationService>();
             await rns.PublishUpdateAsync(builder.Resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
             var resourceEvent = await rns.WaitForResourceAsync(dependency.Resource.Name, re => IsKnownTerminalState(re.Snapshot), cancellationToken: ct).ConfigureAwait(false);
             var snapshot = resourceEvent.Snapshot;
 
-            if (snapshot.State == KnownResourceStates.FailedToStart)
+            if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
             {
                 resourceLogger.LogError(
                     "Dependency resource '{ResourceName}' failed to start.",
@@ -686,7 +701,7 @@ public static class ResourceBuilderExtensions
 
                 throw new DistributedApplicationException($"Dependency resource '{dependency.Resource.Name}' failed to start.");
             }
-            else if ((snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited)  && snapshot.ExitCode != exitCode)
+            else if ((snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited) && snapshot.ExitCode is not null && snapshot.ExitCode != exitCode)
             {
                 resourceLogger.LogError(
                     "Resource '{ResourceName}' has entered the '{State}' state with exit code '{ExitCode}'",
@@ -704,7 +719,7 @@ public static class ResourceBuilderExtensions
         return builder;
 
         static bool IsKnownTerminalState(CustomResourceSnapshot snapshot) =>
-            KnownResourceStates.TerminalStates.Contains(snapshot.State?.Text) &&
+            KnownResourceStates.TerminalStates.Contains(snapshot.State?.Text) ||
             snapshot.ExitCode is not null;
     }
 
@@ -744,7 +759,7 @@ public static class ResourceBuilderExtensions
     ///                      // custom check defined in the code.
     /// </code>
     /// </example>
-    public static IResourceBuilder<T> WithHealthCheck<T>(this IResourceBuilder<T> builder, string key) where T: IResource
+    public static IResourceBuilder<T> WithHealthCheck<T>(this IResourceBuilder<T> builder, string key) where T : IResource
     {
         if (builder.Resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var annotations) && annotations.Any(a => a.Key == key))
         {
