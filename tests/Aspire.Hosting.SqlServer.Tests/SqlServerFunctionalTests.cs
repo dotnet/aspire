@@ -104,7 +104,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         command.CommandText = "CREATE DATABASE db;";
         await command.ExecuteNonQueryAsync(cts.Token);
 
-        await rns.WaitForResourceAsync(db.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+        await rns.WaitForResourceAsync(db.Resource.Name, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cts.Token);
 
         await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
