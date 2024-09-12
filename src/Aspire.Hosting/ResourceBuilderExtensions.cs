@@ -608,7 +608,7 @@ public static class ResourceBuilderExtensions
             var resourceEvent = await rns.WaitForResourceAsync(dependency.Resource.Name, re => IsContinuableState(re.Snapshot), cancellationToken: ct).ConfigureAwait(false);
             var snapshot = resourceEvent.Snapshot;
 
-            if (snapshot.State == KnownResourceStates.FailedToStart)
+            if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
             {
                 resourceLogger.LogError(
                     "Dependency resource '{ResourceName}' failed to start.",
@@ -692,7 +692,7 @@ public static class ResourceBuilderExtensions
             var resourceEvent = await rns.WaitForResourceAsync(dependency.Resource.Name, re => IsKnownTerminalState(re.Snapshot), cancellationToken: ct).ConfigureAwait(false);
             var snapshot = resourceEvent.Snapshot;
 
-            if (snapshot.State == KnownResourceStates.FailedToStart)
+            if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
             {
                 resourceLogger.LogError(
                     "Dependency resource '{ResourceName}' failed to start.",
