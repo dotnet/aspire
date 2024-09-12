@@ -7,6 +7,7 @@ using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.CognitiveServices;
 using Azure.Provisioning.Expressions;
+using static Azure.Provisioning.Expressions.BicepFunction;
 
 namespace Aspire.Hosting;
 
@@ -54,8 +55,7 @@ public static class AzureOpenAIExtensions
                 },
                 Properties = new CognitiveServicesAccountProperties()
                 {
-                    // TODO: this is wrong. needs BicepFunction.Concat
-                    CustomSubDomainName = BicepFunction.Interpolate($"toLower(take(concat('{name}', uniqueString(resourceGroup().id)), 24))"),
+                    CustomSubDomainName = ToLower(Take(Concat(name, GetUniqueString(GetResourceGroup().Id)), 24)),
                     PublicNetworkAccess = ServiceAccountPublicNetworkAccess.Enabled,
                     // Disable local auth for AOAI since managed identity is used
                     DisableLocalAuth = true
@@ -83,13 +83,14 @@ public static class AzureOpenAIExtensions
 
             var resource = (AzureOpenAIResource)construct.Resource;
 
-            //CognitiveServicesAccountDeployment? dependency = null;
+            CognitiveServicesAccountDeployment? dependency = null;
 
             var cdkDeployments = new List<CognitiveServicesAccountDeployment>();
             foreach (var deployment in resource.Deployments)
             {
                 var cdkDeployment = new CognitiveServicesAccountDeployment(deployment.Name, DeploymentModelResourceVersion)
                 {
+                    Name = deployment.Name,     
                     Parent = cogServicesAccount,
                     Properties = new CognitiveServicesAccountDeploymentProperties()
                     {
@@ -109,17 +110,16 @@ public static class AzureOpenAIExtensions
                 construct.Add(cdkDeployment);
                 cdkDeployments.Add(cdkDeployment);
 
-                // TODO: this can't be done (yet)
-                //// Subsequent deployments need an explicit dependency on the previous one
-                //// to ensure they are not created in parallel. This is equivalent to @batchSize(1)
-                //// which can't be defined with the CDK
+                // Subsequent deployments need an explicit dependency on the previous one
+                // to ensure they are not created in parallel. This is equivalent to @batchSize(1)
+                // which can't be defined with the CDK
 
-                //if (dependency != null)
-                //{
-                //    cdkDeployment.AddDependency(dependency);
-                //}
+                if (dependency != null)
+                {
+                    cdkDeployment.DependsOn.Add(dependency);
+                }
 
-                //dependency = cdkDeployment;
+                dependency = cdkDeployment;
             }
 
             var resourceBuilder = builder.CreateResourceBuilder(resource);

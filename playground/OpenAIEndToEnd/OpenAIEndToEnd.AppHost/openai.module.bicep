@@ -10,7 +10,7 @@ resource openai 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
     location: location
     kind: 'OpenAI'
     properties: {
-        customSubDomainName: 'toLower(take(concat(\'openai\', uniqueString(resourceGroup().id)), 24))'
+        customSubDomainName: toLower(take(concat('openai', uniqueString(resourceGroup().id)), 24))
         publicNetworkAccess: 'Enabled'
         disableLocalAuth: true
     }
@@ -33,7 +33,7 @@ resource openai_CognitiveServicesOpenAIContributor 'Microsoft.Authorization/role
 }
 
 resource gpt-4o 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
-    name: take('gpto${uniqueString(resourceGroup().id)}', 24)
+    name: 'gpt-4o'
     properties: {
         model: {
             format: 'OpenAI'

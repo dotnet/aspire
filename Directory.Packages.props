@@ -7,7 +7,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <TestcontainersPackageVersion>3.10.0</TestcontainersPackageVersion>
-    <AzureProvisiongVersion>1.0.0-alpha.20240912.4</AzureProvisiongVersion>
+    <AzureProvisiongVersion>1.0.0-alpha.20240912.7</AzureProvisiongVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- AWS SDK for .NET dependencies -->
