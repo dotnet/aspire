@@ -25,7 +25,7 @@ Aspire.Hosting.ApplicationModel.ContainerLifetimeAnnotation.Lifetime.get -> Aspi
 Aspire.Hosting.ApplicationModel.ContainerLifetimeAnnotation.Lifetime.set -> void
 Aspire.Hosting.ApplicationModel.ContainerLifetime
 Aspire.Hosting.ApplicationModel.ContainerLifetime.Default = 0 -> Aspire.Hosting.ApplicationModel.ContainerLifetime
-Aspire.Hosting.ApplicationModel.ContainerLifetime.CreateIfNotExistsPersistOnExit = 1 -> Aspire.Hosting.ApplicationModel.ContainerLifetime
+Aspire.Hosting.ApplicationModel.ContainerLifetime.Persistent = 1 -> Aspire.Hosting.ApplicationModel.ContainerLifetime
 Aspire.Hosting.ApplicationModel.ConnectionStringReference.ConnectionName.get -> string?
 Aspire.Hosting.ApplicationModel.ConnectionStringReference.ConnectionName.set -> void
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.get -> Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus?
