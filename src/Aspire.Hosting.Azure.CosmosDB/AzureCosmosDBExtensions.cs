@@ -1,13 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.CosmosDB;
-using Azure.Provisioning.KeyVaults;
-using Azure.ResourceManager.CosmosDB.Models;
-using System.Diagnostics.CodeAnalysis;
+using Azure.Provisioning.Expressions;
+using Azure.Provisioning.KeyVault;
 
 namespace Aspire.Hosting;
 
@@ -16,6 +16,9 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureCosmosExtensions
 {
+    private const string AccountResourceVersion = "2023-04-15";
+    private const string DatabaseResourceVersion = AccountResourceVersion;
+
     /// <summary>
     /// Adds an Azure Cosmos DB connection to the application model.
     /// </summary>
@@ -42,28 +45,63 @@ public static class AzureCosmosExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var cosmosAccount = new CosmosDBAccount(construct, CosmosDBAccountKind.GlobalDocumentDB, name: name);
-            cosmosAccount.AssignProperty(x => x.ConsistencyPolicy.DefaultConsistencyLevel, "'Session'");
-            cosmosAccount.AssignProperty(x => x.DatabaseAccountOfferType, "'Standard'");
-            cosmosAccount.AssignProperty(x => x.Locations[0].LocationName, "location");
-            cosmosAccount.AssignProperty(x => x.Locations[0].FailoverPriority, "0");
+            var kvNameParam = new BicepParameter("keyVaultName", typeof(string));
+            construct.Add(kvNameParam);
 
-            cosmosAccount.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+            var keyVault = KeyVaultService.FromExisting("keyVault");
+            keyVault.Name = kvNameParam;
+            construct.Add(keyVault);
 
-            var keyVaultNameParameter = new Parameter("keyVaultName");
-            construct.AddParameter(keyVaultNameParameter);
+            var cosmosAccount = new CosmosDBAccount(name, AccountResourceVersion)
+            {
+                Location = construct.AddLocationParameter(),
+                Name = name,
+                Kind = CosmosDBAccountKind.GlobalDocumentDB,
+                ConsistencyPolicy = new ConsistencyPolicy()
+                {
+                    DefaultConsistencyLevel = DefaultConsistencyLevel.Session
+                },
+                DatabaseAccountOfferType = CosmosDBAccountOfferType.Standard,
+                Locations =
+                {
+                    new CosmosDBAccountLocation
+                    {
+                        LocationName = new IdentifierExpression("location"),
+                        FailoverPriority = 0
+                    }
+                },
+                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+            };
+            construct.Add(cosmosAccount);
 
             var azureResource = (AzureCosmosDBResource)construct.Resource;
             var azureResourceBuilder = builder.CreateResourceBuilder(azureResource);
             List<CosmosDBSqlDatabase> cosmosSqlDatabases = new List<CosmosDBSqlDatabase>();
             foreach (var databaseName in azureResource.Databases)
             {
-                var cosmosSqlDatabase = new CosmosDBSqlDatabase(construct, cosmosAccount, name: databaseName);
+                var cosmosSqlDatabase = new CosmosDBSqlDatabase(databaseName, DatabaseResourceVersion)
+                {
+                    Parent = cosmosAccount,
+                    Name = databaseName,
+                    Resource = new CosmosDBSqlDatabaseResourceInfo()
+                    {
+                        DatabaseName = databaseName
+                    }
+                };
+                construct.Add(cosmosSqlDatabase);
                 cosmosSqlDatabases.Add(cosmosSqlDatabase);
             }
 
-            var keyVault = KeyVault.FromExisting(construct, "keyVaultName");
-            _ = new KeyVaultSecret(construct, "connectionString", cosmosAccount.GetConnectionString(), keyVault);
+            var secret = new KeyVaultSecret("connectionString")
+            {
+                Parent = keyVault,
+                Name = "connectionString",
+                Properties = new SecretProperties
+                {
+                    Value = BicepFunction.Interpolate($"AccountEndpoint={cosmosAccount.DocumentEndpoint};AccountKey={cosmosAccount.GetKeys().PrimaryMasterKey}")
+                }
+            };
+            construct.Add(secret);
 
             configureResource?.Invoke(azureResourceBuilder, construct, cosmosAccount, cosmosSqlDatabases);
         };

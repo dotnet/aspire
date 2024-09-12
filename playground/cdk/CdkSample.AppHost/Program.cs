@@ -8,7 +8,7 @@ using Azure.Provisioning.Storage;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-//var cosmosdb = builder.AddAzureCosmosDB("cosmos").AddDatabase("cosmosdb");
+var cosmosdb = builder.AddAzureCosmosDB("cosmos").AddDatabase("cosmosdb");
 
 var sku = builder.AddParameter("storagesku");
 var locationOverride = builder.AddParameter("locationOverride");
@@ -97,7 +97,7 @@ builder.AddProject<Projects.CdkSample_ApiService>("api")
     //.WithReference(sqldb)
     .WithReference(keyvault)
     .WithReference(cache)
-    //.WithReference(cosmosdb)
+    .WithReference(cosmosdb)
     .WithReference(pgsqldb);
     //.WithReference(sb)
     //.WithReference(appConfig)
