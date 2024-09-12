@@ -3,6 +3,7 @@
 
 #pragma warning disable AZPROVISION001 // Because we use the CDK callbacks.
 
+using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.Storage;
 
@@ -43,27 +44,31 @@ var pgsqldb = builder.AddPostgres("pgsql", pgsqlAdministratorLogin, pgsqlAdminis
 
 var pgsql2 = builder.AddPostgres("pgsql2").AsAzurePostgresFlexibleServer();
 
-//var sb = builder.AddAzureServiceBus("servicebus")
-//    .AddQueue("queue1",
-//        (_, construct, queue) =>
-//        {
-//            queue.Properties.MaxDeliveryCount = 5;
-//            queue.Properties.LockDuration = TimeSpan.FromMinutes(5);
-//        })
-//    .AddTopic("topic1",
-//        (_, construct, topic) =>
-//        {
-//            topic.Properties.EnablePartitioning = true;
-//        })
-//    .AddTopic("topic2")
-//    .AddSubscription("topic1", "subscription1",
-//        (_, construct, subscription) =>
-//        {
-//            subscription.Properties.LockDuration = TimeSpan.FromMinutes(5);
-//            subscription.Properties.RequiresSession = true;
-//        })
-//    .AddSubscription("topic1", "subscription2")
-//    .AddTopic("topic3", new[] { "sub1", "sub2" });
+var sb = builder.AddAzureServiceBus("servicebus")
+    .AddQueue("queue1",
+        (_, construct, queue) =>
+        {
+            queue.MaxDeliveryCount = 5;
+            queue.LockDuration = new StringLiteral("PT5M");
+            // TODO: this should be
+            // queue.LockDuration = TimeSpan.FromMinutes(5);
+        })
+    .AddTopic("topic1",
+        (_, construct, topic) =>
+        {
+            topic.EnablePartitioning = true;
+        })
+    .AddTopic("topic2")
+    .AddSubscription("topic1", "subscription1",
+        (_, construct, subscription) =>
+        {
+            subscription.LockDuration = new StringLiteral("PT5M");
+            // TODO: this should be
+            //subscription.LockDuration = TimeSpan.FromMinutes(5);
+            subscription.RequiresSession = true;
+        })
+    .AddSubscription("topic1", "subscription2")
+    .AddTopic("topic3", new[] { "sub1", "sub2" });
 
 //var appConfig = builder.AddAzureAppConfiguration("appConfig");
 
@@ -98,8 +103,8 @@ builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithReference(keyvault)
     .WithReference(cache)
     .WithReference(cosmosdb)
-    .WithReference(pgsqldb);
-    //.WithReference(sb)
+    .WithReference(pgsqldb)
+    .WithReference(sb);
     //.WithReference(appConfig)
     //.WithReference(search)
     //.WithReference(appInsights);

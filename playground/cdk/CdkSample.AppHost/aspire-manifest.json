@@ -125,6 +125,15 @@
         "administratorLoginPassword": "{pgsql2-password.value}"
       }
     },
+    "servicebus": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{servicebus.outputs.serviceBusEndpoint}",
+      "path": "servicebus.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": ""
+      }
+    },
     "api": {
       "type": "project.v0",
       "path": "../CdkSample.ApiService/CdkSample.ApiService.csproj",
@@ -139,7 +148,8 @@
         "ConnectionStrings__mykv": "{mykv.connectionString}",
         "ConnectionStrings__cache": "{cache.connectionString}",
         "ConnectionStrings__cosmos": "{cosmos.connectionString}",
-        "ConnectionStrings__pgsqldb": "{pgsqldb.connectionString}"
+        "ConnectionStrings__pgsqldb": "{pgsqldb.connectionString}",
+        "ConnectionStrings__servicebus": "{servicebus.connectionString}"
       },
       "bindings": {
         "http": {
