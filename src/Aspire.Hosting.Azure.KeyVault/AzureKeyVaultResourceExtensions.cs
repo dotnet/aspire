@@ -65,6 +65,8 @@ public static class AzureKeyVaultResourceExtensions
                             new IdentifierExpression(keyVault.ResourceName),
                             "properties"),
                         "vaultUri")
+                // TODO: this should be
+                //Value = keyVault.VaultUri
             });
 
             keyVault.Tags["aspire-resource-name"] = construct.Resource.Name;
