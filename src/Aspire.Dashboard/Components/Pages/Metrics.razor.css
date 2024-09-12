@@ -126,6 +126,24 @@
     }
 }
 
+::deep .plotly-chart-container {
+    width: 100%;
+    max-width: 650px;
+    aspect-ratio: 13 / 9;
+}
+
+@media (min-width: 768px) {
+    ::deep .plotly-chart-container {
+        margin-left: -40px;
+    }
+}
+
+@media (max-width: 768px) {
+    ::deep .plotly-chart-container {
+        margin-left: -20px;
+    }
+}
+
 ::deep .metric-info-icon {
     vertical-align: text-bottom;
     margin-left: 3px;

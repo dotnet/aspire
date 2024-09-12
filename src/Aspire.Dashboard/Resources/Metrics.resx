@@ -175,4 +175,7 @@
   <data name="DashpagesSectionName" xml:space="preserve">
     <value>Dashpages</value>
   </data>
+  <data name="MetricsViewAttributesToolbar" xml:space="preserve">
+    <value>View attributes</value>
+  </data>
 </root>

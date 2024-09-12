@@ -45,7 +45,7 @@ public abstract class ChartContainer : ComponentBase, IAsyncDisposable
     public string? PreviousMeterName { get; set; }
     public string? PreviousInstrumentName { get; set; }
     public InstrumentViewModel ViewModel { get; } = new InstrumentViewModel();
-    protected OtlpInstrumentData? InstrumentData { get; private set; }
+    public OtlpInstrumentData? InstrumentData { get; private set; }
 
     protected override void OnInitialized()
     {

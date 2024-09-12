@@ -37,11 +37,13 @@ else
                        Id="@($"tab-{Metrics.MetricViewKind.Table}")"
                        Label="@Loc[nameof(ControlsStrings.ChartContainerTableTab)]"
                        Icon="@(new Icons.Regular.Size24.Table())">
-                <MetricTableWrapper Applications="@Applications"
-                                    Duration="@Duration"
-                                    InstrumentData="@InstrumentData"
-                                    InstrumentViewModel="@ViewModel"
-                                    DimensionFilters="@DimensionFilters"/>
+                <div class="metrics-chart-container metric-tab">
+                    <MetricTableWrapper Applications="@Applications"
+                                        Duration="@Duration"
+                                        InstrumentData="@InstrumentData"
+                                        InstrumentViewModel="@ViewModel"
+                                        DimensionFilters="@DimensionFilters"/>
+                </div>
             </FluentTab>
         </FluentTabs>
     </div>
