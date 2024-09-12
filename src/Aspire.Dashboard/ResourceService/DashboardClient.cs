@@ -168,7 +168,23 @@ internal sealed class DashboardClient : IDashboardClient
                 var filePath = _dashboardOptions.ResourceServiceClient.ClientCertificate.FilePath;
                 var password = _dashboardOptions.ResourceServiceClient.ClientCertificate.Password;
 
-                return [new X509Certificate2(filePath, password)];
+                var certBytes = File.ReadAllBytes(filePath);
+
+                var certContentType = X509Certificate2.GetCertContentType(filePath);
+
+                if (certContentType is X509ContentType.Pkcs12)
+                {
+                    return [X509CertificateLoader.LoadPkcs12(certBytes, password)];
+                }
+                else
+                {
+                    if (password is not null)
+                    {
+                        _logger.LogDebug("Resource service certificate {FilePath} has type {Type} which does not support passwords, yet a password was configured. The certificate password will be ignored.", filePath, certContentType);
+                    }
+
+                    return [X509CertificateLoader.LoadCertificate(certBytes)];
+                }
             }
 
             X509CertificateCollection GetKeyStoreCertificate()

@@ -103,6 +103,7 @@
     <PackageVersion Include="Grpc.Tools" Version="2.65.0" />
     <PackageVersion Include="Humanizer.Core" Version="2.14.1" />
     <PackageVersion Include="KubernetesClient" Version="14.0.9" />
+    <PackageVersion Include="Microsoft.Bcl.Cryptography" Version="9.0.0-rc.1.24431.7" /> <!-- Can remove Microsoft.Bcl.Cryptography when the repo moves to .NET 9 or later -->
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="5.2.2" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.9.3" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.9.3" />
