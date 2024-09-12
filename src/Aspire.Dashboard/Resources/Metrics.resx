@@ -169,9 +169,6 @@
   <data name="MetricsInsturementNameGridNameColumnHeader" xml:space="preserve">
     <value>Instrument</value>
   </data>
-  <data name="MetricsViewAttributesToolbar" xml:space="preserve">
-    <value>View attributes</value>
-  </data>
   <data name="DashpagesSectionName" xml:space="preserve">
     <value>Dashpages</value>
   </data>
