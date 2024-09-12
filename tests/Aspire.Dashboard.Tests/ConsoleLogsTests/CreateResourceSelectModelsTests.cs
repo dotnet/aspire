@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
@@ -114,6 +114,7 @@ public class CreateResourceSelectModelsTests
             Environment = [],
             Properties = FrozenDictionary<string, Value>.Empty,
             Urls = [],
+            Volumes = [],
             State = state?.ToString(),
             KnownState = state,
             StateStyle = null,

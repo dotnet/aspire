@@ -4,7 +4,6 @@
 using System.Globalization;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Layout;
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
@@ -21,6 +20,13 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs.StructuredLogsPageViewModel, StructuredLogs.StructuredLogsPageState>
 {
+    private const string ResourceColumn = nameof(ResourceColumn);
+    private const string LogLevelColumn = nameof(LogLevelColumn);
+    private const string TimestampColumn = nameof(TimestampColumn);
+    private const string MessageColumn = nameof(MessageColumn);
+    private const string TraceColumn = nameof(TraceColumn);
+    private const string DetailsColumn = nameof(DetailsColumn);
+
     private SelectViewModel<ResourceTypeDetails> _allApplication = default!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
@@ -34,9 +40,11 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private string? _elementIdBeforeDetailsViewOpened;
     private AspirePageContentLayout? _contentLayout;
     private string _filter = string.Empty;
+    private GridColumnManager _manager = null!;
+    private IList<GridColumn> _gridColumns = null!;
 
     public string BasePath => DashboardUrls.StructuredLogsBasePath;
-    public string SessionStorageKey => "StructuredLogs_PageState";
+    public string SessionStorageKey => BrowserStorageKeys.StructuredLogsPageState;
     public StructuredLogsPageViewModel PageViewModel { get; set; } = null!;
 
     [Inject]
@@ -124,6 +132,15 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     protected override Task OnInitializedAsync()
     {
+        _gridColumns = [
+            new GridColumn(Name: ResourceColumn, DesktopWidth: "2fr", MobileWidth: "1fr"),
+            new GridColumn(Name: LogLevelColumn, DesktopWidth: "1fr"),
+            new GridColumn(Name: TimestampColumn, DesktopWidth: "1.5fr"),
+            new GridColumn(Name: MessageColumn, DesktopWidth: "5fr", "2.5fr"),
+            new GridColumn(Name: TraceColumn, DesktopWidth: "1fr"),
+            new GridColumn(Name: DetailsColumn, DesktopWidth: "1fr", MobileWidth: "0.8fr")
+        ];
+
         if (!string.IsNullOrEmpty(TraceId))
         {
             ViewModel.AddFilter(new LogFilter
@@ -351,7 +368,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         if (firstRender)
         {
             await JS.InvokeVoidAsync("initializeContinuousScroll");
-            DimensionManager.OnBrowserDimensionsChanged += OnBrowserResize;
+            DimensionManager.OnViewportInformationChanged += OnBrowserResize;
         }
     }
 
@@ -369,7 +386,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         _applicationsSubscription?.Dispose();
         _logsSubscription?.Dispose();
         _filterCts?.Dispose();
-        DimensionManager.OnBrowserDimensionsChanged -= OnBrowserResize;
+        DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
     }
 
     public string GetUrlFromSerializableViewModel(StructuredLogsPageState serializable)
@@ -396,7 +413,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     public void UpdateViewModelFromQuery(StructuredLogsPageViewModel viewModel)
     {
-        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
+        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _allApplication);
         ViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
 
         if (LogLevelText is not null && Enum.TryParse<LogLevel>(LogLevelText, ignoreCase: true, out var logLevel))
@@ -417,7 +434,10 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             if (filters.Count > 0)
             {
                 ViewModel.ClearFilters();
-                ViewModel.AddFilters(filters);
+                foreach (var filter in filters)
+                {
+                    ViewModel.AddFilter(filter);
+                }
             }
         }
 

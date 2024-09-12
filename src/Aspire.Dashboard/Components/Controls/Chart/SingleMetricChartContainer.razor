@@ -9,16 +9,16 @@
 
 @inject IStringLocalizer<ControlsStrings> Loc
 
-@if (Instrument is null)
+@if (_instrument is null)
 {
     <div>@Loc[nameof(ControlsStrings.ChartContainerUnableToDisplay)]</div>
 }
 else
 {
     <div class="metrics-chart">
-        <div class="metrics-chart-header" style="@($"padding-left: 40px")">
-            <h3>@Instrument.Name</h3>
-            <p>@Instrument.Description</p>
+        <div class="metrics-chart-header">
+            <h3>@_instrument.Summary.Name</h3>
+            <p>@_instrument.Summary.Description</p>
         </div>
 
         <FluentTabs ActiveTabId="@($"tab-{ActiveView}")" OnTabChange="@OnTabChangeAsync">
@@ -37,11 +37,13 @@ else
                        Id="@($"tab-{Metrics.MetricViewKind.Table}")"
                        Label="@Loc[nameof(ControlsStrings.ChartContainerTableTab)]"
                        Icon="@(new Icons.Regular.Size24.Table())">
-                <MetricTableWrapper Applications="@Applications"
-                                    Duration="@Duration"
-                                    Instrument="@Instrument"
-                                    InstrumentViewModel="@ViewModel"
-                                    DimensionFilters="@DimensionFilters"/>
+                <div class="metrics-chart-container metric-tab">
+                    <MetricTableWrapper Applications="@Applications"
+                                        Duration="@Duration"
+                                        Instrument="@Instrument"
+                                        InstrumentViewModel="@ViewModel"
+                                        DimensionFilters="@DimensionFilters"/>
+                </div>
             </FluentTab>
         </FluentTabs>
     </div>

@@ -10,6 +10,8 @@
     <DotNetCliPackageType>sdk</DotNetCliPackageType>
     <NeedsCreateDotNetDevScripts Condition="'$(OS)' != 'Windows_NT'">true</NeedsCreateDotNetDevScripts>
     <HasDocker Condition="'$(OS)' != 'Windows_NT'">true</HasDocker>
+    <!-- Disable playwright tests on helix/linux. Issue: https://github.com/dotnet/aspire/issues/4623 -->
+    <DisablePlaywrightTests Condition="'$(OS)' != 'Windows_NT'">true</DisablePlaywrightTests>
 
     <GlobalJsonContent>$([System.IO.File]::ReadAllText('$(RepoRoot)global.json'))</GlobalJsonContent>
     <DotNetCliVersion>$([System.Text.RegularExpressions.Regex]::Match($(GlobalJsonContent), '(%3F&lt;="dotnet": ").*(%3F=")'))</DotNetCliVersion>
@@ -23,6 +25,9 @@
 
     <_CreateDotNetDevCertsDirectory>$(ArtifactsObjDir)create-dotnet-devcert</_CreateDotNetDevCertsDirectory>
     <_SupportDataStagingDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'support-data'))</_SupportDataStagingDir>
+
+    <_AzureFunctionsCliUrl Condition="'$(OS)' == 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.5907/Azure.Functions.Cli.min.win-x64_net8.4.0.5907.zip</_AzureFunctionsCliUrl>
+    <_AzureFunctionsCliUrl Condition="'$(OS)' != 'Windows_NT'">https://github.com/Azure/azure-functions-core-tools/releases/download/4.0.5907/Azure.Functions.Cli.linux-x64_net8.4.0.5907.zip</_AzureFunctionsCliUrl>
 
     <PrepareDependenciesDependsOn>_StageDotNetCoverageTool;_StageCreateDotNetDevCertScripts</PrepareDependenciesDependsOn>
   </PropertyGroup>
@@ -78,14 +83,10 @@
     <HelixPreCommand Include="$(_CleanupProcessesCommand)" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(NeedsPlaywright)' == 'true'">
+  <ItemGroup Condition="'$(NeedsPlaywright)' == 'true' and '$(DisablePlaywrightTests)' != 'true'">
     <HelixCorrelationPayload Include="$(PlaywrightDependenciesDirectory)" Destination="playwright-deps" />
 
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="chmod +x $(_TestAssemblyRootDirEnvVar)/.playwright/node/linux-x64/node" />
-
-    <!-- Disable playwright tests on helix/linux. Issue: https://github.com/dotnet/aspire/issues/4623 -->
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export DISABLE_PLAYWRIGHT_TESTS=true" />
-    <!--<HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="(sudo apt-get -o DPkg::Lock::Timeout=120 install -y libgbm1 libxkbcommon0 || (cat /var/lib/dkms/lttng-modules/2.13.8/build/make.log; exit 1)) || exit 1" />-->
 
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PLAYWRIGHT_BROWSERS_PATH=%HELIX_CORRELATION_PAYLOAD%\playwright-deps" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PLAYWRIGHT_BROWSERS_PATH=$HELIX_CORRELATION_PAYLOAD/playwright-deps" />
@@ -110,6 +111,15 @@
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="(cd $HELIX_CORRELATION_PAYLOAD/create-dotnet-devcert%3B chmod +x ubuntu-create-dotnet-devcert.sh %3B ./ubuntu-create-dotnet-devcert.sh)" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(NeedsAzureFunctionsCli)' == 'true'">
+    <HelixCorrelationPayload Include="azure-func-cli" Destination="azure-func-cli" Uri="$(_AzureFunctionsCliUrl)" />
+
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="(cd ${HELIX_CORRELATION_PAYLOAD}/azure-func-cli; chmod +x func gozip)" />
+
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\azure-func-cli%3B%PATH%" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/azure-func-cli:$PATH" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(HasDocker)' == 'true'">
     <HelixPreCommand Include="docker info" />
     <HelixPreCommand Include="docker ps" />
@@ -125,6 +135,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Disable playwright tests on helix/linux. Issue: https://github.com/dotnet/aspire/issues/4623 -->
+    <HelixPreCommand Condition="'$(DisablePlaywrightTests)' == 'true'" Include="$(_EnvVarSetKeyword) DISABLE_PLAYWRIGHT_TESTS=true" />
+
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="dotnet dev-certs https --trust" />
 
     <HelixPostCommand Include="$(_CleanupProcessesCommand)" />
@@ -159,9 +172,13 @@
     <Error Condition="'$(NeedsDcpPathOverride)' == 'true' and !Exists('$(ArtifactsBinDir)dotnet-latest')"
            Text="Could not find workload installed in $(ArtifactsBinDir)dotnet-latest required for %24(NeedsDcpPathOverride)==true" />
 
+    <MSBuild Projects="$(RepoRoot)\eng\dcppack\Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier).csproj" Targets="GetDCPBinaryLocation">
+      <Output TaskParameter="TargetOutputs" PropertyName="DCPBinaryLocation" />
+    </MSBuild>
+
     <ItemGroup Condition="'$(NeedsDcpPathOverride)' == 'true'">
-      <_DcpInWorkloadPack Condition="'$(OS)' != 'Windows_NT'" Include="$(ArtifactsBinDir)dotnet-latest\packs\**\dcp" />
-      <_DcpInWorkloadPack Condition="'$(OS)' == 'Windows_NT'" Include="$(ArtifactsBinDir)dotnet-latest\packs\**\dcp.exe" />
+      <_DcpInWorkloadPack Condition="'$(OS)' != 'Windows_NT'" Include="$(DCPBinaryLocation)/dcp" />
+      <_DcpInWorkloadPack Condition="'$(OS)' == 'Windows_NT'" Include="$(DCPBinaryLocation)\dcp.exe" />
 
       <HelixCorrelationPayload Include="@(_DcpInWorkloadPack -> '%(RootDir)%(Directory)')" Destination="dcp" />
 

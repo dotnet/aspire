@@ -11,6 +11,12 @@
       CS8002: Referenced assembly does not have a strong name
     -->
     <NoWarn>$(NoWarn);CS1591;CS8002</NoWarn>
+
+    <!-- This Application is a framework-dependent application that targets .NET 8.0. This means that the
+    application is not able to run if the place where it is deployed does not have the .NET 8.0 runtime installed.
+    Given we want to be able to support people running on environments where they only have the 9.0 SDK/runtime installed,
+    we allow roll-forward to the next major in order to support these customers.-->
+    <RollForward>Major</RollForward>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -49,6 +55,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="Aspire.Dashboard.Components.Resize" />
     <Using Include="Aspire.Dashboard.Model.BrowserStorage" />
   </ItemGroup>
 
@@ -229,5 +236,8 @@
     <Compile Include="$(SharedDir)TokenGenerator.cs" Link="Utils\TokenGenerator.cs" />
     <Compile Include="$(SharedDir)LoggingHelpers.cs" Link="Utils\LoggingHelpers.cs" />
     <Compile Include="$(SharedDir)StringUtils.cs" Link="Utils\StringUtils.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\LogEntries.cs" Link="Utils\ConsoleLogs\LogEntries.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\LogEntry.cs" Link="Utils\ConsoleLogs\LogEntry.cs" />
+    <Compile Include="$(SharedDir)ConsoleLogs\TimestampParser.cs" Link="Utils\ConsoleLogs\TimestampParser.cs" />
   </ItemGroup>
 </Project>

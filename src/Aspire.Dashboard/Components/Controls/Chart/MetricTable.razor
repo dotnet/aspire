@@ -1,10 +1,12 @@
 ﻿@namespace Aspire.Dashboard.Components.Controls
 
-@using Aspire.Dashboard.Extensions
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using System.Globalization
+@using Aspire.Dashboard.Components.Controls.Grid
+
 @inherits Aspire.Dashboard.Components.Controls.Chart.ChartBase
+@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
 @{
     // these colors line up with P50/P90/P99 colors for the plotly graph
@@ -16,7 +18,7 @@
     }
 }
 
-<div id="metric-table-container" style="height: 40vh; overflow-y: auto; margin-bottom: 20px; max-width:1200px;">
+<div id="metric-table-container" style="height: 40vh; overflow-y: auto; width:1200px;">
     @* ItemKey is to preserve row focus by associating rows with their associated time *@
     <FluentDataGrid
         Items="@_metricsView"
@@ -100,9 +102,9 @@
     </FluentDataGrid>
 </div>
 
-<FluentStack Orientation="Orientation.Vertical" Style="margin-bottom: 20px;">
+<FluentStack Orientation="Orientation.Vertical">
     <FluentSwitch Class="table-switch"
                   @bind-Value="@OnlyShowValueChangesInTable"
                   @bind-Value:after="SettingsChangedAsync"
-                  Label="@Loc[nameof(ControlsStrings.MetricTableShowOnlyValueChanges)]"/>
+                  Label="@Loc[nameof(ControlsStrings.MetricTableShowOnlyValueChanges)]" />
 </FluentStack>

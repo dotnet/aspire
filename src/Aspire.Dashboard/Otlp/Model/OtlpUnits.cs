@@ -8,17 +8,19 @@ namespace Aspire.Dashboard.Otlp.Model;
 
 public static class OtlpUnits
 {
-    public static string GetUnit(string unit)
+    public static (string Unit, bool IsRateUnit) GetUnit(string unit)
     {
         // Dropping the portions of the Unit within brackets (e.g. {packet}). Brackets MUST NOT be included in the resulting unit. A "count of foo" is considered unitless in Prometheus.
         // https://github.com/open-telemetry/opentelemetry-specification/blob/b2f923fb1650dde1f061507908b834035506a796/specification/compatibility/prometheus_and_openmetrics.md#L238
         var updatedUnit = RemoveAnnotations(unit);
 
+        var isRateUnit = false;
         // Converting "foo/bar" to "foo_per_bar".
         // https://github.com/open-telemetry/opentelemetry-specification/blob/b2f923fb1650dde1f061507908b834035506a796/specification/compatibility/prometheus_and_openmetrics.md#L240C3-L240C41
         if (TryProcessRateUnits(updatedUnit, out var updatedPerUnit))
         {
             updatedUnit = updatedPerUnit;
+            isRateUnit = true;
         }
         else
         {
@@ -27,7 +29,7 @@ public static class OtlpUnits
             updatedUnit = MapUnit(updatedUnit.AsSpan());
         }
 
-        return updatedUnit;
+        return (updatedUnit, isRateUnit);
     }
 
     private static bool TryProcessRateUnits(string updatedUnit, [NotNullWhen(true)] out string? updatedPerUnit)
@@ -44,7 +46,7 @@ public static class OtlpUnits
                     return false;
                 }
 
-                updatedPerUnit = MapUnit(updatedUnit.AsSpan(0, i)) + " per" + MapPerUnit(updatedUnit.AsSpan(i + 1, updatedUnit.Length - i - 1));
+                updatedPerUnit = MapUnit(updatedUnit.AsSpan(0, i)) + " per " + MapPerUnit(updatedUnit.AsSpan(i + 1, updatedUnit.Length - i - 1));
                 return true;
             }
         }

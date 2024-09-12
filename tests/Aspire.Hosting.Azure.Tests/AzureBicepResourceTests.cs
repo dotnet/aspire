@@ -1121,14 +1121,21 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
-    [Fact]
-    public async Task AsAzureSqlDatabaseViaRunMode()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AsAzureSqlDatabaseViaRunMode(bool overrideDefaultTlsVersion)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((azureSqlBuilder, _, _, _) =>
+        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((azureSqlBuilder, _, sql, _) =>
         {
             azureSqlBuilder.Resource.Outputs["sqlServerFqdn"] = "myserver";
+
+            if (overrideDefaultTlsVersion)
+            {
+                sql.AssignProperty(s => s.MinimalTlsVersion, "'1.3'");
+            }
         });
         sql.AddDatabase("db", "dbName");
 
@@ -1151,7 +1158,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        var expectedBicep = """
+        var expectedBicep = $$"""
             targetScope = 'resourceGroup'
 
             @description('')
@@ -1175,6 +1182,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               properties: {
                 version: '12.0'
+                minimalTlsVersion: '{{(overrideDefaultTlsVersion ? "1.3" : "1.2")}}'
                 publicNetworkAccess: 'Enabled'
                 administrators: {
                   administratorType: 'ActiveDirectory'
@@ -1220,14 +1228,21 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
         Assert.Equal(expectedBicep, manifest.BicepText);
     }
 
-    [Fact]
-    public async Task AsAzureSqlDatabaseViaPublishMode()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AsAzureSqlDatabaseViaPublishMode(bool overrideDefaultTlsVersion)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((azureSqlBuilder, _, _, _) =>
+        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase((azureSqlBuilder, _, sql, _) =>
         {
             azureSqlBuilder.Resource.Outputs["sqlServerFqdn"] = "myserver";
+
+            if (overrideDefaultTlsVersion)
+            {
+                sql.AssignProperty(s => s.MinimalTlsVersion, "'1.3'");
+            }
         });
         sql.AddDatabase("db", "dbName");
 
@@ -1249,7 +1264,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             """;
         Assert.Equal(expectedManifest, manifest.ManifestNode.ToString());
 
-        var expectedBicep = """
+        var expectedBicep = $$"""
             targetScope = 'resourceGroup'
 
             @description('')
@@ -1270,6 +1285,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               }
               properties: {
                 version: '12.0'
+                minimalTlsVersion: '{{(overrideDefaultTlsVersion ? "1.3" : "1.2")}}'
                 publicNetworkAccess: 'Enabled'
                 administrators: {
                   administratorType: 'ActiveDirectory'

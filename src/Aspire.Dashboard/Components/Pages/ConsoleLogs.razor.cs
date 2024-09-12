@@ -6,7 +6,6 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Components.Layout;
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -57,7 +56,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
 
     public string BasePath => DashboardUrls.ConsoleLogBasePath;
-    public string SessionStorageKey => "ConsoleLogs_PageState";
+    public string SessionStorageKey => BrowserStorageKeys.ConsoleLogsPageState;
 
     protected override async Task OnInitializedAsync()
     {
@@ -278,10 +277,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             if (subscription is not null)
             {
-                var task = _logViewer.SetLogSourceAsync(
-                    PageViewModel.SelectedResource.Name,
-                    subscription,
-                    convertTimestampsFromUtc: PageViewModel.SelectedResource.IsContainer());
+                var task = _logViewer.SetLogSourceAsync(PageViewModel.SelectedResource.Name, subscription);
 
                 PageViewModel.InitialisedSuccessfully = true;
                 PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs)];

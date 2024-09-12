@@ -1,2 +1,6 @@
 #nullable enable
+static Aspire.Hosting.AzureBicepResourceExtensions.WithParameter<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, Aspire.Hosting.ApplicationModel.EndpointReference! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+static Aspire.Hosting.AzureBicepResourceExtensions.WithParameter<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, Aspire.Hosting.ApplicationModel.ReferenceExpression! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+Aspire.Hosting.Azure.IResourceWithAzureFunctionsConfig
+Aspire.Hosting.Azure.IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(System.Collections.Generic.IDictionary<string!, object!>! target, string! connectionName) -> void
 static Aspire.Hosting.AzureConstructResourceExtensions.ConfigureConstruct<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, System.Action<Aspire.Hosting.ResourceModuleConstruct!>! configure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!

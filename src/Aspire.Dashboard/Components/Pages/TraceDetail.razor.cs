@@ -15,6 +15,10 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class TraceDetail : ComponentBase
 {
+    private const string NameColumn = nameof(NameColumn);
+    private const string TicksColumn = nameof(TicksColumn);
+    private const string DetailsColumn = nameof(DetailsColumn);
+
     private readonly List<IDisposable> _peerChangesSubscriptions = new();
     private OtlpTrace? _trace;
     private Subscription? _tracesSubscription;
@@ -23,6 +27,8 @@ public partial class TraceDetail : ComponentBase
     private List<OtlpApplication> _applications = default!;
     private readonly List<string> _collapsedSpanIds = [];
     private string? _elementIdBeforeDetailsViewOpened;
+    private GridColumnManager _manager = null!;
+    private IList<GridColumn> _gridColumns = null!;
 
     [Parameter]
     public required string TraceId { get; set; }
@@ -46,8 +52,20 @@ public partial class TraceDetail : ComponentBase
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
+    [Inject]
+    public required DimensionManager DimensionManager { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
+
     protected override void OnInitialized()
     {
+        _gridColumns = [
+            new GridColumn(Name: NameColumn, DesktopWidth: "4fr", MobileWidth: "4fr"),
+            new GridColumn(Name: TicksColumn, DesktopWidth: "12fr", MobileWidth: "12fr"),
+            new GridColumn(Name: DetailsColumn, DesktopWidth: "85px", MobileWidth: null)
+        ];
+
         foreach (var resolver in OutgoingPeerResolvers)
         {
             _peerChangesSubscriptions.Add(resolver.OnPeerChanges(async () =>
