@@ -89,7 +89,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         var client = app.CreateHttpClient(commanderBuilder.Resource.Name, "http");
 
         var endpoint = redis.GetEndpoint("tcp");
-        var path = $"/apiv2/server/R:{endpoint.ContainerHost}:{endpoint.Port}:0/info";
+        var path = $"/apiv2/server/R:{redis.Resource.Name}:{endpoint.TargetPort}:0/info";
         var response = await client.GetAsync(path);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
