@@ -5,6 +5,8 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
+using Azure.Provisioning.Authorization;
+using Azure.Provisioning.Expressions;
 using Azure.Provisioning.SignalR;
 
 namespace Aspire.Hosting;
@@ -14,6 +16,8 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureSignalRExtensions
 {
+    private const string SignalRResourceVersion = "2022-02-01";
+
     /// <summary>
     /// Adds an Azure SignalR resource to the application model.
     /// </summary>
@@ -41,15 +45,37 @@ public static class AzureSignalRExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var service = new SignalRService(construct, name: name);
-            service.AssignProperty(x => x.Kind, "'SignalR'");
-            service.AddOutput("hostName", x => x.HostName);
+            var service = new SignalRService(name, SignalRResourceVersion)
+            {
+                Kind = SignalRServiceKind.SignalR,
+                Sku = new SignalRResourceSku()
+                {
+                    Name = "Free_F1",
+                    Capacity = 1
+                },
+                Features =
+                [
+                    new SignalRFeature()
+                    {
+                        Flag = SignalRFeatureFlag.ServiceMode,
+                        Value = "Default"
+                    }
+                ],
+                CorsAllowedOrigins = ["*"],
+                Tags = { { "aspire-resource-name", construct.Resource.Name } },
+            };
+            construct.Add(service);
 
-            service.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+            construct.Add(new BicepOutput("hostName", typeof(string)) { Value = service.HostName });
 
-            var appServerRole = service.AssignRole(RoleDefinition.SignalRAppServer);
-            appServerRole.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
-            appServerRole.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);
+            var role = SignalRBuiltInRole.SignalRAppServer;
+            construct.Add(new RoleAssignment($"{SignalRBuiltInRole.GetBuiltInRoleName(role)}_{service.ResourceName}")
+            {
+                Scope = new IdentifierExpression(service.ResourceName),
+                PrincipalType = construct.PrincipalTypeParameter,
+                RoleDefinitionId = BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", role.ToString()),
+                PrincipalId = construct.PrincipalIdParameter
+            });
 
             var resource = (AzureSignalRResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);

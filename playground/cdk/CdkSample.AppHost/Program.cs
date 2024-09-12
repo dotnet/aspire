@@ -74,7 +74,7 @@ var sb = builder.AddAzureServiceBus("servicebus")
 
 //var search = builder.AddAzureSearch("search");
 
-//var signalr = builder.AddAzureSignalR("signalr");
+var signalr = builder.AddAzureSignalR("signalr");
 
 //var logAnalyticsWorkspace = builder.AddAzureLogAnalyticsWorkspace(
 //    "logAnalyticsWorkspace",
@@ -97,7 +97,7 @@ var sb = builder.AddAzureServiceBus("servicebus")
 
 builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithExternalHttpEndpoints()
-    //.WithReference(signalr)
+    .WithReference(signalr)
     .WithReference(blobs)
     .WithReference(sqldb)
     .WithReference(keyvault)
