@@ -4,6 +4,7 @@
 #pragma warning disable AZPROVISION001
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -125,6 +126,8 @@ public static class AzureConstructResourceExtensions
     /// <param name="construct"></param>
     /// <param name="parameterName"></param>
     /// <returns></returns>
+    [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
+        Justification = "The 'this' arguments are mutually exclusive")]
     public static BicepParameter AsBicepParameter(this IResourceBuilder<ParameterResource> parameterResourceBuilder, ResourceModuleConstruct construct, string? parameterName = null)
     {
         ArgumentNullException.ThrowIfNull(parameterResourceBuilder);
@@ -141,6 +144,34 @@ public static class AzureConstructResourceExtensions
             {
                 IsSecure = parameterResourceBuilder.Resource.Secret
             };
+            construct.Add(parameter);
+        }
+
+        return parameter;
+    }
+
+    /// <summary>
+    /// TODO
+    /// </summary>
+    /// <param name="outputReference"></param>
+    /// <param name="construct"></param>
+    /// <param name="parameterName"></param>
+    /// <returns></returns>
+    [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
+        Justification = "The 'this' arguments are mutually exclusive")]
+    public static BicepParameter AsBicepParameter(this BicepOutputReference outputReference, ResourceModuleConstruct construct, string? parameterName = null)
+    {
+        ArgumentNullException.ThrowIfNull(outputReference);
+        ArgumentNullException.ThrowIfNull(construct);
+
+        parameterName ??= outputReference.Name;
+
+        construct.Resource.Parameters[parameterName] = outputReference;
+
+        var parameter = construct.GetParameters().FirstOrDefault(p => p.ResourceName == parameterName);
+        if (parameter is null)
+        {
+            parameter = new BicepParameter(parameterName, typeof(string));
             construct.Add(parameter);
         }
 

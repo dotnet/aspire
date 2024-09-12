@@ -24,9 +24,9 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Sql" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.SignalR" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Search" />
-<!--    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.OperationalInsights" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.OperationalInsights" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.ApplicationInsights" />
-    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.AppConfiguration" />-->
+<!--    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.AppConfiguration" />-->
     <ProjectReference Include="..\CdkSample.ApiService\CdkSample.ApiService.csproj" />
   </ItemGroup>
 

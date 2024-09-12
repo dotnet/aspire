@@ -3,8 +3,10 @@
 
 #pragma warning disable AZPROVISION001 // Because we use the CDK callbacks.
 
+using Azure.Provisioning.ApplicationInsights;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
+using Azure.Provisioning.OperationalInsights;
 using Azure.Provisioning.Storage;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -77,24 +79,28 @@ var search = builder.AddAzureSearch("search");
 
 var signalr = builder.AddAzureSignalR("signalr");
 
-//var logAnalyticsWorkspace = builder.AddAzureLogAnalyticsWorkspace(
-//    "logAnalyticsWorkspace",
-//    (_, _, logAnalyticsWorkspace) =>
-//    {
-//        logAnalyticsWorkspace.Properties.Sku = new OperationalInsightsWorkspaceSku(OperationalInsightsWorkspaceSkuName.PerNode);
-//    });
+var logAnalyticsWorkspace = builder.AddAzureLogAnalyticsWorkspace(
+    "logAnalyticsWorkspace",
+    (_, _, logAnalyticsWorkspace) =>
+    {
+        logAnalyticsWorkspace.Sku = new OperationalInsightsWorkspaceSku()
+        {
+            Name = OperationalInsightsWorkspaceSkuName.PerNode
+        };
+    });
 
-//var appInsights = builder.AddAzureApplicationInsights(
-//    "appInsights",
-//    (_, _, appInsights) =>
-//{
-//    appInsights.AssignProperty(
-//        p => p.WorkspaceResourceId,
-//        logAnalyticsWorkspace.Resource.WorkspaceId,
-//        AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId);
+var appInsights = builder.AddAzureApplicationInsights(
+    "appInsights",
+    logAnalyticsWorkspace,
+    (_, _, appInsights) =>
+{
+    //appInsights.AssignProperty(
+    //    p => p.WorkspaceResourceId,
+    //    logAnalyticsWorkspace.Resource.WorkspaceId,
+    //    AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId);
 
-//    appInsights.Properties.IngestionMode = ComponentIngestionMode.LogAnalytics;
-//});
+    appInsights.IngestionMode = ComponentIngestionMode.LogAnalytics;
+});
 
 builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithExternalHttpEndpoints()

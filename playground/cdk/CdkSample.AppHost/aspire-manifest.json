@@ -152,6 +152,18 @@
         "principalType": ""
       }
     },
+    "logAnalyticsWorkspace": {
+      "type": "azure.bicep.v0",
+      "path": "logAnalyticsWorkspace.module.bicep"
+    },
+    "appInsights": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{appInsights.outputs.appInsightsConnectionString}",
+      "path": "appInsights.module.bicep",
+      "params": {
+        "logAnalyticsWorkspaceId": "{logAnalyticsWorkspace.outputs.logAnalyticsWorkspaceId}"
+      }
+    },
     "api": {
       "type": "project.v0",
       "path": "../CdkSample.ApiService/CdkSample.ApiService.csproj",
