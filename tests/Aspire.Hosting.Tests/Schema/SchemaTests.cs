@@ -320,6 +320,50 @@ public class SchemaTests
     }
 
     [Fact]
+    public void ManifestWithDockerfileV0ResourceAndBuildFieldAndArgsIsAccepted()
+    {
+        var manifestText = """
+            {
+              "resources": {
+                "mycontainer": {
+                  "type": "dockerfile.v0",
+                  "context": "relativepath",
+                  "path": "relativepath/Dockerfile",
+                  "buildArgs": {
+                    "ARG1": "an arg"
+                  }
+                }
+              }
+            }
+            """;
+
+        AssertValid(manifestText);
+    }
+
+    [Fact]
+    public void ManifestWithContainerV1ResourceAndBuildFieldAndArgsIsAccepted()
+    {
+        var manifestText = """
+            {
+              "resources": {
+                "mycontainer": {
+                  "type": "container.v1",
+                  "build": {
+                    "context": "relativepath",
+                    "dockerfile": "relativepath/Dockerfile",
+                    "args": {
+                      "ARG1": "an arg"
+                    }
+                  }
+                }
+              }
+            }
+            """;
+
+        AssertValid(manifestText);
+    }
+
+    [Fact]
     public void ManifestWithContainerV1ResourceAndImageFieldIsAccepted()
     {
         var manifestText = """
