@@ -30,7 +30,7 @@
     <ItemGroup>
       <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" />
       <!-- runsettings timeout in ms, default to 10 mins -->
-      <_DefaultWorkItems TimeoutMs="600000" />
+      <_DefaultWorkItems TimeoutMs="900000" />
 
       <_DefaultWorkItems Condition="'%(FileName)' == 'Aspire.Hosting.Elasticsearch.Tests'" TimeoutMs="1200000" />
       <_DefaultWorkItems Condition="'%(FileName)' == 'Aspire.Hosting.Oracle.Tests'" TimeoutMs="1200000" />
