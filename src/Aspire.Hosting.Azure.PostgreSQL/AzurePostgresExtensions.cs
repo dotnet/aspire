@@ -73,7 +73,6 @@ public static class AzurePostgresExtensions
 
             var postgres = new PostgreSqlFlexibleServer(construct.Resource.Name, ServerResourceVersion)
             {
-                Location = construct.AddLocationParameter(),
                 StorageSizeInGB = 32,
                 AdministratorLogin = administratorLogin,
                 AdministratorLoginPassword = administratorLoginPassword,
@@ -136,19 +135,7 @@ public static class AzurePostgresExtensions
                 Name = "connectionString",
                 Properties = new SecretProperties
                 {
-                    Value = new InterpolatedString(
-                        "Host={0};Username={1};Password={2}",
-                        [
-                            new MemberExpression(
-                                new MemberExpression(
-                                    new IdentifierExpression(postgres.ResourceName),
-                                    "properties"),
-                                "fullyQualifiedDomainName"),
-                            new IdentifierExpression(administratorLogin.ResourceName),
-                            new IdentifierExpression(administratorLoginPassword.ResourceName),
-                        ])
-                    // TODO: this should be
-                    // Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName};Username={administratorLogin};Password={administratorLoginPassword}")
+                    Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName};Username={administratorLogin};Password={administratorLoginPassword}")
                 }
             };
             construct.Add(secret);

@@ -59,7 +59,6 @@ public static class AzureRedisExtensions
 
             var redisCache = new CdkRedisResource(builder.Resource.Name, RedisResourceVersion)
             {
-                Location = construct.AddLocationParameter(),
                 Sku = new RedisSku()
                 {
                     Name = RedisSkuName.Basic,

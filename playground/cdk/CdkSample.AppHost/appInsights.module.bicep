@@ -4,10 +4,13 @@ param kind string = 'web'
 
 param logAnalyticsWorkspaceId string
 
+@description('The location for the resource(s) to be deployed.')
+param location string = resourceGroup().location
+
 resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
     name: take('appInsights-${uniqueString(resourceGroup().id)}', 260)
     kind: kind
-    location: resourceGroup().location
+    location: location
     properties: {
         Application_Type: applicationType
         IngestionMode: 'LogAnalytics'

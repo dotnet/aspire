@@ -5,7 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
-using Azure.Provisioning.Authorization;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.ServiceBus;
 
@@ -60,14 +59,7 @@ public static class AzureServiceBusExtensions
             };
             construct.Add(serviceBusNamespace);
 
-            var role = ServiceBusBuiltInRole.AzureServiceBusDataOwner;
-            construct.Add(new RoleAssignment($"{ServiceBusBuiltInRole.GetBuiltInRoleName(role)}_{serviceBusNamespace.ResourceName}")
-            {
-                Scope = new IdentifierExpression(serviceBusNamespace.ResourceName),
-                PrincipalType = construct.PrincipalTypeParameter,
-                RoleDefinitionId = BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", role.ToString()),
-                PrincipalId = construct.PrincipalIdParameter
-            });
+            construct.Add(serviceBusNamespace.AssignRole(ServiceBusBuiltInRole.AzureServiceBusDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             construct.Add(new BicepOutput("serviceBusEndpoint", typeof(string)) { Value = serviceBusNamespace.ServiceBusEndpoint });
 

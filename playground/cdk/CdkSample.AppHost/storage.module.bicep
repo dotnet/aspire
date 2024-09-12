@@ -1,5 +1,3 @@
-param location string = resourceGroup().location
-
 param storagesku string
 
 param locationOverride string
@@ -32,8 +30,8 @@ resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2023-01-01' = {
     parent: storage
 }
 
-resource StorageBlobDataContributor_storage 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-    name: guid(resourceGroup().id, 'StorageBlobDataContributor_storage')
+resource storage_StorageBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+    name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'))
     properties: {
         principalId: principalId
         roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
@@ -42,8 +40,8 @@ resource StorageBlobDataContributor_storage 'Microsoft.Authorization/roleAssignm
     scope: storage
 }
 
-resource StorageTableDataContributor_storage 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-    name: guid(resourceGroup().id, 'StorageTableDataContributor_storage')
+resource storage_StorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+    name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'))
     properties: {
         principalId: principalId
         roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
@@ -52,8 +50,8 @@ resource StorageTableDataContributor_storage 'Microsoft.Authorization/roleAssign
     scope: storage
 }
 
-resource StorageQueueDataContributor_storage 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-    name: guid(resourceGroup().id, 'StorageQueueDataContributor_storage')
+resource storage_StorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+    name: guid(storage.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88'))
     properties: {
         principalId: principalId
         roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')

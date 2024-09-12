@@ -4,9 +4,12 @@ param principalId string
 
 param principalType string
 
+@description('The location for the resource(s) to be deployed.')
+param location string = resourceGroup().location
+
 resource servicebus 'Microsoft.ServiceBus/namespaces@2017-04-01' = {
     name: take('servicebus-${uniqueString(resourceGroup().id)}', 50)
-    location: resourceGroup().location
+    location: location
     properties: {
         disableLocalAuth: true
     }
@@ -18,8 +21,8 @@ resource servicebus 'Microsoft.ServiceBus/namespaces@2017-04-01' = {
     }
 }
 
-resource AzureServiceBusDataOwner_servicebus 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-    name: guid(resourceGroup().id, 'AzureServiceBusDataOwner_servicebus')
+resource servicebus_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+    name: guid(servicebus.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
     properties: {
         principalId: principalId
         roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')

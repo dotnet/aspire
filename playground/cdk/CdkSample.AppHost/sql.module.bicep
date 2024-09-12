@@ -2,9 +2,12 @@ param principalId string
 
 param principalName string
 
+@description('The location for the resource(s) to be deployed.')
+param location string = resourceGroup().location
+
 resource sql 'Microsoft.Sql/servers@2020-11-01-preview' = {
     name: take('sql-${uniqueString(resourceGroup().id)}', 63)
-    location: resourceGroup().location
+    location: location
     properties: {
         administrators: {
             administratorType: 'ActiveDirectory'
@@ -24,12 +27,16 @@ resource sql 'Microsoft.Sql/servers@2020-11-01-preview' = {
 
 resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
     name: 'AllowAllAzureIps'
+    properties: {
+        endIpAddress: '0.0.0.0'
+        startIpAddress: '0.0.0.0'
+    }
     parent: sql
 }
 
 resource sqldb 'Microsoft.Sql/servers/databases@2021-11-01' = {
     name: 'sqldb'
-    location: resourceGroup().location
+    location: location
     parent: sql
 }
 

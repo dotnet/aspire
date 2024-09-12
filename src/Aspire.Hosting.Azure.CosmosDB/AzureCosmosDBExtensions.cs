@@ -54,8 +54,6 @@ public static class AzureCosmosExtensions
 
             var cosmosAccount = new CosmosDBAccount(name, AccountResourceVersion)
             {
-                Location = construct.AddLocationParameter(),
-                Name = name,
                 Kind = CosmosDBAccountKind.GlobalDocumentDB,
                 ConsistencyPolicy = new ConsistencyPolicy()
                 {

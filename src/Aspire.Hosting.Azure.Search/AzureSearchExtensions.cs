@@ -5,7 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
-using Azure.Provisioning.Authorization;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Search;
 
@@ -62,19 +61,8 @@ public static class AzureSearchExtensions
             };
             construct.Add(search);
 
-            void AssignRole(SearchBuiltInRole role)
-            {
-                construct.Add(new RoleAssignment($"{SearchBuiltInRole.GetBuiltInRoleName(role)}_{search.ResourceName}")
-                {
-                    Scope = new IdentifierExpression(search.ResourceName),
-                    PrincipalType = construct.PrincipalTypeParameter,
-                    RoleDefinitionId = BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", role.ToString()),
-                    PrincipalId = construct.PrincipalIdParameter
-                });
-            }
-
-            AssignRole(SearchBuiltInRole.SearchIndexDataContributor);
-            AssignRole(SearchBuiltInRole.SearchServiceContributor);
+            construct.Add(search.AssignRole(SearchBuiltInRole.SearchIndexDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            construct.Add(search.AssignRole(SearchBuiltInRole.SearchServiceContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             // TODO: The endpoint format should move into the CDK so we can maintain this
             // logic in a single location and have a better chance at supporting more than

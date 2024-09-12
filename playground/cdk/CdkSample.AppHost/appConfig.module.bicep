@@ -2,9 +2,12 @@ param principalId string
 
 param principalType string
 
+@description('The location for the resource(s) to be deployed.')
+param location string = resourceGroup().location
+
 resource appConfig 'Microsoft.AppConfiguration/configurationStores@2019-10-01' = {
     name: take('appConfig-${uniqueString(resourceGroup().id)}', 50)
-    location: resourceGroup().location
+    location: location
     properties: {
         disableLocalAuth: true
     }
@@ -16,8 +19,8 @@ resource appConfig 'Microsoft.AppConfiguration/configurationStores@2019-10-01' =
     }
 }
 
-resource AppConfigurationDataOwner_appConfig 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-    name: guid(resourceGroup().id, 'AppConfigurationDataOwner_appConfig')
+resource appConfig_AppConfigurationDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+    name: guid(appConfig.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b'))
     properties: {
         principalId: principalId
         roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b')

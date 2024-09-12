@@ -2,9 +2,12 @@ param principalId string
 
 param principalType string
 
+@description('The location for the resource(s) to be deployed.')
+param location string = resourceGroup().location
+
 resource signalr 'Microsoft.SignalRService/signalR@2022-02-01' = {
     name: take('signalr-${uniqueString(resourceGroup().id)}', 63)
-    location: resourceGroup().location
+    location: location
     properties: {
         cors: {
             allowedOrigins: [
@@ -28,8 +31,8 @@ resource signalr 'Microsoft.SignalRService/signalR@2022-02-01' = {
     }
 }
 
-resource SignalRAppServer_signalr 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-    name: guid(resourceGroup().id, 'SignalRAppServer_signalr')
+resource signalr_SignalRAppServer 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+    name: guid(signalr.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '420fcaa2-552c-430f-98ca-3264be4806c7'))
     properties: {
         principalId: principalId
         roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '420fcaa2-552c-430f-98ca-3264be4806c7')

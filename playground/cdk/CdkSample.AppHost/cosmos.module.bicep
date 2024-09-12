@@ -1,14 +1,14 @@
 param keyVaultName string
 
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
     name: keyVaultName
-    location: resourceGroup().location
 }
 
 resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
-    name: 'cosmos'
+    name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
     location: location
     properties: {
         locations: [
@@ -30,7 +30,7 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
 
 resource cosmosdb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15' = {
     name: 'cosmosdb'
-    location: resourceGroup().location
+    location: location
     properties: {
         resource: {
             id: 'cosmosdb'

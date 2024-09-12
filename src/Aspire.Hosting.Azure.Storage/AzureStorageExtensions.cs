@@ -6,8 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning;
-using Azure.Provisioning.Authorization;
-using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Storage;
 
 namespace Aspire.Hosting;
@@ -46,7 +44,6 @@ public static class AzureStorageExtensions
         {
             var storageAccount = new StorageAccount(name)
             {
-                Location = construct.AddLocationParameter(),
                 Kind = StorageKind.StorageV2,
                 Sku = new StorageSku() { Name = StorageSkuName.StandardGrs },
                 NetworkRuleSet = new StorageAccountNetworkRuleSet()
@@ -69,20 +66,9 @@ public static class AzureStorageExtensions
             var blobs = new BlobService("blobs") { Parent = storageAccount };
             construct.Add(blobs);
 
-            void AssignRole(StorageBuiltInRole role)
-            {
-                construct.Add(new RoleAssignment($"{StorageBuiltInRole.GetBuiltInRoleName(role)}_{storageAccount.ResourceName}")
-                {
-                    Scope = new IdentifierExpression(storageAccount.ResourceName),
-                    PrincipalType = construct.PrincipalTypeParameter,
-                    RoleDefinitionId = BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", role.ToString()),
-                    PrincipalId = construct.PrincipalIdParameter
-                });
-            }
-
-            AssignRole(StorageBuiltInRole.StorageBlobDataContributor);
-            AssignRole(StorageBuiltInRole.StorageTableDataContributor);
-            AssignRole(StorageBuiltInRole.StorageQueueDataContributor);
+            construct.Add(storageAccount.AssignRole(StorageBuiltInRole.StorageBlobDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            construct.Add(storageAccount.AssignRole(StorageBuiltInRole.StorageTableDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            construct.Add(storageAccount.AssignRole(StorageBuiltInRole.StorageQueueDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             construct.Add(new BicepOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.BlobUri });
             construct.Add(new BicepOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.Value!.QueueUri });

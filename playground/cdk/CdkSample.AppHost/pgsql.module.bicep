@@ -5,11 +5,11 @@ param administratorLoginPassword string
 
 param keyVaultName string
 
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
     name: keyVaultName
-    location: resourceGroup().location
 }
 
 resource pgsql 'Microsoft.DBforPostgreSQL/flexibleServers@2023-03-01-preview' = {

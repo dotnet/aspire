@@ -1,6 +1,9 @@
+@description('The location for the resource(s) to be deployed.')
+param location string = resourceGroup().location
+
 resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
     name: take('logAnalyticsWorkspace-${uniqueString(resourceGroup().id)}', 63)
-    location: resourceGroup().location
+    location: location
     properties: {
         sku: {
             name: 'PerNode'

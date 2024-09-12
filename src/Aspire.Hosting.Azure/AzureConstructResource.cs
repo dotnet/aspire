@@ -179,22 +179,6 @@ public static class AzureConstructResourceExtensions
     }
 
     /// <summary>
-    /// TODO: we don't want this in our public API.
-    /// either make it shared source, or have the CDK do this for us
-    /// </summary>
-    /// <param name="construct"></param>
-    /// <returns></returns>
-    public static BicepParameter AddLocationParameter(this ResourceModuleConstruct construct)
-    {
-        var locationParam = new BicepParameter("location", typeof(string))
-        {
-            Value = BicepFunction.GetResourceGroup().Location,
-        };
-        construct.Add(locationParam);
-        return locationParam;
-    }
-
-    /// <summary>
     /// Assigns an Aspire parameter resource to an Azure construct resource.
     /// </summary>
     /// <typeparam name="T">Type of the CDK resource.</typeparam>

@@ -5,8 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
-using Azure.Provisioning.Authorization;
-using Azure.Provisioning.Expressions;
 using Azure.Provisioning.SignalR;
 
 namespace Aspire.Hosting;
@@ -68,14 +66,7 @@ public static class AzureSignalRExtensions
 
             construct.Add(new BicepOutput("hostName", typeof(string)) { Value = service.HostName });
 
-            var role = SignalRBuiltInRole.SignalRAppServer;
-            construct.Add(new RoleAssignment($"{SignalRBuiltInRole.GetBuiltInRoleName(role)}_{service.ResourceName}")
-            {
-                Scope = new IdentifierExpression(service.ResourceName),
-                PrincipalType = construct.PrincipalTypeParameter,
-                RoleDefinitionId = BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", role.ToString()),
-                PrincipalId = construct.PrincipalIdParameter
-            });
+            construct.Add(service.AssignRole(SignalRBuiltInRole.SignalRAppServer, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             var resource = (AzureSignalRResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);

@@ -5,7 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
-using Azure.Provisioning.Authorization;
 using Azure.Provisioning.CognitiveServices;
 using Azure.Provisioning.Expressions;
 
@@ -80,14 +79,7 @@ public static class AzureOpenAIExtensions
                 // Value = BicepFunction.Interpolate($"Endpoint={cogServicesAccount.Endpoint}")
             });
 
-            var role = CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor;
-            construct.Add(new RoleAssignment($"{CognitiveServicesBuiltInRole.GetBuiltInRoleName(role)}_{cogServicesAccount.ResourceName}")
-            {
-                Scope = new IdentifierExpression(cogServicesAccount.ResourceName),
-                PrincipalType = construct.PrincipalTypeParameter,
-                RoleDefinitionId = BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", role.ToString()),
-                PrincipalId = construct.PrincipalIdParameter
-            });
+            construct.Add(cogServicesAccount.AssignRole(CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             var resource = (AzureOpenAIResource)construct.Resource;
 

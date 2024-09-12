@@ -47,9 +47,8 @@ public static class AzureSqlExtensions
             {
                 Parent = sqlServer,
                 Name = "AllowAllAzureIps",
-                // TODO:
-                //StartIPAddress = new StringLiteral("0.0.0.0"),
-                //EndIPAddress = new StringLiteral("0.0.0.0")
+                StartIPAddress = new StringLiteral("0.0.0.0"),
+                EndIPAddress = new StringLiteral("0.0.0.0")
             });
 
             if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
@@ -62,9 +61,8 @@ public static class AzureSqlExtensions
                 {
                     Parent = sqlServer,
                     Name = "AllowAllIps",
-                    // TODO:
-                    //StartIPAddress = new StringLiteral("0.0.0.0"),
-                    //EndIPAddress = new StringLiteral("255.255.255.255")
+                    StartIPAddress = new StringLiteral("0.0.0.0"),
+                    EndIPAddress = new StringLiteral("255.255.255.255")
                 });
             }
 

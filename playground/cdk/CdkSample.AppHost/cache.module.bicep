@@ -1,10 +1,10 @@
 param keyVaultName string
 
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
     name: keyVaultName
-    location: resourceGroup().location
 }
 
 resource cache 'Microsoft.Cache/redis@2020-06-01' = {

@@ -5,7 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
-using Azure.Provisioning.Authorization;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
 
@@ -45,7 +44,6 @@ public static class AzureKeyVaultResourceExtensions
         {
             var keyVault = new KeyVaultService(construct.Resource.Name)
             {
-                Location = construct.AddLocationParameter(),
                 Properties = new KeyVaultProperties()
                 {
                     TenantId = new MemberExpression(new FunctionCallExpression(new IdentifierExpression("tenant")), "tenantId"),
@@ -71,15 +69,7 @@ public static class AzureKeyVaultResourceExtensions
 
             keyVault.Tags["aspire-resource-name"] = construct.Resource.Name;
 
-            var role = KeyVaultBuiltInRole.KeyVaultAdministrator;
-            var roleAssignment = new RoleAssignment($"{KeyVaultBuiltInRole.GetBuiltInRoleName(role)}_{keyVault.ResourceName}")
-            {
-                Scope = new IdentifierExpression(keyVault.ResourceName),
-                PrincipalType = construct.PrincipalTypeParameter,
-                RoleDefinitionId = BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", role.ToString()),
-                PrincipalId = construct.PrincipalIdParameter
-            };
-            construct.Add(roleAssignment);
+            construct.Add(keyVault.AssignRole(KeyVaultBuiltInRole.KeyVaultAdministrator, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             var resource = (AzureKeyVaultResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);
@@ -93,5 +83,4 @@ public static class AzureKeyVaultResourceExtensions
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
-
 }

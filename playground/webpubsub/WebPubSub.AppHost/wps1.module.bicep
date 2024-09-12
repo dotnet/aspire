@@ -6,9 +6,12 @@ param principalId string
 
 param principalType string
 
+@description('The location for the resource(s) to be deployed.')
+param location string = resourceGroup().location
+
 resource wps1 'Microsoft.SignalRService/webPubSub@2021-10-01' = {
     name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
-    location: resourceGroup().location
+    location: location
     sku: {
         name: sku
         capacity: capacity

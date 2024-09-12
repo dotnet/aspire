@@ -6,8 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.AppConfiguration;
-using Azure.Provisioning.Authorization;
-using Azure.Provisioning.Expressions;
 
 namespace Aspire.Hosting;
 
@@ -53,14 +51,7 @@ public static class AzureAppConfigurationExtensions
 
             construct.Add(new BicepOutput("appConfigEndpoint", typeof(string)) { Value = store.Endpoint });
 
-            var role = AppConfigurationBuiltInRole.AppConfigurationDataOwner;
-            construct.Add(new RoleAssignment($"{AppConfigurationBuiltInRole.GetBuiltInRoleName(role)}_{store.ResourceName}")
-            {
-                Scope = new IdentifierExpression(store.ResourceName),
-                PrincipalType = construct.PrincipalTypeParameter,
-                RoleDefinitionId = BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", role.ToString()),
-                PrincipalId = construct.PrincipalIdParameter
-            });
+            construct.Add(store.AssignRole(AppConfigurationBuiltInRole.AppConfigurationDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             var resource = (AzureAppConfigurationResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);
