@@ -1,10 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <AzureFunctionsVersion>v4</AzureFunctionsVersion>
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- Workaround for buggy project file search in Azure Functions host. See https://github.com/dotnet/aspire/pull/5591 for more info. -->
+    <ExtensionsCsProjDirectory Condition="'$(RepoRoot)' == '' or '$(ContinuousIntegrationBuild)' == 'true'">$(MSBuildProjectDirectory)/../WorkerExtensions</ExtensionsCsProjDirectory>
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
@@ -12,6 +14,7 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Blobs" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.EventHubs" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.OpenTelemetry" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" />

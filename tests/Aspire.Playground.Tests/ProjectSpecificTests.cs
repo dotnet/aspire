@@ -56,7 +56,6 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/5564", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     [RequiresDocker]
     [RequiresTools(["func"])]
     public async Task AzureFunctionsTest()
@@ -105,12 +104,21 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             resourceName: "funcapp",
             timeoutSecs: 160);
 
-        // Assert that EventHubs triggers work correctly
 #if !SKIP_EVENTHUBS_EMULATION
+        // Assert that EventHubs triggers work correctly
         await app.CreateHttpClient("apiservice").GetAsync("/publish/eventhubs");
         await WaitForAllTextAsync(app,
             [
                 "Executed 'Functions.MyEventHubTrigger'"
+            ],
+            resourceName: "funcapp",
+            timeoutSecs: 160);
+
+        // Assert that ServiceBus triggers work correctly
+        await app.CreateHttpClient("apiservice").GetAsync("/publish/asb");
+        await WaitForAllTextAsync(app,
+            [
+                "Executed 'Functions.MyServiceBusTrigger'"
             ],
             resourceName: "funcapp",
             timeoutSecs: 160);

@@ -91,7 +91,7 @@ public class OtlpTrace
 
         static string BuildFullName(OtlpSpan existingSpan)
         {
-            return $"{existingSpan.Source.ApplicationName}: {existingSpan.Name}";
+            return $"{existingSpan.Source.Application.ApplicationName}: {existingSpan.Name}";
         }
     }
 

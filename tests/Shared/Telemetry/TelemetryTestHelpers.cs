@@ -194,9 +194,9 @@ internal static class TelemetryTestHelpers
         return logRecord;
     }
 
-    public static Resource CreateResource(string? name = null, string? instanceId = null)
+    public static Resource CreateResource(string? name = null, string? instanceId = null, IEnumerable<KeyValuePair<string, string>>? attributes = null)
     {
-        return new Resource()
+        var resource = new Resource()
         {
             Attributes =
             {
@@ -204,6 +204,16 @@ internal static class TelemetryTestHelpers
                 new KeyValue { Key = "service.instance.id", Value = new AnyValue { StringValue = instanceId ?? "TestId" } }
             }
         };
+
+        if (attributes != null)
+        {
+            foreach (var attribute in attributes)
+            {
+                resource.Attributes.Add(new KeyValue { Key = attribute.Key, Value = new AnyValue { StringValue = attribute.Value } });
+            }
+        }
+
+        return resource;
     }
 
     public static TelemetryRepository CreateRepository(

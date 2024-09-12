@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <!-- This library needs more bake time until it can ship stable. -->
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>

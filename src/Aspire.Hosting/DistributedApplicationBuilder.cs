@@ -131,6 +131,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Logging.AddFilter("Aspire.Hosting.Dashboard", LogLevel.Error);
         _innerBuilder.Logging.AddFilter("Grpc.AspNetCore.Server.ServerCallHandler", LogLevel.Error);
 
+        // This is to reduce log noise when we activate health checks for resources which may not yet be
+        // fully initialized. For example a database which is not yet created.
+        _innerBuilder.Logging.AddFilter("Microsoft.Extensions.Diagnostics.HealthChecks.DefaultHealthCheckService", LogLevel.None);
+
         // This is so that we can see certificate errors in the resource server in the console logs.
         // See: https://github.com/dotnet/aspire/issues/2914
         _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServer", LogLevel.Warning);
@@ -162,10 +166,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
         _innerBuilder.Services.AddSingleton(options);
         _innerBuilder.Services.AddSingleton<ResourceNotificationService>();
-        _innerBuilder.Services.AddSingleton<IHealthCheckPublisher, ResourceNotificationHealthCheckPublisher>();
         _innerBuilder.Services.AddSingleton<ResourceLoggerService>();
         _innerBuilder.Services.AddSingleton<IDistributedApplicationEventing>(Eventing);
         _innerBuilder.Services.AddHealthChecks();
+
+        ConfigureHealthChecks();
 
         if (ExecutionContext.IsRunMode)
         {
@@ -249,6 +254,35 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Services.AddSingleton(ExecutionContext);
         LogBuilderConstructed(this);
+    }
+
+    private void ConfigureHealthChecks()
+    {
+        _innerBuilder.Services.AddSingleton<IConfigureOptions<HealthCheckPublisherOptions>>(sp =>
+        {
+            return new ConfigureOptions<HealthCheckPublisherOptions>(options =>
+            {
+                if (ExecutionContext.IsRunMode)
+                {
+                    // In run mode we route requests to the health check scheduler.
+                    var hcs = sp.GetRequiredService<ResourceHealthCheckScheduler>();
+                    options.Predicate = hcs.Predicate;
+                    options.Period = TimeSpan.FromSeconds(5);
+                }
+                else
+                {
+                    // In publish mode we don't run any checks.
+                    options.Predicate = (check) => false;
+                }
+            });
+        });
+
+        if (ExecutionContext.IsRunMode)
+        {
+            _innerBuilder.Services.AddSingleton<IHealthCheckPublisher, ResourceNotificationHealthCheckPublisher>();
+            _innerBuilder.Services.AddSingleton<ResourceHealthCheckScheduler>();
+            _innerBuilder.Services.AddHostedService<ResourceHealthCheckScheduler>(sp => sp.GetRequiredService<ResourceHealthCheckScheduler>());
+        }
     }
 
     private void MapTransportOptionsFromCustomKeys(TransportOptions options)

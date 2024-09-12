@@ -146,7 +146,9 @@ public static class MongoDBBuilderExtensions
 
     private static void ConfigureMongoExpressContainer(EnvironmentCallbackContext context, MongoDBServerResource resource)
     {
-        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", $"mongodb://{resource.PrimaryEndpoint.ContainerHost}:{resource.PrimaryEndpoint.Port}/?directConnection=true");
+        // Mongo Exporess assumes Mongo is being accessed over a default Aspire container network and hardcodes the resource address
+        // This will need to be refactored once updated service discovery APIs are available
+        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", $"mongodb://{resource.Name}:{resource.PrimaryEndpoint.TargetPort}/?directConnection=true");
         context.EnvironmentVariables.Add("ME_CONFIG_BASICAUTH", "false");
     }
 }
