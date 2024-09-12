@@ -134,6 +134,15 @@
         "principalType": ""
       }
     },
+    "search": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{search.outputs.connectionString}",
+      "path": "search.module.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": ""
+      }
+    },
     "signalr": {
       "type": "azure.bicep.v0",
       "connectionString": "Endpoint=https://{signalr.outputs.hostName};AuthType=azure",
@@ -159,7 +168,8 @@
         "ConnectionStrings__cache": "{cache.connectionString}",
         "ConnectionStrings__cosmos": "{cosmos.connectionString}",
         "ConnectionStrings__pgsqldb": "{pgsqldb.connectionString}",
-        "ConnectionStrings__servicebus": "{servicebus.connectionString}"
+        "ConnectionStrings__servicebus": "{servicebus.connectionString}",
+        "ConnectionStrings__search": "{search.connectionString}"
       },
       "bindings": {
         "http": {

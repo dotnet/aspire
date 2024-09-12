@@ -34,7 +34,7 @@ resource KeyVaultAdministrator_mykv 'Microsoft.Authorization/roleAssignments@202
 }
 
 resource mysecret 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
-    name: take('mysecret-${uniqueString(resourceGroup().id)}', 127)
+    name: 'mysecret'
     properties: {
         value: signaturesecret
     }

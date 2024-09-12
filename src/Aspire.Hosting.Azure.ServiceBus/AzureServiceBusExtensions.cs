@@ -56,7 +56,7 @@ public static class AzureServiceBusExtensions
                     Name = skuParameter
                 },
                 DisableLocalAuth = true,
-                Tags = { { "aspire-resource-name", construct.Resource.Name } },
+                Tags = { { "aspire-resource-name", construct.Resource.Name } }
             };
             construct.Add(serviceBusNamespace);
 

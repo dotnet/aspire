@@ -62,7 +62,7 @@ public static class AzureSignalRExtensions
                     }
                 ],
                 CorsAllowedOrigins = ["*"],
-                Tags = { { "aspire-resource-name", construct.Resource.Name } },
+                Tags = { { "aspire-resource-name", construct.Resource.Name } }
             };
             construct.Add(service);
 

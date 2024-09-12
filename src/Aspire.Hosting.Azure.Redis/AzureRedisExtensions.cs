@@ -60,7 +60,6 @@ public static class AzureRedisExtensions
             var redisCache = new CdkRedisResource(builder.Resource.Name, RedisResourceVersion)
             {
                 Location = construct.AddLocationParameter(),
-                Tags = { { "aspire-resource-name", construct.Resource.Name } },
                 Sku = new RedisSku()
                 {
                     Name = RedisSkuName.Basic,
@@ -68,7 +67,8 @@ public static class AzureRedisExtensions
                     Capacity = 1
                 },
                 EnableNonSslPort = false,
-                MinimumTlsVersion = RedisTlsVersion.Tls1_2
+                MinimumTlsVersion = RedisTlsVersion.Tls1_2,
+                Tags = { { "aspire-resource-name", construct.Resource.Name } }
             };
             construct.Add(redisCache);
 

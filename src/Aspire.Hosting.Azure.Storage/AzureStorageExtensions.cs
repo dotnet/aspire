@@ -56,13 +56,13 @@ public static class AzureStorageExtensions
                     // account to have its default action set to Allow.
                     DefaultAction = StorageNetworkDefaultAction.Allow
                 },
-                Tags = { { "aspire-resource-name", construct.Resource.Name } },
                 // Set the minimum TLS version to 1.2 to ensure resources provisioned are compliant
                 // with the pending deprecation of TLS 1.0 and 1.1.
                 MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_2,
                 // Disable shared key access to the storage account as managed identity is configured
                 // to access the storage account by default.
                 AllowSharedKeyAccess = false,
+                Tags = { { "aspire-resource-name", construct.Resource.Name } }
             };
             construct.Add(storageAccount);
 

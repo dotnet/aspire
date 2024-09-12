@@ -29,6 +29,7 @@ var keyvault = builder.AddAzureKeyVault("mykv", (_, construct, keyVault) =>
     var secret = new KeyVaultSecret("mysecret")
     {
         Parent = keyVault,
+        Name = "mysecret",
         Properties = new SecretProperties { Value = signaturesecret.AsBicepParameter(construct) }
     };
     construct.Add(secret);
@@ -72,7 +73,7 @@ var sb = builder.AddAzureServiceBus("servicebus")
 
 //var appConfig = builder.AddAzureAppConfiguration("appConfig");
 
-//var search = builder.AddAzureSearch("search");
+var search = builder.AddAzureSearch("search");
 
 var signalr = builder.AddAzureSignalR("signalr");
 
@@ -104,9 +105,9 @@ builder.AddProject<Projects.CdkSample_ApiService>("api")
     .WithReference(cache)
     .WithReference(cosmosdb)
     .WithReference(pgsqldb)
-    .WithReference(sb);
+    .WithReference(sb)
     //.WithReference(appConfig)
-    //.WithReference(search)
+    .WithReference(search);
     //.WithReference(appInsights);
 
 #if !SKIP_DASHBOARD_REFERENCE
