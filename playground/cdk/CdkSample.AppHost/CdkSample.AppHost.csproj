@@ -18,7 +18,7 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.KeyVault" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Redis" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.PostgreSQL" />
-     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CosmosDB" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CosmosDB" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.ServiceBus" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Sql" />

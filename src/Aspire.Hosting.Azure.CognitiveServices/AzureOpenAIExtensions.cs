@@ -5,8 +5,9 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
+using Azure.Provisioning.Authorization;
 using Azure.Provisioning.CognitiveServices;
-using Azure.ResourceManager.CognitiveServices.Models;
+using Azure.Provisioning.Expressions;
 
 namespace Aspire.Hosting;
 
@@ -15,6 +16,9 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureOpenAIExtensions
 {
+    private const string AccountResourceVersion = "2023-05-01";
+    private const string DeploymentModelResourceVersion = AccountResourceVersion;
+
     /// <summary>
     /// Adds an Azure OpenAI resource to the application model.
     /// </summary>
@@ -42,44 +46,88 @@ public static class AzureOpenAIExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var cogServicesAccount = new CognitiveServicesAccount(construct, "OpenAI", name: name);
-            cogServicesAccount.AssignProperty(x => x.Properties.CustomSubDomainName, $"toLower(take(concat('{name}', uniqueString(resourceGroup().id)), 24))");
-            cogServicesAccount.AssignProperty(x => x.Properties.PublicNetworkAccess, "'Enabled'");
-            cogServicesAccount.AddOutput("connectionString", """'Endpoint=${{{0}}}'""", x => x.Properties.Endpoint);
+            var cogServicesAccount = new CognitiveServicesAccount(name, AccountResourceVersion)
+            {
+                Kind = "OpenAI",
+                Sku = new CognitiveServicesSku()
+                {
+                    Name = "S0"
+                },
+                Properties = new CognitiveServicesAccountProperties()
+                {
+                    // TODO: this is wrong. needs BicepFunction.Concat
+                    CustomSubDomainName = BicepFunction.Interpolate($"toLower(take(concat('{name}', uniqueString(resourceGroup().id)), 24))"),
+                    PublicNetworkAccess = ServiceAccountPublicNetworkAccess.Enabled,
+                    // Disable local auth for AOAI since managed identity is used
+                    DisableLocalAuth = true
+                },
+                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+            };
+            construct.Add(cogServicesAccount);
 
-            var roleAssignment = cogServicesAccount.AssignRole(RoleDefinition.CognitiveServicesOpenAIContributor);
-            roleAssignment.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
-            roleAssignment.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);
-            // Disable local auth for AOAI since managed identity is used
-            cogServicesAccount.AssignProperty(x => x.Properties.DisableLocalAuth, "true");
+            construct.Add(new BicepOutput("connectionString", typeof(string))
+            {
+                Value = new InterpolatedString(
+                        "Endpoint={0}",
+                        [
+                            new MemberExpression(
+                                new MemberExpression(
+                                    new IdentifierExpression(cogServicesAccount.ResourceName),
+                                    "properties"),
+                                "endpoint")
+                        ])
+                // TODO This should be
+                // Value = BicepFunction.Interpolate($"Endpoint={cogServicesAccount.Endpoint}")
+            });
+
+            var role = CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor;
+            construct.Add(new RoleAssignment($"{CognitiveServicesBuiltInRole.GetBuiltInRoleName(role)}_{cogServicesAccount.ResourceName}")
+            {
+                Scope = new IdentifierExpression(cogServicesAccount.ResourceName),
+                PrincipalType = construct.PrincipalTypeParameter,
+                RoleDefinitionId = BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", role.ToString()),
+                PrincipalId = construct.PrincipalIdParameter
+            });
 
             var resource = (AzureOpenAIResource)construct.Resource;
 
-            CognitiveServicesAccountDeployment? dependency = null;
+            //CognitiveServicesAccountDeployment? dependency = null;
 
             var cdkDeployments = new List<CognitiveServicesAccountDeployment>();
             foreach (var deployment in resource.Deployments)
             {
-                var model = new CognitiveServicesAccountDeploymentModel();
-                model.Name = deployment.ModelName;
-                model.Version = deployment.ModelVersion;
-                model.Format = "OpenAI";
-
-                var cdkDeployment = new CognitiveServicesAccountDeployment(construct, model, parent: cogServicesAccount, name: deployment.Name);
-                cdkDeployment.AssignProperty(x => x.Sku.Name, $"'{deployment.SkuName}'");
-                cdkDeployment.AssignProperty(x => x.Sku.Capacity, $"{deployment.SkuCapacity}");
+                var cdkDeployment = new CognitiveServicesAccountDeployment(deployment.Name, DeploymentModelResourceVersion)
+                {
+                    Parent = cogServicesAccount,
+                    Properties = new CognitiveServicesAccountDeploymentProperties()
+                    {
+                        Model = new CognitiveServicesAccountDeploymentModel()
+                        {
+                            Name = deployment.Name,
+                            Version = deployment.ModelVersion,
+                            Format = "OpenAI"
+                        }
+                    },
+                    Sku = new CognitiveServicesSku()
+                    {
+                        Name = deployment.SkuName,
+                        Capacity = deployment.SkuCapacity
+                    }
+                };
+                construct.Add(cdkDeployment);
                 cdkDeployments.Add(cdkDeployment);
 
-                // Subsequent deployments need an explicit dependency on the previous one
-                // to ensure they are not created in parallel. This is equivalent to @batchSize(1)
-                // which can't be defined with the CDK
+                // TODO: this can't be done (yet)
+                //// Subsequent deployments need an explicit dependency on the previous one
+                //// to ensure they are not created in parallel. This is equivalent to @batchSize(1)
+                //// which can't be defined with the CDK
 
-                if (dependency != null)
-                {
-                    cdkDeployment.AddDependency(dependency);
-                }
+                //if (dependency != null)
+                //{
+                //    cdkDeployment.AddDependency(dependency);
+                //}
 
-                dependency = cdkDeployment;
+                //dependency = cdkDeployment;
             }
 
             var resourceBuilder = builder.CreateResourceBuilder(resource);
