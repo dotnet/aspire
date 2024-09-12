@@ -25,6 +25,7 @@ public partial class MetricTable : ChartBase
     private OtlpInstrumentSummary? _instrument;
     private bool _showCount;
     private DateTimeOffset? _lastUpdate;
+    private readonly string _metricTableDivId = $"metric-table-container-{Guid.NewGuid():N}";
 
     private IQueryable<MetricViewBase> _metricsView => _metrics.Values.AsEnumerable().Reverse().ToList().AsQueryable();
 
@@ -81,7 +82,7 @@ public partial class MetricTable : ChartBase
 
         try
         {
-            await _jsModule.InvokeVoidAsync("announceDataGridRows", "metric-table-container", indices);
+            await _jsModule.InvokeVoidAsync("announceDataGridRows", cancellationToken, _metricTableDivId, indices);
         }
         catch (ObjectDisposedException)
         {
