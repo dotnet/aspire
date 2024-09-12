@@ -54,6 +54,11 @@ public static class PostgresBuilderExtensions
         {
             connectionString = await postgresServer.GetConnectionStringAsync(ct).ConfigureAwait(false);
 
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{postgresServer}' resource but the connection string was null.");
+            }
+
             var lookup = builder.Resources.OfType<PostgresDatabaseResource>().ToDictionary(d => d.Name);
 
             foreach (var databaseName in postgresServer.Databases)
@@ -133,6 +138,11 @@ public static class PostgresBuilderExtensions
         builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(postgresDatabase, async (@event, ct) =>
         {
             connectionString = await postgresDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{postgresDatabase}' resource but the connection string was null.");
+            }
         });
 
         var healthCheckKey = $"{name}_check";

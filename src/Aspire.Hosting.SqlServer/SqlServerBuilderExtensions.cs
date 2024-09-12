@@ -36,6 +36,11 @@ public static class SqlServerBuilderExtensions
         {
             connectionString = await sqlServer.GetConnectionStringAsync(ct).ConfigureAwait(false);
 
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{sqlServer}' resource but the connection string was null.");
+            }
+
             var lookup = builder.Resources.OfType<SqlServerDatabaseResource>().ToDictionary(d => d.Name);
 
             foreach (var databaseName in sqlServer.Databases)
@@ -91,6 +96,11 @@ public static class SqlServerBuilderExtensions
         builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(sqlServerDatabase, async (@event, ct) =>
         {
             connectionString = await sqlServerDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{sqlServerDatabase}' resource but the connection string was null.");
+            }
         });
 
         var healthCheckKey = $"{name}_check";
