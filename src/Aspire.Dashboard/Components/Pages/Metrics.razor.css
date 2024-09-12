@@ -153,9 +153,16 @@
 }
 
 ::deep .metric-table-container {
-    height: 40vh;
     overflow-y: auto;
     width: 100%;
+}
+
+::deep .metric-standalone-tab > .metric-table-container {
+    height: 40vh;
+}
+
+::deep .metric-dashpage-tab > .metric-table-container {
+    max-height: 40vh;
 }
 
 @media (min-width: 768px) {

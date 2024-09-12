@@ -5,6 +5,11 @@
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 
+@if (!ViewportInformation.IsDesktop)
+{
+    <h3 title="@SelectedDashpage.Name">@SelectedDashpage.Name</h3>
+}
+
 <FluentGrid Spacing="3" AdaptiveRendering="true" Justify="JustifyContent.FlexStart" Class="dashpage-chart-grid">
     @foreach (var chart in SelectedDashpage.Charts)
     {
