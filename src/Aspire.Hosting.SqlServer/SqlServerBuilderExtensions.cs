@@ -42,7 +42,7 @@ public static class SqlServerBuilderExtensions
             {
                 if (!lookup.TryGetValue(databaseName.Key, out var databaseResource))
                 {
-                    throw new DistributedApplicationException($"Database resource '{databaseName}' under SQL Server resource '{sqlServer.Name}' not in model.");
+                    throw new DistributedApplicationException($"Database resource '{databaseName}' under SQL Server resource '{sqlServer.Name}' was not found in the model.");
                 }
 
                 var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(databaseResource, @event.Services);
