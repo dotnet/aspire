@@ -100,7 +100,7 @@ public class AzureEventHubsExtensionsTests
     [InlineData(null)]
     [InlineData("2.3.97-preview")]
     [InlineData("1.0.7")]
-    public void AzureEventHubsWithEmulatorGetsExpectedImageTag(string imageTag)
+    public void AzureEventHubsWithEmulatorGetsExpectedImageTag(string? imageTag)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var eventHubs = builder.AddAzureEventHubs("eventhubs");

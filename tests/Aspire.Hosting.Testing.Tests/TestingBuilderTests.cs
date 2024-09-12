@@ -229,8 +229,7 @@ public class TestingBuilderTests
         {
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             genericEntryPoint ? DistributedApplicationTestingBuilder.CreateAsync<Projects.TestingAppHost1_AppHost>([$"--crash-{crashArg}"], cts.Token).WaitAsync(cts.Token)
-                                : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost), [$"--crash-{crashArg}"], cts.Token).WaitAsync(cts.Token))
-                .ConfigureAwait(false);
+                                : DistributedApplicationTestingBuilder.CreateAsync(typeof(Projects.TestingAppHost1_AppHost), [$"--crash-{crashArg}"], cts.Token).WaitAsync(cts.Token));
             Assert.Contains(crashArg, exception.Message);
             return;
         }
@@ -242,7 +241,7 @@ public class TestingBuilderTests
         }
 
         cts.CancelAfter(timeout);
-        app = await appHost.BuildAsync().WaitAsync(cts.Token).ConfigureAwait(false);
+        app = await appHost.BuildAsync().WaitAsync(cts.Token);
 
         cts.CancelAfter(timeout);
         if (crashArg == "after-build")

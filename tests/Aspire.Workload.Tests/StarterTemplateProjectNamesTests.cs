@@ -38,13 +38,13 @@ public class StarterTemplateProjectNamesTests : WorkloadTestsBase
             "aspire-starter",
             _testOutput,
             BuildEnvironment.ForDefaultFramework,
-            $"-t {testType}").ConfigureAwait(false);
+            $"-t {testType}");
 
         await using var context = PlaywrightProvider.HasPlaywrightSupport ? await CreateNewBrowserContextAsync() : null;
         _testOutput.WriteLine($"Checking the starter template project");
-        await AssertStarterTemplateRunAsync(context, project, config, _testOutput).ConfigureAwait(false);
+        await AssertStarterTemplateRunAsync(context, project, config, _testOutput);
 
         _testOutput.WriteLine($"Checking the starter template project tests");
-        await AssertTestProjectRunAsync(project.TestsProjectDirectory, testType, _testOutput, config).ConfigureAwait(false);
+        await AssertTestProjectRunAsync(project.TestsProjectDirectory, testType, _testOutput, config);
     }
 }

@@ -14,6 +14,15 @@ fluent-toolbar[orientation=horizontal] {
     width: 100%;
 }
 
+fluent-toolbar::part(positioning-region) {
+    row-gap: calc(var(--design-unit) * 1.5px);
+}
+
+fluent-toolbar::part(end) {
+    flex-wrap: wrap;
+    row-gap: calc(var(--design-unit) * 1.5px);
+}
+
 /* Hide any web components that haven't been */
 :not(:defined),
 .before-upgrade {
