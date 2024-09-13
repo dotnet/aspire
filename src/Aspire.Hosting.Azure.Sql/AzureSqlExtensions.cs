@@ -17,16 +17,13 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureSqlExtensions
 {
-    private const string SqlServerResourceVersion = "2020-11-01-preview";
-    private const string FirewallResourceVersion = SqlServerResourceVersion;
-
     internal static IResourceBuilder<SqlServerServerResource> PublishAsAzureSqlDatabase(this IResourceBuilder<SqlServerServerResource> builder, Action<IResourceBuilder<AzureSqlServerResource>, ResourceModuleConstruct, SqlServer, IEnumerable<SqlDatabase>>? configureResource, bool useProvisioner = false)
     {
         builder.ApplicationBuilder.AddAzureProvisioning();
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var sqlServer = new SqlServer(builder.Resource.Name, SqlServerResourceVersion)
+            var sqlServer = new SqlServer(builder.Resource.Name, AzureResourceVersions.SqlServerResourceVersion)
             {
                 Administrators = new ServerExternalAdministrator()
                 {
@@ -43,7 +40,7 @@ public static class AzureSqlExtensions
             };
             construct.Add(sqlServer);
 
-            construct.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllAzureIps", FirewallResourceVersion)
+            construct.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllAzureIps", AzureResourceVersions.SqlFirewallRuleResourceVersion)
             {
                 Parent = sqlServer,
                 Name = "AllowAllAzureIps",
@@ -57,7 +54,7 @@ public static class AzureSqlExtensions
                 // the principalType.
                 sqlServer.Administrators.Value!.PrincipalType = construct.PrincipalTypeParameter;
 
-                construct.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllIps", FirewallResourceVersion)
+                construct.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllIps", AzureResourceVersions.SqlFirewallRuleResourceVersion)
                 {
                     Parent = sqlServer,
                     Name = "AllowAllIps",
@@ -71,7 +68,7 @@ public static class AzureSqlExtensions
             {
                 var resourceName = databaseNames.Key;
                 var databaseName = databaseNames.Value;
-                var sqlDatabase = new SqlDatabase(resourceName)
+                var sqlDatabase = new SqlDatabase(resourceName, AzureResourceVersions.SqlDatabaseResourceVersion)
                 {
                     Parent = sqlServer,
                     Name = databaseName

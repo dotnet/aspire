@@ -20,8 +20,6 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureRedisExtensions
 {
-    private const string RedisResourceVersion = "2020-06-01";
-
     /// <summary>
     /// Configures the resource to be published as Azure Cache for Redis when deployed via Azure Developer CLI.
     /// </summary>
@@ -53,11 +51,11 @@ public static class AzureRedisExtensions
             var kvNameParam = new BicepParameter("keyVaultName", typeof(string));
             construct.Add(kvNameParam);
 
-            var keyVault = KeyVaultService.FromExisting("keyVault");
+            var keyVault = KeyVaultService.FromExisting("keyVault", AzureResourceVersions.KeyVaultServiceResourceVersion);
             keyVault.Name = kvNameParam;
             construct.Add(keyVault);
 
-            var redisCache = new CdkRedisResource(builder.Resource.Name, RedisResourceVersion)
+            var redisCache = new CdkRedisResource(builder.Resource.Name, AzureResourceVersions.RedisResourceVersion)
             {
                 Sku = new RedisSku()
                 {
@@ -71,7 +69,7 @@ public static class AzureRedisExtensions
             };
             construct.Add(redisCache);
 
-            var secret = new KeyVaultSecret("connectionString")
+            var secret = new KeyVaultSecret("connectionString", AzureResourceVersions.KeyVaultSecretResourceVersion)
             {
                 Parent = keyVault,
                 Name = "connectionString",

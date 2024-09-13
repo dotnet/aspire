@@ -16,9 +16,6 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureCosmosExtensions
 {
-    private const string AccountResourceVersion = "2023-04-15";
-    private const string DatabaseResourceVersion = AccountResourceVersion;
-
     /// <summary>
     /// Adds an Azure Cosmos DB connection to the application model.
     /// </summary>
@@ -48,11 +45,11 @@ public static class AzureCosmosExtensions
             var kvNameParam = new BicepParameter("keyVaultName", typeof(string));
             construct.Add(kvNameParam);
 
-            var keyVault = KeyVaultService.FromExisting("keyVault");
+            var keyVault = KeyVaultService.FromExisting("keyVault", AzureResourceVersions.KeyVaultServiceResourceVersion);
             keyVault.Name = kvNameParam;
             construct.Add(keyVault);
 
-            var cosmosAccount = new CosmosDBAccount(name, AccountResourceVersion)
+            var cosmosAccount = new CosmosDBAccount(name, AzureResourceVersions.CosmosDBAccountResourceVersion)
             {
                 Kind = CosmosDBAccountKind.GlobalDocumentDB,
                 ConsistencyPolicy = new ConsistencyPolicy()
@@ -77,7 +74,7 @@ public static class AzureCosmosExtensions
             List<CosmosDBSqlDatabase> cosmosSqlDatabases = new List<CosmosDBSqlDatabase>();
             foreach (var databaseName in azureResource.Databases)
             {
-                var cosmosSqlDatabase = new CosmosDBSqlDatabase(databaseName, DatabaseResourceVersion)
+                var cosmosSqlDatabase = new CosmosDBSqlDatabase(databaseName, AzureResourceVersions.CosmosDBSqlDatabaseResourceVersion)
                 {
                     Parent = cosmosAccount,
                     Name = databaseName,
@@ -90,7 +87,7 @@ public static class AzureCosmosExtensions
                 cosmosSqlDatabases.Add(cosmosSqlDatabase);
             }
 
-            var secret = new KeyVaultSecret("connectionString")
+            var secret = new KeyVaultSecret("connectionString", AzureResourceVersions.KeyVaultSecretResourceVersion)
             {
                 Parent = keyVault,
                 Name = "connectionString",

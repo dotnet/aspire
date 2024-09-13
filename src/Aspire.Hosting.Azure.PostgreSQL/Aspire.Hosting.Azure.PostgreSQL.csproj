@@ -17,6 +17,8 @@
     <ProjectReference Include="..\Aspire.Hosting.PostgreSQL\Aspire.Hosting.PostgreSQL.csproj" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.PostgreSql" />
+
+    <Compile Include="..\Shared\AzureResourceVersions.cs" />
   </ItemGroup>
 
 </Project>

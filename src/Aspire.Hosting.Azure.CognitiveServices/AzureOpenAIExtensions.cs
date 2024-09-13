@@ -16,9 +16,6 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureOpenAIExtensions
 {
-    private const string AccountResourceVersion = "2023-05-01";
-    private const string DeploymentModelResourceVersion = AccountResourceVersion;
-
     /// <summary>
     /// Adds an Azure OpenAI resource to the application model.
     /// </summary>
@@ -46,7 +43,7 @@ public static class AzureOpenAIExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var cogServicesAccount = new CognitiveServicesAccount(name, AccountResourceVersion)
+            var cogServicesAccount = new CognitiveServicesAccount(name, AzureResourceVersions.CognitiveServicesAccountResourceVersion)
             {
                 Kind = "OpenAI",
                 Sku = new CognitiveServicesSku()
@@ -88,7 +85,7 @@ public static class AzureOpenAIExtensions
             var cdkDeployments = new List<CognitiveServicesAccountDeployment>();
             foreach (var deployment in resource.Deployments)
             {
-                var cdkDeployment = new CognitiveServicesAccountDeployment(deployment.Name, DeploymentModelResourceVersion)
+                var cdkDeployment = new CognitiveServicesAccountDeployment(deployment.Name, AzureResourceVersions.CognitiveServicesAccountDeploymentResourceVersion)
                 {
                     Name = deployment.Name,     
                     Parent = cogServicesAccount,

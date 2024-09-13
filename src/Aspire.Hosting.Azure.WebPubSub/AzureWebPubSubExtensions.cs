@@ -18,8 +18,6 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureWebPubSubExtensions
 {
-    private const string ServiceResourceVersion = "2021-10-01";
-
     /// <summary>
     /// Adds an Azure Web PubSub resource to the application model.
     /// Change sku: WithParameter("sku", "Standard_S1")
@@ -61,7 +59,7 @@ public static class AzureWebPubSubExtensions
             };
             construct.Add(capacityParameter);
 
-            var service = new WebPubSubService(name, ServiceResourceVersion)
+            var service = new WebPubSubService(name, AzureResourceVersions.WebPubSubServiceResourceVersion)
             {
                 Sku = new BillingInfoSku()
                 {

@@ -8,7 +8,7 @@ param principalId string
 
 param principalType string
 
-resource mykv 'Microsoft.KeyVault/vaults@2019-09-01' = {
+resource mykv 'Microsoft.KeyVault/vaults@2022-07-01' = {
     name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
     location: location
     properties: {

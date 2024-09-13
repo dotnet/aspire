@@ -14,8 +14,6 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureSignalRExtensions
 {
-    private const string SignalRResourceVersion = "2022-02-01";
-
     /// <summary>
     /// Adds an Azure SignalR resource to the application model.
     /// </summary>
@@ -43,7 +41,7 @@ public static class AzureSignalRExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var service = new SignalRService(name, SignalRResourceVersion)
+            var service = new SignalRService(name, AzureResourceVersions.SignalRResourceVersion)
             {
                 Kind = SignalRServiceKind.SignalR,
                 Sku = new SignalRResourceSku()

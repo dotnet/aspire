@@ -42,7 +42,7 @@ public static class AzureStorageExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var storageAccount = new StorageAccount(name)
+            var storageAccount = new StorageAccount(name, AzureResourceVersions.StorageAccountResourceVersion)
             {
                 Kind = StorageKind.StorageV2,
                 Sku = new StorageSku() { Name = StorageSkuName.StandardGrs },
@@ -63,7 +63,10 @@ public static class AzureStorageExtensions
             };
             construct.Add(storageAccount);
 
-            var blobs = new BlobService("blobs") { Parent = storageAccount };
+            var blobs = new BlobService("blobs", AzureResourceVersions.BlobServiceResourceVersion)
+            {
+                Parent = storageAccount
+            };
             construct.Add(blobs);
 
             construct.Add(storageAccount.AssignRole(StorageBuiltInRole.StorageBlobDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));

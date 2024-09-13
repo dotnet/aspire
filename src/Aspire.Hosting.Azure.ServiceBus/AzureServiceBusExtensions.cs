@@ -15,11 +15,6 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureServiceBusExtensions
 {
-    private const string NamespaceResourceVersion = "2021-11-01";
-    private const string QueueResourceVersion = NamespaceResourceVersion;
-    private const string TopicResourceVersion = NamespaceResourceVersion;
-    private const string SubscriptionResourceVersion = NamespaceResourceVersion;
-
     /// <summary>
     /// Adds an Azure Service Bus Namespace resource to the application model. This resource can be used to create queue, topic, and subscription resources.
     /// </summary>
@@ -53,7 +48,7 @@ public static class AzureServiceBusExtensions
             };
             construct.Add(skuParameter);
 
-            var serviceBusNamespace = new ServiceBusNamespace(name, NamespaceResourceVersion)
+            var serviceBusNamespace = new ServiceBusNamespace(name, AzureResourceVersions.ServiceBusNamespaceResourceVersion)
             {
                 Sku = new ServiceBusSku()
                 {
@@ -74,7 +69,7 @@ public static class AzureServiceBusExtensions
 
             foreach (var queue in azureResource.Queues)
             {
-                var queueResource = new ServiceBusQueue(queue.Name, QueueResourceVersion)
+                var queueResource = new ServiceBusQueue(queue.Name, AzureResourceVersions.ServiceBusQueueResourceVersion)
                 {
                     Parent = serviceBusNamespace,
                     Name = queue.Name
@@ -85,7 +80,7 @@ public static class AzureServiceBusExtensions
             var topicDictionary = new Dictionary<string, ServiceBusTopic>();
             foreach (var topic in azureResource.Topics)
             {
-                var topicResource = new ServiceBusTopic(topic.Name, TopicResourceVersion)
+                var topicResource = new ServiceBusTopic(topic.Name, AzureResourceVersions.ServiceBusTopicResourceVersion)
                 {
                     Parent = serviceBusNamespace,
                     Name = topic.Name
@@ -97,7 +92,7 @@ public static class AzureServiceBusExtensions
             foreach (var subscription in azureResource.Subscriptions)
             {
                 var topic = topicDictionary[subscription.TopicName];
-                var subscriptionResource = new ServiceBusSubscription(subscription.Name, SubscriptionResourceVersion)
+                var subscriptionResource = new ServiceBusSubscription(subscription.Name, AzureResourceVersions.ServiceBusSubscriptionResourceVersion)
                 {
                     Parent = topic,
                     Name = subscription.Name
