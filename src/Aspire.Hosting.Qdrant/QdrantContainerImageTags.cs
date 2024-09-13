@@ -7,5 +7,5 @@ internal static class QdrantContainerImageTags
 {
     public const string Registry = "docker.io";
     public const string Image = "qdrant/qdrant";
-    public const string Tag = "v1.11.0";
+    public const string Tag = "v1.11.3";
 }

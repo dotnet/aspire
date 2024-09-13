@@ -1,8 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Testing;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -65,6 +68,30 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         // ... but we'll shut everything down immediately because we are done.
         await app.StopAsync();
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyRedisCommanderResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        IResourceBuilder<RedisCommanderResource>? commanderBuilder = null;
+        var redis = builder.AddRedis("redis").WithRedisCommander(c => commanderBuilder = c);
+        Assert.NotNull(commanderBuilder);
+
+        using var app = builder.Build();
+
+        await app.StartAsync();
+
+        await app.WaitForTextAsync("Redis Connection", resourceName: commanderBuilder.Resource.Name);
+
+        var client = app.CreateHttpClient(commanderBuilder.Resource.Name, "http");
+
+        var endpoint = redis.GetEndpoint("tcp");
+        var path = $"/apiv2/server/R:{redis.Resource.Name}:{endpoint.TargetPort}:0/info";
+        var response = await client.GetAsync(path);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
