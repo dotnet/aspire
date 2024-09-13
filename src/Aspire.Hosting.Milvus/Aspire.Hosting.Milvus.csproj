@@ -6,6 +6,8 @@
     <PackageTags>aspire integration hosting milvus database vector search</PackageTags>
     <Description>Milvus vector database support for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)Milvus_256x.png</PackageIconFullPath>
+    <NoWarn>$(NoWarn);CS8002</NoWarn><!-- Milvus.Client packages are not signed -->
+    
     <!-- Disable package validation as this package hasn't shipped yet. -->
     <EnablePackageValidation>false</EnablePackageValidation>
   </PropertyGroup>
@@ -23,4 +25,7 @@
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Milvus.Client" />
+  </ItemGroup>
 </Project>

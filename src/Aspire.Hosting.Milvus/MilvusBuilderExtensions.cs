@@ -4,6 +4,9 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Milvus;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Milvus.Client;
 
 namespace Aspire.Hosting;
 
@@ -51,6 +54,38 @@ public static class MilvusBuilderExtensions
 
         var milvus = new MilvusServerResource(name, apiKeyParameter);
 
+        string? connectionString = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(milvus, async (@event, ct) =>
+        {
+            connectionString = await milvus.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+            if (connectionString is null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{milvus.Name}' resource but the connection string was null.");
+            }
+
+            var lookup = builder.Resources.OfType<MilvusDatabaseResource>().ToDictionary(d => d.Name);
+            foreach (var databaseName in milvus.Databases)
+            {
+                if (!lookup.TryGetValue(databaseName.Key, out var databaseResource))
+                {
+                    throw new DistributedApplicationException($"Database resource '{databaseName}' under Milvus Server resource '{milvus.Name}' was not found in the model.");
+                }
+                var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(databaseResource, @event.Services);
+                await builder.Eventing.PublishAsync<ConnectionStringAvailableEvent>(connectionStringAvailableEvent, ct).ConfigureAwait(false);
+                var beforeResourceStartedEvent = new BeforeResourceStartedEvent(databaseResource, @event.Services);
+                await builder.Eventing.PublishAsync(beforeResourceStartedEvent, ct).ConfigureAwait(false);
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.Services.AddHealthChecks().AddAsyncCheck(healthCheckKey, async () =>
+        {
+            // TODO: Use health check from AspNetCore.Diagnostics.HealthChecks once it's implemented via this issue:
+            // https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks/issues/2214
+            return await HealthCheck(connectionString).ConfigureAwait(false);
+        });
+
         return builder.AddResource(milvus)
             .WithImage(MilvusContainerImageTags.Image, MilvusContainerImageTags.Tag)
             .WithImageRegistry(MilvusContainerImageTags.Registry)
@@ -67,7 +102,8 @@ public static class MilvusBuilderExtensions
             {
                 ctx.EnvironmentVariables["COMMON_SECURITY_DEFAULTROOTPASSWORD"] = milvus.ApiKeyParameter;
             })
-            .WithArgs("milvus", "run", "standalone");
+            .WithArgs("milvus", "run", "standalone")
+            .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -101,8 +137,29 @@ public static class MilvusBuilderExtensions
         databaseName ??= name;
 
         builder.Resource.AddDatabase(name, databaseName);
-        var milvusResource = new MilvusDatabaseResource(name, databaseName, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(milvusResource);
+        var milvusDatabaseResource = new MilvusDatabaseResource(name, databaseName, builder.Resource);
+
+        string? connectionString = null;
+
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(milvusDatabaseResource, async (@event, ct) =>
+        {
+            connectionString = await milvusDatabaseResource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{milvusDatabaseResource.Name}' resource but the connection string was null.");
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddAsyncCheck(healthCheckKey, async () =>
+        {
+            // TODO: Use health check from AspNetCore.Diagnostics.HealthChecks once it's implemented via this issue:
+            // https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks/issues/2214
+            return await HealthCheck(connectionString).ConfigureAwait(false);
+        });
+
+        return builder.ApplicationBuilder.AddResource(milvusDatabaseResource)
+                                         .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -189,5 +246,28 @@ public static class MilvusBuilderExtensions
         // Attu assumes Milvus is being accessed over a default Aspire container network and hardcodes the resource address
         // This will need to be refactored once updated service discovery APIs are available
         context.EnvironmentVariables.Add("MILVUS_URL", $"{resource.PrimaryEndpoint.Scheme}://{resource.Name}:{resource.PrimaryEndpoint.TargetPort}");
+    }
+
+    private static async Task<HealthCheckResult> HealthCheck(string? connectionString)
+    {
+        if (connectionString is null)
+        {
+            throw new InvalidOperationException("Connection string is unavailable");
+        }
+
+        try
+        {
+            var milvusClient = new MilvusClient(connectionString);
+
+            var milvusHealthState = await milvusClient.HealthAsync().ConfigureAwait(false);
+
+            return milvusHealthState.IsHealthy
+                ? HealthCheckResult.Healthy()
+                : new HealthCheckResult(HealthStatus.Unhealthy, description: milvusHealthState.ToString());
+        }
+        catch (Exception ex)
+        {
+            return new HealthCheckResult(HealthStatus.Unhealthy, exception: ex);
+        }
     }
 }
