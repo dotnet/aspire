@@ -102,7 +102,7 @@ public class LogFilter : IEquatable<LogFilter>
         return Field switch
         {
             KnownMessageField => x.Message,
-            KnownApplicationField => x.Application.ApplicationName,
+            KnownApplicationField => x.ApplicationView.Application.ApplicationName,
             KnownTraceIdField => x.TraceId,
             KnownSpanIdField => x.SpanId,
             KnownOriginalFormatField => x.OriginalFormat,

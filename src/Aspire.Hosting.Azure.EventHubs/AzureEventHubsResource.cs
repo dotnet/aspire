@@ -16,7 +16,8 @@ namespace Aspire.Hosting.Azure;
 public class AzureEventHubsResource(string name, Action<ResourceModuleConstruct> configureConstruct) :
     AzureConstructResource(name, configureConstruct),
     IResourceWithConnectionString,
-    IResourceWithEndpoints
+    IResourceWithEndpoints,
+    IResourceWithAzureFunctionsConfig
 {
     internal List<(string Name, Action<IResourceBuilder<AzureEventHubsResource>, ResourceModuleConstruct, EventHub>? Configure)> Hubs { get; } = [];
 
@@ -39,4 +40,16 @@ public class AzureEventHubsResource(string name, Action<ResourceModuleConstruct>
         IsEmulator
         ? ReferenceExpression.Create($"Endpoint=sb://{EmulatorEndpoint.Property(EndpointProperty.Host)}:{EmulatorEndpoint.Property(EndpointProperty.Port)};SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;")
         : ReferenceExpression.Create($"{EventHubsEndpoint}");
+
+    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
+    {
+        if (IsEmulator)
+        {
+            target[connectionName] = ConnectionStringExpression;
+        }
+        else
+        {
+            target[$"{connectionName}__fullyQualifiedNamespace"] = EventHubsEndpoint;
+        }
+    }
 }

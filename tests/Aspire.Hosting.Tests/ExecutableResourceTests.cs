@@ -15,6 +15,7 @@ public class ExecutableResourceTests
         var appBuilder = DistributedApplication.CreateBuilder();
 
         var testResource = new TestResource("test", "connectionString");
+        var testResource2 = new TestResource("test2", "anotherConnectionString");
 
         var exe1 = appBuilder.AddExecutable("e1", "ruby", ".", "app.rb")
             .WithEndpoint("ep", e =>
@@ -23,12 +24,13 @@ public class ExecutableResourceTests
                 e.AllocatedEndpoint = new(e, "localhost", 1234);
             });
 
-        var exe2 = appBuilder.AddExecutable("e2", "python", ".", "app.py")
+        var exe2 = appBuilder.AddExecutable("e2", "python", ".", "app.py", exe1.GetEndpoint("ep"))
+             .WithArgs("arg1", testResource)
              .WithArgs(context =>
              {
-                 context.Args.Add("arg1");
+                 context.Args.Add("arg2");
                  context.Args.Add(exe1.GetEndpoint("ep"));
-                 context.Args.Add(testResource);
+                 context.Args.Add(testResource2);
              });
 
         using var app = appBuilder.Build();
@@ -37,9 +39,13 @@ public class ExecutableResourceTests
 
         Assert.Collection(args,
             arg => Assert.Equal("app.py", arg),
-            arg => Assert.Equal("arg1", arg),
             arg => Assert.Equal("http://localhost:1234", arg),
-            arg => Assert.Equal("connectionString", arg));
+            arg => Assert.Equal("arg1", arg),
+            arg => Assert.Equal("connectionString", arg),
+            arg => Assert.Equal("arg2", arg),
+            arg => Assert.Equal("http://localhost:1234", arg),
+            arg => Assert.Equal("anotherConnectionString", arg)
+            );
 
         var manifest = await ManifestUtils.GetManifest(exe2.Resource);
 
@@ -51,9 +57,12 @@ public class ExecutableResourceTests
           "command": "python",
           "args": [
             "app.py",
-            "arg1",
             "{e1.bindings.ep.url}",
-            "{test.connectionString}"
+            "arg1",
+            "{test.connectionString}",
+            "arg2",
+            "{e1.bindings.ep.url}",
+            "{test2.connectionString}"
           ]
         }
         """;
