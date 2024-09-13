@@ -3,6 +3,7 @@
 
 using Amazon;
 using Amazon.CDK.AWS.S3;
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Utils;
 using Constructs;
 using Xunit;
@@ -12,6 +13,7 @@ namespace Aspire.Hosting.AWS.Tests;
 public class AWSCDKResourceTests
 {
     [Fact]
+    [RequiresTools(["node"])]
     public void AddAWSCDKResourceTest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -31,6 +33,7 @@ public class AWSCDKResourceTests
     }
 
     [Fact]
+    [RequiresTools(["node"])]
     public void AddAWSCDKResourceWithAdditionalStackTest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -53,6 +56,7 @@ public class AWSCDKResourceTests
     }
 
     [Fact]
+    [RequiresTools(["node"])]
     public void AddAWSCDKResourceWithAdditionalStackAndConfigTest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -83,6 +87,7 @@ public class AWSCDKResourceTests
     }
 
     [Fact]
+    [RequiresTools(["node"])]
     public void AddAWSCDKResourceWithConstructTest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -95,6 +100,7 @@ public class AWSCDKResourceTests
     }
 
     [Fact]
+    [RequiresTools(["node"])]
     public async Task ManifestAWSCDKResourceTest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
