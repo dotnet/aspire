@@ -117,8 +117,14 @@ internal sealed class DashboardClient : IDashboardClient
                 // Auth hasn't been suppressed, so configure it.
                 var certificates = _dashboardOptions.ResourceServiceClient.ClientCertificate.Source switch
                 {
-                    DashboardClientCertificateSource.File => GetFileCertificate(),
-                    DashboardClientCertificateSource.KeyStore => GetKeyStoreCertificate(),
+                    DashboardClientCertificateSource.File => CertificateUtil.GetFileCertificate(
+                        filePath: _dashboardOptions.ResourceServiceClient.ClientCertificate.FilePath!, // validated
+                        password: _dashboardOptions.ResourceServiceClient.ClientCertificate.Password,
+                        logger: _logger),
+                    DashboardClientCertificateSource.KeyStore => CertificateUtil.GetKeyStoreCertificate(
+                        subject: _dashboardOptions.ResourceServiceClient.ClientCertificate.Subject!, // validated
+                        storeName: _dashboardOptions.ResourceServiceClient.ClientCertificate.Store,
+                        location: _dashboardOptions.ResourceServiceClient.ClientCertificate.Location ?? StoreLocation.LocalMachine),
                     _ => throw new InvalidOperationException("Unable to load ResourceServiceClient client certificate.")
                 };
 
@@ -158,58 +164,6 @@ internal sealed class DashboardClient : IDashboardClient
                     LoggerFactory = _loggerFactory,
                     ThrowOperationCanceledOnCancellation = true
                 });
-
-            X509CertificateCollection GetFileCertificate()
-            {
-                Debug.Assert(
-                    _dashboardOptions.ResourceServiceClient.ClientCertificate.FilePath != null,
-                    "FilePath is validated as not null when configuration is loaded.");
-
-                var filePath = _dashboardOptions.ResourceServiceClient.ClientCertificate.FilePath;
-                var password = _dashboardOptions.ResourceServiceClient.ClientCertificate.Password;
-
-                var certBytes = File.ReadAllBytes(filePath);
-
-                var certContentType = X509Certificate2.GetCertContentType(certBytes);
-
-                if (certContentType is X509ContentType.Pkcs12)
-                {
-                    return [X509CertificateLoader.LoadPkcs12(certBytes, password)];
-                }
-                else
-                {
-                    if (password is not null)
-                    {
-                        _logger.LogDebug("Resource service certificate {FilePath} has type {Type} which does not support passwords, yet a password was configured. The certificate password will be ignored.", filePath, certContentType);
-                    }
-
-                    return [X509CertificateLoader.LoadCertificate(certBytes)];
-                }
-            }
-
-            X509CertificateCollection GetKeyStoreCertificate()
-            {
-                Debug.Assert(
-                    _dashboardOptions.ResourceServiceClient.ClientCertificate.Subject != null,
-                    "Subject is validated as not null when configuration is loaded.");
-
-                var subject = _dashboardOptions.ResourceServiceClient.ClientCertificate.Subject;
-                var storeName = _dashboardOptions.ResourceServiceClient.ClientCertificate.Store ?? "My";
-                var location = _dashboardOptions.ResourceServiceClient.ClientCertificate.Location ?? StoreLocation.CurrentUser;
-
-                using var store = new X509Store(storeName: storeName, storeLocation: location);
-
-                store.Open(OpenFlags.ReadOnly);
-
-                var certificates = store.Certificates.Find(X509FindType.FindBySubjectName, findValue: subject, validOnly: true);
-
-                if (certificates is [])
-                {
-                    throw new InvalidOperationException($"Unable to load client certificate with subject \"{subject}\" from key store.");
-                }
-
-                return certificates;
-            }
         }
     }
 

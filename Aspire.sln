@@ -145,6 +145,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{991DB378-6CB5-4441-BFC3-657400690FC3}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
+		.config\CredScanSuppressions.json = .config\CredScanSuppressions.json
 		Directory.Packages.props = Directory.Packages.props
 		spelling.dic = spelling.dic
 		eng\Versions.props = eng\Versions.props

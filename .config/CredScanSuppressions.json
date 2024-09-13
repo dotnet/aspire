@@ -32,6 +32,10 @@
     {
       "file": "\\tests\\Shared\\TestCertificates\\testCert.pfx",
       "_justification": "Legitimate UT certificate file with private key, from dotnet/aspnetcore"
+    },
+    {
+      "file": "\\tests\\Shared\\TestCertificates\\https-dsa.pem",
+      "_justification": "Legitimate UT certificate file with private key, from dotnet/aspnetcore"
     }
   ]
 }
