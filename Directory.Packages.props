@@ -19,7 +19,7 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.AWS" Version="1.1.0-beta.5" />
     <PackageVersion Include="OpenTelemetry.Extensions.AWS" Version="1.3.0-beta.1" />
     <!-- AWS CDK dependencies -->
-    <PackageVersion Include="Amazon.CDK.Lib" Version="2.157.0" />
+    <PackageVersion Include="Amazon.CDK.Lib" Version="2.158.0" />
     <!-- Azure SDK for .NET dependencies -->
     <PackageVersion Include="Azure.AI.OpenAI" Version="2.0.0-beta.2" />
     <PackageVersion Include="Azure.Data.Tables" Version="12.9.0" />
