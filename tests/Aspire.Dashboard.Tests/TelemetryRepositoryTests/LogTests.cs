@@ -6,9 +6,11 @@ using System.Threading.Channels;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Tests.Integration;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Logs.V1;
 using Xunit;
+using Xunit.Abstractions;
 using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
 
 namespace Aspire.Dashboard.Tests.TelemetryRepositoryTests;
@@ -16,6 +18,13 @@ namespace Aspire.Dashboard.Tests.TelemetryRepositoryTests;
 public class LogTests
 {
     private static readonly DateTime s_testTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+    private readonly ITestOutputHelper _testOutputHelper;
+
+    public LogTests(ITestOutputHelper testOutputHelper)
+    {
+        _testOutputHelper = testOutputHelper;
+    }
 
     [Fact]
     public void AddLogs()
@@ -652,7 +661,8 @@ public class LogTests
     {
         // Arrange
         var minExecuteInterval = TimeSpan.FromMilliseconds(500);
-        var repository = CreateRepository(subscriptionMinExecuteInterval: minExecuteInterval);
+        var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(_testOutputHelper);
+        var repository = CreateRepository(subscriptionMinExecuteInterval: minExecuteInterval, loggerFactory: loggerFactory);
 
         var callCount = 0;
         var resultChannel = Channel.CreateUnbounded<int>();
