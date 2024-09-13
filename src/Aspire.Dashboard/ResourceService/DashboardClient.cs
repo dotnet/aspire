@@ -170,7 +170,7 @@ internal sealed class DashboardClient : IDashboardClient
 
                 var certBytes = File.ReadAllBytes(filePath);
 
-                var certContentType = X509Certificate2.GetCertContentType(filePath);
+                var certContentType = X509Certificate2.GetCertContentType(certBytes);
 
                 if (certContentType is X509ContentType.Pkcs12)
                 {
