@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.MySql;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -30,6 +31,38 @@ public static class MySqlBuilderExtensions
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 
         var resource = new MySqlServerResource(name, passwordParameter);
+
+        string? connectionString = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(resource, async (@event, ct) =>
+        {
+            connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{resource.Name}' resource but the connection string was null.");
+            }
+
+            var lookup = builder.Resources.OfType<MySqlDatabaseResource>().ToDictionary(d => d.Name);
+
+            foreach (var databaseName in resource.Databases)
+            {
+                if (!lookup.TryGetValue(databaseName.Key, out var databaseResource))
+                {
+                    throw new DistributedApplicationException($"Database resource '{databaseName}' under SQL Server resource '{resource.Name}' was not found in the model.");
+                }
+
+                var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(databaseResource, @event.Services);
+                await builder.Eventing.PublishAsync<ConnectionStringAvailableEvent>(connectionStringAvailableEvent, ct).ConfigureAwait(false);
+
+                var beforeResourceStartedEvent = new BeforeResourceStartedEvent(databaseResource, @event.Services);
+                await builder.Eventing.PublishAsync(beforeResourceStartedEvent, ct).ConfigureAwait(false);
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.Services.AddHealthChecks().AddMySql(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
+
         return builder.AddResource(resource)
                       .WithEndpoint(port: port, targetPort: 3306, name: MySqlServerResource.PrimaryEndpointName) // Internal port is always 3306.
                       .WithImage(MySqlContainerImageTags.Image, MySqlContainerImageTags.Tag)
@@ -37,7 +70,8 @@ public static class MySqlBuilderExtensions
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables[PasswordEnvVarName] = resource.PasswordParameter;
-                      });
+                      })
+                      .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -57,7 +91,24 @@ public static class MySqlBuilderExtensions
 
         builder.Resource.AddDatabase(name, databaseName);
         var mySqlDatabase = new MySqlDatabaseResource(name, databaseName, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(mySqlDatabase);
+
+        string? connectionString = null;
+
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(mySqlDatabase, async (@event, ct) =>
+        {
+            connectionString = await mySqlDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{mySqlDatabase.Name}' resource but the connection string was null.");
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddMySql(sp => connectionString!, name: healthCheckKey);
+
+        return builder.ApplicationBuilder.AddResource(mySqlDatabase)
+                                         .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>

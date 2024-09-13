@@ -35,7 +35,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         });
 
         var redis = builder.AddRedis("redis")
-                              .WithHealthCheck("blocking_check");
+                           .WithHealthCheck("blocking_check");
 
         var dependentResource = builder.AddRedis("dependentresource")
                                        .WaitFor(redis); // Just using another redis instance as a dependent resource.
