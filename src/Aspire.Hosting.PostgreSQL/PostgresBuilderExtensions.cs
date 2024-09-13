@@ -56,7 +56,7 @@ public static class PostgresBuilderExtensions
 
             if (connectionString == null)
             {
-                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{postgresServer}' resource but the connection string was null.");
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{postgresServer.Name}' resource but the connection string was null.");
             }
 
             var lookup = builder.Resources.OfType<PostgresDatabaseResource>().ToDictionary(d => d.Name);

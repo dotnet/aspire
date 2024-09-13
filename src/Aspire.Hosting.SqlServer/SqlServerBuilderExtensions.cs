@@ -38,7 +38,7 @@ public static class SqlServerBuilderExtensions
 
             if (connectionString == null)
             {
-                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{sqlServer}' resource but the connection string was null.");
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{sqlServer.Name}' resource but the connection string was null.");
             }
 
             var lookup = builder.Resources.OfType<SqlServerDatabaseResource>().ToDictionary(d => d.Name);

@@ -11,6 +11,8 @@ using MongoDB.Driver;
 using Xunit;
 using Xunit.Abstractions;
 using Polly;
+using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting.MongoDB.Tests;
 
@@ -25,6 +27,45 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             new() { Name = "The Dark Knight"},
             new() { Name = "Schindler's List"},
         ];
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWaitForOnMongoBlocksDependentResources()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
+        builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
+        {
+            return healthCheckTcs.Task;
+        });
+
+        var resource = builder.AddMongoDB("resource")
+                           .WithHealthCheck("blocking_check");
+
+        var dependentResource = builder.AddMongoDB("dependentresource")
+                                       .WaitFor(resource);
+
+        using var app = builder.Build();
+
+        var pendingStart = app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+
+        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
+
+        await rns.WaitForResourceAsync(resource.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await pendingStart;
+        await app.StopAsync();
+    }
 
     [Fact]
     [RequiresDocker]

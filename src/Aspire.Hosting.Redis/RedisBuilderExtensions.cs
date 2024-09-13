@@ -47,7 +47,7 @@ public static class RedisBuilderExtensions
 
             if (connectionString == null)
             {
-                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{redis}' resource but the connection string was null.");
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{redis.Name}' resource but the connection string was null.");
             }
         });
 
