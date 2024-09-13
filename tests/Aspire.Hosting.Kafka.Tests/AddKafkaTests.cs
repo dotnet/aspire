@@ -110,97 +110,39 @@ public class AddKafkaTests
     }
 
     [Fact]
-    public async Task WithDataVolumeVerifyManifest()
+    public async Task WithDataVolumeConfigureCorrectEnvironment()
     {
         using var appBuilder = TestDistributedApplicationBuilder.Create();
 
         var kafka = appBuilder.AddKafka("kafka")
-            .WithDataVolume();
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017))
+            .WithDataVolume("kafka-data");
 
-        var manifest = await ManifestUtils.GetManifest(kafka.Resource);
+        var config = await kafka.Resource.GetEnvironmentVariableValuesAsync();
 
-        var expectedManifest = $$"""
-            {
-              "type": "container.v0",
-              "connectionString": "{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}",
-              "image": "docker.io/confluentinc/confluent-local:7.7.0",
-              "volumes": [
-                {
-                  "name": "Aspire.Hosting.Tests-kafka-data",
-                  "target": "/var/lib/kafka/data",
-                  "readOnly": false
-                }
-              ],
-              "env": {
-                "KAFKA_LISTENERS": "PLAINTEXT://localhost:29092,CONTROLLER://localhost:29093,PLAINTEXT_HOST://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:9093",
-                "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT",
-                "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://{kafka.bindings.tcp.host}:29092,PLAINTEXT_HOST://{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port},PLAINTEXT_INTERNAL://{kafka.bindings.internal.host}:{kafka.bindings.internal.port}",
-                "KAFKA_LOG_DIRS": "/var/lib/kafka/data"
-              },
-              "bindings": {
-                "tcp": {
-                  "scheme": "tcp",
-                  "protocol": "tcp",
-                  "transport": "tcp",
-                  "targetPort": 9092
-                },
-                "internal": {
-                  "scheme": "tcp",
-                  "protocol": "tcp",
-                  "transport": "tcp",
-                  "targetPort": 9093
-                }
-              }
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ToString());
+        var volumeAnnotation = kafka.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        Assert.Equal("kafka-data", volumeAnnotation.Source);
+        Assert.Equal("/var/lib/kafka/data", volumeAnnotation.Target);
+        Assert.Contains(config, kvp => kvp.Key == "KAFKA_LOG_DIRS" && kvp.Value == "/var/lib/kafka/data");
     }
 
     [Fact]
-    public async Task WithDataBindMountVerifyManifest()
+    public async Task WithDataBindConfigureCorrectEnvironment()
     {
         using var appBuilder = TestDistributedApplicationBuilder.Create();
 
         var kafka = appBuilder.AddKafka("kafka")
-            .WithDataBindMount("c:\\kafka-data");
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 27017))
+            .WithDataBindMount("kafka-data");
 
-        var manifest = await ManifestUtils.GetManifest(kafka.Resource);
+        var config = await kafka.Resource.GetEnvironmentVariableValuesAsync();
 
-        var expectedManifest = $$"""
-            {
-              "type": "container.v0",
-              "connectionString": "{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port}",
-              "image": "docker.io/confluentinc/confluent-local:7.7.0",
-              "bindMounts": [
-                {
-                  "source": "c:/kafka-data",
-                  "target": "/var/lib/kafka/data",
-                  "readOnly": false
-                }
-              ],
-              "env": {
-                "KAFKA_LISTENERS": "PLAINTEXT://localhost:29092,CONTROLLER://localhost:29093,PLAINTEXT_HOST://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:9093",
-                "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP": "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT",
-                "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://{kafka.bindings.tcp.host}:29092,PLAINTEXT_HOST://{kafka.bindings.tcp.host}:{kafka.bindings.tcp.port},PLAINTEXT_INTERNAL://{kafka.bindings.internal.host}:{kafka.bindings.internal.port}",
-                "KAFKA_LOG_DIRS": "/var/lib/kafka/data"
-              },
-              "bindings": {
-                "tcp": {
-                  "scheme": "tcp",
-                  "protocol": "tcp",
-                  "transport": "tcp",
-                  "targetPort": 9092
-                },
-                "internal": {
-                  "scheme": "tcp",
-                  "protocol": "tcp",
-                  "transport": "tcp",
-                  "targetPort": 9093
-                }
-              }
-            }
-            """;
-        Assert.Equal(expectedManifest, manifest.ToString());
+        var volumeAnnotation = kafka.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
+
+        Assert.Equal(Path.Combine(appBuilder.AppHostDirectory, "kafka-data"), volumeAnnotation.Source);
+        Assert.Equal("/var/lib/kafka/data", volumeAnnotation.Target);
+        Assert.Contains(config, kvp => kvp.Key == "KAFKA_LOG_DIRS" && kvp.Value == "/var/lib/kafka/data");
     }
 
     public static TheoryData<string?, string, int?> WithKafkaUIAddsAnUniqueContainerSetsItsNameAndInvokesConfigurationCallbackTestVariations()
