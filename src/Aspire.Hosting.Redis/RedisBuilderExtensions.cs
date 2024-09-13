@@ -6,6 +6,7 @@ using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -24,15 +25,40 @@ public static class RedisBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port to bind the underlying container to.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This resource includes built-in health checks. When this resource is referenced as a dependency
+    /// using the <see cref="ResourceBuilderExtensions.WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/>
+    /// extension method then the dependent resource will wait until the Redis resource is able to service
+    /// requests.
+    /// </para>
+    /// </remarks>
     public static IResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name, int? port = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         var redis = new RedisResource(name);
+
+        string? connectionString = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(redis, async (@event, ct) =>
+        {
+            connectionString = await redis.GetConnectionStringAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{redis}' resource but the connection string was null.");
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.Services.AddHealthChecks().AddRedis(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
+
         return builder.AddResource(redis)
                       .WithEndpoint(port: port, targetPort: 6379, name: RedisResource.PrimaryEndpointName)
                       .WithImage(RedisContainerImageTags.Image, RedisContainerImageTags.Tag)
-                      .WithImageRegistry(RedisContainerImageTags.Registry);
+                      .WithImageRegistry(RedisContainerImageTags.Registry)
+                      .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -79,7 +105,9 @@ public static class RedisBuilderExtensions
                 {
                     if (redisInstance.PrimaryEndpoint.IsAllocated)
                     {
-                        var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.PrimaryEndpoint.ContainerHost}:{redisInstance.PrimaryEndpoint.Port}:0";
+                        // Redis Commander assumes Redis is being accessed over a default Aspire container network and hardcodes the resource address
+                        // This will need to be refactored once updated service discovery APIs are available
+                        var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.Name}:{redisInstance.PrimaryEndpoint.TargetPort}:0";
                         hostsVariableBuilder.Append(hostString);
                     }
                 }

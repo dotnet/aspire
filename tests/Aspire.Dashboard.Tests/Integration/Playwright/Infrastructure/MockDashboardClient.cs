@@ -1,8 +1,7 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Frozen;
-using System.Collections.Immutable;
 using Aspire.Dashboard.Model;
 using Google.Protobuf.WellKnownTypes;
 
@@ -14,9 +13,9 @@ public sealed class MockDashboardClient : IDashboardClient
     {
         Name = "TestResource",
         DisplayName = "TestResource",
-        Commands = ImmutableArray<CommandViewModel>.Empty,
+        Commands = [],
         CreationTimeStamp = DateTime.Now,
-        Environment = ImmutableArray<EnvironmentVariableViewModel>.Empty,
+        Environment = [],
         ResourceType = KnownResourceTypes.Project,
         Properties = new[]
         {
@@ -28,8 +27,8 @@ public sealed class MockDashboardClient : IDashboardClient
         State = "Running",
         Uid = Guid.NewGuid().ToString(),
         StateStyle = null,
-        Urls = ImmutableArray<UrlViewModel>.Empty,
-
+        Urls = [],
+        Volumes = []
     };
 
     public bool IsEnabled => true;
@@ -50,6 +49,6 @@ public sealed class MockDashboardClient : IDashboardClient
     private static async IAsyncEnumerable<IReadOnlyList<ResourceViewModelChange>> Test()
     {
         await Task.CompletedTask;
-        yield return new List<ResourceViewModelChange> { };
+        yield return [];
     }
 }

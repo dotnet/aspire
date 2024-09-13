@@ -13,7 +13,7 @@ public class UrlParserTests
     [InlineData("")]
     [InlineData(" ")]
     [InlineData("This is some text without any urls")]
-    public void TryParse_NoUrl_ReturnsFalse(string input)
+    public void TryParse_NoUrl_ReturnsFalse(string? input)
     {
         var result = UrlParser.TryParse(input, out var _);
 

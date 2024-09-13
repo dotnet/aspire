@@ -134,6 +134,8 @@ public class ResourceNotificationService
         throw new OperationCanceledException($"The operation was cancelled before the resource met the predicate condition.");
     }
 
+    private readonly object _onResourceUpdatedLock = new();
+
     /// <summary>
     /// Watch for changes to the state for all resources.
     /// </summary>
@@ -156,7 +158,10 @@ public class ResourceNotificationService
         void WriteToChannel(ResourceEvent resourceEvent) =>
             channel.Writer.TryWrite(resourceEvent);
 
-        OnResourceUpdated += WriteToChannel;
+        lock (_onResourceUpdatedLock)
+        {
+            OnResourceUpdated += WriteToChannel;
+        }
 
         try
         {
@@ -167,7 +172,10 @@ public class ResourceNotificationService
         }
         finally
         {
-            OnResourceUpdated -= WriteToChannel;
+            lock (_onResourceUpdatedLock)
+            {
+                OnResourceUpdated -= WriteToChannel;
+            }
 
             channel.Writer.TryComplete();
         }
@@ -212,10 +220,11 @@ public class ResourceNotificationService
             {
                 _logger.LogTrace("Resource {Resource}/{ResourceId} update published: " +
                     "ResourceType = {ResourceType}, CreationTimeStamp = {CreationTimeStamp:s}, State = {{ Text = {StateText}, Style = {StateStyle} }}, " +
+                    "HealthStatus = {HealthStatus} " +
                     "ExitCode = {ExitCode}, EnvironmentVariables = {{ {EnvironmentVariables} }}, Urls = {{ {Urls} }}, " +
                     "Properties = {{ {Properties} }}",
                     resource.Name, resourceId,
-                    newState.ResourceType, newState.CreationTimeStamp, newState.State?.Text, newState.State?.Style,
+                    newState.ResourceType, newState.CreationTimeStamp, newState.State?.Text, newState.State?.Style, newState.HealthStatus,
                     newState.ExitCode, string.Join(", ", newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")), string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
                     string.Join(", ", newState.Properties.Select(p => $"{p.Name} = {p.Value}")));
             }

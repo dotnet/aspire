@@ -66,7 +66,8 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// <summary>
     /// Desired port for the service
     /// </summary>
-    public int? Port {
+    public int? Port
+    {
         // For proxy-less Endpoints the client port and target port should be the same.
         // Note that this is just a "sensible default"--the consumer of the EndpointAnnotation is free
         // to change Port and TargetPort after the annotation is created, but if the final values are inconsistent,
@@ -103,6 +104,11 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// If a service is URI-addressable, this property will contain the URI scheme to use for constructing service URI.
     /// </summary>
     public string UriScheme { get; set; }
+
+    /// <summary>
+    /// This is the address the resource is listening on. By default it is localhost.
+    /// </summary>
+    public string TargetHost { get; set; } = "localhost";
 
     /// <summary>
     /// Transport that is being used (e.g. http, http2, http3 etc).

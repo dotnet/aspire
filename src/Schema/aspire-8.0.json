@@ -38,6 +38,9 @@
               },
               "bindings": {
                 "$ref": "#/definitions/bindings"
+              },
+              "buildArgs": {
+                "$ref": "#/definitions/buildArgs"
               }
             },
             "additionalProperties": false
@@ -523,6 +526,13 @@
         }
       },
       "additionalProperties": false
+    },
+    "buildArgs": {
+      "type": "object",
+      "description": "A list of build arguments which are used during container build (for dockerfile.v0 resource type).",
+      "additionalProperties": {
+        "type": "string"
+      }
     },
     "bindings": {
       "type": "object",
