@@ -47,10 +47,11 @@ public sealed class Subscription : IDisposable
             var lastExecute = _lastExecute;
             if (lastExecute != null)
             {
-                var s = lastExecute.Value.Add(_telemetryRepository._subscriptionMinExecuteInterval) - DateTime.UtcNow;
+                var minExecuteInterval = _telemetryRepository._subscriptionMinExecuteInterval;
+                var s = lastExecute.Value.Add(minExecuteInterval) - DateTime.UtcNow;
                 if (s > TimeSpan.Zero)
                 {
-                    Logger.LogTrace("Subscription '{Name}' minimum execute interval hit. Waiting {DelayInterval}.", Name, s);
+                    Logger.LogTrace("Subscription '{Name}' minimum execute interval of {MinExecuteInterval} hit. Waiting {DelayInterval}.", Name, minExecuteInterval, s);
                     await Task.Delay(s, cancellationToken).ConfigureAwait(false);
                 }
             }
