@@ -1,9 +1,9 @@
+@description('The location for the resource(s) to be deployed.')
+param location string = resourceGroup().location
+
 param principalId string
 
 param principalType string
-
-@description('The location for the resource(s) to be deployed.')
-param location string = resourceGroup().location
 
 resource ehstorage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
     name: take('ehstorage${uniqueString(resourceGroup().id)}', 24)

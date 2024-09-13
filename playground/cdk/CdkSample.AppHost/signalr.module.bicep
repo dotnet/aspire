@@ -1,9 +1,9 @@
+@description('The location for the resource(s) to be deployed.')
+param location string = resourceGroup().location
+
 param principalId string
 
 param principalType string
-
-@description('The location for the resource(s) to be deployed.')
-param location string = resourceGroup().location
 
 resource signalr 'Microsoft.SignalRService/signalR@2022-02-01' = {
     name: take('signalr-${uniqueString(resourceGroup().id)}', 63)

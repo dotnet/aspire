@@ -1,9 +1,9 @@
+@description('The location for the resource(s) to be deployed.')
+param location string = resourceGroup().location
+
 param principalId string
 
 param principalName string
-
-@description('The location for the resource(s) to be deployed.')
-param location string = resourceGroup().location
 
 resource sql 'Microsoft.Sql/servers@2020-11-01-preview' = {
     name: take('sql-${uniqueString(resourceGroup().id)}', 63)

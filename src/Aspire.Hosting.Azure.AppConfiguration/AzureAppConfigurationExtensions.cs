@@ -14,6 +14,8 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureAppConfigurationExtensions
 {
+    private const string StoreResourceVersion = "2023-03-01";
+
     /// <summary>
     /// Adds an Azure App Configuration resource to the application model.
     /// </summary>
@@ -41,7 +43,7 @@ public static class AzureAppConfigurationExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var store = new AppConfigurationStore(name)
+            var store = new AppConfigurationStore(name, StoreResourceVersion)
             {
                 SkuName = "standard",
                 DisableLocalAuth = true,

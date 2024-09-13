@@ -1,11 +1,11 @@
+@description('The location for the resource(s) to be deployed.')
+param location string = resourceGroup().location
+
 param sku string = 'Standard'
 
 param principalId string
 
 param principalType string
-
-@description('The location for the resource(s) to be deployed.')
-param location string = resourceGroup().location
 
 resource eventhubns 'Microsoft.EventHub/namespaces@2017-04-01' = {
     name: take('eventhubns-${uniqueString(resourceGroup().id)}', 256)

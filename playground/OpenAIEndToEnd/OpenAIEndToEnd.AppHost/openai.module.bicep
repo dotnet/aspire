@@ -1,9 +1,9 @@
+@description('The location for the resource(s) to be deployed.')
+param location string = resourceGroup().location
+
 param principalId string
 
 param principalType string
-
-@description('The location for the resource(s) to be deployed.')
-param location string = resourceGroup().location
 
 resource openai 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
     name: take('openai-${uniqueString(resourceGroup().id)}', 64)

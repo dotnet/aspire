@@ -1,11 +1,11 @@
+@description('The location for the resource(s) to be deployed.')
+param location string = resourceGroup().location
+
 param principalId string
 
 param principalType string
 
-@description('The location for the resource(s) to be deployed.')
-param location string = resourceGroup().location
-
-resource appConfig 'Microsoft.AppConfiguration/configurationStores@2019-10-01' = {
+resource appConfig 'Microsoft.AppConfiguration/configurationStores@2023-03-01' = {
     name: take('appConfig-${uniqueString(resourceGroup().id)}', 50)
     location: location
     properties: {
