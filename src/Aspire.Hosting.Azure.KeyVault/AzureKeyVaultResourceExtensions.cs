@@ -46,7 +46,7 @@ public static class AzureKeyVaultResourceExtensions
             {
                 Properties = new KeyVaultProperties()
                 {
-                    TenantId = new MemberExpression(new FunctionCallExpression(new IdentifierExpression("tenant")), "tenantId"),
+                    TenantId = BicepFunction.GetTenant().TenantId,
                     Sku = new KeyVaultSku()
                     {
                         Family = KeyVaultSkuFamily.A,
