@@ -63,12 +63,12 @@
     <MicrosoftEntityFrameworkCoreToolsPackageVersion>8.0.8</MicrosoftEntityFrameworkCoreToolsPackageVersion>
     <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.0-preview.5.24272.3</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
     <!-- needed to get 8.0 version for running tests -->
-    <MicrosoftNETCoreAppRefVersion>8.0.8</MicrosoftNETCoreAppRefVersion>
+    <MicrosoftNETCoreAppRefPackageVersion>8.0.8</MicrosoftNETCoreAppRefPackageVersion>
     <!-- dotnet 8.0 versions for running tests -->
-    <DotNetRuntimeVersionForTesting>$(MicrosoftNETCoreAppRefVersion)</DotNetRuntimeVersionForTesting>
+    <DotNetRuntimeVersionForTesting>$(MicrosoftNETCoreAppRefPackageVersion)</DotNetRuntimeVersionForTesting>
     <!-- needed for - dotnet 8.0 versions for running tests - used for workload tests -->
-    <MicrosoftDotNetApiCompatTaskVersion>8.0.401</MicrosoftDotNetApiCompatTaskVersion>
+    <MicrosoftDotNetApiCompatTaskPackageVersion>8.0.401</MicrosoftDotNetApiCompatTaskPackageVersion>
     <!-- dotnet 8.0 versions for running tests - used for workload tests -->
-    <DotNetSdkVersionForTesting>$(MicrosoftDotNetApiCompatTaskVersion)</DotNetSdkVersionForTesting>
+    <DotNetSdkVersionForTesting>$(MicrosoftDotNetApiCompatTaskPackageVersion)</DotNetSdkVersionForTesting>
   </PropertyGroup>
 </Project>
