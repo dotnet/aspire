@@ -6,6 +6,7 @@ using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -26,6 +27,14 @@ public static class PostgresBuilderExtensions
     /// <param name="password">The parameter used to provide the administrator password for the PostgreSQL resource. If <see langword="null"/> a random password will be generated.</param>
     /// <param name="port">The host port used when launching the container. If null a random port will be assigned.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This resource includes built-in health checks. When this resource is referenced as a dependency
+    /// using the <see cref="ResourceBuilderExtensions.WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/>
+    /// extension method then the dependent resource will wait until the Postgres resource is able to service
+    /// requests.
+    /// </para>
+    /// </remarks>
     public static IResourceBuilder<PostgresServerResource> AddPostgres(this IDistributedApplicationBuilder builder,
         string name,
         IResourceBuilder<ParameterResource>? userName = null,
@@ -38,6 +47,47 @@ public static class PostgresBuilderExtensions
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 
         var postgresServer = new PostgresServerResource(name, userName?.Resource, passwordParameter);
+
+        string? connectionString = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(postgresServer, async (@event, ct) =>
+        {
+            connectionString = await postgresServer.GetConnectionStringAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{postgresServer.Name}' resource but the connection string was null.");
+            }
+
+            var lookup = builder.Resources.OfType<PostgresDatabaseResource>().ToDictionary(d => d.Name);
+
+            foreach (var databaseName in postgresServer.Databases)
+            {
+                if (!lookup.TryGetValue(databaseName.Key, out var databaseResource))
+                {
+                    throw new DistributedApplicationException($"Database resource '{databaseName}' under Postgres server resource '{postgresServer.Name}' not in model.");
+                }
+
+                var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(databaseResource, @event.Services);
+                await builder.Eventing.PublishAsync<ConnectionStringAvailableEvent>(connectionStringAvailableEvent, ct).ConfigureAwait(false);
+
+                var beforeResourceStartedEvent = new BeforeResourceStartedEvent(databaseResource, @event.Services);
+                await builder.Eventing.PublishAsync(beforeResourceStartedEvent, ct).ConfigureAwait(false);
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.Services.AddHealthChecks().AddNpgSql(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey, configure: (connection) =>
+        {
+            // HACK: The Npgsql client defaults to using the username in the connection string if the database is not specified. Here
+            //       we override this default behavior because we are working with a non-database scoped connection string. The Aspirified
+            //       package doesn't have to deal with this because it uses a datasource from DI which doesn't have this issue:
+            //
+            //       https://github.com/npgsql/npgsql/blob/c3b31c393de66a4b03fba0d45708d46a2acb06d2/src/Npgsql/NpgsqlConnection.cs#L445
+            //
+            connection.ConnectionString = connection.ConnectionString + ";Database=postgres;";
+        });
+
         return builder.AddResource(postgresServer)
                       .WithEndpoint(port: port, targetPort: 5432, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.
                       .WithImage(PostgresContainerImageTags.Image, PostgresContainerImageTags.Tag)
@@ -48,7 +98,8 @@ public static class PostgresBuilderExtensions
                       {
                           context.EnvironmentVariables[UserEnvVarName] = postgresServer.UserNameReference;
                           context.EnvironmentVariables[PasswordEnvVarName] = postgresServer.PasswordParameter;
-                      });
+                      })
+                      .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -58,6 +109,19 @@ public static class PostgresBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This resource includes built-in health checks. When this resource is referenced as a dependency
+    /// using the <see cref="ResourceBuilderExtensions.WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/>
+    /// extension method then the dependent resource will wait until the Postgres database is available.
+    /// </para>
+    /// <para>
+    /// Note that by default calling <see cref="AddDatabase(IResourceBuilder{PostgresServerResource}, string, string?)"/>
+    /// does not result in the database being created on the Postgres server. It is expected that code within your solution
+    /// will create the database. As a result if <see cref="ResourceBuilderExtensions.WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/>
+    /// is used with this resource it will wait indefinitely until the database exists.
+    /// </para>
+    /// </remarks>
     public static IResourceBuilder<PostgresDatabaseResource> AddDatabase(this IResourceBuilder<PostgresServerResource> builder, string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -68,7 +132,24 @@ public static class PostgresBuilderExtensions
 
         builder.Resource.AddDatabase(name, databaseName);
         var postgresDatabase = new PostgresDatabaseResource(name, databaseName, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(postgresDatabase);
+
+        string? connectionString = null;
+
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(postgresDatabase, async (@event, ct) =>
+        {
+            connectionString = await postgresDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{postgresDatabase}' resource but the connection string was null.");
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddNpgSql(sp => connectionString!, name: healthCheckKey);
+
+        return builder.ApplicationBuilder.AddResource(postgresDatabase)
+                                         .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -130,8 +211,10 @@ public static class PostgresBuilderExtensions
                         writer.WriteStartObject($"{serverIndex}");
                         writer.WriteString("Name", postgresInstance.Name);
                         writer.WriteString("Group", "Servers");
-                        writer.WriteString("Host", endpoint.ContainerHost);
-                        writer.WriteNumber("Port", endpoint.Port);
+                        // PgAdmin assumes Postgres is being accessed over a default Aspire container network and hardcodes the resource address
+                        // This will need to be refactored once updated service discovery APIs are available
+                        writer.WriteString("Host", endpoint.Resource.Name);
+                        writer.WriteNumber("Port", (int)endpoint.TargetPort!);
                         writer.WriteString("Username", "postgres");
                         writer.WriteString("SSLMode", "prefer");
                         writer.WriteString("MaintenanceDB", "postgres");
@@ -198,11 +281,11 @@ public static class PostgresBuilderExtensions
     /// var postgres = builder.AddPostgres("postgres")
     ///    .WithPgWeb();
     /// var db = postgres.AddDatabase("db");
-    ///   
+    ///
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithReference(db);
-    ///  
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     /// <remarks>
@@ -249,9 +332,11 @@ public static class PostgresBuilderExtensions
                 {
                     var user = postgresDatabase.Parent.UserNameParameter?.Value ?? "postgres";
 
+                    // PgAdmin assumes Postgres is being accessed over a default Aspire container network and hardcodes the resource address
+                    // This will need to be refactored once updated service discovery APIs are available
                     var fileContent = $"""
-                        host = "{postgresDatabase.Parent.PrimaryEndpoint.ContainerHost}"
-                        port = {postgresDatabase.Parent.PrimaryEndpoint.Port}
+                        host = "{postgresDatabase.Parent.Name}"
+                        port = {postgresDatabase.Parent.PrimaryEndpoint.TargetPort}
                         user = "{user}"
                         password = "{postgresDatabase.Parent.PasswordParameter.Value}"
                         database = "{postgresDatabase.DatabaseName}"

@@ -20,6 +20,11 @@ var app = builder.Build();
 
 app.Lifetime.ApplicationStarted.Register(ConsoleStresser.Stress);
 
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    _ = app.Services.GetRequiredService<TestMetrics>();
+});
+
 app.MapGet("/", () => "Hello world");
 
 app.MapGet("/write-console", () =>

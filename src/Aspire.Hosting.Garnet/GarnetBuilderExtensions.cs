@@ -5,6 +5,7 @@ using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Garnet;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -55,10 +56,27 @@ public static class GarnetBuilderExtensions
         ArgumentNullException.ThrowIfNull(name);
 
         var garnet = new GarnetResource(name);
+
+        string? connectionString = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(garnet, async (@event, ct) =>
+        {
+            connectionString = await garnet.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{garnet.Name}' resource but the connection string was null.");
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.Services.AddHealthChecks().AddRedis(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
+
         return builder.AddResource(garnet)
             .WithEndpoint(port: port, targetPort: 6379, name: GarnetResource.PrimaryEndpointName)
             .WithImage(GarnetContainerImageTags.Image, GarnetContainerImageTags.Tag)
-            .WithImageRegistry(GarnetContainerImageTags.Registry);
+            .WithImageRegistry(GarnetContainerImageTags.Registry)
+            .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>

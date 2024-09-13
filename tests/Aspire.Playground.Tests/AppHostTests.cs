@@ -197,22 +197,21 @@ public class AppHostTests
                     new ("milvus", "Milvus Proxy successfully initialized and ready to serve"),
                 ]),
             new TestEndpoints("CosmosEndToEnd.AppHost",
-                resourceEndpoints: new() { { "api", ["/alive", "/health", "/", "/ef"] } },
+                resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
+                // "/ef" - disabled due to https://github.com/dotnet/aspire/issues/5415
                 waitForTexts: [
                     new ("cosmos", "Started$"),
                     new ("api", "Application started")
                 ]),
             new TestEndpoints("Keycloak.AppHost",
                 resourceEndpoints: new() { { "apiservice", ["/alive", "/health"] } }),
-
-            // Issue: https://github.com/dotnet/aspire/issues/5274
-            //new TestEndpoints("Mongo.AppHost",
-                //resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
-                //waitForTexts: [
-                    //new ("mongo", "Waiting for connections"),
-                    //new ("mongo-mongoexpress", "Mongo Express server listening"),
-                    //new("api", "Application started.")
-                //]),
+            new TestEndpoints("Mongo.AppHost",
+                resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
+                waitForTexts: [
+                    new ("mongo", "Waiting for connections"),
+                    new ("mongo-mongoexpress", "Mongo Express server listening"),
+                    new("api", "Application started.")
+                ]),
             new TestEndpoints("MySqlDb.AppHost",
                 resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/catalog"] } },
                 waitForTexts: [
@@ -285,7 +284,7 @@ public class AppHostTests
                     new ("catalogdbapp", "Application started"),
                     new ("basketservice", "Application started"),
                     new ("postgres", "database system is ready to accept connections"),
-                ])
+                ]),
         ];
 
         return candidates;

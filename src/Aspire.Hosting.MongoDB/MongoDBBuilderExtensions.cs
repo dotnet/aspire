@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.MongoDB;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -29,11 +30,27 @@ public static class MongoDBBuilderExtensions
 
         var mongoDBContainer = new MongoDBServerResource(name);
 
+        string? connectionString = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(mongoDBContainer, async (@event, ct) =>
+        {
+            connectionString = await mongoDBContainer.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{mongoDBContainer.Name}' resource but the connection string was null.");
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.Services.AddHealthChecks().AddMongoDb(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
+
         return builder
             .AddResource(mongoDBContainer)
             .WithEndpoint(port: port, targetPort: DefaultContainerPort, name: MongoDBServerResource.PrimaryEndpointName)
             .WithImage(MongoDBContainerImageTags.Image, MongoDBContainerImageTags.Tag)
-            .WithImageRegistry(MongoDBContainerImageTags.Registry);
+            .WithImageRegistry(MongoDBContainerImageTags.Registry)
+            .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -146,7 +163,9 @@ public static class MongoDBBuilderExtensions
 
     private static void ConfigureMongoExpressContainer(EnvironmentCallbackContext context, MongoDBServerResource resource)
     {
-        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", $"mongodb://{resource.PrimaryEndpoint.ContainerHost}:{resource.PrimaryEndpoint.Port}/?directConnection=true");
+        // Mongo Exporess assumes Mongo is being accessed over a default Aspire container network and hardcodes the resource address
+        // This will need to be refactored once updated service discovery APIs are available
+        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", $"mongodb://{resource.Name}:{resource.PrimaryEndpoint.TargetPort}/?directConnection=true");
         context.EnvironmentVariables.Add("ME_CONFIG_BASICAUTH", "false");
     }
 }

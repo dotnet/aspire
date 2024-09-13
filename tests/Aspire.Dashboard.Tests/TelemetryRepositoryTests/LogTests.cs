@@ -6,9 +6,11 @@ using System.Threading.Channels;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Tests.Integration;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Logs.V1;
 using Xunit;
+using Xunit.Abstractions;
 using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
 
 namespace Aspire.Dashboard.Tests.TelemetryRepositoryTests;
@@ -16,6 +18,13 @@ namespace Aspire.Dashboard.Tests.TelemetryRepositoryTests;
 public class LogTests
 {
     private static readonly DateTime s_testTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+    private readonly ITestOutputHelper _testOutputHelper;
+
+    public LogTests(ITestOutputHelper testOutputHelper)
+    {
+        _testOutputHelper = testOutputHelper;
+    }
 
     [Fact]
     public void AddLogs()
@@ -194,27 +203,27 @@ public class LogTests
 
         var unviewedCounts1 = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.True(unviewedCounts1.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "1"))!, out var unviewedCount1));
+        Assert.True(unviewedCounts1.TryGetValue(new ApplicationKey("TestService", "1"), out var unviewedCount1));
         Assert.Equal(2, unviewedCount1);
 
-        Assert.True(unviewedCounts1.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "2"))!, out var unviewedCount2));
+        Assert.True(unviewedCounts1.TryGetValue(new ApplicationKey("TestService", "2"), out var unviewedCount2));
         Assert.Equal(1, unviewedCount2);
 
         repository.MarkViewedErrorLogs(new ApplicationKey("TestService", "1"));
 
         var unviewedCounts2 = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.False(unviewedCounts2.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "1"))!, out _));
+        Assert.False(unviewedCounts2.TryGetValue(new ApplicationKey("TestService", "1"), out _));
 
-        Assert.True(unviewedCounts2.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "2"))!, out unviewedCount2));
+        Assert.True(unviewedCounts2.TryGetValue(new ApplicationKey("TestService", "2"), out unviewedCount2));
         Assert.Equal(1, unviewedCount2);
 
         repository.MarkViewedErrorLogs(null);
 
         var unviewedCounts3 = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.False(unviewedCounts3.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "1"))!, out _));
-        Assert.False(unviewedCounts3.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "2"))!, out _));
+        Assert.False(unviewedCounts3.TryGetValue(new ApplicationKey("TestService", "1"), out _));
+        Assert.False(unviewedCounts3.TryGetValue(new ApplicationKey("TestService", "2"), out _));
     }
 
     [Fact]
@@ -265,8 +274,8 @@ public class LogTests
 
         var unviewedCounts = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.False(unviewedCounts.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "1"))!, out _));
-        Assert.False(unviewedCounts.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "2"))!, out _));
+        Assert.False(unviewedCounts.TryGetValue(new ApplicationKey("TestService", "1"), out _));
+        Assert.False(unviewedCounts.TryGetValue(new ApplicationKey("TestService", "2"), out _));
     }
 
     [Fact]
@@ -317,8 +326,8 @@ public class LogTests
 
         var unviewedCounts = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.False(unviewedCounts.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "1"))!, out _));
-        Assert.True(unviewedCounts.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "2"))!, out var unviewedCount));
+        Assert.False(unviewedCounts.TryGetValue(new ApplicationKey("TestService", "1"), out _));
+        Assert.True(unviewedCounts.TryGetValue(new ApplicationKey("TestService", "2"), out var unviewedCount));
         Assert.Equal(1, unviewedCount);
     }
 
@@ -355,7 +364,7 @@ public class LogTests
 
         var unviewedCounts = repository.GetApplicationUnviewedErrorLogsCount();
 
-        Assert.True(unviewedCounts.TryGetValue(repository.GetApplication(new ApplicationKey("TestService", "1"))!, out var unviewedCount));
+        Assert.True(unviewedCounts.TryGetValue(new ApplicationKey("TestService", "1"), out var unviewedCount));
         Assert.Equal(1, unviewedCount);
     }
 
@@ -652,7 +661,8 @@ public class LogTests
     {
         // Arrange
         var minExecuteInterval = TimeSpan.FromMilliseconds(500);
-        var repository = CreateRepository(subscriptionMinExecuteInterval: minExecuteInterval);
+        var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(_testOutputHelper);
+        var repository = CreateRepository(subscriptionMinExecuteInterval: minExecuteInterval, loggerFactory: loggerFactory);
 
         var callCount = 0;
         var resultChannel = Channel.CreateUnbounded<int>();

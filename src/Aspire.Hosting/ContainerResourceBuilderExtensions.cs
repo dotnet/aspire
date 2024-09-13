@@ -227,10 +227,10 @@ public static class ContainerResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">Builder for the container resource.</param>
-    /// <param name="lifetimeType">The lifetime behavior of the container resource (defaults behavior is <see cref="ContainerLifetimeType.Default"/>)</param>
+    /// <param name="lifetime">The lifetime behavior of the container resource (defaults behavior is <see cref="ContainerLifetime.Default"/>)</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <example>
-    /// Marking a container resource to have a <see cref="ContainerLifetimeType.Persistent"/> lifetime.
+    /// Marking a container resource to have a <see cref="ContainerLifetime.Persistent"/> lifetime.
     /// <code language="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     /// builder.AddContainer("mycontainer", "myimage")
@@ -238,9 +238,9 @@ public static class ContainerResourceBuilderExtensions
     /// </code>
     /// </example>
     [Experimental("ASPIRECONTAINERLIFETIME001")]
-    public static IResourceBuilder<T> WithContainerLifetime<T>(this IResourceBuilder<T> builder, ContainerLifetimeType lifetimeType) where T : ContainerResource
+    public static IResourceBuilder<T> WithLifetime<T>(this IResourceBuilder<T> builder, ContainerLifetime lifetime) where T : ContainerResource
     {
-        return builder.WithAnnotation(new ContainerLifetimeAnnotation { LifetimeType = lifetimeType }, ResourceAnnotationMutationBehavior.Replace);
+        return builder.WithAnnotation(new ContainerLifetimeAnnotation { Lifetime = lifetime }, ResourceAnnotationMutationBehavior.Replace);
     }
 
     private static IResourceBuilder<T> ThrowResourceIsNotContainer<T>(IResourceBuilder<T> builder) where T : ContainerResource

@@ -10,7 +10,7 @@ internal static class FluentUIExtensions
         // No onclick attribute is added here. The CSP restricts inline scripts, including onclick.
         // Instead, a click event listener is added to the document and clicking the button is bubbled up to the event.
         // The document click listener looks for a button element and these attributes.
-        var attributes = new Dictionary<string, object>(StringComparers.Attribute)
+        var attributes = new Dictionary<string, object>(StringComparers.HtmlAttribute)
         {
             { "data-text", text ?? string.Empty },
             { "data-precopy", precopy ?? string.Empty },
@@ -28,7 +28,7 @@ internal static class FluentUIExtensions
 
     public static Dictionary<string, object> GetOpenTextVisualizerAdditionalAttributes(string textValue, string textValueDescription, params (string Attribute, object Value)[] additionalAttributes)
     {
-        var attributes = new Dictionary<string, object>(StringComparers.Attribute)
+        var attributes = new Dictionary<string, object>(StringComparers.HtmlAttribute)
         {
             { "data-text", textValue },
             { "data-textvisualizer-description", textValueDescription }

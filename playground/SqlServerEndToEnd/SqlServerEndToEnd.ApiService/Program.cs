@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.EntityFrameworkCore;
+using SqlServerEndToEnd.Common;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,39 +22,23 @@ app.MapGet("/", async (MyDb1Context db1Context, MyDb2Context db2Context) =>
     await db1Context.Database.EnsureCreatedAsync();
     await db2Context.Database.EnsureCreatedAsync();
 
-    var entry = new Entry();
-    await db1Context.Entries.AddAsync(entry);
+    var entry1 = new Entry();
+    await db1Context.Entries.AddAsync(entry1);
     await db1Context.SaveChangesAsync();
 
-    var entries = await db1Context.Entries.ToListAsync();
+    var entry2 = new Entry();
+    await db2Context.Entries.AddAsync(entry2);
+    await db2Context.SaveChangesAsync();
+
+    var entries1 = await db1Context.Entries.ToListAsync();
+    var entries2 = await db2Context.Entries.ToListAsync();
 
     return new
     {
-        totalEntries = entries.Count,
-        entries = entries
+        totalEntries = entries1.Count + entries2.Count,
+        entries1 = entries1,
+        entries2 = entries2
     };
 });
 
 app.Run();
-
-public class MyDb1Context(DbContextOptions<MyDb1Context> options) : DbContext(options)
-{
-    public DbSet<Entry> Entries { get; set; }
-}
-
-public class MyDb2Context(DbContextOptions<MyDb2Context> options) : DbContext(options)
-{
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        base.OnModelCreating(modelBuilder);
-
-        modelBuilder.Entity<Entry>().HasKey(e => e.Id);
-    }
-
-    public DbSet<Entry> Entries { get; set; }
-}
-
-public class Entry
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-}
