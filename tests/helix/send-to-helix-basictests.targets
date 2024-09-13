@@ -34,7 +34,7 @@
 
       <_DefaultWorkItems Condition="'%(FileName)' == 'Aspire.Hosting.Elasticsearch.Tests'" TimeoutMs="1200000" />
       <_DefaultWorkItems Condition="'%(FileName)' == 'Aspire.Hosting.Oracle.Tests'" TimeoutMs="1200000" />
-      <_DefaultWorkItems Condition="'%(FileName)' == 'Aspire.Pomelo.EntityFrameworkCore.MySql.Tests" TimeoutMs="1200000" />
+      <_DefaultWorkItems Condition="'%(FileName)' == 'Aspire.Pomelo.EntityFrameworkCore.MySql.Tests'" TimeoutMs="1200000" />
 
       <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
         <PayloadArchive>%(Identity)</PayloadArchive>
