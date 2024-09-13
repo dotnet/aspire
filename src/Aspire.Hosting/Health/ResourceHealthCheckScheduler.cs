@@ -37,7 +37,7 @@ internal class ResourceHealthCheckScheduler : BackgroundService
 
         await foreach (var resourceEvent in resourceEvents.ConfigureAwait(false))
         {
-            if (resourceEvent.Snapshot.State == KnownResourceStates.Running)
+            if (resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running)
             {
                 // Each time we receive an event that tells us that the resource is
                 // running we need to enable the health check annotation.
