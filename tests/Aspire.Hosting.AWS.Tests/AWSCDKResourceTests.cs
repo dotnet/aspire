@@ -14,6 +14,7 @@ public class AWSCDKResourceTests
 {
     [Fact]
     [RequiresTools(["node"])]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4508", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public void AddAWSCDKResourceTest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -34,6 +35,7 @@ public class AWSCDKResourceTests
 
     [Fact]
     [RequiresTools(["node"])]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4508", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public void AddAWSCDKResourceWithAdditionalStackTest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -57,6 +59,7 @@ public class AWSCDKResourceTests
 
     [Fact]
     [RequiresTools(["node"])]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4508", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public void AddAWSCDKResourceWithAdditionalStackAndConfigTest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -88,6 +91,7 @@ public class AWSCDKResourceTests
 
     [Fact]
     [RequiresTools(["node"])]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4508", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public void AddAWSCDKResourceWithConstructTest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -101,6 +105,7 @@ public class AWSCDKResourceTests
 
     [Fact]
     [RequiresTools(["node"])]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4508", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ManifestAWSCDKResourceTest()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
