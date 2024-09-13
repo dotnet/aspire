@@ -458,7 +458,7 @@ internal sealed class DashboardClient : IDashboardClient
         }
     }
 
-    async IAsyncEnumerable<IReadOnlyList<ResourceLogLine>>? IDashboardClient.SubscribeConsoleLogs(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
+    async IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> IDashboardClient.SubscribeConsoleLogs(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         EnsureInitialized();
 
