@@ -159,7 +159,6 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var client = app.CreateHttpClient(adminBuilder.Resource.Name, "http");
 
-        var endpoint = redis.GetEndpoint("tcp");
         var path = $"/";
         var response = await client.GetAsync(path);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
