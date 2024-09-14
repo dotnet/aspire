@@ -205,7 +205,6 @@ public class AddRedisTests
 
     [Fact]
     public async Task SingleRedisInstanceProducesCorrectRedisHostsVariable()
-
     {
         var builder = DistributedApplication.CreateBuilder();
         var redis = builder.AddRedis("myredis1").WithRedisCommander();
