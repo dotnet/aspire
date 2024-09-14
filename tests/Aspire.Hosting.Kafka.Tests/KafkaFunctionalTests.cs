@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Confluent.Kafka;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Polly;
@@ -31,10 +31,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var hb = Host.CreateApplicationBuilder();
 
-        hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            [$"ConnectionStrings:{kafka.Resource.Name}"] = await kafka.Resource.ConnectionStringExpression.GetValueAsync(default)
-        });
+        hb.Configuration[$"ConnectionStrings:{kafka.Resource.Name}"] = await kafka.Resource.ConnectionStringExpression.GetValueAsync(default);
 
         hb.AddKafkaProducer<string, string>("kafka");
         hb.AddKafkaConsumer<string, string>("kafka", consumerBuilder =>
@@ -73,7 +70,6 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
     }
 
     [Theory]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/4909")]
     [InlineData(true)]
     [InlineData(false)]
     [RequiresDocker]
@@ -101,20 +97,34 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
             else
             {
                 bindMountPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+
+                Directory.CreateDirectory(bindMountPath);
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    // the docker container runs as a non-root user, so we need to grant other user's read/write permission
+                    // to the bind mount directory.
+                    // Note that we need to do this after creating the directory, because the umask is applied at the time of creation.
+                    const UnixFileMode BindMountPermissions =
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
+                        UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute |
+                        UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute;
+
+                    File.SetUnixFileMode(bindMountPath, BindMountPermissions);
+                }
                 kafka1.WithDataBindMount(bindMountPath);
             }
 
             using (var app = builder1.Build())
             {
                 await app.StartAsync();
+
+                await app.WaitForTextAsync("Server started, listening for requests...", kafka1.Resource.Name);
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-                    {
-                        [$"ConnectionStrings:{kafka1.Resource.Name}"] = await kafka1.Resource.ConnectionStringExpression.GetValueAsync(default)
-                    });
+                    hb.Configuration[$"ConnectionStrings:{kafka1.Resource.Name}"] = await kafka1.Resource.ConnectionStringExpression.GetValueAsync(default);
 
                     hb.AddKafkaProducer<string, string>("kafka");
 
@@ -139,6 +149,9 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
                 {
                     // Stops the container, or the Volume/mount would still be in use
                     await app.StopAsync();
+                    //kafka shutdown has delay,so without delay to running instance using same data and second instance failed to start.
+                    await Task.Delay(TimeSpan.FromMinutes(1));
+
                 }
             }
 
@@ -157,14 +170,13 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
             using (var app = builder2.Build())
             {
                 await app.StartAsync();
+                await app.WaitForTextAsync("Server started, listening for requests...", kafka1.Resource.Name);
+
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
 
-                    hb.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-                    {
-                        [$"ConnectionStrings:{kafka2.Resource.Name}"] = await kafka2.Resource.ConnectionStringExpression.GetValueAsync(default)
-                    });
+                    hb.Configuration[$"ConnectionStrings:{kafka2.Resource.Name}"] = await kafka2.Resource.ConnectionStringExpression.GetValueAsync(default);
 
                     hb.AddKafkaConsumer<string, string>("kafka", consumerBuilder =>
                     {

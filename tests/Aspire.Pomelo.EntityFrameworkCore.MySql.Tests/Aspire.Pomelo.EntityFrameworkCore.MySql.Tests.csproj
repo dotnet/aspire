@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TestSessionTimeoutForHelix>1200000</TestSessionTimeoutForHelix>
   </PropertyGroup>
 
   <ItemGroup>
