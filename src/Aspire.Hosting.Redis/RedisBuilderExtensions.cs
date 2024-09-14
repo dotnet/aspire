@@ -177,8 +177,8 @@ public static class RedisBuilderExtensions
                         {
                             var endpoint = redisResource.PrimaryEndpoint;
                             writer.WriteStartObject();
-                            writer.WriteString("host", endpoint.ContainerHost);
-                            writer.WriteNumber("port", endpoint.Port);
+                            writer.WriteString("host", redisResource.Name);
+                            writer.WriteNumber("port", endpoint.TargetPort);
                             writer.WriteString("name", redisResource.Name);
                             writer.WriteNumber("db", 0);
                             //todo: provide username and password when https://github.com/dotnet/aspire/pull/4642 merged.
