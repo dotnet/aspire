@@ -73,6 +73,7 @@ public static class MilvusBuilderExtensions
                 }
                 var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(databaseResource, @event.Services);
                 await builder.Eventing.PublishAsync<ConnectionStringAvailableEvent>(connectionStringAvailableEvent, ct).ConfigureAwait(false);
+
                 var beforeResourceStartedEvent = new BeforeResourceStartedEvent(databaseResource, @event.Services);
                 await builder.Eventing.PublishAsync(beforeResourceStartedEvent, ct).ConfigureAwait(false);
             }
