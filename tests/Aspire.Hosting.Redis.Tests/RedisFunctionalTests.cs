@@ -132,7 +132,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("value", value);
     }
 
-    [Fact(Skip = "https://github.com/dotnet/aspire/issues/5325")]
+    [Fact]
     [RequiresDocker]
     public async Task VerifyWithRedisInsight()
     {
@@ -200,7 +200,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
                 response.EnsureSuccessStatusCode();
             }
 
-        }, cts.Token).ConfigureAwait(false);
+        }, cts.Token);
     }
 
     [Fact]

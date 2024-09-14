@@ -203,6 +203,7 @@ public class AddRedisTests
         Assert.Equal(1000, endpoint.Port);
     }
 
+    [Fact]
     public async Task SingleRedisInstanceProducesCorrectRedisHostsVariable()
 
     {

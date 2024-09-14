@@ -8,8 +8,8 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Polly;
-
 
 namespace Aspire.Hosting;
 
@@ -165,21 +165,9 @@ public static class RedisBuilderExtensions
                     return;
                 }
 
-                var connectionFileDirectoryPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-                if (!Directory.Exists(connectionFileDirectoryPath))
-                {
-                    Directory.CreateDirectory(connectionFileDirectoryPath);
-                }
-                var connectionFilePath = Path.Combine(connectionFileDirectoryPath, "RedisInsight_connections.json");
-
-                using (var stream = new FileStream(connectionFilePath, FileMode.OpenOrCreate))
+                using (var stream = new MemoryStream())
                 {
                     using var writer = new Utf8JsonWriter(stream);
-                    // Need to grant read access to the config file on unix like systems.
-                    if (!OperatingSystem.IsWindows())
-                    {
-                        File.SetUnixFileMode(connectionFilePath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
-                    }
 
                     writer.WriteStartArray();
 
@@ -201,19 +189,17 @@ public static class RedisBuilderExtensions
                         }
                     }
                     writer.WriteEndArray();
-                };
+                    await writer.FlushAsync(ct).ConfigureAwait(false);
+                    stream.Seek(0, SeekOrigin.Begin);
+                    var redisInsightResource = builder.ApplicationBuilder.Resources.OfType<RedisInsightResource>().Single();
 
-                var redisInsightResource = builder.ApplicationBuilder.Resources.OfType<RedisInsightResource>().Single();
+                    var httpClientFactory = e.Services.GetRequiredService<IHttpClientFactory>();
 
-                var httpClientFactory = e.Services.GetRequiredService<IHttpClientFactory>();
+                    var client = httpClientFactory.CreateClient();
 
-                var client = httpClientFactory.CreateClient();
+                    var content = new MultipartFormDataContent();
 
-                var content = new MultipartFormDataContent();
-
-                using (var file = File.OpenRead(connectionFilePath))
-                {
-                    var fileContent = new StreamContent(file);
+                    var fileContent = new StreamContent(stream);
 
                     content.Add(fileContent, "file", "RedisInsight_connections.json");
 
@@ -226,17 +212,25 @@ public static class RedisBuilderExtensions
                         MaxRetryAttempts = 5,
                     }).Build();
 
-                    await pipeline.ExecuteAsync(async (ctx) =>
+                    var rls = e.Services.GetRequiredService<ResourceLoggerService>();
+                    var resourceLogger = rls.GetLogger(resource);
+
+                    try
                     {
-                        var response = await client.PostAsync(apiUrl, content, ctx)
-                        .ConfigureAwait(false);
-                        response.EnsureSuccessStatusCode();
+                        await pipeline.ExecuteAsync(async (ctx) =>
+                        {
+                            var response = await client.PostAsync(apiUrl, content, ctx)
+                            .ConfigureAwait(false);
 
-                    }, ct).ConfigureAwait(false);
+                            response.EnsureSuccessStatusCode();
+                        }, ct).ConfigureAwait(false);
 
-                }
-
-                Directory.Delete(connectionFileDirectoryPath, true);
+                    }
+                    catch (Exception ex)
+                    {
+                        resourceLogger.LogError("Could not import Redis databases into RedisInsight. Reason: {reason}", ex.Message);
+                    }
+                };
             });
 
             configureContainer?.Invoke(resourceBuilder);
