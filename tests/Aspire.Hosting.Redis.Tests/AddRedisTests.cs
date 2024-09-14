@@ -203,17 +203,15 @@ public class AddRedisTests
         Assert.Equal(1000, endpoint.Port);
     }
 
-    [Theory]
-    [InlineData("host.docker.internal")]
-    [InlineData("host.containers.internal")]
-    public async Task SingleRedisInstanceProducesCorrectRedisHostsVariable(string containerHost)
+    public async Task SingleRedisInstanceProducesCorrectRedisHostsVariable()
+
     {
         var builder = DistributedApplication.CreateBuilder();
         var redis = builder.AddRedis("myredis1").WithRedisCommander();
         using var app = builder.Build();
 
         // Add fake allocated endpoints.
-        redis.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
+        redis.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
 
         await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new(app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
 
@@ -224,13 +222,11 @@ public class AddRedisTests
             DistributedApplicationOperation.Run,
             TestServiceProvider.Instance);
 
-        Assert.Equal($"myredis1:{containerHost}:5001:0", config["REDIS_HOSTS"]);
+        Assert.Equal($"myredis1:{redis.Resource.Name}:6379:0", config["REDIS_HOSTS"]);
     }
 
-    [Theory]
-    [InlineData("host.docker.internal")]
-    [InlineData("host.containers.internal")]
-    public async Task MultipleRedisInstanceProducesCorrectRedisHostsVariable(string containerHost)
+    [Fact]
+    public async Task MultipleRedisInstanceProducesCorrectRedisHostsVariable()
     {
         var builder = DistributedApplication.CreateBuilder();
         var redis1 = builder.AddRedis("myredis1").WithRedisCommander();
@@ -238,7 +234,7 @@ public class AddRedisTests
         using var app = builder.Build();
 
         // Add fake allocated endpoints.
-        redis1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001, containerHost));
+        redis1.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5001));
         redis2.WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 5002, "host2"));
 
         await builder.Eventing.PublishAsync<AfterEndpointsAllocatedEvent>(new (app.Services, app.Services.GetRequiredService<DistributedApplicationModel>()));
@@ -250,7 +246,7 @@ public class AddRedisTests
             DistributedApplicationOperation.Run,
             TestServiceProvider.Instance);
 
-        Assert.Equal($"myredis1:{containerHost}:5001:0,myredis2:host2:5002:0", config["REDIS_HOSTS"]);
+        Assert.Equal($"myredis1:{redis1.Resource.Name}:6379:0,myredis2:myredis2:6379:0", config["REDIS_HOSTS"]);
     }
 
     [Theory]

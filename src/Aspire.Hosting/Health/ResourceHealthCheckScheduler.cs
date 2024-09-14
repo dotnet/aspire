@@ -33,16 +33,23 @@ internal class ResourceHealthCheckScheduler : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var resourceEvents = _resourceNotificationService.WatchAsync(stoppingToken);
-
-        await foreach (var resourceEvent in resourceEvents)
+        try
         {
-            if (resourceEvent.Snapshot.State == KnownResourceStates.Running)
+            var resourceEvents = _resourceNotificationService.WatchAsync(stoppingToken);
+
+            await foreach (var resourceEvent in resourceEvents.ConfigureAwait(false))
             {
-                // Each time we receive an event that tells us that the resource is
-                // running we need to enable the health check annotation.
-                UpdateCheckEnablement(resourceEvent.Resource, true);
+                if (resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running)
+                {
+                    // Each time we receive an event that tells us that the resource is
+                    // running we need to enable the health check annotation.
+                    UpdateCheckEnablement(resourceEvent.Resource, true);
+                }
             }
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // This was expected as the token was canceled
         }
     }
 
