@@ -9,6 +9,7 @@
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\SqlServerEndToEnd.Common\SqlServerEndToEnd.Common.csproj" />
   </ItemGroup>
 
 </Project>
