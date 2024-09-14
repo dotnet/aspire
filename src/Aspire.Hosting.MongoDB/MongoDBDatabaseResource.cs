@@ -27,7 +27,17 @@ public class MongoDBDatabaseResource : Resource, IResourceWithParent<MongoDBServ
     /// Gets the connection string expression for the MongoDB database.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression
-        => ReferenceExpression.Create($"{Parent}/{DatabaseName}");
+    {
+        get
+        {
+            var builder = new ReferenceExpression.ExpressionInterpolatedStringHandler(10, 2);
+
+            Parent.AppendConnectionString(builder);
+            Parent.AppendSuffix(builder, DatabaseName);
+
+            return ReferenceExpression.Create(builder);
+        }
+    }
 
     /// <summary>
     /// Gets the parent MongoDB container resource.

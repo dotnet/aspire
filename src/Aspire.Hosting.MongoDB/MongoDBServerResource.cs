@@ -21,9 +21,61 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     /// <summary>
     /// Gets the connection string for the MongoDB server.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create(
-            $"mongodb://{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+    public ReferenceExpression ConnectionStringExpression
+    {
+        get
+        {
+            const string MongoScheme = "mongodb://";
+
+            var builder = new ReferenceExpression.ExpressionInterpolatedStringHandler(MongoScheme.Length, 2);
+
+            AppendConnectionString(builder);
+            AppendSuffix(builder);
+
+            return ReferenceExpression.Create(builder);
+        }
+    }
+
+    internal void AppendConnectionString(in ReferenceExpression.ExpressionInterpolatedStringHandler builder)
+    {
+        builder.AppendLiteral("mongodb://");
+        builder.AppendFormatted(PrimaryEndpoint.Property(EndpointProperty.Host));
+        builder.AppendLiteral(":");
+        builder.AppendFormatted(PrimaryEndpoint.Property(EndpointProperty.Port));
+    }
+
+    /// <summary>
+    /// Handles adding the rest of the connection string.
+    ///
+    /// - If a database name is provided, it will be appended to the connection string.
+    /// - If a replica set name is provided, it will be appended to the connection string.
+    /// - If no database but a replica set is provided, a '/' must be inserted before the '?'
+    /// </summary>
+    internal bool AppendSuffix(in ReferenceExpression.ExpressionInterpolatedStringHandler builder, string? dbName = null)
+    {
+        if (dbName is { })
+        {
+            builder.AppendLiteral("/");
+            builder.AppendFormatted(dbName);
+        }
+
+        if (Annotations.OfType<MongoDbReplicaSetAnnotation>().FirstOrDefault() is { ReplicaSetName: { } replicaSetName })
+        {
+            if (dbName is null)
+            {
+                builder.AppendLiteral("/");
+            }
+
+            builder.AppendLiteral("?");
+            builder.AppendLiteral(MongoDbReplicaSetAnnotation.QueryName);
+            builder.AppendLiteral("=");
+            builder.AppendLiteral(replicaSetName);
+
+            return true;
+        }
+
+        return false;
+    }
 
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
 

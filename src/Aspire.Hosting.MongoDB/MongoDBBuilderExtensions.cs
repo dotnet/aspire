@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.MongoDB;
 using Aspire.Hosting.Utils;
@@ -51,6 +52,74 @@ public static class MongoDBBuilderExtensions
             .WithImage(MongoDBContainerImageTags.Image, MongoDBContainerImageTags.Tag)
             .WithImageRegistry(MongoDBContainerImageTags.Registry)
             .WithHealthCheck(healthCheckKey);
+    }
+
+    /// <summary>
+    /// Adds a replica set to the MongoDB server resource.
+    /// </summary>
+    /// <param name="builder">The MongoDB server resource.</param>
+    /// <param name="replicaSet">The name of the replica set. If not provided, defaults to <c>rs0</c>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MongoDBServerResource> WithReplicaSet(this IResourceBuilder<MongoDBServerResource> builder, string? replicaSet = null)
+    {
+        if (builder.Resource.TryGetLastAnnotation<MongoDbReplicaSetAnnotation>(out _))
+        {
+            throw new InvalidOperationException("A replica set has already been added to the MongoDB server resource.");
+        }
+
+        replicaSet ??= "rs0";
+
+        SetPortAndTargetToBeSame(builder);
+        SetRsInitCallOnStartup(builder);
+
+        return builder
+            .WithAnnotation(new MongoDbReplicaSetAnnotation(replicaSet))
+            .WithArgs(ctx =>
+            {
+                ctx.Args.Add("--replSet");
+                ctx.Args.Add(replicaSet);
+
+                var port = builder.Resource.PrimaryEndpoint.TargetPort;
+
+                if (port != DefaultContainerPort)
+                {
+                    ctx.Args.Add("--port");
+                    ctx.Args.Add($"{port}");
+                }
+            });
+
+        static void SetPortAndTargetToBeSame(IResourceBuilder<MongoDBServerResource> builder)
+        {
+            foreach (var endpoint in builder.Resource.Annotations.OfType<EndpointAnnotation>())
+            {
+                if (endpoint.Name == MongoDBServerResource.PrimaryEndpointName)
+                {
+                    // In the case of replica sets, the port and target port should be the same and is not proxied
+                    endpoint.IsProxied = false;
+
+                    if (endpoint.Port is null)
+                    {
+                        endpoint.Port = endpoint.TargetPort;
+                    }
+                    else
+                    {
+                        endpoint.TargetPort = endpoint.Port;
+                    }
+                    break;
+                }
+            }
+        }
+
+        static void SetRsInitCallOnStartup(IResourceBuilder<ContainerResource> builder)
+        {
+            // Need to run 'rs.initiate()' on the db startup up to initialize the replica set
+            const string content = $$"""echo "rs.initiate()" | mongosh""";
+
+            var tmpPath = Path.GetTempFileName();
+            File.WriteAllText(tmpPath, content);
+
+            builder.WithBindMount(tmpPath, "/docker-entrypoint-initdb.d/replicaset_init.sh");
+        }
     }
 
     /// <summary>
@@ -163,9 +232,19 @@ public static class MongoDBBuilderExtensions
 
     private static void ConfigureMongoExpressContainer(EnvironmentCallbackContext context, MongoDBServerResource resource)
     {
+        var sb = new StringBuilder($"mongodb://{resource.Name}:{resource.PrimaryEndpoint.TargetPort}/?directConnection=true");
+
+        if (resource.TryGetLastAnnotation<MongoDbReplicaSetAnnotation>(out var replica))
+        {
+            sb.Append('&');
+            sb.Append(MongoDbReplicaSetAnnotation.QueryName);
+            sb.Append('=');
+            sb.Append(replica.ReplicaSetName);
+        }
+
         // Mongo Exporess assumes Mongo is being accessed over a default Aspire container network and hardcodes the resource address
         // This will need to be refactored once updated service discovery APIs are available
-        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", $"mongodb://{resource.Name}:{resource.PrimaryEndpoint.TargetPort}/?directConnection=true");
+        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", sb.ToString());
         context.EnvironmentVariables.Add("ME_CONFIG_BASICAUTH", "false");
     }
 }
