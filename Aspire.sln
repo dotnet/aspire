@@ -614,6 +614,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SqlServerEndToEnd.Common", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SqlServerEndToEnd.DbSetup", "playground\SqlServerEndToEnd\SqlServerEndToEnd.DbSetup\SqlServerEndToEnd.DbSetup.csproj", "{125C081D-7E5B-4F35-B5CD-E2B56140380F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AWSCDK.AppHost", "playground\AWS\AWSCDK.AppHost\AWSCDK.AppHost.csproj", "{B5826732-7318-4179-9B85-870CB18AC533}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1616,6 +1618,10 @@ Global
 		{125C081D-7E5B-4F35-B5CD-E2B56140380F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{125C081D-7E5B-4F35-B5CD-E2B56140380F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{125C081D-7E5B-4F35-B5CD-E2B56140380F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B5826732-7318-4179-9B85-870CB18AC533}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B5826732-7318-4179-9B85-870CB18AC533}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B5826732-7318-4179-9B85-870CB18AC533}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B5826732-7318-4179-9B85-870CB18AC533}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1912,6 +1918,7 @@ Global
 		{F0C976EF-EE26-4EA9-B324-0CD21DCEA140} = {3FF3F00C-95C0-46FC-B2BE-A3920C71E393}
 		{1997067D-8EF2-43B3-AB13-9B2E12B52709} = {2CA6AB88-21EF-4488-BB1B-3A5BAD5FE2AD}
 		{125C081D-7E5B-4F35-B5CD-E2B56140380F} = {2CA6AB88-21EF-4488-BB1B-3A5BAD5FE2AD}
+		{B5826732-7318-4179-9B85-870CB18AC533} = {EF91843F-C4AB-47F8-909B-C494EABB2BA2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
