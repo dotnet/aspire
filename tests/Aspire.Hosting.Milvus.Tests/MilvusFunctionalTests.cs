@@ -311,7 +311,7 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
 
         // Create the database.
         var connectionString = await resource.Resource.ConnectionStringExpression.GetValueAsync(cts.Token);
-        var milvusClient = new MilvusClient(connectionString!);
+        var milvusClient = MilvusBuilderExtensions.CreateMilvusClient(app.Services, connectionString);
         await milvusClient.CreateDatabaseAsync(db.Resource.Name);
 
         await rns.WaitForResourceAsync(db.Resource.Name, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cts.Token);

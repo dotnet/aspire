@@ -19,12 +19,17 @@
   <ItemGroup>
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
     <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
+    <Compile Include="$(ComponentsDir)Aspire.Milvus.Client\MilvusHealthCheck.cs" Link="MilvusHealthCheck.cs"></Compile>
   </ItemGroup>
-  
+
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Milvus.Tests"></InternalsVisibleTo>
+  </ItemGroup>
+  
   <ItemGroup>
     <PackageReference Include="Milvus.Client" />
   </ItemGroup>
