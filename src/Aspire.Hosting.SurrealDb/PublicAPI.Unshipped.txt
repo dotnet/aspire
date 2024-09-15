@@ -1,0 +1,20 @@
+#nullable enable
+Aspire.Hosting.ApplicationModel.SurrealDbDatabaseResource
+Aspire.Hosting.ApplicationModel.SurrealDbDatabaseResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
+Aspire.Hosting.ApplicationModel.SurrealDbDatabaseResource.DatabaseName.get -> string!
+Aspire.Hosting.ApplicationModel.SurrealDbDatabaseResource.NamespaceName.get -> string!
+Aspire.Hosting.ApplicationModel.SurrealDbDatabaseResource.Parent.get -> Aspire.Hosting.ApplicationModel.SurrealDbServerResource!
+Aspire.Hosting.ApplicationModel.SurrealDbDatabaseResource.SurrealDbDatabaseResource(string! name, string! namespaceName, string! databaseName, Aspire.Hosting.ApplicationModel.SurrealDbServerResource! parent) -> void
+Aspire.Hosting.ApplicationModel.SurrealDbServerResource
+Aspire.Hosting.ApplicationModel.SurrealDbServerResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
+Aspire.Hosting.ApplicationModel.SurrealDbServerResource.Databases.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+Aspire.Hosting.ApplicationModel.SurrealDbServerResource.GetConnectionStringAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<string?>
+Aspire.Hosting.ApplicationModel.SurrealDbServerResource.PasswordParameter.get -> Aspire.Hosting.ApplicationModel.ParameterResource!
+Aspire.Hosting.ApplicationModel.SurrealDbServerResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
+Aspire.Hosting.ApplicationModel.SurrealDbServerResource.SurrealDbServerResource(string! name, Aspire.Hosting.ApplicationModel.ParameterResource? userName, Aspire.Hosting.ApplicationModel.ParameterResource! password) -> void
+Aspire.Hosting.ApplicationModel.SurrealDbServerResource.UserNameParameter.get -> Aspire.Hosting.ApplicationModel.ParameterResource?
+Aspire.Hosting.SurrealDbBuilderExtensions
+static Aspire.Hosting.SurrealDbBuilderExtensions.AddDatabase(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SurrealDbServerResource!>! builder, string! name, string! namespaceName = "test", string! databaseName = "test") -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SurrealDbDatabaseResource!>!
+static Aspire.Hosting.SurrealDbBuilderExtensions.AddSurrealServer(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>? userName = null, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>? password = null, int? port = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SurrealDbServerResource!>!
+static Aspire.Hosting.SurrealDbBuilderExtensions.WithDataBindMount(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SurrealDbServerResource!>! builder, string! source, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SurrealDbServerResource!>!
+static Aspire.Hosting.SurrealDbBuilderExtensions.WithDataVolume(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SurrealDbServerResource!>! builder, string? name = null, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SurrealDbServerResource!>!
