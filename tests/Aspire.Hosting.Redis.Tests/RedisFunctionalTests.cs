@@ -148,7 +148,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await app.StartAsync();
 
-        var client = app.CreateHttpClient(redisInsightBuilder.Resource.Name,"http");
+        var client = app.CreateHttpClient(redisInsightBuilder.Resource.Name, "http");
 
         var pipeline = new ResiliencePipelineBuilder().AddRetry(new Polly.Retry.RetryStrategyOptions
         {
