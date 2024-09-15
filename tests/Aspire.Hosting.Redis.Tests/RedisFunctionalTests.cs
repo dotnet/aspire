@@ -141,22 +141,14 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var redis1 = builder.AddRedis("redis-1");
-        var redis2 = builder.AddRedis("redis-2").WithRedisInsight();
-
-        builder.Services.AddHttpClient();
-
+        IResourceBuilder<RedisInsightResource>? redisInsightBuilder = null;
+        var redis2 = builder.AddRedis("redis-2").WithRedisInsight(c=> redisInsightBuilder = c);
+        Assert.NotNull(redisInsightBuilder);
         using var app = builder.Build();
 
         await app.StartAsync();
 
-        var factory = app.Services.GetRequiredService<IHttpClientFactory>();
-        var client = factory.CreateClient();
-
-        var redisInsightResource = builder.Resources.OfType<RedisInsightResource>().Single();
-
-        var insightEndpoint = redisInsightResource!.PrimaryEndpoint;
-
-        var getDatabasesApiUrl = $"{insightEndpoint.Scheme}://{insightEndpoint.Host}:{insightEndpoint.Port}/api/databases";
+        var client = app.CreateHttpClient(redisInsightBuilder.Resource.Name,"http");
 
         var pipeline = new ResiliencePipelineBuilder().AddRetry(new Polly.Retry.RetryStrategyOptions
         {
@@ -166,7 +158,7 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await pipeline.ExecuteAsync(async (ct) =>
         {
-            var response = await client.GetAsync(getDatabasesApiUrl, ct)
+            var response = await client.GetAsync("/api/databases", ct)
                 .ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
 
@@ -177,25 +169,24 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
             db =>
             {
                 Assert.Equal(redis1.Resource.Name, db.Name);
-                Assert.Equal(redis1.Resource.PrimaryEndpoint.ContainerHost, db.Host);
-                Assert.Equal(redis1.Resource.PrimaryEndpoint.Port, db.Port);
+                Assert.Equal(redis1.Resource.Name, db.Host);
+                Assert.Equal(redis1.Resource.PrimaryEndpoint.TargetPort, db.Port);
                 Assert.Equal("STANDALONE", db.ConnectionType);
                 Assert.Equal(0, db.Db);
             },
             db =>
             {
                 Assert.Equal(redis2.Resource.Name, db.Name);
-                Assert.Equal(redis2.Resource.PrimaryEndpoint.ContainerHost, db.Host);
-                Assert.Equal(redis2.Resource.PrimaryEndpoint.Port, db.Port);
+                Assert.Equal(redis2.Resource.Name, db.Host);
+                Assert.Equal(redis2.Resource.PrimaryEndpoint.TargetPort, db.Port);
                 Assert.Equal("STANDALONE", db.ConnectionType);
                 Assert.Equal(0, db.Db);
             });
 
             foreach (var db in databases)
             {
-                var testDatabaseConnectionApiUr = $"{insightEndpoint.Scheme}://{insightEndpoint.Host}:{insightEndpoint.Port}/api/databases/test/{db.Id}";
                 var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-                var testConnectionResponse = await client.GetAsync(getDatabasesApiUrl, cts.Token)
+                var testConnectionResponse = await client.GetAsync($"/api/databases/test/{db.Id}", cts.Token)
                     .ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
             }
