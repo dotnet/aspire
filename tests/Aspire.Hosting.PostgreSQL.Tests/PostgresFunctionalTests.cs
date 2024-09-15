@@ -210,7 +210,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         }, cts.Token);
     }
 
-    [Fact(Skip = "https://github.com/dotnet/aspire/issues/5325")]
+    [Fact]
     [RequiresDocker]
     public async Task VerifyWithPgWeb()
     {
@@ -218,23 +218,16 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
+        IResourceBuilder<PgWebContainerResource>? pgWebBuilder = null;
         var dbName = "postgres";
-        var pg = builder.AddPostgres("pg1").WithPgWeb().AddDatabase(dbName);
-
-        builder.Services.AddHttpClient();
+        var pg = builder.AddPostgres("pg1").WithPgWeb(c=> pgWebBuilder = c).AddDatabase(dbName);
+        Assert.NotNull(pgWebBuilder);
 
         using var app = builder.Build();
 
         await app.StartAsync();
 
-        var factory = app.Services.GetRequiredService<IHttpClientFactory>();
-        var client = factory.CreateClient();
-
-        var pgWeb = builder.Resources.OfType<PgWebContainerResource>().SingleOrDefault();
-
-        var pgWebEndpoint = pgWeb!.PrimaryEndpoint;
-
-        var testConnectionApiUrl = $"{pgWebEndpoint.Scheme}://{pgWebEndpoint.Host}:{pgWebEndpoint.Port}/api/connect";
+        var client = app.CreateHttpClient(pgWebBuilder.Resource.Name, "http");
 
         var pipeline = new ResiliencePipelineBuilder().AddRetry(new Polly.Retry.RetryStrategyOptions
         {
@@ -251,7 +244,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
             client.DefaultRequestHeaders.Add("x-session-id", Guid.NewGuid().ToString());
 
-            var response = await client.PostAsync(testConnectionApiUrl, httpContent, ct)
+            var response = await client.PostAsync("/api/connect", httpContent, ct)
                 .ConfigureAwait(false);
 
             response.EnsureSuccessStatusCode();
