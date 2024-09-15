@@ -132,6 +132,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
 
+            await CreateContainerNetworksAsync(cancellationToken).ConfigureAwait(false);
+
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
 
             var afterResourcesCreatedEvent = new AfterResourcesCreatedEvent(serviceProvider, _model);
@@ -584,6 +586,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     {
         var containerId = container.Status?.ContainerId;
         var urls = GetUrls(container);
+        var volumes = GetVolumes(container);
 
         var environment = GetEnvironmentVariables(container.Status?.EffectiveEnv ?? container.Spec.Env, container.Spec.Env);
         var state = container.AppModelInitialState == KnownResourceStates.Hidden ? KnownResourceStates.Hidden : container.Status?.State;
@@ -603,7 +606,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             ],
             EnvironmentVariables = environment,
             CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
-            Urls = urls
+            Urls = urls,
+            Volumes = volumes
         };
 
         ImmutableArray<int> GetPorts()
@@ -753,6 +757,16 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         return urls.ToImmutable();
     }
 
+    private static ImmutableArray<VolumeSnapshot> GetVolumes(CustomResource resource)
+    {
+        if (resource is Container container)
+        {
+            return container.Spec.VolumeMounts?.Select(v => new VolumeSnapshot(v.Source, v.Target ?? "", v.Type, v.IsReadOnly)).ToImmutableArray() ?? [];
+        }
+
+        return [];
+    }
+
     private static ImmutableArray<EnvironmentVariableSnapshot> GetEnvironmentVariables(List<EnvVar>? effectiveSource, List<EnvVar>? specSource)
     {
         if (effectiveSource is null or { Count: 0 })
@@ -889,6 +903,18 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
+    private async Task CreateContainerNetworksAsync(CancellationToken cancellationToken)
+    {
+        var toCreate = _appResources.Where(r => r.DcpResource is ContainerNetwork);
+        foreach (var containerNetwork in toCreate)
+        {
+            if (containerNetwork.DcpResource is ContainerNetwork cn)
+            {
+                await kubernetesService.CreateAsync(cn, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
     private async Task CreateContainersAndExecutablesAsync(CancellationToken cancellationToken)
     {
         var toCreate = _appResources.Where(r => r.DcpResource is Container || r.DcpResource is Executable || r.DcpResource is ExecutableReplicaSet);
@@ -931,7 +957,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 sp.EndpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(
                     sp.EndpointAnnotation,
-                    sp.EndpointAnnotation.IsProxied ? svc.AllocatedAddress! : "localhost",
+                    "localhost",
                     (int)svc.AllocatedPort!,
                     containerHostAddress: appResource.ModelResource.IsContainer() ? containerHost : null,
                     targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""");
@@ -965,6 +991,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 var port = _options.Value.RandomizePorts && endpoint.IsProxied ? null : endpoint.Port;
                 svc.Spec.Port = port;
                 svc.Spec.Protocol = PortProtocol.FromProtocolType(endpoint.Protocol);
+                svc.Spec.Address = endpoint.TargetHost switch
+                {
+                    "*" or "+" => "0.0.0.0",
+                    _ => endpoint.TargetHost
+                };
                 svc.Spec.AddressAllocationMode = endpoint.IsProxied ? AddressAllocationModes.Localhost : AddressAllocationModes.Proxyless;
 
                 // So we can associate the service with the resource that produced it and the endpoint it represents.
@@ -1164,6 +1195,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
     {
+        if (er.ModelResource is IResourceWithConnectionString)
+        {
+            var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(er.ModelResource, serviceProvider);
+            await eventing.PublishAsync(connectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
+        }
+
         var beforeResourceStartedEvent = new BeforeResourceStartedEvent(er.ModelResource, serviceProvider);
         await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
 
@@ -1331,11 +1368,23 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 throw new InvalidOperationException();
             }
 
-            var nameSuffix = GetRandomNameSuffix();
+            var nameSuffix = string.Empty;
+
+            if (container.GetContainerLifetimeType() == ContainerLifetime.Default)
+            {
+                nameSuffix = GetRandomNameSuffix();
+            }
+
             var containerObjectName = GetObjectNameForResource(container, nameSuffix);
             var ctr = Container.Create(containerObjectName, containerImageName);
 
             ctr.Spec.ContainerName = containerObjectName; // Use the same name for container orchestrator (Docker, Podman) resource and DCP object name.
+
+            if (container.GetContainerLifetimeType() == ContainerLifetime.Persistent)
+            {
+                ctr.Spec.Persistent = true;
+            }
+
             ctr.Annotate(CustomResource.ResourceNameAnnotation, container.Name);
             ctr.Annotate(CustomResource.OtelServiceNameAnnotation, container.Name);
             ctr.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, nameSuffix);
@@ -1358,6 +1407,15 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     ctr.Spec.VolumeMounts.Add(volumeSpec);
                 }
             }
+
+            ctr.Spec.Networks = new List<ContainerNetworkConnection>
+            {
+                new ContainerNetworkConnection
+                {
+                    Name = "aspire-network",
+                    Aliases = new List<string> { container.Name },
+                }
+            };
 
             var containerAppResource = new AppResource(container, ctr);
             AddServicesProducedInfo(container, ctr, containerAppResource);
@@ -1409,6 +1467,14 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
 
             var tasks = new List<Task>();
+
+            // Create a custom container network for Aspire if there are container resources
+            if (containerResources.Any())
+            {
+                // The network will be created with a unique postfix to avoid conflicts with other Aspire AppHost networks
+                tasks.Add(kubernetesService.CreateAsync(ContainerNetwork.Create("aspire-network"), cancellationToken));
+            }
+
             foreach (var cr in containerResources)
             {
                 tasks.Add(CreateContainerAsyncCore(cr, cancellationToken));
@@ -1424,6 +1490,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateContainerAsync(AppResource cr, ILogger resourceLogger, CancellationToken cancellationToken)
     {
+        if (cr.ModelResource is IResourceWithConnectionString)
+        {
+            var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(cr.ModelResource, serviceProvider);
+            await eventing.PublishAsync(connectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
+        }
+
         var beforeResourceStartedEvent = new BeforeResourceStartedEvent(cr.ModelResource, serviceProvider);
         await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
 

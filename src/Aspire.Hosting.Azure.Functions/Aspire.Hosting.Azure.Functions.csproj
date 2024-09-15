@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <PackageTags>aspire hosting azure functions</PackageTags>
+    <Description>Azure Functions resource types for .NET Aspire.</Description>
+    <PackageIconFullPath>$(SharedDir)Azure_256x.png</PackageIconFullPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>0</MinCodeCoverage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting.Azure.Storage\Aspire.Hosting.Azure.Storage.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
+  </ItemGroup>
+</Project>

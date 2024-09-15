@@ -7,7 +7,7 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 
 partial class ServiceEndpointWatcherFactory
 {
-    private sealed partial class Log
+    private static partial class Log
     {
         [LoggerMessage(1, LogLevel.Debug, "Creating endpoint resolver for service '{ServiceName}' with {Count} providers: {Providers}.", EventName = "CreatingResolver")]
         public static partial void ServiceEndpointProviderListCore(ILogger logger, string serviceName, int count, string providers);

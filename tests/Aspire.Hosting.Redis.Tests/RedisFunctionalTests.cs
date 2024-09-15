@@ -1,10 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net;
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Testing;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 using Xunit;
@@ -14,6 +19,81 @@ namespace Aspire.Hosting.Redis.Tests;
 
 public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 {
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWaitForOnRedisBlocksDependentResources()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        // We use the following check added to the Redis resource to block
+        // dependent reosurces from starting. This means we'll have two checks
+        // associated with the redis resource ... the built in one and the
+        // one that we add here. We'll manipulate the TCS to allow us to check
+        // states at various stages of the execution.
+        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
+        builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
+        {
+            return healthCheckTcs.Task;
+        });
+
+        var redis = builder.AddRedis("redis")
+                           .WithHealthCheck("blocking_check");
+
+        var dependentResource = builder.AddRedis("dependentresource")
+                                       .WaitFor(redis); // Just using another redis instance as a dependent resource.
+
+        using var app = builder.Build();
+
+        var pendingStart = app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        // What for the Redis server to start.
+        await rns.WaitForResourceAsync(redis.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        // Wait for the dependent resource to be in the Waiting state.
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+
+        // Now unblock the health check.
+        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
+
+        // ... and wait for the resource as a whole to move into the health state.
+        await rns.WaitForResourceAsync(redis.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+
+        // ... then the dependent resource should be able to move into a running state.
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await pendingStart; // Startup should now complete.
+
+        // ... but we'll shut everything down immediately because we are done.
+        await app.StopAsync();
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyRedisCommanderResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        IResourceBuilder<RedisCommanderResource>? commanderBuilder = null;
+        var redis = builder.AddRedis("redis").WithRedisCommander(c => commanderBuilder = c);
+        Assert.NotNull(commanderBuilder);
+
+        using var app = builder.Build();
+
+        await app.StartAsync();
+
+        await app.WaitForTextAsync("Redis Connection", resourceName: commanderBuilder.Resource.Name);
+
+        var client = app.CreateHttpClient(commanderBuilder.Resource.Name, "http");
+
+        var endpoint = redis.GetEndpoint("tcp");
+        var path = $"/apiv2/server/R:{redis.Resource.Name}:{endpoint.TargetPort}:0/info";
+        var response = await client.GetAsync(path);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
     [Fact]
     [RequiresDocker]
     public async Task VerifyRedisResource()

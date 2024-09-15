@@ -84,9 +84,9 @@ public static class ResourceExtensions
     /// var container = builder.AddContainer("elasticsearch", "library/elasticsearch", "8.14.0")
     ///  .WithEnvironment("discovery.type", "single-node")
     ///  .WithEnvironment("xpack.security.enabled", "true");
-    /// 
+    ///
     /// var env = await container.Resource.GetEnvironmentVariableValuesAsync();
-    /// 
+    ///
     /// Assert.Collection(env,
     ///     env =>
     ///         {
@@ -179,7 +179,7 @@ public static class ResourceExtensions
     /// </summary>
     /// <param name="resource">The <see cref="IResourceWithEndpoints"/> which contains <see cref="EndpointAnnotation"/> annotations.</param>
     /// <param name="endpointName">The name of the endpoint.</param>
-    /// <returns>An <see cref="EndpointReference"/> object representing the endpoint reference 
+    /// <returns>An <see cref="EndpointReference"/> object representing the endpoint reference
     /// for the specified endpoint.</returns>
     public static EndpointReference GetEndpoint(this IResourceWithEndpoints resource, string endpointName)
     {
@@ -232,5 +232,21 @@ public static class ResourceExtensions
         {
             return 1;
         }
+    }
+
+    /// <summary>
+    /// Gets the lifetime type of the container for the specified resoruce. Defaults to <see cref="ContainerLifetime.Default"/> if
+    /// no <see cref="ContainerLifetimeAnnotation"/> is found.
+    /// </summary>
+    /// <param name="resource">The resource to the get the ContainerLifetimeType for.</param>
+    /// <returns>The <see cref="ContainerLifetime"/> from the <see cref="ContainerLifetimeAnnotation"/> for the resource (if the annotation exists). Defaults to <see cref="ContainerLifetime.Default"/> if the annotation is not set.</returns>
+    internal static ContainerLifetime GetContainerLifetimeType(this IResource resource)
+    {
+        if (resource.TryGetLastAnnotation<ContainerLifetimeAnnotation>(out var lifetimeAnnotation))
+        {
+            return lifetimeAnnotation.Lifetime;
+        }
+
+        return ContainerLifetime.Default;
     }
 }

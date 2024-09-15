@@ -7,7 +7,7 @@
 <div class="resource-details-layout">
 
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(Resource?.Name)" slot="end">View logs</FluentAnchor>
+        <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.ConsoleLogsUrl(Resource?.Name)" slot="end">@Loc[Resources.ResourceDetailsViewConsoleLogs]</FluentAnchor>
 
         @if (ShowSpecOnlyToggle)
         {
@@ -121,6 +121,35 @@
                               HighlightText="@_filter"
                               GridTemplateColumns="1fr 1.5fr" />
             </FluentAccordionItem>
+            @if (Resource.IsContainer())
+            {
+                <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsVolumesHeader)]" Expanded="true">
+                    <div slot="end">
+                        <FluentBadge Appearance="Appearance.Neutral" Circular="true">
+                            @FilteredVolumes.Count()
+                        </FluentBadge>
+                    </div>
+                    <PropertyGrid TItem="VolumeViewModel"
+                                  Items="@FilteredVolumes"
+                                  NameColumnValue="(vm) => vm.Source"
+                                  ValueColumnValue="(vm) => vm.Target"
+                                  IsNameSortable="false"
+                                  IsValueSortable="false"
+                                  EnableValueMasking="false"
+                                  HighlightText="@_filter"
+                                  GridTemplateColumns="1fr 1.5fr">
+                        <ExtraValueContent>
+                            <div>
+                                @if (context.IsReadOnly)
+                                {
+                                    <FluentIcon Value="@(new Icons.Regular.Size16.LockClosed())" Style="vertical-align: text-bottom" />
+                                }
+                                @context.MountType
+                            </div>
+                        </ExtraValueContent>
+                    </PropertyGrid>
+                </FluentAccordionItem>
+            }
         </FluentAccordion>
     </div>
 </div>

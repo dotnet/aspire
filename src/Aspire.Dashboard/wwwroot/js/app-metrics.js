@@ -1,4 +1,4 @@
-import './plotly-2.32.0.min.js'
+import './plotly-basic-2.35.2.min.js'
 
 export function initializeChart(id, traces, exemplarTrace, rangeStartTime, rangeEndTime, serverLocale, chartInterop) {
     registerLocale(serverLocale);
@@ -119,7 +119,12 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
 
     const resizeObserver = new ResizeObserver(entries => {
         for (let entry of entries) {
-            Plotly.Plots.resize(entry.target);
+            // Don't resize if not visible.
+            var display = window.getComputedStyle(entry.target).display;
+            var isHidden = !display || display === "none";
+            if (!isHidden) {
+                Plotly.Plots.resize(entry.target);
+            }
         }
     });
     plot.then(plotyDiv => {

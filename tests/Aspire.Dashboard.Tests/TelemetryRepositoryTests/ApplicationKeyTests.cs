@@ -31,13 +31,13 @@ public class ApplicationKeyTests
     [InlineData("name", "instanceid", "instanceid")]
     [InlineData("name", "instanceid", "name_instanceid")]
     [InlineData("name", "instanceid", "instanceid-name")]
-    public void EqualsCompositeName_Failure(string name, string instanceId, string compositeName)
+    public void EqualsCompositeName_Failure(string name, string instanceId, string? compositeName)
     {
         // Arrange
         var key = new ApplicationKey(name, instanceId);
 
         // Act
-        var result = key.EqualsCompositeName(compositeName);
+        var result = key.EqualsCompositeName(compositeName!);
 
         // Assert
         Assert.False(result);

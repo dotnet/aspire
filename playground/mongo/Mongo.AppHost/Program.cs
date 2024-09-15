@@ -9,7 +9,7 @@ var db = builder.AddMongoDB("mongo")
 
 builder.AddProject<Projects.Mongo_ApiService>("api")
        .WithExternalHttpEndpoints()
-       .WithReference(db);
+       .WithReference(db).WaitFor(db);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

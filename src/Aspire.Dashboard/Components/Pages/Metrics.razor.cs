@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Layout;
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -43,7 +42,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "duration")]
-    public int DurationMinutes { get; set; }
+    public int? DurationMinutes { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "view")]
@@ -238,15 +237,11 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     public string GetUrlFromSerializableViewModel(MetricsPageState serializable)
     {
-        var duration = PageViewModel.SelectedDuration.Id != s_defaultDuration
-            ? (int?)serializable.DurationMinutes
-            : null;
-
         var url = DashboardUrls.MetricsUrl(
             resource: serializable.ApplicationName,
             meter: serializable.MeterName,
             instrument: serializable.InstrumentName,
-            duration: duration,
+            duration: serializable.DurationMinutes,
             view: serializable.ViewKind);
 
         return url;

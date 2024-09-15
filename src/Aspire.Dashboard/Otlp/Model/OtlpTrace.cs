@@ -64,6 +64,12 @@ public class OtlpTrace
         if (!added)
         {
             Spans.Insert(0, span);
+
+            // If there isn't a root span then the first span is used as the trace name.
+            if (_rootSpan == null && !string.IsNullOrEmpty(span.ParentSpanId))
+            {
+                FullName = BuildFullName(span);
+            }
         }
 
         if (string.IsNullOrEmpty(span.ParentSpanId))
@@ -75,13 +81,18 @@ public class OtlpTrace
                 if (string.IsNullOrEmpty(existingSpan.ParentSpanId))
                 {
                     _rootSpan = existingSpan;
-                    FullName = $"{existingSpan.Source.ApplicationName}: {existingSpan.Name}";
+                    FullName = BuildFullName(existingSpan);
                     break;
                 }
             }
         }
 
         AssertSpanOrder();
+
+        static string BuildFullName(OtlpSpan existingSpan)
+        {
+            return $"{existingSpan.Source.Application.ApplicationName}: {existingSpan.Name}";
+        }
     }
 
     [Conditional("DEBUG")]

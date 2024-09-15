@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 
@@ -219,6 +220,27 @@ public static class ContainerResourceBuilderExtensions
     {
         var annotation = new ContainerRuntimeArgsCallbackAnnotation(callback);
         return builder.WithAnnotation(annotation);
+    }
+
+    /// <summary>
+    /// Sets the lifetime behavior of the container resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">Builder for the container resource.</param>
+    /// <param name="lifetime">The lifetime behavior of the container resource (defaults behavior is <see cref="ContainerLifetime.Default"/>)</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <example>
+    /// Marking a container resource to have a <see cref="ContainerLifetime.Persistent"/> lifetime.
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// builder.AddContainer("mycontainer", "myimage")
+    ///        .WithContainerLifetime(ContainerLifetimeType.Persistent);
+    /// </code>
+    /// </example>
+    [Experimental("ASPIRECONTAINERLIFETIME001")]
+    public static IResourceBuilder<T> WithLifetime<T>(this IResourceBuilder<T> builder, ContainerLifetime lifetime) where T : ContainerResource
+    {
+        return builder.WithAnnotation(new ContainerLifetimeAnnotation { Lifetime = lifetime }, ResourceAnnotationMutationBehavior.Replace);
     }
 
     private static IResourceBuilder<T> ThrowResourceIsNotContainer<T>(IResourceBuilder<T> builder) where T : ContainerResource

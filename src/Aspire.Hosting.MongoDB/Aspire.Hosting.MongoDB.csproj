@@ -1,11 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire integration hosting MongoDB</PackageTags>
     <PackageIconFullPath>$(SharedDir)MongoDB_300px.png</PackageIconFullPath>
     <Description>MongoDB support for .NET Aspire.</Description>
+    <NoWarn>$(NoWarn);CS8002</NoWarn> <!-- MongoDB.Driver.Core.Extensions.DiagnosticSources and AspNetCore.HealthChecks.MongoDb packages are not signed -->
   </PropertyGroup>
 
   <PropertyGroup>
@@ -19,5 +20,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AspNetCore.HealthChecks.MongoDb" />
   </ItemGroup>
 </Project>

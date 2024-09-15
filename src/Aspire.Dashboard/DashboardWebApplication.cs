@@ -13,7 +13,6 @@ using Aspire.Dashboard.Authentication.Connection;
 using Aspire.Dashboard.Authentication.OpenIdConnect;
 using Aspire.Dashboard.Authentication.OtlpApiKey;
 using Aspire.Dashboard.Components;
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp;
@@ -21,6 +20,7 @@ using Aspire.Dashboard.Otlp.Grpc;
 using Aspire.Dashboard.Otlp.Http;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Hosting;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Certificate;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -607,7 +607,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     private static void ConfigureAuthentication(WebApplicationBuilder builder, DashboardOptions dashboardOptions)
     {
         var authentication = builder.Services
-            .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+            .AddAuthentication(o => o.DefaultScheme = ConfigureDefaultAuthScheme(dashboardOptions))
             .AddScheme<FrontendCompositeAuthenticationHandlerOptions, FrontendCompositeAuthenticationHandler>(FrontendCompositeAuthenticationDefaults.AuthenticationScheme, o => { })
             .AddScheme<OtlpCompositeAuthenticationHandlerOptions, OtlpCompositeAuthenticationHandler>(OtlpCompositeAuthenticationDefaults.AuthenticationScheme, o => { })
             .AddScheme<OtlpApiKeyAuthenticationHandlerOptions, OtlpApiKeyAuthenticationHandler>(OtlpApiKeyAuthenticationDefaults.AuthenticationScheme, o => { })
@@ -728,6 +728,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     options.Cookie.Name = DashboardAuthCookieName;
                 });
                 break;
+            case FrontendAuthMode.Unsecured:
+                authentication.AddScheme<AuthenticationSchemeOptions, UnsecuredAuthenticationHandler>(FrontendAuthenticationDefaults.AuthenticationSchemeUnsecured, o => { });
+                break;
         }
 
         builder.Services.AddAuthorization(options =>
@@ -758,13 +761,24 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     options.AddPolicy(
                         name: FrontendAuthorizationDefaults.PolicyName,
                         policy: new AuthorizationPolicyBuilder(FrontendCompositeAuthenticationDefaults.AuthenticationScheme)
-                            .RequireClaim(OtlpAuthorization.OtlpClaimName, [bool.FalseString])
+                            .RequireClaim(FrontendAuthorizationDefaults.UnsecuredClaimName)
                             .Build());
                     break;
                 default:
                     throw new NotSupportedException($"Unexpected {nameof(FrontendAuthMode)} enum member: {dashboardOptions.Frontend.AuthMode}");
             }
         });
+
+        // ASP.NET Core authentication needs to have the correct default scheme for the configured frontend auth.
+        // This is required for ASP.NET Core/SignalR/Blazor to flow the authenticated user from the request and into the dashboard app.
+        static string ConfigureDefaultAuthScheme(DashboardOptions dashboardOptions)
+        {
+            return dashboardOptions.Frontend.AuthMode switch
+            {
+                FrontendAuthMode.Unsecured => FrontendAuthenticationDefaults.AuthenticationSchemeUnsecured,
+                _ => CookieAuthenticationDefaults.AuthenticationScheme
+            };
+        }
     }
 
     public int Run()
@@ -804,10 +818,12 @@ public static class FrontendAuthorizationDefaults
 {
     public const string PolicyName = "Frontend";
     public const string BrowserTokenClaimName = "BrowserTokenClaim";
+    public const string UnsecuredClaimName = "UnsecuredTokenClaim";
 }
 
 public static class FrontendAuthenticationDefaults
 {
     public const string AuthenticationSchemeOpenIdConnect = "FrontendOpenIdConnect";
     public const string AuthenticationSchemeBrowserToken = "FrontendBrowserToken";
+    public const string AuthenticationSchemeUnsecured = "FrontendUnsecured";
 }
