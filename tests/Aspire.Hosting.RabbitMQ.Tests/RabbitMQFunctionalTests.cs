@@ -3,9 +3,11 @@
 
 using System.Text;
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
@@ -17,6 +19,46 @@ namespace Aspire.Hosting.RabbitMQ.Tests;
 public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
 {
     private const string RabbitMQReadyText = "Time to start RabbitMQ:";
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWaitForOnRabbitMQBlocksDependentResources()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
+        builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
+        {
+            return healthCheckTcs.Task;
+        });
+
+        var resource = builder.AddRabbitMQ("resource")
+                              .WithHealthCheck("blocking_check");
+
+        var dependentResource = builder.AddRabbitMQ("dependentresource")
+                                       .WaitFor(resource);
+
+        using var app = builder.Build();
+
+        var pendingStart = app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+
+        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
+
+        await rns.WaitForResourceAsync(resource.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await pendingStart;
+
+        await app.StopAsync();
+    }
 
     [Fact]
     [RequiresDocker]
