@@ -12,7 +12,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
-using Polly;
 using StackExchange.Redis;
 using Xunit;
 using Xunit.Abstractions;
@@ -142,56 +141,48 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var redis1 = builder.AddRedis("redis-1");
         IResourceBuilder<RedisInsightResource>? redisInsightBuilder = null;
-        var redis2 = builder.AddRedis("redis-2").WithRedisInsight(c=> redisInsightBuilder = c);
+        var redis2 = builder.AddRedis("redis-2").WithRedisInsight(c => redisInsightBuilder = c);
         Assert.NotNull(redisInsightBuilder);
         using var app = builder.Build();
 
         await app.StartAsync();
 
-        var client = app.CreateHttpClient(redisInsightBuilder.Resource.Name,"http");
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
-        var pipeline = new ResiliencePipelineBuilder().AddRetry(new Polly.Retry.RetryStrategyOptions
-        {
-            Delay = TimeSpan.FromSeconds(2),
-            MaxRetryAttempts = 10,
-        }).Build();
+        await rns.WaitForResourceAsync(redisInsightBuilder.Resource.Name, KnownResourceStates.Running,cts.Token);
 
-        await pipeline.ExecuteAsync(async (ct) =>
+        var client = app.CreateHttpClient(redisInsightBuilder.Resource.Name, "http");
+
+        var response = await client.GetAsync("/api/databases", cts.Token);
+        response.EnsureSuccessStatusCode();
+
+        var databases = await response.Content.ReadFromJsonAsync<List<RedisInsightDatabaseModel>>(cts.Token);
+
+        Assert.NotNull(databases);
+        Assert.Collection(databases,
+        db =>
         {
-            var response = await client.GetAsync("/api/databases", ct)
-                .ConfigureAwait(false);
+            Assert.Equal(redis1.Resource.Name, db.Name);
+            Assert.Equal(redis1.Resource.Name, db.Host);
+            Assert.Equal(redis1.Resource.PrimaryEndpoint.TargetPort, db.Port);
+            Assert.Equal("STANDALONE", db.ConnectionType);
+            Assert.Equal(0, db.Db);
+        },
+        db =>
+        {
+            Assert.Equal(redis2.Resource.Name, db.Name);
+            Assert.Equal(redis2.Resource.Name, db.Host);
+            Assert.Equal(redis2.Resource.PrimaryEndpoint.TargetPort, db.Port);
+            Assert.Equal("STANDALONE", db.ConnectionType);
+            Assert.Equal(0, db.Db);
+        });
+
+        foreach (var db in databases)
+        {
+            var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+            var testConnectionResponse = await client.GetAsync($"/api/databases/test/{db.Id}", cts2.Token);
             response.EnsureSuccessStatusCode();
-
-            var databases = await response.Content.ReadFromJsonAsync<List<RedisInsightDatabaseModel>>(ct);
-
-            Assert.NotNull(databases);
-            Assert.Collection(databases,
-            db =>
-            {
-                Assert.Equal(redis1.Resource.Name, db.Name);
-                Assert.Equal(redis1.Resource.Name, db.Host);
-                Assert.Equal(redis1.Resource.PrimaryEndpoint.TargetPort, db.Port);
-                Assert.Equal("STANDALONE", db.ConnectionType);
-                Assert.Equal(0, db.Db);
-            },
-            db =>
-            {
-                Assert.Equal(redis2.Resource.Name, db.Name);
-                Assert.Equal(redis2.Resource.Name, db.Host);
-                Assert.Equal(redis2.Resource.PrimaryEndpoint.TargetPort, db.Port);
-                Assert.Equal("STANDALONE", db.ConnectionType);
-                Assert.Equal(0, db.Db);
-            });
-
-            foreach (var db in databases)
-            {
-                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-                var testConnectionResponse = await client.GetAsync($"/api/databases/test/{db.Id}", cts.Token)
-                    .ConfigureAwait(false);
-                response.EnsureSuccessStatusCode();
-            }
-
-        }, cts.Token);
+        }
     }
 
     [Fact]
