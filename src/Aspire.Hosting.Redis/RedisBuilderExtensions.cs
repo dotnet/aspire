@@ -165,80 +165,141 @@ public static class RedisBuilderExtensions
                     return;
                 }
 
-                using (var stream = new MemoryStream())
-                {
-                    using var writer = new Utf8JsonWriter(stream);
+                var httpClientFactory = e.Services.GetRequiredService<IHttpClientFactory>();
 
-                    writer.WriteStartArray();
+                var redisInsightResource = builder.ApplicationBuilder.Resources.OfType<RedisInsightResource>().Single();
+                var insightEndpoint = redisInsightResource.PrimaryEndpoint;
 
-                    foreach (var redisResource in redisInstances)
-                    {
-                        if (redisResource.PrimaryEndpoint.IsAllocated)
-                        {
-                            var endpoint = redisResource.PrimaryEndpoint;
-                            writer.WriteStartObject();
-                            writer.WriteString("host", redisResource.Name);
-                            writer.WriteNumber("port", endpoint.TargetPort!.Value);
-                            writer.WriteString("name", redisResource.Name);
-                            writer.WriteNumber("db", 0);
-                            //todo: provide username and password when https://github.com/dotnet/aspire/pull/4642 merged.
-                            writer.WriteNull("username");
-                            writer.WriteNull("password");
-                            writer.WriteString("connectionType", "STANDALONE");
-                            writer.WriteEndObject();
-                        }
-                    }
-                    writer.WriteEndArray();
-                    await writer.FlushAsync(ct).ConfigureAwait(false);
-                    stream.Seek(0, SeekOrigin.Begin);
-                    var redisInsightResource = builder.ApplicationBuilder.Resources.OfType<RedisInsightResource>().Single();
+                var client = httpClientFactory.CreateClient();
+                client.BaseAddress = new Uri($"{insightEndpoint.Scheme}://{insightEndpoint.Host}:{insightEndpoint.Port}");
 
-                    var httpClientFactory = e.Services.GetRequiredService<IHttpClientFactory>();
+                var rls = e.Services.GetRequiredService<ResourceLoggerService>();
+                var resourceLogger = rls.GetLogger(resource);
 
-                    var client = httpClientFactory.CreateClient();
+                await AcceptRedisInsightEula(resourceLogger, client, ct).ConfigureAwait(false);
 
-                    var content = new MultipartFormDataContent();
-
-                    var fileContent = new StreamContent(stream);
-
-                    content.Add(fileContent, "file", "RedisInsight_connections.json");
-
-                    var insightEndpoint = redisInsightResource.PrimaryEndpoint;
-                    var apiUrl = $"{insightEndpoint.Scheme}://{insightEndpoint.Host}:{insightEndpoint.Port}/api/databases/import";
-
-                    var pipeline = new ResiliencePipelineBuilder().AddRetry(new Polly.Retry.RetryStrategyOptions
-                    {
-                        Delay = TimeSpan.FromSeconds(2),
-                        MaxRetryAttempts = 5,
-                    }).Build();
-
-                    var rls = e.Services.GetRequiredService<ResourceLoggerService>();
-                    var resourceLogger = rls.GetLogger(resource);
-
-                    try
-                    {
-                        await pipeline.ExecuteAsync(async (ctx) =>
-                        {
-                            var response = await client.PostAsync(apiUrl, content, ctx)
-                            .ConfigureAwait(false);
-
-                            response.EnsureSuccessStatusCode();
-                        }, ct).ConfigureAwait(false);
-
-                    }
-                    catch (Exception ex)
-                    {
-                        resourceLogger.LogError("Could not import Redis databases into RedisInsight. Reason: {reason}", ex.Message);
-                    }
-                };
+                await ImportRedisDatabases(resourceLogger, redisInstances, client, ct).ConfigureAwait(false);
             });
 
             configureContainer?.Invoke(resourceBuilder);
 
             return builder;
         }
-    }
 
+        static async Task ImportRedisDatabases(ILogger resourceLogger, IEnumerable<RedisResource> redisInstances, HttpClient client, CancellationToken ct)
+        {
+            using (var stream = new MemoryStream())
+            {
+                using var writer = new Utf8JsonWriter(stream);
+
+                writer.WriteStartArray();
+
+                foreach (var redisResource in redisInstances)
+                {
+                    if (redisResource.PrimaryEndpoint.IsAllocated)
+                    {
+                        var endpoint = redisResource.PrimaryEndpoint;
+                        writer.WriteStartObject();
+                        writer.WriteString("host", redisResource.Name);
+                        writer.WriteNumber("port", endpoint.TargetPort!.Value);
+                        writer.WriteString("name", redisResource.Name);
+                        writer.WriteNumber("db", 0);
+                        //todo: provide username and password when https://github.com/dotnet/aspire/pull/4642 merged.
+                        writer.WriteNull("username");
+                        writer.WriteNull("password");
+                        writer.WriteString("connectionType", "STANDALONE");
+                        writer.WriteEndObject();
+                    }
+                }
+                writer.WriteEndArray();
+                await writer.FlushAsync(ct).ConfigureAwait(false);
+                stream.Seek(0, SeekOrigin.Begin);
+
+                var content = new MultipartFormDataContent();
+
+                var fileContent = new StreamContent(stream);
+
+                content.Add(fileContent, "file", "RedisInsight_connections.json");
+
+                var apiUrl = $"/api/databases/import";
+
+                var pipeline = new ResiliencePipelineBuilder().AddRetry(new Polly.Retry.RetryStrategyOptions
+                {
+                    Delay = TimeSpan.FromSeconds(2),
+                    MaxRetryAttempts = 5,
+                }).Build();
+
+                try
+                {
+                    await pipeline.ExecuteAsync(async (ctx) =>
+                    {
+                        var response = await client.PostAsync(apiUrl, content, ctx)
+                        .ConfigureAwait(false);
+
+                        response.EnsureSuccessStatusCode();
+                    }, ct).ConfigureAwait(false);
+
+                }
+                catch (Exception ex)
+                {
+                    resourceLogger.LogError("Could not import Redis databases into RedisInsight. Reason: {reason}", ex.Message);
+                }
+            };
+        }
+
+        static async Task AcceptRedisInsightEula(ILogger resourceLogger, HttpClient client, CancellationToken ct)
+        {
+            using (var stream = new MemoryStream())
+            {
+                using var writer = new Utf8JsonWriter(stream);
+
+                writer.WriteStartObject();
+
+                writer.WritePropertyName("agreements");
+                writer.WriteStartObject();
+                writer.WriteBoolean("eula", true);
+                writer.WriteBoolean("analytics", false);
+                writer.WriteBoolean("notifications", false);
+                writer.WriteBoolean("encryption", false);
+                writer.WriteEndObject();
+
+                writer.WriteEndObject();
+
+                await writer.FlushAsync(ct).ConfigureAwait(false);
+                stream.Seek(0, SeekOrigin.Begin);
+                string json = Encoding.UTF8.GetString(stream.ToArray());
+                var content = new StringContent(json,Encoding.UTF8, "application/json");
+
+                var apiUrl = $"/api/settings";
+
+                var pipeline = new ResiliencePipelineBuilder().AddRetry(new Polly.Retry.RetryStrategyOptions
+                {
+                    Delay = TimeSpan.FromSeconds(2),
+                    MaxRetryAttempts = 5,
+                }).Build();
+
+                try
+                {
+                    await pipeline.ExecuteAsync(async (ctx) =>
+                    {
+                        var response = await client.PatchAsync(apiUrl, content, ctx)
+                        .ConfigureAwait(false);
+
+                        response.EnsureSuccessStatusCode();
+
+                        var d = await response.Content.ReadAsStringAsync(ctx).ConfigureAwait(false);
+
+                    }, ct).ConfigureAwait(false);
+
+                }
+                catch (Exception ex)
+                {
+                    resourceLogger.LogError("Could accept RedisInsight eula. Reason: {reason}", ex.Message);
+                }
+            };
+        }
+
+    }
     /// <summary>
     /// Configures the host port that the Redis Commander resource is exposed on instead of using randomly assigned port.
     /// </summary>
