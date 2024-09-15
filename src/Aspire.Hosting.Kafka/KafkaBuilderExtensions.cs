@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -29,12 +30,32 @@ public static class KafkaBuilderExtensions
         ArgumentNullException.ThrowIfNull(name);
 
         var kafka = new KafkaServerResource(name);
+
+        string? connectionString = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(kafka, async (@event, ct) =>
+        {
+            connectionString = await kafka.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{kafka.Name}' resource but the connection string was null.");
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.Services.AddHealthChecks().AddKafka(config =>
+        {
+            config.BootstrapServers = connectionString ?? throw new InvalidOperationException("Connection string is unavailable");
+        }, name: healthCheckKey);
+
         return builder.AddResource(kafka)
             .WithEndpoint(targetPort: KafkaBrokerPort, port: port, name: KafkaServerResource.PrimaryEndpointName)
             .WithEndpoint(targetPort: KafkaInternalBrokerPort, name: KafkaServerResource.InternalEndpointName)
             .WithImage(KafkaContainerImageTags.Image, KafkaContainerImageTags.Tag)
             .WithImageRegistry(KafkaContainerImageTags.Registry)
-            .WithEnvironment(context => ConfigureKafkaContainer(context, kafka));
+            .WithEnvironment(context => ConfigureKafkaContainer(context, kafka))
+            .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
