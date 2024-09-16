@@ -186,17 +186,26 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         }
     }
 
-    [Fact]
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     [RequiresDocker]
-    public async Task VerifyWithRedisInsightAcceptEula()
+    public async Task VerifyWithRedisInsightAcceptEula(bool accept)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         IResourceBuilder<RedisInsightResource>? redisInsightBuilder = null;
-        var redis = builder.AddRedis("redis").WithRedisInsight(c => redisInsightBuilder = c);
+        var redis = builder.AddRedis("redis").WithRedisInsight(c =>
+        {
+            c.WithAcceptEula(accept);
+            redisInsightBuilder = c;
+        });
+
         Assert.NotNull(redisInsightBuilder);
+        Assert.Equal(accept, redisInsightBuilder.Resource.AcceptedEula);
+
         using var app = builder.Build();
 
         await app.StartAsync();
@@ -214,12 +223,19 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var jo = JObject.Parse(content);
         var agreements = jo["agreements"];
-
-        Assert.NotNull(agreements);
-        Assert.False(agreements["analytics"]!.Value<bool>());
-        Assert.False(agreements["notifications"]!.Value<bool>());
-        Assert.False(agreements["encryption"]!.Value<bool>());
-        Assert.True(agreements["eula"]!.Value<bool>());
+        if (accept)
+        {
+            Assert.NotNull(agreements);
+            Assert.False(agreements["analytics"]!.Value<bool>());
+            Assert.False(agreements["notifications"]!.Value<bool>());
+            Assert.False(agreements["encryption"]!.Value<bool>());
+            Assert.True(agreements["eula"]!.Value<bool>());
+        }
+        else
+        {
+            Assert.NotNull(agreements);
+            Assert.False(agreements.HasValues);
+        }
     }
 
     [Fact]

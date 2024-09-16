@@ -19,4 +19,9 @@ public class RedisInsightResource(string name) : ContainerResource(name)
     /// Gets the primary endpoint for the Redis Insight.
     /// </summary>
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
+
+    /// <summary>
+    /// A boolean value indicating whether to accept the EULA. If <see langword="true"/>, the EULA is accepted.
+    /// </summary>
+    internal bool AcceptedEula { get; set; }
 }

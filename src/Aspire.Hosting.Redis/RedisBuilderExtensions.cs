@@ -176,7 +176,10 @@ public static class RedisBuilderExtensions
                 var rls = e.Services.GetRequiredService<ResourceLoggerService>();
                 var resourceLogger = rls.GetLogger(resource);
 
-                await AcceptRedisInsightEula(resourceLogger, client, ct).ConfigureAwait(false);
+                if (resource.AcceptedEula)
+                {
+                    await AcceptRedisInsightEula(resourceLogger, client, ct).ConfigureAwait(false);
+                }
 
                 await ImportRedisDatabases(resourceLogger, redisInstances, client, ct).ConfigureAwait(false);
             });
@@ -268,7 +271,7 @@ public static class RedisBuilderExtensions
                 await writer.FlushAsync(ct).ConfigureAwait(false);
                 stream.Seek(0, SeekOrigin.Begin);
                 string json = Encoding.UTF8.GetString(stream.ToArray());
-                var content = new StringContent(json,Encoding.UTF8, "application/json");
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 var apiUrl = $"/api/settings";
 
@@ -330,6 +333,20 @@ public static class RedisBuilderExtensions
         {
             endpoint.Port = port;
         });
+    }
+
+    /// <summary>
+    /// Configures the acceptance of the End User License Agreement (EULA) for Redis Insight.
+    /// </summary>
+    /// <param name="builder">The resource builder for Redis Insight.</param>
+    /// <param name="accept">A boolean value indicating whether to accept the EULA. If <see langword="true"/>, the EULA is accepted.</param>
+    /// <returns>The resource builder for Redis Insight.</returns>
+    public static IResourceBuilder<RedisInsightResource> WithAcceptEula(this IResourceBuilder<RedisInsightResource> builder, bool accept)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Resource.AcceptedEula = accept;
+        return builder;
     }
 
     /// <summary>
