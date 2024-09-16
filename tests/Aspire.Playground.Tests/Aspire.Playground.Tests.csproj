@@ -57,11 +57,8 @@
     <ProjectReference Include="$(PlaygroundSourceDir)keycloak/Keycloak.AppHost/Keycloak.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)milvus/MilvusPlayground.AppHost/MilvusPlayground.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)withdockerfile/WithDockerfile.AppHost/WithDockerfile.AppHost.csproj" />
-
-    <!-- Issue: https://github.com/dotnet/aspire/issues/5274 -->
-    <!-- Only `dotnet run` startup checked -->
+    <ProjectReference Include="$(PlaygroundSourceDir)Redis/Redis.AppHost/Redis.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)mongo/Mongo.AppHost/Mongo.AppHost.csproj" />
-
     <ProjectReference Include="$(PlaygroundSourceDir)mysql/MySqlDb.AppHost/MySqlDb.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)nats/Nats.AppHost/Nats.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)seq/Seq.AppHost/Seq.AppHost.csproj" />

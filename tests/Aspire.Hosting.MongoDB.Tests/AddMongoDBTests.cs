@@ -136,14 +136,12 @@ public class AddMongoDBTests
         Assert.Equal(1000, endpoint.Port);
     }
 
-    [Theory]
-    [InlineData("host.docker.internal")]
-    [InlineData("host.containers.internal")]
-    public async Task WithMongoExpressUsesContainerHost(string containerHost)
+    [Fact]
+    public async Task WithMongoExpressUsesContainerHost()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.AddMongoDB("mongo")
-            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000, containerHost))
+            .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 3000))
             .WithMongoExpress();
 
         var mongoExpress = Assert.Single(builder.Resources.OfType<MongoExpressContainerResource>());
@@ -154,7 +152,7 @@ public class AddMongoDBTests
             e =>
             {
                 Assert.Equal("ME_CONFIG_MONGODB_URL", e.Key);
-                Assert.Equal($"mongodb://{containerHost}:3000/?directConnection=true", e.Value);
+                Assert.Equal($"mongodb://mongo:27017/?directConnection=true", e.Value);
             },
             e =>
             {

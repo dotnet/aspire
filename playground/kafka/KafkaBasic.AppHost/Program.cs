@@ -7,11 +7,11 @@ var kafka = builder.AddKafka("kafka")
     .WithKafkaUI(kafkaUi => kafkaUi.WithHostPort(8080));
 
 builder.AddProject<Projects.Producer>("producer")
-    .WithReference(kafka)
+    .WithReference(kafka).WaitFor(kafka)
     .WithArgs(kafka.Resource.Name);
 
 builder.AddProject<Projects.Consumer>("consumer")
-    .WithReference(kafka)
+    .WithReference(kafka).WaitFor(kafka)
     .WithArgs(kafka.Resource.Name);
 
 builder.AddKafka("kafka2").WithKafkaUI();
