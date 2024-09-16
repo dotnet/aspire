@@ -61,9 +61,6 @@ public static class KafkaBuilderExtensions
                 var options = new KafkaHealthCheckOptions();
                 options.Configuration = new ProducerConfig();
                 options.Configuration.BootstrapServers = connectionString ?? throw new InvalidOperationException("Connection string is unavailable");
-                options.Configuration.SocketTimeoutMs = 1000;
-                options.Configuration.MessageTimeoutMs = 1000;
-                options.Configuration.StatisticsIntervalMs = 0;
                 return new KafkaHealthCheck(options);
             },
             failureStatus: default,
