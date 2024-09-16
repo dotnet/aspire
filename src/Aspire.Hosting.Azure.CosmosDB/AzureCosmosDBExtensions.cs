@@ -3,10 +3,14 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Azure.Cosmos;
+using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.CosmosDB;
 using Azure.Provisioning.KeyVaults;
 using Azure.ResourceManager.CosmosDB.Models;
+using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Aspire.Hosting;
@@ -69,9 +73,46 @@ public static class AzureCosmosExtensions
         };
 
         var resource = new AzureCosmosDBResource(name, configureConstruct);
+
+        string? connectionString = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(resource, async (@event, ct) =>
+        {
+            connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{resource.Name}' resource but the connection string was null.");
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.Services.AddHealthChecks().AddAzureCosmosDB(sp =>
+        {
+            var clientOptions = new CosmosClientOptions();
+            clientOptions.CosmosClientTelemetryOptions.DisableDistributedTracing = true;
+
+            if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+            {
+                var accountEndpoint = uri.ToString();
+                return new CosmosClient(accountEndpoint, new DefaultAzureCredential(), clientOptions);
+            }
+            else
+            {
+                if (CosmosUtils.IsEmulatorConnectionString(connectionString))
+                {
+                    clientOptions.ConnectionMode = ConnectionMode.Gateway;
+                    clientOptions.LimitToEndpoint = true;
+                }
+
+                return new CosmosClient(connectionString, clientOptions);
+            }
+        }, name: healthCheckKey);
+
         return builder.AddResource(resource)
                       .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+                      .WithManifestPublishingCallback(resource.WriteToManifest)
+                      .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
