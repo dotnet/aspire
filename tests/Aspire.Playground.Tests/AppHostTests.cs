@@ -118,7 +118,7 @@ public class AppHostTests
 
             foreach (var path in endpoints)
             {
-                Console.WriteLine($"Calling endpoint '{client.BaseAddress}{path.TrimStart('/')} for resource '{resource}' in app '{Path.GetFileNameWithoutExtension(appHostPath)}'");
+                _testOutput.WriteLine($"Calling endpoint '{client.BaseAddress}{path.TrimStart('/')} for resource '{resource}' in app '{Path.GetFileNameWithoutExtension(appHostPath)}'");
                 try
                 {
                     response = await client.GetAsync(path);
@@ -133,10 +133,7 @@ public class AppHostTests
         }
         if (testEndpoints.WhenReady != null)
         {
-            foreach (var resource in resourceEndpoints.Keys)
-            {
-                await testEndpoints.WhenReady(app, appHostPath, _testOutput);
-            }
+            await testEndpoints.WhenReady(app, appHostPath, _testOutput);
         }
 
         app.EnsureNoErrorsLogged();
