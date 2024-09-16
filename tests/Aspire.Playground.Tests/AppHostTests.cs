@@ -180,6 +180,12 @@ public class AppHostTests
     {
         IList<TestEndpoints> candidates =
         [
+            new TestEndpoints("Redis.AppHost",
+                resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/ping", "get", "set"] } },
+                waitForTexts: [
+                    new ("redis", "Ready to accept connections tcp"),
+                    new ("apiservice", "Application started")
+                ]),
             new TestEndpoints("AzureStorageEndToEnd.AppHost",
                 resourceEndpoints: new() { { "api", ["/alive", "/health", "/"] } },
                 waitForTexts: [
