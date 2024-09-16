@@ -49,7 +49,7 @@ public interface IDashboardClient : IAsyncDisposable
     /// </remarks>
     /// <para>It is important that callers trigger <paramref name="cancellationToken"/>
     /// so that resources owned by the sequence and its consumers can be freed.</para>
-    IAsyncEnumerable<IReadOnlyList<ResourceLogLine>>? SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken);
+    IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken);
 
     Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken);
 }

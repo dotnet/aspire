@@ -22,6 +22,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AspNetCore.HealthChecks.MySql" />
+  </ItemGroup>
+
+    <ItemGroup>
     <!-- Required for PhpMyAdminConfigWriterHook -->
     <InternalsVisibleTo Include="Aspire.Hosting.MySql.Tests" />
   </ItemGroup>

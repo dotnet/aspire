@@ -1370,7 +1370,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             var nameSuffix = string.Empty;
 
-            if (container.GetContainerLifetimeType() == ContainerLifetimeType.Default)
+            if (container.GetContainerLifetimeType() == ContainerLifetime.Default)
             {
                 nameSuffix = GetRandomNameSuffix();
             }
@@ -1380,7 +1380,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             ctr.Spec.ContainerName = containerObjectName; // Use the same name for container orchestrator (Docker, Podman) resource and DCP object name.
 
-            if (container.GetContainerLifetimeType() == ContainerLifetimeType.Persistent)
+            if (container.GetContainerLifetimeType() == ContainerLifetime.Persistent)
             {
                 ctr.Spec.Persistent = true;
             }
