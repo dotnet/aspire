@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
@@ -280,6 +281,49 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
         {
             SelectedApplication = PageViewModel.SelectedApplication.Id is not null ? PageViewModel.SelectedApplication.Name : null,
         };
+    }
+
+    private async Task OpenFilterAsync(LogFilter? entry)
+    {
+        if (_contentLayout is not null)
+        {
+            await _contentLayout.CloseMobileToolbarAsync();
+        }
+
+        var logPropertyKeys = TelemetryRepository.GetLogPropertyKeys(PageViewModel.SelectedApplication.Id?.GetApplicationKey());
+
+        var title = entry is not null ? FilterLoc[nameof(StructuredFiltering.DialogTitleEditFilter)] : FilterLoc[nameof(StructuredFiltering.DialogTitleAddFilter)];
+        var parameters = new DialogParameters
+        {
+            OnDialogResult = DialogService.CreateDialogCallback(this, HandleFilterDialog),
+            Title = title,
+            Alignment = HorizontalAlignment.Right,
+            PrimaryAction = null,
+            SecondaryAction = null,
+        };
+        var data = new FilterDialogViewModel
+        {
+            Filter = entry,
+            LogPropertyKeys = logPropertyKeys
+        };
+        await DialogService.ShowPanelAsync<FilterDialog>(data, parameters);
+    }
+
+    private async Task HandleFilterDialog(DialogResult result)
+    {
+        if (result.Data is FilterDialogResult filterResult && filterResult.Filter is LogFilter filter)
+        {
+            if (filterResult.Delete)
+            {
+                TracesViewModel.RemoveFilter(filter);
+            }
+            else if (filterResult.Add)
+            {
+                TracesViewModel.AddFilter(filter);
+            }
+        }
+
+        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
     public class TracesPageViewModel

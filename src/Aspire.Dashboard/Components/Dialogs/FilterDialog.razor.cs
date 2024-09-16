@@ -15,7 +15,7 @@ public partial class FilterDialog
     private List<SelectViewModel<FilterCondition>> _filterConditions = null!;
 
     private SelectViewModel<FilterCondition> CreateFilterSelectViewModel(FilterCondition condition) =>
-        new SelectViewModel<FilterCondition> { Id = condition, Name = LogFilter.ConditionToString(condition, LogsLoc) };
+        new SelectViewModel<FilterCondition> { Id = condition, Name = LogFilter.ConditionToString(condition, FilterLoc) };
 
     [CascadingParameter]
     public FluentDialog? Dialog { get; set; }

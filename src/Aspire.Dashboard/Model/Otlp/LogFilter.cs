@@ -12,12 +12,23 @@ namespace Aspire.Dashboard.Model.Otlp;
 [DebuggerDisplay("{FilterText,nq}")]
 public class LogFilter : IEquatable<LogFilter>
 {
-    public const string KnownMessageField = "log.message";
-    public const string KnownCategoryField = "log.category";
-    public const string KnownApplicationField = "log.application";
-    public const string KnownTraceIdField = "log.traceid";
-    public const string KnownSpanIdField = "log.spanid";
-    public const string KnownOriginalFormatField = "log.originalformat";
+    public static class KnownStructuredLogFields
+    {
+        public const string MessageField = "log.message";
+        public const string CategoryField = "log.category";
+        public const string ApplicationField = "log.application";
+        public const string TraceIdField = "log.traceid";
+        public const string SpanIdField = "log.spanid";
+        public const string OriginalFormatField = "log.originalformat";
+    }
+
+    public static class KnownTraceFields
+    {
+        public const string ApplicationField = "trace.application";
+        public const string TraceIdField = "trace.traceid";
+        public const string SpanIdField = "trace.spanid";
+        public const string KindField = "trace.kind";
+    }
 
     public string Field { get; set; } = default!;
     public FilterCondition Condition { get; set; }
@@ -25,33 +36,33 @@ public class LogFilter : IEquatable<LogFilter>
 
     public string DebuggerDisplayText => $"{Field} {ConditionToString(Condition, null)} {Value}";
 
-    public string GetDisplayText(IStringLocalizer<Logs> loc) => $"{ResolveFieldName(Field)} {ConditionToString(Condition, loc)} {Value}";
+    public string GetDisplayText(IStringLocalizer<StructuredFiltering> loc) => $"{ResolveFieldName(Field)} {ConditionToString(Condition, loc)} {Value}";
 
     public static string ResolveFieldName(string name)
     {
         return name switch
         {
-            KnownMessageField => "Message",
-            KnownApplicationField => "Application",
-            KnownTraceIdField => "TraceId",
-            KnownSpanIdField => "SpanId",
-            KnownOriginalFormatField => "OriginalFormat",
-            KnownCategoryField => "Category",
+            KnownStructuredLogFields.MessageField => "Message",
+            KnownStructuredLogFields.ApplicationField => "Application",
+            KnownStructuredLogFields.TraceIdField => "TraceId",
+            KnownStructuredLogFields.SpanIdField => "SpanId",
+            KnownStructuredLogFields.OriginalFormatField => "OriginalFormat",
+            KnownStructuredLogFields.CategoryField => "Category",
             _ => name
         };
     }
 
-    public static string ConditionToString(FilterCondition c, IStringLocalizer<Logs>? loc) =>
+    public static string ConditionToString(FilterCondition c, IStringLocalizer<StructuredFiltering>? loc) =>
         c switch
         {
             FilterCondition.Equals => "==",
-            FilterCondition.Contains => loc?[nameof(Logs.LogContains)] ?? "contains",
+            FilterCondition.Contains => loc?[nameof(StructuredFiltering.ConditionContains)] ?? "contains",
             FilterCondition.GreaterThan => ">",
             FilterCondition.LessThan => "<",
             FilterCondition.GreaterThanOrEqual => ">=",
             FilterCondition.LessThanOrEqual => "<=",
             FilterCondition.NotEqual => "!=",
-            FilterCondition.NotContains => loc?[nameof(Logs.LogNotContains)] ?? "not contains",
+            FilterCondition.NotContains => loc?[nameof(StructuredFiltering.ConditionNotContains)] ?? "not contains",
             _ => throw new ArgumentOutOfRangeException(nameof(c), c, null)
         };
 
@@ -101,12 +112,24 @@ public class LogFilter : IEquatable<LogFilter>
     {
         return Field switch
         {
-            KnownMessageField => x.Message,
-            KnownApplicationField => x.ApplicationView.Application.ApplicationName,
-            KnownTraceIdField => x.TraceId,
-            KnownSpanIdField => x.SpanId,
-            KnownOriginalFormatField => x.OriginalFormat,
-            KnownCategoryField => x.Scope.ScopeName,
+            KnownStructuredLogFields.MessageField => x.Message,
+            KnownStructuredLogFields.ApplicationField => x.ApplicationView.Application.ApplicationName,
+            KnownStructuredLogFields.TraceIdField => x.TraceId,
+            KnownStructuredLogFields.SpanIdField => x.SpanId,
+            KnownStructuredLogFields.OriginalFormatField => x.OriginalFormat,
+            KnownStructuredLogFields.CategoryField => x.Scope.ScopeName,
+            _ => x.Attributes.GetValue(Field)
+        };
+    }
+
+    private string? GetFieldValue(OtlpSpan x)
+    {
+        return Field switch
+        {
+            KnownTraceFields.ApplicationField => x.Source.Application.ApplicationName,
+            KnownTraceFields.TraceIdField => x.TraceId,
+            KnownTraceFields.SpanIdField => x.SpanId,
+            KnownTraceFields.KindField => x.Kind.ToString(),
             _ => x.Attributes.GetValue(Field)
         };
     }
@@ -134,6 +157,29 @@ public class LogFilter : IEquatable<LogFilter>
                 {
                     var func = ConditionToFuncString(Condition);
                     return input.Where(x => func(x.Message, Value));
+                }
+            default:
+                {
+                    var func = ConditionToFuncString(Condition);
+                    return input.Where(x => func(GetFieldValue(x), Value));
+                }
+        }
+    }
+
+    public IEnumerable<OtlpTrace> Apply(IEnumerable<OtlpTrace> input)
+    {
+        switch (Field)
+        {
+            case nameof(OtlpLogEntry.TimeStamp):
+                {
+                    var date = DateTime.Parse(Value, CultureInfo.InvariantCulture);
+                    var func = ConditionToFuncDate(Condition);
+                    return input.Where(x => func(x.TimeStamp, date));
+                }
+            case nameof(OtlpTrace.FullName):
+                {
+                    var func = ConditionToFuncString(Condition);
+                    return input.Where(x => func(x.FullName, Value));
                 }
             default:
                 {
