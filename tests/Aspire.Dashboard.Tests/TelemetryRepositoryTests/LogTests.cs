@@ -669,7 +669,7 @@ public class LogTests
 
         var callCount = 0;
         var resultChannel = Channel.CreateUnbounded<int>();
-        var subscription = repository.OnNewLogs(applicationKey: null, SubscriptionType.Read, () =>
+        var subscription = repository.OnNewLogs(applicationKey: null, SubscriptionType.Read, async () =>
         {
             if (!stopwatch.IsRunning)
             {
@@ -681,7 +681,7 @@ public class LogTests
             }
             ++callCount;
             resultChannel.Writer.TryWrite(callCount);
-            return Task.CompletedTask;
+            await Task.Delay(20);
         });
 
         // Act
