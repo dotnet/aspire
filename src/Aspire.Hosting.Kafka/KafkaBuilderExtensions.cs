@@ -3,7 +3,10 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Confluent.Kafka;
+using HealthChecks.Kafka;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting;
 
@@ -44,10 +47,28 @@ public static class KafkaBuilderExtensions
         });
 
         var healthCheckKey = $"{name}_check";
-        builder.Services.AddHealthChecks().AddKafka(config =>
-        {
-            config.BootstrapServers = connectionString ?? throw new InvalidOperationException("Connection string is unavailable");
-        }, name: healthCheckKey);
+
+        // NOTE: We cannot use AddKafka here because it registers the health check as a singleton
+        //       which means if you have multiple Kafka resources the factory callback will end
+        //       up using the connection string of the last Kafka resource that was added. The
+        //       client packages also have to work around this issue.
+        //
+        //       SEE: https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks/issues/2298
+        var healthCheckRegistration = new HealthCheckRegistration(
+            healthCheckKey,
+            sp =>
+            {
+                var options = new KafkaHealthCheckOptions();
+                options.Configuration = new ProducerConfig();
+                options.Configuration.BootstrapServers = connectionString ?? throw new InvalidOperationException("Connection string is unavailable");
+                options.Configuration.SocketTimeoutMs = 1000;
+                options.Configuration.MessageTimeoutMs = 1000;
+                options.Configuration.StatisticsIntervalMs = 0;
+                return new KafkaHealthCheck(options);
+            },
+            failureStatus: default,
+            tags: default);
+        builder.Services.AddHealthChecks().Add(healthCheckRegistration);
 
         return builder.AddResource(kafka)
             .WithEndpoint(targetPort: KafkaBrokerPort, port: port, name: KafkaServerResource.PrimaryEndpointName)
