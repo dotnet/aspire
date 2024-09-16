@@ -1,10 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting Node Nodejs</PackageTags>
+    <PackageTags>aspire integration hosting Node Nodejs</PackageTags>
     <Description>Node.js support for .NET Aspire.</Description>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>95</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>

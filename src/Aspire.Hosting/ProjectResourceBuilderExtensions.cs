@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
@@ -42,6 +43,10 @@ public static class ProjectResourceBuilderExtensions
     /// spaces in project names are converted to underscores. This normalization may lead to naming conflicts. If a conflict occurs the <c>&lt;ProjectReference /&gt;</c>
     /// that references the project can have a <c>AspireProjectMetadataTypeName="..."</c> attribute added to override the name.
     /// </para>
+    /// <para name="kestrel">
+    /// Note that endpoints coming from the Kestrel configuration are automatically added to the project. The Kestrel Url and Protocols are used
+    /// to build the equivalent <see cref="EndpointAnnotation"/>.
+    /// </para>
     /// </remarks>
     /// <example>
     /// Example of adding a project to the application model.
@@ -55,10 +60,7 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ModelName(nameof(Resource))] string name) where TProject : IProjectMetadata, new()
     {
-        var project = new ProjectResource(name);
-        return builder.AddResource(project)
-                      .WithAnnotation(new TProject())
-                      .WithProjectDefaults(excludeLaunchProfile: false, launchProfileName: null);
+        return builder.AddProject<TProject>(name, _ => { });
     }
 
     /// <summary>
@@ -71,9 +73,10 @@ public static class ProjectResourceBuilderExtensions
     /// <remarks>
     /// <para>
     /// This overload of the <see cref="AddProject(IDistributedApplicationBuilder, string, string)"/> method adds a project to the application
-    /// model using an path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
+    /// model using a path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
     /// path is not an absolute path then it will be computed relative to the app host directory.
     /// </para>
+    /// <inheritdoc cref="AddProject(IDistributedApplicationBuilder, string)" path="/remarks/para[@name='kestrel']" />
     /// </remarks>
     /// <example>
     /// Add a project to the app model via a project path.
@@ -87,13 +90,7 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ModelName(nameof(Resource))] string name, string projectPath)
     {
-        var project = new ProjectResource(name);
-
-        projectPath = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectPath));
-
-        return builder.AddResource(project)
-                      .WithAnnotation(new ProjectMetadata(projectPath))
-                      .WithProjectDefaults(excludeLaunchProfile: false, launchProfileName: null);
+        return builder.AddProject(name, projectPath, _ => { });
     }
 
     /// <summary>
@@ -122,6 +119,7 @@ public static class ProjectResourceBuilderExtensions
     /// spaces in project names are converted to underscores. This normalization may lead to naming conflicts. If a conflict occurs the <c>&lt;ProjectReference /&gt;</c>
     /// that references the project can have a <c>AspireProjectMetadataTypeName="..."</c> attribute added to override the name.
     /// </para>
+    /// <inheritdoc cref="AddProject(IDistributedApplicationBuilder, string)" path="/remarks/para[@name='kestrel']" />
     /// </remarks>
     /// <example>
     /// Example of adding a project to the application model.
@@ -135,10 +133,11 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, [ModelName(nameof(Resource))] string name, string? launchProfileName) where TProject : IProjectMetadata, new()
     {
-        var project = new ProjectResource(name);
-        return builder.AddResource(project)
-                      .WithAnnotation(new TProject())
-                      .WithProjectDefaults(excludeLaunchProfile: launchProfileName is null, launchProfileName);
+        return builder.AddProject<TProject>(name, options =>
+        {
+            options.ExcludeLaunchProfile = launchProfileName is null;
+            options.LaunchProfileName = launchProfileName;
+        });
     }
 
     /// <summary>
@@ -152,9 +151,10 @@ public static class ProjectResourceBuilderExtensions
     /// <remarks>
     /// <para>
     /// This overload of the <see cref="AddProject(IDistributedApplicationBuilder, string, string)"/> method adds a project to the application
-    /// model using an path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
+    /// model using a path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
     /// path is not an absolute path then it will be computed relative to the app host directory.
     /// </para>
+    /// <inheritdoc cref="AddProject(IDistributedApplicationBuilder, string)" path="/remarks/para[@name='kestrel']" />
     /// </remarks>
     /// <example>
     /// Add a project to the app model via a project path.
@@ -168,16 +168,100 @@ public static class ProjectResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, [ModelName(nameof(Resource))] string name, string projectPath, string? launchProfileName)
     {
+        return builder.AddProject(name, projectPath, options =>
+        {
+            options.ExcludeLaunchProfile = launchProfileName is null;
+            options.LaunchProfileName = launchProfileName;
+        });
+    }
+
+    /// <summary>
+    /// Adds a .NET project to the application model.
+    /// </summary>
+    /// <typeparam name="TProject">A type that represents the project reference.</typeparam>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
+    /// <param name="configure">A callback to configure the project resource options.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This overload of the <see cref="AddProject{TProject}(IDistributedApplicationBuilder, string)"/> method takes
+    /// a <typeparamref name="TProject"/> type parameter. The <typeparamref name="TProject"/> type parameter is constrained
+    /// to types that implement the <see cref="IProjectMetadata"/> interface.
+    /// </para>
+    /// <para>
+    /// Classes that implement the <see cref="IProjectMetadata"/> interface are generated when a .NET project is added as a reference
+    /// to the app host project. The generated class contains a property that returns the path to the referenced project file. Using this path
+    /// .NET Aspire parses the <c>launchSettings.json</c> file to determine which launch profile to use when running the project, and
+    /// what endpoint configuration to automatically generate.
+    /// </para>
+    /// <para>
+    /// The name of the automatically generated project metadata type is a normalized version of the project name. Periods, dashes, and
+    /// spaces in project names are converted to underscores. This normalization may lead to naming conflicts. If a conflict occurs the <c>&lt;ProjectReference /&gt;</c>
+    /// that references the project can have a <c>AspireProjectMetadataTypeName="..."</c> attribute added to override the name.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Example of adding a project to the application model.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// 
+    /// builder.AddProject&lt;Projects.InventoryService&gt;("inventoryservice", options => { options.LaunchProfileName = "otherLaunchProfile"; });
+    /// 
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name, Action<ProjectResourceOptions> configure) where TProject : IProjectMetadata, new()
+    {
+        var options = new ProjectResourceOptions();
+        configure(options);
+
+        var project = new ProjectResource(name);
+        return builder.AddResource(project)
+                      .WithAnnotation(new TProject())
+                      .WithProjectDefaults(options);
+    }
+
+    /// <summary>
+    /// Adds a .NET project to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
+    /// <param name="projectPath">The path to the project file.</param>
+    /// <param name="configure">A callback to configure the project resource options.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This overload of the <see cref="AddProject(IDistributedApplicationBuilder, string, string)"/> method adds a project to the application
+    /// model using a path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
+    /// path is not an absolute path then it will be computed relative to the app host directory.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Add a project to the app model via a project path.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// 
+    /// builder.AddProject("inventoryservice", @"..\InventoryService\InventoryService.csproj", options => { options.LaunchProfileName = "otherLaunchProfile"; });
+    /// 
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath, Action<ProjectResourceOptions> configure)
+    {
+        var options = new ProjectResourceOptions();
+        configure(options);
+
         var project = new ProjectResource(name);
 
         projectPath = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectPath));
 
         return builder.AddResource(project)
                       .WithAnnotation(new ProjectMetadata(projectPath))
-                      .WithProjectDefaults(excludeLaunchProfile: launchProfileName is null, launchProfileName);
+                      .WithProjectDefaults(options);
     }
 
-    private static IResourceBuilder<ProjectResource> WithProjectDefaults(this IResourceBuilder<ProjectResource> builder, bool excludeLaunchProfile, string? launchProfileName)
+    private static IResourceBuilder<ProjectResource> WithProjectDefaults(this IResourceBuilder<ProjectResource> builder, ProjectResourceOptions options)
     {
         // We only want to turn these on for .NET projects, ConfigureOtlpEnvironment works for any resource type that
         // implements IDistributedApplicationResourceWithEnvironment.
@@ -213,13 +297,13 @@ public static class ProjectResourceBuilderExtensions
             });
         }
 
-        if (excludeLaunchProfile)
+        if (options.ExcludeLaunchProfile)
         {
             builder.WithAnnotation(new ExcludeLaunchProfileAnnotation());
         }
-        else if (!string.IsNullOrEmpty(launchProfileName))
+        else if (!string.IsNullOrEmpty(options.LaunchProfileName))
         {
-            builder.WithAnnotation(new LaunchProfileAnnotation(launchProfileName));
+            builder.WithAnnotation(new LaunchProfileAnnotation(options.LaunchProfileName));
         }
         else
         {
@@ -231,12 +315,12 @@ public static class ProjectResourceBuilderExtensions
             }
         }
 
-        var effectiveLaunchProfile = excludeLaunchProfile ? null : projectResource.GetEffectiveLaunchProfile(throwIfNotFound: true);
+        var effectiveLaunchProfile = options.ExcludeLaunchProfile ? null : projectResource.GetEffectiveLaunchProfile(throwIfNotFound: true);
         var launchProfile = effectiveLaunchProfile?.LaunchProfile;
 
         // Get all the endpoints from the Kestrel configuration
         var config = GetConfiguration(projectResource);
-        var kestrelEndpoints = config.GetSection("Kestrel:Endpoints").GetChildren();
+        var kestrelEndpoints = options.ExcludeKestrelEndpoints ? [] : config.GetSection("Kestrel:Endpoints").GetChildren();
 
         // Get all the Kestrel configuration endpoint bindings, grouped by scheme
         var kestrelEndpointsByScheme = kestrelEndpoints
@@ -244,13 +328,25 @@ public static class ProjectResourceBuilderExtensions
             .Select(endpoint => new
             {
                 EndpointName = endpoint.Key,
-                BindingAddress = BindingAddress.Parse(endpoint["Url"]!)
+                BindingAddress = BindingAddress.Parse(endpoint["Url"]!),
+                Protocols = endpoint["Protocols"]
             })
             .GroupBy(entry => entry.BindingAddress.Scheme);
 
         // Helper to change the transport to http2 if needed
-        var isHttp2ConfiguredInAppSettings = config["Kestrel:EndpointDefaults:Protocols"] == "Http2";
-        var adjustTransport = (EndpointAnnotation e) => e.Transport = isHttp2ConfiguredInAppSettings ? "http2" : e.Transport;
+        var isHttp2ConfiguredInKestrelEndpointDefaults = config["Kestrel:EndpointDefaults:Protocols"] == nameof(HttpProtocols.Http2);
+        var adjustTransport = (EndpointAnnotation e, string? bindingLevelProtocols = null) => {
+            if (bindingLevelProtocols != null)
+            {
+                // If the Kestrel endpoint has an explicit protocol, use that and ignore any EndpointDefaults
+                e.Transport = bindingLevelProtocols == nameof(HttpProtocols.Http2) ? "http2" : e.Transport;
+            }
+            else if (isHttp2ConfiguredInKestrelEndpointDefaults)
+            {
+                // Fall back to honoring Http2 specified at EndpointDefaults level
+                e.Transport = "http2";
+            }
+        };
 
         foreach (var schemeGroup in kestrelEndpointsByScheme)
         {
@@ -262,7 +358,6 @@ public static class ProjectResourceBuilderExtensions
             {
                 builder.WithEndpoint(schemeAsEndpointName ?? endpoint.EndpointName, e =>
                 {
-
                     if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
                     {
                         // In Publish mode, we could not set the Port because it needs to be the standard
@@ -276,7 +371,9 @@ public static class ProjectResourceBuilderExtensions
                         e.Port = endpoint.BindingAddress.Port;
                     }
                     e.UriScheme = endpoint.BindingAddress.Scheme;
-                    e.Transport = adjustTransport(e);
+                    e.TargetHost = endpoint.BindingAddress.Host;
+
+                    adjustTransport(e, endpoint.Protocols);
                     // Keep track of the host separately since EndpointAnnotation doesn't have a host property
                     builder.Resource.KestrelEndpointAnnotationHosts[e] = endpoint.BindingAddress.Host;
                 },
@@ -307,16 +404,33 @@ public static class ProjectResourceBuilderExtensions
             if (!kestrelEndpointsByScheme.Any())
             {
                 var urlsFromApplicationUrl = launchProfile.ApplicationUrl?.Split(';', StringSplitOptions.RemoveEmptyEntries) ?? [];
+                Dictionary<string, int> endpointCountByScheme = [];
                 foreach (var url in urlsFromApplicationUrl)
                 {
-                    var uri = new Uri(url);
+                    var bindingAddress = BindingAddress.Parse(url);
 
-                    builder.WithEndpoint(uri.Scheme, e =>
+                    // Keep track of how many endpoints we have for each scheme
+                    endpointCountByScheme.TryGetValue(bindingAddress.Scheme, out var count);
+                    endpointCountByScheme[bindingAddress.Scheme] = count + 1;
+
+                    // If we have multiple for the same scheme, we differentiate them by appending a number.
+                    // We only do this starting with the second endpoint, so that the first stays just http/https.
+                    // This allows us to keep the same behavior as "dotnet run".
+                    // Also, note that we only do this in Run mode, as in Publish mode those extra endpoints
+                    // with generic names would not be easily usable.
+                    var endpointName = bindingAddress.Scheme;
+                    if (endpointCountByScheme[bindingAddress.Scheme] > 1)
                     {
-                        e.Port = uri.Port;
-                        e.UriScheme = uri.Scheme;
+                        endpointName += endpointCountByScheme[bindingAddress.Scheme];
+                    }
+
+                    builder.WithEndpoint(endpointName, e =>
+                    {
+                        e.Port = bindingAddress.Port;
+                        e.TargetHost = bindingAddress.Host;
+                        e.UriScheme = bindingAddress.Scheme;
                         e.FromLaunchProfile = true;
-                        e.Transport = adjustTransport(e);
+                        adjustTransport(e);
                     },
                     createIfNotExists: true);
                 }
@@ -369,7 +483,7 @@ public static class ProjectResourceBuilderExtensions
                     builder.WithEndpoint(scheme, e =>
                     {
                         e.UriScheme = scheme;
-                        e.Transport = adjustTransport(e);
+                        adjustTransport(e);
 
                         // Keep track of the default https endpoint so we can exclude it from HTTPS_PORTS & Kestrel env vars
                         if (scheme == "https")
@@ -461,6 +575,21 @@ public static class ProjectResourceBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Set a filter that determines if environment variables are injected for a given endpoint.
+    /// By default, all endpoints are included (if this method is not called).
+    /// </summary>
+    /// <param name="builder">The project resource builder.</param>
+    /// <param name="filter">The filter callback that returns true if and only if the endpoint should be included.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<ProjectResource> WithEndpointsInEnvironment(
+        this IResourceBuilder<ProjectResource> builder, Func<EndpointAnnotation, bool> filter)
+    {
+        builder.Resource.Annotations.Add(new EndpointEnvironmentInjectionFilterAnnotation(filter));
+
+        return builder;
+    }
+
     private static IConfiguration GetConfiguration(ProjectResource projectResource)
     {
         var projectMetadata = projectResource.GetProjectMetadata();
@@ -482,9 +611,6 @@ public static class ProjectResourceBuilderExtensions
         return configBuilder.Build();
     }
 
-    static bool IsValidAspNetCoreUrl(EndpointAnnotation e) =>
-        e.UriScheme is "http" or "https" && e.TargetPortEnvironmentVariable is null;
-
     private static void SetAspNetCoreUrls(this IResourceBuilder<ProjectResource> builder)
     {
         builder.WithEnvironment(context =>
@@ -501,7 +627,7 @@ public static class ProjectResourceBuilderExtensions
             var first = true;
 
             // Turn http and https endpoints into a single ASPNETCORE_URLS environment variable.
-            foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)))
+            foreach (var e in builder.Resource.GetEndpoints().Where(builder.Resource.ShouldInjectEndpointEnvironment))
             {
                 if (!first)
                 {
@@ -517,7 +643,10 @@ public static class ProjectResourceBuilderExtensions
                     processedHttpsPort = true;
                 }
 
-                aspnetCoreUrls.Append($"{e.Property(EndpointProperty.Scheme)}://localhost:{e.Property(EndpointProperty.TargetPort)}");
+                // If the endpoint is proxied, we will use localhost as the target host since DCP will be forwarding the traffic
+                var targetHost = e.EndpointAnnotation.IsProxied ? "localhost" : e.EndpointAnnotation.TargetHost;
+
+                aspnetCoreUrls.Append($"{e.Property(EndpointProperty.Scheme)}://{targetHost}:{e.Property(EndpointProperty.TargetPort)}");
                 first = false;
             }
 
@@ -550,7 +679,7 @@ public static class ProjectResourceBuilderExtensions
         var firstPort = true;
 
         // Turn endpoint ports into a single environment variable
-        foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)))
+        foreach (var e in builder.Resource.GetEndpoints().Where(builder.Resource.ShouldInjectEndpointEnvironment))
         {
             // Skip the default https endpoint because the container likely won't be set up to listen on https (e.g. ACA case)
             if (e.EndpointAnnotation.UriScheme == scheme && e.EndpointAnnotation != builder.Resource.DefaultHttpsEndpoint)
@@ -581,7 +710,7 @@ public static class ProjectResourceBuilderExtensions
             // don't come from Kestrel. This is because having Kestrel endpoints overrides everything
             if (builder.Resource.HasKestrelEndpoints)
             {
-                foreach (var e in builder.Resource.GetEndpoints().Where(e => IsValidAspNetCoreUrl(e.EndpointAnnotation)))
+                foreach (var e in builder.Resource.GetEndpoints().Where(builder.Resource.ShouldInjectEndpointEnvironment))
                 {
                     // Skip the default https endpoint because the container likely won't be set up to listen on https (e.g. ACA case)
                     if (e.EndpointAnnotation == builder.Resource.DefaultHttpsEndpoint)

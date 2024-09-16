@@ -1,11 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentCachePackageTags) distributedcaching distributedcache redis</PackageTags>
     <Description>A Redis® implementation for IDistributedCache that integrates with Aspire, including health checks, logging, and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)redis-cube-red_white-rgb.png</PackageIconFullPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>59</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>

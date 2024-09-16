@@ -104,6 +104,14 @@ Aspire.Confluent.Kafka:
     - "messaging.kafka.message.rx"
     - "messaging.kafka.message.received"
 
+Aspire.Elastic.Clients.Elasticsearch:
+- Log categories:
+  - none (not currently supported by Elastic.Clients.Elasticsearch library)
+- Activity source names:
+  - "Elastic.Transport"
+- Metric names:
+  - none
+
 Aspire.Microsoft.Azure.Cosmos:
 - Log categories:
   - "Azure-Cosmos-Operation-Request-Diagnostics"
@@ -262,7 +270,7 @@ Aspire.Oracle.EntityFrameworkCore:
   - "Microsoft.EntityFrameworkCore.Query"
   - "Microsoft.EntityFrameworkCore.Update"
 - Activity source names:
-  - none (currently not supported by Oracle.EntityFrameworkCore library)
+  - "Oracle.ManagedDataAccess.Core"
 - Metric names:
   - none
 

@@ -1,12 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentDatabasePackageTags) MongoDB</PackageTags>
     <PackageIconFullPath>$(SharedDir)MongoDB_300px.png</PackageIconFullPath>
     <Description>A generic MongoDB client that integrates with Aspire.</Description>
-    <NoWarn>$(NoWarn);CS8002</NoWarn> <!-- MongoDB packages are not signed -->
+    <NoWarn>$(NoWarn);CS8002</NoWarn> <!-- MongoDB.Driver.Core.Extensions.DiagnosticSources and AspNetCore.HealthChecks.MongoDb packages are not signed -->
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>86</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>

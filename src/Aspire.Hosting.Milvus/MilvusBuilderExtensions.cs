@@ -25,8 +25,8 @@ public static class MilvusBuilderExtensions
     /// var milvus = builder.AddMilvus("milvus");
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithReference(milvus);
-    ///  
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     /// <remarks>
@@ -41,13 +41,15 @@ public static class MilvusBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{MilvusServerResource}"/>.</returns>
     public static IResourceBuilder<MilvusServerResource> AddMilvus(this IDistributedApplicationBuilder builder,
         string name,
-        IResourceBuilder<ParameterResource> apiKey,
+        IResourceBuilder<ParameterResource>? apiKey = null,
         int? grpcPort = null)
     {
-        ArgumentNullException.ThrowIfNull(apiKey, nameof(apiKey));
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        var apiKeyParameter = apiKey?.Resource ??
+            ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-key");
 
-        var tokenParameter = apiKey.Resource;
-        var milvus = new MilvusServerResource(name, tokenParameter);
+        var milvus = new MilvusServerResource(name, apiKeyParameter);
 
         return builder.AddResource(milvus)
             .WithImage(MilvusContainerImageTags.Image, MilvusContainerImageTags.Tag)
@@ -61,6 +63,10 @@ public static class MilvusBuilderExtensions
             .WithEnvironment("ETCD_USE_EMBED", "true")
             .WithEnvironment("ETCD_DATA_DIR", "/var/lib/milvus/etcd")
             .WithEnvironment("COMMON_SECURITY_AUTHORIZATIONENABLED", "true")
+            .WithEnvironment(ctx =>
+            {
+                ctx.EnvironmentVariables["COMMON_SECURITY_DEFAULTROOTPASSWORD"] = milvus.ApiKeyParameter;
+            })
             .WithArgs("milvus", "run", "standalone");
     }
 
@@ -74,11 +80,11 @@ public static class MilvusBuilderExtensions
     ///
     /// var booksdb = builder.AddMilvus("milvus");
     ///   .AddDatabase("booksdb");
-    /// 
+    ///
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithReference(booksdb);
-    ///  
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     /// <param name="builder">The Milvus server resource builder.</param>
@@ -88,6 +94,9 @@ public static class MilvusBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MilvusDatabaseResource> AddDatabase(this IResourceBuilder<MilvusServerResource> builder, string name, string? databaseName = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
 
@@ -108,8 +117,8 @@ public static class MilvusBuilderExtensions
     ///   .WithAttu();
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithReference(milvus);
-    ///  
-    /// builder.Build().Run(); 
+    ///
+    /// builder.Build().Run();
     /// </code>
     /// </example>
     /// <param name="builder">The Milvus server resource builder.</param>
@@ -118,6 +127,8 @@ public static class MilvusBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithAttu<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<AttuResource>>? configureContainer = null, string? containerName = null) where T : MilvusServerResource
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         containerName ??= $"{builder.Resource.Name}-attu";
 
         var attuContainer = new AttuResource(containerName);
@@ -141,7 +152,10 @@ public static class MilvusBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MilvusServerResource> WithDataVolume(this IResourceBuilder<MilvusServerResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/milvus", isReadOnly);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/milvus", isReadOnly);
+    }
 
     /// <summary>
     /// Adds a bind mount for the data folder to a Milvus container resource.
@@ -151,7 +165,11 @@ public static class MilvusBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MilvusServerResource> WithDataBindMount(this IResourceBuilder<MilvusServerResource> builder, string source, bool isReadOnly = false)
-        => builder.WithBindMount(source, "/var/lib/milvus", isReadOnly);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+        return builder.WithBindMount(source, "/var/lib/milvus", isReadOnly);
+    }
 
     /// <summary>
     /// Adds a bind mount for the configuration of a Milvus container resource.
@@ -160,10 +178,16 @@ public static class MilvusBuilderExtensions
     /// <param name="configurationFilePath">The source directory on the host to mount into the container.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MilvusServerResource> WithConfigurationBindMount(this IResourceBuilder<MilvusServerResource> builder, string configurationFilePath)
-        => builder.WithBindMount(configurationFilePath, "/milvus/configs/milvus.yaml");
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configurationFilePath);
+        return builder.WithBindMount(configurationFilePath, "/milvus/configs/milvus.yaml");
+    }
 
     private static void ConfigureAttuContainer(EnvironmentCallbackContext context, MilvusServerResource resource)
     {
-        context.EnvironmentVariables.Add("MILVUS_URL", $"{resource.PrimaryEndpoint.Scheme}://{resource.PrimaryEndpoint.ContainerHost}:{resource.PrimaryEndpoint.Port}");
+        // Attu assumes Milvus is being accessed over a default Aspire container network and hardcodes the resource address
+        // This will need to be refactored once updated service discovery APIs are available
+        context.EnvironmentVariables.Add("MILVUS_URL", $"{resource.PrimaryEndpoint.Scheme}://{resource.Name}:{resource.PrimaryEndpoint.TargetPort}");
     }
 }

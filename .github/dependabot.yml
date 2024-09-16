@@ -9,7 +9,8 @@ updates:
     registries:
       - public-nuget
     schedule:
-      interval: daily
+      day: monday
+      interval: weekly
       time: "07:00"
       timezone: "America/Los_Angeles"
     open-pull-requests-limit: 15
@@ -28,13 +29,11 @@ updates:
       AspNetCoreHealthChecks:
         patterns:
           - "AspNetCore.HealthChecks.*"
-      AspNetCore:
+      AWS:
         patterns:
-          - "Microsoft.AspNetCore.*"
-          - "Microsoft.Extensions.Features"
-      MicrosoftExtensions:
-        patterns:
-          - "Microsoft.Extensions.*"
+          - "AWS.*"
+          - "AWSSDK.*"
+          - "OpenTelemetry.*.AWS"
       EntityFrameworkCore:
         patterns:
           - "Microsoft.EntityFrameworkCore.*"
@@ -44,6 +43,13 @@ updates:
       OpenTelemetry:
         patterns:
           - "OpenTelemetry.*"
+      Orleans:
+        patterns:
+          - "Microsoft.Orleans*"
+      NetPlatform:
+        patterns:
+          - "Microsoft.AspNetCore.*"
+          - "Microsoft.Extensions.*"
       Npgsql:
         patterns:
           - "Npgsql.*"
@@ -53,6 +59,9 @@ updates:
       Grpc:
         patterns:
           - "Grpc.*"
+      Polly:
+        patterns:
+          - "Polly.*"
     labels:
       - "area-codeflow"
 

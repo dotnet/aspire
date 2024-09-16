@@ -91,7 +91,8 @@ public class DnsSrvServiceEndpointResolverTests
                     {
                         new ARecord(new ResourceRecordInfo("srv-a", ResourceRecordType.A, queryClass, 64, 0), IPAddress.Parse("10.10.10.10")),
                         new ARecord(new ResourceRecordInfo("srv-b", ResourceRecordType.AAAA, queryClass, 64, 0), IPAddress.IPv6Loopback),
-                        new CNameRecord(new ResourceRecordInfo("srv-c", ResourceRecordType.AAAA, queryClass, 64, 0), DnsString.Parse("remotehost"))
+                        new CNameRecord(new ResourceRecordInfo("srv-c", ResourceRecordType.AAAA, queryClass, 64, 0), DnsString.Parse("remotehost")),
+                        new TxtRecord(new ResourceRecordInfo("srv-a", ResourceRecordType.TXT, queryClass, 64, 0), ["some txt values"], ["some txt utf8 values"])
                     }
                 };
 
@@ -111,7 +112,7 @@ public class DnsSrvServiceEndpointResolverTests
             var tcs = new TaskCompletionSource<ServiceEndpointResolverResult>();
             watcher.OnEndpointsUpdated = tcs.SetResult;
             watcher.Start();
-            var initialResult = await tcs.Task.ConfigureAwait(false);
+            var initialResult = await tcs.Task;
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
             Assert.Equal(3, initialResult.EndpointSource.Endpoints.Count);
@@ -152,7 +153,8 @@ public class DnsSrvServiceEndpointResolverTests
                     {
                         new ARecord(new ResourceRecordInfo("srv-a", ResourceRecordType.A, queryClass, 64, 0), IPAddress.Parse("10.10.10.10")),
                         new ARecord(new ResourceRecordInfo("srv-b", ResourceRecordType.AAAA, queryClass, 64, 0), IPAddress.IPv6Loopback),
-                        new CNameRecord(new ResourceRecordInfo("srv-c", ResourceRecordType.AAAA, queryClass, 64, 0), DnsString.Parse("remotehost"))
+                        new CNameRecord(new ResourceRecordInfo("srv-c", ResourceRecordType.AAAA, queryClass, 64, 0), DnsString.Parse("remotehost")),
+                        new TxtRecord(new ResourceRecordInfo("srv-a", ResourceRecordType.TXT, queryClass, 64, 0), ["some txt values"], ["some txt utf8 values"])
                     }
                 };
 
@@ -197,7 +199,7 @@ public class DnsSrvServiceEndpointResolverTests
             var tcs = new TaskCompletionSource<ServiceEndpointResolverResult>();
             watcher.OnEndpointsUpdated = tcs.SetResult;
             watcher.Start();
-            var initialResult = await tcs.Task.ConfigureAwait(false);
+            var initialResult = await tcs.Task;
             Assert.NotNull(initialResult);
             Assert.Null(initialResult.Exception);
             Assert.True(initialResult.ResolvedSuccessfully);

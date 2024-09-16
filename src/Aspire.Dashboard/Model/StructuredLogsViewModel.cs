@@ -13,7 +13,7 @@ public class StructuredLogsViewModel
     private readonly List<LogFilter> _filters = new();
 
     private PagedResult<OtlpLogEntry>? _logs;
-    private string? _applicationServiceId;
+    private ApplicationKey? _applicationKey;
     private string _filterText = string.Empty;
     private int _logsStartIndex;
     private int? _logsCount;
@@ -24,7 +24,7 @@ public class StructuredLogsViewModel
         _telemetryRepository = telemetryRepository;
     }
 
-    public string? ApplicationServiceId { get => _applicationServiceId; set => SetValue(ref _applicationServiceId, value); }
+    public ApplicationKey? ApplicationKey { get => _applicationKey; set => SetValue(ref _applicationKey, value); }
     public string FilterText { get => _filterText; set => SetValue(ref _filterText, value); }
     public IReadOnlyList<LogFilter> Filters => _filters;
 
@@ -34,17 +34,21 @@ public class StructuredLogsViewModel
         _logs = null;
     }
 
-    public void AddFilters(IEnumerable<LogFilter> filters)
-    {
-        _filters.AddRange(filters);
-        _logs = null;
-    }
-
     public void AddFilter(LogFilter filter)
     {
+        // Don't add duplicate filters.
+        foreach (var existingFilter in _filters)
+        {
+            if (existingFilter.Equals(filter))
+            {
+                return;
+            }
+        }
+
         _filters.Add(filter);
         _logs = null;
     }
+
     public bool RemoveFilter(LogFilter filter)
     {
         if (_filters.Remove(filter))
@@ -54,6 +58,7 @@ public class StructuredLogsViewModel
         }
         return false;
     }
+
     public int StartIndex { get => _logsStartIndex; set => SetValue(ref _logsStartIndex, value); }
     public int? Count { get => _logsCount; set => SetValue(ref _logsCount, value); }
     public LogLevel? LogLevel { get => _logLevel; set => SetValue(ref _logLevel, value); }
@@ -87,7 +92,7 @@ public class StructuredLogsViewModel
 
             logs = _telemetryRepository.GetLogs(new GetLogsContext
             {
-                ApplicationServiceId = ApplicationServiceId,
+                ApplicationKey = ApplicationKey,
                 StartIndex = StartIndex,
                 Count = Count,
                 Filters = filters

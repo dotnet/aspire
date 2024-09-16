@@ -1,11 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting NATS</PackageTags>
+    <PackageTags>aspire integration hosting NATS</PackageTags>
     <Description>NATS support for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)nats-icon.png</PackageIconFullPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>7</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>

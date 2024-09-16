@@ -50,6 +50,8 @@ public static class AzureOpenAIExtensions
             var roleAssignment = cogServicesAccount.AssignRole(RoleDefinition.CognitiveServicesOpenAIContributor);
             roleAssignment.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
             roleAssignment.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);
+            // Disable local auth for AOAI since managed identity is used
+            cogServicesAccount.AssignProperty(x => x.Properties.DisableLocalAuth, "true");
 
             var resource = (AzureOpenAIResource)construct.Resource;
 

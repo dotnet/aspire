@@ -1,11 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentDatabasePackageTags) rabbitmq amqp</PackageTags>
     <Description>A RabbitMQ client that integrates with Aspire, including health checks, logging, and telemetry.</Description>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <MinCodeCoverage>80</MinCodeCoverage>
   </PropertyGroup>
 
   <ItemGroup>

@@ -234,7 +234,7 @@ public static class OrleansServiceExtensions
         string name,
         IProviderConfiguration provider)
     {
-        orleansServiceBuilder.Streaming[name] = provider;
+        orleansServiceBuilder.BroadcastChannel[name] = provider;
         return orleansServiceBuilder;
     }
 

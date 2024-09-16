@@ -12,19 +12,21 @@ namespace Aspire.Dashboard.Tests;
 
 public class ResourceOutgoingPeerResolverTests
 {
-    private static ResourceViewModel CreateResource(string name, string? serviceAddress = null, int? servicePort = null)
+    private static ResourceViewModel CreateResource(string name, string? serviceAddress = null, int? servicePort = null, string? displayName = null)
     {
         return new ResourceViewModel
         {
             Name = name,
             ResourceType = "Container",
-            DisplayName = name,
+            DisplayName = displayName ?? name,
             Uid = Guid.NewGuid().ToString(),
             CreationTimeStamp = DateTime.UtcNow,
             Environment = [],
             Properties = FrozenDictionary<string, Value>.Empty,
             Urls = servicePort is null || servicePort is null ? [] : [new UrlViewModel(name, new($"http://{serviceAddress}:{servicePort}"), isInternal: false)],
+            Volumes = [],
             State = null,
+            KnownState = null,
             StateStyle = null,
             Commands = []
         };
@@ -170,6 +172,38 @@ public class ResourceOutgoingPeerResolverTests
         }
     }
 
+    [Fact]
+    public void NameAndDisplayNameDifferent_OneInstance_ReturnDisplayName()
+    {
+        // Arrange
+        var resources = new Dictionary<string, ResourceViewModel>
+        {
+            ["test-abc"] = CreateResource("test-abc", "localhost", 5000, displayName: "test")
+        };
+
+        // Act & Assert
+        Assert.True(TryResolvePeerName(resources, [KeyValuePair.Create("server.address", "localhost"), KeyValuePair.Create("server.port", "5000")], out var value));
+        Assert.Equal("test", value);
+    }
+
+    [Fact]
+    public void NameAndDisplayNameDifferent_MultipleInstances_ReturnName()
+    {
+        // Arrange
+        var resources = new Dictionary<string, ResourceViewModel>
+        {
+            ["test-abc"] = CreateResource("test-abc", "localhost", 5000, displayName: "test"),
+            ["test-def"] = CreateResource("test-def", "localhost", 5001, displayName: "test")
+        };
+
+        // Act & Assert
+        Assert.True(TryResolvePeerName(resources, [KeyValuePair.Create("server.address", "localhost"), KeyValuePair.Create("server.port", "5000")], out var value1));
+        Assert.Equal("test-abc", value1);
+
+        Assert.True(TryResolvePeerName(resources, [KeyValuePair.Create("server.address", "localhost"), KeyValuePair.Create("server.port", "5001")], out var value2));
+        Assert.Equal("test-def", value2);
+    }
+
     private static bool TryResolvePeerName(IDictionary<string, ResourceViewModel> resources, KeyValuePair<string, string>[] attributes, out string? peerName)
     {
         return ResourceOutgoingPeerResolver.TryResolvePeerNameCore(resources, attributes, out peerName);
@@ -182,7 +216,7 @@ public class ResourceOutgoingPeerResolverTests
         public string ApplicationName => "ApplicationName";
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
         public Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>>? SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<ResourceViewModelSubscription> SubscribeResourcesAsync(CancellationToken cancellationToken) => subscribeResult;
     }
 }

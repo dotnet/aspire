@@ -27,6 +27,53 @@ public static class ParameterResourceBuilderExtensions
         return builder.AddParameter(name, parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault), secret: secret);
     }
 
+    /// <summary>
+    /// Adds a parameter resource to the application with a given value.
+    /// </summary>
+    /// <param name="builder">Distributed application builder</param>
+    /// <param name="name">Name of parameter resource</param>
+    /// <param name="value">A string value to use for the paramater</param>
+    /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
+    /// <returns>Resource builder for the parameter.</returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
+                                                     Justification = "third parameters are mutually exclusive.")]
+    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, string value, bool secret = false)
+    {
+        // An alternate implementation is to use some ConstantParameterDefault implementation that always returns the default value.
+        // However, doing this causes a "default": {} to be written to the manifest, which is not valid.
+        // And note that we ignore parameterDefault in the callback, because it can never be non-null, and we want our own value.
+        return builder.AddParameter(name, parameterDefault => value, secret: secret);
+    }
+
+    /// <summary>
+    /// Adds a parameter resource to the application, with a value coming from a ParameterDefault.
+    /// </summary>
+    /// <param name="builder">Distributed application builder</param>
+    /// <param name="name">Name of parameter resource</param>
+    /// <param name="value">A <see cref="ParameterDefault"/> that is used to provide the parameter value</param>
+    /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
+    /// <param name="persist">Persist the value to the app host project's user secrets store. This is typically
+    /// done when the value is generated, so that it stays stable across runs. This is only relevant when
+    /// <see cref="DistributedApplicationExecutionContext.IsRunMode"/> is <c>true</c>
+    /// </param>
+    /// <returns>Resource builder for the parameter.</returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
+                                                     Justification = "third parameters are mutually exclusive.")]
+    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, ParameterDefault value, bool secret = false, bool persist = false)
+    {
+        // If it needs persistence, wrap it in a UserSecretsParameterDefault
+        if (persist && builder.ExecutionContext.IsRunMode && builder.AppHostAssembly is not null)
+        {
+            value = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, name, value);
+        }
+
+        return builder.AddParameter(
+            name,
+            parameterDefault => parameterDefault!.GetDefaultValue(),
+            secret: secret,
+            parameterDefault: value);
+    }
+
     private static string GetParameterValue(IConfiguration configuration, string name, ParameterDefault? parameterDefault)
     {
         var configurationKey = $"Parameters:{name}";
@@ -39,10 +86,12 @@ public static class ParameterResourceBuilderExtensions
                                                                      string name,
                                                                      Func<ParameterDefault?, string> callback,
                                                                      bool secret = false,
-                                                                     bool connectionString = false)
+                                                                     bool connectionString = false,
+                                                                     ParameterDefault? parameterDefault = null)
     {
         var resource = new ParameterResource(name, callback, secret);
         resource.IsConnectionString = connectionString;
+        resource.Default = parameterDefault;
 
         var state = new CustomResourceSnapshot()
         {
@@ -151,7 +200,10 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="minNumeric">The minimum number of numeric characters in the result.</param>
     /// <param name="minSpecial">The minimum number of special characters in the result.</param>
     /// <returns>The created <see cref="ParameterResource"/>.</returns>
-    /// <remarks>To ensure the generated password has enough entropy, see the remarks in <see cref="GenerateParameterDefault"/>.</remarks>
+    /// <remarks>
+    /// To ensure the generated password has enough entropy, see the remarks in <see cref="GenerateParameterDefault"/>.<br/>
+    /// The value will be saved to the app host project's user secrets store when <see cref="DistributedApplicationExecutionContext.IsRunMode"/> is <c>true</c>.
+    /// </remarks>
     public static ParameterResource CreateDefaultPasswordParameter(
         IDistributedApplicationBuilder builder, string name,
         bool lower = true, bool upper = true, bool numeric = true, bool special = true,
@@ -176,6 +228,9 @@ public static class ParameterResourceBuilderExtensions
     /// <summary>
     /// Creates a new <see cref="ParameterResource"/> that has a generated value using the <paramref name="parameterDefault"/>.
     /// </summary>
+    /// <remarks>
+    /// The value will be saved to the app host project's user secrets store when <see cref="DistributedApplicationExecutionContext.IsRunMode"/> is <c>true</c>.
+    /// </remarks>
     /// <param name="builder">Distributed application builder</param>
     /// <param name="name">Name of parameter resource</param>
     /// <param name="secret">Flag indicating whether the parameter should be regarded as secret.</param>
@@ -184,9 +239,15 @@ public static class ParameterResourceBuilderExtensions
     public static ParameterResource CreateGeneratedParameter(
         IDistributedApplicationBuilder builder, string name, bool secret, GenerateParameterDefault parameterDefault)
     {
-        var parameterResource = new ParameterResource(name, parameterDefault => GetParameterValue(builder.Configuration, name, parameterDefault), secret);
+        var parameterResource = new ParameterResource(name, defaultValue => GetParameterValue(builder.Configuration, name, defaultValue), secret)
+        {
+            Default = parameterDefault
+        };
 
-        parameterResource.Default = parameterDefault;
+        if (builder.ExecutionContext.IsRunMode && builder.AppHostAssembly is not null)
+        {
+            parameterResource.Default = new UserSecretsParameterDefault(builder.AppHostAssembly, builder.Environment.ApplicationName, name, parameterResource.Default);
+        }
 
         return parameterResource;
     }

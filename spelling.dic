@@ -15,6 +15,7 @@ brightwhite
 brightyellow
 chmod
 consolelogs
+cors
 csproj
 dbug
 dcpctrl
@@ -61,3 +62,4 @@ upsert
 uris
 urls
 kubernetes
+Pgweb

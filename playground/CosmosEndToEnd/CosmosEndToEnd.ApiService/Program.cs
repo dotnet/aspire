@@ -9,10 +9,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 builder.AddAzureCosmosClient("cosmos");
-builder.AddCosmosDbContext<TestCosmosContext>("cosmos", "ef");
+builder.AddCosmosDbContext<TestCosmosContext>("cosmos", "ef", configureDbContextOptions =>
+{
+    configureDbContextOptions.RequestTimeout = TimeSpan.FromSeconds(120);
+});
 
 var app = builder.Build();
 
+app.MapDefaultEndpoints();
 app.MapGet("/", async (CosmosClient cosmosClient) =>
 {
     var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync("db")).Database;

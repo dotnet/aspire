@@ -22,11 +22,12 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
     }
 
     [Fact]
-    public async Task ResourcesShowUpOnDashboad()
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
+    public async Task ResourcesShowUpOnDashboard()
     {
         await using var context = await CreateNewBrowserContextAsync();
         await CheckDashboardHasResourcesAsync(
-            await _testFixture.Project!.OpenDashboardPageAsync(context).ConfigureAwait(false),
+            await _testFixture.Project!.OpenDashboardPageAsync(context),
             GetExpectedResources(_testFixture.Project!, hasRedisCache: HasRedisCache),
             timeoutSecs: DashboardResourcesWaitTimeoutSecs);
     }
@@ -34,11 +35,12 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
     [Theory]
     [InlineData("http://")]
     [InlineData("https://")]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4623", typeof(PlaywrightProvider), nameof(PlaywrightProvider.DoesNotHavePlaywrightSupport))]
     public async Task WebFrontendWorks(string urlPrefix)
     {
         await using var context = await CreateNewBrowserContextAsync();
         var resourceRows = await CheckDashboardHasResourcesAsync(
-            await _testFixture.Project!.OpenDashboardPageAsync(context).ConfigureAwait(false),
+            await _testFixture.Project!.OpenDashboardPageAsync(context),
             GetExpectedResources(_testFixture.Project!, hasRedisCache: HasRedisCache),
             timeoutSecs: DashboardResourcesWaitTimeoutSecs);
 
@@ -101,7 +103,7 @@ public abstract class StarterTemplateRunTestsBase<T> : WorkloadTestsBase, IClass
                     r => Assert.True(DateTime.TryParse(r, out _)),
                     r => Assert.True(int.TryParse(r, out var actualTempC) && actualTempC >= -20 && actualTempC <= 55),
                     r => Assert.True(int.TryParse(r, out var actualTempF) && actualTempF >= -5 && actualTempF <= 133),
-                    r => Assert.Contains(r, ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"]));
+                    r => Assert.Contains(r, new HashSet<string>{"Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"}));
             }
 
             return cellTexts;

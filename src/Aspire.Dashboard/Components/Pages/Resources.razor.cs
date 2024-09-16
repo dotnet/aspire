@@ -5,12 +5,14 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using Aspire.Dashboard.Extensions;
+
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -18,8 +20,17 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Resources : ComponentBase, IAsyncDisposable
 {
+    private const string TypeColumn = nameof(TypeColumn);
+    private const string NameColumn = nameof(NameColumn);
+    private const string StateColumn = nameof(StateColumn);
+    private const string StartTimeColumn = nameof(StartTimeColumn);
+    private const string SourceColumn = nameof(SourceColumn);
+    private const string EndpointsColumn = nameof(EndpointsColumn);
+    private const string ActionsColumn = nameof(ActionsColumn);
+
     private Subscription? _logsSubscription;
-    private Dictionary<OtlpApplication, int>? _applicationUnviewedErrorCounts;
+    private IList<GridColumn>? _gridColumns;
+    private Dictionary<ApplicationKey, int>? _applicationUnviewedErrorCounts;
 
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
@@ -35,27 +46,34 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     public required BrowserTimeProvider TimeProvider { get; init; }
     [Inject]
     public required IJSRuntime JS { get; init; }
+    [Inject]
+    public required ProtectedSessionStorage SessionStorage { get; init; }
+    [Inject]
+    public required DimensionManager DimensionManager { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? VisibleTypes { get; set; }
 
     private ResourceViewModel? SelectedResource { get; set; }
 
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly ConcurrentDictionary<string, bool> _allResourceTypes = [];
-    private readonly ConcurrentDictionary<string, bool> _visibleResourceTypes;
+    private readonly ConcurrentDictionary<string, bool> _visibleResourceTypes = new(StringComparers.ResourceName);
     private string _filter = "";
     private bool _isTypeFilterVisible;
     private Task? _resourceSubscriptionTask;
     private bool _isLoading = true;
     private string? _elementIdBeforeDetailsViewOpened;
+    private GridColumnManager _manager = null!;
 
-    public Resources()
-    {
-        _visibleResourceTypes = new(StringComparers.ResourceType);
-    }
+    private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter)) && !resource.IsHiddenState();
 
-    private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter)) && resource.State != ResourceStates.HiddenState;
-
-    protected Task OnResourceTypeVisibilityChangedAsync(string resourceType, bool isVisible)
+    private Task OnResourceTypeVisibilityChangedAsync(string resourceType, bool isVisible)
     {
         if (isVisible)
         {
@@ -84,7 +102,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 var keysLeft = left.Keys;
                 var keysRight = right.Keys;
 
-                return keysLeft.Count == keysRight.Count && keysLeft.SequenceEqual(keysRight, StringComparers.ResourceType);
+                return keysLeft.Count == keysRight.Count && keysLeft.OrderBy(key => key, StringComparers.ResourceType).SequenceEqual(keysRight.OrderBy(key => key, StringComparers.ResourceType), StringComparers.ResourceType);
             }
 
             return SetEqualsKeys(_visibleResourceTypes, _allResourceTypes)
@@ -114,10 +132,10 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             {
                 _visibleResourceTypes.Clear();
             }
+
+            StateHasChanged();
         }
     }
-
-    private bool HasResourcesWithCommands => _resourceByName.Any(r => r.Value.Commands.Any());
 
     private IQueryable<ResourceViewModel>? FilteredResources => _resourceByName.Values.Where(Filter).OrderBy(e => e.ResourceType).ThenBy(e => e.Name).AsQueryable();
 
@@ -127,6 +145,15 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
+        _gridColumns = [
+            new GridColumn(Name: TypeColumn, DesktopWidth: "1fr"),
+            new GridColumn(Name: NameColumn, DesktopWidth: "1.5fr", MobileWidth: "1.5fr"),
+            new GridColumn(Name: StateColumn, DesktopWidth: "1.25fr", MobileWidth: "1.25fr"),
+            new GridColumn(Name: StartTimeColumn, DesktopWidth: "1.5fr"),
+            new GridColumn(Name: SourceColumn, DesktopWidth: "2.5fr"),
+            new GridColumn(Name: EndpointsColumn, DesktopWidth: "2.5fr", MobileWidth: "2fr"),
+            new GridColumn(Name: ActionsColumn, DesktopWidth: "1.5fr", MobileWidth: "1fr")
+        ];
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
         if (DashboardClient.IsEnabled)
@@ -150,6 +177,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
         async Task SubscribeResourcesAsync()
         {
+            var preselectedVisibleResourceTypes = VisibleTypes?.Split(',').ToHashSet();
+
             var (snapshot, subscription) = await DashboardClient.SubscribeResourcesAsync(_watchTaskCancellationTokenSource.Token);
 
             // Apply snapshot.
@@ -158,7 +187,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                 var added = _resourceByName.TryAdd(resource.Name, resource);
 
                 _allResourceTypes.TryAdd(resource.ResourceType, true);
-                _visibleResourceTypes.TryAdd(resource.ResourceType, true);
+
+                if (preselectedVisibleResourceTypes is null || preselectedVisibleResourceTypes.Contains(resource.ResourceType))
+                {
+                    _visibleResourceTypes.TryAdd(resource.ResourceType, true);
+                }
 
                 Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
             }
@@ -190,7 +223,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         }
     }
 
-    private bool ApplicationErrorCountsChanged(Dictionary<OtlpApplication, int> newApplicationUnviewedErrorCounts)
+    private bool ApplicationErrorCountsChanged(Dictionary<ApplicationKey, int> newApplicationUnviewedErrorCounts)
     {
         if (_applicationUnviewedErrorCounts == null || _applicationUnviewedErrorCounts.Count != newApplicationUnviewedErrorCounts.Count)
         {
@@ -208,7 +241,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         return false;
     }
 
-    private async Task ShowResourceDetailsAsync(ResourceViewModel resource, string buttonId)
+    private async Task ShowResourceDetailsAsync(ResourceViewModel resource, string? buttonId)
     {
         _elementIdBeforeDetailsViewOpened = buttonId;
 
@@ -226,6 +259,8 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     {
         SelectedResource = null;
 
+        await InvokeAsync(StateHasChanged);
+
         if (_elementIdBeforeDetailsViewOpened is not null && causedByUserAction)
         {
             await JS.InvokeVoidAsync("focusElement", _elementIdBeforeDetailsViewOpened);
@@ -241,7 +276,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         var count = 0;
         foreach (var (_, item) in _resourceByName)
         {
-            if (item.State == ResourceStates.HiddenState)
+            if (item.IsHiddenState())
             {
                 continue;
             }
@@ -259,7 +294,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         return false;
     }
 
-    private string? GetRowClass(ResourceViewModel resource)
+    private string GetRowClass(ResourceViewModel resource)
         => resource == SelectedResource ? "selected-row resource-row" : "resource-row";
 
     private async Task ExecuteResourceCommandAsync(ResourceViewModel resource, CommandViewModel command)
@@ -362,18 +397,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
         additionalMessage = null;
 
-        // Make sure that endpoints have a consistent ordering. Show https first, then everything else.
-        return [.. GetEndpoints(resource)
-            .OrderByDescending(e => e.Url?.StartsWith("https") == true)
-            .ThenBy(e=> e.Url ?? e.Text)];
-    }
-
-    /// <summary>
-    /// A resource has services and endpoints. These can overlap. This method attempts to return a single list without duplicates.
-    /// </summary>
-    private static List<DisplayedEndpoint> GetEndpoints(ResourceViewModel resource)
-    {
-        return ResourceEndpointHelpers.GetEndpoints(resource, includeInteralUrls: false);
+        return ResourceEndpointHelpers.GetEndpoints(resource, includeInternalUrls: false);
     }
 
     public async ValueTask DisposeAsync()

@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.RabbitMQ;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -30,10 +31,35 @@ public static class RabbitMQBuilderExtensions
         IResourceBuilder<ParameterResource>? password = null,
         int? port = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         // don't use special characters in the password, since it goes into a URI
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", special: false);
 
         var rabbitMq = new RabbitMQServerResource(name, userName?.Resource, passwordParameter);
+
+        string? connectionString = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(rabbitMq, async (@event, ct) =>
+        {
+            connectionString = await rabbitMq.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{rabbitMq.Name}' resource but the connection string was null.");
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.Services.AddHealthChecks().AddRabbitMQ((sp, options) =>
+        {
+            // NOTE: This specific callback signature needs to be used to ensure
+            //       that execution of this setup callback is deferred until after
+            //       the container is build & started.
+            options.ConnectionUri = new Uri(connectionString!);
+        }, healthCheckKey);
+
         var rabbitmq = builder.AddResource(rabbitMq)
                               .WithImage(RabbitMQContainerImageTags.Image, RabbitMQContainerImageTags.Tag)
                               .WithImageRegistry(RabbitMQContainerImageTags.Registry)
@@ -42,7 +68,8 @@ public static class RabbitMQBuilderExtensions
                               {
                                   context.EnvironmentVariables["RABBITMQ_DEFAULT_USER"] = rabbitMq.UserNameReference;
                                   context.EnvironmentVariables["RABBITMQ_DEFAULT_PASS"] = rabbitMq.PasswordParameter;
-                              });
+                              })
+                              .WithHealthCheck(healthCheckKey);
 
         return rabbitmq;
     }
@@ -55,9 +82,12 @@ public static class RabbitMQBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RabbitMQServerResource> WithDataVolume(this IResourceBuilder<RabbitMQServerResource> builder, string? name = null, bool isReadOnly = false)
-        => builder
-            .WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/rabbitmq", isReadOnly)
-            .RunWithStableNodeName();
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/lib/rabbitmq", isReadOnly)
+                      .RunWithStableNodeName();
+    }
 
     /// <summary>
     /// Adds a bind mount for the data folder to a RabbitMQ container resource.
@@ -67,8 +97,13 @@ public static class RabbitMQBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RabbitMQServerResource> WithDataBindMount(this IResourceBuilder<RabbitMQServerResource> builder, string source, bool isReadOnly = false)
-        => builder.WithBindMount(source, "/var/lib/rabbitmq", isReadOnly)
-                  .RunWithStableNodeName();
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+
+        return builder.WithBindMount(source, "/var/lib/rabbitmq", isReadOnly)
+                      .RunWithStableNodeName();
+    }
 
     /// <summary>
     /// Configures the RabbitMQ container resource to enable the RabbitMQ management plugin.
@@ -81,7 +116,11 @@ public static class RabbitMQBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Thrown when the current container image and tag do not match the defaults for <see cref="RabbitMQServerResource"/>.</exception>
     public static IResourceBuilder<RabbitMQServerResource> WithManagementPlugin(this IResourceBuilder<RabbitMQServerResource> builder)
-        => builder.WithManagementPlugin(port: null);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithManagementPlugin(port: null);
+    }
 
     /// <inheritdoc cref="WithManagementPlugin(IResourceBuilder{RabbitMQServerResource})" />
     /// <param name="builder">The resource builder.</param>
@@ -96,6 +135,8 @@ public static class RabbitMQBuilderExtensions
     /// </example>
     public static IResourceBuilder<RabbitMQServerResource> WithManagementPlugin(this IResourceBuilder<RabbitMQServerResource> builder, int? port)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         var handled = false;
         var containerAnnotations = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().ToList();
 

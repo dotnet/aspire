@@ -13,6 +13,7 @@ using LogEntryList = IReadOnlyList<(string Content, bool IsErrorMessage)>;
 internal sealed class ResourceLogSource<TResource>(
     ILogger logger,
     IKubernetesService kubernetesService,
+    Version? dcpVersion,
     TResource resource) :
     IAsyncEnumerable<LogEntryList>
     where TResource : CustomResource
@@ -24,10 +25,6 @@ internal sealed class ResourceLogSource<TResource>(
             throw new ArgumentException("Cancellation token must be cancellable in order to prevent leaking resources.", nameof(cancellationToken));
         }
 
-        var timestamps = resource is Container; // Timestamps are available only for Containers as of Aspire P5.
-        var stdoutStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStdOut, follow: true, timestamps: timestamps, cancellationToken).ConfigureAwait(false);
-        var stderrStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStdErr, follow: true, timestamps: timestamps, cancellationToken).ConfigureAwait(false);
-
         var channel = Channel.CreateUnbounded<LogEntry>(new UnboundedChannelOptions
         {
             AllowSynchronousContinuations = false,
@@ -35,14 +32,33 @@ internal sealed class ResourceLogSource<TResource>(
             SingleWriter = false
         });
 
+        var streamTasks = new List<Task>();
+
+        if (resource is Container && dcpVersion?.CompareTo(DcpVersion.MinimumVersionAspire_8_1) >= 0)
+        {
+            var startupStderrStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStartupStdErr, follow: true, timestamps: true, cancellationToken).ConfigureAwait(false);
+            var startupStdoutStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStartupStdOut, follow: true, timestamps: true, cancellationToken).ConfigureAwait(false);
+
+            var startupStdoutStreamTask = Task.Run(() => StreamLogsAsync(startupStdoutStream, isError: false), cancellationToken);
+            streamTasks.Add(startupStdoutStreamTask);
+
+            var startupStderrStreamTask = Task.Run(() => StreamLogsAsync(startupStderrStream, isError: false), cancellationToken);
+            streamTasks.Add(startupStderrStreamTask);
+        }
+
+        var stdoutStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStdOut, follow: true, timestamps: true, cancellationToken).ConfigureAwait(false);
+        var stderrStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeStdErr, follow: true, timestamps: true, cancellationToken).ConfigureAwait(false);
+
         var stdoutStreamTask = Task.Run(() => StreamLogsAsync(stdoutStream, isError: false), cancellationToken);
+        streamTasks.Add(stdoutStreamTask);
+
         var stderrStreamTask = Task.Run(() => StreamLogsAsync(stderrStream, isError: true), cancellationToken);
+        streamTasks.Add(stderrStreamTask);
 
         // End the enumeration when both streams have been read to completion.
-
         async Task WaitForStreamsToCompleteAsync()
         {
-            await Task.WhenAll(stdoutStreamTask, stderrStreamTask).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            await Task.WhenAll(streamTasks).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
             channel.Writer.TryComplete();
         }
 

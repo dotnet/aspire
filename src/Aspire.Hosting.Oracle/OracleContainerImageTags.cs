@@ -7,5 +7,5 @@ internal static class OracleContainerImageTags
 {
     public const string Registry = "container-registry.oracle.com";
     public const string Image = "database/free";
-    public const string Tag = "23.3.0.0";
+    public const string Tag = "23.5.0.0";
 }

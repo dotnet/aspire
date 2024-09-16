@@ -6,12 +6,14 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -138,10 +140,11 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             // Options should have been validated these should not be null
 
             Debug.Assert(options.DashboardUrl is not null, "DashboardUrl should not be null");
-            Debug.Assert(options.OtlpEndpointUrl is not null, "OtlpEndpointUrl should not be null");
+            Debug.Assert(options.OtlpGrpcEndpointUrl is not null || options.OtlpHttpEndpointUrl is not null, "OtlpGrpcEndpointUrl and OtlpHttpEndpointUrl should not both be null");
 
             var dashboardUrls = options.DashboardUrl;
-            var otlpEndpointUrl = options.OtlpEndpointUrl;
+            var otlpGrpcEndpointUrl = options.OtlpGrpcEndpointUrl;
+            var otlpHttpEndpointUrl = options.OtlpHttpEndpointUrl;
 
             var environment = options.AspNetCoreEnvironment;
             var browserToken = options.DashboardToken;
@@ -152,7 +155,49 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             context.EnvironmentVariables["ASPNETCORE_ENVIRONMENT"] = environment;
             context.EnvironmentVariables[DashboardConfigNames.DashboardFrontendUrlName.EnvVarName] = dashboardUrls;
             context.EnvironmentVariables[DashboardConfigNames.ResourceServiceUrlName.EnvVarName] = resourceServiceUrl;
-            context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpUrlName.EnvVarName] = otlpEndpointUrl;
+            if (otlpGrpcEndpointUrl != null)
+            {
+                context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpGrpcUrlName.EnvVarName] = otlpGrpcEndpointUrl;
+            }
+            if (otlpHttpEndpointUrl != null)
+            {
+                context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName] = otlpHttpEndpointUrl;
+
+                var model = context.ExecutionContext.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
+                var allResourceEndpoints = model.Resources
+                    .Where(r => !string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName))
+                    .SelectMany(r => r.Annotations)
+                    .OfType<EndpointAnnotation>()
+                    .ToList();
+
+                var corsOrigins = new HashSet<string>(StringComparers.UrlHost);
+                foreach (var endpoint in allResourceEndpoints)
+                {
+                    if (endpoint.UriScheme is "http" or "https")
+                    {
+                        // Prefer allocated endpoint over EndpointAnnotation.Port.
+                        var origin = endpoint.AllocatedEndpoint?.UriString;
+                        var targetOrigin = (endpoint.TargetPort != null)
+                            ? $"{endpoint.UriScheme}://localhost:{endpoint.TargetPort}"
+                            : null;
+
+                        if (origin != null)
+                        {
+                            corsOrigins.Add(origin);
+                        }
+                        if (targetOrigin != null)
+                        {
+                            corsOrigins.Add(targetOrigin);
+                        }
+                    }
+                }
+
+                if (corsOrigins.Count > 0)
+                {
+                    context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName] = string.Join(',', corsOrigins);
+                    context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.EnvVarName] = "*";
+                }
+            }
 
             // Configure frontend browser token
             if (!string.IsNullOrEmpty(browserToken))
@@ -256,7 +301,13 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
                     try
                     {
-                        logMessage = JsonSerializer.Deserialize(logLine.Content, DashboardLogMessageContext.Default.DashboardLogMessage);
+                        var content = logLine.Content;
+                        if (TimestampParser.TryParseConsoleTimestamp(content, out var result))
+                        {
+                            content = result.Value.ModifiedText;
+                        }
+
+                        logMessage = JsonSerializer.Deserialize(content, DashboardLogMessageContext.Default.DashboardLogMessage);
                     }
                     catch (JsonException)
                     {
@@ -308,8 +359,16 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         },
         loggerFactory);
 
-        // TODO: We should log the state as well.
-        logger.Log(logMessage.LogLevel, logMessage.EventId, logMessage.Message, null, (s, _) => s);
+        if (logger.IsEnabled(logMessage.LogLevel))
+        {
+            // TODO: We should log the state as well.
+            logger.Log(
+                logMessage.LogLevel,
+                logMessage.EventId,
+                logMessage.Message,
+                null,
+                (s, _) => (logMessage.Exception is { } e) ? s + Environment.NewLine + e : s);
+        }
     }
 }
 
@@ -321,6 +380,7 @@ internal sealed class DashboardLogMessage
     public LogLevel LogLevel { get; set; }
     public string Category { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
+    public string? Exception { get; set; }
     public JsonObject? State { get; set; }
 }
 
