@@ -56,6 +56,7 @@ public sealed class Subscription : IDisposable
                 }
             }
 
+            _lastExecute = DateTime.UtcNow;
             return true;
         }
         finally
@@ -92,7 +93,6 @@ public sealed class Subscription : IDisposable
 
                 Logger.LogTrace("Subscription '{Name}' executing.", Name);
                 await _callback().ConfigureAwait(false);
-                _lastExecute = DateTime.UtcNow;
             }
             catch (Exception ex)
             {
