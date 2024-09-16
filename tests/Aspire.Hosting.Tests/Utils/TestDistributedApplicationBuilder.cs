@@ -45,6 +45,11 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
         return new TestDistributedApplicationBuilder(options => options.Args = args);
     }
 
+    public static TestDistributedApplicationBuilder Create(ITestOutputHelper testOutputHelper, params string[] args)
+    {
+        return new TestDistributedApplicationBuilder(options => options.Args = args, testOutputHelper);
+    }
+
     public static TestDistributedApplicationBuilder Create(Action<DistributedApplicationOptions>? configureOptions, ITestOutputHelper? testOutputHelper = null)
     {
         return new TestDistributedApplicationBuilder(configureOptions, testOutputHelper);

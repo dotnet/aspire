@@ -63,6 +63,13 @@ internal sealed class ContainerSpec
 
     [JsonPropertyName("networks")]
     public List<ContainerNetworkConnection>? Networks { get; set; }
+
+    /// <summary>
+    /// Optional lifecycle key for the resource (used to identify changes to persistent resources requiring a restart).
+    /// If unset, DCP will calculate a default lifecycle key based on a hash of various resource spec properties.
+    /// </summary>
+    [JsonPropertyName("lifecycleKey")]
+    public string? LifecycleKey { get; set; }
 }
 
 internal sealed class BuildContext
@@ -304,6 +311,12 @@ internal sealed class ContainerStatus : V1Status
     /// </summary>
     [JsonPropertyName("healthProbeResults")]
     public List<HealthProbeResult>? HealthProbeResults { get; set;}
+
+    /// <summary>
+    /// The lifecycle key for the resource (used to identify changes to persistent resources requiring a restart).
+    /// </summary>
+    [JsonPropertyName("lifecycleKey")]
+    public string? LifecycleKey { get; set; }
 
     // Note: the ContainerStatus has "Message" property that represents a human-readable information about Container state.
     // It is provided by V1Status base class.

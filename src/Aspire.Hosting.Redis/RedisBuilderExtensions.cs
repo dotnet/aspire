@@ -44,6 +44,11 @@ public static class RedisBuilderExtensions
         builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(redis, async (@event, ct) =>
         {
             connectionString = await redis.GetConnectionStringAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{redis.Name}' resource but the connection string was null.");
+            }
         });
 
         var healthCheckKey = $"{name}_check";

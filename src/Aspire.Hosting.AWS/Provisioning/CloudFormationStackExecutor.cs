@@ -8,10 +8,11 @@ using Amazon.CloudFormation;
 using Amazon.CloudFormation.Model;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.AWS.CloudFormation;
+namespace Aspire.Hosting.AWS.Provisioning;
+
 internal sealed class CloudFormationStackExecutor(
     IAmazonCloudFormation cloudFormationClient,
-    CloudFormationTemplateResource cloudFormationResource,
+    CloudFormationStackExecutionContext context,
     ILogger logger)
 {
     // Name of the Tag for the stack to store the SHA256 of the CloudFormation template
@@ -21,7 +22,7 @@ internal sealed class CloudFormationStackExecutor(
     const string IN_PROGRESS_SUFFIX = "IN_PROGRESS";
 
     // Polling interval for checking status of CloudFormation stack when creating or updating the stack.
-    TimeSpan StackPollingDelay { get; } = TimeSpan.FromSeconds(cloudFormationResource.StackPollingInterval);
+    TimeSpan StackPollingDelay { get; } = TimeSpan.FromSeconds(context.StackPollingInterval);
 
     /// <summary>
     /// Using the template and configuration from the CloudFormationTemplateResource create or update
@@ -33,18 +34,18 @@ internal sealed class CloudFormationStackExecutor(
     /// <returns></returns>
     internal async Task<Stack?> ExecuteTemplateAsync(CancellationToken cancellationToken = default)
     {
-        var existingStack = await FindstackAsync().ConfigureAwait(false);
+        var existingStack = await FindStackAsync().ConfigureAwait(false);
         var changeSetType = await DetermineChangeSetTypeAsync(existingStack, cancellationToken).ConfigureAwait(false);
 
-        var templateBody = File.ReadAllText(cloudFormationResource.TemplatePath);
-        var computedSha256 = ComputeSHA256(templateBody, cloudFormationResource.CloudFormationParameters);
+        var templateBody = context.Template;
+        var computedSha256 = ComputeSHA256(templateBody, context.CloudFormationParameters);
 
         (var tags, var existingSha256) = SetupTags(existingStack, changeSetType, computedSha256);
 
         // Check to see if the template hasn't change. If it hasn't short circuit out.
-        if (!cloudFormationResource.DisableDiffCheck && string.Equals(computedSha256, existingSha256))
+        if (!context.DisableDiffCheck && string.Equals(computedSha256, existingSha256))
         {
-            logger.LogInformation("CloudFormation Template for CloudFormation stack {StackName} has not changed", cloudFormationResource.Name);
+            logger.LogInformation("CloudFormation Template for CloudFormation stack {StackName} has not changed", context.StackName);
             return existingStack;
         }
 
@@ -99,7 +100,7 @@ internal sealed class CloudFormationStackExecutor(
     private List<Parameter> SetupTemplateParameters()
     {
         var templateParameters = new List<Parameter>();
-        foreach (var kvp in cloudFormationResource.CloudFormationParameters)
+        foreach (var kvp in context.CloudFormationParameters)
         {
             templateParameters.Add(new Parameter
             {
@@ -129,28 +130,28 @@ internal sealed class CloudFormationStackExecutor(
             logger.LogInformation("Creating CloudFormation change set.");
             var capabilities = new List<string>();
 
-            if (cloudFormationResource.DisabledCapabilities.FirstOrDefault(x => string.Equals(x, "CAPABILITY_IAM", StringComparison.OrdinalIgnoreCase)) == null)
+            if (context.DisabledCapabilities.FirstOrDefault(x => string.Equals(x, "CAPABILITY_IAM", StringComparison.OrdinalIgnoreCase)) == null)
             {
                 capabilities.Add("CAPABILITY_IAM");
             }
-            if (cloudFormationResource.DisabledCapabilities.FirstOrDefault(x => string.Equals(x, "CAPABILITY_NAMED_IAM", StringComparison.OrdinalIgnoreCase)) == null)
+            if (context.DisabledCapabilities.FirstOrDefault(x => string.Equals(x, "CAPABILITY_NAMED_IAM", StringComparison.OrdinalIgnoreCase)) == null)
             {
                 capabilities.Add("CAPABILITY_NAMED_IAM");
             }
-            if (cloudFormationResource.DisabledCapabilities.FirstOrDefault(x => string.Equals(x, "CAPABILITY_AUTO_EXPAND", StringComparison.OrdinalIgnoreCase)) == null)
+            if (context.DisabledCapabilities.FirstOrDefault(x => string.Equals(x, "CAPABILITY_AUTO_EXPAND", StringComparison.OrdinalIgnoreCase)) == null)
             {
                 capabilities.Add("CAPABILITY_AUTO_EXPAND");
             }
 
             var changeSetRequest = new CreateChangeSetRequest
             {
-                StackName = cloudFormationResource.Name,
+                StackName = context.StackName,
                 Parameters = templateParameters,
                 // Change set name needs to be unique. Since the changeset isn't be created directly by the user the name isn't really important.
                 ChangeSetName = "Aspire-AppHost-" + DateTime.Now.Ticks,
                 ChangeSetType = changeSetType,
                 Capabilities = capabilities,
-                RoleARN = cloudFormationResource.RoleArn,
+                RoleARN = context.RoleArn,
                 TemplateBody = templateBody,
                 Tags = tags
             };
@@ -183,7 +184,7 @@ internal sealed class CloudFormationStackExecutor(
     {
         var executeChangeSetRequest = new ExecuteChangeSetRequest
         {
-            StackName = cloudFormationResource.Name,
+            StackName = context.StackName,
             ChangeSetName = changeSetId
         };
 
@@ -195,11 +196,11 @@ internal sealed class CloudFormationStackExecutor(
             await cloudFormationClient.ExecuteChangeSetAsync(executeChangeSetRequest, cancellationToken).ConfigureAwait(false);
             if (changeSetType == ChangeSetType.CREATE)
             {
-                logger.LogInformation($"Initiated CloudFormation stack creation for {cloudFormationResource.Name}");
+                logger.LogInformation("Initiated CloudFormation stack creation for {cloudFormationTemplate.StackName}", context.StackName);
             }
             else
             {
-                logger.LogInformation($"Initiated CloudFormation stack update on {cloudFormationResource.Name}");
+                logger.LogInformation("Initiated CloudFormation stack update on {cloudFormationTemplate.StackName}", context.StackName);
             }
         }
         catch (Exception e)
@@ -244,7 +245,7 @@ internal sealed class CloudFormationStackExecutor(
 
             changeSetType = ChangeSetType.CREATE;
         }
-        // If the status was DELETE_IN_PROGRESS then just wait for delete to complete 
+        // If the status was DELETE_IN_PROGRESS then just wait for delete to complete
         else if (stack.StackStatus == StackStatus.DELETE_IN_PROGRESS)
         {
             await WaitForNoLongerInProgress(cancellationToken).ConfigureAwait(false);
@@ -327,7 +328,7 @@ internal sealed class CloudFormationStackExecutor(
                 }
 
                 await Task.Delay(StackPollingDelay, cancellation).ConfigureAwait(false);
-                currentStack = await FindstackAsync().ConfigureAwait(false);
+                currentStack = await FindStackAsync().ConfigureAwait(false);
             } while (currentStack != null && currentStack.StackStatus.ToString(CultureInfo.InvariantCulture).EndsWith(IN_PROGRESS_SUFFIX));
 
             return currentStack;
@@ -396,7 +397,7 @@ internal sealed class CloudFormationStackExecutor(
         const int RESOURCE_STATUS = 40;
         var mostRecentEventId = string.Empty;
 
-        var waitingMessage = $"... Waiting for CloudFormation stack {cloudFormationResource.Name} to be ready";
+        var waitingMessage = $"... Waiting for CloudFormation stack {context.StackName} to be ready";
         logger.LogInformation(waitingMessage);
         logger.LogInformation(new string('-', waitingMessage.Length));
 
@@ -406,7 +407,7 @@ internal sealed class CloudFormationStackExecutor(
             await Task.Delay(StackPollingDelay, cancellationToken).ConfigureAwait(false);
 
             // If we are in the WaitStackToCompleteAsync then we already know the stack exists.
-            stack = (await FindstackAsync().ConfigureAwait(false))!;
+            stack = (await FindStackAsync().ConfigureAwait(false))!;
 
             var events = await GetLatestEventsAsync(minTimeStampForEvents, mostRecentEventId, cancellationToken).ConfigureAwait(false);
             if (events.Count > 0)
@@ -449,7 +450,7 @@ internal sealed class CloudFormationStackExecutor(
         DescribeStackEventsResponse? response = null;
         do
         {
-            var request = new DescribeStackEventsRequest() { StackName = cloudFormationResource.Name };
+            var request = new DescribeStackEventsRequest() { StackName = context.StackName };
             if (response != null)
             {
                 request.NextToken = response.NextToken;
@@ -491,11 +492,11 @@ internal sealed class CloudFormationStackExecutor(
         return Convert.ToHexString(bytes).ToLower(CultureInfo.InvariantCulture);
     }
 
-    private async Task<Stack?> FindstackAsync()
+    private async Task<Stack?> FindStackAsync()
     {
         await foreach (var stack in cloudFormationClient.Paginators.DescribeStacks(new DescribeStacksRequest()).Stacks.ConfigureAwait(false))
         {
-            if (string.Equals(cloudFormationResource.Name, stack.StackName, StringComparison.Ordinal))
+            if (string.Equals(context.StackName, stack.StackName, StringComparison.Ordinal))
             {
                 return stack;
             }
