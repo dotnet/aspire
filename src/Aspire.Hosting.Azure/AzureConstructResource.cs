@@ -120,12 +120,21 @@ public static class AzureConstructResourceExtensions
     }
 
     /// <summary>
-    /// TODO
+    /// Creates a new <see cref="BicepParameter"/> in <paramref name="construct"/>, or reuses an existing bicep parameter if one with
+    /// the same name already exists, that corresponds to <paramref name="parameterResourceBuilder"/>.
     /// </summary>
-    /// <param name="parameterResourceBuilder"></param>
-    /// <param name="construct"></param>
-    /// <param name="parameterName"></param>
-    /// <returns></returns>
+    /// <param name="parameterResourceBuilder">
+    /// The <see cref="IResourceBuilder{ParameterResource}"/> that represents a parameter in the <see cref="Aspire.Hosting.ApplicationModel" />
+    /// to get or create a corresponding <see cref="BicepParameter"/>.
+    /// </param>
+    /// <param name="construct">The <see cref="ResourceModuleConstruct"/> that contains the <see cref="BicepParameter"/>.</param>
+    /// <param name="parameterName">The name of the parameter to be assigned.</param>
+    /// <returns>
+    /// The corresponding <see cref="BicepParameter"/> that was found or newly created.
+    /// </returns>
+    /// <remarks>
+    /// This is useful when assigning a <see cref="BicepValue"/> to the value of an Aspire <see cref="ParameterResource"/>.
+    /// </remarks>
     [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
         Justification = "The 'this' arguments are mutually exclusive")]
     public static BicepParameter AsBicepParameter(this IResourceBuilder<ParameterResource> parameterResourceBuilder, ResourceModuleConstruct construct, string? parameterName = null)
@@ -151,12 +160,20 @@ public static class AzureConstructResourceExtensions
     }
 
     /// <summary>
-    /// TODO
+    /// Creates a new <see cref="BicepParameter"/> in <paramref name="construct"/>, or reuses an existing bicep parameter if one with
+    /// the same name already exists, that corresponds to <paramref name="outputReference"/>.
     /// </summary>
-    /// <param name="outputReference"></param>
-    /// <param name="construct"></param>
-    /// <param name="parameterName"></param>
-    /// <returns></returns>
+    /// <param name="outputReference">
+    /// The <see cref="BicepOutputReference"/> that contains the value to use for the <see cref="BicepParameter"/>.
+    /// </param>
+    /// <param name="construct">The <see cref="ResourceModuleConstruct"/> that contains the <see cref="BicepParameter"/>.</param>
+    /// <param name="parameterName">The name of the parameter to be assigned.</param>
+    /// <returns>
+    /// The corresponding <see cref="BicepParameter"/> that was found or newly created.
+    /// </returns>
+    /// <remarks>
+    /// This is useful when assigning a <see cref="BicepValue"/> to the value of an Aspire <see cref="BicepOutputReference"/>.
+    /// </remarks>
     [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
         Justification = "The 'this' arguments are mutually exclusive")]
     public static BicepParameter AsBicepParameter(this BicepOutputReference outputReference, ResourceModuleConstruct construct, string? parameterName = null)
@@ -177,53 +194,6 @@ public static class AzureConstructResourceExtensions
 
         return parameter;
     }
-
-    /// <summary>
-    /// Assigns an Aspire parameter resource to an Azure construct resource.
-    /// </summary>
-    /// <typeparam name="T">Type of the CDK resource.</typeparam>
-    /// <param name="resource">The CDK resource.</param>
-    /// <param name="propertySelector">Property selection expression.</param>
-    /// <param name="parameterResourceBuilder">Aspire parameter resource builder.</param>
-    /// <param name="parameterName">The name of the parameter to be assigned.</param>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
-    [Obsolete("This API is no longer supported and always throws.")]
-    public static void AssignProperty<T>(this global::Azure.Provisioning.Primitives.Resource resource, System.Linq.Expressions.Expression<Func<T, object?>> propertySelector, IResourceBuilder<ParameterResource> parameterResourceBuilder, string? parameterName = null) where T : notnull
-    {
-        throw new NotSupportedException("");
-    }
-
-    ///// <summary>
-    ///// Assigns an Aspire Bicep output reference to an Azure construct resource.
-    ///// </summary>
-    ///// <typeparam name="T">Type of the CDK resource.</typeparam>
-    ///// <param name="resource">The CDK resource.</param>
-    ///// <param name="propertySelector">Property selection expression.</param>
-    ///// <param name="parameterName">The name of the parameter to be assigned.</param>
-    ///// <param name="outputReference">Aspire parameter resource builder.</param>
-    //[System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
-    //public static void AssignProperty<T>(this Resource resource, Expression<Func<T, object?>> propertySelector, BicepOutputReference outputReference, string? parameterName = null) where T : notnull
-    //{
-    //    parameterName ??= outputReference.Resource.Name;
-
-    //    if (resource.Scope is not ResourceModuleConstruct construct)
-    //    {
-    //        throw new ArgumentException("Cannot bind Aspire parameter resource to this construct.", nameof(resource));
-    //    }
-
-    //    construct.Resource.Parameters[parameterName] = outputReference;
-
-    //    if (resource.Scope.GetParameters().Any(p => p.Name == parameterName))
-    //    {
-    //        var parameter = resource.Scope.GetParameters().Single(p => p.Name == parameterName);
-    //        resource.AssignProperty(propertySelector, parameter);
-    //    }
-    //    else
-    //    {
-    //        var parameter = new BicepParameter(parameterName, typeof(string));
-    //        resource.AssignProperty(propertySelector, parameter);
-    //    }
-    //}
 }
 
 /// <summary>
