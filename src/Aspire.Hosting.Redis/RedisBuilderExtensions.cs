@@ -44,6 +44,11 @@ public static class RedisBuilderExtensions
         builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(redis, async (@event, ct) =>
         {
             connectionString = await redis.GetConnectionStringAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{redis.Name}' resource but the connection string was null.");
+            }
         });
 
         var healthCheckKey = $"{name}_check";
@@ -100,7 +105,9 @@ public static class RedisBuilderExtensions
                 {
                     if (redisInstance.PrimaryEndpoint.IsAllocated)
                     {
-                        var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.PrimaryEndpoint.ContainerHost}:{redisInstance.PrimaryEndpoint.Port}:0";
+                        // Redis Commander assumes Redis is being accessed over a default Aspire container network and hardcodes the resource address
+                        // This will need to be refactored once updated service discovery APIs are available
+                        var hostString = $"{(hostsVariableBuilder.Length > 0 ? "," : string.Empty)}{redisInstance.Name}:{redisInstance.Name}:{redisInstance.PrimaryEndpoint.TargetPort}:0";
                         hostsVariableBuilder.Append(hostString);
                     }
                 }

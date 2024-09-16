@@ -7,6 +7,7 @@ using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using OpenTelemetry.Proto.Common.V1;
@@ -222,7 +223,8 @@ internal static class TelemetryTestHelpers
         int? maxAttributeLength = null,
         int? maxSpanEventCount = null,
         int? maxTraceCount = null,
-        TimeSpan? subscriptionMinExecuteInterval = null)
+        TimeSpan? subscriptionMinExecuteInterval = null,
+        ILoggerFactory? loggerFactory = null)
     {
         var options = new TelemetryLimitOptions();
         if (maxMetricsCount != null)
@@ -246,7 +248,9 @@ internal static class TelemetryTestHelpers
             options.MaxTraceCount = maxTraceCount.Value;
         }
 
-        var repository = new TelemetryRepository(NullLoggerFactory.Instance, Options.Create(new DashboardOptions { TelemetryLimits = options }));
+        var repository = new TelemetryRepository(
+            loggerFactory ?? NullLoggerFactory.Instance,
+            Options.Create(new DashboardOptions { TelemetryLimits = options }));
         if (subscriptionMinExecuteInterval != null)
         {
             repository._subscriptionMinExecuteInterval = subscriptionMinExecuteInterval.Value;

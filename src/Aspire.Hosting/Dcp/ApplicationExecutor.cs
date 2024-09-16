@@ -132,6 +132,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
 
+            await CreateContainerNetworksAsync(cancellationToken).ConfigureAwait(false);
+
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
 
             var afterResourcesCreatedEvent = new AfterResourcesCreatedEvent(serviceProvider, _model);
@@ -901,6 +903,18 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
+    private async Task CreateContainerNetworksAsync(CancellationToken cancellationToken)
+    {
+        var toCreate = _appResources.Where(r => r.DcpResource is ContainerNetwork);
+        foreach (var containerNetwork in toCreate)
+        {
+            if (containerNetwork.DcpResource is ContainerNetwork cn)
+            {
+                await kubernetesService.CreateAsync(cn, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
     private async Task CreateContainersAndExecutablesAsync(CancellationToken cancellationToken)
     {
         var toCreate = _appResources.Where(r => r.DcpResource is Container || r.DcpResource is Executable || r.DcpResource is ExecutableReplicaSet);
@@ -1356,7 +1370,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             var nameSuffix = string.Empty;
 
-            if (container.GetContainerLifetimeType() == ContainerLifetimeType.Default)
+            if (container.GetContainerLifetimeType() == ContainerLifetime.Default)
             {
                 nameSuffix = GetRandomNameSuffix();
             }
@@ -1366,7 +1380,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             ctr.Spec.ContainerName = containerObjectName; // Use the same name for container orchestrator (Docker, Podman) resource and DCP object name.
 
-            if (container.GetContainerLifetimeType() == ContainerLifetimeType.Persistent)
+            if (container.GetContainerLifetimeType() == ContainerLifetime.Persistent)
             {
                 ctr.Spec.Persistent = true;
             }
@@ -1393,6 +1407,15 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     ctr.Spec.VolumeMounts.Add(volumeSpec);
                 }
             }
+
+            ctr.Spec.Networks = new List<ContainerNetworkConnection>
+            {
+                new ContainerNetworkConnection
+                {
+                    Name = "aspire-network",
+                    Aliases = new List<string> { container.Name },
+                }
+            };
 
             var containerAppResource = new AppResource(container, ctr);
             AddServicesProducedInfo(container, ctr, containerAppResource);
@@ -1444,6 +1467,14 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
 
             var tasks = new List<Task>();
+
+            // Create a custom container network for Aspire if there are container resources
+            if (containerResources.Any())
+            {
+                // The network will be created with a unique postfix to avoid conflicts with other Aspire AppHost networks
+                tasks.Add(kubernetesService.CreateAsync(ContainerNetwork.Create("aspire-network"), cancellationToken));
+            }
+
             foreach (var cr in containerResources)
             {
                 tasks.Add(CreateContainerAsyncCore(cr, cancellationToken));

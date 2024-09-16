@@ -6,11 +6,9 @@ using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.AWS.CloudFormation;
 
-/// <inheritdoc/>
-internal sealed class CloudFormationTemplateResource(string name, string templatePath) : CloudFormationResource(name), ICloudFormationTemplateResource
+/// <inheritdoc cref="Aspire.Hosting.AWS.CloudFormation.ICloudFormationTemplateResource" />
+internal class CloudFormationTemplateResource(string name, string stackName, string templatePath) : CloudFormationResource(name, stackName), ICloudFormationTemplateResource
 {
-    public IDictionary<string, string> CloudFormationParameters { get; } = new Dictionary<string, string>();
-
     /// <inheritdoc/>
     public string TemplatePath { get; } = templatePath;
 
@@ -24,7 +22,9 @@ internal sealed class CloudFormationTemplateResource(string name, string templat
     public bool DisableDiffCheck { get; set; }
 
     /// <inheritdoc/>
-    public IList<string> DisabledCapabilities { get; } = new List<string>();
+    public IList<string> DisabledCapabilities { get; } = [];
+
+    public IDictionary<string, string> CloudFormationParameters { get; } = new Dictionary<string, string>();
 
     /// <inheritdoc/>
     public ICloudFormationTemplateResource AddParameter(string parameterName, string parameterValue)
@@ -33,10 +33,10 @@ internal sealed class CloudFormationTemplateResource(string name, string templat
         return this;
     }
 
-    internal void WriteToManifest(ManifestPublishingContext context)
+    internal override void WriteToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "aws.cloudformation.template.v0");
-        context.Writer.TryWriteString("stack-name", Name);
+        context.Writer.TryWriteString("stack-name", StackName);
         context.Writer.TryWriteString("template-path", context.GetManifestRelativePath(TemplatePath));
 
         context.Writer.WritePropertyName("references");
