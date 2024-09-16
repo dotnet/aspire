@@ -7,8 +7,7 @@
     ForId="@_selectId"
     Orientation="Orientation.Horizontal" />
 
-<FluentSelect @ref="_resourceSelectComponent"
-              Items="Resources"
+<FluentSelect Items="Resources"
               Id="@_selectId"
               OptionValue="@(c => c!.Name)"
               OptionDisabled="@(c => !CanSelectGrouping && c!.Id?.Type is Otlp.Model.OtlpApplicationType.ResourceGrouping)"
