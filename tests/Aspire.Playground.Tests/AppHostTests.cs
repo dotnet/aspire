@@ -28,10 +28,15 @@ public class AppHostTests
         _testOutput = testOutput;
     }
 
-    [Theory]
-    [MemberData(nameof(AppHostAssembliesWithNoTestEndpoints))]
-    public async Task AppHostRunsCleanlyForAppsWithNoOtherTests(string appHostPath)
+    [ConditionalTheory]
+    [MemberData(nameof(AppHostAssembliesWithNoTestEndpointsAndNoOtherTests))]
+    public async Task AppHostRunsCleanlyForAppsWithNoOtherTests(string? appHostPath)
     {
+        if (appHostPath is null)
+        {
+            throw new SkipTestException($"Zero apphost assemblies found with no test endpoints and no other tests.");
+        }
+
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, _testOutput);
         await using var app = await appHost.BuildAsync();
 
@@ -152,7 +157,7 @@ public class AppHostTests
                 });
         });
 
-    public static TheoryData<string> AppHostAssembliesWithNoTestEndpoints()
+    public static TheoryData<string?> AppHostAssembliesWithNoTestEndpointsAndNoOtherTests()
     {
         var appHostAssemblies = GetPlaygroundAppHostAssemblyPaths();
 
@@ -166,7 +171,7 @@ public class AppHostTests
             appHostsWithTestEndpoints.Add(testEndpoint.AppHost);
         }
 
-        var theoryData = new TheoryData<string>();
+        var theoryData = new TheoryData<string?>();
         foreach (var asm in appHostAssemblies)
         {
             var appHostName = Path.GetFileNameWithoutExtension(asm);
@@ -185,6 +190,11 @@ public class AppHostTests
         if (!theoryData.Any() && !string.IsNullOrEmpty(s_appHostNameFilter))
         {
             throw new SkipTestException($"No app host assemblies found matching filter '{s_appHostNameFilter}'");
+        }
+
+        if (theoryData.Count == 0)
+        {
+            theoryData.Add(null);
         }
 
         return theoryData;
