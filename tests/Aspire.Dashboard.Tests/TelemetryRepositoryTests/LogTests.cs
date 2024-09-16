@@ -8,6 +8,7 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Tests.Integration;
 using Google.Protobuf.Collections;
+using Microsoft.Extensions.Logging;
 using OpenTelemetry.Proto.Logs.V1;
 using Xunit;
 using Xunit.Abstractions;
@@ -662,20 +663,30 @@ public class LogTests
         // Arrange
         var minExecuteInterval = TimeSpan.FromMilliseconds(500);
         var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(_testOutputHelper);
+        var logger = loggerFactory.CreateLogger(nameof(LogTests));
         var repository = CreateRepository(subscriptionMinExecuteInterval: minExecuteInterval, loggerFactory: loggerFactory);
+        var stopwatch = new Stopwatch();
 
         var callCount = 0;
         var resultChannel = Channel.CreateUnbounded<int>();
-        var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var subscription = repository.OnNewLogs(applicationKey: null, SubscriptionType.Read, () =>
+        var subscription = repository.OnNewLogs(applicationKey: null, SubscriptionType.Read, async () =>
         {
+            if (!stopwatch.IsRunning)
+            {
+                stopwatch.Start();
+            }
+            else
+            {
+                stopwatch.Stop();
+            }
             ++callCount;
             resultChannel.Writer.TryWrite(callCount);
-            return Task.CompletedTask;
+            await Task.Delay(20);
         });
 
         // Act
         var addContext = new AddContext();
+        logger.LogInformation("Writing log 1");
         repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
         {
             new ResourceLogs
@@ -693,10 +704,11 @@ public class LogTests
         });
 
         // Assert
-        var stopwatch = Stopwatch.StartNew();
         var read1 = await resultChannel.Reader.ReadAsync();
         Assert.Equal(1, read1);
+        logger.LogInformation("Received log 1 callback");
 
+        logger.LogInformation("Writing log 2");
         repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
         {
             new ResourceLogs
@@ -715,8 +727,10 @@ public class LogTests
 
         var read2 = await resultChannel.Reader.ReadAsync();
         Assert.Equal(2, read2);
+        logger.LogInformation("Received log 2 callback");
 
         var elapsed = stopwatch.Elapsed;
+        logger.LogInformation("Elapsed time: {Elapsed}", elapsed);
         CustomAssert.AssertExceedsMinInterval(elapsed, minExecuteInterval);
     }
 
