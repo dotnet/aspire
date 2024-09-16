@@ -223,8 +223,7 @@ public static class MongoDBBuilderExtensions
         // See the conversation about setting up replica sets in Docker here: https://github.com/docker-library/mongo/issues/246
         static string GetReplicaSetInitDockerfileDir(string replicaSet, string host, int port)
         {
-            var dir = Path.Combine(Path.GetTempPath(), "aspire.mongo", Path.GetRandomFileName());
-            Directory.CreateDirectory(dir);
+            var dir = Directory.CreateTempSubdirectory("aspire.mongo").FullName;
 
             var rsInitContents = $$"""rs.initiate({ _id:'{{replicaSet}}', members:[{_id:0,host:'localhost:{{port}}'}]})""";
             var init = Path.Combine(dir, "rs.js");
@@ -237,7 +236,6 @@ public static class MongoDBBuilderExtensions
                 ADD rs.js rs.js
                 ENTRYPOINT ["mongosh", "--port", "{port}", "--host", "{host}", "rs.js"]
                 """);
-
             return dir;
         }
     }
@@ -258,64 +256,5 @@ public static class MongoDBBuilderExtensions
         // This will need to be refactored once updated service discovery APIs are available
         context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", sb.ToString());
         context.EnvironmentVariables.Add("ME_CONFIG_BASICAUTH", "false");
-    }
-
-    /// <summary>
-    /// Same as <see cref="ResourceBuilderExtensions.WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/> but with a few options we need.
-    /// </summary>
-    private static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, bool includeHealthChecks = true) where T : IResource
-    {
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (e, ct) =>
-        {
-            var rls = e.Services.GetRequiredService<ResourceLoggerService>();
-            var resourceLogger = rls.GetLogger(builder.Resource);
-            resourceLogger.LogInformation("Waiting for resource '{Name}' to enter the '{State}' state.", dependency.Resource.Name, KnownResourceStates.Running);
-
-            var rns = e.Services.GetRequiredService<ResourceNotificationService>();
-            await rns.PublishUpdateAsync(builder.Resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
-            var resourceEvent = await rns.WaitForResourceAsync(dependency.Resource.Name, re => IsContinuableState(re.Snapshot), cancellationToken: ct).ConfigureAwait(false);
-            var snapshot = resourceEvent.Snapshot;
-
-            if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
-            {
-                resourceLogger.LogError(
-                    "Dependency resource '{ResourceName}' failed to start.",
-                    dependency.Resource.Name
-                    );
-
-                throw new DistributedApplicationException($"Dependency resource '{dependency.Resource.Name}' failed to start.");
-            }
-            else if (snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited)
-            {
-                resourceLogger.LogError(
-                    "Resource '{ResourceName}' has entered the '{State}' state prematurely.",
-                    dependency.Resource.Name,
-                    snapshot.State.Text
-                    );
-
-                throw new DistributedApplicationException(
-                    $"Resource '{dependency.Resource.Name}' has entered the '{snapshot.State.Text}' state prematurely."
-                    );
-            }
-
-            if (includeHealthChecks)
-            {
-                // If our dependency resource has health check annotations we want to wait until they turn healthy
-                // otherwise we don't care about their health status.
-                if (dependency.Resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var _))
-                {
-                    resourceLogger.LogInformation("Waiting for resource '{Name}' to become healthy.", dependency.Resource.Name);
-                    await rns.WaitForResourceAsync(dependency.Resource.Name, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: ct).ConfigureAwait(false);
-                }
-            }
-        });
-
-        return builder;
-
-        static bool IsContinuableState(CustomResourceSnapshot snapshot) =>
-            snapshot.State?.Text == KnownResourceStates.Running ||
-            snapshot.State?.Text == KnownResourceStates.Finished ||
-            snapshot.State?.Text == KnownResourceStates.Exited ||
-            snapshot.State?.Text == KnownResourceStates.FailedToStart;
     }
 }

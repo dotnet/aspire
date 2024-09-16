@@ -596,6 +596,37 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     public static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T : IResource
+        => builder.WaitFor(dependency, includeHealthChecks: true);
+
+    /// <summary>
+    /// Waits for the dependency resource to enter the Running state before starting the resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder for the resource that will be waiting.</param>
+    /// <param name="dependency">The resource builder for the dependency resource.</param>
+    /// <param name="includeHealthChecks">Optionally includes checking the health checks.</param>
+    /// <returns>The resource builder.</returns>
+    /// <remarks>
+    /// <para>This method is useful when a resource should wait until another has started running. This can help
+    /// reduce errors in logs during local development where dependency resources.</para>
+    /// <para>Some resources automatically register health checks with the application host container. For these
+    /// resources, calling <see cref="WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/> also results
+    /// in the resource being blocked from starting until the health checks associated with the dependency resource
+    /// return <see cref="HealthStatus.Healthy"/>.</para>
+    /// <para>The <see cref="WithHealthCheck{T}(IResourceBuilder{T}, string)"/> method can be used to associate
+    /// additional health checks with a resource.</para>
+    /// </remarks>
+    /// <example>
+    /// Start message queue before starting the worker service.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var messaging = builder.AddRabbitMQ("messaging");
+    /// builder.AddProject&lt;Projects.MyApp&gt;("myapp")
+    ///        .WithReference(messaging)
+    ///        .WaitFor(messaging);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, bool includeHealthChecks) where T : IResource
     {
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (e, ct) =>
         {
@@ -632,7 +663,7 @@ public static class ResourceBuilderExtensions
 
             // If our dependency resource has health check annotations we want to wait until they turn healthy
             // otherwise we don't care about their health status.
-            if (dependency.Resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var _))
+            if (includeHealthChecks && dependency.Resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var _))
             {
                 resourceLogger.LogInformation("Waiting for resource '{Name}' to become healthy.", dependency.Resource.Name);
                 await rns.WaitForResourceAsync(dependency.Resource.Name, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: ct).ConfigureAwait(false);
