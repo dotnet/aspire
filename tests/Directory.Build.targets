@@ -16,6 +16,15 @@
     <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestSupportProject)' == 'true' or '$(RunTestsOnHelix)' == 'true')">true</SkipTests>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(NeedsPlaywright)' == 'true'">
+    <!-- install on codespaces -->
+    <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(CODESPACES)' == 'true'">true</InstallBrowsersForPlaywright>
+    <!-- install on CI but skip when tests are explicitly disabled, for example in codeql builds -->
+    <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and ('$(ContinuousIntegrationBuild)' == 'true' and '$(Test)' != 'false')">true</InstallBrowsersForPlaywright>
+    <!-- install locally on windows -->
+    <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(OS)' == 'Windows_NT' and '$(ContinuousIntegrationBuild)' != 'true'">true</InstallBrowsersForPlaywright>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Include="$(RunSettingsFilePath)" CopyToOutputDirectory="PreserveNewest" Condition="'$(DeployRunSettingsFile)' == 'true'" />
     <None Include="$(XunitRunnerJson)" CopyToOutputDirectory="PreserveNewest" />
