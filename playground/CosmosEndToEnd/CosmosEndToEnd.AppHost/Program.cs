@@ -3,9 +3,17 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+#pragma warning disable ASPIRECONTAINERLIFETIME001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 var db = builder.AddAzureCosmosDB("cosmos")
                 .AddDatabase("db")
-                .RunAsEmulator();
+                .RunAsEmulator(c => {
+                    c.WithLifetime(ContainerLifetime.Persistent);
+                    c.WithEndpoint("emulator", (e) =>
+                    {
+                        e.Port = 8889;
+                    });
+                 });
+#pragma warning restore ASPIRECONTAINERLIFETIME001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 builder.AddProject<Projects.CosmosEndToEnd_ApiService>("api")
        .WithExternalHttpEndpoints()
