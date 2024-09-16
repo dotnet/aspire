@@ -258,6 +258,52 @@ public class AddMongoDBTests
         Assert.Equal(expectedManifest, dbManifest.ToString());
     }
 
+    [InlineData(null)]
+    [InlineData(10002)]
+    [Theory]
+    public async Task VerifyManifestWithReplicaSet(int? customPort)
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var mongo = appBuilder.AddMongoDB("mongo", customPort)
+            .WithReplicaSet();
+        var db = mongo.AddDatabase("mydb");
+
+        var mongoManifest = await ManifestUtils.GetManifest(mongo.Resource);
+        var dbManifest = await ManifestUtils.GetManifest(db.Resource);
+
+        var expectedManifest = $$"""
+            {
+              "type": "container.v0",
+              "connectionString": "mongodb://{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}/?replicaSet=rs0",
+              "image": "{{MongoDBContainerImageTags.Registry}}/{{MongoDBContainerImageTags.Image}}:{{MongoDBContainerImageTags.Tag}}",
+              "args": [
+                "--replSet",
+                "rs0",
+                "--bind_ip_all",
+                "--port",
+                "{{customPort ?? 27017}}"
+              ],
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "targetPort": {{customPort ?? 27017}}
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, mongoManifest.ToString());
+
+        expectedManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "mongodb://{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}/mydb?replicaSet=rs0"
+            }
+            """;
+        Assert.Equal(expectedManifest, dbManifest.ToString());
+    }
+
     [Fact]
     public void ThrowsWithIdenticalChildResourceNames()
     {

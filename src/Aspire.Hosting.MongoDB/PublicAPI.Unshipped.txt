@@ -1,2 +1,2 @@
 #nullable enable
-static Aspire.Hosting.MongoDBBuilderExtensions.WithReplicaSet(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.MongoDBServerResource!>! builder, string? replicaSet = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.MongoDBServerResource!>!
+static Aspire.Hosting.MongoDBBuilderExtensions.WithReplicaSet(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.MongoDBServerResource!>! builder, string? replicaSetName = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.MongoDBServerResource!>!

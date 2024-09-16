@@ -102,9 +102,11 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
         }, cts.Token);
     }
 
-    [Fact]
+    [InlineData(null)]
+    [InlineData(10003)]
+    [Theory]
     [RequiresDocker]
-    public async Task VerifyMongoDBResourceReplicaSet()
+    public async Task VerifyMongoDBResourceReplicaSet(int? customPort)
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         var pipeline = new ResiliencePipelineBuilder()
@@ -113,7 +115,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
 
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
-        var mongodb = builder.AddMongoDB("mongodb")
+        var mongodb = builder.AddMongoDB("mongodb", customPort)
             .WithReplicaSet();
         var db = mongodb.AddDatabase("testdb");
         using var app = builder.Build();

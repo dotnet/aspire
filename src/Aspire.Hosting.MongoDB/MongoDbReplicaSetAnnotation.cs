@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-internal sealed record MongoDbReplicaSetAnnotation(string ReplicaSetName) : IResourceAnnotation
+internal sealed record MongoDbReplicaSetAnnotation(string ReplicaSetName, IResourceBuilder<ContainerResource> InitContainer) : IResourceAnnotation
 {
     internal const string QueryName = "replicaSet";
 }

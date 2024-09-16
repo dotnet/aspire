@@ -6,6 +6,8 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.MongoDB;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -55,74 +57,6 @@ public static class MongoDBBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a replica set to the MongoDB server resource.
-    /// </summary>
-    /// <param name="builder">The MongoDB server resource.</param>
-    /// <param name="replicaSet">The name of the replica set. If not provided, defaults to <c>rs0</c>.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<MongoDBServerResource> WithReplicaSet(this IResourceBuilder<MongoDBServerResource> builder, string? replicaSet = null)
-    {
-        if (builder.Resource.TryGetLastAnnotation<MongoDbReplicaSetAnnotation>(out _))
-        {
-            throw new InvalidOperationException("A replica set has already been added to the MongoDB server resource.");
-        }
-
-        replicaSet ??= "rs0";
-
-        SetPortAndTargetToBeSame(builder);
-        SetRsInitCallOnStartup(builder);
-
-        return builder
-            .WithAnnotation(new MongoDbReplicaSetAnnotation(replicaSet))
-            .WithArgs(ctx =>
-            {
-                ctx.Args.Add("--replSet");
-                ctx.Args.Add(replicaSet);
-
-                var port = builder.Resource.PrimaryEndpoint.TargetPort;
-
-                if (port != DefaultContainerPort)
-                {
-                    ctx.Args.Add("--port");
-                    ctx.Args.Add($"{port}");
-                }
-            });
-
-        static void SetPortAndTargetToBeSame(IResourceBuilder<MongoDBServerResource> builder)
-        {
-            foreach (var endpoint in builder.Resource.Annotations.OfType<EndpointAnnotation>())
-            {
-                if (endpoint.Name == MongoDBServerResource.PrimaryEndpointName)
-                {
-                    // In the case of replica sets, the port and target port should be the same and is not proxied
-                    endpoint.IsProxied = false;
-
-                    if (endpoint.Port is null)
-                    {
-                        endpoint.Port = endpoint.TargetPort;
-                    }
-                    else
-                    {
-                        endpoint.TargetPort = endpoint.Port;
-                    }
-                    break;
-                }
-            }
-        }
-
-        static void SetRsInitCallOnStartup(IResourceBuilder<ContainerResource> builder)
-        {
-            // Need to run 'rs.initiate()' on the db startup up to initialize the replica set
-            const string content = $$"""echo "rs.initiate()" | mongosh""";
-
-            var tmpPath = Path.GetTempFileName();
-            File.WriteAllText(tmpPath, content);
-
-            builder.WithBindMount(tmpPath, "/docker-entrypoint-initdb.d/replicaset_init.sh");
-        }
-    }
-
-    /// <summary>
     /// Adds a MongoDB database to the application model.
     /// </summary>
     /// <param name="builder">The MongoDB server resource builder.</param>
@@ -163,7 +97,8 @@ public static class MongoDBBuilderExtensions
                                                         .WithImageRegistry(MongoDBContainerImageTags.MongoExpressRegistry)
                                                         .WithEnvironment(context => ConfigureMongoExpressContainer(context, builder.Resource))
                                                         .WithHttpEndpoint(targetPort: 8081, name: "http")
-                                                        .ExcludeFromManifest();
+                                                        .ExcludeFromManifest()
+                                                        .WaitFor(builder);
 
         configureContainer?.Invoke(resourceBuilder);
 
@@ -230,6 +165,83 @@ public static class MongoDBBuilderExtensions
         return builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
     }
 
+    /// <summary>
+    /// Adds a replica set to the MongoDB server resource.
+    /// </summary>
+    /// <param name="builder">The MongoDB server resource.</param>
+    /// <param name="replicaSetName">The name of the replica set. If not provided, defaults to <c>rs0</c>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MongoDBServerResource> WithReplicaSet(this IResourceBuilder<MongoDBServerResource> builder, string? replicaSetName = null)
+    {
+        if (builder.Resource.TryGetLastAnnotation<MongoDbReplicaSetAnnotation>(out _))
+        {
+            throw new InvalidOperationException("A replica set has already been added to the MongoDB server resource.");
+        }
+
+        replicaSetName ??= "rs0";
+
+        var port = SetPortAndTargetToBeSame(builder);
+
+        // Add a container that initializes the replica set
+        var init = builder.ApplicationBuilder
+            .AddDockerfile("replicaset-init", GetReplicaSetInitDockerfileDir(replicaSetName, builder.Resource.Name, port))
+
+            // We don't want to wait for the healthchecks to be successful since the initialization is required for that. However, we also don't want this to start
+            // up until the database itself is ready
+            .WaitFor(builder, includeHealthChecks: false);
+
+        return builder
+            .WithAnnotation(new MongoDbReplicaSetAnnotation(replicaSetName, init))
+            .WithArgs("--replSet", replicaSetName, "--bind_ip_all", "--port", $"{port}");
+
+        static int SetPortAndTargetToBeSame(IResourceBuilder<MongoDBServerResource> builder)
+        {
+            foreach (var endpoint in builder.Resource.Annotations.OfType<EndpointAnnotation>())
+            {
+                if (endpoint.Name == MongoDBServerResource.PrimaryEndpointName)
+                {
+                    if (endpoint.Port is { } port)
+                    {
+                        endpoint.TargetPort = port;
+                    }
+
+                    if (endpoint.TargetPort is not { } targetPort)
+                    {
+                        throw new InvalidOperationException("Target port is not set.");
+                    }
+
+                    // In the case of replica sets, the port and target port should be the same and is not proxied
+                    endpoint.IsProxied = false;
+
+                    return targetPort;
+                }
+            }
+
+            throw new InvalidOperationException("No endpoint found for the MongoDB server resource.");
+        }
+
+        // See the conversation about setting up replica sets in Docker here: https://github.com/docker-library/mongo/issues/246
+        static string GetReplicaSetInitDockerfileDir(string replicaSet, string host, int port)
+        {
+            var dir = Path.Combine(Path.GetTempPath(), "aspire.mongo", Path.GetRandomFileName());
+            Directory.CreateDirectory(dir);
+
+            var rsInitContents = $$"""rs.initiate({ _id:'{{replicaSet}}', members:[{_id:0,host:'localhost:{{port}}'}]})""";
+            var init = Path.Combine(dir, "rs.js");
+            File.WriteAllText(init, rsInitContents);
+
+            var dockerfile = Path.Combine(dir, "Dockerfile");
+            File.WriteAllText(dockerfile, $"""
+                FROM {MongoDBContainerImageTags.Image}:{MongoDBContainerImageTags.Tag}
+                WORKDIR /rsinit
+                ADD rs.js rs.js
+                ENTRYPOINT ["mongosh", "--port", "{port}", "--host", "{host}", "rs.js"]
+                """);
+
+            return dir;
+        }
+    }
+
     private static void ConfigureMongoExpressContainer(EnvironmentCallbackContext context, MongoDBServerResource resource)
     {
         var sb = new StringBuilder($"mongodb://{resource.Name}:{resource.PrimaryEndpoint.TargetPort}/?directConnection=true");
@@ -246,5 +258,64 @@ public static class MongoDBBuilderExtensions
         // This will need to be refactored once updated service discovery APIs are available
         context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", sb.ToString());
         context.EnvironmentVariables.Add("ME_CONFIG_BASICAUTH", "false");
+    }
+
+    /// <summary>
+    /// Same as <see cref="ResourceBuilderExtensions.WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/> but with a few options we need.
+    /// </summary>
+    private static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, bool includeHealthChecks = true) where T : IResource
+    {
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (e, ct) =>
+        {
+            var rls = e.Services.GetRequiredService<ResourceLoggerService>();
+            var resourceLogger = rls.GetLogger(builder.Resource);
+            resourceLogger.LogInformation("Waiting for resource '{Name}' to enter the '{State}' state.", dependency.Resource.Name, KnownResourceStates.Running);
+
+            var rns = e.Services.GetRequiredService<ResourceNotificationService>();
+            await rns.PublishUpdateAsync(builder.Resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
+            var resourceEvent = await rns.WaitForResourceAsync(dependency.Resource.Name, re => IsContinuableState(re.Snapshot), cancellationToken: ct).ConfigureAwait(false);
+            var snapshot = resourceEvent.Snapshot;
+
+            if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
+            {
+                resourceLogger.LogError(
+                    "Dependency resource '{ResourceName}' failed to start.",
+                    dependency.Resource.Name
+                    );
+
+                throw new DistributedApplicationException($"Dependency resource '{dependency.Resource.Name}' failed to start.");
+            }
+            else if (snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited)
+            {
+                resourceLogger.LogError(
+                    "Resource '{ResourceName}' has entered the '{State}' state prematurely.",
+                    dependency.Resource.Name,
+                    snapshot.State.Text
+                    );
+
+                throw new DistributedApplicationException(
+                    $"Resource '{dependency.Resource.Name}' has entered the '{snapshot.State.Text}' state prematurely."
+                    );
+            }
+
+            if (includeHealthChecks)
+            {
+                // If our dependency resource has health check annotations we want to wait until they turn healthy
+                // otherwise we don't care about their health status.
+                if (dependency.Resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var _))
+                {
+                    resourceLogger.LogInformation("Waiting for resource '{Name}' to become healthy.", dependency.Resource.Name);
+                    await rns.WaitForResourceAsync(dependency.Resource.Name, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: ct).ConfigureAwait(false);
+                }
+            }
+        });
+
+        return builder;
+
+        static bool IsContinuableState(CustomResourceSnapshot snapshot) =>
+            snapshot.State?.Text == KnownResourceStates.Running ||
+            snapshot.State?.Text == KnownResourceStates.Finished ||
+            snapshot.State?.Text == KnownResourceStates.Exited ||
+            snapshot.State?.Text == KnownResourceStates.FailedToStart;
     }
 }
