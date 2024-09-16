@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <!-- This library can't ship stable until OpenAI ships stable. -->
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
