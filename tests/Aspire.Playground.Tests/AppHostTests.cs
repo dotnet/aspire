@@ -30,7 +30,7 @@ public class AppHostTests
 
     [Theory]
     [MemberData(nameof(AppHostAssembliesWithNoTestEndpoints))]
-    public async Task AppHostRunsCleanly(string appHostPath)
+    public async Task AppHostRunsCleanlyForAppsWithNoOtherTests(string appHostPath)
     {
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, _testOutput);
         await using var app = await appHost.BuildAsync();
@@ -159,6 +159,10 @@ public class AppHostTests
         HashSet<string> appHostsWithTestEndpoints = new();
         foreach (var testEndpoint in GetAllTestEndpoints())
         {
+            if (testEndpoint.Skip)
+            {
+                continue;
+            }
             appHostsWithTestEndpoints.Add(testEndpoint.AppHost);
         }
 
@@ -304,6 +308,10 @@ public class AppHostTests
                     new ("basketservice", "Application started"),
                     new ("postgres", "database system is ready to accept connections"),
                 ]),
+            // Test endpoints disabled for AppHostRunsCleanlyForAppsWithNoOtherTests as they have specific tests
+            new TestEndpoints("WithDockerfile.AppHost", []),
+            new TestEndpoints("KafkaBasic.AppHost", []),
+            new TestEndpoints("AzureFunctionsEndToEnd.AppHost", [])
         ];
 
         return candidates;
@@ -340,6 +348,11 @@ public class AppHostTests
         TheoryData<TestEndpoints> theoryData = new();
         foreach (var candidateTestEndpoint in GetAllTestEndpoints())
         {
+            if (candidateTestEndpoint.Skip)
+            {
+                continue;
+            }
+
             if (string.IsNullOrEmpty(s_appHostNameFilter) || candidateTestEndpoint.AppHost?.Contains(s_appHostNameFilter, StringComparison.OrdinalIgnoreCase) == true)
             {
                 theoryData.Add(candidateTestEndpoint);
@@ -380,6 +393,7 @@ public class TestEndpoints
     public List<ReadyStateText>? WaitForTexts { get; set; }
     public Dictionary<string, List<string>>? ResourceEndpoints { get; set; }
     public Func<DistributedApplication, string, ITestOutputHelper, Task>? WhenReady { get; set; }
+    public bool Skip => WaitForTexts is null && WaitForResources is null && ResourceEndpoints is null;
 
     public override string? ToString() => $"{AppHost} ({ResourceEndpoints?.Count ?? 0} resources)";
 
