@@ -6,8 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.MongoDB;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
