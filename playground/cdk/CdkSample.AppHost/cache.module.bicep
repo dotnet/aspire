@@ -3,7 +3,7 @@ param location string = resourceGroup().location
 
 param keyVaultName string
 
-resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
+resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
     name: keyVaultName
 }
 
@@ -24,7 +24,7 @@ resource cache 'Microsoft.Cache/redis@2020-06-01' = {
     }
 }
 
-resource connectionString 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
+resource connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
     name: 'connectionString'
     properties: {
         value: '${cache.properties.hostName},ssl=true,password=${cache.listKeys().primaryKey}'

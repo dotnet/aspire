@@ -45,11 +45,11 @@ public static class AzureCosmosExtensions
             var kvNameParam = new BicepParameter("keyVaultName", typeof(string));
             construct.Add(kvNameParam);
 
-            var keyVault = KeyVaultService.FromExisting("keyVault", AzureResourceVersions.KeyVaultServiceResourceVersion);
+            var keyVault = KeyVaultService.FromExisting("keyVault");
             keyVault.Name = kvNameParam;
             construct.Add(keyVault);
 
-            var cosmosAccount = new CosmosDBAccount(name, AzureResourceVersions.CosmosDBAccountResourceVersion)
+            var cosmosAccount = new CosmosDBAccount(name)
             {
                 Kind = CosmosDBAccountKind.GlobalDocumentDB,
                 ConsistencyPolicy = new ConsistencyPolicy()
@@ -74,7 +74,7 @@ public static class AzureCosmosExtensions
             List<CosmosDBSqlDatabase> cosmosSqlDatabases = new List<CosmosDBSqlDatabase>();
             foreach (var databaseName in azureResource.Databases)
             {
-                var cosmosSqlDatabase = new CosmosDBSqlDatabase(databaseName, AzureResourceVersions.CosmosDBSqlDatabaseResourceVersion)
+                var cosmosSqlDatabase = new CosmosDBSqlDatabase(databaseName, cosmosAccount.ResourceVersion)
                 {
                     Parent = cosmosAccount,
                     Name = databaseName,
@@ -87,7 +87,7 @@ public static class AzureCosmosExtensions
                 cosmosSqlDatabases.Add(cosmosSqlDatabase);
             }
 
-            var secret = new KeyVaultSecret("connectionString", AzureResourceVersions.KeyVaultSecretResourceVersion)
+            var secret = new KeyVaultSecret("connectionString")
             {
                 Parent = keyVault,
                 Name = "connectionString",

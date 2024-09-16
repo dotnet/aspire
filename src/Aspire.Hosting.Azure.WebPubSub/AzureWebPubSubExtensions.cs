@@ -59,7 +59,7 @@ public static class AzureWebPubSubExtensions
             };
             construct.Add(capacityParameter);
 
-            var service = new WebPubSubService(name, AzureResourceVersions.WebPubSubServiceResourceVersion)
+            var service = new WebPubSubService(name, "2021-10-01") // TODO: resource version should come from CDK
             {
                 Sku = new BillingInfoSku()
                 {

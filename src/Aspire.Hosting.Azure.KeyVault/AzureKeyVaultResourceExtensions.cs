@@ -42,7 +42,7 @@ public static class AzureKeyVaultResourceExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var keyVault = new KeyVaultService(construct.Resource.Name, AzureResourceVersions.KeyVaultServiceResourceVersion)
+            var keyVault = new KeyVaultService(construct.Resource.Name)
             {
                 Properties = new KeyVaultProperties()
                 {

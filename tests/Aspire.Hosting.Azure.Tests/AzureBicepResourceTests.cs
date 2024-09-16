@@ -243,11 +243,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param keyVaultName string
 
-            resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
+            resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
                 name: keyVaultName
             }
 
-            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
+            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-05-15-preview' = {
                 name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
                 location: location
                 properties: {
@@ -268,7 +268,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 }
             }
 
-            resource mydatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15' = {
+            resource mydatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15-preview' = {
                 name: 'mydatabase'
                 location: location
                 properties: {
@@ -279,7 +279,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 parent: cosmos
             }
 
-            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
+            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
                 name: 'connectionString'
                 properties: {
                     value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
@@ -336,11 +336,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param keyVaultName string
 
-            resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
+            resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
                 name: keyVaultName
             }
 
-            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
+            resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-05-15-preview' = {
                 name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
                 location: location
                 properties: {
@@ -361,7 +361,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 }
             }
 
-            resource mydatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15' = {
+            resource mydatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15-preview' = {
                 name: 'mydatabase'
                 location: location
                 properties: {
@@ -372,7 +372,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 parent: cosmos
             }
 
-            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
+            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
                 name: 'connectionString'
                 properties: {
                     value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
@@ -431,7 +431,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param principalType string
 
-            resource appConfig 'Microsoft.AppConfiguration/configurationStores@2023-03-01' = {
+            resource appConfig 'Microsoft.AppConfiguration/configurationStores@2019-10-01' = {
                 name: take('appConfig-${uniqueString(resourceGroup().id)}', 50)
                 location: location
                 properties: {
@@ -832,7 +832,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param keyVaultName string
 
-            resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
+            resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
                 name: keyVaultName
             }
 
@@ -853,7 +853,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 }
             }
 
-            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
+            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
                 name: 'connectionString'
                 properties: {
                     value: '${cache.properties.hostName},ssl=true,password=${cache.listKeys().primaryKey}'
@@ -895,7 +895,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param principalType string
 
-            resource mykv 'Microsoft.KeyVault/vaults@2022-07-01' = {
+            resource mykv 'Microsoft.KeyVault/vaults@2019-09-01' = {
                 name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
                 location: location
                 properties: {
@@ -957,7 +957,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param principalType string
 
-            resource mykv 'Microsoft.KeyVault/vaults@2022-07-01' = {
+            resource mykv 'Microsoft.KeyVault/vaults@2019-09-01' = {
                 name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
                 location: location
                 properties: {
@@ -1108,7 +1108,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param principalType string
 
-            resource sql 'Microsoft.Sql/servers@2020-11-01-preview' = {
+            resource sql 'Microsoft.Sql/servers@2021-11-01' = {
                 name: take('sql-${uniqueString(resourceGroup().id)}', 63)
                 location: location
                 properties: {
@@ -1129,7 +1129,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 }
             }
 
-            resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
+            resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
                 name: 'AllowAllAzureIps'
                 properties: {
                     endIpAddress: '0.0.0.0'
@@ -1138,7 +1138,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 parent: sql
             }
 
-            resource sqlFirewallRule_AllowAllIps 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
+            resource sqlFirewallRule_AllowAllIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
                 name: 'AllowAllIps'
                 properties: {
                     endIpAddress: '255.255.255.255'
@@ -1147,7 +1147,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 parent: sql
             }
 
-            resource db 'Microsoft.Sql/servers/databases@2020-11-01-preview' = {
+            resource db 'Microsoft.Sql/servers/databases@2021-11-01' = {
                 name: 'dbName'
                 location: location
                 parent: sql
@@ -1203,7 +1203,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param principalName string
 
-            resource sql 'Microsoft.Sql/servers@2020-11-01-preview' = {
+            resource sql 'Microsoft.Sql/servers@2021-11-01' = {
                 name: take('sql-${uniqueString(resourceGroup().id)}', 63)
                 location: location
                 properties: {
@@ -1223,7 +1223,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 }
             }
 
-            resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
+            resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
                 name: 'AllowAllAzureIps'
                 properties: {
                     endIpAddress: '0.0.0.0'
@@ -1232,7 +1232,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 parent: sql
             }
 
-            resource db 'Microsoft.Sql/servers/databases@2020-11-01-preview' = {
+            resource db 'Microsoft.Sql/servers/databases@2021-11-01' = {
                 name: 'dbName'
                 location: location
                 parent: sql
@@ -1295,11 +1295,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param keyVaultName string
 
-            resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
+            resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
                 name: keyVaultName
             }
 
-            resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2023-03-01-preview' = {
+            resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
                 name: take('postgres${uniqueString(resourceGroup().id)}', 24)
                 location: location
                 properties: {
@@ -1327,7 +1327,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 }
             }
 
-            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-03-01-preview' = {
+            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2022-12-01' = {
                 name: 'AllowAllAzureIps'
                 properties: {
                     endIpAddress: '0.0.0.0'
@@ -1336,7 +1336,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 parent: postgres
             }
 
-            resource postgreSqlFirewallRule_AllowAllIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-03-01-preview' = {
+            resource postgreSqlFirewallRule_AllowAllIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2022-12-01' = {
                 name: 'AllowAllIps'
                 properties: {
                     endIpAddress: '255.255.255.255'
@@ -1345,12 +1345,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 parent: postgres
             }
 
-            resource db 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-03-01-preview' = {
+            resource db 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2022-12-01' = {
                 name: 'dbName'
                 parent: postgres
             }
 
-            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
+            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
                 name: 'connectionString'
                 properties: {
                     value: 'Host=${postgres.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
@@ -1413,11 +1413,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param keyVaultName string
 
-            resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
+            resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
                 name: keyVaultName
             }
 
-            resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2023-03-01-preview' = {
+            resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
                 name: take('postgres${uniqueString(resourceGroup().id)}', 24)
                 location: location
                 properties: {
@@ -1445,7 +1445,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 }
             }
 
-            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-03-01-preview' = {
+            resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2022-12-01' = {
                 name: 'AllowAllAzureIps'
                 properties: {
                     endIpAddress: '0.0.0.0'
@@ -1454,12 +1454,12 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 parent: postgres
             }
 
-            resource db 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-03-01-preview' = {
+            resource db 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2022-12-01' = {
                 name: 'dbName'
                 parent: postgres
             }
 
-            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
+            resource connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
                 name: 'connectionString'
                 properties: {
                     value: 'Host=${postgres.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
@@ -1615,7 +1615,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param principalType string
 
-            resource sb 'Microsoft.ServiceBus/namespaces@2021-11-01' = {
+            resource sb 'Microsoft.ServiceBus/namespaces@2017-04-01' = {
                 name: take('sb-${uniqueString(resourceGroup().id)}', 50)
                 location: location
                 properties: {
@@ -1639,27 +1639,27 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 scope: sb
             }
 
-            resource queue1 'Microsoft.ServiceBus/namespaces/queues@2021-11-01' = {
+            resource queue1 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
                 name: 'queue1'
                 parent: sb
             }
 
-            resource queue2 'Microsoft.ServiceBus/namespaces/queues@2021-11-01' = {
+            resource queue2 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
                 name: 'queue2'
                 parent: sb
             }
 
-            resource t1 'Microsoft.ServiceBus/namespaces/topics@2021-11-01' = {
+            resource t1 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
                 name: 't1'
                 parent: sb
             }
 
-            resource t2 'Microsoft.ServiceBus/namespaces/topics@2021-11-01' = {
+            resource t2 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
                 name: 't2'
                 parent: sb
             }
 
-            resource s3 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2021-11-01' = {
+            resource s3 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
                 name: 's3'
                 parent: t1
             }
@@ -1881,7 +1881,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param principalType string
 
-            resource storage 'Microsoft.Storage/storageAccounts@2022-09-01' = {
+            resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
                 name: take('storage${uniqueString(resourceGroup().id)}', 24)
                 kind: 'StorageV2'
                 location: location
@@ -1900,7 +1900,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 }
             }
 
-            resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2022-09-01' = {
+            resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2023-01-01' = {
                 name: 'default'
                 parent: storage
             }
@@ -2037,7 +2037,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param principalType string
 
-            resource storage 'Microsoft.Storage/storageAccounts@2022-09-01' = {
+            resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
                 name: take('storage${uniqueString(resourceGroup().id)}', 24)
                 kind: 'StorageV2'
                 location: location
@@ -2056,7 +2056,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 }
             }
 
-            resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2022-09-01' = {
+            resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2023-01-01' = {
                 name: 'default'
                 parent: storage
             }
@@ -2192,7 +2192,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param principalType string
 
-            resource storage 'Microsoft.Storage/storageAccounts@2022-09-01' = {
+            resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
                 name: take('storage${uniqueString(resourceGroup().id)}', 24)
                 kind: 'StorageV2'
                 location: location
@@ -2211,7 +2211,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 }
             }
 
-            resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2022-09-01' = {
+            resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2023-01-01' = {
                 name: 'default'
                 parent: storage
             }
@@ -2348,7 +2348,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param principalType string
 
-            resource storage 'Microsoft.Storage/storageAccounts@2022-09-01' = {
+            resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
                 name: take('storage${uniqueString(resourceGroup().id)}', 24)
                 kind: 'StorageV2'
                 location: location
@@ -2367,7 +2367,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 }
             }
 
-            resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2022-09-01' = {
+            resource blobs 'Microsoft.Storage/storageAccounts/blobServices@2023-01-01' = {
                 name: 'default'
                 parent: storage
             }
@@ -2623,7 +2623,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
             param principalType string
 
-            resource openai 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
+            resource openai 'Microsoft.CognitiveServices/accounts@2022-12-01' = {
                 name: take('openai-${uniqueString(resourceGroup().id)}', 64)
                 location: location
                 kind: 'OpenAI'
@@ -2650,7 +2650,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 scope: openai
             }
 
-            resource mymodel 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
+            resource mymodel 'Microsoft.CognitiveServices/accounts/deployments@2022-12-01' = {
                 name: 'mymodel'
                 properties: {
                     model: {
@@ -2666,7 +2666,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 parent: openai
             }
 
-            resource embedding-model 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
+            resource embedding-model 'Microsoft.CognitiveServices/accounts/deployments@2022-12-01' = {
                 name: 'embedding-model'
                 properties: {
                     model: {

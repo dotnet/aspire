@@ -5,7 +5,7 @@ param principalId string
 
 param principalName string
 
-resource sql 'Microsoft.Sql/servers@2020-11-01-preview' = {
+resource sql 'Microsoft.Sql/servers@2021-11-01' = {
     name: take('sql-${uniqueString(resourceGroup().id)}', 63)
     location: location
     properties: {
@@ -25,7 +25,7 @@ resource sql 'Microsoft.Sql/servers@2020-11-01-preview' = {
     }
 }
 
-resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
+resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
     name: 'AllowAllAzureIps'
     properties: {
         endIpAddress: '0.0.0.0'
@@ -34,7 +34,7 @@ resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2
     parent: sql
 }
 
-resource db 'Microsoft.Sql/servers/databases@2020-11-01-preview' = {
+resource db 'Microsoft.Sql/servers/databases@2021-11-01' = {
     name: 'db'
     location: location
     parent: sql

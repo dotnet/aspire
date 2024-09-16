@@ -63,11 +63,11 @@ public static class AzurePostgresExtensions
             var kvNameParam = new BicepParameter("keyVaultName", typeof(string));
             construct.Add(kvNameParam);
 
-            var keyVault = KeyVaultService.FromExisting("keyVault", AzureResourceVersions.KeyVaultServiceResourceVersion);
+            var keyVault = KeyVaultService.FromExisting("keyVault");
             keyVault.Name = kvNameParam;
             construct.Add(keyVault);
 
-            var postgres = new PostgreSqlFlexibleServer(construct.Resource.Name, AzureResourceVersions.PostgreSqlFlexibleServerResourceVersion)
+            var postgres = new PostgreSqlFlexibleServer(construct.Resource.Name)
             {
                 StorageSizeInGB = 32,
                 AdministratorLogin = administratorLogin,
@@ -93,7 +93,7 @@ public static class AzurePostgresExtensions
             construct.Add(postgres);
 
             // Opens access to all Azure services.
-            construct.Add(new PostgreSqlFlexibleServerFirewallRule("postgreSqlFirewallRule_AllowAllAzureIps", AzureResourceVersions.PostgreSqlFlexibleServerFirewallRuleResourceVersion)
+            construct.Add(new PostgreSqlFlexibleServerFirewallRule("postgreSqlFirewallRule_AllowAllAzureIps", postgres.ResourceVersion)
             {
                 Parent = postgres,
                 Name = "AllowAllAzureIps",
@@ -104,7 +104,7 @@ public static class AzurePostgresExtensions
             if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
             {
                 // Opens access to the Internet.
-                construct.Add(new PostgreSqlFlexibleServerFirewallRule("postgreSqlFirewallRule_AllowAllIps", AzureResourceVersions.PostgreSqlFlexibleServerFirewallRuleResourceVersion)
+                construct.Add(new PostgreSqlFlexibleServerFirewallRule("postgreSqlFirewallRule_AllowAllIps", postgres.ResourceVersion)
                 {
                     Parent = postgres,
                     Name = "AllowAllIps",
@@ -117,7 +117,7 @@ public static class AzurePostgresExtensions
             {
                 var resourceName = databaseNames.Key;
                 var databaseName = databaseNames.Value;
-                var pgsqlDatabase = new PostgreSqlFlexibleServerDatabase(resourceName, AzureResourceVersions.PostgreSqlFlexibleServerDatabaseResourceVersion)
+                var pgsqlDatabase = new PostgreSqlFlexibleServerDatabase(resourceName, postgres.ResourceVersion)
                 {
                     Parent = postgres,
                     Name = databaseName
@@ -125,7 +125,7 @@ public static class AzurePostgresExtensions
                 construct.Add(pgsqlDatabase);
             }
 
-            var secret = new KeyVaultSecret("connectionString", AzureResourceVersions.KeyVaultSecretResourceVersion)
+            var secret = new KeyVaultSecret("connectionString")
             {
                 Parent = keyVault,
                 Name = "connectionString",

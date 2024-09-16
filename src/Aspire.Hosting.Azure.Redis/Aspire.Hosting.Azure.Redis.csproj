@@ -17,8 +17,6 @@
     <ProjectReference Include="..\Aspire.Hosting.Redis\Aspire.Hosting.Redis.csproj" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.Redis" />
-
-    <Compile Include="..\Shared\AzureResourceVersions.cs" />
   </ItemGroup>
 
 </Project>

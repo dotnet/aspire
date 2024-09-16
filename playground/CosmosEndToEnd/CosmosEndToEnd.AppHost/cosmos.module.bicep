@@ -3,11 +3,11 @@ param location string = resourceGroup().location
 
 param keyVaultName string
 
-resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
+resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
     name: keyVaultName
 }
 
-resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
+resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-05-15-preview' = {
     name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
     location: location
     properties: {
@@ -28,7 +28,7 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
     }
 }
 
-resource db 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15' = {
+resource db 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15-preview' = {
     name: 'db'
     location: location
     properties: {
@@ -39,7 +39,7 @@ resource db 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15' = {
     parent: cosmos
 }
 
-resource connectionString 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
+resource connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
     name: 'connectionString'
     properties: {
         value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'

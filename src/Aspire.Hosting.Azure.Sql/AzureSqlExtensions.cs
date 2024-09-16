@@ -23,7 +23,7 @@ public static class AzureSqlExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var sqlServer = new SqlServer(builder.Resource.Name, AzureResourceVersions.SqlServerResourceVersion)
+            var sqlServer = new SqlServer(builder.Resource.Name)
             {
                 Administrators = new ServerExternalAdministrator()
                 {
@@ -40,7 +40,7 @@ public static class AzureSqlExtensions
             };
             construct.Add(sqlServer);
 
-            construct.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllAzureIps", AzureResourceVersions.SqlFirewallRuleResourceVersion)
+            construct.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllAzureIps", sqlServer.ResourceVersion)
             {
                 Parent = sqlServer,
                 Name = "AllowAllAzureIps",
@@ -54,7 +54,7 @@ public static class AzureSqlExtensions
                 // the principalType.
                 sqlServer.Administrators.Value!.PrincipalType = construct.PrincipalTypeParameter;
 
-                construct.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllIps", AzureResourceVersions.SqlFirewallRuleResourceVersion)
+                construct.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllIps", sqlServer.ResourceVersion)
                 {
                     Parent = sqlServer,
                     Name = "AllowAllIps",
@@ -68,7 +68,7 @@ public static class AzureSqlExtensions
             {
                 var resourceName = databaseNames.Key;
                 var databaseName = databaseNames.Value;
-                var sqlDatabase = new SqlDatabase(resourceName, AzureResourceVersions.SqlDatabaseResourceVersion)
+                var sqlDatabase = new SqlDatabase(resourceName, sqlServer.ResourceVersion)
                 {
                     Parent = sqlServer,
                     Name = databaseName

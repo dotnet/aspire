@@ -48,7 +48,7 @@ public static class AzureServiceBusExtensions
             };
             construct.Add(skuParameter);
 
-            var serviceBusNamespace = new ServiceBusNamespace(name, AzureResourceVersions.ServiceBusNamespaceResourceVersion)
+            var serviceBusNamespace = new ServiceBusNamespace(name)
             {
                 Sku = new ServiceBusSku()
                 {
@@ -69,7 +69,7 @@ public static class AzureServiceBusExtensions
 
             foreach (var queue in azureResource.Queues)
             {
-                var queueResource = new ServiceBusQueue(queue.Name, AzureResourceVersions.ServiceBusQueueResourceVersion)
+                var queueResource = new ServiceBusQueue(queue.Name)
                 {
                     Parent = serviceBusNamespace,
                     Name = queue.Name
@@ -80,7 +80,7 @@ public static class AzureServiceBusExtensions
             var topicDictionary = new Dictionary<string, ServiceBusTopic>();
             foreach (var topic in azureResource.Topics)
             {
-                var topicResource = new ServiceBusTopic(topic.Name, AzureResourceVersions.ServiceBusTopicResourceVersion)
+                var topicResource = new ServiceBusTopic(topic.Name)
                 {
                     Parent = serviceBusNamespace,
                     Name = topic.Name
@@ -92,7 +92,7 @@ public static class AzureServiceBusExtensions
             foreach (var subscription in azureResource.Subscriptions)
             {
                 var topic = topicDictionary[subscription.TopicName];
-                var subscriptionResource = new ServiceBusSubscription(subscription.Name, AzureResourceVersions.ServiceBusSubscriptionResourceVersion)
+                var subscriptionResource = new ServiceBusSubscription(subscription.Name)
                 {
                     Parent = topic,
                     Name = subscription.Name

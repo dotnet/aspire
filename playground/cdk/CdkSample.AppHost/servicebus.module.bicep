@@ -7,7 +7,7 @@ param principalId string
 
 param principalType string
 
-resource servicebus 'Microsoft.ServiceBus/namespaces@2021-11-01' = {
+resource servicebus 'Microsoft.ServiceBus/namespaces@2017-04-01' = {
     name: take('servicebus-${uniqueString(resourceGroup().id)}', 50)
     location: location
     properties: {
@@ -31,7 +31,7 @@ resource servicebus_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssign
     scope: servicebus
 }
 
-resource queue1 'Microsoft.ServiceBus/namespaces/queues@2021-11-01' = {
+resource queue1 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
     name: 'queue1'
     properties: {
         lockDuration: 'PT5M'
@@ -40,7 +40,7 @@ resource queue1 'Microsoft.ServiceBus/namespaces/queues@2021-11-01' = {
     parent: servicebus
 }
 
-resource topic1 'Microsoft.ServiceBus/namespaces/topics@2021-11-01' = {
+resource topic1 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
     name: 'topic1'
     properties: {
         enablePartitioning: true
@@ -48,17 +48,17 @@ resource topic1 'Microsoft.ServiceBus/namespaces/topics@2021-11-01' = {
     parent: servicebus
 }
 
-resource topic2 'Microsoft.ServiceBus/namespaces/topics@2021-11-01' = {
+resource topic2 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
     name: 'topic2'
     parent: servicebus
 }
 
-resource topic3 'Microsoft.ServiceBus/namespaces/topics@2021-11-01' = {
+resource topic3 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
     name: 'topic3'
     parent: servicebus
 }
 
-resource subscription1 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2021-11-01' = {
+resource subscription1 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
     name: 'subscription1'
     properties: {
         lockDuration: 'PT5M'
@@ -67,17 +67,17 @@ resource subscription1 'Microsoft.ServiceBus/namespaces/topics/subscriptions@202
     parent: topic1
 }
 
-resource subscription2 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2021-11-01' = {
+resource subscription2 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
     name: 'subscription2'
     parent: topic1
 }
 
-resource sub1 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2021-11-01' = {
+resource sub1 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
     name: 'sub1'
     parent: topic3
 }
 
-resource sub2 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2021-11-01' = {
+resource sub2 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
     name: 'sub2'
     parent: topic3
 }

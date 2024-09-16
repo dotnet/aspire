@@ -41,7 +41,7 @@ public static class AzureSignalRExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var service = new SignalRService(name, AzureResourceVersions.SignalRResourceVersion)
+            var service = new SignalRService(name, "2022-02-01") // TODO: resource version should come from CDK
             {
                 Kind = SignalRServiceKind.SignalR,
                 Sku = new SignalRResourceSku()

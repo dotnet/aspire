@@ -16,8 +16,6 @@
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.KeyVault" />
-
-    <Compile Include="..\Shared\AzureResourceVersions.cs" />
   </ItemGroup>
 
 </Project>

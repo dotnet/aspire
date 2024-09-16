@@ -41,7 +41,7 @@ public static class AzureAppConfigurationExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var store = new AppConfigurationStore(name, AzureResourceVersions.AppConfigurationStoreResourceVersion)
+            var store = new AppConfigurationStore(name)
             {
                 SkuName = "standard",
                 DisableLocalAuth = true,

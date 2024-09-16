@@ -51,11 +51,11 @@ public static class AzureRedisExtensions
             var kvNameParam = new BicepParameter("keyVaultName", typeof(string));
             construct.Add(kvNameParam);
 
-            var keyVault = KeyVaultService.FromExisting("keyVault", AzureResourceVersions.KeyVaultServiceResourceVersion);
+            var keyVault = KeyVaultService.FromExisting("keyVault");
             keyVault.Name = kvNameParam;
             construct.Add(keyVault);
 
-            var redisCache = new CdkRedisResource(builder.Resource.Name, AzureResourceVersions.RedisResourceVersion)
+            var redisCache = new CdkRedisResource(builder.Resource.Name, "2020-06-01") // TODO: resource version should come from CDK
             {
                 Sku = new RedisSku()
                 {
@@ -69,7 +69,7 @@ public static class AzureRedisExtensions
             };
             construct.Add(redisCache);
 
-            var secret = new KeyVaultSecret("connectionString", AzureResourceVersions.KeyVaultSecretResourceVersion)
+            var secret = new KeyVaultSecret("connectionString")
             {
                 Parent = keyVault,
                 Name = "connectionString",

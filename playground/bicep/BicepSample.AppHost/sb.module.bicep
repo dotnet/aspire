@@ -7,7 +7,7 @@ param principalId string
 
 param principalType string
 
-resource sb 'Microsoft.ServiceBus/namespaces@2021-11-01' = {
+resource sb 'Microsoft.ServiceBus/namespaces@2017-04-01' = {
     name: take('sb-${uniqueString(resourceGroup().id)}', 50)
     location: location
     properties: {
@@ -31,32 +31,32 @@ resource sb_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@20
     scope: sb
 }
 
-resource queue1 'Microsoft.ServiceBus/namespaces/queues@2021-11-01' = {
+resource queue1 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
     name: 'queue1'
     parent: sb
 }
 
-resource topic1 'Microsoft.ServiceBus/namespaces/topics@2021-11-01' = {
+resource topic1 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
     name: 'topic1'
     parent: sb
 }
 
-resource topic2 'Microsoft.ServiceBus/namespaces/topics@2021-11-01' = {
+resource topic2 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
     name: 'topic2'
     parent: sb
 }
 
-resource subscription1 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2021-11-01' = {
+resource subscription1 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
     name: 'subscription1'
     parent: topic1
 }
 
-resource subscription2 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2021-11-01' = {
+resource subscription2 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
     name: 'subscription2'
     parent: topic1
 }
 
-resource subscription1 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2021-11-01' = {
+resource subscription1 'Microsoft.ServiceBus/namespaces/topics/subscriptions@2024-01-01' = {
     name: 'subscription1'
     parent: topic2
 }
