@@ -1,6 +1,7 @@
 ﻿@using Aspire.Dashboard.Extensions
 @using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Otlp.Storage
 @using Aspire.Dashboard.Resources
 @using Humanizer
 
@@ -99,5 +100,5 @@ else
 
 
     [Parameter, EditorRequired]
-    public required Dictionary<OtlpApplication, int>? UnviewedErrorCounts { get; set; }
+    public required Dictionary<ApplicationKey, int>? UnviewedErrorCounts { get; set; }
 }

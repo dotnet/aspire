@@ -166,10 +166,14 @@
                                             <div class="tick" style="grid-column: 3;"></div>
                                             <span class="tick-label" style="grid-column: 3;">@DurationFormatter.FormatDuration(trace.Duration / 4 * 2)</span>
 
+                                            @* Grid column 4 shows two labels. Hide the left aligned label on mobile to avoid them overlapping *@
                                             <div class="tick" style="grid-column: 4;"></div>
-                                            <span class="tick-label" style="grid-column: 4;">@DurationFormatter.FormatDuration(trace.Duration / 4 * 3)</span>
+                                            @if (_manager.ViewportInformation.IsDesktop)
+                                            {
+                                                <span class="tick-label" style="grid-column: 4;">@DurationFormatter.FormatDuration(trace.Duration / 4 * 3)</span>
+                                            }
 
-                                            <span class="tick-label end-tick hidden-on-mobile" style="grid-column: 4;">@DurationFormatter.FormatDuration(trace.Duration)</span>
+                                            <span class="tick-label end-tick" style="grid-column: 4;">@DurationFormatter.FormatDuration(trace.Duration)</span>
                                             <div class="tick" style="grid-column: 5;"></div>
                                         </div>
                                     </HeaderCellItemTemplate>

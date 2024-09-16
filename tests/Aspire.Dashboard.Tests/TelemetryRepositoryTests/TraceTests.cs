@@ -1059,4 +1059,148 @@ public class TraceTests
         trace = Assert.Single(repository.GetTraces(request).PagedResult.Items);
         Assert.Equal("TestService: Test span. Id: 1-1", trace.FullName);
     }
+
+    [Fact]
+    public void AddTraces_SameResourceDifferentProperties_MultipleResourceViews()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(attributes: [KeyValuePair.Create("prop1", "value1")]),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10))
+                        }
+                    }
+                }
+            },
+            new ResourceSpans
+            {
+                Resource = CreateResource(attributes: [KeyValuePair.Create("prop2", "value1"), KeyValuePair.Create("prop1", "value2")]),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-2", startTime: s_testTime.AddMinutes(5), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1")
+                        }
+                    }
+                }
+            },
+            new ResourceSpans
+            {
+                Resource = CreateResource(attributes: [KeyValuePair.Create("prop1", "value2"), KeyValuePair.Create("prop2", "value1")]),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-3", startTime: s_testTime.AddMinutes(10), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1")
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        // Spans belong to the same application
+        var application = Assert.Single(repository.GetApplications());
+        Assert.Equal("TestService", application.ApplicationName);
+        Assert.Equal("TestId", application.InstanceId);
+
+        // Spans have different views
+        var views = application.GetViews().OrderBy(v => v.Properties.Length).ToList();
+        Assert.Collection(views,
+            v =>
+            {
+                Assert.Collection(v.Properties,
+                    p =>
+                    {
+                        Assert.Equal("prop1", p.Key);
+                        Assert.Equal("value1", p.Value);
+                    });
+            },
+            v =>
+            {
+                Assert.Collection(v.Properties,
+                    p =>
+                    {
+                        Assert.Equal("prop1", p.Key);
+                        Assert.Equal("value2", p.Value);
+                    },
+                    p =>
+                    {
+                        Assert.Equal("prop2", p.Key);
+                        Assert.Equal("value1", p.Value);
+                    });
+            });
+
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = application.ApplicationKey,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10
+        });
+        var trace = Assert.Single(traces.PagedResult.Items);
+
+        Assert.Collection(trace.Spans,
+            s =>
+            {
+                AssertId("1-1", s.SpanId);
+                Assert.Collection(s.Source.Properties,
+                    p =>
+                    {
+                        Assert.Equal("prop1", p.Key);
+                        Assert.Equal("value1", p.Value);
+                    });
+            },
+            s =>
+            {
+                AssertId("1-2", s.SpanId);
+                Assert.Collection(s.Source.Properties,
+                    p =>
+                    {
+                        Assert.Equal("prop1", p.Key);
+                        Assert.Equal("value2", p.Value);
+                    },
+                    p =>
+                    {
+                        Assert.Equal("prop2", p.Key);
+                        Assert.Equal("value1", p.Value);
+                    });
+            },
+            s =>
+            {
+                AssertId("1-3", s.SpanId);
+                Assert.Collection(s.Source.Properties,
+                    p =>
+                    {
+                        Assert.Equal("prop1", p.Key);
+                        Assert.Equal("value2", p.Value);
+                    },
+                    p =>
+                    {
+                        Assert.Equal("prop2", p.Key);
+                        Assert.Equal("value1", p.Value);
+                    });
+            });
+    }
 }

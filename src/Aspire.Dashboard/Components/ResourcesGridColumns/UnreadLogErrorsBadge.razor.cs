@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
@@ -17,7 +16,7 @@ public partial class UnreadLogErrorsBadge
     [Parameter, EditorRequired]
     public required ResourceViewModel Resource { get; set; }
     [Parameter, EditorRequired]
-    public required Dictionary<OtlpApplication, int>? UnviewedErrorCounts { get; set; }
+    public required Dictionary<ApplicationKey, int>? UnviewedErrorCounts { get; set; }
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
@@ -42,7 +41,7 @@ public partial class UnreadLogErrorsBadge
             return (null, 0);
         }
 
-        if (!UnviewedErrorCounts.TryGetValue(application, out var count) || count == 0)
+        if (!UnviewedErrorCounts.TryGetValue(application.ApplicationKey, out var count) || count == 0)
         {
             return (null, 0);
         }

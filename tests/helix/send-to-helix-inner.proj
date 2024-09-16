@@ -13,8 +13,7 @@
     <!-- Disable playwright tests on helix/linux. Issue: https://github.com/dotnet/aspire/issues/4623 -->
     <DisablePlaywrightTests Condition="'$(OS)' != 'Windows_NT'">true</DisablePlaywrightTests>
 
-    <GlobalJsonContent>$([System.IO.File]::ReadAllText('$(RepoRoot)global.json'))</GlobalJsonContent>
-    <DotNetCliVersion>$([System.Text.RegularExpressions.Regex]::Match($(GlobalJsonContent), '(%3F&lt;="dotnet": ").*(%3F=")'))</DotNetCliVersion>
+    <DotNetCliVersion>$(DotNetSdkVersionForTesting)</DotNetCliVersion>
 
     <!-- dotnet-coverage tool version -->
     <_DotNetToolJsonPath>$(RepoRoot).config/dotnet-tools.json</_DotNetToolJsonPath>
@@ -127,11 +126,13 @@
     <HelixPreCommand Include="$(_ShutdownDockerContainersCommand)" />
     <HelixPreCommand Include="docker volume ls" />
     <HelixPreCommand Include="$(_DeleteDockerVolumesCommand)" />
+    <HelixPreCommand Include="docker network prune -f" />
 
     <HelixPostCommand Include="docker container ls --all" />
     <HelixPostCommand Include="$(_ShutdownDockerContainersCommand)" />
     <HelixPostCommand Include="docker volume ls" />
     <HelixPostCommand Include="$(_DeleteDockerVolumesCommand)" />
+    <HelixPostCommand Include="docker network prune -f" />
   </ItemGroup>
 
   <ItemGroup>
