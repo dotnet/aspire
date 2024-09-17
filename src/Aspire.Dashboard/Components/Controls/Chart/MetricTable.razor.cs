@@ -17,6 +17,8 @@ namespace Aspire.Dashboard.Components.Controls;
 
 public partial class MetricTable : ChartBase
 {
+    private static int s_nextChartId;
+
     private SortedList<DateTimeOffset, MetricViewBase> _metrics = [];
     private List<ChartExemplar> _exemplars = [];
     private string _unitColumnHeader = string.Empty;
@@ -25,7 +27,7 @@ public partial class MetricTable : ChartBase
     private OtlpInstrumentSummary? _instrument;
     private bool _showCount;
     private DateTimeOffset? _lastUpdate;
-    private readonly string _metricTableDivId = $"metric-table-container-{Guid.NewGuid():N}";
+    private readonly string _metricTableDivId = $"metric-table-container-{Interlocked.Increment(ref s_nextChartId)}";
 
     private IQueryable<MetricViewBase> _metricsView => _metrics.Values.AsEnumerable().Reverse().ToList().AsQueryable();
 
