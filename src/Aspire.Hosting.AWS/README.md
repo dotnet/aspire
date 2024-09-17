@@ -5,6 +5,7 @@ Provides extension methods and resources definition for a .NET Aspire AppHost to
 ## Prerequisites
 
 - [Configure AWS credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
+- [Node.js](https://nodejs.org) _(AWS CDK only)_
 
 ## Install the package
 
@@ -83,7 +84,8 @@ In the AppHost project create either a JSON or YAML CloudFormation template. Her
 ```
 
 In the AppHost the `AddAWSCloudFormationTemplate` method is used to register the CloudFormation resource. The first parameter,
-which is the Aspire resource name, is used as the CloudFormation stack name. If the template defines parameters the value can be provided using 
+which is the Aspire resource name, is used as the CloudFormation stack name when the `stackName` parameter is not set.
+If the template defines parameters the value can be provided using
 the `WithParameter` method. To configure what AWS account and region to deploy the CloudFormation stack,
 the `WithReference` method is used to associate a SDK configuration.
 
@@ -116,8 +118,8 @@ builder.AddProject<Projects.Frontend>("Frontend")
 
 ## Importing existing AWS resources
 
-To import AWS resources that were created by a CloudFormation stack outside of the AppHost the `AddAWSCloudFormationStack` method can be used.
-It will associated the outputs of the CloudFormation stack the same as the provisioning method `AddAWSCloudFormationTemplate`.
+To import AWS resources that were created by a CloudFormation stack outside the AppHost the `AddAWSCloudFormationStack` method can be used.
+It will associate the outputs of the CloudFormation stack the same as the provisioning method `AddAWSCloudFormationTemplate`.
 
 ```csharp
 var awsResources = builder.AddAWSCloudFormationStack("ExistingStackName")
@@ -125,6 +127,34 @@ var awsResources = builder.AddAWSCloudFormationStack("ExistingStackName")
 
 builder.AddProject<Projects.Frontend>("Frontend")
        .WithReference(awsResources);
+```
+
+## Provisioning application resources with AWS CDK
+
+Adding [AWS CDK](https://aws.amazon.com/cdk/) to the AppHost makes it possible to provision AWS resources using code. Under the hood AWS CDK is using CloudFormation to create the resources in AWS.
+
+In the AppHost the `AddAWSCDK` methods is used to create a CDK Resources which will hold the constructs for describing the AWS resources.
+
+A number of methods are available to add common resources to the AppHost like S3 Buckets, DynamoDB Tables, SQS Queues, SNS Topics, Kinesis Streams and Cognito User Pools. These resources can be added either the CDK resource or a dedicated stack that can be created.
+
+```csharp
+var stack = builder.AddAWSCDKStack("Stack");
+var bucket = stack.AddS3Bucket("Bucket");
+
+builder.AddProject<Projects.Frontend>("Frontend")
+       .WithReference(bucket);
+```
+
+Resources created with these methods can be directly referenced by project resources and common properties like resource names, ARNs or URLs will be made available as configuration environment variables. The default config section will be `AWS:Resources`
+
+Alternative constructs can be created in free form using the `AddConstruct` methods. These constructs can be references with the `WithReference` method and need to be provided with a property selector and an output name. This will make this property available as configuration environment variable
+
+```csharp
+var stack = builder.AddAWSCDKStack("Stack");
+var constuct = stack.AddConstruct("Construct", scope => new CustomConstruct(scope, "Construct"));
+
+builder.AddProject<Projects.Frontend>("Frontend")
+       .WithReference(construct, c => c.Url, "Url");
 ```
 
 ## Feedback & contributing

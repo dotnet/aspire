@@ -586,31 +586,39 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.AWS.Tests", 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AzureFunctionsEndToEnd", "AzureFunctionsEndToEnd", "{305D5B56-8782-493C-BD44-9860F8616D92}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureFunctionsEndToEnd.ApiService", "playground\AzureFunctionsEndToEnd\AzureFunctionsEndToEnd.ApiService\AzureFunctionsEndToEnd.ApiService.csproj", "{659AF918-57A4-4616-B3D0-24FCE38DF12A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureFunctionsEndToEnd.ApiService", "playground\AzureFunctionsEndToEnd\AzureFunctionsEndToEnd.ApiService\AzureFunctionsEndToEnd.ApiService.csproj", "{659AF918-57A4-4616-B3D0-24FCE38DF12A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureFunctionsEndToEnd.AppHost", "playground\AzureFunctionsEndToEnd\AzureFunctionsEndToEnd.AppHost\AzureFunctionsEndToEnd.AppHost.csproj", "{13025E2D-2E2B-4319-8754-0B12F324283E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureFunctionsEndToEnd.AppHost", "playground\AzureFunctionsEndToEnd\AzureFunctionsEndToEnd.AppHost\AzureFunctionsEndToEnd.AppHost.csproj", "{13025E2D-2E2B-4319-8754-0B12F324283E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureFunctionsEndToEnd.Functions", "playground\AzureFunctionsEndToEnd\AzureFunctionsEndToEnd.Functions\AzureFunctionsEndToEnd.Functions.csproj", "{79D2E40E-95EC-4BAF-8382-E5669B8E6E42}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureFunctionsEndToEnd.Functions", "playground\AzureFunctionsEndToEnd\AzureFunctionsEndToEnd.Functions\AzureFunctionsEndToEnd.Functions.csproj", "{79D2E40E-95EC-4BAF-8382-E5669B8E6E42}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Azure.Functions", "src\Aspire.Hosting.Azure.Functions\Aspire.Hosting.Azure.Functions.csproj", "{A8FFEB1F-B128-48D0-A114-5C94FF770551}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.Functions", "src\Aspire.Hosting.Azure.Functions\Aspire.Hosting.Azure.Functions.csproj", "{A8FFEB1F-B128-48D0-A114-5C94FF770551}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "waitfor", "waitfor", "{3FF3F00C-95C0-46FC-B2BE-A3920C71E393}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaitForSandbox.AppHost", "playground\waitfor\WaitForSandbox.AppHost\WaitForSandbox.AppHost.csproj", "{415E011A-1C56-41A1-BAEB-CA5D5CED1A57}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WaitForSandbox.AppHost", "playground\waitfor\WaitForSandbox.AppHost\WaitForSandbox.AppHost.csproj", "{415E011A-1C56-41A1-BAEB-CA5D5CED1A57}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaitForSandbox.ApiService", "playground\waitfor\WaitForSandbox.ApiService\WaitForSandbox.ApiService.csproj", "{C554C480-3DA7-4D62-A09A-3F3F743D7A66}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WaitForSandbox.ApiService", "playground\waitfor\WaitForSandbox.ApiService\WaitForSandbox.ApiService.csproj", "{C554C480-3DA7-4D62-A09A-3F3F743D7A66}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaitForSandbox.DbSetup", "playground\waitfor\WaitForSandbox.DbSetup\WaitForSandbox.DbSetup.csproj", "{37BC5B4A-3F96-4BB0-92E6-81666F4324E4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WaitForSandbox.DbSetup", "playground\waitfor\WaitForSandbox.DbSetup\WaitForSandbox.DbSetup.csproj", "{37BC5B4A-3F96-4BB0-92E6-81666F4324E4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaitForSandbox.Common", "playground\waitfor\WaitForSandbox.Common\WaitForSandbox.Common.csproj", "{F0C976EF-EE26-4EA9-B324-0CD21DCEA140}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WaitForSandbox.Common", "playground\waitfor\WaitForSandbox.Common\WaitForSandbox.Common.csproj", "{F0C976EF-EE26-4EA9-B324-0CD21DCEA140}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SqlServerEndToEnd.Common", "playground\SqlServerEndToEnd\SqlServerEndToEnd.Common\SqlServerEndToEnd.Common.csproj", "{1997067D-8EF2-43B3-AB13-9B2E12B52709}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SqlServerEndToEnd.Common", "playground\SqlServerEndToEnd\SqlServerEndToEnd.Common\SqlServerEndToEnd.Common.csproj", "{1997067D-8EF2-43B3-AB13-9B2E12B52709}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SqlServerEndToEnd.DbSetup", "playground\SqlServerEndToEnd\SqlServerEndToEnd.DbSetup\SqlServerEndToEnd.DbSetup.csproj", "{125C081D-7E5B-4F35-B5CD-E2B56140380F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SqlServerEndToEnd.DbSetup", "playground\SqlServerEndToEnd\SqlServerEndToEnd.DbSetup\SqlServerEndToEnd.DbSetup.csproj", "{125C081D-7E5B-4F35-B5CD-E2B56140380F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Sdk.Tests", "tests\Aspire.Hosting.Sdk.Tests\Aspire.Hosting.Sdk.Tests.csproj", "{ABDC7DF8-7ACA-430C-9C91-983693DBBCB9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AWSCDK.AppHost", "playground\AWS\AWSCDK.AppHost\AWSCDK.AppHost.csproj", "{B5826732-7318-4179-9B85-870CB18AC533}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.RuntimeIdentifier.Tool", "src\Aspire.Hosting.Sdk\Aspire.RuntimeIdentifier.Tool\Aspire.RuntimeIdentifier.Tool.csproj", "{100A7A22-2517-41AD-8649-68E3E289F537}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Redis", "Redis", "{874EA351-05EA-44F5-8B12-7A7F865ECEC5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redis.ApiService", "playground\Redis\Redis.ApiService\Redis.ApiService.csproj", "{B4CB2D9D-D3F5-4BB1-A7C0-7A6F13316A78}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redis.AppHost", "playground\Redis\Redis.AppHost\Redis.AppHost.csproj", "{6249A193-3BF4-4FFB-AB81-6590A8318889}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Sdk.Tests", "tests\Aspire.Hosting.Sdk.Tests\Aspire.Hosting.Sdk.Tests.csproj", "{AEF07BC6-76D8-4A45-89D5-54FC4483863F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.RuntimeIdentifier.Tool", "src\Aspire.Hosting.Sdk\Aspire.RuntimeIdentifier.Tool\Aspire.RuntimeIdentifier.Tool.csproj", "{FF2895FC-A613-43DC-96B8-E5DFA69125CA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1606,14 +1614,26 @@ Global
 		{125C081D-7E5B-4F35-B5CD-E2B56140380F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{125C081D-7E5B-4F35-B5CD-E2B56140380F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{125C081D-7E5B-4F35-B5CD-E2B56140380F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{ABDC7DF8-7ACA-430C-9C91-983693DBBCB9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{ABDC7DF8-7ACA-430C-9C91-983693DBBCB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{ABDC7DF8-7ACA-430C-9C91-983693DBBCB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{ABDC7DF8-7ACA-430C-9C91-983693DBBCB9}.Release|Any CPU.Build.0 = Release|Any CPU
-		{100A7A22-2517-41AD-8649-68E3E289F537}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{100A7A22-2517-41AD-8649-68E3E289F537}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{100A7A22-2517-41AD-8649-68E3E289F537}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{100A7A22-2517-41AD-8649-68E3E289F537}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B5826732-7318-4179-9B85-870CB18AC533}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B5826732-7318-4179-9B85-870CB18AC533}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B5826732-7318-4179-9B85-870CB18AC533}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B5826732-7318-4179-9B85-870CB18AC533}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B4CB2D9D-D3F5-4BB1-A7C0-7A6F13316A78}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B4CB2D9D-D3F5-4BB1-A7C0-7A6F13316A78}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B4CB2D9D-D3F5-4BB1-A7C0-7A6F13316A78}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B4CB2D9D-D3F5-4BB1-A7C0-7A6F13316A78}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6249A193-3BF4-4FFB-AB81-6590A8318889}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6249A193-3BF4-4FFB-AB81-6590A8318889}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6249A193-3BF4-4FFB-AB81-6590A8318889}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6249A193-3BF4-4FFB-AB81-6590A8318889}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AEF07BC6-76D8-4A45-89D5-54FC4483863F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AEF07BC6-76D8-4A45-89D5-54FC4483863F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AEF07BC6-76D8-4A45-89D5-54FC4483863F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AEF07BC6-76D8-4A45-89D5-54FC4483863F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FF2895FC-A613-43DC-96B8-E5DFA69125CA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF2895FC-A613-43DC-96B8-E5DFA69125CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FF2895FC-A613-43DC-96B8-E5DFA69125CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FF2895FC-A613-43DC-96B8-E5DFA69125CA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1907,8 +1927,12 @@ Global
 		{F0C976EF-EE26-4EA9-B324-0CD21DCEA140} = {3FF3F00C-95C0-46FC-B2BE-A3920C71E393}
 		{1997067D-8EF2-43B3-AB13-9B2E12B52709} = {2CA6AB88-21EF-4488-BB1B-3A5BAD5FE2AD}
 		{125C081D-7E5B-4F35-B5CD-E2B56140380F} = {2CA6AB88-21EF-4488-BB1B-3A5BAD5FE2AD}
-		{ABDC7DF8-7ACA-430C-9C91-983693DBBCB9} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
-		{100A7A22-2517-41AD-8649-68E3E289F537} = {F534D4F8-5E3A-42FC-BCD7-4C2D6060F9C8}
+		{B5826732-7318-4179-9B85-870CB18AC533} = {EF91843F-C4AB-47F8-909B-C494EABB2BA2}
+		{874EA351-05EA-44F5-8B12-7A7F865ECEC5} = {D173887B-AF42-4576-B9C1-96B9E9B3D9C0}
+		{B4CB2D9D-D3F5-4BB1-A7C0-7A6F13316A78} = {874EA351-05EA-44F5-8B12-7A7F865ECEC5}
+		{6249A193-3BF4-4FFB-AB81-6590A8318889} = {874EA351-05EA-44F5-8B12-7A7F865ECEC5}
+		{AEF07BC6-76D8-4A45-89D5-54FC4483863F} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
+		{FF2895FC-A613-43DC-96B8-E5DFA69125CA} = {F534D4F8-5E3A-42FC-BCD7-4C2D6060F9C8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

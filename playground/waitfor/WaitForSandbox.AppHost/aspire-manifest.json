@@ -2,22 +2,13 @@
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
     "pg": {
-      "type": "container.v0",
-      "connectionString": "Host={pg.bindings.tcp.host};Port={pg.bindings.tcp.port};Username=postgres;Password={pg-password.value}",
-      "image": "docker.io/library/postgres:16.4",
-      "env": {
-        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
-        "POSTGRES_USER": "postgres",
-        "POSTGRES_PASSWORD": "{pg-password.value}"
-      },
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "targetPort": 5432
-        }
+      "type": "azure.bicep.v0",
+      "connectionString": "{pg.secretOutputs.connectionString}",
+      "path": "pg.module.bicep",
+      "params": {
+        "keyVaultName": "",
+        "administratorLogin": "{pg-username.value}",
+        "administratorLoginPassword": "{pg-password.value}"
       }
     },
     "db": {
@@ -71,6 +62,22 @@
           "protocol": "tcp",
           "transport": "http",
           "external": true
+        }
+      }
+    },
+    "pg-username": {
+      "type": "parameter.v0",
+      "value": "{pg-username.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "default": {
+            "generate": {
+              "minLength": 10,
+              "numeric": false,
+              "special": false
+            }
+          }
         }
       }
     },

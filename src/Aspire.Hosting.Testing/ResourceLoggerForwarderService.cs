@@ -52,7 +52,7 @@ internal sealed class ResourceLoggerForwarderService(
 
             await Task.WhenAll(logWatchTasks).ConfigureAwait(false);
         }
-        catch (TaskCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             // this was expected as the token was canceled
         }

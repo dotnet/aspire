@@ -25,6 +25,8 @@ resource storageAccount_59pNEh4K4 'Microsoft.Storage/storageAccounts@2022-09-01'
     networkAcls: {
       defaultAction: 'Allow'
     }
+    minimumTlsVersion: 'TLS1_2'
+    allowSharedKeyAccess: false
   }
 }
 

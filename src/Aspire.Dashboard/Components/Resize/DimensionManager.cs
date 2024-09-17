@@ -11,7 +11,6 @@ public class DimensionManager
     public event ViewportSizeChangedEventHandler? OnViewportSizeChanged;
     public event ViewportInformationChangedEventHandler? OnViewportInformationChanged;
 
-    public bool IsResizing { get; set; }
     public ViewportInformation ViewportInformation => _viewportInformation ?? throw new ArgumentNullException(nameof(_viewportInformation));
     public ViewportSize ViewportSize=> _viewportSize ?? throw new ArgumentNullException(nameof(_viewportSize));
 
