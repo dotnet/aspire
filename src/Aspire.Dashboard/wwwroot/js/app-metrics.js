@@ -90,7 +90,7 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
 
     var options = { scrollZoom: false, displayModeBar: false, responsive: true };
 
-    var plot = Plotly.newPlot(chartDiv, data, layout, options);
+    Plotly.newPlot(chartDiv, data, layout, options);
 
     fixTraceLineRendering(chartDiv);
 
