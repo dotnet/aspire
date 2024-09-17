@@ -55,12 +55,12 @@ public partial class StructuredLogsTests : TestContext
         Assert.Collection(viewModel.Filters,
             f =>
             {
-                Assert.Equal(TelemetryFilter.KnownStructuredLogFields.TraceIdField, f.Field);
+                Assert.Equal(KnownStructuredLogFields.TraceIdField, f.Field);
                 Assert.Equal("123", f.Value);
             },
             f =>
             {
-                Assert.Equal(TelemetryFilter.KnownStructuredLogFields.SpanIdField, f.Field);
+                Assert.Equal(KnownStructuredLogFields.SpanIdField, f.Field);
                 Assert.Equal("456", f.Value);
             });
     }
