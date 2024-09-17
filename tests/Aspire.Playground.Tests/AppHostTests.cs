@@ -180,14 +180,11 @@ public class AppHostTests
     {
         IList<TestEndpoints> candidates =
         [
-            new TestEndpoints("Garnet.AppHost",
-                resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/ping", "/set", "/get"] } },
-                 waitForTexts: [
-                    new ("garnet", "Ready to accept connections"),
             new TestEndpoints("Redis.AppHost",
-                resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/ping", "get", "set"] } },
+                resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/garnet/ping", "/garnet/get", "/garnet/set", "/redis/ping", "/redis/get", "/redis/set"] } },
                 waitForTexts: [
                     new ("redis", "Ready to accept connections tcp"),
+                    new ("garnet", "Ready to accept connections"),
                     new ("apiservice", "Application started")
                 ]),
             new TestEndpoints("AzureStorageEndToEnd.AppHost",

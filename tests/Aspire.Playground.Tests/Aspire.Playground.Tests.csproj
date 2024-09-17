@@ -57,7 +57,6 @@
     <ProjectReference Include="$(PlaygroundSourceDir)keycloak/Keycloak.AppHost/Keycloak.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)milvus/MilvusPlayground.AppHost/MilvusPlayground.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)withdockerfile/WithDockerfile.AppHost/WithDockerfile.AppHost.csproj" />
-    <ProjectReference Include="$(PlaygroundSourceDir)Garnet/Garnet.AppHost/Garnet.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)Redis/Redis.AppHost/Redis.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)mongo/Mongo.AppHost/Mongo.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)mysql/MySqlDb.AppHost/MySqlDb.AppHost.csproj" />
