@@ -76,7 +76,8 @@ public class TraceTests
             ApplicationKey = applications[0].ApplicationKey,
             FilterText = string.Empty,
             StartIndex = 0,
-            Count = 10
+            Count = 10,
+            Filters = []
         });
         Assert.Collection(traces.PagedResult.Items,
             trace =>
@@ -149,7 +150,8 @@ public class TraceTests
             ApplicationKey = applications[0].ApplicationKey,
             FilterText = string.Empty,
             StartIndex = 0,
-            Count = 10
+            Count = 10,
+            Filters = []
         });
         Assert.Collection(traces.PagedResult.Items,
             trace =>
@@ -225,7 +227,8 @@ public class TraceTests
             ApplicationKey = applications[0].ApplicationKey,
             FilterText = string.Empty,
             StartIndex = 0,
-            Count = 10
+            Count = 10,
+            Filters = []
         });
         Assert.Collection(traces1.PagedResult.Items,
             trace =>
@@ -266,7 +269,8 @@ public class TraceTests
             ApplicationKey = applications[0].ApplicationKey,
             FilterText = string.Empty,
             StartIndex = 0,
-            Count = 10
+            Count = 10,
+            Filters = []
         });
         Assert.Collection(traces2.PagedResult.Items,
             trace =>
@@ -320,7 +324,8 @@ public class TraceTests
             ApplicationKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
-            Count = 10
+            Count = 10,
+            Filters = []
         });
         Assert.Collection(traces.PagedResult.Items,
             trace =>
@@ -388,7 +393,8 @@ public class TraceTests
             ApplicationKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
-            Count = 10
+            Count = 10,
+            Filters = []
         });
         Assert.Collection(traces.PagedResult.Items,
             trace =>
@@ -464,7 +470,8 @@ public class TraceTests
             ApplicationKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
-            Count = 10
+            Count = 10,
+            Filters = []
         });
         Assert.Collection(traces.PagedResult.Items,
             trace =>
@@ -553,7 +560,8 @@ public class TraceTests
             ApplicationKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
-            Count = 10
+            Count = 10,
+            Filters = []
         });
         Assert.Collection(traces1.PagedResult.Items,
             trace =>
@@ -568,7 +576,8 @@ public class TraceTests
             ApplicationKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
-            Count = 10
+            Count = 10,
+            Filters = []
         });
         Assert.NotSame(traces1.PagedResult.Items[0], traces2.PagedResult.Items[0]);
         Assert.NotSame(traces1.PagedResult.Items[0].Spans[0].Trace, traces2.PagedResult.Items[0].Spans[0].Trace);
@@ -635,7 +644,8 @@ public class TraceTests
             ApplicationKey = applications[0].ApplicationKey,
             FilterText = string.Empty,
             StartIndex = 0,
-            Count = 10
+            Count = 10,
+            Filters = []
         });
 
         var trace = Assert.Single(traces.PagedResult.Items);
@@ -686,7 +696,8 @@ public class TraceTests
             ApplicationKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
-            Count = 10
+            Count = 10,
+            Filters = []
         });
 
         // Assert
@@ -757,7 +768,8 @@ public class TraceTests
             ApplicationKey = applications[0].ApplicationKey,
             FilterText = string.Empty,
             StartIndex = 0,
-            Count = 10
+            Count = 10,
+            Filters = []
         });
 
         // Most recent traces are returned.
@@ -863,7 +875,8 @@ public class TraceTests
             ApplicationKey = null,
             FilterText = string.Empty,
             StartIndex = 0,
-            Count = 10
+            Count = 10,
+            Filters = []
         });
         Assert.Collection(traces.PagedResult.Items,
             trace =>
@@ -932,7 +945,8 @@ public class TraceTests
             ApplicationKey = appKey,
             FilterText = string.Empty,
             StartIndex = 0,
-            Count = 10
+            Count = 10,
+            Filters = []
         });
         Assert.Collection(traces.PagedResult.Items,
             trace =>
@@ -955,7 +969,8 @@ public class TraceTests
             ApplicationKey = new ApplicationKey("TestService", "TestId"),
             FilterText = string.Empty,
             StartIndex = 0,
-            Count = 10
+            Count = 10,
+            Filters = []
         };
 
         // Act 1
@@ -1157,7 +1172,8 @@ public class TraceTests
             ApplicationKey = application.ApplicationKey,
             FilterText = string.Empty,
             StartIndex = 0,
-            Count = 10
+            Count = 10,
+            Filters = []
         });
         var trace = Assert.Single(traces.PagedResult.Items);
 

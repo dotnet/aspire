@@ -47,16 +47,22 @@ public partial class FilterDialog
 
     protected override void OnParametersSet()
     {
-        var names = new List<string> { LogFilter.KnownMessageField, LogFilter.KnownCategoryField, LogFilter.KnownApplicationField, LogFilter.KnownTraceIdField, LogFilter.KnownSpanIdField, LogFilter.KnownOriginalFormatField };
-        var knownFields = names.Select(p => new SelectViewModel<string> { Id = p, Name = LogFilter.ResolveFieldName(p) }).ToList();
-        var customFields = Content.LogPropertyKeys.Select(p => new SelectViewModel<string> { Id = p, Name = LogFilter.ResolveFieldName(p) }).ToList();
+        var knownFields = Content.KnownKeys.Select(p => new SelectViewModel<string> { Id = p, Name = LogFilter.ResolveFieldName(p) }).ToList();
+        var customFields = Content.PropertyKeys.Select(p => new SelectViewModel<string> { Id = p, Name = LogFilter.ResolveFieldName(p) }).ToList();
 
-        _parameters =
-        [
-            .. knownFields,
-            new SelectViewModel<string> { Id = null, Name = "-" },
-            .. customFields
-        ];
+        if (customFields.Count > 0)
+        {
+            _parameters =
+            [
+                .. knownFields,
+                new SelectViewModel<string> { Id = null, Name = "-" },
+                .. customFields
+            ];
+        }
+        else
+        {
+            _parameters = knownFields;
+        }
 
         if (Content.Filter is { } logFilter)
         {
@@ -66,7 +72,7 @@ public partial class FilterDialog
         }
         else
         {
-            _formModel.Parameter = _parameters.SingleOrDefault(c => c.Id == LogFilter.KnownMessageField);
+            _formModel.Parameter = _parameters.FirstOrDefault();
             _formModel.Condition = _filterConditions.Single(c => c.Id == FilterCondition.Contains);
             _formModel.Value = "";
         }

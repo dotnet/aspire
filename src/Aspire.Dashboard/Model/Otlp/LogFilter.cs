@@ -12,24 +12,6 @@ namespace Aspire.Dashboard.Model.Otlp;
 [DebuggerDisplay("{FilterText,nq}")]
 public class LogFilter : IEquatable<LogFilter>
 {
-    public static class KnownStructuredLogFields
-    {
-        public const string MessageField = "log.message";
-        public const string CategoryField = "log.category";
-        public const string ApplicationField = "log.application";
-        public const string TraceIdField = "log.traceid";
-        public const string SpanIdField = "log.spanid";
-        public const string OriginalFormatField = "log.originalformat";
-    }
-
-    public static class KnownTraceFields
-    {
-        public const string ApplicationField = "trace.application";
-        public const string TraceIdField = "trace.traceid";
-        public const string SpanIdField = "trace.spanid";
-        public const string KindField = "trace.kind";
-    }
-
     public string Field { get; set; } = default!;
     public FilterCondition Condition { get; set; }
     public string Value { get; set; } = default!;
@@ -48,6 +30,13 @@ public class LogFilter : IEquatable<LogFilter>
             KnownStructuredLogFields.SpanIdField => "SpanId",
             KnownStructuredLogFields.OriginalFormatField => "OriginalFormat",
             KnownStructuredLogFields.CategoryField => "Category",
+            KnownTraceFields.NameField => "Name",
+            KnownTraceFields.SpanIdField => "SpanId",
+            KnownTraceFields.TraceIdField => "TraceId",
+            KnownTraceFields.KindField => "Kind",
+            KnownTraceFields.ApplicationField => "Application",
+            KnownTraceFields.StatusField => "Status",
+            KnownTraceFields.SourceField => "Source",
             _ => name
         };
     }
@@ -130,6 +119,9 @@ public class LogFilter : IEquatable<LogFilter>
             KnownTraceFields.TraceIdField => x.TraceId,
             KnownTraceFields.SpanIdField => x.SpanId,
             KnownTraceFields.KindField => x.Kind.ToString(),
+            KnownTraceFields.StatusField => x.Status.ToString(),
+            KnownTraceFields.SourceField => x.Scope.ScopeName,
+            KnownTraceFields.NameField => x.Name,
             _ => x.Attributes.GetValue(Field)
         };
     }
@@ -166,25 +158,25 @@ public class LogFilter : IEquatable<LogFilter>
         }
     }
 
-    public IEnumerable<OtlpTrace> Apply(IEnumerable<OtlpTrace> input)
+    public bool Apply(OtlpSpan span)
     {
         switch (Field)
         {
-            case nameof(OtlpLogEntry.TimeStamp):
+            case nameof(OtlpSpan.StartTime):
                 {
                     var date = DateTime.Parse(Value, CultureInfo.InvariantCulture);
                     var func = ConditionToFuncDate(Condition);
-                    return input.Where(x => func(x.TimeStamp, date));
+                    return func(span.StartTime, date);
                 }
-            case nameof(OtlpTrace.FullName):
+            case nameof(OtlpSpan.Name):
                 {
                     var func = ConditionToFuncString(Condition);
-                    return input.Where(x => func(x.FullName, Value));
+                    return func(span.Name, Value);
                 }
             default:
                 {
                     var func = ConditionToFuncString(Condition);
-                    return input.Where(x => func(GetFieldValue(x), Value));
+                    return func(GetFieldValue(span), Value);
                 }
         }
     }

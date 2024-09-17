@@ -146,14 +146,14 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         {
             ViewModel.AddFilter(new LogFilter
             {
-                Field = LogFilter.KnownTraceIdField, Condition = FilterCondition.Equals, Value = TraceId
+                Field = KnownStructuredLogFields.TraceIdField, Condition = FilterCondition.Equals, Value = TraceId
             });
         }
         if (!string.IsNullOrEmpty(SpanId))
         {
             ViewModel.AddFilter(new LogFilter
             {
-                Field = LogFilter.KnownSpanIdField, Condition = FilterCondition.Equals, Value = SpanId
+                Field = KnownStructuredLogFields.SpanIdField, Condition = FilterCondition.Equals, Value = SpanId
             });
         }
 
@@ -273,8 +273,6 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             await _contentLayout.CloseMobileToolbarAsync();
         }
 
-        var logPropertyKeys = TelemetryRepository.GetLogPropertyKeys(PageViewModel.SelectedApplication.Id?.GetApplicationKey());
-
         var title = entry is not null ? FilterLoc[nameof(StructuredFiltering.DialogTitleEditFilter)] : FilterLoc[nameof(StructuredFiltering.DialogTitleAddFilter)];
         var parameters = new DialogParameters
         {
@@ -286,7 +284,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         };
         var data = new FilterDialogViewModel
         {
-            Filter = entry, LogPropertyKeys = logPropertyKeys
+            Filter = entry,
+            PropertyKeys = TelemetryRepository.GetLogPropertyKeys(PageViewModel.SelectedApplication.Id?.GetApplicationKey()),
+            KnownKeys = KnownStructuredLogFields.AllFields
         };
         await DialogService.ShowPanelAsync<FilterDialog>(data, parameters);
     }
