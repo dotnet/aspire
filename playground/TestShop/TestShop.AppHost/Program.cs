@@ -8,12 +8,12 @@ var catalogDb = builder.AddPostgres("postgres")
 var basketCache = builder.AddRedis("basketcache")
                          .WithDataVolume();
 
-#if !SKIP_DASHBOARD_REFERENCE
+//#if !SKIP_DASHBOARD_REFERENCE
 basketCache.WithRedisCommander(c =>
                      {
                          c.WithHostPort(33801);
                      });
-#endif
+//#endif
 
 var catalogDbApp = builder.AddProject<Projects.CatalogDb>("catalogdbapp")
                           .WithReference(catalogDb);
