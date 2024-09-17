@@ -1372,7 +1372,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 ContainerLifetime.Default => GetRandomNameSuffix(),
                 // Compute a short hash of the content root path to differentiate between multiple AppHost projects with similar resource names
-                _ => configuration["AppHost:Sha256"]!.Substring(0, 8).ToLowerInvariant(),
+                _ => configuration["AppHost:Sha256"]!.Substring(0, RandomNameSuffixLength).ToLowerInvariant(),
             };
 
             var containerObjectName = GetObjectNameForResource(container, nameSuffix);
