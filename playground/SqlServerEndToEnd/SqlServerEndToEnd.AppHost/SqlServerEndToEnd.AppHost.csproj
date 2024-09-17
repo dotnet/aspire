@@ -2,10 +2,11 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>209ffcfc-80c8-470f-87d4-ef96525f2cdc</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,6 +19,8 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
 
     <ProjectReference Include="..\SqlServerEndToEnd.ApiService\SqlServerEndToEnd.ApiService.csproj" />
+
+    <ProjectReference Include="..\SqlServerEndToEnd.DbSetup\SqlServerEndToEnd.DbSetup.csproj" />
   </ItemGroup>
 
 </Project>

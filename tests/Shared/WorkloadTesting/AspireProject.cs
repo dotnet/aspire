@@ -261,10 +261,12 @@ public class AspireProject : IAsyncDisposable
         _testOutput.WriteLine($"-- Ready to run tests --");
     }
 
-    public async Task BuildAsync(string[]? extraBuildArgs = default, CancellationToken token = default)
+    public async Task BuildAsync(string[]? extraBuildArgs = default, CancellationToken token = default, string? workingDirectory = null)
     {
+        workingDirectory ??= Path.Combine(RootDir, $"{Id}.AppHost");
+
         using var restoreCmd = new DotNetCommand(_testOutput, buildEnv: _buildEnv, label: "restore")
-                                    .WithWorkingDirectory(Path.Combine(RootDir, $"{Id}.AppHost"));
+                                    .WithWorkingDirectory(workingDirectory);
         var res = await restoreCmd.ExecuteAsync($"restore \"-bl:{Path.Combine(LogPath!, $"{Id}-restore.binlog")}\" /p:TreatWarningsAsErrors=true");
         res.EnsureSuccessful();
 
@@ -274,7 +276,7 @@ public class AspireProject : IAsyncDisposable
             buildArgs += " " + string.Join(" ", extraBuildArgs);
         }
         using var buildCmd = new DotNetCommand(_testOutput, buildEnv: _buildEnv, label: "build")
-                                        .WithWorkingDirectory(Path.Combine(RootDir, $"{Id}.AppHost"));
+                                        .WithWorkingDirectory(workingDirectory);
         res = await buildCmd.ExecuteAsync(buildArgs);
         res.EnsureSuccessful();
     }

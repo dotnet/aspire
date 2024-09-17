@@ -116,7 +116,11 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         var dashpages = await DashpagePersistence.GetDashpagesAsync(CancellationToken.None);
         PageViewModel.Dashpages = dashpages;
 
-        await this.InitializeViewModelAsync();
+        if (await this.InitializeViewModelAsync())
+        {
+            return;
+        }
+
         UpdateSubscription();
     }
 

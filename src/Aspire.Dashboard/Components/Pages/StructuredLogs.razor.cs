@@ -191,7 +191,10 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     protected override async Task OnParametersSetAsync()
     {
-        await this.InitializeViewModelAsync();
+        if (await this.InitializeViewModelAsync())
+        {
+            return;
+        }
         UpdateSubscription();
     }
 
@@ -344,7 +347,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         await this.AfterViewModelChangedAsync(_contentLayout, true);
     }
 
-    private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
+    private string GetResourceName(OtlpApplicationView app) => OtlpApplication.GetResourceName(app.Application, _applications);
 
     private string GetRowClass(OtlpLogEntry entry)
     {

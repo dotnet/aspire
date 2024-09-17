@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <IsAotCompatible>true</IsAotCompatible>
     <Description>Provides extensions to HttpClient to resolve well-known hostnames to concrete endpoints based on DNS records. Useful for service resolution in orchestrators such as Kubernetes.</Description>

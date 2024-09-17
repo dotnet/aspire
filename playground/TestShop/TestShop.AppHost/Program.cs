@@ -29,7 +29,7 @@ var messaging = builder.AddRabbitMQ("messaging")
 
 var basketService = builder.AddProject("basketservice", @"..\BasketService\BasketService.csproj")
                            .WithReference(basketCache)
-                           .WithReference(messaging);
+                           .WithReference(messaging).WaitFor(messaging);
 
 builder.AddProject<Projects.MyFrontend>("frontend")
        .WithExternalHttpEndpoints()
@@ -37,7 +37,7 @@ builder.AddProject<Projects.MyFrontend>("frontend")
        .WithReference(catalogService);
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor", launchProfileName: "OrderProcessor")
-       .WithReference(messaging);
+       .WithReference(messaging).WaitFor(messaging);
 
 builder.AddProject<Projects.ApiGateway>("apigateway")
        .WithReference(basketService)
