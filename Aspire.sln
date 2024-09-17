@@ -586,29 +586,29 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.AWS.Tests", 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AzureFunctionsEndToEnd", "AzureFunctionsEndToEnd", "{305D5B56-8782-493C-BD44-9860F8616D92}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureFunctionsEndToEnd.ApiService", "playground\AzureFunctionsEndToEnd\AzureFunctionsEndToEnd.ApiService\AzureFunctionsEndToEnd.ApiService.csproj", "{659AF918-57A4-4616-B3D0-24FCE38DF12A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureFunctionsEndToEnd.ApiService", "playground\AzureFunctionsEndToEnd\AzureFunctionsEndToEnd.ApiService\AzureFunctionsEndToEnd.ApiService.csproj", "{659AF918-57A4-4616-B3D0-24FCE38DF12A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureFunctionsEndToEnd.AppHost", "playground\AzureFunctionsEndToEnd\AzureFunctionsEndToEnd.AppHost\AzureFunctionsEndToEnd.AppHost.csproj", "{13025E2D-2E2B-4319-8754-0B12F324283E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureFunctionsEndToEnd.AppHost", "playground\AzureFunctionsEndToEnd\AzureFunctionsEndToEnd.AppHost\AzureFunctionsEndToEnd.AppHost.csproj", "{13025E2D-2E2B-4319-8754-0B12F324283E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureFunctionsEndToEnd.Functions", "playground\AzureFunctionsEndToEnd\AzureFunctionsEndToEnd.Functions\AzureFunctionsEndToEnd.Functions.csproj", "{79D2E40E-95EC-4BAF-8382-E5669B8E6E42}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureFunctionsEndToEnd.Functions", "playground\AzureFunctionsEndToEnd\AzureFunctionsEndToEnd.Functions\AzureFunctionsEndToEnd.Functions.csproj", "{79D2E40E-95EC-4BAF-8382-E5669B8E6E42}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Azure.Functions", "src\Aspire.Hosting.Azure.Functions\Aspire.Hosting.Azure.Functions.csproj", "{A8FFEB1F-B128-48D0-A114-5C94FF770551}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.Functions", "src\Aspire.Hosting.Azure.Functions\Aspire.Hosting.Azure.Functions.csproj", "{A8FFEB1F-B128-48D0-A114-5C94FF770551}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "waitfor", "waitfor", "{3FF3F00C-95C0-46FC-B2BE-A3920C71E393}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaitForSandbox.AppHost", "playground\waitfor\WaitForSandbox.AppHost\WaitForSandbox.AppHost.csproj", "{415E011A-1C56-41A1-BAEB-CA5D5CED1A57}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WaitForSandbox.AppHost", "playground\waitfor\WaitForSandbox.AppHost\WaitForSandbox.AppHost.csproj", "{415E011A-1C56-41A1-BAEB-CA5D5CED1A57}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaitForSandbox.ApiService", "playground\waitfor\WaitForSandbox.ApiService\WaitForSandbox.ApiService.csproj", "{C554C480-3DA7-4D62-A09A-3F3F743D7A66}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WaitForSandbox.ApiService", "playground\waitfor\WaitForSandbox.ApiService\WaitForSandbox.ApiService.csproj", "{C554C480-3DA7-4D62-A09A-3F3F743D7A66}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaitForSandbox.DbSetup", "playground\waitfor\WaitForSandbox.DbSetup\WaitForSandbox.DbSetup.csproj", "{37BC5B4A-3F96-4BB0-92E6-81666F4324E4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WaitForSandbox.DbSetup", "playground\waitfor\WaitForSandbox.DbSetup\WaitForSandbox.DbSetup.csproj", "{37BC5B4A-3F96-4BB0-92E6-81666F4324E4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaitForSandbox.Common", "playground\waitfor\WaitForSandbox.Common\WaitForSandbox.Common.csproj", "{F0C976EF-EE26-4EA9-B324-0CD21DCEA140}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WaitForSandbox.Common", "playground\waitfor\WaitForSandbox.Common\WaitForSandbox.Common.csproj", "{F0C976EF-EE26-4EA9-B324-0CD21DCEA140}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SqlServerEndToEnd.Common", "playground\SqlServerEndToEnd\SqlServerEndToEnd.Common\SqlServerEndToEnd.Common.csproj", "{1997067D-8EF2-43B3-AB13-9B2E12B52709}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SqlServerEndToEnd.Common", "playground\SqlServerEndToEnd\SqlServerEndToEnd.Common\SqlServerEndToEnd.Common.csproj", "{1997067D-8EF2-43B3-AB13-9B2E12B52709}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SqlServerEndToEnd.DbSetup", "playground\SqlServerEndToEnd\SqlServerEndToEnd.DbSetup\SqlServerEndToEnd.DbSetup.csproj", "{125C081D-7E5B-4F35-B5CD-E2B56140380F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SqlServerEndToEnd.DbSetup", "playground\SqlServerEndToEnd\SqlServerEndToEnd.DbSetup\SqlServerEndToEnd.DbSetup.csproj", "{125C081D-7E5B-4F35-B5CD-E2B56140380F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AWSCDK.AppHost", "playground\AWS\AWSCDK.AppHost\AWSCDK.AppHost.csproj", "{B5826732-7318-4179-9B85-870CB18AC533}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AWSCDK.AppHost", "playground\AWS\AWSCDK.AppHost\AWSCDK.AppHost.csproj", "{B5826732-7318-4179-9B85-870CB18AC533}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
