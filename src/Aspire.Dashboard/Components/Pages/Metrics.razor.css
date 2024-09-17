@@ -108,6 +108,9 @@
     ::deep .plotly-chart-container {
         margin-left: -40px;
     }
+    ::deep .dashpage-chart-grid {
+        padding: 2px;
+    }
 }
 
 @media (max-width: 768px) {
