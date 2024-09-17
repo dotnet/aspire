@@ -73,7 +73,7 @@ public partial class PlotlyChart : ChartBase
             Y = t.DiffValues,
             X = xValues,
             Tooltips = t.Tooltips,
-            TraceData = new List<object?>()
+            TraceData = []
         }).ToArray();
 
         var exemplarTraceDto = CalculateExemplarsTrace(xValues, exemplars);
