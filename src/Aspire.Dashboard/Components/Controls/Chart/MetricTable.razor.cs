@@ -51,7 +51,8 @@ public partial class MetricTable : ChartBase
 
         _lastUpdate = inProgressDataTime;
 
-        if (!Equals(_instrument?.Name, InstrumentViewModel.Instrument?.Name) || _showCount != InstrumentViewModel.ShowCount)
+        if (!StringComparers.OtlpInstrumentName.Equals(_instrument?.Name, InstrumentViewModel.Instrument?.Name)
+            || _showCount != InstrumentViewModel.ShowCount)
         {
             _metrics.Clear();
         }
