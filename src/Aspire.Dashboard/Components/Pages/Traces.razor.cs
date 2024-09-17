@@ -311,7 +311,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         };
     }
 
-    private async Task OpenFilterAsync(LogFilter? entry)
+    private async Task OpenFilterAsync(TelemetryFilter? entry)
     {
         if (_contentLayout is not null)
         {
@@ -338,7 +338,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
 
     private async Task HandleFilterDialog(DialogResult result)
     {
-        if (result.Data is FilterDialogResult filterResult && filterResult.Filter is LogFilter filter)
+        if (result.Data is FilterDialogResult filterResult && filterResult.Filter is TelemetryFilter filter)
         {
             if (filterResult.Delete)
             {
@@ -361,6 +361,6 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     public class TracesPageState
     {
         public string? SelectedApplication { get; set; }
-        public required IReadOnlyCollection<LogFilter> Filters { get; set; }
+        public required IReadOnlyCollection<TelemetryFilter> Filters { get; set; }
     }
 }

@@ -10,7 +10,7 @@ namespace Aspire.Dashboard.Model;
 public class TracesViewModel
 {
     private readonly TelemetryRepository _telemetryRepository;
-    private readonly List<LogFilter> _filters = new();
+    private readonly List<TelemetryFilter> _filters = new();
 
     private PagedResult<OtlpTrace>? _traces;
     private ApplicationKey? _applicationKey;
@@ -28,7 +28,7 @@ public class TracesViewModel
     public int StartIndex { get => _startIndex; set => SetValue(ref _startIndex, value); }
     public int? Count { get => _count; set => SetValue(ref _count, value); }
     public TimeSpan MaxDuration { get; private set; }
-    public IReadOnlyList<LogFilter> Filters => _filters;
+    public IReadOnlyList<TelemetryFilter> Filters => _filters;
 
     public void ClearFilters()
     {
@@ -36,7 +36,7 @@ public class TracesViewModel
         _traces = null;
     }
 
-    public void AddFilter(LogFilter filter)
+    public void AddFilter(TelemetryFilter filter)
     {
         // Don't add duplicate filters.
         foreach (var existingFilter in _filters)
@@ -51,7 +51,7 @@ public class TracesViewModel
         _traces = null;
     }
 
-    public bool RemoveFilter(LogFilter filter)
+    public bool RemoveFilter(TelemetryFilter filter)
     {
         if (_filters.Remove(filter))
         {

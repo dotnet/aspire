@@ -9,14 +9,14 @@ using Microsoft.Extensions.Localization;
 
 namespace Aspire.Dashboard.Model.Otlp;
 
-[DebuggerDisplay("{FilterText,nq}")]
-public class LogFilter : IEquatable<LogFilter>
+[DebuggerDisplay("{DebuggerDisplayText,nq}")]
+public class TelemetryFilter : IEquatable<TelemetryFilter>
 {
     public string Field { get; set; } = default!;
     public FilterCondition Condition { get; set; }
     public string Value { get; set; } = default!;
 
-    public string DebuggerDisplayText => $"{Field} {ConditionToString(Condition, null)} {Value}";
+    private string DebuggerDisplayText => $"{Field} {ConditionToString(Condition, null)} {Value}";
 
     public string GetDisplayText(IStringLocalizer<StructuredFiltering> loc) => $"{ResolveFieldName(Field)} {ConditionToString(Condition, loc)} {Value}";
 
@@ -160,28 +160,12 @@ public class LogFilter : IEquatable<LogFilter>
 
     public bool Apply(OtlpSpan span)
     {
-        switch (Field)
-        {
-            case nameof(OtlpSpan.StartTime):
-                {
-                    var date = DateTime.Parse(Value, CultureInfo.InvariantCulture);
-                    var func = ConditionToFuncDate(Condition);
-                    return func(span.StartTime, date);
-                }
-            case nameof(OtlpSpan.Name):
-                {
-                    var func = ConditionToFuncString(Condition);
-                    return func(span.Name, Value);
-                }
-            default:
-                {
-                    var func = ConditionToFuncString(Condition);
-                    return func(GetFieldValue(span), Value);
-                }
-        }
+        var fieldValue = GetFieldValue(span);
+        var func = ConditionToFuncString(Condition);
+        return func(fieldValue, Value);
     }
 
-    public bool Equals(LogFilter? other)
+    public bool Equals(TelemetryFilter? other)
     {
         if (other == null)
         {

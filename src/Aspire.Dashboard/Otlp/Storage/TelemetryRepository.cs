@@ -516,18 +516,26 @@ public sealed class TelemetryRepository
             {
                 results = results.Where(t =>
                 {
-                    return t.Spans.Any(s =>
+                    // A trace matches when one of its span matches all filters.
+                    foreach (var span in t.Spans)
                     {
+                        var match = true;
                         foreach (var filter in context.Filters)
                         {
-                            if (!filter.Apply(s))
+                            if (!filter.Apply(span))
                             {
-                                return false;
+                                match = false;
+                                break;
                             }
                         }
 
-                        return true;
-                    });
+                        if (match)
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
                 });
             }
 
