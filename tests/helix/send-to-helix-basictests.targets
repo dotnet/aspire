@@ -32,7 +32,7 @@
       <!-- runsettings timeout in ms, default to 15 mins -->
       <_DefaultWorkItems TimeoutMs="900000" />
 
-      <_DefaultWorkItems Condition="'%(FileName)' == 'Aspire.Hosting.Elasticsearch.Tests'" TimeoutMs="2400000" />
+      <_DefaultWorkItems Condition="'%(FileName)' == 'Aspire.Hosting.Elasticsearch.Tests'" TimeoutMs="3600000" />
       <_DefaultWorkItems Condition="'%(FileName)' == 'Aspire.Hosting.Oracle.Tests'" TimeoutMs="1200000" />
       <_DefaultWorkItems Condition="'%(FileName)' == 'Aspire.Pomelo.EntityFrameworkCore.MySql.Tests'" TimeoutMs="1200000" />
 
