@@ -30,11 +30,18 @@
         "header"
         "chart";
     width: 100%;
-    gap: calc(var(--design-unit) * 4px);
 }
 
 @media (min-width: 768px) {
     ::deep .metrics-chart {
+        gap: calc(var(--design-unit) * 4px);
+    }
+
+    ::deep .metrics-filters-standalone-container {
+        width: 600px;
+    }
+
+    ::deep .metrics-chart > fluent-tabs > fluent-tab:first-child {
         padding-left: 40px;
     }
 }
@@ -50,21 +57,13 @@
     white-space: nowrap;
 }
 
-::deep .metrics-chart-container {
+::deep .metric-tab {
     grid-area: chart;
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
     row-gap: calc(var(--design-unit) * 4px);
     column-gap: calc(var(--design-unit) * 4px);
-}
-
-::deep .metrics-chart > fluent-tabs {
-    padding-left: 40px;
-}
-
-::deep .metrics-filters-container {
-    width: 600px;
 }
 
 ::deep .metrics-filters-section {
@@ -89,12 +88,44 @@
     margin-right: 3px;
 }
 
-::deep .metrics-content {
-    margin-left: 10px;
+::deep .plotly-chart-container-single-metric-view {
+    margin-left: -10px;
+    margin-bottom: 10px;
 }
 
-::deep .plotly-chart-container-single-metric-view {
-    margin-left: -40px;
+::deep .plotly-chart-container {
+    width: 100%;
+    max-width: 650px;
+    aspect-ratio: 13 / 9;
+}
+
+::deep .metrics-content {
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+@media (min-width: 768px) {
+    ::deep .plotly-chart-container {
+        margin-left: -40px;
+    }
+    ::deep .dashpage-chart-grid {
+        padding: 2px;
+    }
+}
+
+@media (max-width: 768px) {
+    ::deep .plotly-chart-container {
+        margin-left: -20px;
+    }
+
+    ::deep .dashpage-chart-grid {
+        padding: 10px;
+        display: block;
+    }
+
+    ::deep .dashpage-chart-grid-item {
+        width: 100%;
+    }
 }
 
 ::deep .plotly-chart-container {
@@ -118,4 +149,19 @@
 ::deep .metric-info-icon {
     vertical-align: text-bottom;
     margin-left: 3px;
+}
+
+::deep .metric-table-container {
+    overflow-y: auto;
+    width: 100%;
+}
+
+::deep .metric-tab > .metric-table-container {
+    height: 40vh;
+}
+
+@media (min-width: 768px) {
+    ::deep .left-pad-on-desktop {
+        padding-left: 40px;
+    }
 }

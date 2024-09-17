@@ -11,12 +11,12 @@
 
             if (filteredDashpages.Count is not 0)
             {
-            <FluentTreeItem Text="@Loc[Aspire.Dashboard.Resources.Metrics.DashpagesSectionName]" title="@Loc[Aspire.Dashboard.Resources.Metrics.DashpagesSectionName]" InitiallyExpanded="true">
-                @foreach (DashpageDefinition dashpage in filteredDashpages)
-                {
-                <FluentTreeItem @key="dashpage" Class="nested" Text="@dashpage.Name" Data="@dashpage" title="@dashpage.Name" InitiallySelected="@(dashpage.Name == PageViewModel.SelectedDashpage?.Name)"/>
-                }
-            </FluentTreeItem>
+                <FluentTreeItem Text="@Loc[Aspire.Dashboard.Resources.Metrics.DashpagesSectionName]" title="@Loc[Aspire.Dashboard.Resources.Metrics.DashpagesSectionName]" InitiallyExpanded="true">
+                    @foreach (var dashpage in filteredDashpages)
+                    {
+                        <FluentTreeItem @key="dashpage" Class="nested" Text="@dashpage.Name" Data="@dashpage" title="@dashpage.Name" InitiallySelected="@(dashpage.Name == PageViewModel.SelectedDashpage?.Name)"/>
+                    }
+                </FluentTreeItem>
             }
         }
 

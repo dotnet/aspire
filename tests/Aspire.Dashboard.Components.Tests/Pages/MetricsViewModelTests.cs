@@ -13,11 +13,10 @@ public sealed class MetricsViewModelTests
     [Fact]
     public void IsDashpageAvailable()
     {
-        OtlpInstrument instrument = new()
+        OtlpInstrumentSummary instrument = new()
         {
             Name = "present-instrument",
             Description = "",
-            Options = null!,
             Parent = null!,
             Type = OtlpInstrumentType.Histogram,
             Unit = null!

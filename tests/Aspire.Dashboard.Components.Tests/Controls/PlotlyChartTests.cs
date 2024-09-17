@@ -17,7 +17,7 @@ namespace Aspire.Dashboard.Components.Tests.Controls;
 [UseCulture("en-US")]
 public class PlotlyChartTests : TestContext
 {
-    private static string GetContainerHtml(string divId) => $"""<div id="{divId}" class="plotly-chart-container"></div>""";
+    private static string GetContainerHtml(string divId) => $"""<div id="{divId}" class="plotly-chart-container-single-metric-view"></div>""";
 
     [Fact]
     public void Render_NoInstrument_NoPlotlyInvocations()

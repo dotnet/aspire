@@ -30,8 +30,16 @@ public partial class PlotlyChart : ChartBase
     [Inject]
     public required IDialogService DialogService { get; init; }
 
+    /// <summary>
+    /// Whether this chart is rendered within a dashpage.
+    /// </summary>
+    /// <remarks>
+    /// This value will alter the chart's presentation in the UI. Dashpage charts display
+    /// as "tiles" rather than taking the full screen. They have a more minimal presentation,
+    /// and their "filters" view is displayed in a popup, rather than below the chart.
+    /// </remarks>
     [Parameter]
-    public bool IsDashpage { get; set; }
+    public bool IsDashpageChart { get; set; }
 
     public string ChartDivId { get; } = $"plotly-chart-container-{Interlocked.Increment(ref s_nextChartId)}";
 
@@ -232,7 +240,7 @@ public partial class PlotlyChart : ChartBase
 
     private string GetChartDivClass()
     {
-        if (IsDashpage)
+        if (IsDashpageChart)
         {
             return "";
         }

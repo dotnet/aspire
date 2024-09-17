@@ -98,6 +98,7 @@
                                     }
                                     else if (PageViewModel.SelectedApplication.Id?.ReplicaSetName != null && PageViewModel.SelectedMeter != null && PageViewModel.SelectedInstrument != null)
                                     {
+                                        // We've got a selected instrument and application, so show the chart
                                         <SingleMetricChartContainer
                                             ApplicationKey="@(PageViewModel.SelectedApplication.Id.GetApplicationKey())"
                                             MeterName="@(PageViewModel.SelectedMeter.MeterName)"

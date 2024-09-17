@@ -33,10 +33,11 @@ else
 
                 <FluentPopover AnchorId="@_filterButtonId"
                                @bind-Open="_filterPopupOpen"
+                               FixedPlacement="true"
                                AutoFocus="true"
                                HorizontalPosition="HorizontalPosition.Left">
                     <Body>
-                        <ChartFilters InstrumentViewModel="@ViewModel" InstrumentData="@InstrumentData" DimensionFilters="@DimensionFilters"/>
+                        <ChartFilters IsRenderedInsideModal="true" InstrumentViewModel="@ViewModel" InstrumentData="@InstrumentData" DimensionFilters="@DimensionFilters"/>
                     </Body>
                 </FluentPopover>
             }
@@ -50,7 +51,7 @@ else
                           InstrumentData="@InstrumentData"
                           InstrumentViewModel="@ViewModel"
                           DimensionFilters="@DimensionFilters"
-                          IsDashpage="true"/>
+                          IsRenderedInsideModal="true"/>
             }
             else
             {
@@ -58,7 +59,8 @@ else
                                 Duration="@Duration"
                                 InstrumentData="@InstrumentData"
                                 InstrumentViewModel="@ViewModel"
-                                DimensionFilters="@DimensionFilters"/>
+                                DimensionFilters="@DimensionFilters"
+                                IsRenderedInsideModal="true"/>
             }
         </div>
     </div>
