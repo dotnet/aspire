@@ -44,7 +44,7 @@ public abstract class ChartContainer : ComponentBase, IAsyncDisposable
     public List<DimensionFilterViewModel> DimensionFilters { get; } = [];
     public string? PreviousMeterName { get; set; }
     public string? PreviousInstrumentName { get; set; }
-    public InstrumentViewModel ViewModel { get; } = new InstrumentViewModel();
+    public InstrumentViewModel ViewModel { get; } = new();
     public OtlpInstrumentData? InstrumentData { get; private set; }
 
     protected override void OnInitialized()
