@@ -17,12 +17,14 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(NeedsPlaywright)' == 'true'">
+    <_FooBar>InstallBrowsersForPlaywright:$(InstallBrowsersForPlaywright) ContinuousIntegrationBuild: $(ContinuousIntegrationBuild) Test: $(Test)</_FooBar>
     <!-- install on codespaces -->
     <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(CODESPACES)' == 'true'">true</InstallBrowsersForPlaywright>
     <!-- install on CI but skip when tests are explicitly disabled, for example in codeql builds -->
     <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and ('$(ContinuousIntegrationBuild)' == 'true' and '$(Test)' != 'false')">true</InstallBrowsersForPlaywright>
     <!-- install locally on windows -->
     <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(OS)' == 'Windows_NT' and '$(ContinuousIntegrationBuild)' != 'true'">true</InstallBrowsersForPlaywright>
+    <_FooBarAfter>InstallBrowsersForPlaywright:$(InstallBrowsersForPlaywright)</_FooBarAfter>
   </PropertyGroup>
 
   <ItemGroup>
