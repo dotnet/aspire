@@ -6,7 +6,7 @@ Registers [OpenAIClient](https://github.com/openai/openai-dotnet?tab=readme-ov-f
 
 ### Prerequisites
 
-- An OpenAI REST API compatible service like OpenAI.com, Azure AI OpenAI, ollama.com and others.
+- An OpenAI REST API compatible service like OpenAI.com, ollama.com, and others.
 - A API key.
 
 ### Install the package
