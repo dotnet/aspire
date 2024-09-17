@@ -94,8 +94,7 @@ public static class AzureCosmosExtensions
 
             if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
             {
-                var accountEndpoint = uri.ToString();
-                return new CosmosClient(accountEndpoint, new DefaultAzureCredential(), clientOptions);
+                return new CosmosClient(uri.OriginalString, new DefaultAzureCredential(), clientOptions);
             }
             else
             {
