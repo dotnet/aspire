@@ -12,7 +12,6 @@ public sealed class DashpageJsonFilePersistenceTests
     [Fact]
     public void Deserialize()
     {
-        // Start with JSON, convert to object model, back to JSON, and compare with original.
         var json = """
             [
                 /* Comments are ignored */
@@ -25,12 +24,12 @@ public sealed class DashpageJsonFilePersistenceTests
                             "instrument": "process.runtime.dotnet.exceptions.count",
                             "required": false, // default
                             "resource": null,  // default
-                            "kind": "Graph"    // upper case
+                            "kind": "Graph"    // upper-case
                         },
                         {
                             "title": "Assembly count",
                             "instrument": "process.runtime.dotnet.assemblies.count",
-                            "kind": "table"    // lower case
+                            "kind": "table"    // lower-case
                         },
                         {
                             "title": "Thread Pool Completion",
