@@ -50,14 +50,12 @@ public class BrowserDimensionWatcher : ComponentBase
             || newViewportInformation.IsUltraLowWidth != ViewportInformation.IsUltraLowWidth)
         {
             ViewportInformation = newViewportInformation;
-            DimensionManager.IsResizing = true;
             // A re-render happens on components after ViewportInformationChanged is invoked
             // we should invoke InvokeOnViewportInformationChanged first so that listeners of it
             // that are outside of the UI tree have the current viewport kind internally when components
             // call them
             DimensionManager.InvokeOnViewportInformationChanged(newViewportInformation);
             await ViewportInformationChanged.InvokeAsync(newViewportInformation);
-            DimensionManager.IsResizing = false;
         }
     }
 }

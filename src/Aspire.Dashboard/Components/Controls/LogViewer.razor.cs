@@ -3,10 +3,8 @@
 
 using System.Globalization;
 using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
@@ -19,18 +17,20 @@ namespace Aspire.Dashboard.Components;
 /// </summary>
 public sealed partial class LogViewer
 {
-    private readonly CancellationSeries _cancellationSeries = new();
-    private bool _convertTimestampsFromUtc;
-    private bool _applicationChanged;
+    private readonly bool _convertTimestampsFromUtc = true;
+    private bool _logsCleared;
 
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
 
     [Inject]
-    public required DimensionManager DimensionManager { get; set; }
+    public required DimensionManager DimensionManager { get; init; }
 
     [Inject]
-    public required IOptions<DashboardOptions> Options { get; set; }
+    public required ILogger<LogViewer> Logger { get; init; }
+
+    [Inject]
+    public required IOptions<DashboardOptions> Options { get; init; }
 
     internal LogEntries LogEntries { get; set; } = null!;
 
@@ -43,10 +43,10 @@ public sealed partial class LogViewer
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_applicationChanged)
+        if (_logsCleared)
         {
             await JS.InvokeVoidAsync("resetContinuousScrollPosition");
-            _applicationChanged = false;
+            _logsCleared = false;
         }
         if (firstRender)
         {
@@ -64,41 +64,6 @@ public sealed partial class LogViewer
         });
     }
 
-    internal async Task SetLogSourceAsync(string resourceName, IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> batches, bool convertTimestampsFromUtc = true)
-    {
-        ResourceName = resourceName;
-
-        System.Diagnostics.Debug.Assert(LogEntries.GetEntries().Count == 0, "Expecting zero log entries");
-
-        _convertTimestampsFromUtc = convertTimestampsFromUtc;
-
-        var cancellationToken = await _cancellationSeries.NextAsync();
-        var logParser = new LogParser();
-
-        // This needs to stay on the UI thread since we raise StateHasChanged() in the loop (hence the ConfigureAwait(true)).
-        await foreach (var batch in batches.WithCancellation(cancellationToken).ConfigureAwait(true))
-        {
-            if (batch.Count is 0)
-            {
-                continue;
-            }
-
-            foreach (var (lineNumber, content, isErrorOutput) in batch)
-            {
-                // Set the base line number using the reported line number of the first log line.
-                if (LogEntries.EntriesCount == 0)
-                {
-                    LogEntries.BaseLineNumber = lineNumber;
-                }
-
-                var logEntry = logParser.CreateLogEntry(content, isErrorOutput);
-                LogEntries.InsertSorted(logEntry);
-            }
-
-            StateHasChanged();
-        }
-    }
-
     private string GetDisplayTimestamp(DateTimeOffset timestamp)
     {
         var date = _convertTimestampsFromUtc ? TimeProvider.ToLocal(timestamp) : timestamp.DateTime;
@@ -106,19 +71,26 @@ public sealed partial class LogViewer
         return date.ToString(KnownFormats.ConsoleLogsUITimestampFormat, CultureInfo.InvariantCulture);
     }
 
-    internal async Task ClearLogsAsync()
+    internal void ClearLogs()
     {
-        await _cancellationSeries.ClearAsync();
+        Logger.LogDebug("Clearing logs for {ResourceName}.", ResourceName);
 
-        _applicationChanged = true;
+        _logsCleared = true;
         LogEntries.Clear();
         ResourceName = null;
         StateHasChanged();
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        await _cancellationSeries.ClearAsync();
         DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
+        return ValueTask.CompletedTask;
+    }
+
+    // Calling StateHasChanged on the page isn't updating the LogViewer.
+    // This exposes way to tell the log view it has updated and to re-render.
+    internal async Task LogsAddedAsync()
+    {
+        await InvokeAsync(StateHasChanged);
     }
 }
