@@ -287,7 +287,8 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         {
             Filter = entry,
             PropertyKeys = TelemetryRepository.GetLogPropertyKeys(PageViewModel.SelectedApplication.Id?.GetApplicationKey()),
-            KnownKeys = KnownStructuredLogFields.AllFields
+            KnownKeys = KnownStructuredLogFields.AllFields,
+            GetFieldValues = TelemetryRepository.GetLogsFieldValues
         };
         await DialogService.ShowPanelAsync<FilterDialog>(data, parameters);
     }

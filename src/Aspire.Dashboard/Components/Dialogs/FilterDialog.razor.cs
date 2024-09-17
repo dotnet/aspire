@@ -26,8 +26,10 @@ public partial class FilterDialog
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
 
-    private LogDialogFormModel _formModel = default!;
+    private FilterDialogFormModel _formModel = default!;
     private List<SelectViewModel<string>> _parameters = default!;
+    private List<SelectViewModel<string>> _filteredValues = default!;
+    private List<SelectViewModel<string>>? _allValues;
 
     public EditContext EditContext { get; private set; } = default!;
 
@@ -41,8 +43,10 @@ public partial class FilterDialog
             CreateFilterSelectViewModel(FilterCondition.NotContains)
         ];
 
-        _formModel = new LogDialogFormModel();
+        _formModel = new FilterDialogFormModel();
         EditContext = new EditContext(_formModel);
+
+        _filteredValues = [];
     }
 
     protected override void OnParametersSet()
@@ -75,6 +79,60 @@ public partial class FilterDialog
             _formModel.Parameter = _parameters.FirstOrDefault();
             _formModel.Condition = _filterConditions.Single(c => c.Id == FilterCondition.Contains);
             _formModel.Value = "";
+        }
+
+        UpdateParameterFieldValues();
+        ValueChanged();
+    }
+
+    private void UpdateParameterFieldValues()
+    {
+        if (_formModel.Parameter?.Id is { } parameterName)
+        {
+            var fieldValues = Content.GetFieldValues(parameterName);
+            _allValues = fieldValues
+                .OrderByDescending(kvp => kvp.Value)
+                .ThenBy(kvp => kvp.Key, StringComparers.OtlpFieldValue)
+                .Select(kvp => new SelectViewModel<string> { Id = kvp.Key, Name = kvp.Key })
+                .ToList();
+        }
+        else
+        {
+            _allValues = null;
+        }
+    }
+
+    private async Task ParameterChangedAsync()
+    {
+        UpdateParameterFieldValues();
+
+        _formModel.Value = "";
+        StateHasChanged();
+
+        // Clearing the selected value and the combo box items together wasn't correctly clearing the selected value.
+        // This is hacky, but adding a delay between the two operations puts the combo box in the right state.
+        await Task.Delay(100);
+        ValueChanged();
+    }
+
+    // There is a bug in FluentUI that prevents the value changing immediately. Will be fixed in a future FluentUI update.
+    // https://github.com/microsoft/fluentui-blazor/issues/2672
+    private void ValueChanged()
+    {
+        if (_allValues != null)
+        {
+            IEnumerable<SelectViewModel<string>> newValues = _allValues;
+            if (!string.IsNullOrEmpty(_formModel.Value))
+            {
+                newValues = newValues.Where(vm => vm.Name.Contains(_formModel.Value!));
+            }
+
+            // Limit to 1000 items to avoid the combo box have too many items and impacting UI perf.
+            _filteredValues = newValues.Take(1000).ToList();
+        }
+        else
+        {
+            _filteredValues = [];
         }
     }
 
