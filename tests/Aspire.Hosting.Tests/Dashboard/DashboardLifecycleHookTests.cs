@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading.Channels;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Eventing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -34,6 +35,7 @@ public class DashboardLifecycleHookTests
 
         var resourceLoggerService = new ResourceLoggerService();
         var resourceNotificationService = new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, new TestHostApplicationLifetime());
+        var eventing = new DistributedApplicationEventing();
         var configuration = new ConfigurationBuilder().Build();
         var hook = new DashboardLifecycleHook(
             configuration,
@@ -45,7 +47,7 @@ public class DashboardLifecycleHookTests
             resourceLoggerService,
             factory);
 
-        var model = new DistributedApplicationModel(new ResourceCollection());
+        var model = new DistributedApplicationModel(new ResourceCollection(eventing));
         await hook.BeforeStartAsync(model, CancellationToken.None);
 
         await resourceNotificationService.PublishUpdateAsync(model.Resources.Single(), s => s);

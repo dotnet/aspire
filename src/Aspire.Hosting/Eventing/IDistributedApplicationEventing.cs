@@ -46,4 +46,16 @@ public interface IDistributedApplicationEventing
     /// <returns>A task that can be awaited.</returns>
     [Experimental("ASPIREEVENTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     Task PublishAsync<T>(T @event, CancellationToken cancellationToken = default) where T : IDistributedApplicationEvent;
+
+    /// <summary>
+    /// Queues an event for publishing by the eventing system.
+    /// </summary>
+    /// <typeparam name="T">The type of the event</typeparam>
+    /// <param name="event">The event.</param>
+    /// <remarks>
+    /// <para>This is useful for when code wants to queue an event to publish asynchronously and has no
+    /// need to await publishing.</para>
+    /// </remarks>
+    [Experimental("ASPIREEVENTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    void Queue<T>(T @event) where T : IDistributedApplicationEvent;
 }

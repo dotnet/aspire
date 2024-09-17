@@ -9,6 +9,7 @@ using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Health;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Orchestration;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -67,10 +68,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     public DistributedApplicationExecutionContext ExecutionContext { get; }
 
     /// <inheritdoc />
-    public IResourceCollection Resources { get; } = new ResourceCollection();
+    public IResourceCollection Resources { get; init; }
 
     /// <inheritdoc />
-    public IDistributedApplicationEventing Eventing { get; } = new DistributedApplicationEventing();
+    public IDistributedApplicationEventing Eventing { get; init; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
@@ -158,9 +159,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _ => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
         };
 
+        Eventing = new DistributedApplicationEventing();
+        Resources = new ResourceCollection(Eventing);
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
 
         // Core things
+        _innerBuilder.Services.AddSingleton<DistributedApplicationOrchestrator>();
+        _innerBuilder.Services.AddHostedService<DistributedApplicationOrchestrator>(sp => sp.GetRequiredService<DistributedApplicationOrchestrator>());
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddHostedService<DistributedApplicationLifecycle>();
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();

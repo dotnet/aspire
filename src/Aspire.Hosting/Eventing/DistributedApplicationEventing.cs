@@ -18,7 +18,25 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
     [Experimental("ASPIREEVENTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public async Task PublishAsync<T>(T @event, CancellationToken cancellationToken = default) where T : IDistributedApplicationEvent
     {
-        if (_eventSubscriptionListLookup.TryGetValue(typeof(T), out var subscriptions))
+        // TODO: I'm not sure if I consider this a hack or a feature. Whilst I'm drafting out this
+        //       change this is where I am going to fire off queued events. The downside is that queued
+        //       events won't get fired off unless another event comes along and "releases them". However
+        //       I'm considering that the "orchestrator" might send a heartbeat event on a regular basis to
+        //       make sure any queued events are flushed out.
+
+        // Fire off any queues events before we publish the new event.
+        while (_queuedEvents.TryDequeue(out var queuedEvent))
+        {
+            await PublishInternalAsync(queuedEvent, cancellationToken).ConfigureAwait(false);
+        }
+
+        // Now that all the queued events have been fired off, we can publish the new event.
+        await PublishInternalAsync(@event, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task PublishInternalAsync<T>(T @event, CancellationToken cancellationToken = default) where T : IDistributedApplicationEvent
+    {
+        if (_eventSubscriptionListLookup.TryGetValue(@event.GetType(), out var subscriptions))
         {
             // Taking a snapshot of the subscription list to avoid any concurrency issues
             // whilst we iterate over the subscriptions. Subscribers could result in the
@@ -28,6 +46,15 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
                 await subscription.Callback(@event, cancellationToken).ConfigureAwait(false);
             }
         }
+    }
+
+    private readonly ConcurrentQueue<IDistributedApplicationEvent> _queuedEvents = new();
+
+    /// <inheritdoc cref="IDistributedApplicationEventing.Queue{T}(T)"/>
+    [Experimental("ASPIREEVENTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
+    public void Queue<T>(T @event) where T : IDistributedApplicationEvent
+    {
+        _queuedEvents.Enqueue(@event);
     }
 
     /// <inheritdoc cref="IDistributedApplicationEventing.Subscribe{T}(Func{T, CancellationToken, Task})" />

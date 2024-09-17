@@ -5,6 +5,7 @@ using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Orchestration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -270,6 +271,9 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <inheritdoc cref="IHost.StartAsync" />
     public virtual async Task StartAsync(CancellationToken cancellationToken = default)
     {
+        // HACK: Need to figure out the best approach for making sure that the orchestrator
+        //       singleton has always been instansiated before we start firing off events etc.
+        _ = Services.GetRequiredService<DistributedApplicationOrchestrator>();
         await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
         await _host.StartAsync(cancellationToken).ConfigureAwait(false);
     }
@@ -307,6 +311,9 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// </remarks>
     public virtual async Task RunAsync(CancellationToken cancellationToken = default)
     {
+        // HACK: Need to figure out the best approach for making sure that the orchestrator
+        //       singleton has always been instansiated before we start firing off events etc.
+        _ = Services.GetRequiredService<DistributedApplicationOrchestrator>();
         await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
         await _host.RunAsync(cancellationToken).ConfigureAwait(false);
     }

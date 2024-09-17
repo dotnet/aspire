@@ -37,6 +37,12 @@ Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Volumes.init -> void
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation.HealthCheckAnnotation(string! key) -> void
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation.Key.get -> string!
+Aspire.Hosting.ApplicationModel.ResourceAddedEvent
+Aspire.Hosting.ApplicationModel.ResourceAddedEvent.Resource.get -> Aspire.Hosting.ApplicationModel.IResource!
+Aspire.Hosting.ApplicationModel.ResourceAddedEvent.ResourceAddedEvent(Aspire.Hosting.ApplicationModel.IResource! resource) -> void
+Aspire.Hosting.ApplicationModel.ResourceAddingEvent
+Aspire.Hosting.ApplicationModel.ResourceAddingEvent.Resource.get -> Aspire.Hosting.ApplicationModel.IResource!
+Aspire.Hosting.ApplicationModel.ResourceAddingEvent.ResourceAddingEvent(Aspire.Hosting.ApplicationModel.IResource! resource) -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, System.Func<Aspire.Hosting.ApplicationModel.ResourceEvent!, bool>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ResourceEvent!>!
 Aspire.Hosting.ApplicationModel.VolumeSnapshot
@@ -50,9 +56,12 @@ Aspire.Hosting.ApplicationModel.VolumeSnapshot.Target.get -> string!
 Aspire.Hosting.ApplicationModel.VolumeSnapshot.Target.init -> void
 Aspire.Hosting.ApplicationModel.VolumeSnapshot.VolumeSnapshot(string? Source, string! Target, string! MountType, bool IsReadOnly) -> void
 Aspire.Hosting.DistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!
+Aspire.Hosting.DistributedApplicationBuilder.Eventing.init -> void
+Aspire.Hosting.DistributedApplicationBuilder.Resources.init -> void
 Aspire.Hosting.Eventing.DistributedApplicationEventing
 Aspire.Hosting.Eventing.DistributedApplicationEventing.DistributedApplicationEventing() -> void
 Aspire.Hosting.Eventing.DistributedApplicationEventing.PublishAsync<T>(T event, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Aspire.Hosting.Eventing.DistributedApplicationEventing.Queue<T>(T event) -> void
 Aspire.Hosting.Eventing.DistributedApplicationEventing.Subscribe<T>(Aspire.Hosting.ApplicationModel.IResource! resource, System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.Eventing.DistributedApplicationEventSubscription!
 Aspire.Hosting.Eventing.DistributedApplicationEventing.Subscribe<T>(System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.Eventing.DistributedApplicationEventSubscription!
 Aspire.Hosting.Eventing.DistributedApplicationEventing.Unsubscribe(Aspire.Hosting.Eventing.DistributedApplicationEventSubscription! subscription) -> void
@@ -65,6 +74,7 @@ Aspire.Hosting.Eventing.DistributedApplicationResourceEventSubscription.Resource
 Aspire.Hosting.Eventing.IDistributedApplicationEvent
 Aspire.Hosting.Eventing.IDistributedApplicationEventing
 Aspire.Hosting.Eventing.IDistributedApplicationEventing.PublishAsync<T>(T event, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Aspire.Hosting.Eventing.IDistributedApplicationEventing.Queue<T>(T event) -> void
 Aspire.Hosting.Eventing.IDistributedApplicationEventing.Subscribe<T>(Aspire.Hosting.ApplicationModel.IResource! resource, System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.Eventing.DistributedApplicationEventSubscription!
 Aspire.Hosting.Eventing.IDistributedApplicationEventing.Subscribe<T>(System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.Eventing.DistributedApplicationEventSubscription!
 Aspire.Hosting.Eventing.IDistributedApplicationEventing.Unsubscribe(Aspire.Hosting.Eventing.DistributedApplicationEventSubscription! subscription) -> void

@@ -3,19 +3,31 @@
 
 using System.Collections;
 using System.Diagnostics;
+using Aspire.Hosting.Eventing;
 
 namespace Aspire.Hosting.ApplicationModel;
 
 [DebuggerDisplay("Count = {Count}")]
 [DebuggerTypeProxy(typeof(ApplicationResourceCollectionDebugView))]
-internal sealed class ResourceCollection : IResourceCollection
+internal sealed class ResourceCollection(IDistributedApplicationEventing eventing) : IResourceCollection
 {
     private readonly List<IResource> _resources = [];
 
     public IResource this[int index] { get => _resources[index]; set => _resources[index] = value; }
     public int Count => _resources.Count;
     public bool IsReadOnly => false;
-    public void Add(IResource item) => _resources.Add(item);
+
+    public void Add(IResource item)
+    {
+        var addingEvent = new ResourceAddingEvent(item);
+        eventing.Queue(addingEvent);
+
+        _resources.Add(item);
+
+        var addedEvent = new ResourceAddedEvent(item);
+        eventing.Queue(addedEvent);
+    }
+
     public void Clear() => _resources.Clear();
     public bool Contains(IResource item) => _resources.Contains(item);
     public void CopyTo(IResource[] array, int arrayIndex) => _resources.CopyTo(array, arrayIndex);
