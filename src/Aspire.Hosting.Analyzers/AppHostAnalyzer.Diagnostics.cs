@@ -20,9 +20,19 @@ public partial class AppHostAnalyzer
             isEnabledByDefault: true,
             helpLinkUri: "https://aka.ms/dotnet/aspire/ASPIRE0000");
 
+        internal static readonly DiagnosticDescriptor s_resourceNameMustBeUnique = new(
+            id: "ASPIRE0001",
+            title: "Resource names must be unique",
+            messageFormat: "The resource name '{0}' has been defined multiple times",
+            category: "Design",
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            helpLinkUri: "https://aka.ms/dotnet/aspire/ASPIRE0001");
+
         public static readonly ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics = [
             // Resources
             s_resourceMustHaveValidName,
+            s_resourceNameMustBeUnique
         ];
     }
 }

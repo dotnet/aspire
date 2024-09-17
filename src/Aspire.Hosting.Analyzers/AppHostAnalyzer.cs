@@ -45,6 +45,7 @@ public partial class AppHostAnalyzer : DiagnosticAnalyzer
             context.RegisterOperationBlockEndAction(c =>
             {
                 DetectInvalidModelNames(c, modelNameOperations);
+                DetectNonUniqueResourceNames(c, modelNameOperations);
 
                 // Return to the pool.
                 modelNameOperations.Clear();

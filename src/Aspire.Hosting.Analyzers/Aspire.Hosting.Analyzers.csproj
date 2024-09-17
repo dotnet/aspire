@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <Compile Include="..\Aspire.Hosting\ApplicationModel\ModelName.cs" Link="ModelName.cs" />
+    <Compile Include="..\Shared\StringComparers.cs" Link="StringComparers.cs" />
   </ItemGroup>
 
   <ItemGroup>
