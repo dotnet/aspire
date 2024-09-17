@@ -261,21 +261,18 @@ public class AppHostTests
     {
         using var client = CreateHttpClientWithResilience(app, "api");
 
-        var consumerMessage = "Hello, from /test sent via producerClient";
-        var consumerMessageLoggedTask =
-                app.WaitForTextAsync(log => log.Contains(consumerMessage), resourceName: "consumer")
-                    .WaitAsync(TimeSpan.FromMinutes(2))
-                    .ConfigureAwait(false);
-
         var path = "/test";
         testOutput.WriteLine($"*** TestEventHubsAppHost calling {path} endpoint");
 
         var response = await client.GetAsync(path);
         Assert.True(HttpStatusCode.OK == response.StatusCode, $"Endpoint '{client.BaseAddress}{path.TrimStart('/')}' for resource 'consumer' in app '{Path.GetFileNameWithoutExtension(appHostPath)}' returned status code {response.StatusCode}");
 
+        var consumerMessage = "Hello, from /test sent via producerClient";
         try
         {
-            await consumerMessageLoggedTask;
+            await app.WaitForTextAsync(log => log.Contains(consumerMessage), resourceName: "consumer")
+                    .WaitAsync(TimeSpan.FromMinutes(2))
+                    .ConfigureAwait(false);
         }
         catch (TimeoutException te)
         {
