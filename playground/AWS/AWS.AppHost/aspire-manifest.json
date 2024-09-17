@@ -8,9 +8,6 @@
       "references": [
         {
           "target-resource": "Frontend"
-        },
-        {
-          "target-resource": "Frontend"
         }
       ]
     },
