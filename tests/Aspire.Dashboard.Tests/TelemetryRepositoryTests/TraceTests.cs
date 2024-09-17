@@ -907,7 +907,7 @@ public class TraceTests
                     new ScopeSpans
                     {
                         Scope = CreateScope(),
-                        Spans = { CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10)) }
+                        Spans = { CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: [KeyValuePair.Create("key-1", "value-1")]) }
                     }
                 }
             },
@@ -919,7 +919,7 @@ public class TraceTests
                     new ScopeSpans
                     {
                         Scope = CreateScope(),
-                        Spans = { CreateSpan(traceId: "2", spanId: "2-1", startTime: s_testTime.AddMinutes(2), endTime: s_testTime.AddMinutes(10)) }
+                        Spans = { CreateSpan(traceId: "2", spanId: "2-1", startTime: s_testTime.AddMinutes(2), endTime: s_testTime.AddMinutes(10), attributes: [KeyValuePair.Create("key-2", "value-2")]) }
                     }
                 }
             },
@@ -958,10 +958,15 @@ public class TraceTests
             {
                 AssertId("2", trace.TraceId);
             });
+
+        var propertyKeys = repository.GetTracePropertyKeys(appKey)!;
+        Assert.Collection(propertyKeys,
+            s => Assert.Equal("key-1", s),
+            s => Assert.Equal("key-2", s));
     }
 
     [Fact]
-    public void GetTraces_Filters()
+    public void GetTraces_AttributeFilters()
     {
         // Arrange
         var repository = CreateRepository();
@@ -1052,6 +1057,76 @@ public class TraceTests
         // Assert 3
         // Match neither span.
         Assert.Empty(traces.PagedResult.Items);
+    }
+
+    [Theory]
+    [InlineData(KnownTraceFields.TraceIdField, "31")]
+    [InlineData(KnownTraceFields.SpanIdField, "312d31")]
+    [InlineData(KnownTraceFields.StatusField, "Unset")]
+    [InlineData(KnownTraceFields.KindField, "Internal")]
+    [InlineData(KnownTraceFields.ApplicationField, "app1")]
+    [InlineData(KnownTraceFields.SourceField, "TestScope")]
+    public void GetTraces_KnownFilters(string name, string value)
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: "app1", instanceId: "123"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans = { CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: [KeyValuePair.Create("key1", "value1")]) }
+                    }
+                }
+            }
+        });
+
+        Assert.Equal(0, addContext.FailureCount);
+
+        var appKey = new ApplicationKey("app1", InstanceId: null);
+
+        // Act 1
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = appKey,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10,
+            Filters = [
+                new TelemetryFilter { Field = name, Condition = FilterCondition.NotEqual, Value = value }
+            ]
+        });
+
+        // Assert 1
+        // Doesn't match filter.
+        Assert.Empty(traces.PagedResult.Items);
+
+        // Act 2
+        traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = appKey,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10,
+            Filters = [
+                new TelemetryFilter { Field = name, Condition = FilterCondition.Equals, Value = value }
+            ]
+        });
+
+        // Assert 2
+        // Matches filter.
+        Assert.Collection(traces.PagedResult.Items,
+            trace =>
+            {
+                AssertId("1", trace.TraceId);
+            });
     }
 
     [Fact]
