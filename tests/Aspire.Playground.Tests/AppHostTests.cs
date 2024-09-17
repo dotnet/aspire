@@ -184,6 +184,10 @@ public class AppHostTests
                 resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/ping", "/set", "/get"] } },
                  waitForTexts: [
                     new ("garnet", "Ready to accept connections"),
+            new TestEndpoints("Redis.AppHost",
+                resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/ping", "get", "set"] } },
+                waitForTexts: [
+                    new ("redis", "Ready to accept connections tcp"),
                     new ("apiservice", "Application started")
                 ]),
             new TestEndpoints("AzureStorageEndToEnd.AppHost",

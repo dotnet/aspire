@@ -2,14 +2,13 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
-    <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <AspireProjectOrPackageReference Include="Aspire.StackExchange.Redis" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
-    <ProjectReference Include="..\WaitForSandbox.Common\WaitForSandbox.Common.csproj" />
   </ItemGroup>
 
 </Project>
