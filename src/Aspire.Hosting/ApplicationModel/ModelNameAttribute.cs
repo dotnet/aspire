@@ -4,13 +4,12 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Signifies that a parameter represents a model name, e.g. the name of a resource.
+/// Signifies that a parameter represents a model name.
 /// </summary>
-[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false)]
-public class ModelNameAttribute(string target) : Attribute
+/// <remarks>
+/// This API supports analyzers in Aspire.Hosting.Analyzers.
+/// </remarks>
+public interface IModelNameParameter
 {
-    /// <summary>
-    /// The target model kind the name is for, e.g. "Resource".
-    /// </summary>
-    public string Target { get; } = target;
+
 }

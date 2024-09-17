@@ -19,11 +19,12 @@ public partial class AppHostAnalyzer
 
         foreach (var operation in modelNameOperations)
         {
-            var target = operation.Key.Target;
+            var modelType = operation.Key.ModelType;
             var token = operation.Key.ModelNameToken;
             var modelName = token.Value?.ToString();
 
-            if (modelName is not null && !ModelName.TryValidateName(target, modelName, out var validationMessage))
+            if (modelName is not null && modelType != ModelType.Unknown &&
+                !ModelName.TryValidateName(modelType.ToString(), modelName, out var validationMessage))
             {
                 context.ReportDiagnostic(Diagnostic.Create(Diagnostics.s_resourceMustHaveValidName, token.GetLocation(), validationMessage));
             }

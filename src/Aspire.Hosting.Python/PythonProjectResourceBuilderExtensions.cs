@@ -58,7 +58,7 @@ public static class PythonProjectResourceBuilderExtensions
     /// </code>
     /// </example>
     public static IResourceBuilder<PythonProjectResource> AddPythonProject(
-        this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath, params string[] scriptArgs)
+        this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectDirectory, string scriptPath, params string[] scriptArgs)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -107,7 +107,7 @@ public static class PythonProjectResourceBuilderExtensions
     /// </code>
     /// </example>
     public static IResourceBuilder<PythonProjectResource> AddPythonProject(
-        this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath,
+        this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectDirectory, string scriptPath,
         string virtualEnvironmentPath, params string[] scriptArgs)
     {
         ArgumentNullException.ThrowIfNull(builder);

@@ -92,7 +92,7 @@ public static class AzureConstructResourceExtensions
     /// <param name="name">The name of the resource being added.</param>
     /// <param name="configureConstruct">A callback used to configure the construct resource.</param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureConstructResource> AddAzureConstruct(this IDistributedApplicationBuilder builder, string name, Action<ResourceModuleConstruct> configureConstruct)
+    public static IResourceBuilder<AzureConstructResource> AddAzureConstruct(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<ResourceModuleConstruct> configureConstruct)
     {
         builder.AddAzureProvisioning();
 

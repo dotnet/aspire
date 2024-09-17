@@ -24,7 +24,7 @@ public static class AzureEventHubsExtensions
     /// <param name="name">The name of the resource.</param>
     /// <returns></returns>
     public static IResourceBuilder<AzureEventHubsResource> AddAzureEventHubs(
-        this IDistributedApplicationBuilder builder, string name)
+        this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
 #pragma warning disable AZPROVISION001 // This API requires opting into experimental features
         return builder.AddAzureEventHubs(name, null);
@@ -39,7 +39,7 @@ public static class AzureEventHubsExtensions
     /// <param name="configureResource">Optional callback to configure the Event Hubs namespace.</param>
     /// <returns></returns>
     [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureEventHubsResource> AddAzureEventHubs(this IDistributedApplicationBuilder builder, string name,
+    public static IResourceBuilder<AzureEventHubsResource> AddAzureEventHubs(this IDistributedApplicationBuilder builder, [ResourceName] string name,
         Action<IResourceBuilder<AzureEventHubsResource>, ResourceModuleConstruct, EventHubsNamespace>? configureResource)
     {
         builder.AddAzureProvisioning();
@@ -82,7 +82,7 @@ public static class AzureEventHubsExtensions
     /// </summary>
     /// <param name="builder">The Azure Event Hubs resource builder.</param>
     /// <param name="name">The name of the Event Hub.</param>
-    public static IResourceBuilder<AzureEventHubsResource> AddEventHub(this IResourceBuilder<AzureEventHubsResource> builder, string name)
+    public static IResourceBuilder<AzureEventHubsResource> AddEventHub(this IResourceBuilder<AzureEventHubsResource> builder, [ResourceName] string name)
     {
 #pragma warning disable AZPROVISION001 // This API requires opting into experimental features
         return builder.AddEventHub(name, null);

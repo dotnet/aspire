@@ -68,33 +68,42 @@ public partial class AppHostAnalyzer : DiagnosticAnalyzer
                 return;
             }
 
-            modelNameOperations.TryAdd(ModelNameOperation.Create(invocation, parameterData.Value.Target, token), value: default);
+            modelNameOperations.TryAdd(ModelNameOperation.Create(invocation, parameterData.Value.ModelType, token), value: default);
         }
     }
 
-    private static bool IsModelNameInvocation(WellKnownTypes wellKnownTypes, IMethodSymbol targetMethod, [NotNullWhen(true)] out (IParameterSymbol ModelNameParameter, string? Target)? parameterData)
+    private static bool IsModelNameInvocation(WellKnownTypes wellKnownTypes, IMethodSymbol targetMethod, [NotNullWhen(true)] out (IParameterSymbol ModelNameParameter, ModelType ModelType)? parameterData)
     {
         // Look for first string parameter annotated with ModelName attribute
-        string? target = null;
+        ModelType modelType = default;
         var candidateParameter = targetMethod.Parameters.FirstOrDefault(ps =>
             SymbolEqualityComparer.Default.Equals(ps.Type, wellKnownTypes.Get(SpecialType.System_String))
-            && HasModelNameAttribute(ps, out target));
+            && HasModelNameAttribute(ps, out modelType));
 
         if (candidateParameter is not null)
         {
-            parameterData = (candidateParameter, target);
+            parameterData = (candidateParameter, modelType);
             return true;
         }
 
         parameterData = null;
         return false;
 
-        bool HasModelNameAttribute(IParameterSymbol parameter, out string? target)
+        bool HasModelNameAttribute(IParameterSymbol parameter, out ModelType modelType)
         {
-            var modelNameAttribute = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.Aspire_Hosting_ApplicationModel_ModelNameAttribute);
-            var attrData = parameter.GetAttributes().SingleOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, modelNameAttribute) == true);
-            // Target model kind (e.g. Resource, Endpoint) is the first constructor parameter
-            target = attrData?.ConstructorArguments.FirstOrDefault().Value?.ToString();
+            var modelNameParameter = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.Aspire_Hosting_ApplicationModel_IModelNameParameter);
+            var resourceNameAttribute = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.Aspire_Hosting_ApplicationModel_ResourceNameAttribute);
+            var endpointNameAttribute = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.Aspire_Hosting_ApplicationModel_EndpointNameAttribute);
+
+            var attrData = parameter.GetAttributes().SingleOrDefault(a => WellKnownTypes.Implements(a.AttributeClass, modelNameParameter));
+
+            // Model type (e.g. Resource, Endpoint) is based on the concrete attribute type
+            modelType = SymbolEqualityComparer.Default.Equals(attrData?.AttributeClass, resourceNameAttribute)
+                ? ModelType.Resource
+                : SymbolEqualityComparer.Default.Equals(attrData?.AttributeClass, endpointNameAttribute)
+                  ? ModelType.Endpoint
+                  : ModelType.Unknown;
+
             return attrData is not null;
         }
     }
@@ -122,11 +131,18 @@ public partial class AppHostAnalyzer : DiagnosticAnalyzer
         return true;
     }
 
-    private record struct ModelNameOperation(IInvocationOperation Operation, string Target, SyntaxToken ModelNameToken)
+    private record struct ModelNameOperation(IInvocationOperation Operation, ModelType ModelType, SyntaxToken ModelNameToken)
     {
-        public static ModelNameOperation Create(IInvocationOperation operation, string target, SyntaxToken modelNameToken)
+        public static ModelNameOperation Create(IInvocationOperation operation, ModelType modelType, SyntaxToken modelNameToken)
         {
-            return new ModelNameOperation(operation, target, modelNameToken);
+            return new ModelNameOperation(operation, modelType, modelNameToken);
         }
+    }
+
+    private enum ModelType
+    {
+        Unknown,
+        Resource,
+        Endpoint
     }
 }

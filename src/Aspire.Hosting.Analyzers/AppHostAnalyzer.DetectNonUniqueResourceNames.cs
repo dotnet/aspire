@@ -21,7 +21,7 @@ public partial class AppHostAnalyzer
 
         foreach (var operation in modelNameOperations)
         {
-            if (operation.Key.Target != "Resource")
+            if (operation.Key.ModelType != ModelType.Resource)
             {
                 continue;
             }
