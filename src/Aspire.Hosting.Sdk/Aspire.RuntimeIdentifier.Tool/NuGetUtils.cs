@@ -7,7 +7,7 @@ namespace Aspire.Hosting.Sdk;
 
 /*
  *  These utility methods were copied from the sdk repository to mimic the behavior used when selecting the best matching RID
- *  for a a given runtime identifier. For more information, please see the original source code at:
+ *  for a given runtime identifier. For more information, please see the original source code at:
  *  https://github.com/dotnet/sdk/blob/e6da8ca6de3ec8f392dc87b8529415e1ef59b7ea/src/Tasks/Microsoft.NET.Build.Tasks/NuGetUtils.NuGet.cs#L76-L109
  */
 
