@@ -20,6 +20,7 @@ resource cognitiveServicesAccount_wXAGTFUId 'Microsoft.CognitiveServices/account
   properties: {
     customSubDomainName: toLower(take(concat('openai', uniqueString(resourceGroup().id)), 24))
     publicNetworkAccess: 'Enabled'
+    disableLocalAuth: true
   }
 }
 
@@ -33,18 +34,18 @@ resource roleAssignment_Hsk8rxWY8 'Microsoft.Authorization/roleAssignments@2022-
   }
 }
 
-resource cognitiveServicesAccountDeployment_hU1MaqMLH 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
+resource cognitiveServicesAccountDeployment_oFQ0tEiLR 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = {
   parent: cognitiveServicesAccount_wXAGTFUId
-  name: 'gpt-35-turbo'
+  name: 'gpt-4o'
   sku: {
     name: 'Standard'
-    capacity: 1
+    capacity: 8
   }
   properties: {
     model: {
       format: 'OpenAI'
-      name: 'gpt-35-turbo'
-      version: '0613'
+      name: 'gpt-4o'
+      version: '2024-05-13'
     }
   }
 }

@@ -18,6 +18,7 @@ resource sqlServer_x8iP8H24Z 'Microsoft.Sql/servers@2020-11-01-preview' = {
   }
   properties: {
     version: '12.0'
+    minimalTlsVersion: '1.2'
     publicNetworkAccess: 'Enabled'
     administrators: {
       administratorType: 'ActiveDirectory'
