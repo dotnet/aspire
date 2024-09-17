@@ -23,10 +23,10 @@ else
 
         <FluentTabs ActiveTabId="@($"tab-{ActiveView}")" OnTabChange="@OnTabChangeAsync">
             <FluentTab LabelClass="tab-label"
-                   Id="@($"tab-{Metrics.MetricViewKind.Graph}")"
-                   aria-label="@Loc[nameof(ControlsStrings.ChartContainerGraphAccessibleLabel)]"
-                   Label="@Loc[nameof(ControlsStrings.ChartContainerGraphTab)]"
-                   Icon="@(new Icons.Regular.Size24.DataArea())">
+                       Id="@($"tab-{Metrics.MetricViewKind.Graph}")"
+                       aria-label="@Loc[nameof(ControlsStrings.ChartContainerGraphAccessibleLabel)]"
+                       Label="@Loc[nameof(ControlsStrings.ChartContainerGraphTab)]"
+                       Icon="@(new Icons.Regular.Size24.DataArea())">
                 <ChartWrapper Applications="@Applications"
                               Duration="@Duration"
                               InstrumentData="@InstrumentData"

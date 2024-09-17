@@ -98,15 +98,15 @@
                                     }
                                     else if (PageViewModel.SelectedApplication.Id?.ReplicaSetName != null && PageViewModel.SelectedMeter != null && PageViewModel.SelectedInstrument != null)
                                     {
-                                            // We've got a selected instrument and application, so show the chart
-                                            <SingleMetricChartContainer
-                                                ApplicationKey="@(PageViewModel.SelectedApplication.Id.GetApplicationKey())"
-                                                MeterName="@(PageViewModel.SelectedMeter.MeterName)"
-                                                InstrumentName="@(PageViewModel.SelectedInstrument.Name)"
-                                                Duration="PageViewModel.SelectedDuration.Id"
-                                                ActiveView="@(PageViewModel.SelectedViewKind ?? MetricViewKind.Graph)"
-                                                OnViewChangedAsync="@OnViewChangedAsync"
-                                                Applications="_applications" />
+                                        // We've got a selected instrument and application, so show the chart
+                                        <SingleMetricChartContainer
+                                            ApplicationKey="@(PageViewModel.SelectedApplication.Id.GetApplicationKey())"
+                                            MeterName="@(PageViewModel.SelectedMeter.MeterName)"
+                                            InstrumentName="@(PageViewModel.SelectedInstrument.Name)"
+                                            Duration="PageViewModel.SelectedDuration.Id"
+                                            ActiveView="@(PageViewModel.SelectedViewKind ?? MetricViewKind.Graph)"
+                                            OnViewChangedAsync="@OnViewChangedAsync"
+                                            Applications="_applications" />
                                     }
                                     else if (PageViewModel.SelectedMeter != null)
                                     {

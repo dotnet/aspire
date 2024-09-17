@@ -41,8 +41,8 @@ internal static class StringComparisons
     public static StringComparison UrlPath => StringComparison.OrdinalIgnoreCase;
     public static StringComparison UrlHost => StringComparison.OrdinalIgnoreCase;
     public static StringComparison Attribute => StringComparison.Ordinal;
-    public static StringComparison GridColumn => StringComparison.Ordinal;
     public static StringComparison OtlpInstrumentName => StringComparison.OrdinalIgnoreCase;
     public static StringComparison OtlpApplicationName => StringComparison.OrdinalIgnoreCase;
+    public static StringComparison GridColumn => StringComparison.Ordinal;
     public static StringComparison DashpageName => StringComparison.OrdinalIgnoreCase;
 }
