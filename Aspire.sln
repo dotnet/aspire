@@ -610,6 +610,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SqlServerEndToEnd.DbSetup",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Sdk.Tests", "tests\Aspire.Hosting.Sdk.Tests\Aspire.Hosting.Sdk.Tests.csproj", "{ABDC7DF8-7ACA-430C-9C91-983693DBBCB9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.RuntimeIdentifier.Tool", "src\Aspire.Hosting.Sdk\Aspire.RuntimeIdentifier.Tool\Aspire.RuntimeIdentifier.Tool.csproj", "{100A7A22-2517-41AD-8649-68E3E289F537}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1608,6 +1610,10 @@ Global
 		{ABDC7DF8-7ACA-430C-9C91-983693DBBCB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ABDC7DF8-7ACA-430C-9C91-983693DBBCB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ABDC7DF8-7ACA-430C-9C91-983693DBBCB9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{100A7A22-2517-41AD-8649-68E3E289F537}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{100A7A22-2517-41AD-8649-68E3E289F537}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{100A7A22-2517-41AD-8649-68E3E289F537}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{100A7A22-2517-41AD-8649-68E3E289F537}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1902,6 +1908,7 @@ Global
 		{1997067D-8EF2-43B3-AB13-9B2E12B52709} = {2CA6AB88-21EF-4488-BB1B-3A5BAD5FE2AD}
 		{125C081D-7E5B-4F35-B5CD-E2B56140380F} = {2CA6AB88-21EF-4488-BB1B-3A5BAD5FE2AD}
 		{ABDC7DF8-7ACA-430C-9C91-983693DBBCB9} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
+		{100A7A22-2517-41AD-8649-68E3E289F537} = {F534D4F8-5E3A-42FC-BCD7-4C2D6060F9C8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

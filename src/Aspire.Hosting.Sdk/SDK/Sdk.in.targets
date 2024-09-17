@@ -44,14 +44,10 @@
   </Target>
 
   <PropertyGroup>
-    <AspireHostingTasksRoot>$(MSBuildThisFileDirectory)..\tools\</AspireHostingTasksRoot>
-    <AspireHostingTasksTFM Condition=" '$(MSBuildRuntimeType)' == 'Core'">net8.0</AspireHostingTasksTFM>
-    <AspireHostingTasksTFM Condition=" '$(MicrosoftNETBuildTasksTFM)' == ''">net472</AspireHostingTasksTFM>
-    <AspireHostingTasksDirectory>$(AspireHostingTasksRoot)$(AspireHostingTasksTFM)\</AspireHostingTasksDirectory>
-    <AspireHostingTasksAssembly>$(AspireHostingTasksDirectory)Aspire.Hosting.Sdk.dll</AspireHostingTasksAssembly>
+    <AspireRidToolRoot>$(MSBuildThisFileDirectory)..\tools\@DefaultTargetFramework@\</AspireRidToolRoot>
+    <AspireRidToolDirectory>$([MSBuild]::NormalizePath('$(AspireRidToolRoot)\'))</AspireRidToolDirectory>
+    <AspireRidToolExecutable>$(AspireRidToolDirectory)Aspire.RuntimeIdentifier.Tool.dll</AspireRidToolExecutable>
   </PropertyGroup>
-
-  <UsingTask TaskName="FindBestRidForPlatform" AssemblyFile="$(AspireHostingTasksAssembly)" />
 
   <!-- This target extracts the version of Aspire.Hosting.AppHost referenced by the project, and adds
        a reference to Aspire.Dashboard.Sdk and Aspire.Hosting.Orchestration for the build-time platform using
@@ -104,12 +100,35 @@
       <_DashboardAndDCPSupportedTargetingRIDs Include="osx-arm64" />
     </ItemGroup>
 
-    <!--We need to find what the best RID match is for the platform's runtime identifier-->
-    <FindBestRidForPlatform RuntimeGraphPath="$(BundledRuntimeIdentifierGraphFile)"
-                            SupportedRids="@(_DashboardAndDCPSupportedTargetingRIDs)"
-                            NETCoreSdkRuntimeIdentifier="$(NETCoreSdkRuntimeIdentifier)">
-      <Output TaskParameter="BestRidForPlatform" PropertyName="_DashboardAndDcpRID" />
-    </FindBestRidForPlatform>
+    <!-- If running in .NET Core, DOTNET_HOST_PATH is set to point to the dotnet executable being used
+    for the build. -->
+    <PropertyGroup>
+      <_DotNetHostPath>$(DOTNET_HOST_PATH)</_DotNetHostPath>
+    </PropertyGroup>
+
+    <!-- If running on .NET Framework MSBuild, then DOTNET_HOST_PATH won't be set, so we need to construct
+    the path using well-known properties. -->
+    <PropertyGroup Condition="'$(_DotNetHostPath)' == ''">
+      <_DotNetHostDirectory>$(NetCoreRoot)</_DotNetHostDirectory>
+      <_DotNetHostFileName>dotnet</_DotNetHostFileName>
+      <_DotNetHostFileName Condition="'$(OS)' == 'Windows_NT'">dotnet.exe</_DotNetHostFileName>
+
+      <_DotNetHostPath>$(_DotNetHostDirectory)\$(_DotNetHostFileName)</_DotNetHostPath>
+    </PropertyGroup>
+
+    <!-- Call Aspire.RuntimeIdentifier.Tool to get the RIDs for Dashboard and DCP packages -->
+    <Exec Command="&quot;$(_DotNetHostPath)&quot; exec &quot;$(AspireRidToolExecutable)&quot; -rgp &quot;$(BundledRuntimeIdentifierGraphFile)&quot; -sr &quot;@(_DashboardAndDCPSupportedTargetingRIDs -> '%(Identity)', ',')&quot; -r &quot;$(NETCoreSdkRuntimeIdentifier)&quot;"
+          ConsoleToMSBuild="true"
+          IgnoreExitCode="true">
+      <Output TaskParameter="ExitCode" PropertyName="_AspireRidToolExitCode" />
+      <Output TaskParameter="ConsoleOutput" ItemName="_AspireRidToolOutput" />
+    </Exec>
+
+    <Error Condition="$(_AspireRidToolExitCode) != 0" Text="Failed to run Aspire.RuntimeIdentifier.Tool. Exit code: $(_AspireRidToolExitCode). Output: @(_AspireRidToolOutput)" />
+
+    <PropertyGroup>
+      <_DashboardAndDcpRID>@(_AspireRidToolOutput)</_DashboardAndDcpRID>
+    </PropertyGroup>
 
     
     <!-- Now that we have the version, we add the package references -->
