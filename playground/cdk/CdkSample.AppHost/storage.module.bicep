@@ -17,6 +17,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
         name: storagesku
     }
     properties: {
+        accessTier: 'Hot'
         allowSharedKeyAccess: false
         minimumTlsVersion: 'TLS1_2'
         networkAcls: {

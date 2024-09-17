@@ -4,6 +4,7 @@
 #pragma warning disable AZPROVISION001
 
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
@@ -97,8 +98,8 @@ public static class AzurePostgresExtensions
             {
                 Parent = postgres,
                 Name = "AllowAllAzureIps",
-                StartIPAddress = new StringLiteral("0.0.0.0"),
-                EndIPAddress = new StringLiteral("0.0.0.0")
+                StartIPAddress = new IPAddress([0, 0, 0, 0]),
+                EndIPAddress = new IPAddress([0, 0, 0, 0])
             });
 
             if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
@@ -108,8 +109,8 @@ public static class AzurePostgresExtensions
                 {
                     Parent = postgres,
                     Name = "AllowAllIps",
-                    StartIPAddress = new StringLiteral("0.0.0.0"),
-                    EndIPAddress = new StringLiteral("255.255.255.255")
+                    StartIPAddress = new IPAddress([0, 0, 0, 0]),
+                    EndIPAddress = new IPAddress([255, 255, 255, 255])
                 });
             }
 

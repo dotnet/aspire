@@ -1889,6 +1889,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                     name: storagesku
                 }
                 properties: {
+                    accessTier: 'Hot'
                     allowSharedKeyAccess: false
                     minimumTlsVersion: 'TLS1_2'
                     networkAcls: {
@@ -2045,6 +2046,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                     name: storagesku
                 }
                 properties: {
+                    accessTier: 'Hot'
                     allowSharedKeyAccess: true
                     minimumTlsVersion: 'TLS1_2'
                     networkAcls: {
@@ -2200,6 +2202,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                     name: storagesku
                 }
                 properties: {
+                    accessTier: 'Hot'
                     allowSharedKeyAccess: false
                     minimumTlsVersion: 'TLS1_2'
                     networkAcls: {
@@ -2356,6 +2359,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                     name: storagesku
                 }
                 properties: {
+                    accessTier: 'Hot'
                     allowSharedKeyAccess: true
                     minimumTlsVersion: 'TLS1_2'
                     networkAcls: {

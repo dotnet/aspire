@@ -45,6 +45,7 @@ public static class AzureStorageExtensions
             var storageAccount = new StorageAccount(name)
             {
                 Kind = StorageKind.StorageV2,
+                AccessTier = StorageAccountAccessTier.Hot,
                 Sku = new StorageSku() { Name = StorageSkuName.StandardGrs },
                 NetworkRuleSet = new StorageAccountNetworkRuleSet()
                 {
