@@ -250,7 +250,7 @@ public static class MongoDBBuilderExtensions
             sb.Append(replica.ReplicaSetName);
         }
 
-        // Mongo Exporess assumes Mongo is being accessed over a default Aspire container network and hardcodes the resource address
+        // Mongo Express assumes Mongo is being accessed over a default Aspire container network and hardcodes the resource address
         // This will need to be refactored once updated service discovery APIs are available
         context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", sb.ToString());
         context.EnvironmentVariables.Add("ME_CONFIG_BASICAUTH", "false");
