@@ -32,7 +32,7 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, OpenAISettings>
                 "DisableTracing": false,
                 "DisableMetrics": false,
                 "ClientOptions": {
-                "NetworkTimeout": "00:00:02"
+                    "NetworkTimeout": "00:00:02"
                 }
             }
           }

@@ -5,7 +5,7 @@
     <IsPackable>true</IsPackable>
     <!-- This library can't ship stable until OpenAI ships stable. -->
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
-    <PackageTags>ai openai</PackageTags>
+    <PackageTags>$(ComponentCommonPackageTags) ai openai</PackageTags>
     <Description>A client for OpenAI that integrates with Aspire, including metrics, logging and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)OpenAI_256x.png</PackageIconFullPath>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>

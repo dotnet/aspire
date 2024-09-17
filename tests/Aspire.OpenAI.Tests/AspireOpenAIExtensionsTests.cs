@@ -109,6 +109,7 @@ public class AspireOpenAIExtensionsTests
     public void CanAddMultipleKeyedServices()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
+
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:openai1", ConnectionString),
             new KeyValuePair<string, string?>("ConnectionStrings:openai2", ConnectionString + "2"),
@@ -128,5 +129,49 @@ public class AspireOpenAIExtensionsTests
         Assert.NotSame(client1, client2);
         Assert.NotSame(client1, client3);
         Assert.NotSame(client2, client3);
+    }
+
+    [Fact]
+    public void BindsSettingsAndInvokesCallback()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:openai", ConnectionString),
+            new KeyValuePair<string, string?>("Aspire:OpenAI:DisableTracing", "true")
+        ]);
+
+        OpenAISettings? localSettings = null;
+
+        builder.AddOpenAIClient("openai", settings =>
+        {
+            settings.DisableMetrics = true;
+            localSettings = settings;
+        });
+
+        Assert.NotNull(localSettings);
+        Assert.True(localSettings.DisableMetrics);
+        Assert.True(localSettings.DisableTracing);
+    }
+
+    [Fact]
+    public void BindsOptionsAndInvokesCallback()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:openai", ConnectionString),
+            new KeyValuePair<string, string?>("Aspire:OpenAI:ClientOptions:ProjectId", "myproject")
+        ]);
+
+        OpenAIClientOptions? localOptions = null;
+
+        builder.AddOpenAIClient("openai", configureOptions: options =>
+        {
+            options.ApplicationId = "myapplication";
+            localOptions = options;
+        });
+
+        Assert.NotNull(localOptions);
+        Assert.Equal("myproject", localOptions.ProjectId);
+        Assert.Equal("myapplication", localOptions.ApplicationId);
     }
 }

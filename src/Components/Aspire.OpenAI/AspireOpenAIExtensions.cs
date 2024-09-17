@@ -76,9 +76,13 @@ public static class AspireOpenAIExtensions
 
         configureSettings?.Invoke(settings);
 
-        var options = settings.Endpoint is null
-            ? new OpenAIClientOptions()
-            : new OpenAIClientOptions { Endpoint = settings.Endpoint };
+        var options = new OpenAIClientOptions();
+        builder.Configuration.GetSection($"{configurationSectionName}:ClientOptions").Bind(options);
+
+        if (settings.Endpoint is not null)
+        {
+            options.Endpoint = settings.Endpoint;
+        }
 
         configureOptions?.Invoke(options);
 

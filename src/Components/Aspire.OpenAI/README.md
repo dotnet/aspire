@@ -7,7 +7,11 @@ Registers [OpenAIClient](https://github.com/openai/openai-dotnet?tab=readme-ov-f
 ### Prerequisites
 
 - An OpenAI REST API compatible service like OpenAI.com, Azure AI OpenAI, ollama.com and others.
-- A API key.
+- An API key.
+
+To obtain an API key on openai.com, first [create a new OpenAI account](https://platform.openai.com/signup) or [log in](https://platform.openai.com/login). 
+Next, navigate to the [API key page](https://platform.openai.com/account/api-keys) and select "Create new secret key", optionally naming the key.
+Make sure to save your API key somewhere safe and do not share it with anyone.
 
 ### Install the package
 
@@ -36,7 +40,7 @@ public ChatController(OpenAIClient client)
 }
 ```
 
-To learn how to use the `OpenAIClient` class refer to [Using the OpenAIClient class](https://github.com/openai/openai-dotnet?tab=readme-ov-file#using-the-openaiclient-class).
+To learn how to use the OpenAI client library refer to [Using the OpenAIClient class](https://github.com/openai/openai-dotnet?tab=readme-ov-file#using-the-openaiclient-class).
 
 ## Configuration
 
@@ -57,14 +61,10 @@ Alternatively, a custom connection string can be used.
 ```json
 {
   "ConnectionStrings": {
-    "openaiConnectionName": "Endpoint=https://{openai_rest_api_url}Key={account_key};"
+    "openaiConnectionName": "Endpoint=https://{openai_rest_api_url};Key={account_key};"
   }
 }
 ```
-
-To obtain an API key on openai.com, first [create a new OpenAI account](https://platform.openai.com/signup) or [log in](https://platform.openai.com/login). 
-Next, navigate to the [API key page](https://platform.openai.com/account/api-keys) and select "Create new secret key", optionally naming the key.
-Make sure to save your API key somewhere safe and do not share it with anyone.
 
 ### Use configuration providers
 
@@ -75,6 +75,9 @@ The .NET Aspire OpenAI library supports [Microsoft.Extensions.Configuration](htt
   "Aspire": {
     "OpenAI": {
       "DisableTracing": false,
+      "ClientOptions": {
+        "ApplicationId": "myapp"
+      }
     }
   }
 }

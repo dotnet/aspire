@@ -259,6 +259,7 @@ Aspire.Npgsql.EntityFrameworkCore.PostgreSQL:
 
 Aspire.OpenAI:
 - Log categories:
+  - none  
 - Activity source names:
   - "OpenAI.*":
 - Metric names:
