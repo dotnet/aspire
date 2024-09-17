@@ -58,17 +58,8 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
     };
     data.push(points);
 
-    // Explicitly set the width and height based on the container div.
-    // If there is no explicit width and height, Plotly will use the rendered container size.
-    // However, if the container isn't visible then it uses a default size.
-    // Being explicit ensures the chart is always the correct size.
-    //var width = parseInt(chartContainerDiv.style.width);
-    //var height = parseInt(chartContainerDiv.style.height);
-
     var layout = {
         autosize: true,
-        //width: width,
-        //height: height,
         paper_bgcolor: themeColors.backgroundColor,
         plot_bgcolor: themeColors.backgroundColor,
         margin: { t: 0, r: 0, b: 40, l: 50 },
