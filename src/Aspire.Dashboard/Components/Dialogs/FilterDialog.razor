@@ -33,7 +33,7 @@
 
         <div class="filter-input-container">
             <FluentTextField @bind-Value="_formModel.Value"
-                             Label="@Loc[nameof(Dialogs.FilterDialogTextValuePlaceholder)]" />
+                             Label="@Loc[nameof(Dialogs.FilterDialogTextValuePlaceholder)]" Style="width:100%" />
             <ValidationMessage For="() => _formModel.Value" />
         </div>
 

@@ -326,6 +326,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             Alignment = HorizontalAlignment.Right,
             PrimaryAction = null,
             SecondaryAction = null,
+            Width = "450px"
         };
         var data = new FilterDialogViewModel
         {

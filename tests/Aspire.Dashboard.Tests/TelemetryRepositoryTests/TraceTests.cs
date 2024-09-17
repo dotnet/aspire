@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using System.Text;
+using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf;
@@ -957,6 +958,100 @@ public class TraceTests
             {
                 AssertId("2", trace.TraceId);
             });
+    }
+
+    [Fact]
+    public void GetTraces_Filters()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: "app1", instanceId: "123"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans = { CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: [KeyValuePair.Create("key1", "value1")]) }
+                    }
+                }
+            },
+            new ResourceSpans
+            {
+                Resource = CreateResource(name: "app1", instanceId: "456"),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans = { CreateSpan(traceId: "1", spanId: "1-2", startTime: s_testTime.AddMinutes(2), endTime: s_testTime.AddMinutes(10), parentSpanId: "1-1", attributes: [KeyValuePair.Create("key2", "value2")]) }
+                    }
+                }
+            }
+        });
+
+        Assert.Equal(0, addContext.FailureCount);
+
+        var appKey = new ApplicationKey("app1", InstanceId: null);
+
+        // Act 1
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = appKey,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10,
+            Filters = [
+                new TelemetryFilter { Field = "key1", Condition = FilterCondition.Equals, Value = "value1" }
+            ]
+        });
+        // Assert 1
+        // Match first span.
+        Assert.Collection(traces.PagedResult.Items,
+            trace =>
+            {
+                AssertId("1", trace.TraceId);
+            });
+
+        // Act 2
+        traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = appKey,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10,
+            Filters = [
+                new TelemetryFilter { Field = "key2", Condition = FilterCondition.Equals, Value = "value2" }
+            ]
+        });
+        // Assert 2
+        // Match second span.
+        Assert.Collection(traces.PagedResult.Items,
+            trace =>
+            {
+                AssertId("1", trace.TraceId);
+            });
+
+        // Act 3
+        traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationKey = appKey,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10,
+            Filters = [
+                new TelemetryFilter { Field = "key1", Condition = FilterCondition.Equals, Value = "value1" },
+                new TelemetryFilter { Field = "key2", Condition = FilterCondition.Equals, Value = "value2" }
+            ]
+        });
+        // Assert 3
+        // Match neither span.
+        Assert.Empty(traces.PagedResult.Items);
     }
 
     [Fact]

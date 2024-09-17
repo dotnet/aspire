@@ -281,6 +281,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             Alignment = HorizontalAlignment.Right,
             PrimaryAction = null,
             SecondaryAction = null,
+            Width = "450px"
         };
         var data = new FilterDialogViewModel
         {
