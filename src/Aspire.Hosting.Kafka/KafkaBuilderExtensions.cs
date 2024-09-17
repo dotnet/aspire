@@ -3,6 +3,10 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Confluent.Kafka;
+using HealthChecks.Kafka;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting;
 
@@ -29,12 +33,47 @@ public static class KafkaBuilderExtensions
         ArgumentNullException.ThrowIfNull(name);
 
         var kafka = new KafkaServerResource(name);
+
+        string? connectionString = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(kafka, async (@event, ct) =>
+        {
+            connectionString = await kafka.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{kafka.Name}' resource but the connection string was null.");
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+
+        // NOTE: We cannot use AddKafka here because it registers the health check as a singleton
+        //       which means if you have multiple Kafka resources the factory callback will end
+        //       up using the connection string of the last Kafka resource that was added. The
+        //       client packages also have to work around this issue.
+        //
+        //       SEE: https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks/issues/2298
+        var healthCheckRegistration = new HealthCheckRegistration(
+            healthCheckKey,
+            sp =>
+            {
+                var options = new KafkaHealthCheckOptions();
+                options.Configuration = new ProducerConfig();
+                options.Configuration.BootstrapServers = connectionString ?? throw new InvalidOperationException("Connection string is unavailable");
+                return new KafkaHealthCheck(options);
+            },
+            failureStatus: default,
+            tags: default);
+        builder.Services.AddHealthChecks().Add(healthCheckRegistration);
+
         return builder.AddResource(kafka)
             .WithEndpoint(targetPort: KafkaBrokerPort, port: port, name: KafkaServerResource.PrimaryEndpointName)
             .WithEndpoint(targetPort: KafkaInternalBrokerPort, name: KafkaServerResource.InternalEndpointName)
             .WithImage(KafkaContainerImageTags.Image, KafkaContainerImageTags.Tag)
             .WithImageRegistry(KafkaContainerImageTags.Registry)
-            .WithEnvironment(context => ConfigureKafkaContainer(context, kafka));
+            .WithEnvironment(context => ConfigureKafkaContainer(context, kafka))
+            .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
