@@ -18,6 +18,7 @@ resource sqlServer_lF9QWGqAt 'Microsoft.Sql/servers@2020-11-01-preview' = {
   }
   properties: {
     version: '12.0'
+    minimalTlsVersion: '1.2'
     publicNetworkAccess: 'Enabled'
     administrators: {
       administratorType: 'ActiveDirectory'
