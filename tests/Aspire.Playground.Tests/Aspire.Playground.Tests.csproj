@@ -17,6 +17,17 @@
     <PlaygroundSourceDir>$(MSBuildThisFileDirectory)..\..\playground\</PlaygroundSourceDir>
     <TestsSharedDir>$(MSBuildThisFileDirectory)..\Shared\</TestsSharedDir>
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
+
+    <!-- We build the project on helix -->
+    <RunScriptTestRequiresBuild>true</RunScriptTestRequiresBuild>
+    <RunScriptTestBaseCommand>dotnet test --no-build -s .runsettings</RunScriptTestBaseCommand>
+    <!-- 20 mins -->
+    <TestSessionTimeoutForHelix>1200000</TestSessionTimeoutForHelix>
+
+    <RunScriptOutputRelativePath>$(DeployOutsideOfRepoSupportFilesRelativeDir)/RunTests</RunScriptOutputRelativePath>
+    <RunScriptOutputRelativePath Condition="'$(OS)' != 'Windows_NT'">$(RunScriptOutputRelativePath).sh</RunScriptOutputRelativePath>
+    <RunScriptOutputRelativePath Condition="'$(OS)' == 'Windows_NT'">$(RunScriptOutputRelativePath).cmd</RunScriptOutputRelativePath>
+
     <!-- Skip EventHubs emulation in CI environments where Docker Desktop is not available.
           For more information, see https://github.com/dotnet/aspire/issues/5325. -->
     <SkipEventHubsEmulation Condition="'$(SkipEventHubsEmulation)' == '' and ('$(RepoRoot)' == '' or '$(ContinuousIntegrationBuild)' == 'true' or '$(CODESPACES)' == 'true')">true</SkipEventHubsEmulation>
@@ -75,6 +86,28 @@
     <None Include="$(RepoRoot)tests\Aspire.Hosting.Tests\Utils\LoggerNotificationExtensions.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\LoggerNotificationExtensions.cs" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)src\Shared\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)src\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)playground\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)playground\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+
+    <!-- The default targets expect the test assembly to be in the root dir, but we have
+         the tests run from a subdir - tests/Aspire.Playground.Tests/ -->
+    <None Include="$(RepositoryEngineeringDir)CodeCoverage.config" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <RunScriptPreCommand Include="$(_EnvVarSetKeyword) SkipDashboardProjectReference=true" />
+    <RunScriptPreCommand Include="$(_EnvVarSetKeyword) TestsRunningOutsideOfRepo=true" />
+    <!-- required for tests that build docker images -->
+    <RunScriptPreCommand Include="$(_EnvVarSetKeyword) DOCKER_BUILDKIT=1" />
+
+    <RunScriptPreCommand Include="cd tests/$(MSBuildProjectName)" />
+    <RunScriptPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="dotnet build -bl:$(_LogsPathEnvVar)/build.binlog" />
+    <RunScriptPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="dotnet build -bl:$(_LogsPathEnvVar)/build.binlog || goto :error" />
+
+    <!-- Remove the blame-hang-timeout for playground tests, as it is pretty much one
+         main test running - 'TestEndpointsReturnOk'. IOW, the blame-hang timeout
+         would have to be at least as long as the full TestSession timeout. -->
+
+    <TestBlameArguments Remove="@(_TestBlameArguments)" />
+    <TestBlameArguments Include="--blame-crash" />
+    <TestBlameArguments Include="--blame-crash-dump-type full" />
+  </ItemGroup>
 </Project>

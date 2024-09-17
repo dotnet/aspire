@@ -21,14 +21,10 @@
            Text="Could not find EndToEnd tests at %24(_E2ETestsArchivePath)=$(_E2ETestsArchivePath)" />
 
     <ItemGroup>
-      <_TestRunCommandArguments Include="--filter scenario=$(_TestScenarioEnvVar)" />
     </ItemGroup>
 
     <PropertyGroup>
       <_WorkItemName>$([System.IO.Path]::GetFileNameWithoutExtension($(_E2ETestsArchivePath)))</_WorkItemName>
-
-      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
-      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
     </PropertyGroup>
 
     <ItemGroup>
@@ -45,6 +41,7 @@
 
         <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=$(_WorkItemName)&quot;</PreCommands>
         <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;TEST_SCENARIO=%(Identity)&quot;</PreCommands>
+        <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;TestFilterArg=scenario=%(Identity)&quot;</PreCommands>
         <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=-%(Identity)&quot;</PreCommands>
 
         <Command>$(_TestRunCommand)</Command>

@@ -1,0 +1,32 @@
+::@echo off
+setlocal enabledelayedexpansion
+
+set EXECUTION_DIR=%~dp0
+
+if [%HELIX_WORKITEM_UPLOAD_ROOT%] == [] (
+    set LOGS_PATH="%EXECUTION_DIR%\logs"
+    set COVERAGE_TOOL_CMD=dotnet-coverage.exe
+) else (
+    set LOGS_PATH="%HELIX_WORKITEM_UPLOAD_ROOT%\logs"
+    set COVERAGE_TOOL_CMD=%HELIX_CORRELATION_PAYLOAD%\dotnet-coverage\dotnet-coverage.exe
+)
+
+set PATH=%PREPEND_PATH%;%PATH%
+
+:: PreCommands
+@PreCommands@
+
+:: RunCommands
+pushd %EXECUTION_DIR%
+@echo on
+@RunCommands@
+set EXIT_CODE=%ERRORLEVEL%
+@echo off
+popd
+
+:error
+if [%EXIT_CODE%] == [] (
+    exit /b %ERRORLEVEL%
+) else (
+    exit /b %EXIT_CODE%
+)

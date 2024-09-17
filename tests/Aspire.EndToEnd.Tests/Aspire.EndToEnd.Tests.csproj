@@ -14,6 +14,7 @@
     <!-- This isn't needed as the sdk will add them by default -->
     <IncludeTestPackages>false</IncludeTestPackages>
     <DeployOutsideOfRepoSupportFilesDir>testassets\testproject\</DeployOutsideOfRepoSupportFilesDir>
+    <UsesTestFilterOnHelix>true</UsesTestFilterOnHelix>
 
     <_BuildForTestsRunningOutsideOfRepo Condition="'$(TestsRunningOutsideOfRepo)' == 'true' or '$(ContinuousIntegrationBuild)' == 'true'">true</_BuildForTestsRunningOutsideOfRepo>
     <DeployOutsideOfRepoSupportFiles>$(_BuildForTestsRunningOutsideOfRepo)</DeployOutsideOfRepoSupportFiles>

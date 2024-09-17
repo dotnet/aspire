@@ -1,4 +1,13 @@
 <Project>
+
+  <!---
+
+    Properties:
+      $(RunScriptTestBaseCommand)
+      $(UsesTestFilterOnHelix)
+      $(RunTestsRequiresBuild)
+
+  -->
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
 
   <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.targets" />
@@ -12,13 +21,42 @@
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == '' and '$(ArchiveTests)' == 'true'">$(RepoRoot)tests\helix\xunit.runner.json</XunitRunnerJson>
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == ''">$(RepositoryEngineeringDir)testing\xunit.runner.json</XunitRunnerJson>
 
+    <RunTestsScriptTemplatePath Condition="'$(RunTestsScriptTemplatePath)' == '' and '$(OS)' == 'Windows_NT'">$(RepositoryEngineeringDir)testing\RunTestsTemplate.cmd.in</RunTestsScriptTemplatePath>
+    <RunTestsScriptTemplatePath Condition="'$(RunTestsScriptTemplatePath)' == '' and '$(OS)' != 'Windows_NT'">$(RepositoryEngineeringDir)testing\RunTestsTemplate.sh.in</RunTestsScriptTemplatePath>
+
     <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestSupportProject)' != 'true')">true</RunTestsOnHelix>
     <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestSupportProject)' == 'true' or '$(RunTestsOnHelix)' == 'true')">true</SkipTests>
+
+    <RunWithCodeCoverage Condition="'$(RunWithCodeCoverage)' == '' and '$(ContinuousIntegrationBuild)' == 'true'">true</RunWithCodeCoverage>
+    <TestSessionTimeoutForHelix Condition="'$(TestSessionTimeoutForHelix)' == ''">900000</TestSessionTimeoutForHelix>
+
+    <!-- FIXME: move these to props? -->
+    <RunScriptOutputRelativePath Condition="'$(RunScriptOutputRelativePath)' == '' and '$(OS)' != 'Windows_NT'">RunTests.sh</RunScriptOutputRelativePath>
+    <RunScriptOutputRelativePath Condition="'$(RunScriptOutputRelativePath)' == '' and '$(OS)' == 'Windows_NT'">RunTests.cmd</RunScriptOutputRelativePath>
+
+    <RunScriptTestBaseCommand Condition="'$(RunScriptTestBaseCommand)' == '' and '$(RunScriptTestRequiresBuild)' != 'true'">dotnet test -s .runsettings $(MSBuildProjectName).dll</RunScriptTestBaseCommand>
+    <RunScriptTestBaseCommand Condition="'$(RunScriptTestBaseCommand)' == '' and '$(RunScriptTestRequiresBuild)' == 'true'">dotnet test -s .runsettings</RunScriptTestBaseCommand>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="$(RunSettingsFilePath)" CopyToOutputDirectory="PreserveNewest" Condition="'$(DeployRunSettingsFile)' == 'true'" />
     <None Include="$(XunitRunnerJson)" CopyToOutputDirectory="PreserveNewest" />
+    <None Condition="'$(RunWithCodeCoverage)' == 'true'" Include="$(RepoRoot)eng\CodeCoverage.config" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RunTestsOnHelix)' == 'true' and '$(IsTestProject)' == 'true'">
+    <_TestCoverageCommand Include="$(_CodeCoverageToolEnvVar) collect" />
+    <_TestCoverageCommand Include="--settings CodeCoverage.config" />
+    <_TestCoverageCommand Include="--output $(_LogsPathEnvVar)/$(MSBuildProjectName)$(_CodeCoverageReportFileNameSuffixEnvVar).cobertura.xml" />
+  </ItemGroup>
+
+  <ItemGroup Condition="@(TestBlameArguments->Count()) == 0 and '$(RunTestsOnHelix)' == 'true' and '$(IsTestProject)' == 'true'">
+    <!-- Add default blame arguments -->
+    <TestBlameArguments Include="--blame-hang" />
+    <TestBlameArguments Include="--blame-hang-dump-type full" />
+    <TestBlameArguments Include="--blame-hang-timeout 10m" />
+    <TestBlameArguments Include="--blame-crash" />
+    <TestBlameArguments Include="--blame-crash-dump-type full" />
   </ItemGroup>
 
   <Target Name="ZipTestArchive" AfterTargets="Build" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true'">
@@ -58,6 +96,90 @@
     <WriteLinesToFile File="$(TestArchiveTestsDir)$(MSBuildProjectName).tests.list"
                       Lines="@(TestClassName->Distinct())"
                       Overwrite="true" />
+  </Target>
+
+  <UsingTask TaskName="GenerateRunScript"
+      TaskFactory="RoslynCodeTaskFactory"
+      AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <TemplateFile ParameterType="System.String" Required="true" />
+      <OutputFile ParameterType="System.String" Required="true" />
+      <PreCommands ParameterType="System.String[]" Required="false" />
+      <RunCommands ParameterType="System.String[]" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+          #nullable enable
+
+          if (!File.Exists(TemplateFile))
+          {
+            Log.LogError($"Cannot find {nameof(TemplateFile)} '{TemplateFile}' .");
+            return false;
+          }
+          if (RunCommands.Length == 0)
+          {
+            Log.LogError($"No {nameof(RunCommands)} specified for template file {TemplateFile}.");
+            return false;
+          }
+          string? outputDir = Path.GetDirectoryName(OutputFile);
+          if (!string.IsNullOrEmpty(outputDir))
+          {
+            if (!Directory.Exists(outputDir))
+            {
+              Log.LogError($"Cannot find directory for {nameof(OutputFile)} '{outputDir}' .");
+              return false;
+            }
+            Directory.CreateDirectory(outputDir);
+          }
+          var sourceText = File.ReadAllText(TemplateFile);
+
+          if (PreCommands?.Length > 0)
+          {
+            sourceText = sourceText.Replace("@PreCommands@", string.Join(Environment.NewLine, PreCommands));
+          }
+          else
+          {
+            sourceText = sourceText.Replace("@PreCommands@", "");
+          }
+
+          sourceText = sourceText.Replace("@RunCommands@", string.Join(Environment.NewLine, RunCommands));
+
+          File.WriteAllText(OutputFile, sourceText);
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="GenerateRunScript" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true' and '$(IsTestProject)' == 'true'">
+    <Error Text="%24(RunScriptOutputRelativePath) is unset." Condition="'$(RunScriptOutputRelativePath)' == ''" />
+    <Error Text="%24(RunTestsScriptTemplatePath) is unset." Condition="'$(RunTestsScriptTemplatePath)' == ''" />
+
+    <PropertyGroup Condition="'$(RunScriptTestCommand)' == ''">
+      <RunScriptTestCommand>$(RunScriptTestBaseCommand)</RunScriptTestCommand>
+
+      <!-- command line differs when running `dotnet test .. assembly.dll`
+            vs `dotnet test` with a project file -->
+      <RunScriptTestCommand Condition="'$(RunScriptTestRequiresBuild)' != 'true'">$(RunScriptTestCommand) --ResultsDirectory:$(_LogsPathEnvVar)</RunScriptTestCommand>
+      <RunScriptTestCommand Condition="'$(RunScriptTestRequiresBuild)' == 'true'">$(RunScriptTestCommand) --results-directory $(_LogsPathEnvVar)</RunScriptTestCommand>
+
+      <RunScriptTestCommand>$(RunScriptTestCommand) @(TestBlameArguments, ' ')</RunScriptTestCommand>
+      <RunScriptTestCommand Condition="'$(UsesTestFilterOnHelix)' == 'true'">$(RunScriptTestCommand) --filter &quot;$(_TestFilterArgEnvVar)&quot;</RunScriptTestCommand>
+      <RunScriptTestCommand>$(RunScriptTestCommand) $(_ExtraTestArgsEnvVar) -- RunConfiguration.TestSessionTimeout=$(TestSessionTimeoutForHelix)</RunScriptTestCommand>
+    </PropertyGroup>
+
+    <PropertyGroup>
+      <_RunScriptRunCommandWithOptionalCoverage Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;$(RunScriptTestCommand)&quot;</_RunScriptRunCommandWithOptionalCoverage>
+      <_RunScriptRunCommandWithOptionalCoverage Condition="'$(RunWithCodeCoverage)' != 'true'">$(RunScriptTestCommand)</_RunScriptRunCommandWithOptionalCoverage>
+    </PropertyGroup>
+
+    <GenerateRunScript
+        TemplateFile="$(RunTestsScriptTemplatePath)"
+        OutputFile="$(OutDir)$(RunScriptOutputRelativePath)"
+        PreCommands="@(RunScriptPreCommand)"
+        RunCommands="$(_RunScriptRunCommandWithOptionalCoverage)"
+    />
   </Target>
 
   <Import Project="$(TestsSharedDir)Aspire.Workload.Testing.targets" Condition="'$(IsWorkloadTestProject)' == 'true'" />
