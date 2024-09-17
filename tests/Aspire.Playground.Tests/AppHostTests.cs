@@ -28,26 +28,6 @@ public class AppHostTests
         _testOutput = testOutput;
     }
 
-    [ConditionalTheory]
-    [MemberData(nameof(AppHostAssembliesWithNoTestEndpointsAndNoOtherTests))]
-    public async Task AppHostRunsCleanlyForAppsWithNoOtherTests(string? appHostPath)
-    {
-        if (appHostPath is null)
-        {
-            throw new SkipTestException($"Zero apphost assemblies found with no test endpoints and no other tests.");
-        }
-
-        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, _testOutput);
-        await using var app = await appHost.BuildAsync();
-
-        await app.StartAsync();
-        await app.WaitForResources().WaitAsync(TimeSpan.FromMinutes(2));
-
-        app.EnsureNoErrorsLogged();
-
-        await app.StopAsync();
-    }
-
     [Theory]
     [MemberData(nameof(TestEndpoints))]
     public async Task TestEndpointsReturnOk(TestEndpoints testEndpoints)
@@ -153,49 +133,6 @@ public class AppHostTests
                     resilience.CircuitBreaker.SamplingDuration = resilience.AttemptTimeout.Timeout * 2;
                 });
         });
-
-    public static TheoryData<string?> AppHostAssembliesWithNoTestEndpointsAndNoOtherTests()
-    {
-        var appHostAssemblies = GetPlaygroundAppHostAssemblyPaths();
-
-        HashSet<string> appHostsWithTestEndpoints = new();
-        foreach (var testEndpoint in GetAllTestEndpoints())
-        {
-            if (testEndpoint.Skip)
-            {
-                continue;
-            }
-            appHostsWithTestEndpoints.Add(testEndpoint.AppHost);
-        }
-
-        var theoryData = new TheoryData<string?>();
-        foreach (var asm in appHostAssemblies)
-        {
-            var appHostName = Path.GetFileNameWithoutExtension(asm);
-            if (appHostsWithTestEndpoints.Contains(appHostName))
-            {
-                // Skipping this as it will be tested by TestEndpointsReturnOk
-                continue;
-            }
-
-            if (string.IsNullOrEmpty(s_appHostNameFilter) || asm.Contains(s_appHostNameFilter, StringComparison.OrdinalIgnoreCase))
-            {
-                theoryData.Add(Path.GetRelativePath(AppContext.BaseDirectory, asm));
-            }
-        }
-
-        if (!theoryData.Any() && !string.IsNullOrEmpty(s_appHostNameFilter))
-        {
-            throw new SkipTestException($"No app host assemblies found matching filter '{s_appHostNameFilter}'");
-        }
-
-        if (theoryData.Count == 0)
-        {
-            theoryData.Add(null);
-        }
-
-        return theoryData;
-    }
 
     public static IList<TestEndpoints> GetAllTestEndpoints()
     {
@@ -315,10 +252,6 @@ public class AppHostTests
                     new ("basketservice", "Application started"),
                     new ("postgres", "database system is ready to accept connections"),
                 ]),
-            // Test endpoints disabled for AppHostRunsCleanlyForAppsWithNoOtherTests as they have specific tests
-            new TestEndpoints("WithDockerfile.AppHost", []),
-            new TestEndpoints("KafkaBasic.AppHost", []),
-            new TestEndpoints("AzureFunctionsEndToEnd.AppHost", [])
         ];
 
         return candidates;
@@ -355,11 +288,6 @@ public class AppHostTests
         TheoryData<TestEndpoints> theoryData = new();
         foreach (var candidateTestEndpoint in GetAllTestEndpoints())
         {
-            if (candidateTestEndpoint.Skip)
-            {
-                continue;
-            }
-
             if (string.IsNullOrEmpty(s_appHostNameFilter) || candidateTestEndpoint.AppHost?.Contains(s_appHostNameFilter, StringComparison.OrdinalIgnoreCase) == true)
             {
                 theoryData.Add(candidateTestEndpoint);
@@ -400,7 +328,6 @@ public class TestEndpoints
     public List<ReadyStateText>? WaitForTexts { get; set; }
     public Dictionary<string, List<string>>? ResourceEndpoints { get; set; }
     public Func<DistributedApplication, string, ITestOutputHelper, Task>? WhenReady { get; set; }
-    public bool Skip => WaitForTexts is null && WaitForResources is null && ResourceEndpoints is null;
 
     public override string? ToString() => $"{AppHost} ({ResourceEndpoints?.Count ?? 0} resources)";
 
