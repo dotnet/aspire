@@ -68,8 +68,8 @@ else
 
 @code {
     [Parameter, EditorRequired]
-    public required Metrics.MetricViewKind ActiveView { get; set; }
+    public required Metrics.MetricViewKind ActiveView { get; init; }
 
-    [Parameter]
-    public required List<OtlpApplication> Applications { get; set; }
+    [Parameter, EditorRequired]
+    public required List<OtlpApplication> Applications { get; init; }
 }

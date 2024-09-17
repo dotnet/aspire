@@ -14,16 +14,16 @@ public partial class ChartFilters
     private const string FilterColumn = nameof(FilterColumn);
 
     [Parameter, EditorRequired]
-    public required OtlpInstrumentData InstrumentData { get; set; }
+    public required OtlpInstrumentData InstrumentData { get; init; }
 
     [Parameter, EditorRequired]
-    public required InstrumentViewModel InstrumentViewModel { get; set; }
+    public required InstrumentViewModel InstrumentViewModel { get; init; }
 
     [Parameter, EditorRequired]
-    public required List<DimensionFilterViewModel> DimensionFilters { get; set; }
+    public required List<DimensionFilterViewModel> DimensionFilters { get; init; }
 
-    [Parameter]
-    public bool IsRenderedInsideModal { get; set; }
+    [Parameter, EditorRequired]
+    public required bool IsRenderedInsideModal { get; init; }
 
     public bool ShowCounts { get; set; }
 

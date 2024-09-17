@@ -51,29 +51,29 @@
 
 @code {
     [Parameter, EditorRequired]
-    public required List<OtlpApplication> Applications { get; set; }
+    public required List<OtlpApplication> Applications { get; init; }
 
     [Parameter, EditorRequired]
-    public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }
-
-    [Parameter]
-    public required OtlpMeter SelectedMeter { get; set; }
+    public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; init; }
 
     [Parameter, EditorRequired]
-    public required DashpageDefinition SelectedDashpage { get; set; }
+    public required OtlpMeter SelectedMeter { get; init; }
 
     [Parameter, EditorRequired]
-    public required List<OtlpInstrumentSummary> Instruments { get; set; }
+    public required DashpageDefinition SelectedDashpage { get; init; }
 
     [Parameter, EditorRequired]
-    public required Func<Metrics.MetricViewKind, Task> OnViewChangedAsync { get; set; }
+    public required List<OtlpInstrumentSummary> Instruments { get; init; }
 
     [Parameter, EditorRequired]
-    public required Metrics.MetricViewKind? SelectedViewKind { get; set; }
+    public required Func<Metrics.MetricViewKind, Task> OnViewChangedAsync { get; init; }
 
     [Parameter, EditorRequired]
-    public required SelectViewModel<TimeSpan> SelectedDuration { get; set; }
+    public required Metrics.MetricViewKind? SelectedViewKind { get; init; }
+
+    [Parameter, EditorRequired]
+    public required SelectViewModel<TimeSpan> SelectedDuration { get; init; }
 
     [CascadingParameter]
-    public required ViewportInformation ViewportInformation { get; set; }
+    public required ViewportInformation ViewportInformation { get; init; }
 }
