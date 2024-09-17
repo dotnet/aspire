@@ -30,12 +30,12 @@ public class MongoDBDatabaseResource : Resource, IResourceWithParent<MongoDBServ
     {
         get
         {
-            var builder = new ReferenceExpression.ExpressionInterpolatedStringHandler(10, 2);
+            var builder = new ReferenceExpressionBuilder();
 
             Parent.AppendConnectionString(builder);
             Parent.AppendSuffix(builder, DatabaseName);
 
-            return ReferenceExpression.Create(builder);
+            return builder.Build();
         }
     }
 

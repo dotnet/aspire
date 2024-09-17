@@ -25,18 +25,16 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     {
         get
         {
-            const string MongoScheme = "mongodb://";
-
-            var builder = new ReferenceExpression.ExpressionInterpolatedStringHandler(MongoScheme.Length, 2);
+            var builder = new ReferenceExpressionBuilder();
 
             AppendConnectionString(builder);
             AppendSuffix(builder);
 
-            return ReferenceExpression.Create(builder);
+            return builder.Build();
         }
     }
 
-    internal void AppendConnectionString(in ReferenceExpression.ExpressionInterpolatedStringHandler builder)
+    internal void AppendConnectionString(ReferenceExpressionBuilder builder)
     {
         builder.AppendLiteral("mongodb://");
         builder.AppendFormatted(PrimaryEndpoint.Property(EndpointProperty.Host));
@@ -51,7 +49,7 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     /// - If a replica set name is provided, it will be appended to the connection string.
     /// - If no database but a replica set is provided, a '/' must be inserted before the '?'
     /// </summary>
-    internal bool AppendSuffix(in ReferenceExpression.ExpressionInterpolatedStringHandler builder, string? dbName = null)
+    internal bool AppendSuffix(ReferenceExpressionBuilder builder, string? dbName = null)
     {
         if (dbName is { })
         {
