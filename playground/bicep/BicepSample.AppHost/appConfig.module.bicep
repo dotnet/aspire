@@ -23,6 +23,7 @@ resource appConfigurationStore_xM7mBhesj 'Microsoft.AppConfiguration/configurati
     name: 'standard'
   }
   properties: {
+    disableLocalAuth: true
   }
 }
 
