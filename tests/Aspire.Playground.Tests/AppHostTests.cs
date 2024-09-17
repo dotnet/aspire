@@ -324,9 +324,13 @@ public class TestEndpoints
     }
 
     public string AppHost { get; set; }
+
     public List<ResourceWait>? WaitForResources { get; set; }
+
     public List<ReadyStateText>? WaitForTexts { get; set; }
+
     public Dictionary<string, List<string>>? ResourceEndpoints { get; set; }
+
     public Func<DistributedApplication, string, ITestOutputHelper, Task>? WhenReady { get; set; }
 
     public override string? ToString() => $"{AppHost} ({ResourceEndpoints?.Count ?? 0} resources)";
