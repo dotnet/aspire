@@ -93,7 +93,7 @@ public static class AzureOpenAIExtensions
                     {
                         Model = new CognitiveServicesAccountDeploymentModel()
                         {
-                            Name = deployment.Name,
+                            Name = deployment.ModelName,
                             Version = deployment.ModelVersion,
                             Format = "OpenAI"
                         }

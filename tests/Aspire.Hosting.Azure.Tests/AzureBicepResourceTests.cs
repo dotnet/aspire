@@ -2655,7 +2655,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 properties: {
                     model: {
                         format: 'OpenAI'
-                        name: 'mymodel'
+                        name: 'gpt-35-turbo'
                         version: '0613'
                     }
                 }
@@ -2671,7 +2671,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 properties: {
                     model: {
                         format: 'OpenAI'
-                        name: 'embedding-model'
+                        name: 'text-embedding-ada-002'
                         version: '2'
                     }
                 }
