@@ -5,15 +5,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\src\Aspire.Hosting.Sdk\NuGetUtils.cs" Link="Product\NuGetUtils.cs" />
+    <Compile Include="..\..\src\Aspire.Hosting.Sdk\Aspire.RuntimeIdentifier.Tool\NuGetUtils.cs" Link="Product\NuGetUtils.cs" />
     <None Include="$(BundledRuntimeIdentifierGraphFile)" Link="RuntimeIdentifierGraph.json" CopyToOutputDirectory="Always" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="NuGet.ProjectModel" />
-    <PackageReference Include="Microsoft.Build" ExcludeAssets="Runtime" />
-    <PackageReference Include="Microsoft.Build.Framework" ExcludeAssets="Runtime" />
-    <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="Runtime" />
   </ItemGroup>
 
 </Project>
