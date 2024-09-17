@@ -341,7 +341,7 @@ public static class RedisBuilderExtensions
     /// <param name="builder">The resource builder for Redis Insight.</param>
     /// <param name="accept">A boolean value indicating whether to accept the EULA. If <see langword="true"/>, the EULA is accepted.</param>
     /// <returns>The resource builder for Redis Insight.</returns>
-    public static IResourceBuilder<RedisInsightResource> WithAcceptEula(this IResourceBuilder<RedisInsightResource> builder, bool accept)
+    public static IResourceBuilder<RedisInsightResource> WithAcceptEula(this IResourceBuilder<RedisInsightResource> builder, bool accept = true)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
