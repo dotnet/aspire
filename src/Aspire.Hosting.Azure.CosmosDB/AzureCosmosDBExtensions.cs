@@ -74,20 +74,32 @@ public static class AzureCosmosExtensions
 
         var resource = new AzureCosmosDBResource(name, configureConstruct);
 
-        string? connectionString = null;
+        CosmosClient? cosmosClient = null;
 
         builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(resource, async (@event, ct) =>
         {
-            connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+            var connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
 
             if (connectionString == null)
             {
                 throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{resource.Name}' resource but the connection string was null.");
             }
+
+            cosmosClient = CreateCosmosClient(connectionString);
         });
 
         var healthCheckKey = $"{name}_check";
         builder.Services.AddHealthChecks().AddAzureCosmosDB(sp =>
+        {
+            return cosmosClient ?? throw new InvalidOperationException("CosmosClient is not initialized.");
+        }, name: healthCheckKey);
+
+        return builder.AddResource(resource)
+                      .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
+                      .WithManifestPublishingCallback(resource.WriteToManifest)
+                      .WithHealthCheck(healthCheckKey);
+
+        static CosmosClient CreateCosmosClient(string connectionString)
         {
             var clientOptions = new CosmosClientOptions();
             clientOptions.CosmosClientTelemetryOptions.DisableDistributedTracing = true;
@@ -106,12 +118,7 @@ public static class AzureCosmosExtensions
 
                 return new CosmosClient(connectionString, clientOptions);
             }
-        }, name: healthCheckKey);
-
-        return builder.AddResource(resource)
-                      .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
-                      .WithManifestPublishingCallback(resource.WriteToManifest)
-                      .WithHealthCheck(healthCheckKey);
+        }
     }
 
     /// <summary>
