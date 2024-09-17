@@ -2,7 +2,7 @@
 param location string = resourceGroup().location
 
 resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
-    name: take('logAnalyticsWorkspace-${uniqueString(resourceGroup().id)}', 63)
+    name: toLower(take('logAnalyticsWorkspace${uniqueString(resourceGroup().id)}', 24))
     location: location
     properties: {
         sku: {
