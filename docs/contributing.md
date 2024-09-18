@@ -46,9 +46,9 @@ injected. An example is below:
 Note that injection doesn't happen until a component's `OnInitialized`, so if you are referencing a string from codebehind, you must wait to do that
 until `OnInitialized`.
 
-## Components
+## Integrations (Formerly Components)
 
-Please check the [.NET Aspire components contribution guidelines](../src/Components/README.md) if you intend to make contributions to a new or existing .NET Aspire component.
+Please check the [.NET Aspire integrations contribution guidelines](../src/Components/README.md) if you intend to make contributions to a new or existing .NET Aspire integration.
 
 ## Generating local NuGet packages
 
