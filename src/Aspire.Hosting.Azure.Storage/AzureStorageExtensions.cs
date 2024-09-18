@@ -10,6 +10,7 @@ using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.Storage;
 using Azure.Storage.Blobs;
+using Azure.Storage.Queues;
 using Microsoft.Extensions.DependencyInjection;
 //using Microsoft.Extensions.DependencyInjection;
 
@@ -215,7 +216,7 @@ public static class AzureStorageExtensions
             blobServiceClient = CreateBlobServiceClient(connectionString);
         });
 
-        var healthCheckKey = $"{name}_blob_check";
+        var healthCheckKey = $"{name}_check";
         builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureBlobStorage(sp =>
         {
             return blobServiceClient ?? throw new InvalidOperationException("BlobServiceClient is not initialized.");
@@ -261,6 +262,39 @@ public static class AzureStorageExtensions
     {
         var resource = new AzureQueueStorageResource(name, builder.Resource);
 
-        return builder.ApplicationBuilder.AddResource(resource);
+        QueueServiceClient? queueServiceClient = null;
+
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(resource, async (@event, ct) =>
+        {
+            var connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{resource.Name}' resource but the connection string was null.");
+            }
+
+            queueServiceClient = CreateQueueServiceClient(connectionString);
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureQueueStorage(sp =>
+        {
+            return queueServiceClient ?? throw new InvalidOperationException("QueueServiceClient is not initialized.");
+        }, name: healthCheckKey);
+
+        return builder.ApplicationBuilder.AddResource(resource)
+                                         .WithHealthCheck(healthCheckKey);
+
+        static QueueServiceClient CreateQueueServiceClient(string connectionString)
+        {
+            if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+            {
+                return new QueueServiceClient(uri, new DefaultAzureCredential());
+            }
+            else
+            {
+                return new QueueServiceClient(connectionString);
+            }
+        }
     }
 }
