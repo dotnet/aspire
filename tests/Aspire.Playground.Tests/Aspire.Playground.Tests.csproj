@@ -20,9 +20,6 @@
     <!-- Skip EventHubs emulation in CI environments where Docker Desktop is not available.
           For more information, see https://github.com/dotnet/aspire/issues/5325. -->
     <SkipEventHubsEmulation Condition="'$(SkipEventHubsEmulation)' == '' and ('$(RepoRoot)' == '' or '$(ContinuousIntegrationBuild)' == 'true' or '$(CODESPACES)' == 'true')">true</SkipEventHubsEmulation>
-
-    <!-- on helix this will be available in the source dir -->
-    <XunitRunnerJson Condition="'$(RepoRoot)' == ''">xunit.runner.json</XunitRunnerJson>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(SkipEventHubsEmulation)' == 'true'">
@@ -78,8 +75,6 @@
     <None Include="$(RepoRoot)tests\Aspire.Hosting.Tests\Utils\LoggerNotificationExtensions.cs" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\LoggerNotificationExtensions.cs" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)src\Shared\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)src\Shared\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)playground\**\*" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)playground\%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-
-    <None Include="..\helix\xunit.runner.json" Link="$(DeployOutsideOfRepoSupportFilesRelativeDir)tests\$(MSBuildProjectName)\xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
