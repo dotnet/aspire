@@ -55,5 +55,4 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
         await app.StopAsync();
     }
-
 }

@@ -38,22 +38,6 @@ public static class OracleDatabaseBuilderExtensions
             {
                 throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{oracleDatabaseServer.Name}' resource but the connection string was null.");
             }
-
-            var lookup = builder.Resources.OfType<OracleDatabaseResource>().ToDictionary(d => d.Name);
-
-            foreach (var databaseName in oracleDatabaseServer.Databases)
-            {
-                if (!lookup.TryGetValue(databaseName.Key, out var databaseResource))
-                {
-                    throw new DistributedApplicationException($"Database resource '{databaseName}' under Oracle resource '{oracleDatabaseServer.Name}' was not found in the model.");
-                }
-
-                var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(databaseResource, @event.Services);
-                await builder.Eventing.PublishAsync<ConnectionStringAvailableEvent>(connectionStringAvailableEvent, ct).ConfigureAwait(false);
-
-                var beforeResourceStartedEvent = new BeforeResourceStartedEvent(databaseResource, @event.Services);
-                await builder.Eventing.PublishAsync(beforeResourceStartedEvent, ct).ConfigureAwait(false);
-            }
         });
 
         var healthCheckKey = $"{name}_check";

@@ -1250,13 +1250,30 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private async Task CreateExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
+    private async Task PublishConnectionStringAvailableEvent(IResource resource, CancellationToken cancellationToken)
     {
-        if (er.ModelResource is IResourceWithConnectionString)
+        // If the resource itself has a connection string then publish that the connection string is available.
+        if (resource is IResourceWithConnectionString)
         {
-            var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(er.ModelResource, serviceProvider);
+            var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(resource, serviceProvider);
             await eventing.PublishAsync(connectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
         }
+
+        // Sometimes the container/executable itself does not have a connection string, and in those cases
+        // we need to dispatch the event for the children.
+        if (_parentChildLookup[resource] is { } children)
+        {
+            foreach (var child in children.OfType<IResourceWithConnectionString>())
+            {
+                var childConnectionStringAvailableEvent = new ConnectionStringAvailableEvent(child, serviceProvider);
+                await eventing.PublishAsync(childConnectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private async Task CreateExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
+    {
+        await PublishConnectionStringAvailableEvent(er.ModelResource, cancellationToken).ConfigureAwait(false);
 
         var beforeResourceStartedEvent = new BeforeResourceStartedEvent(er.ModelResource, serviceProvider);
         await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
@@ -1549,11 +1566,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CreateContainerAsync(AppResource cr, ILogger resourceLogger, CancellationToken cancellationToken)
     {
-        if (cr.ModelResource is IResourceWithConnectionString)
-        {
-            var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(cr.ModelResource, serviceProvider);
-            await eventing.PublishAsync(connectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
-        }
+        await PublishConnectionStringAvailableEvent(cr.ModelResource, cancellationToken).ConfigureAwait(false);
 
         var beforeResourceStartedEvent = new BeforeResourceStartedEvent(cr.ModelResource, serviceProvider);
         await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);

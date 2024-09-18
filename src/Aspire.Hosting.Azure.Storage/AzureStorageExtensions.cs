@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Storage;
 using Aspire.Hosting.Utils;
+using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.Storage;
 
@@ -197,7 +198,41 @@ public static class AzureStorageExtensions
     {
         var resource = new AzureBlobStorageResource(name, builder.Resource);
 
+        BlobServiceClient? blobServiceClient = null;
+
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(resource, async (@event, ct) =>
+        {
+            var connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{resource.Name}' resource but the connection string was null.");
+            }
+
+            blobServiceClient = CreateBlobServiceClient(connectionString);
+        });
+
+        //var healthCheckKey = $"{name}_blob_check";
+        //builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureBlobStorage(sp =>
+        //{
+        //    return blobServiceClient ?? throw new InvalidOperationException("BlobServiceClient is not initialized.");
+        //}, name: healthCheckKey);
+
         return builder.ApplicationBuilder.AddResource(resource);
+//                                         .WithHealthCheck(healthCheckKey);
+
+        static BlobServiceClient CreateBlobServiceClient(string connectionString)
+        {
+            if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+            {
+                return new BlobServiceClient(uri, new DefaultAzureCredential());
+            }
+            else
+            {
+                return new BlobServiceClient(connectionString);
+            }
+        }
+
     }
 
     /// <summary>

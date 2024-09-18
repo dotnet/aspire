@@ -58,22 +58,6 @@ public static class PostgresBuilderExtensions
             {
                 throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{postgresServer.Name}' resource but the connection string was null.");
             }
-
-            var lookup = builder.Resources.OfType<PostgresDatabaseResource>().ToDictionary(d => d.Name);
-
-            foreach (var databaseName in postgresServer.Databases)
-            {
-                if (!lookup.TryGetValue(databaseName.Key, out var databaseResource))
-                {
-                    throw new DistributedApplicationException($"Database resource '{databaseName}' under Postgres server resource '{postgresServer.Name}' not in model.");
-                }
-
-                var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(databaseResource, @event.Services);
-                await builder.Eventing.PublishAsync<ConnectionStringAvailableEvent>(connectionStringAvailableEvent, ct).ConfigureAwait(false);
-
-                var beforeResourceStartedEvent = new BeforeResourceStartedEvent(databaseResource, @event.Services);
-                await builder.Eventing.PublishAsync(beforeResourceStartedEvent, ct).ConfigureAwait(false);
-            }
         });
 
         var healthCheckKey = $"{name}_check";
