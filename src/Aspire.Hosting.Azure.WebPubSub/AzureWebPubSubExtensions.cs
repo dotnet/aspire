@@ -7,7 +7,8 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 
 using Azure.Provisioning;
-
+using Azure.Provisioning.Authorization;
+using Azure.Provisioning.Expressions;
 using Azure.Provisioning.WebPubSub;
 
 namespace Aspire.Hosting;
@@ -30,7 +31,6 @@ public static class AzureWebPubSubExtensions
 #pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return builder.AddAzureWebPubSub(name, null);
 #pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
     }
 
     /// <summary>
@@ -45,20 +45,42 @@ public static class AzureWebPubSubExtensions
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var service = new WebPubSubService(construct, name: name);
-
-            service.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
-
             // Supported values are Free_F1 Standard_S1 Premium_P1
-            service.AssignProperty(p => p.Sku.Name, new Parameter("sku", defaultValue: "Free_F1"));
+            var skuParameter = new BicepParameter("sku", typeof(string))
+            {
+                Value = new StringLiteral("Free_F1")
+            };
+            construct.Add(skuParameter);
+
             // Supported values are 1 2 5 10 20 50 100
-            service.AssignProperty(p => p.Sku.Capacity, new Parameter("capacity", BicepType.Int, defaultValue: 1));
+            var capacityParameter = new BicepParameter("capacity", typeof(int))
+            {
+                Value = new BicepValue<int>(1)
+            };
+            construct.Add(capacityParameter);
 
-            service.AddOutput("endpoint", "'https://${{{0}}}'", data => data.HostName);
+            var service = new WebPubSubService(name, "2021-10-01") // TODO: resource version should come from CDK
+            {
+                Sku = new BillingInfoSku()
+                {
+                    Name = skuParameter,
+                    Capacity = capacityParameter
+                },
+                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+            };
+            construct.Add(service);
 
-            var appServerRole = service.AssignRole(RoleDefinition.WebPubSubServiceOwner);
-            appServerRole.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
-            appServerRole.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);
+            construct.Add(new BicepOutput("endpoint", typeof(string)) { Value = BicepFunction.Interpolate($"https://{service.HostName}") });
+
+            // TODO: this should be defined in the CDK, but isn't currently
+            const string WebPubSubServiceOwnerRoleId = "12cf5a90-567b-43ae-8102-96cf46c7d9b4";
+            construct.Add(new RoleAssignment($"WebPubSubServiceOwner_{service.ResourceName}")
+            {
+                Scope = new IdentifierExpression(service.ResourceName),
+                PrincipalType = construct.PrincipalTypeParameter,
+                RoleDefinitionId = BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", WebPubSubServiceOwnerRoleId),
+                PrincipalId = construct.PrincipalIdParameter
+            });
 
             var resource = (AzureWebPubSubResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);

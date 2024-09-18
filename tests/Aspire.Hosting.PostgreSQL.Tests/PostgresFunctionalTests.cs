@@ -214,41 +214,30 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
     [RequiresDocker]
     public async Task VerifyWithPgWeb()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         IResourceBuilder<PgWebContainerResource>? pgWebBuilder = null;
         var dbName = "postgres";
-        var pg = builder.AddPostgres("pg1").WithPgWeb(c=> pgWebBuilder = c).AddDatabase(dbName);
+        var pg = builder.AddPostgres("pg1").WithPgWeb(c => pgWebBuilder = c).AddDatabase(dbName);
         Assert.NotNull(pgWebBuilder);
 
         using var app = builder.Build();
 
         await app.StartAsync();
 
+        await app.WaitForTextAsync("Starting server...", resourceName: pgWebBuilder.Resource.Name);
+
         var client = app.CreateHttpClient(pgWebBuilder.Resource.Name, "http");
 
-        var pipeline = new ResiliencePipelineBuilder().AddRetry(new Polly.Retry.RetryStrategyOptions
+        var httpContent = new MultipartFormDataContent
         {
-            Delay = TimeSpan.FromSeconds(2),
-            MaxRetryAttempts = 10,
-        }).Build();
+            { new StringContent(dbName), "bookmark_id" }
+        };
 
-        await pipeline.ExecuteAsync(async (ct) =>
-        {
-            var httpContent = new MultipartFormDataContent
-            {
-                { new StringContent(dbName), "bookmark_id" }
-            };
+        client.DefaultRequestHeaders.Add("x-session-id", Guid.NewGuid().ToString());
 
-            client.DefaultRequestHeaders.Add("x-session-id", Guid.NewGuid().ToString());
-
-            var response = await client.PostAsync("/api/connect", httpContent, ct)
-                .ConfigureAwait(false);
-
-            response.EnsureSuccessStatusCode();
-        }, cts.Token);
+        var response = await client.PostAsync("/api/connect", httpContent);
+        response.EnsureSuccessStatusCode();
     }
 
     [Theory]

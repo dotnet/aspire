@@ -4,8 +4,8 @@
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Azure.Provisioning;
 using Azure.Provisioning.OperationalInsights;
-using Azure.ResourceManager.OperationalInsights.Models;
 
 namespace Aspire.Hosting;
 
@@ -41,10 +41,20 @@ public static class AzureLogAnalyticsWorkspaceExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var workspace = new OperationalInsightsWorkspace(construct, name: name, sku: new OperationalInsightsWorkspaceSku(OperationalInsightsWorkspaceSkuName.PerGB2018));
-            workspace.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+            var workspace = new OperationalInsightsWorkspace(name)
+            {
+                Sku = new OperationalInsightsWorkspaceSku()
+                {
+                    Name = OperationalInsightsWorkspaceSkuName.PerGB2018
+                },
+                Tags = { { "aspire-resource-name", name } }
+            };
+            construct.Add(workspace);
 
-            workspace.AddOutput("logAnalyticsWorkspaceId", p => p.Id);
+            construct.Add(new BicepOutput("logAnalyticsWorkspaceId", typeof(string))
+            {
+                Value = workspace.Id
+            });
 
             if (configureResource != null)
             {
