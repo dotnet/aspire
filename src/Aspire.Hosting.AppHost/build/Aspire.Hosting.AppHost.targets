@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectCapability Include="Aspire" Condition=" '$(IsAspireHost)' == 'true' " />
+    <ProjectCapability Include="Aspire" />
   </ItemGroup>
 
   <ItemGroup>
@@ -159,7 +159,7 @@ namespace Projects%3B
   -->
   <Target Name="_ValidateAspireHostProjectResources"
           DependsOnTargets="_CreateAspireProjectResources"
-          Condition="'$(IsAspireHost)' == 'true' and '$(SkipValidateAspireHostProjectResources)' != 'true'">
+          Condition="'$(SkipValidateAspireHostProjectResources)' != 'true'">
 
     <MSBuild Projects="@(_AspireProjectResource)"
              Targets="GetTargetFrameworks"
@@ -252,7 +252,7 @@ namespace Projects%3B
   </Target>
 
   <Target Name="__ErrorOnMininumWorkloadVersionMissing" BeforeTargets="PrepareForBuild"
-    Condition="'$(IsAspireHost)' == 'true' and ('$(AspireHostingSDKVersion)' == '' or $([MSBuild]::VersionLessThan('$(AspireHostingSDKVersion)', '8.2.0')))">
+    Condition="'$(AspireHostingSDKVersion)' == '' or $([MSBuild]::VersionLessThan('$(AspireHostingSDKVersion)', '8.2.0'))">
     <Error Code="ASPIRE005"
       Text="$(MSBuildProjectName) project requires a newer version of the .NET Aspire Workload to work correctly. Please run `dotnet workload update`." />
   </Target>
