@@ -37,6 +37,14 @@ public sealed class KafkaProducerSettings
     /// </value>
     public bool DisableHealthChecks { get; set; }
 
+    /// <summary>
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
+    /// </summary>
+    /// <value>
+    /// The default value is <see langword="false"/>.
+    /// </value>
+    public bool DisableTracing { get; set; }
+
     internal void Consolidate()
     {
         Debug.Assert(Config is not null);
