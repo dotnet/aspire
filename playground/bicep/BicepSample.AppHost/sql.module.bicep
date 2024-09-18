@@ -1,50 +1,43 @@
-targetScope = 'resourceGroup'
-
-@description('')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-@description('')
 param principalId string
 
-@description('')
 param principalName string
 
-
-resource sqlServer_lF9QWGqAt 'Microsoft.Sql/servers@2020-11-01-preview' = {
-  name: toLower(take('sql${uniqueString(resourceGroup().id)}', 24))
-  location: location
-  tags: {
-    'aspire-resource-name': 'sql'
-  }
-  properties: {
-    version: '12.0'
-    minimalTlsVersion: '1.2'
-    publicNetworkAccess: 'Enabled'
-    administrators: {
-      administratorType: 'ActiveDirectory'
-      login: principalName
-      sid: principalId
-      tenantId: subscription().tenantId
-      azureADOnlyAuthentication: true
+resource sql 'Microsoft.Sql/servers@2021-11-01' = {
+    name: toLower(take('sql${uniqueString(resourceGroup().id)}', 24))
+    location: location
+    properties: {
+        administrators: {
+            administratorType: 'ActiveDirectory'
+            login: principalName
+            sid: principalId
+            tenantId: subscription().tenantId
+            azureADOnlyAuthentication: true
+        }
+        minimalTlsVersion: '1.2'
+        publicNetworkAccess: 'Enabled'
+        version: '12.0'
     }
-  }
+    tags: {
+        'aspire-resource-name': 'sql'
+    }
 }
 
-resource sqlFirewallRule_vcw7qNn72 'Microsoft.Sql/servers/firewallRules@2020-11-01-preview' = {
-  parent: sqlServer_lF9QWGqAt
-  name: 'AllowAllAzureIps'
-  properties: {
-    startIpAddress: '0.0.0.0'
-    endIpAddress: '0.0.0.0'
-  }
+resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
+    name: 'AllowAllAzureIps'
+    properties: {
+        endIpAddress: '0.0.0.0'
+        startIpAddress: '0.0.0.0'
+    }
+    parent: sql
 }
 
-resource sqlDatabase_d4KUJMPIF 'Microsoft.Sql/servers/databases@2020-11-01-preview' = {
-  parent: sqlServer_lF9QWGqAt
-  name: 'db'
-  location: location
-  properties: {
-  }
+resource db 'Microsoft.Sql/servers/databases@2021-11-01' = {
+    name: 'db'
+    location: location
+    parent: sql
 }
 
-output sqlServerFqdn string = sqlServer_lF9QWGqAt.properties.fullyQualifiedDomainName
+output sqlServerFqdn string = sql.properties.fullyQualifiedDomainName

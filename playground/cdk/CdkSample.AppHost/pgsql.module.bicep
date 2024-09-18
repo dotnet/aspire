@@ -1,72 +1,63 @@
-targetScope = 'resourceGroup'
-
-@description('')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-@description('')
 param administratorLogin string
 
 @secure()
-@description('')
 param administratorLoginPassword string
 
-@description('')
 param keyVaultName string
 
-
-resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
-  name: keyVaultName
+resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
+    name: keyVaultName
 }
 
-resource postgreSqlFlexibleServer_NCqzKcjXq 'Microsoft.DBforPostgreSQL/flexibleServers@2023-03-01-preview' = {
-  name: toLower(take('pgsql${uniqueString(resourceGroup().id)}', 24))
-  location: location
-  tags: {
-    'aspire-resource-name': 'pgsql'
-  }
-  sku: {
-    name: 'Standard_B1ms'
-    tier: 'Burstable'
-  }
-  properties: {
-    administratorLogin: administratorLogin
-    administratorLoginPassword: administratorLoginPassword
-    version: '16'
-    storage: {
-      storageSizeGB: 32
+resource pgsql 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
+    name: toLower(take('pgsql${uniqueString(resourceGroup().id)}', 24))
+    location: location
+    properties: {
+        administratorLogin: administratorLogin
+        administratorLoginPassword: administratorLoginPassword
+        availabilityZone: '1'
+        backup: {
+            backupRetentionDays: 7
+            geoRedundantBackup: 'Disabled'
+        }
+        highAvailability: {
+            mode: 'Disabled'
+        }
+        storage: {
+            storageSizeGB: 32
+        }
+        version: '16'
     }
-    backup: {
-      backupRetentionDays: 7
-      geoRedundantBackup: 'Disabled'
+    sku: {
+        name: 'Standard_B1ms'
+        tier: 'Burstable'
     }
-    highAvailability: {
-      mode: 'Disabled'
+    tags: {
+        'aspire-resource-name': 'pgsql'
     }
-    availabilityZone: '1'
-  }
 }
 
-resource postgreSqlFirewallRule_dtlIpxH5J 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-03-01-preview' = {
-  parent: postgreSqlFlexibleServer_NCqzKcjXq
-  name: 'AllowAllAzureIps'
-  properties: {
-    startIpAddress: '0.0.0.0'
-    endIpAddress: '0.0.0.0'
-  }
+resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2022-12-01' = {
+    name: 'AllowAllAzureIps'
+    properties: {
+        endIpAddress: '0.0.0.0'
+        startIpAddress: '0.0.0.0'
+    }
+    parent: pgsql
 }
 
-resource postgreSqlFlexibleServerDatabase_cJDk3wYkh 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-03-01-preview' = {
-  parent: postgreSqlFlexibleServer_NCqzKcjXq
-  name: 'pgsqldb'
-  properties: {
-  }
+resource pgsqldb 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2022-12-01' = {
+    name: 'pgsqldb'
+    parent: pgsql
 }
 
-resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
-  parent: keyVault_IeF8jZvXV
-  name: 'connectionString'
-  location: location
-  properties: {
-    value: 'Host=${postgreSqlFlexibleServer_NCqzKcjXq.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
-  }
+resource connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
+    name: 'connectionString'
+    properties: {
+        value: 'Host=${pgsql.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
+    }
+    parent: keyVault
 }

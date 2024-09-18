@@ -12,6 +12,13 @@ builder.AddAzureEventHubProducerClient("eventhubns", settings =>
 
 var app = builder.Build();
 
+app.MapGet("/test", async (EventHubProducerClient producerClient) =>
+{
+    var binaryData = BinaryData.FromString("Hello, from /test sent via producerClient");
+    await producerClient.SendAsync([new EventData(binaryData)]);
+
+    return Results.Ok();
+});
 app.MapPost("/message", async (Stream body, EventHubProducerClient producerClient) =>
 {
     var binaryData = await BinaryData.FromStreamAsync(body);

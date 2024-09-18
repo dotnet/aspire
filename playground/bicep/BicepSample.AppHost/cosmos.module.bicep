@@ -1,53 +1,48 @@
-targetScope = 'resourceGroup'
-
-@description('')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-@description('')
 param keyVaultName string
 
-
-resource keyVault_IeF8jZvXV 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
-  name: keyVaultName
+resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
+    name: keyVaultName
 }
 
-resource cosmosDBAccount_MZyw35gqp 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
-  name: toLower(take('cosmos${uniqueString(resourceGroup().id)}', 24))
-  location: location
-  tags: {
-    'aspire-resource-name': 'cosmos'
-  }
-  kind: 'GlobalDocumentDB'
-  properties: {
-    databaseAccountOfferType: 'Standard'
-    consistencyPolicy: {
-      defaultConsistencyLevel: 'Session'
+resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-05-15-preview' = {
+    name: toLower(take('cosmos${uniqueString(resourceGroup().id)}', 24))
+    location: location
+    properties: {
+        locations: [
+            {
+                locationName: location
+                failoverPriority: 0
+            }
+        ]
+        consistencyPolicy: {
+            defaultConsistencyLevel: 'Session'
+        }
+        databaseAccountOfferType: 'Standard'
     }
-    locations: [
-      {
-        locationName: location
-        failoverPriority: 0
-      }
-    ]
-  }
-}
-
-resource cosmosDBSqlDatabase_tiaTwUqx8 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-04-15' = {
-  parent: cosmosDBAccount_MZyw35gqp
-  name: 'db3'
-  location: location
-  properties: {
-    resource: {
-      id: 'db3'
+    kind: 'GlobalDocumentDB'
+    tags: {
+        'aspire-resource-name': 'cosmos'
     }
-  }
 }
 
-resource keyVaultSecret_Ddsc3HjrA 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
-  parent: keyVault_IeF8jZvXV
-  name: 'connectionString'
-  location: location
-  properties: {
-    value: 'AccountEndpoint=${cosmosDBAccount_MZyw35gqp.properties.documentEndpoint};AccountKey=${cosmosDBAccount_MZyw35gqp.listkeys(cosmosDBAccount_MZyw35gqp.apiVersion).primaryMasterKey}'
-  }
+resource db3 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15-preview' = {
+    name: 'db3'
+    location: location
+    properties: {
+        resource: {
+            id: 'db3'
+        }
+    }
+    parent: cosmos
+}
+
+resource connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
+    name: 'connectionString'
+    properties: {
+        value: 'AccountEndpoint=${cosmos.properties.documentEndpoint};AccountKey=${cosmos.listKeys().primaryMasterKey}'
+    }
+    parent: keyVault
 }
