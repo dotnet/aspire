@@ -25,7 +25,7 @@ public static class PythonAppResourceBuilderExtensions
     /// <para>
     /// The virtual environment must be initialized before running the project. By default the virtual environment folder is expected
     /// to be named <c>.venv</c> and be located in the project directory. If the virtual environment is located in a different directory
-    /// this default can be specified by using the <see cref="AddPythonProject(IDistributedApplicationBuilder, string, string, string, string, string[])"/>
+    /// this default can be specified by using the <see cref="AddPythonApp(IDistributedApplicationBuilder, string, string, string, string, string[])"/>
     /// overload of this method.
     /// </para>
     /// <para>
