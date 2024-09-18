@@ -9,6 +9,7 @@ using Aspire.Hosting.Azure.EventHubs;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.EventHubs;
+using Azure.Provisioning.Expressions;
 
 namespace Aspire.Hosting;
 
@@ -46,16 +47,25 @@ public static class AzureEventHubsExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var eventHubsNamespace = new EventHubsNamespace(construct, name: name);
+            var skuParameter = new BicepParameter("sku", typeof(string))
+            {
+                Value = new StringLiteral("Standard")
+            };
+            construct.Add(skuParameter);
 
-            eventHubsNamespace.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+            var eventHubsNamespace = new EventHubsNamespace(name)
+            {
+                Sku = new EventHubsSku()
+                {
+                    Name = skuParameter
+                },
+                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+            };
+            construct.Add(eventHubsNamespace);
 
-            eventHubsNamespace.AssignProperty(p => p.Sku.Name, new Parameter("sku", defaultValue: "Standard"));
+            construct.Add(eventHubsNamespace.AssignRole(EventHubsBuiltInRole.AzureEventHubsDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
-            var eventHubsDataOwnerRole = eventHubsNamespace.AssignRole(RoleDefinition.EventHubsDataOwner);
-            eventHubsDataOwnerRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
-
-            eventHubsNamespace.AddOutput("eventHubsEndpoint", sa => sa.ServiceBusEndpoint);
+            construct.Add(new BicepOutput("eventHubsEndpoint", typeof(string)) { Value = eventHubsNamespace.ServiceBusEndpoint });
 
             var azureResource = (AzureEventHubsResource)construct.Resource;
             var azureResourceBuilder = builder.CreateResourceBuilder(azureResource);
@@ -63,10 +73,14 @@ public static class AzureEventHubsExtensions
 
             foreach (var hub in azureResource.Hubs)
             {
-                var hubResource = new EventHub(construct, name: hub.Name, parent: eventHubsNamespace);
+                var hubResource = new EventHub(hub.Name)
+                {
+                    Parent = eventHubsNamespace,
+                    Name = hub.Name
+                };
+                construct.Add(hubResource);
                 hub.Configure?.Invoke(azureResourceBuilder, construct, hubResource);
             }
-
         };
         var resource = new AzureEventHubsResource(name, configureConstruct);
 

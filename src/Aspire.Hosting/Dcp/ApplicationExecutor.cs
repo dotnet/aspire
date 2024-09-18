@@ -84,6 +84,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     // The second purpose of the suffix is to play a role of a unique OpenTelemetry service instance ID.
     private const int RandomNameSuffixLength = 8;
 
+    private const string DefaultAspireNetworkName = "default-aspire-network";
+
     private readonly ILogger<ApplicationExecutor> _logger = logger;
     private readonly DistributedApplicationModel _model = model;
     private readonly Dictionary<string, IResource> _applicationModel = model.Resources.ToDictionary(r => r.Name);
@@ -1412,7 +1414,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 new ContainerNetworkConnection
                 {
-                    Name = "aspire-network",
+                    Name = DefaultAspireNetworkName,
                     Aliases = new List<string> { container.Name },
                 }
             };
@@ -1472,7 +1474,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             if (containerResources.Any())
             {
                 // The network will be created with a unique postfix to avoid conflicts with other Aspire AppHost networks
-                tasks.Add(kubernetesService.CreateAsync(ContainerNetwork.Create("aspire-network"), cancellationToken));
+                tasks.Add(kubernetesService.CreateAsync(ContainerNetwork.Create(DefaultAspireNetworkName), cancellationToken));
             }
 
             foreach (var cr in containerResources)

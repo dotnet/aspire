@@ -4,7 +4,7 @@
     "redis": {
       "type": "container.v0",
       "connectionString": "{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
-      "image": "docker.io/library/redis:7.2",
+      "image": "docker.io/library/redis:7.4",
       "bindings": {
         "tcp": {
           "scheme": "tcp",
