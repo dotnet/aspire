@@ -5,7 +5,7 @@
       "description": ".NET Aspire SDK",
       "packs": [
         "Aspire.Hosting.Sdk",
-        "Aspire.ProjectTemplates"
+        "Aspire.ProjectTemplates.net8"
       ]
     }
   },
@@ -14,7 +14,7 @@
       "kind": "sdk",
       "version": "@VERSION@"
     },
-    "Aspire.ProjectTemplates": {
+    "Aspire.ProjectTemplates.net8": {
       "kind": "template",
       "version": "@VERSION@"
     }
