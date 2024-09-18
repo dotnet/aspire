@@ -13,7 +13,7 @@ namespace Aspire.Hosting.Python;
 /// <param name="name">The name of the resource.</param>
 /// <param name="executablePath">The path to the executable used to run the python app.</param>
 /// <param name="projectDirectory">The path to the directory containing the python app.</param>
-public class PythonProjectResource(string name, string executablePath, string projectDirectory)
+public class PythonAppResource(string name, string executablePath, string projectDirectory)
     : ExecutableResource(ThrowIfNull(name), ThrowIfNull(executablePath), ThrowIfNull(projectDirectory)), IResourceWithServiceDiscovery
 {
     private static string ThrowIfNull([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string? paramName = null)
