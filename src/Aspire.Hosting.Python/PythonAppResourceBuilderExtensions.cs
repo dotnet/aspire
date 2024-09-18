@@ -126,7 +126,7 @@ public static class PythonAppResourceBuilderExtensions
         var pythonExecutable = virtualEnvironment.GetRequiredExecutable("python");
         var projectExecutable = instrumentationExecutable ?? pythonExecutable;
 
-        var projectResource = new PythonProjectResource(name, projectExecutable, projectDirectory);
+        var projectResource = new PythonAppResource(name, projectExecutable, projectDirectory);
 
         var resourceBuilder = builder.AddResource(projectResource).WithArgs(context =>
         {
