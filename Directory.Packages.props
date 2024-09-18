@@ -7,6 +7,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <TestcontainersPackageVersion>3.10.0</TestcontainersPackageVersion>
+    <AzureProvisiongVersion>1.0.0-alpha.20240912.7</AzureProvisiongVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- AWS SDK for .NET dependencies -->
@@ -37,23 +38,24 @@
     <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.27.0" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.7.5" />
     <!-- Azure Management SDK for .NET dependencies -->
-    <PackageVersion Include="Azure.Provisioning" Version="0.3.0" />
-    <PackageVersion Include="Azure.Provisioning.AppConfiguration" Version="0.2.0" />
-    <PackageVersion Include="Azure.Provisioning.ApplicationInsights" Version="0.1.0" />
-    <PackageVersion Include="Azure.Provisioning.CognitiveServices" Version="0.2.0" />
-    <PackageVersion Include="Azure.Provisioning.CosmosDB" Version="0.1.0" />
-    <PackageVersion Include="Azure.Provisioning.EventHubs" Version="0.1.0" />
-    <PackageVersion Include="Azure.Provisioning.KeyVault" Version="0.2.0" />
-    <PackageVersion Include="Azure.Provisioning.OperationalInsights" Version="0.2.0" />
-    <PackageVersion Include="Azure.Provisioning.PostgreSql" Version="0.1.0" />
-    <PackageVersion Include="Azure.Provisioning.Redis" Version="0.2.0" />
-    <PackageVersion Include="Azure.Provisioning.Resources" Version="0.2.0" />
-    <PackageVersion Include="Azure.Provisioning.Search" Version="0.1.0" />
-    <PackageVersion Include="Azure.Provisioning.ServiceBus" Version="0.1.0" />
-    <PackageVersion Include="Azure.Provisioning.SignalR" Version="0.2.0" />
-    <PackageVersion Include="Azure.Provisioning.Sql" Version="0.1.0" />
-    <PackageVersion Include="Azure.Provisioning.Storage" Version="0.2.0" />
-    <PackageVersion Include="Azure.Provisioning.WebPubSub" Version="0.1.0-beta.1" />
+    <PackageVersion Include="Azure.Provisioning" Version="$(AzureProvisiongVersion)" />
+    <PackageVersion Include="Azure.Provisioning.AppConfiguration" Version="$(AzureProvisiongVersion)" />
+    <PackageVersion Include="Azure.Provisioning.ApplicationInsights" Version="1.0.0-alpha.20240912.1" />
+    <PackageVersion Include="Azure.Provisioning.CognitiveServices" Version="$(AzureProvisiongVersion)" />
+    <PackageVersion Include="Azure.Provisioning.CosmosDB" Version="$(AzureProvisiongVersion)" />
+    <PackageVersion Include="Azure.Provisioning.EventHubs" Version="$(AzureProvisiongVersion)" />
+    <PackageVersion Include="Azure.Provisioning.KeyVault" Version="$(AzureProvisiongVersion)" />
+    <PackageVersion Include="Azure.Provisioning.OperationalInsights" Version="1.0.0-alpha.20240912.1" />
+    <PackageVersion Include="Azure.Provisioning.PostgreSql" Version="$(AzureProvisiongVersion)" />
+    <PackageVersion Include="Azure.Provisioning.Redis" Version="$(AzureProvisiongVersion)" />
+    <PackageVersion Include="Azure.Provisioning.Search" Version="$(AzureProvisiongVersion)" />
+    <PackageVersion Include="Azure.Provisioning.ServiceBus" Version="$(AzureProvisiongVersion)" />
+    <PackageVersion Include="Azure.Provisioning.SignalR" Version="$(AzureProvisiongVersion)" />
+    <PackageVersion Include="Azure.Provisioning.Sql" Version="$(AzureProvisiongVersion)" />
+    <PackageVersion Include="Azure.Provisioning.Storage" Version="$(AzureProvisiongVersion)" />
+    <PackageVersion Include="Azure.Provisioning.WebPubSub" Version="$(AzureProvisiongVersion)" />
+    <PackageVersion Include="Azure.ResourceManager.Authorization" Version="1.1.3" />
+    <PackageVersion Include="Azure.ResourceManager.KeyVault" Version="1.3.0" />
     <!-- ASP.NET Core dependencies -->
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.Certificate" Version="$(MicrosoftAspNetCoreAuthenticationCertificatePackageVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion)" />
