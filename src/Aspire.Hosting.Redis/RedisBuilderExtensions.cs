@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
@@ -252,54 +253,46 @@ public static class RedisBuilderExtensions
 
         static async Task AcceptRedisInsightEula(ILogger resourceLogger, HttpClient client, CancellationToken ct)
         {
-            using (var stream = new MemoryStream())
+
+            var settings = new
             {
-                using var writer = new Utf8JsonWriter(stream);
-
-                writer.WriteStartObject();
-
-                writer.WritePropertyName("agreements");
-                writer.WriteStartObject();
-                writer.WriteBoolean("eula", true);
-                writer.WriteBoolean("analytics", false);
-                writer.WriteBoolean("notifications", false);
-                writer.WriteBoolean("encryption", false);
-                writer.WriteEndObject();
-
-                writer.WriteEndObject();
-
-                await writer.FlushAsync(ct).ConfigureAwait(false);
-                stream.Seek(0, SeekOrigin.Begin);
-                string json = Encoding.UTF8.GetString(stream.ToArray());
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                var apiUrl = $"/api/settings";
-
-                var pipeline = new ResiliencePipelineBuilder().AddRetry(new Polly.Retry.RetryStrategyOptions
+                agreements = new
                 {
-                    Delay = TimeSpan.FromSeconds(2),
-                    MaxRetryAttempts = 5,
-                }).Build();
-
-                try
-                {
-                    await pipeline.ExecuteAsync(async (ctx) =>
-                    {
-                        var response = await client.PatchAsync(apiUrl, content, ctx)
-                        .ConfigureAwait(false);
-
-                        response.EnsureSuccessStatusCode();
-
-                        var d = await response.Content.ReadAsStringAsync(ctx).ConfigureAwait(false);
-
-                    }, ct).ConfigureAwait(false);
-
-                }
-                catch (Exception ex)
-                {
-                    resourceLogger.LogError("Could accept RedisInsight eula. Reason: {reason}", ex.Message);
+                    eula = true,
+                    analytics = false,
+                    notifications = false,
+                    encryption = false
                 }
             };
+
+            var content = JsonContent.Create(settings);
+
+            var apiUrl = $"/api/settings";
+
+            var pipeline = new ResiliencePipelineBuilder().AddRetry(new Polly.Retry.RetryStrategyOptions
+            {
+                Delay = TimeSpan.FromSeconds(2),
+                MaxRetryAttempts = 5,
+            }).Build();
+
+            try
+            {
+                await pipeline.ExecuteAsync(async (ctx) =>
+                {
+                    var response = await client.PatchAsync(apiUrl, content, ctx)
+                    .ConfigureAwait(false);
+
+                    response.EnsureSuccessStatusCode();
+
+                    var d = await response.Content.ReadAsStringAsync(ctx).ConfigureAwait(false);
+
+                }, ct).ConfigureAwait(false);
+
+            }
+            catch (Exception ex)
+            {
+                resourceLogger.LogError("Could not accept RedisInsight eula. Reason: {reason}", ex.Message);
+            }
         }
 
     }
