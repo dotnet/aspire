@@ -31,6 +31,11 @@ partial class Resource
                 State = HasState ? State : null,
                 KnownState = HasState ? Enum.TryParse(State, out KnownResourceState knownState) ? knownState : null : null,
                 StateStyle = HasStateStyle ? StateStyle : null,
+                ReadinessState = HasHealthState ? HealthState switch
+                {
+                    HealthStateKind.Healthy => ReadinessState.Ready,
+                    _ => ReadinessState.NotReady,
+                } : ReadinessState.Unknown,
                 Commands = GetCommands()
             };
         }

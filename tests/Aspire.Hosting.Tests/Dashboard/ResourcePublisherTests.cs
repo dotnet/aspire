@@ -193,7 +193,8 @@ public class ResourcePublisherTests
             DisplayName = "",
             Urls = [],
             Volumes = [],
-            Environment = []
+            Environment = [],
+            HealthState = null
         };
     }
 }

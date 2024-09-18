@@ -3,6 +3,7 @@
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Otlp.Storage
 @using Aspire.Dashboard.Resources
+@using Microsoft.Extensions.Diagnostics.HealthChecks
 @using Humanizer
 
 @inject IStringLocalizer<Columns> Loc
@@ -78,9 +79,20 @@ else if (!string.IsNullOrEmpty(Resource.StateStyle))
 }
 else
 {
-    <FluentIcon Icon="Icons.Filled.Size16.CheckmarkCircle"
-                Color="Color.Success"
-                Class="severity-icon" />
+    switch (Resource.ReadinessState)
+    {
+        // Unknown state is treated as ready state (we don't know if it's ready or not)
+        case ReadinessState.Unknown or ReadinessState.Ready:
+            <FluentIcon Icon="Icons.Filled.Size16.CheckmarkCircle"
+                        Color="Color.Success"
+                        Class="severity-icon" />
+            break;
+        default:
+            <FluentIcon Icon="Icons.Regular.Size16.CheckmarkCircleWarning"
+                        Color="Color.Neutral"
+                        Class="severity-icon" />
+            break;
+    }
 }
 
 @if (Resource.HasNoState())
@@ -89,7 +101,14 @@ else
 }
 else
 {
-    <span>@Resource.State.Humanize()</span>
+    if (Resource.ShowReadinessState())
+    {
+        <span>@Resource.State.Humanize() (@Resource.ReadinessState.Humanize())</span>
+    }
+    else
+    {
+        <span>@Resource.State.Humanize()</span>
+    }
 }
 
 <UnreadLogErrorsBadge UnviewedErrorCounts="UnviewedErrorCounts" Resource="@Resource" />

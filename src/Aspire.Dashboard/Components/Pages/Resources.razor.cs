@@ -11,6 +11,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
+using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -330,6 +331,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             });
         }
     }
+
+    private static string GetResourceStateTooltip(ResourceViewModel resource) =>
+        resource.ShowReadinessState() ?
+        $"{resource.State.Humanize()} ({resource.ReadinessState.Humanize()})"
+        : resource.State.Humanize();
 
     private static (string Value, string? ContentAfterValue, string ValueToCopy, string Tooltip)? GetSourceColumnValueAndTooltip(ResourceViewModel resource)
     {
