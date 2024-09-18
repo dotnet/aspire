@@ -13,11 +13,11 @@ using System.Runtime.CompilerServices;
 
 namespace Aspire.Hosting.Python.Tests;
 
-public class AddPythonProjectTests(ITestOutputHelper outputHelper)
+public class AddPythonAppTests(ITestOutputHelper outputHelper)
 {
     [Fact]
     [RequiresTools(["python"])]
-    public async Task AddPythonProjectProducesDockerfileResourceInManifest()
+    public async Task AddPythonAppProducesDockerfileResourceInManifest()
     {
         var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject(outputHelper);
 
@@ -29,7 +29,7 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
             options.Args = ["--publisher", "manifest", "--output-path", manifestPath];
         }, outputHelper);
 
-        var pyproj = builder.AddPythonProject("pyproj", projectDirectory, scriptName);
+        var pyproj = builder.AddPythonApp("pyproj", projectDirectory, scriptName);
 
         var manifest = await ManifestUtils.GetManifest(pyproj.Resource, manifestDirectory: projectDirectory);
         var expectedManifest = $$"""
@@ -59,7 +59,7 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
             options.Args = ["--publisher", "manifest", "--output-path", manifestPath];
         }, outputHelper);
 
-        var pyproj = builder.AddPythonProject("pyproj", projectDirectory, scriptName);
+        var pyproj = builder.AddPythonApp("pyproj", projectDirectory, scriptName);
 
         var manifest = await ManifestUtils.GetManifest(pyproj.Resource, manifestDirectory: projectDirectory);
         var expectedManifest = $$"""
@@ -88,7 +88,7 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
         var (projectDirectory, _, scriptName) = CreateTempPythonProject(outputHelper);
 
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
-        builder.AddPythonProject("pyproj", projectDirectory, scriptName);
+        builder.AddPythonApp("pyproj", projectDirectory, scriptName);
 
         using var app = builder.Build();
 
@@ -115,7 +115,7 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
         var externalResource = builder.AddConnectionString("connectionString");
         builder.Configuration["ConnectionStrings:connectionString"] = "test";
 
-        var pyproj = builder.AddPythonProject("pyproj", projectDirectory, scriptName)
+        var pyproj = builder.AddPythonApp("pyproj", projectDirectory, scriptName)
                             .WithReference(externalResource);
 
         var environmentVariables = await pyproj.Resource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Run);
@@ -128,13 +128,13 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
 
     [Fact]
     [RequiresTools(["python"])]
-    public async Task AddPythonProject_SetsResourcePropertiesCorrectly()
+    public async Task AddPythonApp_SetsResourcePropertiesCorrectly()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
 
         var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject(outputHelper);
 
-        builder.AddPythonProject("pythonProject", projectDirectory, scriptName);
+        builder.AddPythonApp("pythonProject", projectDirectory, scriptName);
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -164,13 +164,13 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
 
     [Fact]
     [RequiresTools(["python"])]
-    public async Task AddPythonProjectWithInstrumentation_SwitchesExecutableToInstrumentationExecutable()
+    public async Task AddPythonAppWithInstrumentation_SwitchesExecutableToInstrumentationExecutable()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
 
         var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject(outputHelper, instrument: true);
 
-        builder.AddPythonProject("pythonProject", projectDirectory, scriptName, virtualEnvironmentPath: ".venv");
+        builder.AddPythonApp("pythonProject", projectDirectory, scriptName, virtualEnvironmentPath: ".venv");
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -203,13 +203,13 @@ public class AddPythonProjectTests(ITestOutputHelper outputHelper)
 
     [Fact]
     [RequiresTools(["python"])]
-    public async Task AddPythonProjectWithScriptArgs_IncludesTheArguments()
+    public async Task AddPythonAppWithScriptArgs_IncludesTheArguments()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
 
         var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject(outputHelper);
 
-        builder.AddPythonProject("pythonProject", projectDirectory, scriptName, scriptArgs: "test");
+        builder.AddPythonApp("pythonProject", projectDirectory, scriptName, scriptArgs: "test");
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();

@@ -8,17 +8,16 @@ using Aspire.Hosting.Utils;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// This class is retained only for compatibility.
+/// Provides extension methods for adding Python applications to an <see cref="IDistributedApplicationBuilder"/>.
 /// </summary>
-[Obsolete("PythonProjectResource is deprecated. Please use PythonAppResource instead.")]
-public static class PythonProjectResourceBuilderExtensions
+public static class PythonAppResourceBuilderExtensions
 {
     /// <summary>
-    /// This method is retained only for compatibility.
+    /// Adds a python application with a virtual environment to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="projectDirectory">The path to the directory containing the python project files.</param>
+    /// <param name="projectDirectory">The path to the directory containing the python app files.</param>
     /// <param name="scriptPath">The path to the script relative to the project directory to run.</param>
     /// <param name="scriptArgs">The arguments for the script.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
@@ -53,22 +52,21 @@ public static class PythonProjectResourceBuilderExtensions
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// builder.AddPythonProject("python-project", "PythonProject", "main.py");
+    /// builder.AddPythonApp("python-project", "PythonProject", "main.py");
     /// 
     /// builder.Build().Run(); 
     /// </code>
     /// </example>
-    [Obsolete("AddPythonProject is deprecated. Please use AddPythonApp instead.")]
-    public static IResourceBuilder<PythonProjectResource> AddPythonProject(
+    public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath, params string[] scriptArgs)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.AddPythonProject(name, projectDirectory, scriptPath, ".venv", scriptArgs);
+        return builder.AddPythonApp(name, projectDirectory, scriptPath, ".venv", scriptArgs);
     }
 
     /// <summary>
-    /// This method is retained only for compatibility.
+    /// Adds a python application with a virtual environment to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the resource.</param>
@@ -103,13 +101,12 @@ public static class PythonProjectResourceBuilderExtensions
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// builder.AddPythonProject("python-project", "PythonProject", "main.py");
+    /// builder.AddPythonApp("python-project", "PythonProject", "main.py");
     /// 
     /// builder.Build().Run(); 
     /// </code>
     /// </example>
-    [Obsolete("AddPythonProject is deprecated. Please use AddPythonApp instead.")]
-    public static IResourceBuilder<PythonProjectResource> AddPythonProject(
+    public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath,
         string virtualEnvironmentPath, params string[] scriptArgs)
     {
