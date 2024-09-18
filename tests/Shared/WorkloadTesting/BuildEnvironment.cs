@@ -127,6 +127,9 @@ public class BuildEnvironment
         // Set DEBUG_SESSION_PORT='' to avoid the app from the tests connecting
         // to the IDE
         EnvVars["DEBUG_SESSION_PORT"] = "";
+        // Avoid using the msbuild terminal logger, so the output can be read
+        // in the tests
+        EnvVars["VsTestUseMSBuildOutput"] = "false";
 
         DotNet = Path.Combine(sdkForWorkloadPath!, "dotnet");
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
