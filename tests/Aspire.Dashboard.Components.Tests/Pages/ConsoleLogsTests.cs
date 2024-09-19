@@ -88,6 +88,53 @@ public partial class ConsoleLogsTests : TestContext
         Assert.Equal("test-resource", Assert.Single(subscribedResourceNames));
     }
 
+    [Fact]
+    public void ResourceName_ViaUrlAndResourceLoaded_WaitRender()
+    {
+        // Arrange
+        var testResource = CreateResourceViewModel("test-resource", KnownResourceState.Running);
+        var subscribedResourceNames = new List<string>();
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name =>
+            {
+                subscribedResourceNames.Add(name);
+                return consoleLogsChannel;
+            },
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource]);
+
+        SetupConsoleLogsServices(dashboardClient);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        // Act
+        var cut = RenderComponent<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ResourceName, "test-resource");
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        var instance = cut.Instance;
+        var logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
+
+        // Assert
+        logger.LogInformation("Waiting for selected resource.");
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
+        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
+
+        Assert.Equal("test-resource", Assert.Single(subscribedResourceNames));
+
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, "Hello world", IsErrorMessage: false)]);
+
+        cut.WaitForState(() => instance.LogViewer.LogEntries.EntriesCount > 0);
+    }
+
     private void SetupConsoleLogsServices(TestDashboardClient? dashboardClient = null)
     {
         var version = typeof(FluentMain).Assembly.GetName().Version!;

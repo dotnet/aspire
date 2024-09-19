@@ -65,8 +65,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     private ConsoleLogsSubscription? _consoleLogsSubscription;
 
     // UI
+    public LogViewer LogViewer = null!;
     private SelectViewModel<ResourceTypeDetails> _noSelection = null!;
-    private LogViewer _logViewer = null!;
     private AspirePageContentLayout? _contentLayout;
 
     // State
@@ -197,7 +197,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             // Wait for the first render to complete so that the log viewer is available.
             await _logViewerReadyTcs.Task;
 
-            _logViewer.ClearLogs();
+            LogViewer.ClearLogs();
 
             if (newConsoleLogsSubscription is not null)
             {
@@ -311,16 +311,16 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                     foreach (var (lineNumber, content, isErrorOutput) in batch)
                     {
                         // Set the base line number using the reported line number of the first log line.
-                        if (_logViewer.LogEntries.EntriesCount == 0)
+                        if (LogViewer.LogEntries.EntriesCount == 0)
                         {
-                            _logViewer.LogEntries.BaseLineNumber = lineNumber;
+                            LogViewer.LogEntries.BaseLineNumber = lineNumber;
                         }
 
                         var logEntry = logParser.CreateLogEntry(content, isErrorOutput);
-                        _logViewer.LogEntries.InsertSorted(logEntry);
+                        LogViewer.LogEntries.InsertSorted(logEntry);
                     }
 
-                    await _logViewer.LogsAddedAsync();
+                    await LogViewer.LogsAddedAsync();
                 }
             }
             finally
@@ -395,7 +395,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         await StopAndClearConsoleLogsSubscriptionAsync();
 
-        if (_logViewer is { } logViewer)
+        if (LogViewer is { } logViewer)
         {
             await logViewer.DisposeAsync();
         }
