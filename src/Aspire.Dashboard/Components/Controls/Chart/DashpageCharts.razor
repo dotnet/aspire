@@ -13,7 +13,7 @@
 <FluentGrid Spacing="3" AdaptiveRendering="true" Justify="JustifyContent.FlexStart" Class="dashpage-chart-grid">
     @foreach (var chart in SelectedDashpage.Charts)
     {
-        if (Instruments.FirstOrDefault(i => i.Name == chart.InstrumentName) is { } instrument)
+        if (Instruments.FirstOrDefault(i => StringComparers.OtlpInstrumentName.Equals(i.Name, chart.InstrumentName)) is { } instrument)
         {
             @if (ViewportInformation.IsDesktop)
             {
