@@ -3,42 +3,24 @@
 
 using static Aspire.Hosting.Utils.VolumeNameGenerator;
 using Xunit;
+using System.Text;
+using System.Security.Cryptography;
 
 namespace Aspire.Hosting.Tests.Utils;
 
 public class VolumeNameGeneratorTests
 {
-    [Theory]
-    [InlineData("ACustomButValidAppName")]
-    [InlineData("0123ThisIsValidToo")]
-    [InlineData("This_Is_Valid_Too")]
-    [InlineData("This.Is.Valid.Too")]
-    [InlineData("This-Is-Valid-Too")]
-    [InlineData("This_Is.Valid-Too")]
-    [InlineData("This_0Is.1Valid-2Too")]
-    [InlineData("This_---.....---___Is_Valid_Too")]
-    public void UsesApplicationNameAsPrefixIfCharsAreValid(string applicationName)
+    [Fact]
+    public void VolumeGeneratorUsesFirst10CharsOfSha256FromAppHostConfig()
     {
         var builder = DistributedApplication.CreateBuilder();
-        builder.Environment.ApplicationName = applicationName;
+        var appHostSha = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("app")));
+        builder.Configuration["AppHost:Sha256"] = appHostSha;
         var resource = builder.AddResource(new TestResource("myresource"));
 
         var volumeName = CreateVolumeName(resource, "data");
 
-        Assert.Equal($"{builder.Environment.ApplicationName}-{resource.Resource.Name}-data", volumeName);
-    }
-
-    [Theory]
-    [MemberData(nameof(InvalidNameParts))]
-    public void UsesVolumeAsPrefixIfApplicationNameCharsAreInvalid(string applicationName)
-    {
-        var builder = DistributedApplication.CreateBuilder();
-        builder.Environment.ApplicationName = applicationName;
-        var resource = builder.AddResource(new TestResource("myresource"));
-
-        var volumeName = CreateVolumeName(resource, "data");
-
-        Assert.Equal($"volume-{resource.Resource.Name}-data", volumeName);
+        Assert.Equal($"{appHostSha[..10].ToLowerInvariant()}-{resource.Resource.Name}-data", volumeName);
     }
 
     [Theory]

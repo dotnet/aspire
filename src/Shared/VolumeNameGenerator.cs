@@ -20,8 +20,10 @@ internal static class VolumeNameGenerator
             throw new ArgumentException($"The suffix '{suffix}' contains invalid characters. Only [a-zA-Z0-9_.-] are allowed.", nameof(suffix));
         }
 
-        // Create volume name like "myapplication-postgres-data"
-        var applicationName = builder.ApplicationBuilder.Environment.ApplicationName;
+        // Create volume name like "{sha256}-postgres-data"
+
+        // Compute a short hash of the content root path to differentiate between multiple AppHost projects with similar volume names
+        var applicationName = builder.ApplicationBuilder.Configuration["AppHost:Sha256"]![..10].ToLowerInvariant();
         var resourceName = builder.Resource.Name;
         return $"{(HasOnlyValidChars(applicationName) ? applicationName : "volume")}-{resourceName}-{suffix}";
     }

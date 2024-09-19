@@ -151,12 +151,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var appHostName = options.ProjectName ?? _innerBuilder.Environment.ApplicationName;
         AppHostPath = Path.Join(AppHostDirectory, appHostName);
 
-        var appHostSha = string.Empty;
-        using (var shaHash = SHA256.Create())
-        {
-            var appHostShaBytes = shaHash.ComputeHash(Encoding.UTF8.GetBytes(AppHostPath));
-            appHostSha = Convert.ToHexString(appHostShaBytes);
-        }
+        var appHostShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(AppHostPath));
+        var appHostSha = Convert.ToHexString(appHostShaBytes);
 
         // Set configuration
         ConfigurePublishingOptions(options);
