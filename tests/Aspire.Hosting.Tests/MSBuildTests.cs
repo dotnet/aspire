@@ -52,14 +52,13 @@ public class Class1
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <IsAspireHost>true</IsAspireHost>
 
     <!-- 
       Test applications have their own way of referencing Aspire.Hosting.AppHost, as well as DCP and Dashboard, so we disable
       the Aspire.AppHost.SDK targets that will automatically add these references to projects. 
     -->
     <SkipAddAspireDefaultReferences Condition="'$(TestsRunningOutsideOfRepo)' != 'true'">true</SkipAddAspireDefaultReferences>
-    <AspireHostingSDKVersion>8.2.0</AspireHostingSDKVersion>
+    <AspireHostingSDKVersion>9.0.0</AspireHostingSDKVersion>
   </PropertyGroup>
 
   <ItemGroup>

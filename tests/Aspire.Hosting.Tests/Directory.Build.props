@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <IsAspireHost>true</IsAspireHost>
+    <ForceImportOfAppHostProps>true</ForceImportOfAppHostProps>
   </PropertyGroup>
 
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
