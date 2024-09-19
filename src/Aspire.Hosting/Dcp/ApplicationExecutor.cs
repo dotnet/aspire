@@ -1405,9 +1405,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             EnsureReplicaInstancesAnnotation(container);
 
-            var nameSuffix = string.Empty;
-
-            if (container.GetContainerLifetimeType() == ContainerLifetime.Default)
+            var nameSuffix = container.GetContainerLifetimeType() switch
             {
                 ContainerLifetime.Default => GetRandomNameSuffix(),
                 // Compute a short hash of the content root path to differentiate between multiple AppHost projects with similar resource names
