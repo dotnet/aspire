@@ -195,6 +195,7 @@ public partial class ConsoleLogsTests : TestContext
             State = state?.ToString(),
             KnownState = state,
             StateStyle = null,
+            ReadinessState = ReadinessState.Ready,
             Commands = []
         };
     }

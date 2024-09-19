@@ -394,6 +394,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     {
                         _logger.LogTrace("Deleting application model resource {ResourceName} with {ResourceKind} resource {ResourceName}", appModelResource.Name, resourceKind, resource.Metadata.Name);
                     }
+
+                    if (appModelResource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
+                    {
+                        replicaAnnotation.Instances.TryRemove(resource.Metadata.Name, out _);
+                    }
                 }
                 else
                 {
@@ -586,6 +591,15 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private CustomResourceSnapshot ToSnapshot(Container container, CustomResourceSnapshot previous)
     {
+        if (container.AppModelResourceName is not null &&
+            _applicationModel.TryGetValue(container.AppModelResourceName, out var appModelResource))
+        {
+            if (appModelResource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
+            {
+                replicaAnnotation.Instances.TryAdd(container.Metadata.Name, container.Metadata.Name);
+            }
+        }
+
         var containerId = container.Status?.ContainerId;
         var urls = GetUrls(container);
         var volumes = GetVolumes(container);
@@ -639,6 +653,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             _applicationModel.TryGetValue(executable.AppModelResourceName, out var appModelResource))
         {
             projectPath = appModelResource is ProjectResource p ? p.GetProjectMetadata().ProjectPath : null;
+
+            if (appModelResource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
+            {
+                replicaAnnotation.Instances.TryAdd(executable.Metadata.Name, executable.Metadata.Name);
+            }
         }
 
         var state = executable.AppModelInitialState is "Hidden" ? "Hidden" : executable.Status?.State;
@@ -1021,6 +1040,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         foreach (var executable in modelExecutableResources)
         {
+            EnsureReplicaInstancesAnnotation(executable);
+
             var nameSuffix = GetRandomNameSuffix();
             var exeName = GetObjectNameForResource(executable, nameSuffix);
             var exePath = executable.Command;
@@ -1050,6 +1071,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 throw new InvalidOperationException("A project resource is missing required metadata"); // Should never happen.
             }
+
+            EnsureReplicaInstancesAnnotation(project);
 
             int replicas = project.GetReplicaCount();
 
@@ -1102,7 +1125,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 if (!string.IsNullOrEmpty(_distributedApplicationOptions.Configuration))
                 {
-                    exeSpec.Args.AddRange(new [] {"-c", _distributedApplicationOptions.Configuration});
+                    exeSpec.Args.AddRange(new[] { "-c", _distributedApplicationOptions.Configuration });
                 }
 
                 // We pretty much always want to suppress the normal launch profile handling
@@ -1131,6 +1154,16 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             var exeAppResource = new AppResource(project, ers);
             AddServicesProducedInfo(project, annotationHolder, exeAppResource);
             _appResources.Add(exeAppResource);
+        }
+    }
+
+    private static void EnsureReplicaInstancesAnnotation(IResource resource)
+    {
+        // Make sure we have a replica annotation on the resource.
+        // this is so that we can populate the running instance ids
+        if (!resource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out _))
+        {
+            resource.Annotations.Add(new ReplicaInstancesAnnotation());
         }
     }
 
@@ -1369,6 +1402,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 // we get here someone is doing something wrong.
                 throw new InvalidOperationException();
             }
+
+            EnsureReplicaInstancesAnnotation(container);
 
             var nameSuffix = container.GetContainerLifetimeType() switch
             {
@@ -1718,9 +1753,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     var dcpBuildSecret = new BuildContextSecret
                     {
-                      Id = buildSecret.Key,
-                      Type = "env",
-                      Value = valueString
+                        Id = buildSecret.Key,
+                        Type = "env",
+                        Value = valueString
                     };
                     dcpBuildSecrets.Add(dcpBuildSecret);
                 }

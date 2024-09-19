@@ -20,6 +20,7 @@ public sealed class ResourceViewModel
     public required string Uid { get; init; }
     public required string? State { get; init; }
     public required string? StateStyle { get; init; }
+    public required ReadinessState ReadinessState { get; init; }
     public required DateTime? CreationTimeStamp { get; init; }
     public required ImmutableArray<EnvironmentVariableViewModel> Environment { get; init; }
     public required ImmutableArray<UrlViewModel> Urls { get; init; }
@@ -58,6 +59,13 @@ public sealed class ResourceViewModel
 
         return resource.DisplayName;
     }
+}
+
+public enum ReadinessState
+{
+    Unknown,
+    NotReady,
+    Ready
 }
 
 [DebuggerDisplay("CommandType = {CommandType}, DisplayName = {DisplayName}")]

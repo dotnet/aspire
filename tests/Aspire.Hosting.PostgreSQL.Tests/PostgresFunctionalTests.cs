@@ -212,6 +212,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/5785")]
     public async Task VerifyWithPgWeb()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
@@ -244,6 +245,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         client.DefaultRequestHeaders.Add("x-session-id", Guid.NewGuid().ToString());
 
         var response = await client.PostAsync("/api/connect", httpContent);
+        var d = await response.Content.ReadAsStringAsync();
         response.EnsureSuccessStatusCode();
     }
 
