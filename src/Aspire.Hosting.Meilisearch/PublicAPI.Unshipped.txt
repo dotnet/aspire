@@ -1,0 +1,9 @@
+Aspire.Hosting.ApplicationModel.MeilisearchResource
+Aspire.Hosting.ApplicationModel.MeilisearchResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
+Aspire.Hosting.ApplicationModel.MeilisearchResource.MasterKeyParameter.get -> Aspire.Hosting.ApplicationModel.ParameterResource!
+Aspire.Hosting.ApplicationModel.MeilisearchResource.MeilisearchResource(string! name, Aspire.Hosting.ApplicationModel.ParameterResource! masterKey) -> void
+Aspire.Hosting.ApplicationModel.MeilisearchResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
+Aspire.Hosting.MeilisearchBuilderExtensions
+static Aspire.Hosting.MeilisearchBuilderExtensions.AddMeilisearch(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>? masterKey = null, int? port = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.MeilisearchResource!>!
+static Aspire.Hosting.MeilisearchBuilderExtensions.WithDataBindMount(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.MeilisearchResource!>! builder, string! source) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.MeilisearchResource!>!
+static Aspire.Hosting.MeilisearchBuilderExtensions.WithDataVolume(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.MeilisearchResource!>! builder, string? name = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.MeilisearchResource!>!

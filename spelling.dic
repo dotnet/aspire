@@ -64,3 +64,4 @@ urls
 kubernetes
 Pgweb
 elasticsearch
+Meilisearch
