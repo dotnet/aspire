@@ -27,4 +27,8 @@
      <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="All" /> 
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Analyzers.Tests" />
+  </ItemGroup>
+
 </Project>

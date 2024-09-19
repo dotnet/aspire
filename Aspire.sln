@@ -487,6 +487,7 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Valkey", "src\Aspire.Hosting.Valkey\Aspire.Hosting.Valkey.csproj", "{5CB63205-24F4-4388-A41B-BAF3BEA59866}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Analyzers", "src\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj", "{2BD9F7ED-6D80-4C90-B549-1926BCDD5E20}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Elasticsearch", "src\Aspire.Hosting.Elasticsearch\Aspire.Hosting.Elasticsearch.csproj", "{9357EC71-823B-433A-9993-B7CB2FA082D1}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Elastic.Clients.Elasticsearch", "src\Components\Aspire.Elastic.Clients.Elasticsearch\Aspire.Elastic.Clients.Elasticsearch.csproj", "{3F7B206E-5457-458F-AA81-9449FA3C1B5C}"
@@ -616,6 +617,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redis.ApiService", "playground\Redis\Redis.ApiService\Redis.ApiService.csproj", "{B4CB2D9D-D3F5-4BB1-A7C0-7A6F13316A78}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redis.AppHost", "playground\Redis\Redis.AppHost\Redis.AppHost.csproj", "{6249A193-3BF4-4FFB-AB81-6590A8318889}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Analyzers.Tests", "tests\Aspire.Hosting.Analyzers.Tests\Aspire.Hosting.Analyzers.Tests.csproj", "{F21F921E-1930-4BD5-B665-5EF1B82BD4D2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1627,6 +1630,10 @@ Global
 		{6249A193-3BF4-4FFB-AB81-6590A8318889}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6249A193-3BF4-4FFB-AB81-6590A8318889}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6249A193-3BF4-4FFB-AB81-6590A8318889}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F21F921E-1930-4BD5-B665-5EF1B82BD4D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F21F921E-1930-4BD5-B665-5EF1B82BD4D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F21F921E-1930-4BD5-B665-5EF1B82BD4D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F21F921E-1930-4BD5-B665-5EF1B82BD4D2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1925,6 +1932,7 @@ Global
 		{874EA351-05EA-44F5-8B12-7A7F865ECEC5} = {D173887B-AF42-4576-B9C1-96B9E9B3D9C0}
 		{B4CB2D9D-D3F5-4BB1-A7C0-7A6F13316A78} = {874EA351-05EA-44F5-8B12-7A7F865ECEC5}
 		{6249A193-3BF4-4FFB-AB81-6590A8318889} = {874EA351-05EA-44F5-8B12-7A7F865ECEC5}
+		{F21F921E-1930-4BD5-B665-5EF1B82BD4D2} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

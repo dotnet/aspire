@@ -1,5 +1,8 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
+builder.AddContainer("foo", "bar")
+    .WithEndpoint(port: 1234, name: "somename");
+
 var catalogDb = builder.AddPostgres("postgres")
                        .WithDataVolume()
                        .WithPgAdmin()

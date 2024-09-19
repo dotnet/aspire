@@ -11,7 +11,7 @@ public partial class AppHostAnalyzer
     [System.Diagnostics.CodeAnalysis.SuppressMessage("MicrosoftCodeAnalysisReleaseTracking", "RS2008:Enable analyzer release tracking")]
     internal static class Diagnostics
     {
-        internal static readonly DiagnosticDescriptor s_resourceMustHaveValidName = new(
+        internal static readonly DiagnosticDescriptor s_modelNameMustBeValid = new(
             id: "ASPIRE0000",
             title: "Application model items must have valid names",
             messageFormat: "{0}",
@@ -31,7 +31,7 @@ public partial class AppHostAnalyzer
 
         public static readonly ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics = [
             // Resources
-            s_resourceMustHaveValidName,
+            s_modelNameMustBeValid,
             s_resourceNameMustBeUnique
         ];
     }
