@@ -283,9 +283,6 @@ public static class RedisBuilderExtensions
                     .ConfigureAwait(false);
 
                     response.EnsureSuccessStatusCode();
-
-                    var d = await response.Content.ReadAsStringAsync(ctx).ConfigureAwait(false);
-
                 }, ct).ConfigureAwait(false);
 
             }
