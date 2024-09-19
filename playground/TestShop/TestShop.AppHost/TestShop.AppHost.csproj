@@ -19,12 +19,6 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Redis" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.PostgreSQL" />
 
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj" IsAspireProjectResource="false"
-                      PrivateAssets="all"
-                      ReferenceOutputAssembly="false"
-                      OutputItemType="Analyzer"
-                      SetTargetFramework="TargetFramework=netstandard2.0" />
-
     <ProjectReference Include="..\ApiGateway\ApiGateway.csproj" />
     <ProjectReference Include="..\BasketService\BasketService.csproj" />
     <ProjectReference Include="..\CatalogDb\CatalogDb.csproj" />

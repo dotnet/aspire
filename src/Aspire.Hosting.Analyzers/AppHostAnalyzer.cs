@@ -92,16 +92,13 @@ public partial class AppHostAnalyzer : DiagnosticAnalyzer
         {
             var modelNameParameter = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.Aspire_Hosting_ApplicationModel_IModelNameParameter);
             var resourceNameAttribute = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.Aspire_Hosting_ApplicationModel_ResourceNameAttribute);
-            var endpointNameAttribute = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.Aspire_Hosting_ApplicationModel_EndpointNameAttribute);
 
             var attrData = parameter.GetAttributes().SingleOrDefault(a => WellKnownTypes.Implements(a.AttributeClass, modelNameParameter));
 
             // Model type (e.g. Resource, Endpoint) is based on the concrete attribute type
             modelType = SymbolEqualityComparer.Default.Equals(attrData?.AttributeClass, resourceNameAttribute)
                 ? ModelType.Resource
-                : SymbolEqualityComparer.Default.Equals(attrData?.AttributeClass, endpointNameAttribute)
-                  ? ModelType.Endpoint
-                  : ModelType.Unknown;
+                : ModelType.Unknown;
 
             return attrData is not null;
         }
@@ -141,7 +138,6 @@ public partial class AppHostAnalyzer : DiagnosticAnalyzer
     private enum ModelType
     {
         Unknown,
-        Resource,
-        Endpoint
+        Resource
     }
 }

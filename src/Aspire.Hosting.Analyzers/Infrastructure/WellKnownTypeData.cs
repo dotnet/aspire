@@ -8,13 +8,11 @@ internal static class WellKnownTypeData
     public enum WellKnownType
     {
         Aspire_Hosting_ApplicationModel_IModelNameParameter,
-        Aspire_Hosting_ApplicationModel_ResourceNameAttribute,
-        Aspire_Hosting_ApplicationModel_EndpointNameAttribute
+        Aspire_Hosting_ApplicationModel_ResourceNameAttribute
     }
 
     public static string[] WellKnownTypeNames = [
         "Aspire.Hosting.ApplicationModel.IModelNameParameter",
-        "Aspire.Hosting.ApplicationModel.ResourceNameAttribute",
-        "Aspire.Hosting.ApplicationModel.EndpointNameAttribute"
+        "Aspire.Hosting.ApplicationModel.ResourceNameAttribute"
     ];
 }

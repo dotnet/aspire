@@ -11,6 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "playground", "playground", 
 	ProjectSection(SolutionItems) = preProject
 		playground\.editorconfig = playground\.editorconfig
 		playground\Directory.Build.props = playground\Directory.Build.props
+		playground\Directory.Build.targets = playground\Directory.Build.targets
 		playground\README.md = playground\README.md
 	EndProjectSection
 EndProject
