@@ -89,7 +89,7 @@ public partial class ConsoleLogsTests : TestContext
     }
 
     [Fact]
-    public void ResourceName_ViaUrlAndResourceLoaded_WaitRender()
+    public void ResourceName_ViaUrlAndResourceLoaded_LogViewerUpdated()
     {
         // Arrange
         var testResource = CreateResourceViewModel("test-resource", KnownResourceState.Running);
