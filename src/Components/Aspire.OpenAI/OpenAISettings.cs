@@ -20,7 +20,7 @@ public sealed class OpenAISettings
     public Uri? Endpoint { get; set; }
 
     /// <summary>
-    /// Gets or sets a the API key to used to authenticate with the service..
+    /// Gets or sets a the API key to used to authenticate with the service.
     /// </summary>
     public string? Key { get; set; }
 

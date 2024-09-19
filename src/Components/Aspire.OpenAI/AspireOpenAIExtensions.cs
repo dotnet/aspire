@@ -5,6 +5,8 @@ using System.ClientModel;
 using Aspire.OpenAI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using OpenAI;
 
 namespace Microsoft.Extensions.Hosting;
@@ -66,8 +68,10 @@ public static class AspireOpenAIExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var settings = new OpenAISettings();
-        builder.Configuration.GetSection(configurationSectionName).Bind(settings);
+        var configSection = builder.Configuration.GetSection(configurationSectionName);
+
+        OpenAISettings settings = new();
+        configSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -76,15 +80,21 @@ public static class AspireOpenAIExtensions
 
         configureSettings?.Invoke(settings);
 
-        var options = new OpenAIClientOptions();
-        builder.Configuration.GetSection($"{configurationSectionName}:ClientOptions").Bind(options);
+        var optionsName = serviceKey is null ? Options.Options.DefaultName : connectionName;
 
-        if (settings.Endpoint is not null)
-        {
-            options.Endpoint = settings.Endpoint;
-        }
+        builder.Services.Configure<OpenAIClientOptions>(
+            optionsName,
+            options =>
+            {
+                configSection.GetSection("ClientOptions").Bind(options);
 
-        configureOptions?.Invoke(options);
+                if (settings.Endpoint is not null)
+                {
+                    options.Endpoint = settings.Endpoint;
+                }
+
+                configureOptions?.Invoke(options);
+            });
 
         if (serviceKey is null)
         {
@@ -111,6 +121,7 @@ public static class AspireOpenAIExtensions
         {
             if (settings.Key is not null)
             {
+                var options = serviceProvider.GetRequiredService<IOptions<OpenAIClientOptions>>().Value;
                 return new OpenAIClient(new ApiKeyCredential(settings.Key), options);
             }
             else
