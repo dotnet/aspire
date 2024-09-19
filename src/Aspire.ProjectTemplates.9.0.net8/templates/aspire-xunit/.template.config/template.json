@@ -22,9 +22,9 @@
     "type": "project"
   },
   "precedence": "8000",
-  "identity": "Aspire.Tests.xUnit.CSharp.8.0",
+  "identity": "Aspire.Tests.xUnit.CSharp.9.net8",
   "thirdPartyNotices": "https://aka.ms/dotnet/aspire/8.0-third-party-notices",
-  "groupIdentity": "Aspire.Tests.xUnit",
+  "groupIdentity": "Aspire.Tests.xUnit.9",
   "symbols": {
     "Framework": {
       "type": "parameter",

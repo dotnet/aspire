@@ -21,9 +21,9 @@
     "type": "project"
   },
   "precedence": "9000",
-  "identity": "Aspire.ServiceDefaults.CSharp.9.0",
+  "identity": "Aspire.ServiceDefaults.CSharp.9.net9",
   "thirdPartyNotices": "https://aka.ms/dotnet/aspire/8.0-third-party-notices",
-  "groupIdentity": "Aspire.ServiceDefaults",
+  "groupIdentity": "Aspire.ServiceDefaults.9",
   "symbols": {
     "Framework": {
       "type": "parameter",
