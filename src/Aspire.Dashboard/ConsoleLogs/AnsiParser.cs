@@ -61,6 +61,28 @@ public class AnsiParser
                 continue;
             }
 
+            if (IsConEmuSequence(span[i..], ref i))
+            {
+                // If we have a control sequence, but have found some text already,
+                // we need to write out the new styles (if applicable) and that text
+                // before we continue
+                if (textStartIndex != -1)
+                {
+                    if (newState != currentState)
+                    {
+                        outputBuilder.Append(ProcessStateChange(currentState, newState));
+                        currentState = newState;
+                    }
+                    outputBuilder.Append(text[textStartIndex..(textStartIndex + textLength)]);
+                    textStartIndex = -1;
+                    textLength = 0;
+                }
+
+                ProcessParameters(ref newState, parameters);
+
+                continue;
+            }
+
             if (IsLinkControlSequence(span[i..], ref i, out var url))
             {
                 // If we have a control sequence, but have found some text already,
@@ -251,6 +273,50 @@ public class AnsiParser
         // Advance the position in the span to the end of the control sequence
         position += paramsEndPosition;
         parameters = [.. ret];
+
+        return true;
+    }
+
+    private static bool IsConEmuSequence(ReadOnlySpan<char> span, ref int position)
+    {
+        // If we're at \x1B[
+        if (span.Length <= 2 || (span[0] != EscapeChar || span[1] != ']'))
+        {
+            return false;
+        }
+
+        // Find the index of the next 'm' character
+        var endEscPosition = span.IndexOf("\x1B\\");
+        var endBellPosition = span.IndexOf("\x07");
+
+        int paramsEndPosition;
+        if (endEscPosition != -1 && endBellPosition != -1)
+        {
+            if (endEscPosition < endBellPosition)
+            {
+                paramsEndPosition = endEscPosition + 1;
+            }
+            else
+            {
+                paramsEndPosition = endBellPosition;
+            }
+        }
+        else if (endEscPosition != -1)
+        {
+            paramsEndPosition = endEscPosition + 1;
+        }
+        else if (endBellPosition != -1)
+        {
+            paramsEndPosition = endBellPosition;
+        }
+        else
+        {
+            // No end of escape, cannot parse params.
+            return false;
+        }
+
+        // Advance the position in the span to the end of the control sequence
+        position += paramsEndPosition;
 
         return true;
     }

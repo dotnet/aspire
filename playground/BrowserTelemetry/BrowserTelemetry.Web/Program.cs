@@ -17,6 +17,11 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+Console.WriteLine("Test");
+#pragma warning disable CA1416 // Validate platform compatibility
+#pragma warning restore CA1416 // Validate platform compatibility
+Console.WriteLine("\x1b]9;4;3;\x1b\\");
+
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 

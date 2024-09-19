@@ -37,6 +37,20 @@ public class AnsiParserTests
         Assert.Equal(default, result.ResidualState);
     }
 
+    [Theory]
+    [InlineData("\x1b]9;4;3;\x1b\\", "")]
+    [InlineData("\x1b]9;4;3;\x07", "")]
+    [InlineData("Real Text Before\x1b]9;4;3;\x1b\\", "Real Text Before")]
+    [InlineData("\x1b]9;4;3;\x1b\\Real Text After", "Real Text After")]
+    [InlineData("\u001b]9;4;3;\u001b\\Real Text Between\u001b]9;4;3;\u001b\\", "Real Text Between")]
+    public void ConvertToHtml_IgnoresUnsupportedConEmuCodes(string input, string expectedOutput)
+    {
+        var result = AnsiParser.ConvertToHtml(input);
+
+        Assert.Equal(expectedOutput, result.ConvertedText);
+        Assert.Equal(default, result.ResidualState);
+    }
+
     [Fact]
     public void ConvertToHtml_ColorOpenedButNotClosed_AutoClosedWithResidualState()
     {
