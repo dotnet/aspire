@@ -10,5 +10,8 @@ Aspire.Azure.AI.OpenAI.AzureOpenAISettings.Endpoint.set -> void
 Aspire.Azure.AI.OpenAI.AzureOpenAISettings.Key.get -> string?
 Aspire.Azure.AI.OpenAI.AzureOpenAISettings.Key.set -> void
 Microsoft.Extensions.Hosting.AspireAzureOpenAIExtensions
+Microsoft.Extensions.Hosting.AspireRestClientOpenAIExtensions
 static Microsoft.Extensions.Hosting.AspireAzureOpenAIExtensions.AddAzureOpenAIClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Azure.AI.OpenAI.AzureOpenAISettings!>? configureSettings = null, System.Action<Azure.Core.Extensions.IAzureClientBuilder<Azure.AI.OpenAI.AzureOpenAIClient!, Azure.AI.OpenAI.AzureOpenAIClientOptions!>!>? configureClientBuilder = null) -> void
 static Microsoft.Extensions.Hosting.AspireAzureOpenAIExtensions.AddKeyedAzureOpenAIClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Aspire.Azure.AI.OpenAI.AzureOpenAISettings!>? configureSettings = null, System.Action<Azure.Core.Extensions.IAzureClientBuilder<Azure.AI.OpenAI.AzureOpenAIClient!, Azure.AI.OpenAI.AzureOpenAIClientOptions!>!>? configureClientBuilder = null) -> void
+static Microsoft.Extensions.Hosting.AspireRestClientOpenAIExtensions.AddKeyedOpenAIRestApiClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name) -> void
+static Microsoft.Extensions.Hosting.AspireRestClientOpenAIExtensions.AddOpenAIRestApiClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName) -> void
