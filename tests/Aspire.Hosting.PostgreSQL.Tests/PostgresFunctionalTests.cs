@@ -218,7 +218,14 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
         IResourceBuilder<PgWebContainerResource>? pgWebBuilder = null;
         var dbName = "postgres";
-        var pg = builder.AddPostgres("pg1").WithPgWeb(c => pgWebBuilder = c).AddDatabase(dbName);
+        var pg = builder.AddPostgres("pg1");
+        var db = pg.AddDatabase(dbName);
+        pg.WithPgWeb(c =>
+        {
+            c.WaitFor(db);
+            pgWebBuilder = c;
+        });
+
         Assert.NotNull(pgWebBuilder);
 
         using var app = builder.Build();
