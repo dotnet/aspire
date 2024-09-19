@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <PackageTags>aspire integration hosting elasticsearch</PackageTags>
@@ -15,10 +15,12 @@
   
   <ItemGroup>
     <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
+    <Compile Include="$(ComponentsDir)Aspire.Elastic.Clients.Elasticsearch\ElasticsearchHealthCheck.cs" Link="ElasticsearchHealthCheck.cs"></Compile>
   </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Aspire.Hosting.Elasticsearch.Tests" />
+    <PackageReference Include="Elastic.Clients.Elasticsearch" />
   </ItemGroup>
   
   <ItemGroup>

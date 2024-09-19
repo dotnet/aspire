@@ -3,8 +3,6 @@
 
 @using Aspire.Dashboard.Resources
 @namespace Aspire.Dashboard.Components.Pages
-@inject IStringLocalizer<Dashboard.Resources.ConsoleLogs> Loc
-@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsPageTitle)" Loc="@Loc" /></PageTitle>
 
@@ -18,8 +16,7 @@
             <h1 class="page-header">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsHeader)]</h1>
         </PageTitleSection>
         <ToolbarSection>
-            <ResourceSelect @ref="_resourceSelectComponent"
-                            Resources="_resources"
+            <ResourceSelect Resources="_resources"
                             AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.ResourceLabel)]"
                             @bind-SelectedResource="PageViewModel.SelectedOption"
                             @bind-SelectedResource:after="HandleSelectedOptionChangedAsync" />
@@ -32,7 +29,7 @@
 
         <MobilePageTitleToolbarSection>
             <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">
-                @if (PageViewModel.SelectedOption.Id is not null)
+                @if (PageViewModel.SelectedOption?.Id is not null)
                 {
                     @($"{PageViewModel.SelectedOption.Name}: {PageViewModel.Status}")
                 }
@@ -44,7 +41,7 @@
         </MobilePageTitleToolbarSection>
 
         <MainSection>
-            <LogViewer @ref="_logViewer"/>
+            <LogViewer @ref="LogViewer"/>
         </MainSection>
     </AspirePageContentLayout>
 </div>

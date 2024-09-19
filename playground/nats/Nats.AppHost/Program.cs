@@ -5,9 +5,11 @@ var nats = builder.AddNats("nats")
 
 builder.AddProject<Projects.Nats_ApiService>("api")
     .WithExternalHttpEndpoints()
-    .WithReference(nats);
+    .WithReference(nats)
+    .WaitFor(nats);
 
 builder.AddProject<Projects.Nats_Backend>("backend")
-    .WithReference(nats);
+    .WithReference(nats)
+    .WaitFor(nats);
 
 builder.Build().Run();

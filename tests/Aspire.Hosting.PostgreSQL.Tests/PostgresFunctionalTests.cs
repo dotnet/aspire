@@ -2,9 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Data;
+using System.Net;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Postgres;
+using Aspire.Hosting.Testing;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -140,6 +143,29 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
+    public async Task VerifyPgAdminResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        IResourceBuilder<PgAdminContainerResource>? adminBuilder = null;
+        var redis = builder.AddPostgres("postgres").WithPgAdmin(c => adminBuilder = c);
+        Assert.NotNull(adminBuilder);
+
+        using var app = builder.Build();
+
+        await app.StartAsync();
+
+        await app.WaitForTextAsync("Listening at", resourceName: adminBuilder.Resource.Name);
+
+        var client = app.CreateHttpClient(adminBuilder.Resource.Name, "http");
+
+        var path = $"/";
+        var response = await client.GetAsync(path);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    [RequiresDocker]
     public async Task VerifyPostgresResource()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
@@ -184,52 +210,34 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         }, cts.Token);
     }
 
-    [Fact(Skip = "https://github.com/dotnet/aspire/issues/5325")]
+    [Fact]
     [RequiresDocker]
     public async Task VerifyWithPgWeb()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
+        IResourceBuilder<PgWebContainerResource>? pgWebBuilder = null;
         var dbName = "postgres";
-        var pg = builder.AddPostgres("pg1").WithPgWeb().AddDatabase(dbName);
-
-        builder.Services.AddHttpClient();
+        var pg = builder.AddPostgres("pg1").WithPgWeb(c => pgWebBuilder = c).AddDatabase(dbName);
+        Assert.NotNull(pgWebBuilder);
 
         using var app = builder.Build();
 
         await app.StartAsync();
 
-        var factory = app.Services.GetRequiredService<IHttpClientFactory>();
-        var client = factory.CreateClient();
+        await app.WaitForTextAsync("Starting server...", resourceName: pgWebBuilder.Resource.Name);
 
-        var pgWeb = builder.Resources.OfType<PgWebContainerResource>().SingleOrDefault();
+        var client = app.CreateHttpClient(pgWebBuilder.Resource.Name, "http");
 
-        var pgWebEndpoint = pgWeb!.PrimaryEndpoint;
-
-        var testConnectionApiUrl = $"{pgWebEndpoint.Scheme}://{pgWebEndpoint.Host}:{pgWebEndpoint.Port}/api/connect";
-
-        var pipeline = new ResiliencePipelineBuilder().AddRetry(new Polly.Retry.RetryStrategyOptions
+        var httpContent = new MultipartFormDataContent
         {
-            Delay = TimeSpan.FromSeconds(2),
-            MaxRetryAttempts = 10,
-        }).Build();
+            { new StringContent(dbName), "bookmark_id" }
+        };
 
-        await pipeline.ExecuteAsync(async (ct) =>
-        {
-            var httpContent = new MultipartFormDataContent
-            {
-                { new StringContent(dbName), "bookmark_id" }
-            };
+        client.DefaultRequestHeaders.Add("x-session-id", Guid.NewGuid().ToString());
 
-            client.DefaultRequestHeaders.Add("x-session-id", Guid.NewGuid().ToString());
-
-            var response = await client.PostAsync(testConnectionApiUrl, httpContent, ct)
-                .ConfigureAwait(false);
-
-            response.EnsureSuccessStatusCode();
-        }, cts.Token).ConfigureAwait(false);
+        var response = await client.PostAsync("/api/connect", httpContent);
+        response.EnsureSuccessStatusCode();
     }
 
     [Theory]

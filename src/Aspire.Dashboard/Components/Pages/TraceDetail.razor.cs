@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -29,6 +28,7 @@ public partial class TraceDetail : ComponentBase
     private readonly List<string> _collapsedSpanIds = [];
     private string? _elementIdBeforeDetailsViewOpened;
     private GridColumnManager _manager = null!;
+    private IList<GridColumn> _gridColumns = null!;
 
     [Parameter]
     public required string TraceId { get; set; }
@@ -60,11 +60,11 @@ public partial class TraceDetail : ComponentBase
 
     protected override void OnInitialized()
     {
-        _manager = new GridColumnManager([
+        _gridColumns = [
             new GridColumn(Name: NameColumn, DesktopWidth: "4fr", MobileWidth: "4fr"),
             new GridColumn(Name: TicksColumn, DesktopWidth: "12fr", MobileWidth: "12fr"),
             new GridColumn(Name: DetailsColumn, DesktopWidth: "85px", MobileWidth: null)
-        ], DimensionManager);
+        ];
 
         foreach (var resolver in OutgoingPeerResolvers)
         {
@@ -349,7 +349,7 @@ public partial class TraceDetail : ComponentBase
         _elementIdBeforeDetailsViewOpened = null;
     }
 
-    private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
+    private string GetResourceName(OtlpApplicationView app) => OtlpApplication.GetResourceName(app, _applications);
 
     public void Dispose()
     {

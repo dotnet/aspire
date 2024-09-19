@@ -40,6 +40,17 @@ partial class Resource
             resource.Properties.Add(new ResourceProperty { Name = property.Name, Value = property.Value });
         }
 
+        foreach (var volume in snapshot.Volumes)
+        {
+            resource.Volumes.Add(new Volume
+            {
+                Source = volume.Source,
+                Target = volume.Target,
+                MountType = volume.MountType,
+                IsReadOnly = volume.IsReadOnly
+            });
+        }
+
         // Disable start/stop/restart commands until host/DCP infrastructure is ready.
         /*
         if (snapshot.ResourceType is KnownResourceTypes.Project or KnownResourceTypes.Container or KnownResourceTypes.Executable)
