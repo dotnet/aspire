@@ -118,6 +118,7 @@ public class CreateResourceSelectModelsTests
             State = state?.ToString(),
             KnownState = state,
             StateStyle = null,
+            ReadinessState = ReadinessState.Ready,
             Commands = []
         };
     }

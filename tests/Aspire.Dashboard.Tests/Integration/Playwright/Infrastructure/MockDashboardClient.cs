@@ -27,6 +27,7 @@ public sealed class MockDashboardClient : IDashboardClient
         State = "Running",
         Uid = Guid.NewGuid().ToString(),
         StateStyle = null,
+        ReadinessState = ReadinessState.Ready,
         Urls = [],
         Volumes = []
     };

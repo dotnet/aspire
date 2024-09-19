@@ -20,6 +20,11 @@ partial class Resource
             StateStyle = snapshot.StateStyle ?? "",
         };
 
+        if (snapshot.HealthState is HealthStateKind healthState)
+        {
+            resource.HealthState = healthState;
+        }
+
         if (snapshot.CreationTimeStamp.HasValue)
         {
             resource.CreatedAt = Timestamp.FromDateTime(snapshot.CreationTimeStamp.Value.ToUniversalTime());
