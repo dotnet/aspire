@@ -57,7 +57,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     [Parameter]
     public string? ResourceName { get; set; }
 
-    private readonly TaskCompletionSource _logViewerReadyTcs = new();
+    private readonly TaskCompletionSource _logViewerReadyTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly CancellationTokenSource _resourceSubscriptionCancellation = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private ImmutableList<SelectViewModel<ResourceTypeDetails>>? _resources;
