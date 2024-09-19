@@ -1370,12 +1370,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 throw new InvalidOperationException();
             }
 
-            var nameSuffix = string.Empty;
-
-            if (container.GetContainerLifetimeType() == ContainerLifetime.Default)
+            var nameSuffix = container.GetContainerLifetimeType() switch
             {
-                nameSuffix = GetRandomNameSuffix();
-            }
+                ContainerLifetime.Default => GetRandomNameSuffix(),
+                // Compute a short hash of the content root path to differentiate between multiple AppHost projects with similar resource names
+                _ => configuration["AppHost:Sha256"]!.Substring(0, RandomNameSuffixLength).ToLowerInvariant(),
+            };
 
             var containerObjectName = GetObjectNameForResource(container, nameSuffix);
             var ctr = Container.Create(containerObjectName, containerImageName);
@@ -1820,6 +1820,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private string GetObjectNameForResource(IResource resource, string suffix = "")
     {
+        if (resource.TryGetLastAnnotation<ContainerNameAnnotation>(out var containerNameAnnotation))
+        {
+            // If an explicit container name is provided, use it without any postfix
+            return containerNameAnnotation.Name;
+        }
+
         static string maybeWithSuffix(string s, string localSuffix, string? globalSuffix)
             => (string.IsNullOrWhiteSpace(localSuffix), string.IsNullOrWhiteSpace(globalSuffix)) switch
             {
