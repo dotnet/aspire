@@ -125,9 +125,10 @@ public partial class ConsoleLogsTests : TestContext
 
         // Assert
         logger.LogInformation("Resource and subscription should be set immediately on first render.");
-        Assert.Equal(testResource, instance.PageViewModel.SelectedResource);
-        Assert.Equal(loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)], instance.PageViewModel.Status);
-        Assert.Equal("test-resource", Assert.Single(subscribedResourceNames));
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
+        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
+
+        cut.WaitForAssertion(() => Assert.Single(subscribedResourceNames));
 
         logger.LogInformation("Log results are added to log viewer.");
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, "Hello world", IsErrorMessage: false)]);
