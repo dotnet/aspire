@@ -33,4 +33,8 @@ internal static class ResourceViewModelExtensions
     }
 
     public static bool HasNoState(this ResourceViewModel resource) => string.IsNullOrEmpty(resource.State);
+
+    // We only care about the readiness state if the resource is running
+    public static bool ShowReadinessState(this ResourceViewModel resource) =>
+        resource.IsRunningState() && resource.ReadinessState is ReadinessState.NotReady;
 }

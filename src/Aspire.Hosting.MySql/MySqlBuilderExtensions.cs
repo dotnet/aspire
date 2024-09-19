@@ -49,7 +49,7 @@ public static class MySqlBuilderExtensions
             {
                 if (!lookup.TryGetValue(databaseName.Key, out var databaseResource))
                 {
-                    throw new DistributedApplicationException($"Database resource '{databaseName}' under SQL Server resource '{resource.Name}' was not found in the model.");
+                    throw new DistributedApplicationException($"Database resource '{databaseName}' under MySql resource '{resource.Name}' was not found in the model.");
                 }
 
                 var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(databaseResource, @event.Services);

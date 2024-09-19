@@ -3,6 +3,8 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.ResourceService.Proto.V1;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
@@ -42,7 +44,14 @@ internal sealed class DashboardServiceData : IAsyncDisposable
                     Environment = snapshot.EnvironmentVariables,
                     ExitCode = snapshot.ExitCode,
                     State = snapshot.State?.Text,
-                    StateStyle = snapshot.State?.Style
+                    StateStyle = snapshot.State?.Style,
+                    HealthState = resource.TryGetLastAnnotation<HealthCheckAnnotation>(out _) ? snapshot.HealthStatus switch
+                    {
+                        HealthStatus.Healthy => HealthStateKind.Healthy,
+                        HealthStatus.Unhealthy => HealthStateKind.Unhealthy,
+                        HealthStatus.Degraded => HealthStateKind.Degraded,
+                        _ => HealthStateKind.Unknown,
+                    } : null
                 };
             }
 
