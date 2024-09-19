@@ -10,10 +10,8 @@
     <PackageType>Template</PackageType>
     <NoWarn>$(NoWarn);NU5128</NoWarn>
     <EnableDefaultItems>false</EnableDefaultItems>
-    <Description>.NET Aspire Template Pack for net8.0</Description>
+    <Description>.NET Aspire Template Pack for Microsoft Template Engine</Description>
     <UsingToolTemplateLocalizer>true</UsingToolTemplateLocalizer>
-
-    <TemplatesNet80Dir>..\Aspire.ProjectTemplates.net8\templates\</TemplatesNet80Dir>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -25,15 +23,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="$(TemplatesNet80Dir)aspire-apphost\**\*" />
-    <None Include="$(TemplatesNet80Dir)aspire-empty\**\*" />
-    <None Include="$(TemplatesNet80Dir)aspire-mstest\**\*" />
-    <None Include="$(TemplatesNet80Dir)aspire-nunit\**\*" />
-    <None Include="$(TemplatesNet80Dir)aspire-servicedefaults\**\*" />
-    <None Include="$(TemplatesNet80Dir)aspire-xunit\**\*" />
-
-    <!-- FIXME: override with 9.0 specific one -->
-    <None Include="$(TemplatesNet80Dir)aspire-starter\**\*" />
+    <None Include="templates\**\*" />
   </ItemGroup>
 
   <!-- When building a package, this target will run to copy all the templates into the intermediate directory,
