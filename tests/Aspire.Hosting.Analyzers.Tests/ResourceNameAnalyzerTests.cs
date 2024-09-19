@@ -9,26 +9,6 @@ namespace Aspire.Hosting.Analyzers.Tests;
 
 public class ResourceNameAnalyzerTests
 {
-    [Fact]
-    public async Task ResourceNameNotUnique()
-    {
-        var diagnostic = AppHostAnalyzer.Diagnostics.s_resourceNameMustBeUnique;
-
-        var test = AnalyzerTest.Create<AppHostAnalyzer>("""
-            using Aspire.Hosting;
-
-            var builder = DistributedApplication.CreateBuilder(args);
-
-            builder.AddParameter("db1");
-            builder.AddParameter("db1");
-            builder.AddParameter("db2");
-            """,
-            [CompilerError(diagnostic.Id).WithLocation(5, 22).WithMessage(string.Format(diagnostic.MessageFormat.ToString(), "db1")),
-             CompilerError(diagnostic.Id).WithLocation(6, 22).WithMessage(string.Format(diagnostic.MessageFormat.ToString(), "db1"))]);
-
-        await test.RunAsync();
-    }
-
     [Theory]
     [ClassData(typeof(TestData.InvalidModelNames))]
     public async Task ResourceNameInvalid(string resourceName)

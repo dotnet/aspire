@@ -45,7 +45,6 @@ public partial class AppHostAnalyzer : DiagnosticAnalyzer
             context.RegisterOperationBlockEndAction(c =>
             {
                 DetectInvalidModelNames(c, modelNameOperations);
-                DetectNonUniqueResourceNames(c, modelNameOperations);
 
                 // Return to the pool.
                 modelNameOperations.Clear();
@@ -74,7 +73,7 @@ public partial class AppHostAnalyzer : DiagnosticAnalyzer
 
     private static bool IsModelNameInvocation(WellKnownTypes wellKnownTypes, IMethodSymbol targetMethod, [NotNullWhen(true)] out (IParameterSymbol ModelNameParameter, ModelType ModelType)? parameterData)
     {
-        // Look for first string parameter annotated with ModelName attribute
+        // Look for first string parameter annotated with attribute that implements IModelNameParameter
         ModelType modelType = default;
         var candidateParameter = targetMethod.Parameters.FirstOrDefault(ps =>
             SymbolEqualityComparer.Default.Equals(ps.Type, wellKnownTypes.Get(SpecialType.System_String))
