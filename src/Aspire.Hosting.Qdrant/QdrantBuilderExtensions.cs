@@ -165,19 +165,19 @@ public static class QdrantBuilderExtensions
                 ConnectionString = connectionString
             };
 
-            if (connectionBuilder.ContainsKey("Endpoint") && Uri.TryCreate(connectionBuilder["Endpoint"].ToString(), UriKind.Absolute, out var serviceUri))
+            if (connectionBuilder.TryGetValue("Endpoint", out var endpointValue) && Uri.TryCreate(endpointValue.ToString(), UriKind.Absolute, out var serviceUri))
             {
                 endpoint = serviceUri;
             }
 
-            if (connectionBuilder.ContainsKey("Key"))
+            if (connectionBuilder.TryGetValue("Key", out var keyValue))
             {
-                key = connectionBuilder["Key"].ToString();
+                key = keyValue.ToString();
             }
         }
 
         var factory = sp.GetRequiredService<IHttpClientFactory>();
-        var client = factory.CreateClient();
+        var client = factory.CreateClient("qdrant-healthchecks");
         client.BaseAddress = endpoint;
         if (key is not null)
         {
