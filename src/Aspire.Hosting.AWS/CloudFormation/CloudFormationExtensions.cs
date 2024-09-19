@@ -92,7 +92,10 @@ public static class CloudFormationExtensions
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, StackOutputReference stackOutputReference)
         where T : IResourceWithEnvironment
     {
-        stackOutputReference.Resource.Annotations.Add(new CloudFormationReferenceAnnotation(builder.Resource.Name));
+        if (!stackOutputReference.Resource.Annotations.Any(x => x is CloudFormationReferenceAnnotation cf && string.Equals(cf.TargetResource, builder.Resource.Name, StringComparison.Ordinal)))
+        {
+            stackOutputReference.Resource.Annotations.Add(new CloudFormationReferenceAnnotation(builder.Resource.Name));
+        }
 
         return builder.WithEnvironment(async ctx =>
         {
@@ -149,7 +152,10 @@ public static class CloudFormationExtensions
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<ICloudFormationResource> cloudFormationResourceBuilder, string configSection = Constants.DefaultConfigSection)
         where TDestination : IResourceWithEnvironment
     {
-        cloudFormationResourceBuilder.WithAnnotation(new CloudFormationReferenceAnnotation(builder.Resource.Name));
+        if (!cloudFormationResourceBuilder.Resource.Annotations.Any(x => x is CloudFormationReferenceAnnotation cf && string.Equals(cf.TargetResource, builder.Resource.Name, StringComparison.Ordinal)))
+        {
+            cloudFormationResourceBuilder.WithAnnotation(new CloudFormationReferenceAnnotation(builder.Resource.Name));
+        }
 
         builder.WithEnvironment(async ctx =>
         {

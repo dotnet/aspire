@@ -29,15 +29,14 @@
           "GO_VERSION": "{goversion.value}"
         },
         "secrets": {
-          "SECRET_ASFILE": {
-            "type": "file",
-            "source": "Program.cs"
-          },
           "SECRET_ASENV": {
             "type": "env",
             "value": "{secret.value}"
           }
         }
+      },
+      "env": {
+        "DOCKER_BUILDKIT": "1"
       }
     }
   }
