@@ -75,7 +75,7 @@
   </Target>
 
   <ItemGroup>
-    <None Include="Aspire.Hosting.Orchestration.in.targets" PerformTextReplacement="True" pack="true" PackagePath="build/$(PackageId).targets" />
+    <None Include="Aspire.Hosting.Orchestration.targets" pack="true" PackagePath="build/$(PackageId).targets" />
     <None Include="UnixFilePermissions.xml" Pack="true" PackagePath="data/" Condition=" '$(DcpPlatformType)' == 'Unix' " />
   </ItemGroup>
 
