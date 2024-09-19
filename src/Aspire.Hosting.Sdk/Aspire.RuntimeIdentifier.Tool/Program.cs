@@ -19,23 +19,22 @@ sealed class Program
             TreatUnmatchedTokensAsErrors = true
         };
 
-        CliOption<string?> runtimeGraphPathOption = new("--runtimeGraphPath", "-rgp")
+        CliOption<string?> runtimeGraphPathOption = new("--runtimeGraphPath")
         {
             Description = "Path to runtime graph path to use for RID mapping.",
             Required = true
         };
 
-        CliOption<string?> netcoreSdkRuntimeIdentifierOption = new("--netcoreSdkRuntimeIdentifier", "-r")
+        CliOption<string?> netcoreSdkRuntimeIdentifierOption = new("--netcoreSdkRuntimeIdentifier")
         {
             Description = "RID to use for finding the best applicable RID from mapping.",
             Required = true
         };
 
-        CliOption<string[]> supportedRidsOption = new("--supportedRids", "-sr")
+        CliOption<string[]> supportedRidsOption = new("--supportedRids")
         {
             Description = "List of RIDs that are supported. Comma-separated.",
             Required = true,
-            AllowMultipleArgumentsPerToken = true,
             Arity = ArgumentArity.OneOrMore,
             CustomParser = ParseSupportedRidsArgument
         };
@@ -62,9 +61,8 @@ sealed class Program
 
             if (!wasInGraph)
             {
-#pragma warning disable CA2201 // Do not raise reserved exception types
-                throw new ApplicationException("Unable to find the best rid to use");
-#pragma warning restore CA2201 // Do not raise reserved exception types
+                Console.WriteLine("Unable to find the best rid to use");  
+                return -1;  
             }
 
             Console.WriteLine(bestRidForPlatform);

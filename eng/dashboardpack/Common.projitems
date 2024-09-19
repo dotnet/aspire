@@ -56,8 +56,7 @@
 
   <ItemGroup>
     <None Include="Sdk.props" Pack="true" PackagePath="build/$(AssemblyName).props" />
-    <None Include="Sdk.in.targets" Pack="true" PerformTextReplacement="true"
-      PackagePath="build/$(AssemblyName).targets" />
+    <None Include="Sdk.targets" Pack="true" PackagePath="build/$(AssemblyName).targets" />
     <None Include="UnixFilePermissions.xml" Pack="true" PackagePath="data/"
       Condition=" '$(DashboardPlatformType)' == 'Unix' " />
   </ItemGroup>

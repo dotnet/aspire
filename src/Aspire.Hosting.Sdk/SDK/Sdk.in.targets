@@ -117,7 +117,7 @@
     </PropertyGroup>
 
     <!-- Call Aspire.RuntimeIdentifier.Tool to get the RIDs for Dashboard and DCP packages -->
-    <Exec Command="&quot;$(_DotNetHostPath)&quot; exec &quot;$(AspireRidToolExecutable)&quot; -rgp &quot;$(BundledRuntimeIdentifierGraphFile)&quot; -sr &quot;@(_DashboardAndDCPSupportedTargetingRIDs -> '%(Identity)', ',')&quot; -r &quot;$(NETCoreSdkRuntimeIdentifier)&quot;"
+    <Exec Command="&quot;$(_DotNetHostPath)&quot; exec &quot;$(AspireRidToolExecutable)&quot; --runtimeGraphPath &quot;$(BundledRuntimeIdentifierGraphFile)&quot; --supportedRids &quot;@(_DashboardAndDCPSupportedTargetingRIDs -> '%(Identity)', ',')&quot; --netcoreSdkRuntimeIdentifier &quot;$(NETCoreSdkRuntimeIdentifier)&quot;"
           ConsoleToMSBuild="true"
           StandardOutputImportance="Low"
           IgnoreExitCode="true">
