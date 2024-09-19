@@ -6,7 +6,8 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.CognitiveServices;
-using Azure.ResourceManager.CognitiveServices.Models;
+using Azure.Provisioning.Expressions;
+using static Azure.Provisioning.Expressions.BicepFunction;
 
 namespace Aspire.Hosting;
 
@@ -42,16 +43,40 @@ public static class AzureOpenAIExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var cogServicesAccount = new CognitiveServicesAccount(construct, "OpenAI", name: name);
-            cogServicesAccount.AssignProperty(x => x.Properties.CustomSubDomainName, $"toLower(take(concat('{name}', uniqueString(resourceGroup().id)), 24))");
-            cogServicesAccount.AssignProperty(x => x.Properties.PublicNetworkAccess, "'Enabled'");
-            cogServicesAccount.AddOutput("connectionString", """'Endpoint=${{{0}}}'""", x => x.Properties.Endpoint);
+            var cogServicesAccount = new CognitiveServicesAccount(name)
+            {
+                Kind = "OpenAI",
+                Sku = new CognitiveServicesSku()
+                {
+                    Name = "S0"
+                },
+                Properties = new CognitiveServicesAccountProperties()
+                {
+                    CustomSubDomainName = ToLower(Take(Concat(name, GetUniqueString(GetResourceGroup().Id)), 24)),
+                    PublicNetworkAccess = ServiceAccountPublicNetworkAccess.Enabled,
+                    // Disable local auth for AOAI since managed identity is used
+                    DisableLocalAuth = true
+                },
+                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+            };
+            construct.Add(cogServicesAccount);
 
-            var roleAssignment = cogServicesAccount.AssignRole(RoleDefinition.CognitiveServicesOpenAIContributor);
-            roleAssignment.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
-            roleAssignment.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);
-            // Disable local auth for AOAI since managed identity is used
-            cogServicesAccount.AssignProperty(x => x.Properties.DisableLocalAuth, "true");
+            construct.Add(new BicepOutput("connectionString", typeof(string))
+            {
+                Value = new InterpolatedString(
+                        "Endpoint={0}",
+                        [
+                            new MemberExpression(
+                                new MemberExpression(
+                                    new IdentifierExpression(cogServicesAccount.ResourceName),
+                                    "properties"),
+                                "endpoint")
+                        ])
+                // TODO This should be
+                // Value = BicepFunction.Interpolate($"Endpoint={cogServicesAccount.Endpoint}")
+            });
+
+            construct.Add(cogServicesAccount.AssignRole(CognitiveServicesBuiltInRole.CognitiveServicesOpenAIContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             var resource = (AzureOpenAIResource)construct.Resource;
 
@@ -60,14 +85,26 @@ public static class AzureOpenAIExtensions
             var cdkDeployments = new List<CognitiveServicesAccountDeployment>();
             foreach (var deployment in resource.Deployments)
             {
-                var model = new CognitiveServicesAccountDeploymentModel();
-                model.Name = deployment.ModelName;
-                model.Version = deployment.ModelVersion;
-                model.Format = "OpenAI";
-
-                var cdkDeployment = new CognitiveServicesAccountDeployment(construct, model, parent: cogServicesAccount, name: deployment.Name);
-                cdkDeployment.AssignProperty(x => x.Sku.Name, $"'{deployment.SkuName}'");
-                cdkDeployment.AssignProperty(x => x.Sku.Capacity, $"{deployment.SkuCapacity}");
+                var cdkDeployment = new CognitiveServicesAccountDeployment(deployment.Name, cogServicesAccount.ResourceVersion)
+                {
+                    Name = deployment.Name,     
+                    Parent = cogServicesAccount,
+                    Properties = new CognitiveServicesAccountDeploymentProperties()
+                    {
+                        Model = new CognitiveServicesAccountDeploymentModel()
+                        {
+                            Name = deployment.ModelName,
+                            Version = deployment.ModelVersion,
+                            Format = "OpenAI"
+                        }
+                    },
+                    Sku = new CognitiveServicesSku()
+                    {
+                        Name = deployment.SkuName,
+                        Capacity = deployment.SkuCapacity
+                    }
+                };
+                construct.Add(cdkDeployment);
                 cdkDeployments.Add(cdkDeployment);
 
                 // Subsequent deployments need an explicit dependency on the previous one
@@ -76,7 +113,7 @@ public static class AzureOpenAIExtensions
 
                 if (dependency != null)
                 {
-                    cdkDeployment.AddDependency(dependency);
+                    cdkDeployment.DependsOn.Add(dependency);
                 }
 
                 dependency = cdkDeployment;

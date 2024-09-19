@@ -41,15 +41,30 @@ public static class AzureSignalRExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var service = new SignalRService(construct, name: name);
-            service.AssignProperty(x => x.Kind, "'SignalR'");
-            service.AddOutput("hostName", x => x.HostName);
+            var service = new SignalRService(name, "2022-02-01") // TODO: resource version should come from CDK
+            {
+                Kind = SignalRServiceKind.SignalR,
+                Sku = new SignalRResourceSku()
+                {
+                    Name = "Free_F1",
+                    Capacity = 1
+                },
+                Features =
+                [
+                    new SignalRFeature()
+                    {
+                        Flag = SignalRFeatureFlag.ServiceMode,
+                        Value = "Default"
+                    }
+                ],
+                CorsAllowedOrigins = ["*"],
+                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+            };
+            construct.Add(service);
 
-            service.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+            construct.Add(new BicepOutput("hostName", typeof(string)) { Value = service.HostName });
 
-            var appServerRole = service.AssignRole(RoleDefinition.SignalRAppServer);
-            appServerRole.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
-            appServerRole.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);
+            construct.Add(service.AssignRole(SignalRBuiltInRole.SignalRAppServer, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             var resource = (AzureSignalRResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);

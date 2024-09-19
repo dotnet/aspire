@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
+using Azure.Provisioning.Expressions;
 using Azure.Provisioning.ServiceBus;
 
 namespace Aspire.Hosting;
@@ -41,18 +42,26 @@ public static class AzureServiceBusExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var serviceBusNamespace = new ServiceBusNamespace(construct, name: name);
+            var skuParameter = new BicepParameter("sku", typeof(string))
+            {
+                Value = new StringLiteral("Standard")
+            };
+            construct.Add(skuParameter);
 
-            serviceBusNamespace.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+            var serviceBusNamespace = new ServiceBusNamespace(name)
+            {
+                Sku = new ServiceBusSku()
+                {
+                    Name = skuParameter
+                },
+                DisableLocalAuth = true,
+                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+            };
+            construct.Add(serviceBusNamespace);
 
-            serviceBusNamespace.AssignProperty(p => p.Sku.Name, new Parameter("sku", defaultValue: "Standard"));
-            serviceBusNamespace.AssignProperty(p => p.DisableLocalAuth, "true");
+            construct.Add(serviceBusNamespace.AssignRole(ServiceBusBuiltInRole.AzureServiceBusDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
-            var serviceBusDataOwnerRole = serviceBusNamespace.AssignRole(RoleDefinition.ServiceBusDataOwner);
-            serviceBusDataOwnerRole.AssignProperty(p => p.PrincipalId, construct.PrincipalIdParameter);
-            serviceBusDataOwnerRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
-
-            serviceBusNamespace.AddOutput("serviceBusEndpoint", sa => sa.ServiceBusEndpoint);
+            construct.Add(new BicepOutput("serviceBusEndpoint", typeof(string)) { Value = serviceBusNamespace.ServiceBusEndpoint });
 
             var azureResource = (AzureServiceBusResource)construct.Resource;
             var azureResourceBuilder = builder.CreateResourceBuilder(azureResource);
@@ -60,20 +69,35 @@ public static class AzureServiceBusExtensions
 
             foreach (var queue in azureResource.Queues)
             {
-                var queueResource = new ServiceBusQueue(construct, name: queue.Name, parent: serviceBusNamespace);
+                var queueResource = new ServiceBusQueue(queue.Name)
+                {
+                    Parent = serviceBusNamespace,
+                    Name = queue.Name
+                };
+                construct.Add(queueResource);
                 queue.Configure?.Invoke(azureResourceBuilder, construct, queueResource);
             }
             var topicDictionary = new Dictionary<string, ServiceBusTopic>();
             foreach (var topic in azureResource.Topics)
             {
-                var topicResource = new ServiceBusTopic(construct, name: topic.Name, parent: serviceBusNamespace);
+                var topicResource = new ServiceBusTopic(topic.Name)
+                {
+                    Parent = serviceBusNamespace,
+                    Name = topic.Name
+                };
+                construct.Add(topicResource);
                 topicDictionary.Add(topic.Name, topicResource);
                 topic.Configure?.Invoke(azureResourceBuilder, construct, topicResource);
             }
             foreach (var subscription in azureResource.Subscriptions)
             {
                 var topic = topicDictionary[subscription.TopicName];
-                var subscriptionResource = new ServiceBusSubscription(construct, name: subscription.Name, parent: topic);
+                var subscriptionResource = new ServiceBusSubscription(subscription.Name)
+                {
+                    Parent = topic,
+                    Name = subscription.Name
+                };
+                construct.Add(subscriptionResource);
                 subscription.Configure?.Invoke(azureResourceBuilder, construct, subscriptionResource);
             }
         };
