@@ -151,13 +151,13 @@ public class AddMongoDBTests
         Assert.Collection(env,
             e =>
             {
-                Assert.Equal("ME_CONFIG_MONGODB_URL", e.Key);
-                Assert.Equal($"mongodb://mongo:27017/?directConnection=true", e.Value);
+                Assert.Equal("ME_CONFIG_MONGODB_SERVER", e.Key);
+                Assert.Equal("mongo", e.Value);
             },
             e =>
             {
                 Assert.Equal("ME_CONFIG_MONGODB_PORT", e.Key);
-                Assert.Equal("3000", e.Value);
+                Assert.Equal("27017", e.Value);
             },
             e =>
             {

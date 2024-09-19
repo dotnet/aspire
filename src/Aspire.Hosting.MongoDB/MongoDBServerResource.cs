@@ -6,13 +6,14 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A resource that represents a MongoDB container.
 /// </summary>
-public class MongoDBServerResource: ContainerResource, IResourceWithConnectionString
+/// <param name="name">The name of the resource.</param>
+public class MongoDBServerResource(string name) : ContainerResource(name), IResourceWithConnectionString
 {
     internal const string PrimaryEndpointName = "tcp";
     private const string DefaultUserName = "admin";
     private const string DefaultAuthenticationDatabase = "admin";
     private const string DefaultAuthenticationMechanism = "SCRAM-SHA-256";
-    
+
     private EndpointReference? _primaryEndpoint;
 
     /// <summary>
@@ -21,18 +22,10 @@ public class MongoDBServerResource: ContainerResource, IResourceWithConnectionSt
     /// <param name="name">The name of the resource.</param>
     /// <param name="userNameParameter">A parameter that contains the MongoDb server user name, or <see langword="null"/> to use a default value.</param>
     /// <param name="passwordParameter">A parameter that contains the MongoDb server password.</param>
-    public MongoDBServerResource(string name, ParameterResource? userNameParameter, ParameterResource? passwordParameter) : base(name)
+    public MongoDBServerResource(string name, ParameterResource? userNameParameter, ParameterResource? passwordParameter) : this(name)
     {
         UserNameParameter = userNameParameter;
         PasswordParameter = passwordParameter;
-    }
-
-    /// <summary>
-    /// Initialize a resource that represents a MongoDB container.
-    /// </summary>
-    /// <param name="name">The name of the resource.</param>
-    public MongoDBServerResource(string name) : base(name)
-    {
     }
 
     /// <summary>
