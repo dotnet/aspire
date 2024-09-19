@@ -32,6 +32,7 @@ steps:
               /p:ArchiveTests=true
               /bl:${{ parameters.repoLogPath }}/build.binlog
               $(_OfficialBuildIdArgs)
+              $(_InternalBuildArgs)
       displayName: Build
 
   # Public pipeline - helix tests
@@ -44,18 +45,6 @@ steps:
               /bl:${{ parameters.repoLogPath }}/build.binlog
               $(_OfficialBuildIdArgs)
       displayName: Build
-
-  # Run on windows, either for internal pipeline, or for public+non-helix-tests job
-  - ${{ if and(eq(parameters.isWindows, 'true'), or(ne(parameters.runAsPublic, 'true'), ne(parameters.runHelixTests, 'true'))) }}:
-    - script: ${{ parameters.buildScript }}
-        -restore -build
-        -sign $(_SignArgs)
-        -publish $(_PublishArgs)
-        -configuration $(_BuildConfig)
-        /bl:${{ parameters.repoLogPath }}/build-workloads.binlog
-        -projects eng\workloads\workloads.csproj
-        $(_InternalBuildArgs)
-      displayName: Build Workloads
 
   - ${{ if or(ne(parameters.runAsPublic, 'true'), ne(parameters.runHelixTests, 'true')) }}:
     - ${{ if ne(parameters.isWindows, 'true') }}:

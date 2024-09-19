@@ -28,11 +28,6 @@
     <Error Condition="'$(VersionBandForManifestPackages)' == '' or '$(VersionBandForManifestPackages)' == ''"
            Text="Both properties need to be set: %24(VersionBandForSdkManifestsDir)=$(VersionBandForSdkManifestsDir), and %24(VersionBandForManifestPackages)=$(VersionBandForManifestPackages)" />
 
-    <ItemGroup>
-      <_ManifestPackage Include="$(_ShippingPackagesDir)Microsoft.NET.Sdk.Aspire.Manifest*nupkg" />
-    </ItemGroup>
-    <Error Condition="@(_ManifestPackage->Count()) == 0" Text="No manifest packages found in $(_ShippingPackagesDir). Make sure build packages with './build.sh -pack'" />
-
     <Error Condition="'$(NETCoreSdkRuntimeIdentifier)' == ''" Text="%24(NETCoreSdkRuntimeIdentifier) is unset. This is needed to build the Aspire.Hosting.Orchestration nuget" />
 
     <ItemGroup>
@@ -94,6 +89,10 @@
       Text="Could not find %24(SdkWithWorkloadForTestingPath)=$(SdkWithWorkloadForTestingPath) . Prepare it by following:
       1. .\build.cmd -pack (or ./build.sh on unix)
       2. dotnet build tests/workloads.proj /p:Configuration=$(Configuration)" />
+  </Target>
+
+  <Target Name="InstallTemplatePacksForTesting" AfterTargets="InstallWorkloadUsingArtifacts">
+    <Exec Command="$(_DotNetPath) new install Aspire.ProjectTemplates::$(PackageVersion) -s $(BuiltNugetsDir)" />
   </Target>
 
   <Target Name="_ValidateExpectedSetOfPackagesExist" Condition="'$(SkipPackageCheckForWorkloadTesting)' != 'true'">
