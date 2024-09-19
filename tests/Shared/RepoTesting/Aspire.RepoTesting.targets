@@ -45,8 +45,8 @@
     <_CandidateProjectReference Include="@(AspireProjectOrPackageReference -> '$(RepoRoot)src\Components\%(Identity)\%(Identity).csproj')" />
     <_CandidateProjectReference Include="@(AspireProjectOrPackageReference -> '$(RepoRoot)src\%(Identity)\%(Identity).csproj')" />
 
-    <ProjectReference Include="@(_CandidateProjectReference->Exists())" Condition="'$(IsAspireHost)' == 'true'" IsAspireProjectResource="false" />
-    <ProjectReference Include="@(_CandidateProjectReference->Exists())" Condition="'$(IsAspireHost)' != 'true'" />
+    <ProjectReference Include="@(_CandidateProjectReference->Exists())" Condition="$(MSBuildProjectName.EndsWith('AppHost'))" IsAspireProjectResource="false" />
+    <ProjectReference Include="@(_CandidateProjectReference->Exists())" Condition="!$(MSBuildProjectName.EndsWith('AppHost'))" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
@@ -137,12 +137,12 @@
     <WriteLinesToFile Lines="$(_HelixPropsContent)" File="$(GeneratedPackagesVersionsPropsPath)" Overwrite="true" />
   </Target>
 
-  <ImportGroup Condition="'$(RepoRoot)' != 'null' and '$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'">
+  <ImportGroup Condition="'$(RepoRoot)' != 'null' and '$(TestsRunningOutsideOfRepo)' != 'true' and $(MSBuildProjectName.EndsWith('.AppHost'))">
     <Import Project="$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets" Condition="Exists('$(RepoRoot)src\Aspire.Hosting.AppHost\build\Aspire.Hosting.AppHost.targets')" />
     <Import Project="$(RepoRoot)src\Aspire.AppHost.Sdk\SDK\Sdk.in.targets" Condition="Exists('$(RepoRoot)src\Aspire.AppHost.Sdk\SDK\Sdk.in.targets')" />
   </ImportGroup>
 
-  <PropertyGroup Condition="'$(RepoRoot)' != 'null' and '$(TestsRunningOutsideOfRepo)' != 'true' and '$(IsAspireHost)' == 'true'">
+  <PropertyGroup Condition="'$(RepoRoot)' != 'null' and '$(TestsRunningOutsideOfRepo)' != 'true' and $(MSBuildProjectName.EndsWith('.AppHost'))">
     <!-- This is for in-repo testing and required for Aspire.Hosting.AppHost targets loading correctly. On real projects, this comes from SDK.props in Aspire.AppHost.SDK. -->
     <AspireHostingSDKVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion)</AspireHostingSDKVersion>
   </PropertyGroup>
