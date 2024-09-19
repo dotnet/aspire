@@ -12,13 +12,13 @@ public partial class AppHostAnalyzer
     internal static class Diagnostics
     {
         internal static readonly DiagnosticDescriptor s_modelNameMustBeValid = new(
-            id: "ASPIRE0000",
+            id: "ASPIRE006",
             title: "Application model items must have valid names",
             messageFormat: "{0}",
             category: "Design",
             DiagnosticSeverity.Error,
             isEnabledByDefault: true,
-            helpLinkUri: "https://aka.ms/dotnet/aspire/ASPIRE0000");
+            helpLinkUri: "https://aka.ms/dotnet/aspire/ASPIRE006");
 
         public static readonly ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics = [
             // Resources
