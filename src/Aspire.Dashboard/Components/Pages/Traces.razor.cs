@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Components.Layout;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -9,42 +11,73 @@ using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
+using static Aspire.Dashboard.Components.Pages.Traces;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class Traces
+public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, TracesPageState>
 {
+    private const string TimestampColumn = nameof(TimestampColumn);
+    private const string NameColumn = nameof(NameColumn);
+    private const string SpansColumn = nameof(SpansColumn);
+    private const string DurationColumn = nameof(DurationColumn);
+    private const string DetailsColumn = nameof(DetailsColumn);
+    private IList<GridColumn> _gridColumns = null!;
     private SelectViewModel<ResourceTypeDetails> _allApplication = null!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
     private List<OtlpApplication> _applications = default!;
     private List<SelectViewModel<ResourceTypeDetails>> _applicationViewModels = default!;
-    private SelectViewModel<ResourceTypeDetails> _selectedApplication = null!;
     private Subscription? _applicationsSubscription;
     private Subscription? _tracesSubscription;
     private bool _applicationChanged;
     private CancellationTokenSource? _filterCts;
     private string _filter = string.Empty;
+    private AspirePageContentLayout? _contentLayout;
+    private GridColumnManager _manager = null!;
+
+    public string SessionStorageKey => BrowserStorageKeys.TracesPageState;
+    public string BasePath => DashboardUrls.TracesBasePath;
+    public TracesPageViewModel PageViewModel { get; set; } = null!;
 
     [Parameter]
     public string? ApplicationName { get; set; }
 
     [Inject]
-    public required TelemetryRepository TelemetryRepository { get; set; }
+    public required TelemetryRepository TelemetryRepository { get; init; }
 
     [Inject]
-    public required TracesViewModel TracesViewModel { get; set; }
+    public required TracesViewModel TracesViewModel { get; init; }
 
     [Inject]
-    public required IDialogService DialogService { get; set; }
+    public required IDialogService DialogService { get; init; }
 
     [Inject]
-    public required BrowserTimeProvider TimeProvider { get; set; }
+    public required BrowserTimeProvider TimeProvider { get; init; }
+
+    [Inject]
+    public required IOptions<DashboardOptions> DashboardOptions { get; init; }
+
+    [Inject]
+    public required IMessageService MessageService { get; init; }
 
     [Inject]
     public required ILogger<Traces> Logger { get; init; }
+
+    [Inject]
+    public required NavigationManager NavigationManager { get; set; }
+
+    [Inject]
+    public required ISessionStorage SessionStorage { get; set; }
+
+    [Inject]
+    public required DimensionManager DimensionManager { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
 
     private string GetNameTooltip(OtlpTrace trace)
     {
@@ -69,27 +102,47 @@ public partial class Traces
         return tooltip;
     }
 
-    private ValueTask<GridItemsProviderResult<OtlpTrace>> GetData(GridItemsProviderRequest<OtlpTrace> request)
+    private async ValueTask<GridItemsProviderResult<OtlpTrace>> GetData(GridItemsProviderRequest<OtlpTrace> request)
     {
         TracesViewModel.StartIndex = request.StartIndex;
         TracesViewModel.Count = request.Count;
-
         var traces = TracesViewModel.GetTraces();
+
+        if (DashboardOptions.Value.TelemetryLimits.MaxTraceCount == traces.TotalItemCount && !TelemetryRepository.HasDisplayedMaxTraceLimitMessage)
+        {
+            await MessageService.ShowMessageBarAsync(options =>
+            {
+                options.Title = Loc[nameof(Dashboard.Resources.Traces.MessageExceededLimitTitle)];
+                options.Body = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.MessageExceededLimitBody)], DashboardOptions.Value.TelemetryLimits.MaxTraceCount);
+                options.Intent = MessageIntent.Info;
+                options.Section = "MessagesTop";
+                options.AllowDismiss = true;
+            });
+            TelemetryRepository.HasDisplayedMaxTraceLimitMessage = true;
+        }
 
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.
         // The workaround is to put the count inside a control and explicitly update and refresh the control.
         _totalItemsFooter.SetTotalItemCount(traces.TotalItemCount);
 
-        return ValueTask.FromResult(GridItemsProviderResult.From(traces.Items, traces.TotalItemCount));
+        return GridItemsProviderResult.From(traces.Items, traces.TotalItemCount);
     }
 
     protected override Task OnInitializedAsync()
     {
-        _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = $"({ControlsStringsLoc[nameof(ControlsStrings.All)]})" };
-        _selectedApplication = _allApplication;
+        _gridColumns = [
+            new GridColumn(Name: TimestampColumn, DesktopWidth: "0.8fr", MobileWidth: "0.8fr"),
+            new GridColumn(Name: NameColumn, DesktopWidth: "2fr", MobileWidth: "2fr"),
+            new GridColumn(Name: SpansColumn, DesktopWidth: "3fr"),
+            new GridColumn(Name: DurationColumn, DesktopWidth: "0.8fr"),
+            new GridColumn(Name: DetailsColumn, DesktopWidth: "0.5fr", MobileWidth: "1fr")
+        ];
+
+        _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = ControlsStringsLoc[name: nameof(ControlsStrings.All)] };
+        PageViewModel = new TracesPageViewModel { SelectedApplication = _allApplication };
 
         UpdateApplications();
-        _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
+        _applicationsSubscription = TelemetryRepository.OnNewApplications(callback: () => InvokeAsync(workItem: () =>
         {
             UpdateApplications();
             StateHasChanged();
@@ -98,10 +151,19 @@ public partial class Traces
         return Task.CompletedTask;
     }
 
-    protected override void OnParametersSet()
+    private void DimensionManager_OnViewportSizeChanged(object sender, ViewportSizeChangedEventArgs e)
     {
-        _selectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, _allApplication);
-        TracesViewModel.ApplicationServiceId = _selectedApplication.Id?.InstanceId;
+        throw new NotImplementedException();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (await this.InitializeViewModelAsync())
+        {
+            return;
+        }
+
+        TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
         UpdateSubscription();
     }
 
@@ -113,21 +175,21 @@ public partial class Traces
         UpdateSubscription();
     }
 
-    private Task HandleSelectedApplicationChangedAsync()
+    private Task HandleSelectedApplicationChanged()
     {
-        NavigationManager.NavigateTo(DashboardUrls.TracesUrl(resource: _selectedApplication.Name));
         _applicationChanged = true;
-
-        return Task.CompletedTask;
+        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
     private void UpdateSubscription()
     {
+        var selectedApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
+
         // Subscribe to updates.
-        if (_tracesSubscription is null || _tracesSubscription.ApplicationId != _selectedApplication.Id?.InstanceId)
+        if (_tracesSubscription is null || _tracesSubscription.ApplicationKey != selectedApplicationKey)
         {
             _tracesSubscription?.Dispose();
-            _tracesSubscription = TelemetryRepository.OnNewTraces(_selectedApplication.Id?.InstanceId, SubscriptionType.Read, async () =>
+            _tracesSubscription = TelemetryRepository.OnNewTraces(selectedApplicationKey, SubscriptionType.Read, async () =>
             {
                 TracesViewModel.ClearData();
                 await InvokeAsync(StateHasChanged);
@@ -139,7 +201,6 @@ public partial class Traces
     {
         if (args.Value is string newFilter)
         {
-            _filter = newFilter;
             _filterCts?.Cancel();
 
             // Debouncing logic. Apply the filter after a delay.
@@ -153,14 +214,24 @@ public partial class Traces
         }
     }
 
-    private void HandleClear()
+    private async Task HandleAfterFilterBindAsync()
     {
-        _filterCts?.Cancel();
+        if (!string.IsNullOrEmpty(_filter))
+        {
+            return;
+        }
+
+        if (_filterCts is not null)
+        {
+            await _filterCts.CancelAsync();
+        }
+
         TracesViewModel.FilterText = string.Empty;
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
+    private string GetResourceName(OtlpApplicationView app) => OtlpApplication.GetResourceName(app, _applications);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -172,12 +243,52 @@ public partial class Traces
         if (firstRender)
         {
             await JS.InvokeVoidAsync("initializeContinuousScroll");
+            DimensionManager.OnViewportInformationChanged += OnBrowserResize;
         }
+    }
+
+    private void OnBrowserResize(object? o, EventArgs args)
+    {
+        InvokeAsync(async () =>
+        {
+            await JS.InvokeVoidAsync("resetContinuousScrollPosition");
+            await JS.InvokeVoidAsync("initializeContinuousScroll");
+        });
     }
 
     public void Dispose()
     {
         _applicationsSubscription?.Dispose();
         _tracesSubscription?.Dispose();
+        DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
+    }
+
+    public void UpdateViewModelFromQuery(TracesPageViewModel viewModel)
+    {
+        viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _allApplication);
+        TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
+    }
+
+    public string GetUrlFromSerializableViewModel(TracesPageState serializable)
+    {
+        return DashboardUrls.TracesUrl(serializable.SelectedApplication);
+    }
+
+    public TracesPageState ConvertViewModelToSerializable()
+    {
+        return new TracesPageState
+        {
+            SelectedApplication = PageViewModel.SelectedApplication.Id is not null ? PageViewModel.SelectedApplication.Name : null,
+        };
+    }
+
+    public class TracesPageViewModel
+    {
+        public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }
+    }
+
+    public class TracesPageState
+    {
+        public string? SelectedApplication { get; set; }
     }
 }

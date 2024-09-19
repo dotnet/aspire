@@ -5,6 +5,7 @@ using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Valkey;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -53,10 +54,28 @@ public static class ValkeyBuilderExtensions
         int? port = null)
     {
         var valkey = new ValkeyResource(name);
+
+        string? connectionString = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(valkey, async (@event, ct) =>
+        {
+            connectionString = await valkey.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString is null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{valkey.Name}' resource but the connection string was null.");
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.Services.AddHealthChecks()
+            .AddRedis(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
+
         return builder.AddResource(valkey)
             .WithEndpoint(port: port, targetPort: 6379, name: ValkeyResource.PrimaryEndpointName)
             .WithImage(ValkeyContainerImageTags.Image, ValkeyContainerImageTags.Tag)
-            .WithImageRegistry(ValkeyContainerImageTags.Registry);
+            .WithImageRegistry(ValkeyContainerImageTags.Registry)
+            .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -103,7 +122,7 @@ public static class ValkeyBuilderExtensions
     /// Use <see cref="WithPersistence(IResourceBuilder{ValkeyResource}, TimeSpan?, long)"/> to adjust Valkey persistence configuration, e.g.:
     /// <code lang="csharp">
     /// var valkey = builder.AddValkey("valkey")
-    ///                    .WithDataBindMount()
+    ///                    .WithDataBindMount("mydata")
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
     /// </code>
     /// </example>

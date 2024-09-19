@@ -4,10 +4,12 @@
 #pragma warning disable AZPROVISION001
 
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
-using Azure.Provisioning.KeyVaults;
+using Azure.Provisioning.Expressions;
+using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.PostgreSql;
 
 namespace Aspire.Hosting;
@@ -53,39 +55,87 @@ public static class AzurePostgresExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var administratorLogin = new Parameter("administratorLogin");
-            var administratorLoginPassword = new Parameter("administratorLoginPassword", isSecure: true);
+            var administratorLogin = new BicepParameter("administratorLogin", typeof(string));
+            construct.Add(administratorLogin);
 
-            var postgres = new PostgreSqlFlexibleServer(construct, administratorLogin, administratorLoginPassword, name: construct.Resource.Name, storageSizeInGB: 32);
-            postgres.AssignProperty(x => x.Sku.Name, "'Standard_B1ms'");
-            postgres.AssignProperty(x => x.Sku.Tier, "'Burstable'");
-            postgres.AssignProperty(x => x.Version, "'16'");
-            postgres.AssignProperty(x => x.HighAvailability.Mode, "'Disabled'");
-            postgres.AssignProperty(x => x.Backup.BackupRetentionDays, "7");
-            postgres.AssignProperty(x => x.Backup.GeoRedundantBackup, "'Disabled'");
-            postgres.AssignProperty(x => x.AvailabilityZone, "'1'");
+            var administratorLoginPassword = new BicepParameter("administratorLoginPassword", typeof(string)) { IsSecure = true };
+            construct.Add(administratorLoginPassword);
 
-            postgres.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+            var kvNameParam = new BicepParameter("keyVaultName", typeof(string));
+            construct.Add(kvNameParam);
+
+            var keyVault = KeyVaultService.FromExisting("keyVault");
+            keyVault.Name = kvNameParam;
+            construct.Add(keyVault);
+
+            var postgres = new PostgreSqlFlexibleServer(construct.Resource.Name)
+            {
+                StorageSizeInGB = 32,
+                AdministratorLogin = administratorLogin,
+                AdministratorLoginPassword = administratorLoginPassword,
+                Sku = new PostgreSqlFlexibleServerSku()
+                {
+                    Name = "Standard_B1ms",
+                    Tier = PostgreSqlFlexibleServerSkuTier.Burstable
+                },
+                Version = new StringLiteral("16"),
+                HighAvailability = new PostgreSqlFlexibleServerHighAvailability()
+                {
+                    Mode = PostgreSqlFlexibleServerHighAvailabilityMode.Disabled
+                },
+                Backup = new PostgreSqlFlexibleServerBackupProperties()
+                {
+                    BackupRetentionDays = 7,
+                    GeoRedundantBackup = PostgreSqlFlexibleServerGeoRedundantBackupEnum.Disabled
+                },
+                AvailabilityZone = "1",
+                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+            };
+            construct.Add(postgres);
 
             // Opens access to all Azure services.
-            var azureServicesFirewallRule = new PostgreSqlFirewallRule(construct, "0.0.0.0", "0.0.0.0", postgres, "AllowAllAzureIps");
+            construct.Add(new PostgreSqlFlexibleServerFirewallRule("postgreSqlFirewallRule_AllowAllAzureIps", postgres.ResourceVersion)
+            {
+                Parent = postgres,
+                Name = "AllowAllAzureIps",
+                StartIPAddress = new IPAddress([0, 0, 0, 0]),
+                EndIPAddress = new IPAddress([0, 0, 0, 0])
+            });
 
             if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
             {
                 // Opens access to the Internet.
-                var openFirewallRule = new PostgreSqlFirewallRule(construct, "0.0.0.0", "255.255.255.255", postgres, "AllowAllIps");
+                construct.Add(new PostgreSqlFlexibleServerFirewallRule("postgreSqlFirewallRule_AllowAllIps", postgres.ResourceVersion)
+                {
+                    Parent = postgres,
+                    Name = "AllowAllIps",
+                    StartIPAddress = new IPAddress([0, 0, 0, 0]),
+                    EndIPAddress = new IPAddress([255, 255, 255, 255])
+                });
             }
 
-            List<PostgreSqlFlexibleServerDatabase> sqlDatabases = new List<PostgreSqlFlexibleServerDatabase>();
             foreach (var databaseNames in builder.Resource.Databases)
             {
+                var resourceName = databaseNames.Key;
                 var databaseName = databaseNames.Value;
-                var pgsqlDatabase = new PostgreSqlFlexibleServerDatabase(construct, postgres, databaseName);
-                sqlDatabases.Add(pgsqlDatabase);
+                var pgsqlDatabase = new PostgreSqlFlexibleServerDatabase(resourceName, postgres.ResourceVersion)
+                {
+                    Parent = postgres,
+                    Name = databaseName
+                };
+                construct.Add(pgsqlDatabase);
             }
 
-            var keyVault = KeyVault.FromExisting(construct, "keyVaultName");
-            _ = new KeyVaultSecret(construct, "connectionString", postgres.GetConnectionString(administratorLogin, administratorLoginPassword), keyVault);
+            var secret = new KeyVaultSecret("connectionString")
+            {
+                Parent = keyVault,
+                Name = "connectionString",
+                Properties = new SecretProperties
+                {
+                    Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName};Username={administratorLogin};Password={administratorLoginPassword}")
+                }
+            };
+            construct.Add(secret);
 
             var azureResource = (AzurePostgresResource)construct.Resource;
             var azureResourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(azureResource);

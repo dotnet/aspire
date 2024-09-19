@@ -192,7 +192,7 @@
     },
     {
         "HotelId": "10",
-        "HotelName": "Country Home",
+        "HotelName": "Super Home",
         "Description": "Save up to 50% off traditional hotels. Free WiFi, great location near downtown, full kitchen, washer & dryer, 24\/7 support, bowling alley, fitness center and more.",
         "Description_fr": "Économisez jusqu'à 50% sur les hôtels traditionnels. WiFi gratuit, très bien situé près du centre-ville, cuisine complète, laveuse & sécheuse, support 24\/7, bowling, centre de fitness et plus encore.",
         "Category": "Extended-Stay",
@@ -5219,7 +5219,7 @@
     {
         "HotelId": "31",
         "HotelName": "Athens Residence Hotel",
-        "Description": "All of the suites feature full-sized kitchens stocked with cookware, separate living and sleeping areas and sofa beds. Some of the larger rooms have fireplaces. Experience real country hospitality in the heart of bustling Nashville. The most vibrant music scene in the world is just outside your front door.",
+        "Description": "All of the suites feature full-sized kitchens stocked with cookware, separate living and sleeping areas and sofa beds. Some of the larger rooms have fireplaces. Experience real hospitality in the heart of bustling Nashville. The most vibrant music scene in the world is just outside your front door.",
         "Description_fr": "Toutes les suites disposent d'une cuisine pleine grandeur équipée d'ustensiles de cuisine, de coins salon et chambre séparés et de canapés-lits. Certaines des plus grandes chambres ont des cheminées. Découvrez la véritable hospitalité campagnarde au cœur de la ville animée de Nashville. La scène musicale la plus vibrante du monde est juste devant votre porte.",
         "Category": "Extended-Stay",
         "Tags": [
@@ -9091,7 +9091,7 @@
     {
         "HotelId": "48",
         "HotelName": "Nordick's B & B",
-        "Description": "Only 90 miles (about 2 hours) from the nation's capital and nearby most everything the historic valley has to offer. Hiking? Wine Tasting? Exploring the caverns? It's all nearby and we have specially priced packages to help make our B&B your home base for fun while visiting the valley.",
+        "Description": "Only 90 miles (about 2 hours) from the nation's center and nearby most everything the historic valley has to offer. Hiking? Wine Tasting? Exploring the caverns? It's all nearby and we have specially priced packages to help make our B&B your home base for fun while visiting the valley.",
         "Description_fr": "Seulement 90 milles (environ 2 heures) de la capitale de la nation et à proximité la plupart tout que la vallée historique a à offrir. Randonnée? Dégustation? Vous explorez les cavernes? C'est tout près et nous avons des forfaits à prix spécial pour aider à rendre notre B&B votre base pour le plaisir en visitant la vallée.",
         "Category": "Boutique",
         "Tags": [

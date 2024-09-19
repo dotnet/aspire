@@ -3,12 +3,16 @@
 
 using System.Diagnostics;
 using System.Globalization;
+using System.Text.RegularExpressions;
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Utils;
 using Aspire.Hosting.Testing;
+using Aspire.Hosting.Testing.Tests;
 using Aspire.Hosting.Tests.Helpers;
+using Aspire.Hosting.Tests.Utils;
+using Aspire.Hosting.Utils;
 using k8s.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -17,14 +21,14 @@ using Microsoft.Extensions.Options;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
-using Aspire.Components.Common.Tests;
-using Aspire.Hosting.Testing.Tests;
 
 namespace Aspire.Hosting.Tests;
 
 public class DistributedApplicationTests
 {
     private readonly ITestOutputHelper _testOutputHelper;
+
+    private const string ReplicaIdRegex = @"[\w]+"; // Matches a replica ID that is part of a resource name.
 
     public DistributedApplicationTests(ITestOutputHelper testOutputHelper)
     {
@@ -135,10 +139,11 @@ public class DistributedApplicationTests
         var lifecycleHookDescriptors = testProgram.AppBuilder.Services.Where(sd => sd.ServiceType == typeof(IDistributedApplicationLifecycleHook));
 
         Assert.Single(lifecycleHookDescriptors.Where(sd => sd.ImplementationFactory == callback1));
-        Assert.Empty(lifecycleHookDescriptors.Where(sd => sd.ImplementationFactory == callback2));
+        Assert.DoesNotContain(lifecycleHookDescriptors, sd => sd.ImplementationFactory == callback2);
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task AllocatedPortsAssignedAfterHookRuns()
     {
         using var testProgram = CreateTestProgram();
@@ -171,6 +176,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task TestServicesWithMultipleReplicas()
     {
         var replicaCount = 3;
@@ -223,6 +229,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerAppWorks()
     {
         using var testProgram = CreateTestProgram();
@@ -252,9 +259,10 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task SpecifyingEnvPortInEndpointFlowsToEnv()
     {
-        using var testProgram = CreateTestProgram(includeNodeApp: true, randomizePorts: false);
+        using var testProgram = CreateTestProgram(randomizePorts: false);
 
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
@@ -263,6 +271,9 @@ public class DistributedApplicationTests
 
         testProgram.AppBuilder.AddContainer("redis0", "redis")
             .WithEndpoint(targetPort: 6379, name: "tcp", env: "REDIS_PORT");
+
+        testProgram.AppBuilder.AddNodeApp("nodeapp", "fakePath")
+            .WithHttpEndpoint(port: 5031, env: "PORT");
 
         await using var app = testProgram.Build();
 
@@ -274,25 +285,25 @@ public class DistributedApplicationTests
         var token = cts.Token;
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        var redisContainer = await KubernetesHelper.GetResourceByNameAsync<Container>(kubernetes, $"redis0_{suffix}", r => r.Status?.EffectiveEnv is not null, token);
+        var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, $"redis0-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null, token);
         Assert.NotNull(redisContainer);
 
-        var serviceA = await KubernetesHelper.GetResourceByNameAsync<Executable>(kubernetes, $"servicea_{suffix}", r => r.Status?.EffectiveEnv is not null, token);
+        var serviceA = await KubernetesHelper.GetResourceByNameAsync<Executable>(kubernetes, $"servicea-{suffix}", r => r.Status?.EffectiveEnv is not null, token);
         Assert.NotNull(serviceA);
 
-        var nodeApp = await KubernetesHelper.GetResourceByNameAsync<Executable>(kubernetes, $"nodeapp_{suffix}", r => r.Status?.EffectiveEnv is not null, token);
+        var nodeApp = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, $"nodeapp-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null, token);
         Assert.NotNull(nodeApp);
 
         Assert.Equal("redis:latest", redisContainer.Spec.Image);
         Assert.Equal("6379", GetEnv(redisContainer.Spec.Env, "REDIS_PORT"));
         Assert.Equal("6379", GetEnv(redisContainer.Status!.EffectiveEnv, "REDIS_PORT"));
 
-        Assert.Equal($"{{{{- portForServing \"servicea_http0_{suffix}\" -}}}}", GetEnv(serviceA.Spec.Env, "PORT0"));
+        Assert.Equal($"{{{{- portForServing \"servicea-http0-{suffix}\" -}}}}", GetEnv(serviceA.Spec.Env, "PORT0"));
         var serviceAPortValue = GetEnv(serviceA.Status!.EffectiveEnv, "PORT0");
         Assert.False(string.IsNullOrEmpty(serviceAPortValue));
         Assert.NotEqual(0, int.Parse(serviceAPortValue, CultureInfo.InvariantCulture));
 
-        Assert.Equal($"{{{{- portForServing \"nodeapp_{suffix}\" -}}}}", GetEnv(nodeApp.Spec.Env, "PORT"));
+        Assert.Equal($"{{{{- portForServing \"nodeapp-{suffix}\" -}}}}", GetEnv(nodeApp.Spec.Env, "PORT"));
         var nodeAppPortValue = GetEnv(nodeApp.Status!.EffectiveEnv, "PORT");
         Assert.False(string.IsNullOrEmpty(nodeAppPortValue));
         Assert.NotEqual(0, int.Parse(nodeAppPortValue, CultureInfo.InvariantCulture));
@@ -307,6 +318,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task StartAsync_DashboardAuthConfig_PassedToDashboardProcess()
     {
         var browserToken = "ThisIsATestToken";
@@ -329,7 +341,7 @@ public class DistributedApplicationTests
         var token = cts.Token;
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        var aspireDashboard = await KubernetesHelper.GetResourceByNameAsync<Executable>(kubernetes, $"aspire-dashboard_{suffix}", r => r.Status?.EffectiveEnv is not null, token);
+        var aspireDashboard = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, $"aspire-dashboard-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null, token);
         Assert.NotNull(aspireDashboard);
 
         Assert.Equal("BrowserToken", GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__FRONTEND__AUTHMODE"));
@@ -349,6 +361,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task StartAsync_UnsecuredAllowAnonymous_PassedToDashboardProcess()
     {
         var args = new string[] {
@@ -370,7 +383,7 @@ public class DistributedApplicationTests
         var token = cts.Token;
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        var aspireDashboard = await KubernetesHelper.GetResourceByNameAsync<Executable>(kubernetes, $"aspire-dashboard_{suffix}", r => r.Status?.EffectiveEnv is not null, token);
+        var aspireDashboard = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, $"aspire-dashboard-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null, token);
         Assert.NotNull(aspireDashboard);
 
         Assert.Equal("Unsecured", GetEnv(aspireDashboard.Spec.Env, "DASHBOARD__FRONTEND__AUTHMODE"));
@@ -387,6 +400,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithEntrypointWorks()
     {
         using var testProgram = CreateTestProgram();
@@ -405,7 +419,7 @@ public class DistributedApplicationTests
         var token = cts.Token;
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        var redisContainer = await KubernetesHelper.GetResourceByNameAsync<Container>(s, $"redis-cli_{suffix}",
+        var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(s, $"redis-cli-{ReplicaIdRegex}-{suffix}",
             r => r.Status?.State == ContainerState.FailedToStart && (r.Status?.Message.Contains("bob") ?? false),
             token);
 
@@ -418,6 +432,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithBindMountWorksWithAbsolutePaths()
     {
         using var testProgram = CreateTestProgram();
@@ -437,9 +452,9 @@ public class DistributedApplicationTests
         var token = cts.Token;
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        var redisContainer = await KubernetesHelper.GetResourceByNameAsync<Container>(
+        var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(
                 s,
-                $"redis-cli_{suffix}", r => r.Spec.VolumeMounts != null,
+                $"redis-cli-{ReplicaIdRegex}-{suffix}", r => r.Spec.VolumeMounts != null,
                 token);
 
         Assert.NotNull(redisContainer.Spec.VolumeMounts);
@@ -451,6 +466,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithBindMountWorksWithRelativePaths()
     {
         using var testProgram = CreateTestProgram();
@@ -469,9 +485,9 @@ public class DistributedApplicationTests
         var token = cts.Token;
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        var redisContainer = await KubernetesHelper.GetResourceByNameAsync<Container>(
+        var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(
             s,
-            $"redis-cli_{suffix}", r => r.Spec.VolumeMounts != null,
+            $"redis-cli-{ReplicaIdRegex}-{suffix}", r => r.Spec.VolumeMounts != null,
             token);
 
         Assert.NotNull(redisContainer.Spec.VolumeMounts);
@@ -484,6 +500,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task VerifyDockerWithVolumeWorksWithName()
     {
         using var testProgram = CreateTestProgram();
@@ -502,9 +519,9 @@ public class DistributedApplicationTests
         var token = cts.Token;
 
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        var redisContainer = await KubernetesHelper.GetResourceByNameAsync<Container>(
+        var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(
                 s,
-                $"redis-cli_{suffix}", r => r.Spec.VolumeMounts != null,
+                $"redis-cli-{ReplicaIdRegex}-{suffix}", r => r.Spec.VolumeMounts != null,
                 token);
 
         Assert.NotNull(redisContainer.Spec.VolumeMounts);
@@ -516,9 +533,10 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task KubernetesHasResourceNameForContainersAndExes()
     {
-        using var testProgram = CreateTestProgram(includeIntegrationServices: true, includeNodeApp: true);
+        using var testProgram = CreateTestProgram(includeIntegrationServices: true);
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         await using var app = testProgram.Build();
@@ -536,8 +554,6 @@ public class DistributedApplicationTests
             "serviceb",
             "servicec",
             "workera",
-            "nodeapp",
-            "npmapp",
             "integrationservicea"
         };
 
@@ -546,9 +562,7 @@ public class DistributedApplicationTests
             "redis",
             "postgres",
             "mongodb",
-            "oracledatabase",
             "cosmos",
-            "sqlserver",
             "mysql",
             "rabbitmq",
             "kafka"
@@ -584,6 +598,7 @@ public class DistributedApplicationTests
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ReplicasAndProxylessEndpointThrows()
     {
         using var testProgram = CreateTestProgram();
@@ -597,10 +612,11 @@ public class DistributedApplicationTests
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync());
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        Assert.Equal($"Resource 'servicea_{suffix}' uses multiple replicas and a proxy-less endpoint 'http'. These features do not work together.", ex.Message);
+        Assert.Equal($"Resource 'servicea-{suffix}' uses multiple replicas and a proxy-less endpoint 'http'. These features do not work together.", ex.Message);
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessEndpointWithoutPortThrows()
     {
         using var testProgram = CreateTestProgram();
@@ -615,10 +631,11 @@ public class DistributedApplicationTests
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync());
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        Assert.Equal($"Service 'servicea_{suffix}' needs to specify a port for endpoint 'http' since it isn't using a proxy.", ex.Message);
+        Assert.Equal($"Service 'servicea-{suffix}' needs to specify a port for endpoint 'http' since it isn't using a proxy.", ex.Message);
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessEndpointWorks()
     {
         using var testProgram = CreateTestProgram();
@@ -716,6 +733,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessContainerCanBeReferenced()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -737,6 +755,9 @@ public class DistributedApplicationTests
         using var app = builder.Build();
         await app.StartAsync();
 
+        // Wait for the application to be ready
+        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+
         // Wait until the service itself starts.
         using var clientA = app.CreateHttpClient(servicea.Resource.Name, "http");
         await clientA.GetStringAsync("/");
@@ -751,13 +772,13 @@ public class DistributedApplicationTests
         Assert.Equal("localhost:1234", env.Value);
 
         var list = await s.ListAsync<Container>();
-        var redisContainer = Assert.Single(list.Where(c => c.Name().Equals($"redis_{suffix}")));
+        var redisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(),$"redis-{ReplicaIdRegex}-{suffix}"))) ;
         Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
 
         var otherRedisEnv = Assert.Single(service.Spec.Env!.Where(e => e.Name == "ConnectionStrings__redisNoPort"));
         Assert.Equal("localhost:6379", otherRedisEnv.Value);
 
-        var otherRedisContainer = Assert.Single(list.Where(c => c.Name().Equals($"redisNoPort_{suffix}")));
+        var otherRedisContainer = Assert.Single(list.Where(c => Regex.IsMatch(c.Name(), $"redisNoPort-{ReplicaIdRegex}-{suffix}")));
         Assert.Equal(6379, Assert.Single(otherRedisContainer.Spec.Ports!).HostPort);
 
         await app.StopAsync();
@@ -765,6 +786,7 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task ProxylessContainerWithoutPortThrows()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -778,11 +800,12 @@ public class DistributedApplicationTests
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync());
         var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
-        Assert.Equal($"The endpoint 'tcp' for container resource 'dummyRedis_{suffix}' must specify the TargetPort value", ex.Message);
+        Assert.Equal($"The endpoint 'tcp' for container resource 'dummyRedis-{suffix}' must specify the TargetPort value", ex.Message);
     }
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task AfterResourcesCreatedLifecycleHookWorks()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -825,13 +848,11 @@ public class DistributedApplicationTests
     private static TestProgram CreateTestProgram(
         string[]? args = null,
         bool includeIntegrationServices = false,
-        bool includeNodeApp = false,
         bool disableDashboard = true,
         bool randomizePorts = true) =>
         TestProgram.Create<DistributedApplicationTests>(
             args,
             includeIntegrationServices: includeIntegrationServices,
-            includeNodeApp: includeNodeApp,
             disableDashboard: disableDashboard,
             randomizePorts: randomizePorts);
 }

@@ -12,10 +12,10 @@ namespace Aspire.Dashboard.Configuration;
 public sealed class DashboardOptions
 {
     public string? ApplicationName { get; set; }
-    public OtlpOptions Otlp { get; set; } = new OtlpOptions();
-    public FrontendOptions Frontend { get; set; } = new FrontendOptions();
-    public ResourceServiceClientOptions ResourceServiceClient { get; set; } = new ResourceServiceClientOptions();
-    public TelemetryLimitOptions TelemetryLimits { get; set; } = new TelemetryLimitOptions();
+    public OtlpOptions Otlp { get; set; } = new();
+    public FrontendOptions Frontend { get; set; } = new();
+    public ResourceServiceClientOptions ResourceServiceClient { get; set; } = new();
+    public TelemetryLimitOptions TelemetryLimits { get; set; } = new();
 }
 
 // Don't set values after validating/parsing options.
@@ -26,7 +26,7 @@ public sealed class ResourceServiceClientOptions
 
     public string? Url { get; set; }
     public ResourceClientAuthMode? AuthMode { get; set; }
-    public ResourceServiceClientCertificateOptions ClientCertificates { get; set; } = new ResourceServiceClientCertificateOptions();
+    public ResourceServiceClientCertificateOptions ClientCertificate { get; set; } = new();
     public string? ApiKey { get; set; }
 
     public Uri? GetUri() => _parsedUrl;
@@ -61,6 +61,11 @@ public sealed class ResourceServiceClientCertificateOptions
     public StoreLocation? Location { get; set; }
 }
 
+public sealed class AllowedCertificateRule
+{
+    public string? Thumbprint { get; set; }
+}
+
 // Don't set values after validating/parsing options.
 public sealed class OtlpOptions
 {
@@ -75,6 +80,8 @@ public sealed class OtlpOptions
     public string? GrpcEndpointUrl { get; set; }
 
     public string? HttpEndpointUrl { get; set; }
+
+    public List<AllowedCertificateRule> AllowedCertificates { get; set; } = new();
 
     public Uri? GetGrpcEndpointUri()
     {
@@ -93,6 +100,8 @@ public sealed class OtlpOptions
     }
 
     public byte[]? GetSecondaryApiKeyBytes() => _secondaryApiKeyBytes;
+
+    public OtlpCors Cors { get; set; } = new();
 
     internal bool TryParseOptions([NotNullWhen(false)] out string? errorMessage)
     {
@@ -114,12 +123,24 @@ public sealed class OtlpOptions
             return false;
         }
 
+        if (string.IsNullOrEmpty(HttpEndpointUrl) && !string.IsNullOrEmpty(Cors.AllowedOrigins))
+        {
+            errorMessage = $"CORS configured without an OTLP HTTP endpoint. Either remove CORS configuration or specify a {DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName} value.";
+            return false;
+        }
+
         _primaryApiKeyBytes = PrimaryApiKey != null ? Encoding.UTF8.GetBytes(PrimaryApiKey) : null;
         _secondaryApiKeyBytes = SecondaryApiKey != null ? Encoding.UTF8.GetBytes(SecondaryApiKey) : null;
 
         errorMessage = null;
         return true;
     }
+}
+
+public sealed class OtlpCors
+{
+    public string? AllowedOrigins { get; set; }
+    public string? AllowedHeaders { get; set; }
 }
 
 // Don't set values after validating/parsing options.
@@ -131,7 +152,17 @@ public sealed class FrontendOptions
     public string? EndpointUrls { get; set; }
     public FrontendAuthMode? AuthMode { get; set; }
     public string? BrowserToken { get; set; }
-    public OpenIdConnectOptions OpenIdConnect { get; set; } = new OpenIdConnectOptions();
+
+    /// <summary>
+    /// Gets and sets an optional limit on the number of console log messages to be retained in the viewer.
+    /// </summary>
+    /// <remarks>
+    /// The viewer will retain at most this number of log messages. When the limit is reached, the oldest messages will be removed.
+    /// Defaults to 10,000, which matches the default used in the app host's circular buffer, on the publish side.
+    /// </remarks>
+    public int MaxConsoleLogCount { get; set; } = 10_000;
+
+    public OpenIdConnectOptions OpenIdConnect { get; set; } = new();
 
     public byte[]? GetBrowserTokenBytes() => _browserTokenBytes;
 
@@ -145,7 +176,7 @@ public sealed class FrontendOptions
     {
         if (string.IsNullOrEmpty(EndpointUrls))
         {
-            errorMessage = "One or more frontend endpoint URLs are not configured. Specify a Dashboard:Frontend:EndpointUrls value.";
+            errorMessage = $"One or more frontend endpoint URLs are not configured. Specify an {DashboardConfigNames.DashboardFrontendUrlName.ConfigKey} value.";
             return false;
         }
         else

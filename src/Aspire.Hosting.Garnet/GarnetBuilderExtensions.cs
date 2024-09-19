@@ -5,6 +5,7 @@ using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Garnet;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -51,11 +52,31 @@ public static class GarnetBuilderExtensions
     public static IResourceBuilder<GarnetResource> AddGarnet(this IDistributedApplicationBuilder builder, string name,
         int? port = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
         var garnet = new GarnetResource(name);
+
+        string? connectionString = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(garnet, async (@event, ct) =>
+        {
+            connectionString = await garnet.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{garnet.Name}' resource but the connection string was null.");
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.Services.AddHealthChecks().AddRedis(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
+
         return builder.AddResource(garnet)
             .WithEndpoint(port: port, targetPort: 6379, name: GarnetResource.PrimaryEndpointName)
             .WithImage(GarnetContainerImageTags.Image, GarnetContainerImageTags.Tag)
-            .WithImageRegistry(GarnetContainerImageTags.Registry);
+            .WithImageRegistry(GarnetContainerImageTags.Registry)
+            .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -79,6 +100,8 @@ public static class GarnetBuilderExtensions
     public static IResourceBuilder<GarnetResource> WithDataVolume(this IResourceBuilder<GarnetResource> builder,
         string? name = null, bool isReadOnly = false)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), GarnetContainerDataDirectory,
             isReadOnly);
         if (!isReadOnly)
@@ -96,7 +119,7 @@ public static class GarnetBuilderExtensions
     /// Use <see cref="WithPersistence(IResourceBuilder{GarnetResource}, TimeSpan?, long)"/> to adjust Garnet persistence configuration, e.g.:
     /// <code lang="csharp">
     /// var garnet = builder.AddGarnet("garnet")
-    ///                    .WithDataBindMount()
+    ///                    .WithDataBindMount("mydata")
     ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
     /// </code>
     /// </example>
@@ -110,6 +133,9 @@ public static class GarnetBuilderExtensions
     public static IResourceBuilder<GarnetResource> WithDataBindMount(this IResourceBuilder<GarnetResource> builder,
         string source, bool isReadOnly = false)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+
         builder.WithBindMount(source, GarnetContainerDataDirectory, isReadOnly);
         if (!isReadOnly)
         {
@@ -137,11 +163,16 @@ public static class GarnetBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<GarnetResource> WithPersistence(this IResourceBuilder<GarnetResource> builder,
         TimeSpan? interval = null, long keysChangedThreshold = 1)
-        => builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
         {
             context.Args.Add("--save");
-            context.Args.Add((interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
+            context.Args.Add(
+                (interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
             context.Args.Add(keysChangedThreshold.ToString(CultureInfo.InvariantCulture));
             return Task.CompletedTask;
         }), ResourceAnnotationMutationBehavior.Replace);
+    }
 }

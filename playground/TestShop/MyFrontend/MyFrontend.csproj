@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <ContainerRegistry>localhost:5001</ContainerRegistry>
     <ContainerRepository>my-frontend</ContainerRepository>
     <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:8.0</ContainerBaseImage>
@@ -21,11 +21,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Microsoft.Extensions.ServiceDiscovery.Abstractions\Microsoft.Extensions.ServiceDiscovery.Abstractions.csproj" />
-    <ProjectReference Include="..\..\..\src\Microsoft.Extensions.ServiceDiscovery.Dns\Microsoft.Extensions.ServiceDiscovery.Dns.csproj" />
-    <ProjectReference Include="..\..\..\src\Microsoft.Extensions.ServiceDiscovery.Yarp\Microsoft.Extensions.ServiceDiscovery.Yarp.csproj" />
-    <ProjectReference Include="..\..\..\src\Microsoft.Extensions.ServiceDiscovery\Microsoft.Extensions.ServiceDiscovery.csproj" />
-    <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
+    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Abstractions" />
+    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Dns" />
+    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Yarp" />
+    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
+    <ProjectReference Include="..\TestShop.ServiceDefaults\TestShop.ServiceDefaults.csproj" />
   </ItemGroup>
 
   <ItemGroup>

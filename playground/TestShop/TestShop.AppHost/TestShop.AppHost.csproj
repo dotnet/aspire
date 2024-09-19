@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <UserSecretsId>1bf0740a-0dfc-45aa-9002-def9b2b17da0</UserSecretsId>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsAspireHost>true</IsAspireHost>
+    <AssemblyName>TestShop.AppHost</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\KnownResourceNames.cs" Link="KnownResourceNames.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.RabbitMQ" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Redis" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.PostgreSQL" />
+
+    <ProjectReference Include="..\ApiGateway\ApiGateway.csproj" />
+    <ProjectReference Include="..\BasketService\BasketService.csproj" />
+    <ProjectReference Include="..\CatalogDb\CatalogDb.csproj" />
+    <ProjectReference Include="..\CatalogService\CatalogService.csproj" />
+    <ProjectReference Include="..\MyFrontend\MyFrontend.csproj" />
+    <ProjectReference Include="..\OrderProcessor\OrderProcessor.csproj" />
+  </ItemGroup>
+
+</Project>

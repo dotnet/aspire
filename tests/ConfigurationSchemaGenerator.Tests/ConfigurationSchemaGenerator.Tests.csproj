@@ -1,12 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <PreserveCompilationContext>true</PreserveCompilationContext>
+    <CopyDocumentationFilesFromPackages>true</CopyDocumentationFilesFromPackages>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\src\Components\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
+    <Compile Include="..\..\src\Components\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Compile>
     
     <Content Include="Baselines\**\*;">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -15,6 +18,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.DotNet.XUnitExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Newtonsoft.Json" />
   </ItemGroup>
 
   <ItemGroup>

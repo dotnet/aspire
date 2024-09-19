@@ -1,8 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
-    <RunTestsOnHelix>false</RunTestsOnHelix>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,5 +12,9 @@
 
   <ItemGroup>
     <PackageReference Include="Polly.Core" />
+  </ItemGroup>
+
+    <ItemGroup>
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Testing\ResourceLoggerForwarderService.cs" Link="Utils\ResourceLoggerForwarderService.cs" />
   </ItemGroup>
 </Project>

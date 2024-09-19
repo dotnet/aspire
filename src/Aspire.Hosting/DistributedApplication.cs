@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -345,6 +346,10 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
         try
         {
+            var beforeStartEvent = new BeforeStartEvent(_host.Services, _host.Services.GetRequiredService<DistributedApplicationModel>());
+            var eventing = _host.Services.GetRequiredService<IDistributedApplicationEventing>();
+            await eventing.PublishAsync(beforeStartEvent, cancellationToken).ConfigureAwait(false);
+
             var lifecycleHooks = _host.Services.GetServices<IDistributedApplicationLifecycleHook>();
             var appModel = _host.Services.GetRequiredService<DistributedApplicationModel>();
 

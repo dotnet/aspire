@@ -2,16 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Health;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -67,6 +69,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     /// <inheritdoc />
     public IResourceCollection Resources { get; } = new ResourceCollection();
 
+    /// <inheritdoc />
+    public IDistributedApplicationEventing Eventing { get; } = new DistributedApplicationEventing();
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
     /// </summary>
@@ -82,6 +87,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     {
         ArgumentNullException.ThrowIfNull(args);
     }
+
+    // This is here because in the constructor of DistributedApplicationBuilder we inject
+    // DistributedApplicationExecutionContext. This is a class that is used to expose contextual
+    // values in various callbacks and is a central location to access useful services like IServiceProvider.
+    private readonly DistributedApplicationExecutionContextOptions _executionContextOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
@@ -118,7 +128,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _innerBuilder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
         _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
-        _innerBuilder.Logging.AddFilter("Aspire.Hosting.Dashboard", LogLevel.None);
+        _innerBuilder.Logging.AddFilter("Aspire.Hosting.Dashboard", LogLevel.Error);
+        _innerBuilder.Logging.AddFilter("Grpc.AspNetCore.Server.ServerCallHandler", LogLevel.Error);
+
+        // This is to reduce log noise when we activate health checks for resources which may not yet be
+        // fully initialized. For example a database which is not yet created.
+        _innerBuilder.Logging.AddFilter("Microsoft.Extensions.Diagnostics.HealthChecks.DefaultHealthCheckService", LogLevel.None);
 
         // This is so that we can see certificate errors in the resource server in the console logs.
         // See: https://github.com/dotnet/aspire/issues/2914
@@ -137,11 +152,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             ["AppHost:Directory"] = AppHostDirectory
         });
 
-        ExecutionContext = _innerBuilder.Configuration["Publishing:Publisher"] switch
+        _executionContextOptions = _innerBuilder.Configuration["Publishing:Publisher"] switch
         {
-            "manifest" => new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish),
-            _ => new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
+            "manifest" => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish),
+            _ => new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
         };
+
+        ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
 
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
@@ -150,6 +167,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton(options);
         _innerBuilder.Services.AddSingleton<ResourceNotificationService>();
         _innerBuilder.Services.AddSingleton<ResourceLoggerService>();
+        _innerBuilder.Services.AddSingleton<IDistributedApplicationEventing>(Eventing);
+        _innerBuilder.Services.AddHealthChecks();
+
+        ConfigureHealthChecks();
 
         if (ExecutionContext.IsRunMode)
         {
@@ -220,18 +241,48 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         }
 
         // Publishing support
-        _innerBuilder.Services.AddLifecycleHook<Http2TransportMutationHook>();
-        _innerBuilder.Services.AddLifecycleHook<DashboardManifestExclusionHook>();
+        Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.MutateHttp2TransportAsync);
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>("manifest");
+
+        Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.ExcludeDashboardFromManifestAsync);
 
         // Overwrite registry if override specified in options
         if (!string.IsNullOrEmpty(options.ContainerRegistryOverride))
         {
-            _innerBuilder.Services.AddLifecycleHook<ContainerRegistryHook>();
+            Eventing.Subscribe<BeforeStartEvent>((e, ct) => BuiltInDistributedApplicationEventSubscriptionHandlers.UpdateContainerRegistryAsync(e, options));
         }
 
         _innerBuilder.Services.AddSingleton(ExecutionContext);
         LogBuilderConstructed(this);
+    }
+
+    private void ConfigureHealthChecks()
+    {
+        _innerBuilder.Services.AddSingleton<IConfigureOptions<HealthCheckPublisherOptions>>(sp =>
+        {
+            return new ConfigureOptions<HealthCheckPublisherOptions>(options =>
+            {
+                if (ExecutionContext.IsRunMode)
+                {
+                    // In run mode we route requests to the health check scheduler.
+                    var hcs = sp.GetRequiredService<ResourceHealthCheckScheduler>();
+                    options.Predicate = hcs.Predicate;
+                    options.Period = TimeSpan.FromSeconds(5);
+                }
+                else
+                {
+                    // In publish mode we don't run any checks.
+                    options.Predicate = (check) => false;
+                }
+            });
+        });
+
+        if (ExecutionContext.IsRunMode)
+        {
+            _innerBuilder.Services.AddSingleton<IHealthCheckPublisher, ResourceNotificationHealthCheckPublisher>();
+            _innerBuilder.Services.AddSingleton<ResourceHealthCheckScheduler>();
+            _innerBuilder.Services.AddHostedService<ResourceHealthCheckScheduler>(sp => sp.GetRequiredService<ResourceHealthCheckScheduler>());
+        }
     }
 
     private void MapTransportOptionsFromCustomKeys(TransportOptions options)
@@ -254,8 +305,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             { "--publisher", "Publishing:Publisher" },
             { "--output-path", "Publishing:OutputPath" },
             { "--dcp-cli-path", "DcpPublisher:CliPath" },
-            { "--container-runtime", "DcpPublisher:ContainerRuntime" },
-            { "--dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },
+            { "--dcp-container-runtime", "DcpPublisher:ContainerRuntime" },
+            { "--dcp-dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },
+            { "--dcp-dashboard-path", "DcpPublisher:DashboardPath" },
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
         _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
@@ -279,6 +331,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             }
 
             var application = new DistributedApplication(_innerBuilder.Build());
+
+            _executionContextOptions.ServiceProvider = application.Services.GetRequiredService<IServiceProvider>();
+
             LogAppBuilt(application);
             return application;
         }
@@ -317,7 +372,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         if (diagnosticListener.IsEnabled() && diagnosticListener.IsEnabled(BuilderConstructingEventName))
         {
-            Write(diagnosticListener, BuilderConstructingEventName, (appBuilderOptions, hostBuilderOptions));
+            diagnosticListener.Write(BuilderConstructingEventName, (appBuilderOptions, hostBuilderOptions));
         }
 
         return diagnosticListener;
@@ -329,7 +384,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         if (diagnosticListener.IsEnabled() && diagnosticListener.IsEnabled(BuilderConstructedEventName))
         {
-            Write(diagnosticListener, BuilderConstructedEventName, builder);
+            diagnosticListener.Write(BuilderConstructedEventName, builder);
         }
 
         return diagnosticListener;
@@ -341,7 +396,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         if (diagnosticListener.IsEnabled() && diagnosticListener.IsEnabled(ApplicationBuildingEventName))
         {
-            Write(diagnosticListener, ApplicationBuildingEventName, appBuilder);
+            diagnosticListener.Write(ApplicationBuildingEventName, appBuilder);
         }
 
         return diagnosticListener;
@@ -353,24 +408,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         if (diagnosticListener.IsEnabled() && diagnosticListener.IsEnabled(ApplicationBuiltEventName))
         {
-            Write(diagnosticListener, ApplicationBuiltEventName, app);
+            diagnosticListener.Write(ApplicationBuiltEventName, app);
         }
 
         return diagnosticListener;
-    }
-
-    // Remove when https://github.com/dotnet/runtime/pull/78532 is merged and consumed by the used SDK.
-#if NET7_0
-        [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
-            Justification = "DiagnosticSource is used here to pass objects in-memory to code using HostFactoryResolver. This won't require creating new generic types.")]
-#endif
-    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:UnrecognizedReflectionPattern",
-        Justification = "The values being passed into Write are being consumed by the application already.")]
-    private static void Write<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
-        DiagnosticListener diagnosticSource,
-        string name,
-        T value)
-    {
-        diagnosticSource.Write(name, value);
     }
 }

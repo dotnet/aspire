@@ -59,7 +59,17 @@ internal sealed class ContainerSpec
 
     // Should this container be created and persisted between DCP runs?
     [JsonPropertyName("persistent")]
-    public bool? Persistent;
+    public bool? Persistent { get; set; }
+
+    [JsonPropertyName("networks")]
+    public List<ContainerNetworkConnection>? Networks { get; set; }
+
+    /// <summary>
+    /// Optional lifecycle key for the resource (used to identify changes to persistent resources requiring a restart).
+    /// If unset, DCP will calculate a default lifecycle key based on a hash of various resource spec properties.
+    /// </summary>
+    [JsonPropertyName("lifecycleKey")]
+    public string? LifecycleKey { get; set; }
 }
 
 internal sealed class BuildContext
@@ -138,6 +148,25 @@ internal sealed class VolumeMount
     // True if the mounted file system is supposed to be read-only
     [JsonPropertyName("readOnly")]
     public bool IsReadOnly { get; set; } = false;
+
+    /// <summary>
+    /// Health probes to be run for the container.
+    /// </summary>
+    [JsonPropertyName("healthProbes")]
+    public List<HealthProbe>? HealthProbes { get; set; }
+}
+
+internal sealed class ContainerNetworkConnection
+{
+    // DCP Resource name of a ContainerNetwork to connect to
+    // A container won't start running until it can be connected to all specified networks
+    [JsonPropertyName("name")]
+	public string? Name { get; set; }
+
+	// Aliases of the container on the network
+	// This enables container DNS resolution
+    [JsonPropertyName("aliases")]
+	public List<string>? Aliases { get; set; }
 }
 
 internal sealed class ContainerLabel
@@ -266,6 +295,28 @@ internal sealed class ContainerStatus : V1Status
     // Effective values of launch arguments to be passed to the Container, after all substitutions are applied.
     [JsonPropertyName("effectiveArgs")]
     public List<string>? EffectiveArgs { get; set; }
+
+    // Any ContainerNetworks this container is attached to
+    [JsonPropertyName("networks")]
+    public List<string>? Networks { get; set; }
+
+    /// <summary>
+    /// The health status of the container <see cref="HealthStatus"/> for allowed values.
+    /// </summary>
+    [JsonPropertyName("healthStatus")]
+    public string? HealthStatus { get; set; }
+
+    /// <summary>
+    /// Latest results for health probes configured for the container.
+    /// </summary>
+    [JsonPropertyName("healthProbeResults")]
+    public List<HealthProbeResult>? HealthProbeResults { get; set;}
+
+    /// <summary>
+    /// The lifecycle key for the resource (used to identify changes to persistent resources requiring a restart).
+    /// </summary>
+    [JsonPropertyName("lifecycleKey")]
+    public string? LifecycleKey { get; set; }
 
     // Note: the ContainerStatus has "Message" property that represents a human-readable information about Container state.
     // It is provided by V1Status base class.

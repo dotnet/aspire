@@ -1,13 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.RegularExpressions;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace Aspire.Workload.Tests;
 
 // This class has tests that start projects on their own
-public class TemplateTests : WorkloadTestsBase
+public partial class TemplateTests : WorkloadTestsBase
 {
     public TemplateTests(ITestOutputHelper testOutput)
         : base(testOutput)
@@ -34,7 +35,7 @@ public class TemplateTests : WorkloadTestsBase
                                             "aspire-starter",
                                             _testOutput,
                                             buildEnvironment: BuildEnvironment.ForDefaultFramework,
-                                            extraArgs: $"-t {testType}").ConfigureAwait(false);
+                                            extraArgs: $"-t {testType}");
 
         await AssertTestProjectRunAsync(project.TestsProjectDirectory, testType, _testOutput, config);
     }
@@ -50,9 +51,61 @@ public class TemplateTests : WorkloadTestsBase
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
         await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
 
-        await using var context = await CreateNewBrowserContextAsync();
-        var page = await project.OpenDashboardPageAsync(context);
-        await CheckDashboardHasResourcesAsync(page, []);
+        if (PlaywrightProvider.HasPlaywrightSupport)
+        {
+            await using var context = await CreateNewBrowserContextAsync();
+            var page = await project.OpenDashboardPageAsync(context);
+            await CheckDashboardHasResourcesAsync(page, []);
+        }
+    }
+
+    [Fact]
+    public async Task BuildAndRunAspireTemplateWithCentralPackageManagement()
+    {
+        string id = GetNewProjectId(prefix: "aspire_CPM");
+        await using var project = await AspireProject.CreateNewTemplateProjectAsync(id, "aspire", _testOutput, buildEnvironment: BuildEnvironment.ForDefaultFramework);
+
+        string version = ExtractAndRemoveVersionFromPackageReference(project);
+
+        CreateCPMFile(project, version);
+
+        await project.BuildAsync();
+        await project.StartAppHostAsync();
+        await project.StopAppHostAsync();
+
+        static string ExtractAndRemoveVersionFromPackageReference(AspireProject project)
+        {
+            var projectName = Directory.GetFiles(project.AppHostProjectDirectory, "*.csproj").FirstOrDefault();
+            Assert.False(string.IsNullOrEmpty(projectName));
+
+            var projectContents = File.ReadAllText(projectName);
+
+            var match = AppHostVersionRegex().Match(projectContents);
+
+            File.WriteAllText(
+                projectName,
+                AppHostVersionRegex().Replace(projectContents, @"<PackageReference Include=""Aspire.Hosting.AppHost"" />")
+            );
+
+            return match.Groups[1].Value;
+        }
+
+        static void CreateCPMFile(AspireProject project, string version)
+        {
+            var cpmFilePath = Path.Combine(project.RootDir, "Directory.Packages.props");
+            var cpmContent = $@"<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Do not warn for not using package source mapping when using CPM -->
+    <NoWarn>NU1507;$(NoWarn)</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include=""Aspire.Hosting.AppHost"" Version=""{version}"" />
+  </ItemGroup>
+</Project>";
+
+            File.WriteAllText(cpmFilePath, cpmContent);
+        }
     }
 
     [Theory]
@@ -67,7 +120,7 @@ public class TemplateTests : WorkloadTestsBase
             _testOutput,
             buildEnvironment: BuildEnvironment.ForDefaultFramework);
 
-        await using var context = await CreateNewBrowserContextAsync();
+        await using var context = PlaywrightProvider.HasPlaywrightSupport ? await CreateNewBrowserContextAsync() : null;
         await AssertStarterTemplateRunAsync(context, project, config, _testOutput);
     }
 
@@ -83,7 +136,7 @@ public class TemplateTests : WorkloadTestsBase
             "aspire",
             _testOutput,
             buildEnvironment: testSpecificBuildEnvironment,
-            extraArgs: "--no-https").ConfigureAwait(false);
+            extraArgs: "--no-https");
 
         await project.BuildAsync();
         using var buildCmd = new DotNetCommand(_testOutput, buildEnv: testSpecificBuildEnvironment, label: "first-run")
@@ -97,8 +150,14 @@ public class TemplateTests : WorkloadTestsBase
         testSpecificBuildEnvironment.EnvVars["ASPIRE_ALLOW_UNSECURED_TRANSPORT"] = "true";
         await project.StartAppHostAsync();
 
-        await using var context = await CreateNewBrowserContextAsync();
-        var page = await project.OpenDashboardPageAsync(context);
-        await CheckDashboardHasResourcesAsync(page, []).ConfigureAwait(false);
+        if (PlaywrightProvider.HasPlaywrightSupport)
+        {
+            await using var context = await CreateNewBrowserContextAsync();
+            var page = await project.OpenDashboardPageAsync(context);
+            await CheckDashboardHasResourcesAsync(page, []);
+        }
     }
+
+    [GeneratedRegex(@"<PackageReference\s+Include=""Aspire\.Hosting\.AppHost""\s+Version=""([^""]+)""\s+/>")]
+    private static partial Regex AppHostVersionRegex();
 }

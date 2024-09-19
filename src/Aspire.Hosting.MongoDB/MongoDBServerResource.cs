@@ -31,7 +31,6 @@ public class MongoDBServerResource: ContainerResource, IResourceWithConnectionSt
     /// Initialize a resource that represents a MongoDB container.
     /// </summary>
     /// <param name="name">The name of the resource.</param>
-    [Obsolete]
     public MongoDBServerResource(string name) : base(name)
     {
     }

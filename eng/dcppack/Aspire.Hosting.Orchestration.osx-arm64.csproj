@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <DcpRuntime>osx-arm64</DcpRuntime>
+    <DcpPlatformType>Unix</DcpPlatformType>
+  </PropertyGroup>
+
+  <Import Project="Common.projitems" />
+
+</Project>

@@ -5,6 +5,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf;
@@ -16,28 +18,48 @@ namespace Aspire.Dashboard.Otlp.Model;
 
 public static class OtlpHelpers
 {
-    public static string? GetServiceId(this Resource resource)
+    // Reduce size of JSON data by not indenting. Dashboard UI supports formatting JSON values when they're displayed.
+    private static readonly JsonSerializerOptions s_jsonSerializerOptions = new JsonSerializerOptions
+    {
+        WriteIndented = false
+    };
+
+    public static ApplicationKey GetApplicationKey(this Resource resource)
     {
         string? serviceName = null;
+        string? serviceInstanceId = null;
+        string? processExecutableName = null;
 
         for (var i = 0; i < resource.Attributes.Count; i++)
         {
             var attribute = resource.Attributes[i];
             if (attribute.Key == OtlpApplication.SERVICE_INSTANCE_ID)
             {
-                return attribute.Value.GetString();
+                serviceInstanceId = attribute.Value.GetString();
             }
             if (attribute.Key == OtlpApplication.SERVICE_NAME)
             {
                 serviceName = attribute.Value.GetString();
             }
+            if (attribute.Key == OtlpApplication.PROCESS_EXECUTABLE_NAME)
+            {
+                processExecutableName = attribute.Value.GetString();
+            }
         }
 
-        //
-        // NOTE: The service.instance.id value is a recommended attribute, but not required.
-        //       See: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/resource/semantic_conventions/README.md#service-experimental
-        //
-        return serviceName;
+        // Fallback to unknown_service if service name isn't specified.
+        // https://github.com/open-telemetry/opentelemetry-specification/issues/3210
+        if (string.IsNullOrEmpty(serviceName))
+        {
+            serviceName = "unknown_service";
+            if (!string.IsNullOrEmpty(processExecutableName))
+            {
+                serviceName += ":" + processExecutableName;
+            }
+        }
+
+        // service.instance.id is recommended but not required.
+        return new ApplicationKey(serviceName, serviceInstanceId ?? serviceName);
     }
 
     public static string ToShortenedId(string id) => TruncateString(id, maxLength: 7);
@@ -79,8 +101,49 @@ public static class OtlpHelpers
             AnyValue.ValueOneofCase.DoubleValue => value.DoubleValue.ToString(CultureInfo.InvariantCulture),
             AnyValue.ValueOneofCase.BoolValue => value.BoolValue ? "true" : "false",
             AnyValue.ValueOneofCase.BytesValue => value.BytesValue.ToHexString(),
+            AnyValue.ValueOneofCase.ArrayValue => ConvertAnyValue(value)!.ToJsonString(s_jsonSerializerOptions),
+            AnyValue.ValueOneofCase.KvlistValue => ConvertAnyValue(value)!.ToJsonString(s_jsonSerializerOptions),
+            AnyValue.ValueOneofCase.None => string.Empty,
             _ => value.ToString(),
         };
+
+    private static JsonNode? ConvertAnyValue(AnyValue value)
+    {
+        // Recursively convert AnyValue types to JsonNode types to produce more idiomatic JSON.
+        // Recursing over incoming values is safe because Protobuf serializer imposes a safe limit on recursive messages.
+        return value.ValueCase switch
+        {
+            AnyValue.ValueOneofCase.StringValue => JsonValue.Create(value.StringValue),
+            AnyValue.ValueOneofCase.IntValue => JsonValue.Create(value.IntValue),
+            AnyValue.ValueOneofCase.DoubleValue => JsonValue.Create(value.DoubleValue),
+            AnyValue.ValueOneofCase.BoolValue => JsonValue.Create(value.BoolValue),
+            AnyValue.ValueOneofCase.BytesValue => JsonValue.Create(value.BytesValue.ToHexString()),
+            AnyValue.ValueOneofCase.ArrayValue => ConvertArray(value.ArrayValue),
+            AnyValue.ValueOneofCase.KvlistValue => ConvertKeyValues(value.KvlistValue),
+            AnyValue.ValueOneofCase.None => null,
+            _ => throw new InvalidOperationException($"Unexpected AnyValue type: {value.ValueCase}"),
+        };
+
+        static JsonArray ConvertArray(ArrayValue value)
+        {
+            var a = new JsonArray();
+            foreach (var item in value.Values)
+            {
+                a.Add(ConvertAnyValue(item));
+            }
+            return a;
+        }
+
+        static JsonObject ConvertKeyValues(KeyValueList value)
+        {
+            var o = new JsonObject();
+            foreach (var item in value.Values)
+            {
+                o[item.Key] = ConvertAnyValue(item.Value);
+            }
+            return o;
+        }
+    }
 
     // From https://github.com/dotnet/runtime/blob/963954a11c1beeea4ad63002084a213d8d742864/src/libraries/Common/src/System/HexConverter.cs#L81-L89
     // Modified slightly to always produce lowercase output.
@@ -114,7 +177,7 @@ public static class OtlpHelpers
         }
 
         var values = new KeyValuePair<string, string>[Math.Min(attributes.Count, options.MaxAttributeCount)];
-        CopyKeyValues(attributes, values, options);
+        CopyKeyValues(attributes, values, index: 0, options);
 
         return values;
     }
@@ -150,9 +213,9 @@ public static class OtlpHelpers
         return values.ToArray();
     }
 
-    public static void CopyKeyValuePairs(RepeatedField<KeyValue> attributes, TelemetryLimitOptions options, out int copyCount, [NotNull] ref KeyValuePair<string, string>[]? copiedAttributes)
+    public static void CopyKeyValuePairs(RepeatedField<KeyValue> attributes, KeyValuePair<string, string>[] parentAttributes, TelemetryLimitOptions options, out int copyCount, [NotNull] ref KeyValuePair<string, string>[]? copiedAttributes)
     {
-        copyCount = Math.Min(attributes.Count, options.MaxAttributeCount);
+        copyCount = Math.Min(parentAttributes.Length + attributes.Count, options.MaxAttributeCount);
 
         if (copiedAttributes is null || copiedAttributes.Length < copyCount)
         {
@@ -163,20 +226,22 @@ public static class OtlpHelpers
             Array.Clear(copiedAttributes);
         }
 
-        CopyKeyValues(attributes, copiedAttributes, options);
+        parentAttributes.AsSpan().CopyTo(copiedAttributes);
+
+        CopyKeyValues(attributes, copiedAttributes, parentAttributes.Length, options);
     }
 
-    private static void CopyKeyValues(RepeatedField<KeyValue> attributes, KeyValuePair<string, string>[] copiedAttributes, TelemetryLimitOptions options)
+    private static void CopyKeyValues(RepeatedField<KeyValue> attributes, KeyValuePair<string, string>[] copiedAttributes, int index, TelemetryLimitOptions options)
     {
-        var copyCount = Math.Min(attributes.Count, options.MaxAttributeCount);
+        var copyCount = Math.Min(attributes.Count + index, options.MaxAttributeCount);
 
-        for (var i = 0; i < copyCount; i++)
+        for (var i = 0; i < copyCount - index; i++)
         {
             var attribute = attributes[i];
 
             var value = TruncateString(attribute.Value.GetString(), options.MaxAttributeLength);
 
-            copiedAttributes[i] = new KeyValuePair<string, string>(attribute.Key, value);
+            copiedAttributes[i + index] = new KeyValuePair<string, string>(attribute.Key, value);
         }
     }
 

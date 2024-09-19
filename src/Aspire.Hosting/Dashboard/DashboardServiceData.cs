@@ -38,10 +38,11 @@ internal sealed class DashboardServiceData : IAsyncDisposable
                     Name = resourceId,
                     DisplayName = resource.Name,
                     Urls = snapshot.Urls,
+                    Volumes = snapshot.Volumes,
                     Environment = snapshot.EnvironmentVariables,
                     ExitCode = snapshot.ExitCode,
                     State = snapshot.State?.Text,
-                    StateStyle = snapshot.State?.Style,
+                    StateStyle = snapshot.State?.Style
                 };
             }
 
