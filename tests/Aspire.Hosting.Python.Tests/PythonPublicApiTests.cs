@@ -15,7 +15,7 @@ public class PythonPublicApiTests
         const string executablePath = "/src/python";
         const string projectDirectory = "/data/python";
 
-        var action = () => new PythonProjectResource(name, executablePath, projectDirectory);
+        var action = () => new PythonAppResource(name, executablePath, projectDirectory);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
@@ -152,7 +152,8 @@ public class PythonPublicApiTests
         var virtualEnvironmentPath = ".venv";
         string[] scriptArgs = ["--traces"]; ;
 
-        var action = () App           name,
+        var action = () => builder.AddPythonApp(
+            name,
             projectDirectory,
             scriptPath,
             virtualEnvironmentPath,
@@ -172,7 +173,8 @@ public class PythonPublicApiTests
         const string virtualEnvironmentPath = ".venv";
         string[] scriptArgs = ["--traces"]; ;
 
-        var action = () App           name,
+        var action = () => builder.AddPythonApp(
+            name,
             projectDirectory,
             scriptPath,
             virtualEnvironmentPath,
@@ -192,7 +194,8 @@ public class PythonPublicApiTests
         const string virtualEnvironmentPath = ".venv";
         string[] scriptArgs = ["--traces"]; ;
 
-        var action = () App           name,
+        var action = () => builder.AddPythonApp(
+            name,
             projectDirectory,
             scriptPath,
             virtualEnvironmentPath,
@@ -212,7 +215,8 @@ public class PythonPublicApiTests
         const string virtualEnvironmentPath = ".venv";
         string[] scriptArgs = ["--traces"]; ;
 
-        var action = () App           name,
+        var action = () => builder.AddPythonApp(
+            name,
             projectDirectory,
             scriptPath,
             virtualEnvironmentPath,
@@ -232,7 +236,8 @@ public class PythonPublicApiTests
         string virtualEnvironmentPath = null!;
         string[] scriptArgs = ["--traces"]; ;
 
-        var action = () App           name,
+        var action = () => builder.AddPythonApp(
+            name,
             projectDirectory,
             scriptPath,
             virtualEnvironmentPath,
@@ -252,7 +257,8 @@ public class PythonPublicApiTests
         const string virtualEnvironmentPath = ".venv";
         string[] scriptArgs = null!;
 
-        var action = () App           name,
+        var action = () => builder.AddPythonApp(
+            name,
             projectDirectory,
             scriptPath,
             virtualEnvironmentPath,
