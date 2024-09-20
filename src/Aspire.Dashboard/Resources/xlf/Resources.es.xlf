@@ -102,6 +102,11 @@
         <target state="translated">Código de salida</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsHealthStateProperty">
+        <source>Health State</source>
+        <target state="new">Health State</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
         <source>Project path</source>
         <target state="translated">Ruta de acceso del proyecto</target>

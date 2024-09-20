@@ -9,6 +9,7 @@ using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text;
+using k8s.Models;
 
 namespace Aspire.Hosting.Tests.Dcp;
 
@@ -89,7 +90,7 @@ internal sealed class TestKubernetesService : IKubernetesService
 
     public Task<T> DeleteAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default) where T : CustomResource
     {
-        throw new NotImplementedException();
+        return GetAsync<T>(name, namespaceParameter, cancellationToken);
     }
 
     public Task<List<T>> ListAsync<T>(string? namespaceParameter = null, CancellationToken cancellationToken = default) where T : CustomResource
@@ -136,5 +137,10 @@ internal sealed class TestKubernetesService : IKubernetesService
     public Task<Stream> GetLogStreamAsync<T>(T obj, string logStreamType, bool? follow = true, bool? timestamps = false, CancellationToken cancellationToken = default) where T : CustomResource
     {
         return Task.FromResult(_startStream(obj, logStreamType));
+    }
+
+    public Task<T> PatchAsync<T>(T obj, V1Patch patch, CancellationToken cancellationToken = default) where T : CustomResource
+    {
+        return Task.FromResult(obj);
     }
 }

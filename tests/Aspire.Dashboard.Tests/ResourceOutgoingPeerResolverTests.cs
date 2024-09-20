@@ -26,6 +26,7 @@ public class ResourceOutgoingPeerResolverTests
             Urls = servicePort is null || servicePort is null ? [] : [new UrlViewModel(name, new($"http://{serviceAddress}:{servicePort}"), isInternal: false)],
             Volumes = [],
             State = null,
+            ReadinessState = ReadinessState.Ready,
             KnownState = null,
             StateStyle = null,
             Commands = []
