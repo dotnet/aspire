@@ -96,15 +96,15 @@ internal class WellKnownTypes
         }
 
         // Multiple types match the name. This is most likely caused by someone reusing the namespace + type name in their apps or libraries.
-        // Workaround this situation by prioritizing types in System and Microsoft assemblies.
+        // Workaround this situation by prioritizing types in Aspire assemblies.
         foreach (var type in types)
         {
-            if (type.ContainingAssembly.Identity.Name.StartsWith("System.", StringComparison.Ordinal)
-                || type.ContainingAssembly.Identity.Name.StartsWith("Microsoft.", StringComparison.Ordinal))
+            if (type.ContainingAssembly.Identity.Name.StartsWith("Aspire.", StringComparison.Ordinal))
             {
                 return type;
             }
         }
+
         return null;
     }
 
