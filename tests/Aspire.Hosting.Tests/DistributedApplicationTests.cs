@@ -260,6 +260,83 @@ public class DistributedApplicationTests
     [Fact]
     [RequiresDocker]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
+    public async Task VerifyContainerStopStartWorks()
+    {
+        using var testProgram = CreateTestProgram(randomizePorts: false);
+
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        testProgram.AppBuilder.AddContainer("redis0", "redis")
+            .WithEndpoint(targetPort: 6379, name: "tcp", env: "REDIS_PORT");
+
+        await using var app = testProgram.Build();
+
+        var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
+        var applicationExecutor = app.Services.GetRequiredService<ApplicationExecutor>();
+        var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
+
+        await app.StartAsync();
+
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromMinutes(1));
+        var token = cts.Token;
+
+        var containerPattern = $"redis0-{ReplicaIdRegex}-{suffix}";
+        var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, containerPattern, r => r.Status?.State == ContainerState.Running, token);
+        Assert.NotNull(redisContainer);
+
+        await applicationExecutor.StopResourceAsync(redisContainer.Metadata.Name, token);
+
+        redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, containerPattern, r => r.Status?.State == ContainerState.Exited, token);
+        Assert.NotNull(redisContainer);
+
+        // TODO: Container start has issues in DCP. Waiting for fix.
+        //await applicationExecutor.StartResourceAsync(redisContainer.Metadata.Name, token);
+
+        //redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, containerPattern, r => r.Status?.State == ContainerState.Running, token);
+        //Assert.NotNull(redisContainer);
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
+    public async Task VerifyExecutableStopStartWorks()
+    {
+        using var testProgram = CreateTestProgram(randomizePorts: false);
+
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        await using var app = testProgram.Build();
+
+        var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
+        var applicationExecutor = app.Services.GetRequiredService<ApplicationExecutor>();
+        var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
+
+        await app.StartAsync();
+
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromMinutes(1));
+        var token = cts.Token;
+
+        var executablePattern = $"servicea-{ReplicaIdRegex}-{suffix}";
+        var serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Running, token);
+        Assert.NotNull(serviceA);
+
+        await applicationExecutor.StopResourceAsync(serviceA.Metadata.Name, token);
+
+        serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Finished, token);
+        Assert.NotNull(serviceA);
+
+        await applicationExecutor.StartResourceAsync(serviceA.Metadata.Name, token);
+
+        serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Running, token);
+        Assert.NotNull(serviceA);
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task SpecifyingEnvPortInEndpointFlowsToEnv()
     {
         using var testProgram = CreateTestProgram(randomizePorts: false);

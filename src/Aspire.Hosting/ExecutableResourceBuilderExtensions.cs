@@ -47,7 +47,8 @@ public static class ExecutableResourceBuilderExtensions
                           {
                               context.Args.AddRange(args);
                           }
-                      });
+                      })
+                      .WithLifeCycleCommands();
     }
 
     /// <summary>
