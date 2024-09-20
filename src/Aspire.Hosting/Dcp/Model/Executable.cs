@@ -50,6 +50,10 @@ internal sealed class ExecutableSpec
     /// </summary>
     [JsonPropertyName("healthProbes")]
     public List<HealthProbe>? HealthProbes { get; set; }
+
+    // Should this resource be stopped?
+    [JsonPropertyName("stop")]
+    public bool? Stop { get; set; }
 }
 
 internal static class ExecutionType
