@@ -15,28 +15,24 @@ public class AspireRestClientOpenAIExtensionsTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void EmptyEndpointRegistersOpenAIComponent(bool useKeyed)
+    public void EmptyEndpointThrowsException(bool useKeyed)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:openai", "Key=fake")
         ]);
 
-        if (useKeyed)
+        Assert.Throws<InvalidOperationException>(() =>
         {
-            builder.AddKeyedOpenAIRestApiClient("openai");
-        }
-        else
-        {
-            builder.AddOpenAIRestApiClient("openai");
-        }
-
-        using var host = builder.Build();
-        var openAiClient = useKeyed ?
-            host.Services.GetRequiredKeyedService<OpenAIClient>("openai") :
-            host.Services.GetRequiredService<OpenAIClient>();
-
-        Assert.IsType<OpenAIClient>(openAiClient);
+            if (useKeyed)
+            {
+                builder.AddKeyedOpenAIClientFromConfiguration("openai");
+            }
+            else
+            {
+                builder.AddOpenAIClientFromConfiguration("openai");
+            }
+        });
     }
 
     [Theory]
@@ -51,11 +47,11 @@ public class AspireRestClientOpenAIExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedOpenAIRestApiClient("openai");
+            builder.AddKeyedOpenAIClientFromConfiguration("openai");
         }
         else
         {
-            builder.AddOpenAIRestApiClient("openai");
+            builder.AddOpenAIClientFromConfiguration("openai");
         }
 
         using var host = builder.Build();
@@ -78,11 +74,11 @@ public class AspireRestClientOpenAIExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedOpenAIRestApiClient("openai");
+            builder.AddKeyedOpenAIClientFromConfiguration("openai");
         }
         else
         {
-            builder.AddOpenAIRestApiClient("openai");
+            builder.AddOpenAIClientFromConfiguration("openai");
         }
 
         using var host = builder.Build();
@@ -105,11 +101,11 @@ public class AspireRestClientOpenAIExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedOpenAIRestApiClient("openai");
+            builder.AddKeyedOpenAIClientFromConfiguration("openai");
         }
         else
         {
-            builder.AddOpenAIRestApiClient("openai");
+            builder.AddOpenAIClientFromConfiguration("openai");
         }
 
         using var host = builder.Build();
@@ -131,8 +127,8 @@ public class AspireRestClientOpenAIExtensionsTests
             new KeyValuePair<string, string?>("ConnectionStrings:openai", $"Endpoint={domain};Key=fake")
         ]);
 
-        builder.AddOpenAIRestApiClient("openai");
-        
+        builder.AddOpenAIClientFromConfiguration("openai");
+
         using var host = builder.Build();
         var openAiClient = host.Services.GetRequiredService<OpenAIClient>();
 
@@ -151,11 +147,11 @@ public class AspireRestClientOpenAIExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedOpenAIRestApiClient("openai");
+            builder.AddKeyedOpenAIClientFromConfiguration("openai");
         }
         else
         {
-            builder.AddOpenAIRestApiClient("openai");
+            builder.AddOpenAIClientFromConfiguration("openai");
         }
 
         using var host = builder.Build();

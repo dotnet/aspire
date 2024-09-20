@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Data.Common;
+using Aspire.Azure.AI.OpenAI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenAI;
@@ -11,18 +12,18 @@ namespace Microsoft.Extensions.Hosting;
 /// <summary>
 /// Provides extension methods for registering <see cref="OpenAIClient"/> as a singleton in the services provided by the <see cref="IHostApplicationBuilder"/>.
 /// </summary>
-public static class AspireRestClientOpenAIExtensions
+public static class AspireConfigurableOpenAIExtensions
 {
     private const string ConnectionStringEndpoint = "Endpoint";
     private const string ConnectionStringIsAzure = "IsAzure";
 
     /// <summary>
     /// Registers <see cref="OpenAIClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
-    /// The concrete implementation is selected auto
+    /// The concrete implementation is selected automatically from configuration.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    public static void AddOpenAIRestApiClient(
+    public static void AddOpenAIClientFromConfiguration(
         this IHostApplicationBuilder builder,
         string connectionName)
     {
@@ -33,7 +34,7 @@ public static class AspireRestClientOpenAIExtensions
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
-            useAzure = IsAzureConnectionString(connectionString);
+            useAzure = IsAzureConnectionString(connectionString, connectionName);
         }
 
         if (useAzure)
@@ -48,11 +49,11 @@ public static class AspireRestClientOpenAIExtensions
 
     /// <summary>
     /// Registers <see cref="OpenAIClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
-    /// The concrete implementation is selected auto
+    /// The concrete implementation is selected automatically from configuration.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    public static void AddKeyedOpenAIRestApiClient(
+    public static void AddKeyedOpenAIClientFromConfiguration(
         this IHostApplicationBuilder builder,
         string name)
     {
@@ -63,7 +64,7 @@ public static class AspireRestClientOpenAIExtensions
 
         if (builder.Configuration.GetConnectionString(name) is string connectionString)
         {
-            useAzure = IsAzureConnectionString(connectionString);
+            useAzure = IsAzureConnectionString(connectionString, name);
         }
 
         if (useAzure)
@@ -76,24 +77,33 @@ public static class AspireRestClientOpenAIExtensions
         }
     }
 
-    private static bool IsAzureConnectionString(string connectionString)
+    private static bool IsAzureConnectionString(string connectionString, string connectionName)
     {
+        Uri? serviceUri = null;
+
         var connectionBuilder = new DbConnectionStringBuilder
         {
             ConnectionString = connectionString
         };
 
-        if (connectionBuilder.ContainsKey(ConnectionStringEndpoint) && Uri.TryCreate(connectionBuilder[ConnectionStringEndpoint].ToString(), UriKind.Absolute, out var serviceUri))
+        if (connectionBuilder.TryGetValue(ConnectionStringEndpoint, out var endpoint) && endpoint != null && Uri.TryCreate(endpoint.ToString(), UriKind.Absolute, out var endpointUri))
         {
-            if (connectionBuilder.ContainsKey(ConnectionStringIsAzure))
-            {
-                return bool.TryParse(connectionBuilder[ConnectionStringIsAzure].ToString(), out var isAzure) && isAzure;
-            }
+            serviceUri = endpointUri;
+        }
 
-            if (serviceUri.Host.Contains(".azure.", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
+        if (serviceUri == null)
+        {
+            throw new InvalidOperationException($"An OpenAIClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a '{nameof(AzureOpenAISettings.Endpoint)}' or '{nameof(AzureOpenAISettings.Key)}' in the '{connectionName}' configuration section.");
+        }
+
+        if (connectionBuilder.ContainsKey(ConnectionStringIsAzure))
+        {
+            return bool.TryParse(connectionBuilder[ConnectionStringIsAzure].ToString(), out var isAzure) && isAzure;
+        }
+
+        if (serviceUri.Host.Contains(".azure.", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
         }
 
         return false;

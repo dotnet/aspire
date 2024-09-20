@@ -36,9 +36,20 @@ public CognitiveController(AzureOpenAIClient client)
 }
 ```
 
-Additionally, you can retrieve the `AzureOpenAIClient` object using the base `OpenAIClient` service type. This allows for code that is not dependent on Azure OpenAI-specific features to not depend directly on Azure types.
-
 See the [Azure OpenAI Service quickstarts](https://learn.microsoft.com/azure/ai-services/openai/quickstart) for examples on using the `AzureOpenAIClient`.
+
+## Azure-agnostic client resolution
+
+You can retrieve the `AzureOpenAIClient` object using the base `OpenAIClient` service type. This allows for code that is not dependent on Azure OpenAI-specific features to not depend directly on Azure types.
+
+Additionally this package provides the `AddOpenAIClientFromConfiguration` extension method to register an `OpenAIClient` instance based on the connection string that is provided. This allows your application
+to register the best implementation for the OpenAI Rest API it connects. The following rules are followed:
+
+- If the `Endpoint` attribute is empty, the OpenAI service is used and an `OpenAIClient` instance is registered.
+- If the attribute `IsAzure` is provided, `AzureOpenAIClient` is registered if the value is `true`, `OpenAIClient` otherwise.
+- If the `Endpoint` attribute contains `".azure."` then `AzureOpenAIClient` is registered, `OpenAIClient` otherwise.
+
+In any case a valid connection string with either `Endpoint` or `Key` is required.
 
 ## Configuration
 
