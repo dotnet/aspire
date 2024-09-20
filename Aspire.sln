@@ -626,6 +626,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Meilisearch", "Meilisearch"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Meilisearch.ApiService", "playground\Meilisearch\Meilisearch.ApiService\Meilisearch.ApiService.csproj", "{91A564E3-EF6D-4F9B-B38B-55388F939393}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Meilisearch.Tests", "tests\Aspire.Hosting.Meilisearch.Tests\Aspire.Hosting.Meilisearch.Tests.csproj", "{27D4FD19-BD6F-4DFE-AC0D-AF176F725A7C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1648,6 +1650,10 @@ Global
 		{91A564E3-EF6D-4F9B-B38B-55388F939393}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{91A564E3-EF6D-4F9B-B38B-55388F939393}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{91A564E3-EF6D-4F9B-B38B-55388F939393}.Release|Any CPU.Build.0 = Release|Any CPU
+		{27D4FD19-BD6F-4DFE-AC0D-AF176F725A7C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27D4FD19-BD6F-4DFE-AC0D-AF176F725A7C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27D4FD19-BD6F-4DFE-AC0D-AF176F725A7C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27D4FD19-BD6F-4DFE-AC0D-AF176F725A7C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1950,6 +1956,7 @@ Global
 		{856EA788-FF62-464F-86DC-89189EE4F2C0} = {B4695EB1-085F-4552-94F4-83A8335E660B}
 		{B4695EB1-085F-4552-94F4-83A8335E660B} = {D173887B-AF42-4576-B9C1-96B9E9B3D9C0}
 		{91A564E3-EF6D-4F9B-B38B-55388F939393} = {B4695EB1-085F-4552-94F4-83A8335E660B}
+		{27D4FD19-BD6F-4DFE-AC0D-AF176F725A7C} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
