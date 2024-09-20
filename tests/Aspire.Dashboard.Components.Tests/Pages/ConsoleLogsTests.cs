@@ -89,18 +89,18 @@ public partial class ConsoleLogsTests : TestContext
     }
 
     [Fact]
-    public void ResourceName_ViaUrlAndResourceLoaded_LogViewerUpdated()
+    public async Task ResourceName_ViaUrlAndResourceLoaded_LogViewerUpdated()
     {
         // Arrange
         var testResource = CreateResourceViewModel("test-resource", KnownResourceState.Running);
-        var subscribedResourceNames = new List<string>();
+        var subscribedResourceNameTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
         var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
         var dashboardClient = new TestDashboardClient(
             isEnabled: true,
             consoleLogsChannelProvider: name =>
             {
-                subscribedResourceNames.Add(name);
+                subscribedResourceNameTcs.TrySetResult(name);
                 return consoleLogsChannel;
             },
             resourceChannelProvider: () => resourceChannel,
@@ -128,7 +128,8 @@ public partial class ConsoleLogsTests : TestContext
         cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
         cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
 
-        cut.WaitForAssertion(() => Assert.Single(subscribedResourceNames));
+        var subscribedResource = await subscribedResourceNameTcs.Task;
+        Assert.Equal("test-resource", subscribedResource);
 
         logger.LogInformation("Log results are added to log viewer.");
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, "Hello world", IsErrorMessage: false)]);
@@ -195,6 +196,7 @@ public partial class ConsoleLogsTests : TestContext
             State = state?.ToString(),
             KnownState = state,
             StateStyle = null,
+            ReadinessState = ReadinessState.Ready,
             Commands = []
         };
     }

@@ -24,7 +24,7 @@ public class ContainerResourceTests
 
         var containerResource = Assert.Single(containerResources);
         Assert.Equal("container", containerResource.Name);
-        var containerAnnotation = Assert.IsType<ContainerImageAnnotation>(Assert.Single(containerResource.Annotations));
+        var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal("latest", containerAnnotation.Tag);
         Assert.Equal("none", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
@@ -43,7 +43,7 @@ public class ContainerResourceTests
 
         var containerResource = Assert.Single(containerResources);
         Assert.Equal("container", containerResource.Name);
-        var containerAnnotation = Assert.IsType<ContainerImageAnnotation>(Assert.Single(containerResource.Annotations));
+        var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal("nightly", containerAnnotation.Tag);
         Assert.Equal("none", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);

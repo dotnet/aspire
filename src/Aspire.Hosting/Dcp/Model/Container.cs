@@ -64,6 +64,10 @@ internal sealed class ContainerSpec
     [JsonPropertyName("networks")]
     public List<ContainerNetworkConnection>? Networks { get; set; }
 
+    // Should this resource be stopped?
+    [JsonPropertyName("stop")]
+    public bool? Stop { get; set; }
+
     /// <summary>
     /// Optional lifecycle key for the resource (used to identify changes to persistent resources requiring a restart).
     /// If unset, DCP will calculate a default lifecycle key based on a hash of various resource spec properties.
