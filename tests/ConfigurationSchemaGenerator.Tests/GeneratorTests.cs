@@ -123,6 +123,7 @@ public partial class GeneratorTests
     [InlineData("<see cref=\"M:System.Diagnostics.Debug.Assert(bool)\"/>", "'System.Diagnostics.Debug.Assert(bool)'")]
     [InlineData("<see cref=\"E:System.Windows.Input.ICommand.CanExecuteChanged\"/>", "'System.Windows.Input.ICommand.CanExecuteChanged'")]
     [InlineData("<exception cref=\"T:System.InvalidOperationException\" />", "'System.InvalidOperationException'")]
+    [InlineData("<para><exception cref=\"T:System.InvalidOperationException\" /></para>", "'System.InvalidOperationException'")]
     public void ShouldQuoteCrefAttributes(string input, string expected)
     {
         var summaryElement = ConvertToSummaryElement(input);
