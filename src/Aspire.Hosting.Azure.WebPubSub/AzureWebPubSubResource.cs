@@ -1,7 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable AZPROVISION001
+
 using Aspire.Hosting.Azure;
+
+using Azure.Provisioning.WebPubSub;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -14,6 +18,8 @@ public class AzureWebPubSubResource(string name, Action<ResourceModuleConstruct>
     AzureConstructResource(name, configureConstruct),
     IResourceWithConnectionString
 {
+    internal Dictionary<string, Action<IResourceBuilder<AzureWebPubSubResource>, ResourceModuleConstruct, WebPubSubHub>> HubSettings { get; } = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>
     /// Gets the "endpoint" output reference from the bicep template for Azure Web PubSub.
     /// </summary>
