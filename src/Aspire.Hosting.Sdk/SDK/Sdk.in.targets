@@ -79,7 +79,7 @@
       <_AppHostVersion>@VERSION@</_AppHostVersion>
     </PropertyGroup>
 
-    <!-- At this point, we should have the version either by CPM or PackageReference, so we fail if not.  -->
+    <!-- At this point, we should have the version either by CPM or PackageReference, so we fail if not. -->
     <Error Condition="'$(_AppHostVersion)' == ''" 
        Text="$(MSBuildProjectName) is a .NET Aspire AppHost project that needs a package reference to Aspire.Hosting.AppHost version 8.2.0 or above to work correctly." />
 
