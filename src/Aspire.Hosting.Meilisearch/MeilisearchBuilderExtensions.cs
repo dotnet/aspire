@@ -35,7 +35,7 @@ public static class MeilisearchBuilderExtensions
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// var meilisearch = builder.Meilisearch("meilisearch");
+    /// var meilisearch = builder.AddMeilisearch("meilisearch");
     /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
     ///   .WithReference(meilisearch);
     ///  
