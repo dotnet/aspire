@@ -298,7 +298,6 @@ Aspire.Hosting.ApplicationModel.ResourceLoggerService.WatchAsync(string! resourc
 Aspire.Hosting.ApplicationModel.ResourceNotificationService
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.PublishUpdateAsync(Aspire.Hosting.ApplicationModel.IResource! resource, string! resourceId, System.Func<Aspire.Hosting.ApplicationModel.CustomResourceSnapshot!, Aspire.Hosting.ApplicationModel.CustomResourceSnapshot!>! stateFactory) -> System.Threading.Tasks.Task!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.PublishUpdateAsync(Aspire.Hosting.ApplicationModel.IResource! resource, System.Func<Aspire.Hosting.ApplicationModel.CustomResourceSnapshot!, Aspire.Hosting.ApplicationModel.CustomResourceSnapshot!>! stateFactory) -> System.Threading.Tasks.Task!
-Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger) -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WatchAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Aspire.Hosting.ApplicationModel.ResourceEvent!>!
 Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot
 Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot.Name.get -> string!
