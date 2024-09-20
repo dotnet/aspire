@@ -34,7 +34,10 @@ public class AzureQueueStorageResource(string name, AzureStorageResource storage
         }
         else
         {
+            // Injected to support Azure Functions listener.
             target[$"{connectionName}__queueServiceUri"] = Parent.QueueEndpoint;
+            // Injected to support Aspire client integration for Azure Storage Queues.
+            target[$"Aspire__Azure__Storage__Queues__{connectionName}__ServiceUri"] = Parent.QueueEndpoint;
         }
     }
 }

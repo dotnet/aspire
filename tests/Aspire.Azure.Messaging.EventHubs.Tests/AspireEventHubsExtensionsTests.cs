@@ -351,6 +351,52 @@ public class AspireEventHubsExtensionsTests
     }
 
     [Theory]
+    [InlineData(true, EventHubProducerClientIndex)]
+    [InlineData(true, EventHubConsumerClientIndex)]
+    [InlineData(true, EventProcessorClientIndex)]
+    [InlineData(true, PartitionReceiverIndex)]
+    [InlineData(true, EventBufferedProducerClientIndex)]
+    public void ReadsFromKeyedConfigurationSectionCorrectly(bool useKeyed, int clientIndex)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        ConfigureBlobServiceClient(useKeyed, builder.Services);
+
+        var key = useKeyed ? "eh" : null;
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "BlobClientServiceKey"), useKeyed ? "blobs" : null),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "BlobContainerName"), "checkpoints"),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey($"{AspireEventHubsSection}{s_clientTypes[clientIndex].Name}", key, "FullyQualifiedNamespace"),
+                FullyQualifiedNamespace),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey($"{AspireEventHubsSection}{s_clientTypes[clientIndex].Name}", key, "EventHubName"),
+                "MyHub"),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    AspireEventHubsSection + s_clientTypes[clientIndex].Name, key, "PartitionId"), "foo"),
+        ]);
+
+        if (useKeyed)
+        {
+            s_keyedClientAdders[clientIndex](builder, "eh", null);
+        }
+        else
+        {
+            s_clientAdders[clientIndex](builder, "eh", null);
+        }
+
+        using var host = builder.Build();
+        RetrieveAndAssert(useKeyed, clientIndex, host);
+    }
+
+    [Theory]
     [InlineData(false, EventHubProducerClientIndex)]
     [InlineData(true, EventHubProducerClientIndex)]
     [InlineData(false, EventHubConsumerClientIndex)]

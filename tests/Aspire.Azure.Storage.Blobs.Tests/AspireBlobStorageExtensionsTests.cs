@@ -125,6 +125,33 @@ public class AspireBlobStorageExtensionsTests
         Assert.Equal("aspirestoragetests", client.AccountName);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ReadsFromKeyedConfigurationSectionCorrectly(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("Aspire:Azure:Storage:Blobs:blob:ServiceUri", ConformanceTests.ServiceUri)
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddKeyedAzureBlobClient("blob");
+        }
+        else
+        {
+            builder.AddAzureBlobClient("blob");
+        }
+
+        using var host = builder.Build();
+        var client = useKeyed ?
+            host.Services.GetRequiredKeyedService<BlobServiceClient>("blob") :
+            host.Services.GetRequiredService<BlobServiceClient>();
+
+        Assert.Equal("aspirestoragetests", client.AccountName);
+    }
+
     [Fact]
     public void CanAddMultipleKeyedServices()
     {

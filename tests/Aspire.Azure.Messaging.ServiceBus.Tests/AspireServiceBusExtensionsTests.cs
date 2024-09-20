@@ -43,6 +43,33 @@ public class AspireServiceBusExtensionsTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    public void ReadsFromNamedConfigurationSectionCorrectly(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("Aspire:Azure:Messaging:ServiceBus:sb:FullyQualifiedNamespace", ConformanceTests.FullyQualifiedNamespace)
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddKeyedAzureServiceBusClient("sb");
+        }
+        else
+        {
+            builder.AddAzureServiceBusClient("sb");
+        }
+
+        using var host = builder.Build();
+        var client = useKeyed ?
+            host.Services.GetRequiredKeyedService<ServiceBusClient>("sb") :
+            host.Services.GetRequiredService<ServiceBusClient>();
+
+        Assert.Equal(ConformanceTests.FullyQualifiedNamespace, client.FullyQualifiedNamespace);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void ConnectionStringCanBeSetInCode(bool useKeyed)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);

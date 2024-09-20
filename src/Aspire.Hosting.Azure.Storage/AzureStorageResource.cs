@@ -67,8 +67,12 @@ public class AzureStorageResource(string name, Action<ResourceModuleConstruct> c
         }
         else
         {
+            // Injected to support Azure Functions listener initialization.
             target[$"{connectionName}__blobServiceUri"] = BlobEndpoint;
             target[$"{connectionName}__queueServiceUri"] = QueueEndpoint;
+            // Injected to support Aspire client integration for Azure Storage.
+            target[$"Aspire__Azure__Storage__Blobs__{connectionName}__ServiceUri"] = BlobEndpoint;
+            target[$"Aspire__Azure__Storage__Queues__{connectionName}__ServiceUri"] = QueueEndpoint;
         }
     }
 }
