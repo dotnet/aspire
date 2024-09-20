@@ -68,6 +68,9 @@ public partial class PropertyGrid<TItem> where TItem : IPropertyGridItem
     public IQueryable<TItem>? Items { get; set; }
 
     [Parameter]
+    public Func<TItem, object?> ItemKey { get; init; } = static item => item.Name;
+
+    [Parameter]
     public string GridTemplateColumns { get; set; } = "1fr 1fr";
 
     [Parameter]
