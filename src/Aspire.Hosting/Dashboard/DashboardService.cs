@@ -130,6 +130,24 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         }
     }
 
+    public override async Task<ResourceCommandResponse> ExecuteResourceCommand(ResourceCommandRequest request, ServerCallContext context)
+    {
+        var (result, errorMessage) = await serviceData.ExecuteCommandAsync(request.ResourceName, request.CommandType, context.CancellationToken).ConfigureAwait(false);
+        var responseKind = result switch
+        {
+            DashboardServiceData.ExecuteCommandResult.Success => ResourceCommandResponseKind.Succeeded,
+            DashboardServiceData.ExecuteCommandResult.Canceled => ResourceCommandResponseKind.Cancelled,
+            DashboardServiceData.ExecuteCommandResult.Failure => ResourceCommandResponseKind.Failed,
+            _ => ResourceCommandResponseKind.Undefined
+        };
+
+        return new ResourceCommandResponse
+        {
+            Kind = responseKind,
+            ErrorMessage = errorMessage ?? string.Empty
+        };
+    }
+
     private async Task ExecuteAsync(Func<CancellationToken, Task> execute, ServerCallContext serverCallContext)
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping, serverCallContext.CancellationToken);

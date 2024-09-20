@@ -2,12 +2,12 @@
 @using Aspire.Dashboard.Model
 @using Microsoft.FluentUI.AspNetCore.Components
 
-@foreach (var highlightedCommand in Commands.Where(c => c.IsHighlighted))
+@foreach (var highlightedCommand in Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden))
 {
-    <FluentButton Appearance="Appearance.Lightweight" Title="@(highlightedCommand.DisplayDescription ?? highlightedCommand.DisplayName)" OnClick="@(() => CommandSelected.InvokeAsync(highlightedCommand))">
+    <FluentButton Appearance="Appearance.Lightweight" Title="@(highlightedCommand.DisplayDescription ?? highlightedCommand.DisplayName)" OnClick="@(() => CommandSelected.InvokeAsync(highlightedCommand))" Disabled="@(highlightedCommand.State == CommandViewModelState.Disabled)">
         @if (!string.IsNullOrEmpty(highlightedCommand.IconName) && CommandViewModel.ResolveIconName(highlightedCommand.IconName) is { } icon)
         {
-            <FluentIcon Value="icon" />
+            <FluentIcon Value="@icon" />
         }
         else
         {
