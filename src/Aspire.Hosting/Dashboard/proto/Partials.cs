@@ -10,7 +10,7 @@ partial class Resource
 {
     public static Resource FromSnapshot(ResourceSnapshot snapshot)
     {
-        Resource resource = new()
+        var resource = new Resource
         {
             Name = snapshot.Name,
             ResourceType = snapshot.ResourceType,
@@ -56,47 +56,23 @@ partial class Resource
             });
         }
 
-        // Disable start/stop/restart commands until host/DCP infrastructure is ready.
-        /*
-        if (snapshot.ResourceType is KnownResourceTypes.Project or KnownResourceTypes.Container or KnownResourceTypes.Executable)
+        foreach (var command in snapshot.Commands)
         {
-            if (snapshot.State is "Exited" or "Finished" or "FailedToStart")
-            {
-                resource.Commands.Add(new ResourceCommand
-                {
-                    CommandType = "Start",
-                    ConfirmationMessage = "ConfirmationMessage!",
-                    DisplayName = "Start",
-                    DisplayDescription = "Start resource",
-                    IsHighlighted = true,
-                    IconName = "Play"
-                });
-            }
-            else
-            {
-                resource.Commands.Add(new ResourceCommand
-                {
-                    CommandType = "Stop",
-                    ConfirmationMessage = "ConfirmationMessage!",
-                    DisplayName = "Stop",
-                    DisplayDescription = "Stop resource",
-                    IsHighlighted = true,
-                    IconName = "Stop"
-                });
-            }
-
-            resource.Commands.Add(new ResourceCommand
-            {
-                CommandType = "Restart",
-                ConfirmationMessage = "ConfirmationMessage!",
-                DisplayName = "Restart",
-                DisplayDescription = "Restart resource",
-                IsHighlighted = false,
-                IconName = "ArrowCounterclockwise"
-            });
+            resource.Commands.Add(new ResourceCommand { CommandType = command.Type, DisplayName = command.DisplayName, IconName = command.IconName, IsHighlighted = command.IsHighlighted, State = MapCommandState(command.State) });
         }
-        */
 
         return resource;
     }
+
+    private static ResourceCommandState MapCommandState(Hosting.ApplicationModel.ResourceCommandState state)
+    {
+        return state switch
+        {
+            Hosting.ApplicationModel.ResourceCommandState.Enabled => ResourceCommandState.Enabled,
+            Hosting.ApplicationModel.ResourceCommandState.Disabled => ResourceCommandState.Disabled,
+            Hosting.ApplicationModel.ResourceCommandState.Hidden => ResourceCommandState.Hidden,
+            _ => throw new InvalidOperationException("Unexpected state: " + state)
+        };
+    }
+
 }

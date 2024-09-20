@@ -25,6 +25,7 @@ internal abstract class ResourceSnapshot
     public required ImmutableArray<VolumeSnapshot> Volumes { get; init; }
     public required ImmutableArray<UrlSnapshot> Urls { get; init; }
     public required HealthStateKind? HealthState { get; set; }
+    public required ImmutableArray<ResourceCommandSnapshot> Commands { get; init; }
 
     protected abstract IEnumerable<(string Key, Value Value, bool IsSensitive)> GetProperties();
 
