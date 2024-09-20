@@ -288,13 +288,14 @@ public class AnsiParser
 
     private static bool IsConEmuSequence(ReadOnlySpan<char> span, ref int position)
     {
-        // If we're at \x1B[
+        // If we're at \x1B]
         if (span.Length <= 2 || (span[0] != EscapeChar || span[1] != ']'))
         {
             return false;
         }
 
-        // Find the index of the next 'm' character
+        // Find the index of the end character.
+        // End character can be either \x1B (ESC) or \x07 (BELL)
         var endEscPosition = span.IndexOf("\x1B\\");
         var endBellPosition = span.IndexOf("\x07");
 
