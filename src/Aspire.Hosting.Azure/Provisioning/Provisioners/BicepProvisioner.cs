@@ -87,11 +87,11 @@ internal sealed class BicepProvisioner(
         {
             ImmutableArray<ResourcePropertySnapshot> props = [
                 .. state.Properties,
-                    new("azure.subscription.id", configuration["Azure:SubscriptionId"]),
-                    // new("azure.resource.group", configuration["Azure:ResourceGroup"]!),
-                    new("azure.tenant.domain", configuration["Azure:Tenant"]),
-                    new("azure.location", configuration["Azure:Location"]),
-                    new(CustomResourceKnownProperties.Source, section["Id"])
+                    new("azure.subscription.id", configuration["Azure:SubscriptionId"], IsSensitive: false),
+                    // new("azure.resource.group", configuration["Azure:ResourceGroup"]!, IsSensitive: false),
+                    new("azure.tenant.domain", configuration["Azure:Tenant"], IsSensitive: false),
+                    new("azure.location", configuration["Azure:Location"], IsSensitive: false),
+                    new(CustomResourceKnownProperties.Source, section["Id"], IsSensitive: false)
             ];
 
             return state with
@@ -112,10 +112,10 @@ internal sealed class BicepProvisioner(
             ResourceType = resource.GetType().Name,
             State = new("Starting", KnownResourceStateStyles.Info),
             Properties = [
-                new("azure.subscription.id", context.Subscription.Id.Name),
-                new("azure.resource.group", context.ResourceGroup.Id.Name),
-                new("azure.tenant.domain", context.Tenant.Data.DefaultDomain),
-                new("azure.location", context.Location.ToString()),
+                new("azure.subscription.id", context.Subscription.Id.Name, IsSensitive: false),
+                new("azure.resource.group", context.ResourceGroup.Id.Name, IsSensitive: false),
+                new("azure.tenant.domain", context.Tenant.Data.DefaultDomain, IsSensitive: false),
+                new("azure.location", context.Location.ToString(), IsSensitive: false),
             ]
         }).ConfigureAwait(false);
 
@@ -337,7 +337,7 @@ internal sealed class BicepProvisioner(
         {
             ImmutableArray<ResourcePropertySnapshot> properties = [
                 .. state.Properties,
-                new(CustomResourceKnownProperties.Source, deployment.Id.Name)
+                new(CustomResourceKnownProperties.Source, deployment.Id.Name, IsSensitive: false)
             ];
 
             return state with

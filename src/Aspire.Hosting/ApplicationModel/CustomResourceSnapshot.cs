@@ -103,7 +103,8 @@ public sealed record VolumeSnapshot(string? Source, string Target, string MountT
 /// </summary>
 /// <param name="Name">The name of the property.</param>
 /// <param name="Value">The value of the property.</param>
-public sealed record ResourcePropertySnapshot(string Name, object? Value);
+/// <param name="IsSensitive">Whether this property is considered sensitive or not.</param>
+public sealed record ResourcePropertySnapshot(string Name, object? Value, bool IsSensitive);
 
 /// <summary>
 /// The set of well known resource states.

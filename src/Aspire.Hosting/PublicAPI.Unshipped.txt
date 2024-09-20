@@ -43,6 +43,9 @@ Aspire.Hosting.ApplicationModel.HealthCheckAnnotation.HealthCheckAnnotation(stri
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation.Key.get -> string!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, System.Func<Aspire.Hosting.ApplicationModel.ResourceEvent!, bool>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ResourceEvent!>!
+Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot.IsSensitive.get -> bool
+Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot.IsSensitive.init -> void
+Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot.ResourcePropertySnapshot(string! Name, object? Value, bool IsSensitive) -> void
 Aspire.Hosting.ApplicationModel.VolumeSnapshot
 Aspire.Hosting.ApplicationModel.VolumeSnapshot.IsReadOnly.get -> bool
 Aspire.Hosting.ApplicationModel.VolumeSnapshot.IsReadOnly.init -> void

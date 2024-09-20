@@ -26,24 +26,24 @@ internal abstract class ResourceSnapshot
     public required ImmutableArray<UrlSnapshot> Urls { get; init; }
     public required HealthStateKind? HealthState { get; set; }
 
-    protected abstract IEnumerable<(string Key, Value Value)> GetProperties();
+    protected abstract IEnumerable<(string Key, Value Value, bool IsSensitive)> GetProperties();
 
-    public IEnumerable<(string Name, Value Value)> Properties
+    public IEnumerable<(string Name, Value Value, bool IsSensitive)> Properties
     {
         get
         {
-            yield return (KnownProperties.Resource.Uid, Value.ForString(Uid));
-            yield return (KnownProperties.Resource.Name, Value.ForString(Name));
-            yield return (KnownProperties.Resource.Type, Value.ForString(ResourceType));
-            yield return (KnownProperties.Resource.DisplayName, Value.ForString(DisplayName));
-            yield return (KnownProperties.Resource.State, State is null ? Value.ForNull() : Value.ForString(State));
-            yield return (KnownProperties.Resource.ExitCode, ExitCode is null ? Value.ForNull() : Value.ForString(ExitCode.Value.ToString("D", CultureInfo.InvariantCulture)));
-            yield return (KnownProperties.Resource.CreateTime, CreationTimeStamp is null ? Value.ForNull() : Value.ForString(CreationTimeStamp.Value.ToString("O")));
-            yield return (KnownProperties.Resource.HealthState, HealthState is null ? Value.ForNull() : Value.ForString(HealthState.ToString()));
+            yield return (KnownProperties.Resource.Uid, Value.ForString(Uid), IsSensitive: false);
+            yield return (KnownProperties.Resource.Name, Value.ForString(Name), IsSensitive: false);
+            yield return (KnownProperties.Resource.Type, Value.ForString(ResourceType), IsSensitive: false);
+            yield return (KnownProperties.Resource.DisplayName, Value.ForString(DisplayName), IsSensitive: false);
+            yield return (KnownProperties.Resource.State, State is null ? Value.ForNull() : Value.ForString(State), IsSensitive: false);
+            yield return (KnownProperties.Resource.ExitCode, ExitCode is null ? Value.ForNull() : Value.ForString(ExitCode.Value.ToString("D", CultureInfo.InvariantCulture)), IsSensitive: false);
+            yield return (KnownProperties.Resource.CreateTime, CreationTimeStamp is null ? Value.ForNull() : Value.ForString(CreationTimeStamp.Value.ToString("O")), IsSensitive: false);
+            yield return (KnownProperties.Resource.HealthState, HealthState is null ? Value.ForNull() : Value.ForString(HealthState.ToString()), IsSensitive: false);
 
-            foreach (var pair in GetProperties())
+            foreach (var property in GetProperties())
             {
-                yield return pair;
+                yield return property;
             }
         }
     }

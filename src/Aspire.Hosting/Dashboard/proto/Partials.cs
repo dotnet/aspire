@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Immutable;
-using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dashboard;
 using Google.Protobuf.WellKnownTypes;
 
@@ -10,15 +8,6 @@ namespace Aspire.ResourceService.Proto.V1;
 
 partial class Resource
 {
-    /// <summary>
-    /// Names of resource properties known to contain potentially sensitive values that should be masked in the UI by default.
-    /// </summary>
-    private static readonly ImmutableHashSet<string> s_knownSensitiveResourcePropertyNames =
-    [
-        KnownProperties.Container.Args,
-        KnownProperties.Executable.Args,
-    ];
-
     public static Resource FromSnapshot(ResourceSnapshot snapshot)
     {
         Resource resource = new()
@@ -53,9 +42,7 @@ partial class Resource
 
         foreach (var property in snapshot.Properties)
         {
-            var isSensitive = s_knownSensitiveResourcePropertyNames.Contains(property.Name);
-
-            resource.Properties.Add(new ResourceProperty { Name = property.Name, Value = property.Value, IsSensitive = isSensitive });
+            resource.Properties.Add(new ResourceProperty { Name = property.Name, Value = property.Value, IsSensitive = property.IsSensitive });
         }
 
         foreach (var volume in snapshot.Volumes)
