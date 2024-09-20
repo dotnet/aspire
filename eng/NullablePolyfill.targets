@@ -15,7 +15,6 @@
                      '$(MSBuildProjectExtension)' == '.csproj' and
                      '$(TargetFrameworkIdentifier)' != '.NETCoreApp'">
       <PropertyGroup>
-        <DefineConstants>$(DefineConstants),INTERNAL_NULLABLE_ATTRIBUTES</DefineConstants>
         <!-- Repo-specific property to enable nullability warnings for ns2.0 -->
         <NoWarn Condition=" '$(WarnOnNullable)' != 'true' ">$(NoWarn);nullable</NoWarn>
       </PropertyGroup>
