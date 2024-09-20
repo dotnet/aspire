@@ -2041,10 +2041,13 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         async Task StartExecutableOrContainerAsync<T>(T resource) where T : CustomResource
         {
+            var resourceName = resource.Metadata.Name;
+            _logger.LogDebug("Starting {ResouceType} '{ResourceName}'.", typeof(T).Name, resourceName);
+
             var resourceNotFound = false;
             try
             {
-                await kubernetesService.DeleteAsync<T>(resource.Metadata.Name, cancellationToken: cancellationToken).ConfigureAwait(false);
+                await kubernetesService.DeleteAsync<T>(resourceName, cancellationToken: cancellationToken).ConfigureAwait(false);
             }
             catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -2057,22 +2060,34 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             // to discover when it is safe to recreate the resource. This is required because the resources share the same name.
             if (!resourceNotFound)
             {
-                // Limit polling to 5 attempts to avoid hanging with an infinite loop.
-                for (var i = 0; i < 5; i++)
+                var ensureDeleteRetryStrategy = new RetryStrategyOptions()
                 {
-                    // Pause to give DCP a chance to finish deleting the resource.
-                    await Task.Delay(100 * (i + 1), cancellationToken).ConfigureAwait(false);
+                    BackoffType = DelayBackoffType.Linear,
+                    MaxDelay = TimeSpan.FromSeconds(0.5),
+                    UseJitter = true,
+                    MaxRetryAttempts = 5,
+                    ShouldHandle = new PredicateBuilder().Handle<Exception>(),
+                    OnRetry = (retry) =>
+                    {
+                        _logger.LogDebug("Retrying check for deleted resource '{ResourceName}'. Attempt: {Attempt}", resourceName, retry.AttemptNumber);
+                        return ValueTask.CompletedTask;
+                    }
+                };
 
+                var execution = new ResiliencePipelineBuilder().AddRetry(ensureDeleteRetryStrategy).Build();
+
+                await execution.ExecuteAsync(async (attemptCancellationToken) =>
+                {
                     try
                     {
-                        await kubernetesService.GetAsync<T>(resource.Metadata.Name, cancellationToken: cancellationToken).ConfigureAwait(false);
+                        await kubernetesService.GetAsync<T>(resource.Metadata.Name, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
+                        throw new InvalidOperationException($"Resource '{resourceName}' found after delete.");
                     }
                     catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     {
                         resourceNotFound = true;
-                        break;
                     }
-                }
+                }, cancellationToken).ConfigureAwait(false);
 
                 if (!resourceNotFound)
                 {
