@@ -237,8 +237,4 @@ public sealed record class VolumeViewModel(string? Source, string Target, string
     string? IPropertyGridItem.Name => Source;
 
     string? IPropertyGridItem.Value => Target;
-
-    bool IPropertyGridItem.IsValueSensitive => false;
-
-    bool IPropertyGridItem.IsValueMasked { get => false; set => throw new NotImplementedException(); }
 }
