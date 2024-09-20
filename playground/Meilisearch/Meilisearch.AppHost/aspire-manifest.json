@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
+  "resources": {
+    "meilisearch": {
+      "type": "container.v0",
+      "connectionString": "http://{meilisearch.bindings.http.host}:{meilisearch.bindings.http.port}",
+      "image": "docker.io/getmeili/meilisearch:v1.10",
+      "volumes": [
+        {
+          "name": "Meilisearch.AppHost-meilisearch-data",
+          "target": "/meili_data",
+          "readOnly": false
+        }
+      ],
+      "env": {
+        "MEILI_MASTER_KEY": "{meilisearch-masterKey.value}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 7700
+        }
+      }
+    },
+    "meilisearch-apiservice": {
+      "type": "project.v0",
+      "path": "../Meilisearch.ApiService/Meilisearch.ApiService.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{meilisearch-apiservice.bindings.http.targetPort}",
+        "ConnectionStrings__meilisearch": "{meilisearch.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    },
+    "meilisearch-masterKey": {
+      "type": "parameter.v0",
+      "value": "{meilisearch-masterKey.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22
+            }
+          }
+        }
+      }
+    }
+  }
+}

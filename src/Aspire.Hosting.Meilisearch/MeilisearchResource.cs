@@ -34,6 +34,6 @@ public class MeilisearchResource : ContainerResource, IResourceWithConnectionStr
     /// Gets the connection string expression for the Meilisearch
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"http://{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+        ReferenceExpression.Create($"Endpoint=http://{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)};MasterKey={MasterKeyParameter}");
 }
 

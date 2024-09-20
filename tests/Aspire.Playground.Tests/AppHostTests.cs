@@ -138,6 +138,13 @@ public class AppHostTests
     {
         IList<TestEndpoints> candidates =
         [
+            new TestEndpoints("Meilisearch.AppHost",
+                resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "create", "search"] } },
+                waitForTexts: [
+                    new ("meilisearch", "Server listening"),
+                    new ("apiservice", "Application started")
+                ],
+                whenReady: TestEventHubsAppHost),
             new TestEndpoints("EventHubs.AppHost",
                 resourceEndpoints: new() { { "api", ["/alive", "/health"] } },
                 waitForTexts: [
