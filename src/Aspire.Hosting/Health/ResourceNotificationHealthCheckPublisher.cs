@@ -21,6 +21,17 @@ internal class ResourceNotificationHealthCheckPublisher(DistributedApplicationMo
                 {
                     HealthStatus = status
                 }).ConfigureAwait(false);
+
+                if (resource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
+                {
+                    foreach (var (id, _) in replicaAnnotation.Instances)
+                    {
+                        await resourceNotificationService.PublishUpdateAsync(resource, id, s => s with
+                        {
+                            HealthStatus = status
+                        }).ConfigureAwait(false);
+                    }
+                }
             }
         }
     }

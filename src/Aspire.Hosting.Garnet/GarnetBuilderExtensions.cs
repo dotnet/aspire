@@ -83,11 +83,11 @@ public static class GarnetBuilderExtensions
     /// Adds a named volume for the data folder to a Garnet container resource and enables Garnet persistence.
     /// </summary>
     /// <example>
-    /// Use <see cref="WithPersistence(IResourceBuilder{GarnetResource}, TimeSpan?, long)"/> to adjust Garnet persistence configuration, e.g.:
+    /// Use <see cref="WithPersistence(IResourceBuilder{GarnetResource}, TimeSpan?)"/> to adjust Garnet persistence configuration, e.g.:
     /// <code lang="csharp">
     /// var cache = builder.AddGarnet("cache")
     ///                    .WithDataVolume()
-    ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
+    ///                    .WithPersistence(TimeSpan.FromSeconds(10));
     /// </code>
     /// </example>
     /// <param name="builder">The resource builder.</param>
@@ -116,11 +116,11 @@ public static class GarnetBuilderExtensions
     /// Adds a bind mount for the data folder to a Garnet container resource and enables Garnet persistence.
     /// </summary>
     /// <example>
-    /// Use <see cref="WithPersistence(IResourceBuilder{GarnetResource}, TimeSpan?, long)"/> to adjust Garnet persistence configuration, e.g.:
+    /// Use <see cref="WithPersistence(IResourceBuilder{GarnetResource}, TimeSpan?)"/> to adjust Garnet persistence configuration, e.g.:
     /// <code lang="csharp">
     /// var garnet = builder.AddGarnet("garnet")
     ///                    .WithDataBindMount("mydata")
-    ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
+    ///                    .WithPersistence(TimeSpan.FromSeconds(10));
     /// </code>
     /// </example>
     /// <param name="builder">The resource builder.</param>
@@ -154,24 +154,46 @@ public static class GarnetBuilderExtensions
     /// <code lang="csharp">
     /// var cache = builder.AddGarnet("cache")
     ///                    .WithDataVolume()
-    ///                    .WithPersistence(TimeSpan.FromSeconds(10), 5);
+    ///                    .WithPersistence(TimeSpan.FromSeconds(10));
     /// </code>
     /// </example>
     /// <param name="builder">The resource builder.</param>
     /// <param name="interval">The interval between snapshot exports. Defaults to 60 seconds.</param>
     /// <param name="keysChangedThreshold">The number of key change operations required to trigger a snapshot at the interval. Defaults to 1.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete("This method is obsolete and will be removed in a future version. Use the overload without the keysChangedThreshold parameter.")]
     public static IResourceBuilder<GarnetResource> WithPersistence(this IResourceBuilder<GarnetResource> builder,
-        TimeSpan? interval = null, long keysChangedThreshold = 1)
+        TimeSpan? interval, long keysChangedThreshold)
+        => WithPersistence(builder, interval);
+
+    /// <summary>
+    /// Configures a Garnet container resource for persistence.
+    /// </summary>
+    /// <example>
+    /// Use with <see cref="WithDataBindMount(IResourceBuilder{GarnetResource}, string, bool)"/>
+    /// or <see cref="WithDataVolume(IResourceBuilder{GarnetResource}, string?, bool)"/> to persist Garnet data across sessions with custom persistence configuration, e.g.:
+    /// <code lang="csharp">
+    /// var cache = builder.AddGarnet("cache")
+    ///                    .WithDataVolume()
+    ///                    .WithPersistence(TimeSpan.FromSeconds(10));
+    /// </code>
+    /// </example>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="interval">The interval between snapshot exports. Defaults to 60 seconds.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<GarnetResource> WithPersistence(this IResourceBuilder<GarnetResource> builder,
+        TimeSpan? interval = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         return builder.WithAnnotation(new CommandLineArgsCallbackAnnotation(context =>
         {
-            context.Args.Add("--save");
-            context.Args.Add(
-                (interval ?? TimeSpan.FromSeconds(60)).TotalSeconds.ToString(CultureInfo.InvariantCulture));
-            context.Args.Add(keysChangedThreshold.ToString(CultureInfo.InvariantCulture));
+            context.Args.Add("--checkpointdir");
+            context.Args.Add("/data/checkpoints");
+            context.Args.Add("--recover");
+            context.Args.Add("--aof");
+            context.Args.Add("--aof-commit-freq");
+            context.Args.Add((interval ?? TimeSpan.FromSeconds(60)).TotalMilliseconds.ToString(CultureInfo.InvariantCulture));
             return Task.CompletedTask;
         }), ResourceAnnotationMutationBehavior.Replace);
     }
