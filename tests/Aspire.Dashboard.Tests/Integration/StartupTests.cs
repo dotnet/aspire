@@ -93,7 +93,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         try
         {
             var config = new ConfigurationManager()
-                .AddInMemoryCollection(new Dictionary<string, string?> { [DashboardConfigNames.DashboardFileConfigDirectory.ConfigKey] = fileConfigDirectory.FullName })
+                .AddInMemoryCollection(new Dictionary<string, string?> { [DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] = fileConfigDirectory.FullName })
                 .Build();
             WebApplicationBuilder? localBuilder = null;
             Action<WebApplicationBuilder> webApplicationBuilderConfigAction = builder =>
@@ -126,7 +126,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         try
         {
             var config = new ConfigurationManager()
-                .AddInMemoryCollection(new Dictionary<string, string?> { [DashboardConfigNames.DashboardFileConfigDirectory.ConfigKey] = fileConfigDirectory.FullName })
+                .AddInMemoryCollection(new Dictionary<string, string?> { [DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] = fileConfigDirectory.FullName })
                 .Build();
             WebApplicationBuilder? localBuilder = null;
             Action<WebApplicationBuilder> webApplicationBuilderConfigAction = builder =>
@@ -165,7 +165,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
                 data =>
                 {
-                    data[DashboardConfigNames.DashboardFileConfigDirectory.ConfigKey] = fileConfigDirectory;
+                    data[DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] = fileConfigDirectory;
                 });
         });
 

@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Globalization;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.ResourceService.Proto.V1;
 using Google.Protobuf.WellKnownTypes;
 
 namespace Aspire.Hosting.Dashboard;
@@ -22,8 +23,9 @@ internal abstract class ResourceSnapshot
     public required DateTime? CreationTimeStamp { get; init; }
     public required ImmutableArray<EnvironmentVariableSnapshot> Environment { get; init; }
     public required ImmutableArray<VolumeSnapshot> Volumes { get; init; }
-
     public required ImmutableArray<UrlSnapshot> Urls { get; init; }
+    public required HealthStateKind? HealthState { get; set; }
+    public required ImmutableArray<ResourceCommandSnapshot> Commands { get; init; }
 
     protected abstract IEnumerable<(string Key, Value Value)> GetProperties();
 
@@ -38,6 +40,7 @@ internal abstract class ResourceSnapshot
             yield return (KnownProperties.Resource.State, State is null ? Value.ForNull() : Value.ForString(State));
             yield return (KnownProperties.Resource.ExitCode, ExitCode is null ? Value.ForNull() : Value.ForString(ExitCode.Value.ToString("D", CultureInfo.InvariantCulture)));
             yield return (KnownProperties.Resource.CreateTime, CreationTimeStamp is null ? Value.ForNull() : Value.ForString(CreationTimeStamp.Value.ToString("O")));
+            yield return (KnownProperties.Resource.HealthState, HealthState is null ? Value.ForNull() : Value.ForString(HealthState.ToString()));
 
             foreach (var pair in GetProperties())
             {

@@ -11,6 +11,7 @@
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <IncludeBuildOutput>false</IncludeBuildOutput>
+    <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
     <PackageOutputPath Condition=" '$(PackageOutputPath)' == '' ">$(ArtifactsShippingPackagesDir)</PackageOutputPath>
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);AddPackageFiles</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
@@ -30,7 +31,7 @@
   </ItemGroup>
 
    <ItemGroup>
-    <None Include="build*/*.props;**/*.targets" Pack="true" PerformTextReplacement="true" PackagePath="%(RecursiveDir)$(AssemblyName)%(Extension)" />
+    <None Include="**/*.targets" Pack="true" PerformTextReplacement="true" PackagePath="%(RecursiveDir)$(AssemblyName)%(Extension)" />
    </ItemGroup>
 
   <!-- Package downloads to DCP packages as we need to repack the binaries from them -->
@@ -75,7 +76,7 @@
   </Target>
 
   <ItemGroup>
-    <None Include="Aspire.Hosting.Orchestration.in.targets" PerformTextReplacement="True" pack="true" PackagePath="build/$(PackageId).targets" />
+    <None Update="Aspire.Hosting.Orchestration.targets" PerformTextReplacement="" pack="true" PackagePath="build/$(PackageId).targets" />
     <None Include="UnixFilePermissions.xml" Pack="true" PackagePath="data/" Condition=" '$(DcpPlatformType)' == 'Unix' " />
   </ItemGroup>
 

@@ -218,6 +218,10 @@ namespace Projects%3B
         <_Parameter1>apphostprojectpath</_Parameter1>
         <_Parameter2>$(MSBuildProjectDirectory)</_Parameter2>
       </AssemblyAttribute>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+        <_Parameter1>apphostprojectname</_Parameter1>
+        <_Parameter2>$(MSBuildProjectFile)</_Parameter2>
+      </AssemblyAttribute>
     </ItemGroup>
   </Target>
 
