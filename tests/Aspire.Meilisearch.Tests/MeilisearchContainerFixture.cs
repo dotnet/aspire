@@ -33,7 +33,7 @@ public sealed class MeilisearchContainerFixture : IAsyncLifetime
             _masterKey = PasswordGenerator.Generate(minLength: 16, lower: true, upper: true, numeric: true, special: false, minLower: 1, minUpper: 1, minNumeric: 1, minSpecial: 0);
 
             Container = new ContainerBuilder()
-              .WithImage($"{MeilisearchContainerImageTags.Registry}/{MeilisearchContainerImageTags.Image}:{MeilisearchContainerImageTags.Tag}")
+              .WithImage($"{TestConstants.AspireTestContainerRegistry}/{MeilisearchContainerImageTags.Image}:{MeilisearchContainerImageTags.Tag}")
               .WithPortBinding(7700, true)
               .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(7700)))
               .WithEnvironment("MEILI_MASTER_KEY", _masterKey)
