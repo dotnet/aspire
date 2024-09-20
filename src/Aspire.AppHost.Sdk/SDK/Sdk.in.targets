@@ -22,7 +22,7 @@
   Default AppHost ProjectReference items to not be referenced in the AppHost, unless it is IsAspireProjectResource=false.
   This defaulting needs to happen in the SDK targets so this metadata affects NuGet Restore.
   -->
-  <ItemGroup>
+  <ItemGroup Condition="'$(IsAspireHost)' == 'true'">
     
     <ProjectReference Update="@(ProjectReference)">
       <IsAspireProjectResource Condition="'%(IsAspireProjectResource)' != 'false'">true</IsAspireProjectResource>
@@ -37,10 +37,6 @@
 
   <Target Name="__WarnOnAspireCapabilityMissing" BeforeTargets="PrepareForBuild" Condition="!@(ProjectCapability->AnyHaveMetadataValue('Identity', 'Aspire'))">
     <Warning Code="ASPIRE002" Text="$(MSBuildProjectName) is an Aspire AppHost project but necessary dependencies aren't present. Are you missing an Aspire.Hosting.AppHost PackageReference?" />
-  </Target>
-
-  <Target Name="__ErrorOnIsAspireHostSet" BeforeTargets="PrepareForBuild" Condition="'$(IsAspireHost)' == 'true'">
-    <Error Code="ASPIRE007" Text="$(MSBuildProjectName) is setting legacy property `IsAspireHost` to `true` which is no longer supported. Please remove that property in order to avoid importing some targets that can conflict with your project's build." />
   </Target>
 
   <Target Name="__WarnOnMininumVsVersionMissing" BeforeTargets="PrepareForBuild" Condition="'$(BuildingInsideVisualStudio)' == 'true' and $([MSBuild]::VersionLessThan('$(MSBuildVersion)', '17.10.0'))">

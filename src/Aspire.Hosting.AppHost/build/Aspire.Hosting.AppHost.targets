@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectCapability Include="Aspire" />
+    <ProjectCapability Include="Aspire" Condition=" '$(IsAspireHost)' == 'true' " />
   </ItemGroup>
 
   <ItemGroup>
@@ -159,7 +159,7 @@ namespace Projects%3B
   -->
   <Target Name="_ValidateAspireHostProjectResources"
           DependsOnTargets="_CreateAspireProjectResources"
-          Condition="'$(SkipValidateAspireHostProjectResources)' != 'true'">
+          Condition="'$(IsAspireHost)' == 'true' and '$(SkipValidateAspireHostProjectResources)' != 'true'">
 
     <MSBuild Projects="@(_AspireProjectResource)"
              Targets="GetTargetFrameworks"
@@ -252,7 +252,7 @@ namespace Projects%3B
   </Target>
 
   <Target Name="__ErrorOnMininumSdkVersionMissing" BeforeTargets="PrepareForBuild"
-    Condition="'$(AspireHostingSDKVersion)' == '' or $([MSBuild]::VersionLessThan('$(AspireHostingSDKVersion)', '9.0.0'))">
+  Condition="'$(IsAspireHost)' == 'true' and ('$(AspireHostingSDKVersion)' == '' or $([MSBuild]::VersionLessThan('$(AspireHostingSDKVersion)', '9.0.0')))">
     <Error Code="ASPIRE006"
       Text="$(MSBuildProjectName) project requires a reference to &quot;Aspire.AppHost.Sdk&quot; with version &quot;9.0.0&quot; or greater to work correctly. Please add the following line after the Project declaration `&lt;Sdk Name=&quot;Aspire.AppHost.Sdk&quot; Version=&quot;9.0.0&quot; /&gt;`." />
   </Target>

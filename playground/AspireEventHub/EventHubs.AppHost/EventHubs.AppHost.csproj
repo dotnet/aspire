@@ -5,6 +5,7 @@
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <IsAspireHost>true</IsAspireHost>
     <UserSecretsId>c12f723f-2545-4f8f-8c3b-fb7bdeadbd55</UserSecretsId>
   </PropertyGroup>
 

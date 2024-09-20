@@ -10,7 +10,7 @@
     <SkipEventHubsEmulation Condition="'$(SkipEventHubsEmulation)' == '' and ('$(RepoRoot)' == '' or '$(ContinuousIntegrationBuild)' == 'true' or '$(CODESPACES)' == 'true')">true</SkipEventHubsEmulation>
   </PropertyGroup>
 
-  <ItemGroup Condition="$(MSBuildProjectName.EndsWith('AppHost')) and '$(SkipDashboardProjectReference)' != 'true'">
+  <ItemGroup Condition="'$(IsAspireHost)' == 'true' and '$(SkipDashboardProjectReference)' != 'true'">
     <ProjectReference Include="$(RepoRoot)src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
   </ItemGroup>
 
