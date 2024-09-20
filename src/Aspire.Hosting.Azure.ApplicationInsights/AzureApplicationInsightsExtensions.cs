@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.ApplicationInsights;
+using Azure.Provisioning.Expressions;
 using Azure.Provisioning.OperationalInsights;
 
 namespace Aspire.Hosting;
@@ -70,37 +71,63 @@ public static class AzureApplicationInsightsExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var appInsights = new ApplicationInsightsComponent(construct, name: name);
-            appInsights.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
-            appInsights.AssignProperty(p => p.ApplicationType, new Parameter("applicationType", defaultValue: "web"));
-            appInsights.AssignProperty(p => p.Kind, new Parameter("kind", defaultValue: "web"));
+            var appTypeParameter = new BicepParameter("applicationType", typeof(string))
+            {
+                Value = new StringLiteral("web")
+            };
+            construct.Add(appTypeParameter);
+
+            var kindParameter = new BicepParameter("kind", typeof(string))
+            {
+                Value = new StringLiteral("web")
+            };
+            construct.Add(kindParameter);
+
+            var appInsights = new ApplicationInsightsComponent(name)
+            {
+                ApplicationType = appTypeParameter,
+                Kind = kindParameter,
+                Tags = { { "aspire-resource-name", name } }
+            };
+            construct.Add(appInsights);
 
             if (logAnalyticsWorkspace != null)
             {
                 // If someone provides a workspace via the extension method we should use it.
-                appInsights.AssignProperty(p => p.WorkspaceResourceId, logAnalyticsWorkspace.Resource.WorkspaceId, AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId);
+                appInsights.WorkspaceResourceId = logAnalyticsWorkspace.Resource.WorkspaceId.AsBicepParameter(construct, AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId);
             }
             else if (builder.ExecutionContext.IsRunMode)
             {
                 // ... otherwise if we are in run mode, the provisioner expects us to create one ourselves.
                 var autoInjectedLogAnalyticsWorkspaceName = $"law-{construct.Resource.Name}";
-                var autoInjectedLogAnalyticsWorkspace = new OperationalInsightsWorkspace(construct, name: autoInjectedLogAnalyticsWorkspaceName);
-                autoInjectedLogAnalyticsWorkspace.Properties.Tags["aspire-resource-name"] = autoInjectedLogAnalyticsWorkspaceName;
-                autoInjectedLogAnalyticsWorkspace.AssignProperty(p => p.Sku.Name, "'PerGB2018'");
+                var autoInjectedLogAnalyticsWorkspace = new OperationalInsightsWorkspace(autoInjectedLogAnalyticsWorkspaceName)
+                {
+                    Sku = new OperationalInsightsWorkspaceSku()
+                    {
+                        Name = OperationalInsightsWorkspaceSkuName.PerGB2018
+                    },
+                    Tags = { { "aspire-resource-name", autoInjectedLogAnalyticsWorkspaceName } }
+                };
+                construct.Add(autoInjectedLogAnalyticsWorkspace);
 
                 // If the user does not supply a log analytics workspace of their own we still create a parameter on the Aspire
                 // side and the CDK side so that AZD can fill the value in with the one it generates.
-                appInsights.AssignProperty(p => p.WorkspaceResourceId, $"{autoInjectedLogAnalyticsWorkspace.Name}.id");
+                appInsights.WorkspaceResourceId = autoInjectedLogAnalyticsWorkspace.Id;
             }
             else
             {
                 // If the user does not supply a log analytics workspace of their own, and we are in publish mode
                 // then we want AZD to provide one to us.
                 construct.Resource.Parameters.TryAdd(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, null);
-                appInsights.AssignProperty(p => p.WorkspaceResourceId, new Parameter(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId));
+                var logAnalyticsWorkspaceParameter = new BicepParameter(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, typeof(string))
+                {
+                    Value = new StringLiteral("web")
+                };
+                construct.Add(kindParameter);
+                appInsights.WorkspaceResourceId = logAnalyticsWorkspaceParameter;
             }
 
-            appInsights.AddOutput("appInsightsConnectionString", p => p.ConnectionString);
+            construct.Add(new BicepOutput("appInsightsConnectionString", typeof(string)) { Value = appInsights.ConnectionString });
 
             if (configureResource != null)
             {
