@@ -7,8 +7,7 @@ Aspire.Hosting.AzureResourceNamePropertyResolverAspirev8.AzureResourceNameProper
 Aspire.Hosting.ResourceModuleConstruct.PrincipalIdParameter.get -> Azure.Provisioning.BicepParameter!
 Aspire.Hosting.ResourceModuleConstruct.PrincipalNameParameter.get -> Azure.Provisioning.BicepParameter!
 Aspire.Hosting.ResourceModuleConstruct.PrincipalTypeParameter.get -> Azure.Provisioning.BicepParameter!
-override Aspire.Hosting.AzureConstructResource.GetBicepTemplateFile(string? directory, bool deleteTemporaryFileOnDispose, Aspire.Hosting.DistributedApplicationExecutionContext? executionContext) -> Aspire.Hosting.Azure.BicepTemplateFile
-override Aspire.Hosting.AzureConstructResource.GetBicepTemplateString(Aspire.Hosting.DistributedApplicationExecutionContext? executionContext) -> string!
+override Aspire.Hosting.AzureConstructResource.WriteToManifest(Aspire.Hosting.Publishing.ManifestPublishingContext! context) -> void
 override Aspire.Hosting.AzureResourceNamePropertyResolverAspirev8.ResolveName(Azure.Provisioning.ProvisioningContext! context, Azure.Provisioning.Primitives.Resource! resource, Azure.Provisioning.Primitives.ResourceNameRequirements requirements) -> Azure.Provisioning.BicepValue<string!>?
 static Aspire.Hosting.AzureBicepResourceExtensions.WithParameter<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, Aspire.Hosting.ApplicationModel.EndpointReference! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.AzureBicepResourceExtensions.WithParameter<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, Aspire.Hosting.ApplicationModel.ReferenceExpression! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
@@ -22,5 +21,3 @@ static Aspire.Hosting.AzureConstructResourceExtensions.ConfigureConstruct<T>(thi
 *REMOVED*Aspire.Hosting.ResourceModuleConstruct.PrincipalTypeParameter.get -> Azure.Provisioning.Parameter
 *REMOVED*static Aspire.Hosting.AzureConstructResourceExtensions.AssignProperty<T>(this Azure.Provisioning.Resource<T>! resource, System.Linq.Expressions.Expression<System.Func<T, object?>!>! propertySelector, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>! parameterResourceBuilder, string? parameterName = null) -> void
 *REMOVED*static Aspire.Hosting.AzureConstructResourceExtensions.AssignProperty<T>(this Azure.Provisioning.Resource<T>! resource, System.Linq.Expressions.Expression<System.Func<T, object?>!>! propertySelector, Aspire.Hosting.Azure.BicepOutputReference! outputReference, string? parameterName = null) -> void
-virtual Aspire.Hosting.Azure.AzureBicepResource.GetBicepTemplateFile(string? directory, bool deleteTemporaryFileOnDispose, Aspire.Hosting.DistributedApplicationExecutionContext? executionContext) -> Aspire.Hosting.Azure.BicepTemplateFile
-virtual Aspire.Hosting.Azure.AzureBicepResource.GetBicepTemplateString(Aspire.Hosting.DistributedApplicationExecutionContext? executionContext) -> string!

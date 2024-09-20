@@ -26,7 +26,7 @@ internal sealed class BicepProvisioner(
     public override bool ShouldProvision(IConfiguration configuration, AzureBicepResource resource)
         => !resource.IsContainer();
 
-    public override async Task<bool> ConfigureResourceAsync(IConfiguration configuration, DistributedApplicationExecutionContext executionContext, AzureBicepResource resource, CancellationToken cancellationToken)
+    public override async Task<bool> ConfigureResourceAsync(IConfiguration configuration, AzureBicepResource resource, CancellationToken cancellationToken)
     {
         var section = configuration.GetSection($"Azure:Deployments:{resource.Name}");
 
@@ -35,7 +35,7 @@ internal sealed class BicepProvisioner(
             return false;
         }
 
-        var currentCheckSum = await GetCurrentChecksumAsync(resource, section, executionContext, cancellationToken).ConfigureAwait(false);
+        var currentCheckSum = await GetCurrentChecksumAsync(resource, section, cancellationToken).ConfigureAwait(false);
         var configCheckSum = section["CheckSum"];
 
         if (currentCheckSum != configCheckSum)
@@ -128,7 +128,7 @@ internal sealed class BicepProvisioner(
             throw new AzureCliNotOnPathException();
         }
 
-        var template = resource.GetBicepTemplateFile(directory: null, deleteTemporaryFileOnDispose: true, context.ExecutionContext);
+        var template = resource.GetBicepTemplateFile();
 
         var path = template.Path;
 
@@ -300,7 +300,7 @@ internal sealed class BicepProvisioner(
         }
 
         // Save the checksum to the configuration
-        resourceConfig["CheckSum"] = GetChecksum(resource, context.ExecutionContext, parameters);
+        resourceConfig["CheckSum"] = GetChecksum(resource, parameters);
 
         if (outputObj is not null)
         {
@@ -419,12 +419,12 @@ internal sealed class BicepProvisioner(
         return null;
     }
 
-    internal static string GetChecksum(AzureBicepResource resource, DistributedApplicationExecutionContext executionContext, JsonObject parameters)
+    internal static string GetChecksum(AzureBicepResource resource, JsonObject parameters)
     {
         // TODO: PERF Inefficient
 
         // Combine the parameter values with the bicep template to create a unique value
-        var input = parameters.ToJsonString() + resource.GetBicepTemplateString(executionContext);
+        var input = parameters.ToJsonString() + resource.GetBicepTemplateString();
 
         // Hash the contents
         var hashedContents = Crc32.Hash(Encoding.UTF8.GetBytes(input));
@@ -433,7 +433,7 @@ internal sealed class BicepProvisioner(
         return Convert.ToHexString(hashedContents).ToLowerInvariant();
     }
 
-    internal static async ValueTask<string?> GetCurrentChecksumAsync(AzureBicepResource resource, IConfiguration section, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken = default)
+    internal static async ValueTask<string?> GetCurrentChecksumAsync(AzureBicepResource resource, IConfiguration section, CancellationToken cancellationToken = default)
     {
         // Fill in parameters from configuration
         if (section["Parameters"] is not string jsonString)
@@ -456,7 +456,7 @@ internal sealed class BicepProvisioner(
             await SetParametersAsync(parameters, resource, skipDynamicValues: true, cancellationToken: cancellationToken).ConfigureAwait(false);
 
             // Get the checksum of the new values
-            return GetChecksum(resource, executionContext, parameters);
+            return GetChecksum(resource, parameters);
         }
         catch
         {

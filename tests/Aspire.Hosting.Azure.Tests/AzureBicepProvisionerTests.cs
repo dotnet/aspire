@@ -89,11 +89,11 @@ public class AzureBicepProvisionerTests
 
         var parameters0 = new JsonObject();
         await BicepProvisioner.SetParametersAsync(parameters0, bicep0.Resource);
-        var checkSum0 = BicepProvisioner.GetChecksum(bicep0.Resource, builder.ExecutionContext, parameters0);
+        var checkSum0 = BicepProvisioner.GetChecksum(bicep0.Resource, parameters0);
 
         var parameters1 = new JsonObject();
         await BicepProvisioner.SetParametersAsync(parameters1, bicep1.Resource);
-        var checkSum1 = BicepProvisioner.GetChecksum(bicep1.Resource, builder.ExecutionContext, parameters1);
+        var checkSum1 = BicepProvisioner.GetChecksum(bicep1.Resource, parameters1);
 
         Assert.Equal(checkSum0, checkSum1);
     }
@@ -148,11 +148,11 @@ public class AzureBicepProvisionerTests
 
         var parameters0 = new JsonObject();
         await BicepProvisioner.SetParametersAsync(parameters0, bicep0.Resource);
-        var checkSum0 = BicepProvisioner.GetChecksum(bicep0.Resource, builder.ExecutionContext, parameters0);
+        var checkSum0 = BicepProvisioner.GetChecksum(bicep0.Resource, parameters0);
 
         var parameters1 = new JsonObject();
         await BicepProvisioner.SetParametersAsync(parameters1, bicep1.Resource);
-        var checkSum1 = BicepProvisioner.GetChecksum(bicep1.Resource, builder.ExecutionContext, parameters1);
+        var checkSum1 = BicepProvisioner.GetChecksum(bicep1.Resource, parameters1);
 
         Assert.NotEqual(checkSum0, checkSum1);
     }
@@ -176,13 +176,13 @@ public class AzureBicepProvisionerTests
 
         var parameters0 = new JsonObject();
         await BicepProvisioner.SetParametersAsync(parameters0, bicep0.Resource);
-        var checkSum0 = BicepProvisioner.GetChecksum(bicep0.Resource, builder.ExecutionContext, parameters0);
+        var checkSum0 = BicepProvisioner.GetChecksum(bicep0.Resource, parameters0);
 
         // Save the old version of this resource's parameters to config
         var config = new ConfigurationManager();
         config["Parameters"] = parameters0.ToJsonString();
 
-        var checkSum1 = await BicepProvisioner.GetCurrentChecksumAsync(bicep1.Resource, config, builder.ExecutionContext);
+        var checkSum1 = await BicepProvisioner.GetCurrentChecksumAsync(bicep1.Resource, config);
 
         Assert.Equal(checkSum0, checkSum1);
     }

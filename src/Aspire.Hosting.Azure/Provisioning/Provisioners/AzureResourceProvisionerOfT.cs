@@ -16,7 +16,6 @@ namespace Aspire.Hosting.Azure.Provisioning;
 internal sealed record UserPrincipal(Guid Id, string Name);
 
 internal sealed class ProvisioningContext(
-    DistributedApplicationExecutionContext executionContext,
     TokenCredential credential,
     ArmClient armClient,
     SubscriptionResource subscription,
@@ -27,7 +26,6 @@ internal sealed class ProvisioningContext(
     UserPrincipal principal,
     JsonObject userSecrets)
 {
-    public DistributedApplicationExecutionContext ExecutionContext => executionContext;
     public TokenCredential Credential => credential;
     public ArmClient ArmClient => armClient;
     public SubscriptionResource Subscription => subscription;
@@ -41,7 +39,7 @@ internal sealed class ProvisioningContext(
 
 internal interface IAzureResourceProvisioner
 {
-    Task<bool> ConfigureResourceAsync(IConfiguration configuration, DistributedApplicationExecutionContext executionContext, IAzureResource resource, CancellationToken cancellationToken);
+    Task<bool> ConfigureResourceAsync(IConfiguration configuration, IAzureResource resource, CancellationToken cancellationToken);
 
     bool ShouldProvision(IConfiguration configuration, IAzureResource resource);
 
@@ -54,8 +52,8 @@ internal interface IAzureResourceProvisioner
 internal abstract class AzureResourceProvisioner<TResource> : IAzureResourceProvisioner
     where TResource : IAzureResource
 {
-    Task<bool> IAzureResourceProvisioner.ConfigureResourceAsync(IConfiguration configuration, DistributedApplicationExecutionContext executionContext, IAzureResource resource, CancellationToken cancellationToken) =>
-        ConfigureResourceAsync(configuration, executionContext, (TResource)resource, cancellationToken);
+    Task<bool> IAzureResourceProvisioner.ConfigureResourceAsync(IConfiguration configuration, IAzureResource resource, CancellationToken cancellationToken) =>
+        ConfigureResourceAsync(configuration, (TResource)resource, cancellationToken);
 
     bool IAzureResourceProvisioner.ShouldProvision(IConfiguration configuration, IAzureResource resource) =>
         ShouldProvision(configuration, (TResource)resource);
@@ -66,7 +64,7 @@ internal abstract class AzureResourceProvisioner<TResource> : IAzureResourceProv
         CancellationToken cancellationToken)
         => GetOrCreateResourceAsync((TResource)resource, context, cancellationToken);
 
-    public abstract Task<bool> ConfigureResourceAsync(IConfiguration configuration, DistributedApplicationExecutionContext executionContext, TResource resource, CancellationToken cancellationToken);
+    public abstract Task<bool> ConfigureResourceAsync(IConfiguration configuration, TResource resource, CancellationToken cancellationToken);
 
     public virtual bool ShouldProvision(IConfiguration configuration, TResource resource) => true;
 

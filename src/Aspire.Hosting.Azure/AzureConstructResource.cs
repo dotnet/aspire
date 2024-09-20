@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Publishing;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
@@ -26,9 +27,18 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
     /// Callback for configuring construct.
     /// </summary>
     public Action<ResourceModuleConstruct> ConfigureConstruct { get; internal set; } = configureConstruct;
+    internal ProvisioningContext? ProvisioningContext { get; set; }
 
     /// <inheritdoc/>
-    public override BicepTemplateFile GetBicepTemplateFile(string? directory, bool deleteTemporaryFileOnDispose, DistributedApplicationExecutionContext? executionContext)
+    public override void WriteToManifest(ManifestPublishingContext context)
+    {
+        ProvisioningContext = context.ExecutionContext.ServiceProvider.GetService<IOptions<AzureProvisioningOptions>>()?.Value.ProvisioningContext;
+
+        base.WriteToManifest(context);
+    }
+
+    /// <inheritdoc/>
+    public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
     {
         var resourceModuleConstruct = new ResourceModuleConstruct(this, Name);
 
@@ -57,8 +67,7 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
         var generationPath = Directory.CreateTempSubdirectory("aspire").FullName;
         var moduleSourcePath = Path.Combine(generationPath, "main.bicep");
 
-        var options = executionContext?.ServiceProvider.GetService<IOptions<AzureProvisioningOptions>>()?.Value ?? new();
-        var plan = resourceModuleConstruct.Build(options.ProvisioningContext);
+        var plan = resourceModuleConstruct.Build(ProvisioningContext);
         var compilation = plan.Compile();
         Debug.Assert(compilation.Count == 1);
         var compiledBicep = compilation.First();
@@ -73,11 +82,11 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
     private string? _generatedBicep;
 
     /// <inheritdoc />
-    public override string GetBicepTemplateString(DistributedApplicationExecutionContext? executionContext)
+    public override string GetBicepTemplateString()
     {
         if (_generatedBicep is null)
         {
-            var template = GetBicepTemplateFile(directory: null, deleteTemporaryFileOnDispose: true, executionContext);
+            var template = GetBicepTemplateFile();
             _generatedBicep = File.ReadAllText(template.Path);
         }
 

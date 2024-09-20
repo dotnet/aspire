@@ -51,21 +51,14 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     /// </summary>
     internal string? TempDirectory { get; set; }
 
-    /// <inheritdoc cref="GetBicepTemplateFile(string?, bool, DistributedApplicationExecutionContext)" />
-#pragma warning disable RS0027 // API with optional parameter(s) should have the most parameters amongst its public overloads
-    public virtual BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true) =>
-        GetBicepTemplateFile(directory, deleteTemporaryFileOnDispose, executionContext: null);
-#pragma warning restore RS0027 // API with optional parameter(s) should have the most parameters amongst its public overloads
-
     /// <summary>
     /// Gets the path to the bicep file. If the template is a string or embedded resource, it will be written to a temporary file.
     /// </summary>
     /// <param name="directory">The directory where the bicep file will be written to (if it's a temporary file)</param>
     /// <param name="deleteTemporaryFileOnDispose">A boolean that determines if the file should be deleted on disposal of the <see cref="BicepTemplateFile"/>.</param>
-    /// <param name="executionContext"></param>
     /// <returns>A <see cref="BicepTemplateFile"/> that represents the bicep file.</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public virtual BicepTemplateFile GetBicepTemplateFile(string? directory, bool deleteTemporaryFileOnDispose, DistributedApplicationExecutionContext? executionContext)
+    public virtual BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
     {
         // Throw if multiple template sources are specified
         if (TemplateFile is not null && (TemplateString is not null || TemplateResourceName is not null))
@@ -110,13 +103,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     /// <summary>
     /// Get the bicep template as a string. Does not write to disk.
     /// </summary>
-    public virtual string GetBicepTemplateString() => GetBicepTemplateString(null);
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="executionContext"></param>
-    public virtual string GetBicepTemplateString(DistributedApplicationExecutionContext? executionContext)
+    public virtual string GetBicepTemplateString()
     {
         if (TemplateString is not null)
         {
@@ -148,7 +135,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     {
         context.Writer.WriteString("type", "azure.bicep.v0");
 
-        using var template = GetBicepTemplateFile(Path.GetDirectoryName(context.ManifestPath), deleteTemporaryFileOnDispose: false, context.ExecutionContext);
+        using var template = GetBicepTemplateFile(Path.GetDirectoryName(context.ManifestPath), deleteTemporaryFileOnDispose: false);
         var path = template.Path;
 
         // Write a connection string if it exists.

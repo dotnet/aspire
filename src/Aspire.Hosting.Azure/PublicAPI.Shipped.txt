@@ -44,6 +44,8 @@ Aspire.Hosting.ResourceModuleConstruct.PrincipalIdParameter.get -> Azure.Provisi
 Aspire.Hosting.ResourceModuleConstruct.PrincipalNameParameter.get -> Azure.Provisioning.Parameter
 Aspire.Hosting.ResourceModuleConstruct.PrincipalTypeParameter.get -> Azure.Provisioning.Parameter
 Aspire.Hosting.ResourceModuleConstruct.Resource.get -> Aspire.Hosting.AzureConstructResource!
+override Aspire.Hosting.AzureConstructResource.GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true) -> Aspire.Hosting.Azure.BicepTemplateFile
+override Aspire.Hosting.AzureConstructResource.GetBicepTemplateString() -> string!
 static Aspire.Hosting.AzureBicepResourceExtensions.AddBicepTemplate(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! bicepFile) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureBicepResource!>!
 static Aspire.Hosting.AzureBicepResourceExtensions.AddBicepTemplateString(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! bicepContent) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureBicepResource!>!
 static Aspire.Hosting.AzureBicepResourceExtensions.GetOutput(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.Azure.AzureBicepResource!>! builder, string! name) -> Aspire.Hosting.Azure.BicepOutputReference!
