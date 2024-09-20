@@ -1,6 +1,6 @@
 <Project>
 
-  <PropertyGroup Condition="'$(NETCoreSdkRuntimeIdentifier)' == '@PlatformRuntime@'">
+  <PropertyGroup>
     <DcpDir Condition=" '$(DcpDir)' == '' ">$([MSBuild]::NormalizeDirectory($(MSBuildThisFileDirectory), '..', 'tools'))</DcpDir>
     <DcpDir>$([MSBuild]::EnsureTrailingSlash('$(DcpDir)'))</DcpDir>
     <DcpExtensionsDir Condition=" '$(DcpExtensionsDir)' == '' ">$([MSBuild]::NormalizeDirectory($(DcpDir), 'ext'))</DcpExtensionsDir>
