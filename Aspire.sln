@@ -624,9 +624,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Meilisearch.AppHost", "play
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Meilisearch", "Meilisearch", "{B4695EB1-085F-4552-94F4-83A8335E660B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Meilisearch.ApiService", "playground\Meilisearch\Meilisearch.ApiService\Meilisearch.ApiService.csproj", "{91A564E3-EF6D-4F9B-B38B-55388F939393}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Meilisearch.ApiService", "playground\Meilisearch\Meilisearch.ApiService\Meilisearch.ApiService.csproj", "{91A564E3-EF6D-4F9B-B38B-55388F939393}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Meilisearch.Tests", "tests\Aspire.Hosting.Meilisearch.Tests\Aspire.Hosting.Meilisearch.Tests.csproj", "{27D4FD19-BD6F-4DFE-AC0D-AF176F725A7C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Meilisearch.Tests", "tests\Aspire.Hosting.Meilisearch.Tests\Aspire.Hosting.Meilisearch.Tests.csproj", "{27D4FD19-BD6F-4DFE-AC0D-AF176F725A7C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Meilisearch.Tests", "tests\Aspire.Meilisearch.Tests\Aspire.Meilisearch.Tests.csproj", "{EC9571A3-2BAF-4190-9820-5A038EAFED33}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1654,6 +1656,10 @@ Global
 		{27D4FD19-BD6F-4DFE-AC0D-AF176F725A7C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{27D4FD19-BD6F-4DFE-AC0D-AF176F725A7C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{27D4FD19-BD6F-4DFE-AC0D-AF176F725A7C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EC9571A3-2BAF-4190-9820-5A038EAFED33}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC9571A3-2BAF-4190-9820-5A038EAFED33}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC9571A3-2BAF-4190-9820-5A038EAFED33}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC9571A3-2BAF-4190-9820-5A038EAFED33}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1957,6 +1963,7 @@ Global
 		{B4695EB1-085F-4552-94F4-83A8335E660B} = {D173887B-AF42-4576-B9C1-96B9E9B3D9C0}
 		{91A564E3-EF6D-4F9B-B38B-55388F939393} = {B4695EB1-085F-4552-94F4-83A8335E660B}
 		{27D4FD19-BD6F-4DFE-AC0D-AF176F725A7C} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
+		{EC9571A3-2BAF-4190-9820-5A038EAFED33} = {C424395C-1235-41A4-BF55-07880A04368C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

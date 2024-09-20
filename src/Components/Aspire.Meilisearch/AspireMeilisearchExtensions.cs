@@ -30,6 +30,8 @@ public static class AspireMeilisearchExtensions
         string connectionName,
         Action<MeilisearchClientSettings>? configureSettings = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNullOrEmpty(connectionName);
         AddMeilisearchClient(builder, DefaultConfigSectionName, configureSettings, connectionName, serviceKey: null);
     }
 
@@ -46,6 +48,8 @@ public static class AspireMeilisearchExtensions
         string name,
         Action<MeilisearchClientSettings>? configureSettings = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNullOrEmpty(name);
         AddMeilisearchClient(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, connectionName: name, serviceKey: name);
     }
 

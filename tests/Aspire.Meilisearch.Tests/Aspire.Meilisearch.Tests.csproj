@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+
+    <!-- Issue: https://github.com/dotnet/aspire/issues/5634 -->
+    <SkipTests Condition="'$(ContinuousIntegrationBuild)' == 'true'">true</SkipTests>
+    <RunTestsOnHelix>false</RunTestsOnHelix>
+    <NoWarn>$(NoWarn);CS8002</NoWarn>
+    <!-- MeiliSearch package is not signed -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Meilisearch\MeilisearchContainerImageTags.cs" />
+    <None Include="$(ComponentsDir)\Aspire.Meilisearch\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Testcontainers" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />
+    <ProjectReference Include="..\..\src\Components\Aspire.Meilisearch\Aspire.Meilisearch.csproj" />
+    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+  </ItemGroup>
+
+</Project>
