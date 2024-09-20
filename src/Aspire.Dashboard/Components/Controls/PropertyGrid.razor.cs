@@ -36,6 +36,9 @@ public interface IPropertyGridItem
     /// <summary>
     /// Gets whether this item's value is sensitive and should be masked.
     /// </summary>
+    /// <remarks>
+    /// Default implementation returns <see langword="false"/>.
+    /// </remarks>
     public bool IsValueSensitive => false;
 
     /// <summary>
@@ -54,6 +57,14 @@ public interface IPropertyGridItem
     /// </remarks>
     public bool IsValueMasked { get => false; set => throw new NotImplementedException(); }
 
+    /// <summary>
+    /// Gets whether this item matches a filter string.
+    /// </summary>
+    /// <remarks>
+    /// Default implementation returns <see langword="false"/>.
+    /// </remarks>
+    /// <param name="filter">The search text to match against.</param>
+    /// <returns><see langword="true"/> if this item matches the filter, otherwise <see langword="false"/>.</returns>
     public bool MatchesFilter(string filter) => false;
 }
 
