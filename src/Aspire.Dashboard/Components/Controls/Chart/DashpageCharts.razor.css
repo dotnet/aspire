@@ -1,0 +1,11 @@
+.dashpage-chart-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.dashpage-chart-grid .dashpage-chart-tile {
+    flex: 1 1 25%;
+    box-sizing: border-box;
+    min-width: 400px;
+}
