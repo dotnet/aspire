@@ -57,16 +57,13 @@ public static class MilvusBuilderExtensions
 
         var milvus = new MilvusServerResource(name, apiKeyParameter);
 
-        string? connectionString = null;
         MilvusClient? milvusClient = null;
 
         builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(milvus, async (@event, ct) =>
         {
-            connectionString = await milvus.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
-            if (connectionString is null)
-            {
-                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{milvus.Name}' resource but the connection string was null.");
-            }
+            var connectionString = await milvus.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false)
+            ?? throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{milvus.Name}' resource but the connection string was null.");
+
             milvusClient = CreateMilvusClient(@event.Services, connectionString);
             var lookup = builder.Resources.OfType<MilvusDatabaseResource>().ToDictionary(d => d.Name);
             foreach (var databaseName in milvus.Databases)

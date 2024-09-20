@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 
@@ -151,6 +150,7 @@ public static class ContainerResourceBuilderExtensions
         // if the annotation doesn't exist, create it with the given image and add it to the collection
         var containerImageAnnotation = new ContainerImageAnnotation() { Image = image, Tag = tag };
         builder.Resource.Annotations.Add(containerImageAnnotation);
+        builder.WithLifeCycleCommands();
         return builder;
     }
 
@@ -237,7 +237,6 @@ public static class ContainerResourceBuilderExtensions
     ///        .WithContainerLifetime(ContainerLifetimeType.Persistent);
     /// </code>
     /// </example>
-    [Experimental("ASPIRECONTAINERLIFETIME001")]
     public static IResourceBuilder<T> WithLifetime<T>(this IResourceBuilder<T> builder, ContainerLifetime lifetime) where T : ContainerResource
     {
         return builder.WithAnnotation(new ContainerLifetimeAnnotation { Lifetime = lifetime }, ResourceAnnotationMutationBehavior.Replace);
@@ -357,9 +356,27 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Overrides the default container name for this resource. By default Aspire generates a unique container name based on the
+    /// resource name and a random postfix (or a postfix based on a hash of the AppHost project path for persistent container resources).
+    /// This method allows you to override that behavior with a custom name, but could lead to naming conflicts if the specified name is not unique.
+    /// </summary>
+    /// <remarks>
+    /// Combining this with <see cref="ContainerLifetime.Persistent"/> will allow Aspire to re-use an existing container that was not
+    /// created by an Aspire AppHost.
+    /// </remarks>
+    /// <typeparam name="T">The type of container resource.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="name">The desired container name. Must be a valid container name or your runtime will report an error.</param>
+    /// <returns>The resource bulder for the container resource.</returns>
+    public static IResourceBuilder<T> WithContainerName<T>(this IResourceBuilder<T> builder, string name) where T : ContainerResource
+    {
+        return builder.WithAnnotation(new ContainerNameAnnotation { Name = name }, ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
     /// Adds a build argument when the container is build from a Dockerfile.
     /// </summary>
-    /// <typeparam name="T">The type of container resoruce.</typeparam>
+    /// <typeparam name="T">The type of container resource.</typeparam>
     /// <param name="builder">The resource builder for the container resource.</param>
     /// <param name="name">The name of the build argument.</param>
     /// <param name="value">The value of the build argument.</param>

@@ -110,7 +110,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
 
         // Allow for a user specified config directory on disk (e.g. for Docker secrets). Throw an error if the specified directory doesn't exist.
-        if (builder.Configuration[DashboardConfigNames.DashboardFileConfigDirectory.ConfigKey] is { Length: > 0 } fileConfigDirectory)
+        if (builder.Configuration[DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] is { Length: > 0 } fileConfigDirectory)
         {
             builder.Configuration.AddKeyPerFile(directoryPath: fileConfigDirectory, optional: false, reloadOnChange: true);
         }
