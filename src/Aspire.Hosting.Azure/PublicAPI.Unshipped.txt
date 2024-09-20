@@ -7,7 +7,6 @@ Aspire.Hosting.AzureResourceNamePropertyResolverAspirev8.AzureResourceNameProper
 Aspire.Hosting.ResourceModuleConstruct.PrincipalIdParameter.get -> Azure.Provisioning.BicepParameter!
 Aspire.Hosting.ResourceModuleConstruct.PrincipalNameParameter.get -> Azure.Provisioning.BicepParameter!
 Aspire.Hosting.ResourceModuleConstruct.PrincipalTypeParameter.get -> Azure.Provisioning.BicepParameter!
-override Aspire.Hosting.AzureConstructResource.WriteToManifest(Aspire.Hosting.Publishing.ManifestPublishingContext! context) -> void
 override Aspire.Hosting.AzureResourceNamePropertyResolverAspirev8.ResolveName(Azure.Provisioning.ProvisioningContext! context, Azure.Provisioning.Primitives.Resource! resource, Azure.Provisioning.Primitives.ResourceNameRequirements requirements) -> Azure.Provisioning.BicepValue<string!>?
 static Aspire.Hosting.AzureBicepResourceExtensions.WithParameter<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, Aspire.Hosting.ApplicationModel.EndpointReference! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.AzureBicepResourceExtensions.WithParameter<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, Aspire.Hosting.ApplicationModel.ReferenceExpression! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!

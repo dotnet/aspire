@@ -70,12 +70,6 @@ internal sealed class AzureProvisioner(
 
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        // TODO: Make this more general purpose
-        if (executionContext.IsPublishMode)
-        {
-            return;
-        }
-
         var azureResources = GetAzureResourcesFromAppModel(appModel);
 
         if (azureResources.Count == 0)
@@ -83,14 +77,22 @@ internal sealed class AzureProvisioner(
             return;
         }
 
-        static IResource? SelectParentResource(IResource resource) => resource switch
+        // set the ProvisioningContext on the resource, if necessary
+        foreach (var r in azureResources)
         {
-            IAzureResource ar => ar,
-            IResourceWithParent rp => SelectParentResource(rp.Parent),
-            _ => null
-        };
+            if (r.AzureResource is AzureConstructResource constructResource)
+            {
+                constructResource.ProvisioningContext = provisioningOptions.Value.ProvisioningContext;
+            }
+        }
 
-        // Create a map of parents to their children used to propogate state changes later.
+        // TODO: Make this more general purpose
+        if (executionContext.IsPublishMode)
+        {
+            return;
+        }
+
+        // Create a map of parents to their children used to propagate state changes later.
         var parentChildLookup = appModel.Resources.OfType<IResourceWithParent>().ToLookup(r => r.Parent);
 
         // Sets the state of the resource and all of its children
@@ -264,12 +266,6 @@ internal sealed class AzureProvisioner(
         var provisioner = SelectProvisioner(resource.AzureResource);
 
         var resourceLogger = loggerService.GetLogger(resource.AzureResource);
-
-        // set the ProvisioningContext on the resource, if necessary
-        if (resource.Resource is AzureConstructResource constructResource)
-        {
-            constructResource.ProvisioningContext = provisioningOptions.Value.ProvisioningContext;
-        }
 
         if (provisioner is null)
         {

@@ -7,12 +7,9 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using Aspire.Hosting.Publishing;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
 
@@ -28,14 +25,6 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
     /// </summary>
     public Action<ResourceModuleConstruct> ConfigureConstruct { get; internal set; } = configureConstruct;
     internal ProvisioningContext? ProvisioningContext { get; set; }
-
-    /// <inheritdoc/>
-    public override void WriteToManifest(ManifestPublishingContext context)
-    {
-        ProvisioningContext = context.ExecutionContext.ServiceProvider.GetService<IOptions<AzureProvisioningOptions>>()?.Value.ProvisioningContext;
-
-        base.WriteToManifest(context);
-    }
 
     /// <inheritdoc/>
     public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
