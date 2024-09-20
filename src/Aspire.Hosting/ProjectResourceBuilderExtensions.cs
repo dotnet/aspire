@@ -282,6 +282,7 @@ public static class ProjectResourceBuilderExtensions
 
         builder.WithOtlpExporter();
         builder.ConfigureConsoleLogs();
+        builder.WithLifeCycleCommands();
 
         var projectResource = builder.Resource;
 
