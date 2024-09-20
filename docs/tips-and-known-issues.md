@@ -19,7 +19,3 @@ ps | where ProcessName -cmatch '(Api)|(Catalog)|(Basket)|(AppHost)|(MyFrontend)|
 ```ps1
 ps | where ProcessName -cmatch '(Api)|(Catalog)|(Basket)|(AppHost)|(MyFrontend)|(OrderProcessor)' | % {Write-Output $_.Id; kill $_.Id }
 ```
-
-## Why does it seem to take a long time for my services to reach a ready state when running in Visual Studio?
-
-There is a known performance issue in Visual Studio 2022 17.9 Preview 1 related to a debugger setting which can cause delays during service startup for a .NET Aspire AppHost project with multiple service projects. To work around this issue, go to `Tools > Options > Debugging > General` and uncheck `Enable the External Sources node in Solution Explorer`.
