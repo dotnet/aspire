@@ -91,10 +91,6 @@
       2. dotnet build tests/workloads.proj /p:Configuration=$(Configuration)" />
   </Target>
 
-  <Target Name="InstallTemplatePacksForTesting" AfterTargets="InstallWorkloadUsingArtifacts">
-    <Exec Command="$(_DotNetPath) new install Aspire.ProjectTemplates::$(PackageVersion) -s $(BuiltNugetsDir)" />
-  </Target>
-
   <Target Name="_ValidateExpectedSetOfPackagesExist" Condition="'$(SkipPackageCheckForWorkloadTesting)' != 'true'">
     <ItemGroup>
       <_SrcProjects Include="$(RepoRoot)src\**\*.csproj" Exclude="$(RepoRoot)src\Aspire.ProjectTemplates\templates\**" />

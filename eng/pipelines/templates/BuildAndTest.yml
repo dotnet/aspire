@@ -137,20 +137,3 @@ steps:
       inputs:
         targetPath: '${{ parameters.repoArtifactsPath }}/CodeCoverage'
         artifactName: '$(Agent.JobName)_CodeCoverageResults'
-
-  # Run on windows, for internal pipeline, or public+non-helix-tests job
-  - ${{ if and(eq(parameters.isWindows, 'true'), or(ne(parameters.runAsPublic, 'true'), ne(parameters.runHelixTests, 'true'))) }}:
-    - ${{ if eq(parameters.runAsPublic, 'true') }}:
-      - task: PublishPipelineArtifact@1
-        displayName: Publish VSDrop MSIs
-        inputs:
-          targetPath: '$(Build.SourcesDirectory)/artifacts/VSSetup/$(_BuildConfig)'
-          artifactName: VSDropInsertion
-          publishLocation: 'pipeline'
-
-    - ${{ if ne(parameters.runAsPublic, 'true') }}:
-      - task: 1ES.PublishPipelineArtifact@1
-        displayName: Publish VSDrop MSIs
-        inputs:
-          targetPath: '$(Build.SourcesDirectory)/artifacts/VSSetup/$(_BuildConfig)'
-          artifactName: VSDropInsertion
