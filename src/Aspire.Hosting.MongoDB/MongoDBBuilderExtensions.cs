@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.MongoDB;
 using Aspire.Hosting.Utils;
@@ -94,7 +95,8 @@ public static class MongoDBBuilderExtensions
                                                         .WithImageRegistry(MongoDBContainerImageTags.MongoExpressRegistry)
                                                         .WithEnvironment(context => ConfigureMongoExpressContainer(context, builder.Resource))
                                                         .WithHttpEndpoint(targetPort: 8081, name: "http")
-                                                        .ExcludeFromManifest();
+                                                        .ExcludeFromManifest()
+                                                        .WaitFor(builder);
 
         configureContainer?.Invoke(resourceBuilder);
 
@@ -161,11 +163,96 @@ public static class MongoDBBuilderExtensions
         return builder.WithBindMount(source, "/docker-entrypoint-initdb.d", isReadOnly);
     }
 
+    /// <summary>
+    /// Adds a replica set to the MongoDB server resource.
+    /// </summary>
+    /// <param name="builder">The MongoDB server resource.</param>
+    /// <param name="replicaSetName">The name of the replica set. If not provided, defaults to <c>rs0</c>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MongoDBServerResource> WithReplicaSet(this IResourceBuilder<MongoDBServerResource> builder, string? replicaSetName = null)
+    {
+        if (builder.Resource.TryGetLastAnnotation<MongoDbReplicaSetAnnotation>(out _))
+        {
+            throw new InvalidOperationException("A replica set has already been added to the MongoDB server resource.");
+        }
+
+        replicaSetName ??= "rs0";
+
+        var port = SetPortAndTargetToBeSame(builder);
+
+        // Add a container that initializes the replica set
+        var init = builder.ApplicationBuilder
+            .AddDockerfile("replicaset-init", GetReplicaSetInitDockerfileDir(replicaSetName, builder.Resource.Name, port))
+
+            // We don't want to wait for the healthchecks to be successful since the initialization is required for that. However, we also don't want this to start
+            // up until the database itself is ready
+            .WaitFor(builder, includeHealthChecks: false);
+
+        return builder
+            .WithAnnotation(new MongoDbReplicaSetAnnotation(replicaSetName, init))
+            .WithArgs("--replSet", replicaSetName, "--bind_ip_all", "--port", $"{port}");
+
+        static int SetPortAndTargetToBeSame(IResourceBuilder<MongoDBServerResource> builder)
+        {
+            foreach (var endpoint in builder.Resource.Annotations.OfType<EndpointAnnotation>())
+            {
+                if (endpoint.Name == MongoDBServerResource.PrimaryEndpointName)
+                {
+                    if (endpoint.Port is { } port)
+                    {
+                        endpoint.TargetPort = port;
+                    }
+
+                    if (endpoint.TargetPort is not { } targetPort)
+                    {
+                        throw new InvalidOperationException("Target port is not set.");
+                    }
+
+                    // In the case of replica sets, the port and target port should be the same and is not proxied
+                    endpoint.IsProxied = false;
+
+                    return targetPort;
+                }
+            }
+
+            throw new InvalidOperationException("No endpoint found for the MongoDB server resource.");
+        }
+
+        // See the conversation about setting up replica sets in Docker here: https://github.com/docker-library/mongo/issues/246
+        static string GetReplicaSetInitDockerfileDir(string replicaSet, string host, int port)
+        {
+            var dir = Directory.CreateTempSubdirectory("aspire.mongo").FullName;
+
+            var rsInitContents = $$"""rs.initiate({ _id:'{{replicaSet}}', members:[{_id:0,host:'localhost:{{port}}'}]})""";
+            var init = Path.Combine(dir, "rs.js");
+            File.WriteAllText(init, rsInitContents);
+
+            var dockerfile = Path.Combine(dir, "Dockerfile");
+            File.WriteAllText(dockerfile, $"""
+                FROM {MongoDBContainerImageTags.Image}:{MongoDBContainerImageTags.Tag}
+                WORKDIR /rsinit
+                ADD rs.js rs.js
+                ENTRYPOINT ["mongosh", "--port", "{port}", "--host", "{host}", "rs.js"]
+                """);
+            return dir;
+        }
+    }
+
     private static void ConfigureMongoExpressContainer(EnvironmentCallbackContext context, MongoDBServerResource resource)
     {
-        // Mongo Exporess assumes Mongo is being accessed over a default Aspire container network and hardcodes the resource address
+        var sb = new StringBuilder($"mongodb://{resource.Name}:{resource.PrimaryEndpoint.TargetPort}/?directConnection=true");
+
+        if (resource.TryGetLastAnnotation<MongoDbReplicaSetAnnotation>(out var replica))
+        {
+            sb.Append('&');
+            sb.Append(MongoDbReplicaSetAnnotation.QueryName);
+            sb.Append('=');
+            sb.Append(replica.ReplicaSetName);
+        }
+
+        // Mongo Express assumes Mongo is being accessed over a default Aspire container network and hardcodes the resource address
         // This will need to be refactored once updated service discovery APIs are available
-        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", $"mongodb://{resource.Name}:{resource.PrimaryEndpoint.TargetPort}/?directConnection=true");
+        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", sb.ToString());
         context.EnvironmentVariables.Add("ME_CONFIG_BASICAUTH", "false");
     }
 }
