@@ -90,7 +90,7 @@ internal sealed class TestKubernetesService : IKubernetesService
 
     public Task<T> DeleteAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default) where T : CustomResource
     {
-        throw new NotImplementedException();
+        return GetAsync<T>(name, namespaceParameter, cancellationToken);
     }
 
     public Task<List<T>> ListAsync<T>(string? namespaceParameter = null, CancellationToken cancellationToken = default) where T : CustomResource

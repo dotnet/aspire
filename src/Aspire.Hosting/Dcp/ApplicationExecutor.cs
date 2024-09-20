@@ -2081,18 +2081,13 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     try
                     {
                         await kubernetesService.GetAsync<T>(resource.Metadata.Name, cancellationToken: attemptCancellationToken).ConfigureAwait(false);
-                        throw new InvalidOperationException($"Resource '{resourceName}' found after delete.");
+                        throw new DistributedApplicationException($"Failed to delete '{resource.Metadata.Name}' successfully before restart.");
                     }
                     catch (HttpOperationException ex) when (ex.Response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     {
-                        resourceNotFound = true;
+                        // Success.
                     }
                 }, cancellationToken).ConfigureAwait(false);
-
-                if (!resourceNotFound)
-                {
-                    throw new DistributedApplicationException($"Failed to delete '{resource.Metadata.Name}' successfully before restart.");
-                }
             }
 
             await kubernetesService.CreateAsync(resource, cancellationToken).ConfigureAwait(false);

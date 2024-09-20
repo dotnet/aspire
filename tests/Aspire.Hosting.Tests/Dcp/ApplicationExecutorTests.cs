@@ -895,6 +895,24 @@ public class ApplicationExecutorTests
         Assert.Equal(desiredTargetPort, int.Parse(envVarVal, CultureInfo.InvariantCulture));
     }
 
+    [Fact]
+    public async Task ErrorIfResourceNotDeletedBeforeRestart()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddContainer("database", "image");
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+        await appExecutor.RunApplicationAsync();
+
+        var dcpCtr = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
+
+        var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () => await appExecutor.StartResourceAsync(dcpCtr.Metadata.Name, CancellationToken.None));
+        Assert.Equal($"Failed to delete '{dcpCtr.Metadata.Name}' successfully before restart.", ex.Message);
+    }
+
     private static ApplicationExecutor CreateAppExecutor(
         DistributedApplicationModel distributedAppModel,
         IServiceProvider serviceProvider,
