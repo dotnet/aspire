@@ -8,7 +8,6 @@ namespace Aspire.Hosting.Analyzers;
 
 public partial class AppHostAnalyzer
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("MicrosoftCodeAnalysisReleaseTracking", "RS2008:Enable analyzer release tracking")]
     internal static class Diagnostics
     {
         private const string ModelNameMustBeValidId = "ASPIRE006";
