@@ -10,6 +10,8 @@ using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
 
@@ -26,7 +28,7 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
     public Action<ResourceModuleConstruct> ConfigureConstruct { get; internal set; } = configureConstruct;
 
     /// <inheritdoc/>
-    public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
+    public override BicepTemplateFile GetBicepTemplateFile(string? directory, bool deleteTemporaryFileOnDispose, DistributedApplicationExecutionContext? executionContext)
     {
         var resourceModuleConstruct = new ResourceModuleConstruct(this, Name);
 
@@ -55,8 +57,8 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
         var generationPath = Directory.CreateTempSubdirectory("aspire").FullName;
         var moduleSourcePath = Path.Combine(generationPath, "main.bicep");
 
-        var provisioningContext = GetProvisioningContext();
-        var plan = resourceModuleConstruct.Build(provisioningContext);
+        var options = executionContext?.ServiceProvider.GetService<IOptions<AzureProvisioningOptions>>()?.Value ?? new();
+        var plan = resourceModuleConstruct.Build(options.ProvisioningContext);
         var compilation = plan.Compile();
         Debug.Assert(compilation.Count == 1);
         var compiledBicep = compilation.First();
@@ -71,59 +73,32 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
     private string? _generatedBicep;
 
     /// <inheritdoc />
-    public override string GetBicepTemplateString()
+    public override string GetBicepTemplateString(DistributedApplicationExecutionContext? executionContext)
     {
         if (_generatedBicep is null)
         {
-            var template = GetBicepTemplateFile();
+            var template = GetBicepTemplateFile(directory: null, deleteTemporaryFileOnDispose: true, executionContext);
             _generatedBicep = File.ReadAllText(template.Path);
         }
 
         return _generatedBicep;
     }
+}
 
-    private static ProvisioningContext GetProvisioningContext()
+/// <summary>
+/// 
+/// </summary>
+public sealed class AzureResourceNamePropertyResolverAspirev8 : DynamicResourceNamePropertyResolver
+{
+    /// <summary>
+    /// Override the default Name property resolver and use a .NET Aspire 8.x compatible name scheme.
+    ///
+    /// This is to keep a consistent name with .NET Aspire 8.x so updating doesn't change resource names.
+    /// </summary>
+    public override BicepValue<string>? ResolveName(ProvisioningContext context, global::Azure.Provisioning.Primitives.Resource resource, ResourceNameRequirements requirements)
     {
-        var context = new ProvisioningContext();
-
-        // replace the built-in Name property resolver with our own
-        var defaultPropertyResolverIndex = -1;
-        for (var i = 0; i < context.PropertyResolvers.Count; i++)
-        {
-            if (context.PropertyResolvers[i] is ResourceNamePropertyResolver)
-            {
-                defaultPropertyResolverIndex = i;
-                break;
-            }
-        }
-
-        if (defaultPropertyResolverIndex != -1)
-        {
-            context.PropertyResolvers.RemoveAt(defaultPropertyResolverIndex);
-        }
-        else
-        {
-            // if a naming resolver wasn't found, insert ours at the beginning
-            defaultPropertyResolverIndex = 0;
-        }
-
-        context.PropertyResolvers.Insert(defaultPropertyResolverIndex, new AspireNamePropertyResolver());
-
-        return context;
-    }
-
-    private sealed class AspireNamePropertyResolver : DynamicResourceNamePropertyResolver
-    {
-        /// <summary>
-        /// Override the default Name property resolver and use a .NET Aspire 8.x compatible name scheme.
-        ///
-        /// This is to keep a consistent name with .NET Aspire 8.x so updating doesn't change resource names.
-        /// </summary>
-        public override BicepValue<string>? ResolveName(ProvisioningContext context, global::Azure.Provisioning.Primitives.Resource resource, ResourceNameRequirements requirements)
-        {
-            var suffix = GetUniqueSuffix(context, resource);
-            return BicepFunction.ToLower(BicepFunction.Take(BicepFunction.Interpolate($"{resource.ResourceName}{suffix}"), 24));
-        }
+        var suffix = GetUniqueSuffix(context, resource);
+        return BicepFunction.ToLower(BicepFunction.Take(BicepFunction.Interpolate($"{resource.ResourceName}{suffix}"), 24));
     }
 }
 

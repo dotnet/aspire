@@ -276,7 +276,7 @@ internal sealed class AzureProvisioner(
 
             resourceLogger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.AzureResource.Name);
         }
-        else if (await provisioner.ConfigureResourceAsync(configuration, resource.AzureResource, cancellationToken).ConfigureAwait(false))
+        else if (await provisioner.ConfigureResourceAsync(configuration, executionContext, resource.AzureResource, cancellationToken).ConfigureAwait(false))
         {
             resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
             resourceLogger.LogInformation("Using connection information stored in user secrets for {resourceName}.", resource.AzureResource.Name);
@@ -469,6 +469,7 @@ internal sealed class AzureProvisioner(
         var resourceMap = new Dictionary<string, ArmResource>();
 
         return new ProvisioningContext(
+                    executionContext,
                     credential,
                     armClient,
                     subscriptionResource,

@@ -3,13 +3,20 @@
 
 #pragma warning disable AZPROVISION001 // Because we use the CDK callbacks.
 
+using Aspire.Hosting.Azure;
 using Azure.Provisioning.ApplicationInsights;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.OperationalInsights;
 using Azure.Provisioning.Storage;
+using Microsoft.Extensions.DependencyInjection;
 
 var builder = DistributedApplication.CreateBuilder(args);
+
+builder.Services.Configure<AzureProvisioningOptions>(options =>
+{
+    options.ProvisioningContext.PropertyResolvers.Insert(0, new AzureResourceNamePropertyResolverAspirev8());
+});
 
 var cosmosdb = builder.AddAzureCosmosDB("cosmos").AddDatabase("cosmosdb");
 
