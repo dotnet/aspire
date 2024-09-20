@@ -23,6 +23,10 @@ public class AnsiParserTests
 
     [Theory]
     [InlineData("\x1B[2m", "")]
+    [InlineData("\x1B[2A", "")]
+    [InlineData("\x1B[u", "")]
+    [InlineData("\x1B[?25h", "")]
+    [InlineData("\x1B[?25l", "")]
     [InlineData("\x1B[23m", "")]
     [InlineData("\x1B[2m\x1B[23m", "")]
     [InlineData("Real Text Before\x1B[2m\x1B[23m", "Real Text Before")]
@@ -67,6 +71,17 @@ public class AnsiParserTests
     public void ConvertToHtml_ColorOpenedAndClosed()
     {
         var input = "\x1B[32mThis is some green text\x1B[39m";
+        var expectedOutput = "<span class=\"ansi-fg-green\">This is some green text</span>";
+        var result = AnsiParser.ConvertToHtml(input);
+
+        Assert.Equal(expectedOutput, result.ConvertedText);
+        Assert.Equal(default, result.ResidualState);
+    }
+
+    [Fact]
+    public void ConvertToHtml_ColorOpenedAndClosedWithIgnoredSequencesInMiddle()
+    {
+        var input = "\x1B[32mThis is \x1B[?25hsome green\u001b]9;4;3;\u001b\\ text\x1B[39m";
         var expectedOutput = "<span class=\"ansi-fg-green\">This is some green text</span>";
         var result = AnsiParser.ConvertToHtml(input);
 

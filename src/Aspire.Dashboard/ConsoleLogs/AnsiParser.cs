@@ -9,6 +9,7 @@ public class AnsiParser
 {
     private const char EscapeChar = '\x1B';
     private const char ParametersSeparatorChar = ';';
+    private const char DisplayAttributesFinalByte = 'm';
     private const int ResetCode = 0;
     private const int IncreasedIntensityCode = 1;
     private const int ItalicCode = 3;
@@ -39,28 +40,6 @@ public class AnsiParser
 
         for (var i = 0; i < span.Length; i++)
         {
-            if (IsControlSequence(span[i..], ref i, out var parameters))
-            {
-                // If we have a control sequence, but have found some text already,
-                // we need to write out the new styles (if applicable) and that text
-                // before we continue
-                if (textStartIndex != -1)
-                {
-                    if (newState != currentState)
-                    {
-                        outputBuilder.Append(ProcessStateChange(currentState, newState));
-                        currentState = newState;
-                    }
-                    outputBuilder.Append(text[textStartIndex..(textStartIndex + textLength)]);
-                    textStartIndex = -1;
-                    textLength = 0;
-                }
-
-                ProcessParameters(ref newState, parameters);
-
-                continue;
-            }
-
             if (IsConEmuSequence(span[i..], ref i))
             {
                 // If we have a control sequence, but have found some text already,
@@ -77,8 +56,6 @@ public class AnsiParser
                     textStartIndex = -1;
                     textLength = 0;
                 }
-
-                ProcessParameters(ref newState, parameters);
 
                 continue;
             }
@@ -102,6 +79,33 @@ public class AnsiParser
 
                 // Append the URL unformatted, the Url matcher will convert to link later.
                 outputBuilder.Append(url);
+
+                continue;
+            }
+
+            if (IsControlSequence(span[i..], ref i, out var finalByte, out var parameters))
+            {
+                // If we have a control sequence, but have found some text already,
+                // we need to write out the new styles (if applicable) and that text
+                // before we continue
+                if (textStartIndex != -1)
+                {
+                    if (newState != currentState)
+                    {
+                        outputBuilder.Append(ProcessStateChange(currentState, newState));
+                        currentState = newState;
+                    }
+                    outputBuilder.Append(text[textStartIndex..(textStartIndex + textLength)]);
+                    textStartIndex = -1;
+                    textLength = 0;
+                }
+
+                // The only sequences we care about are display sequences.
+                // Ignore everything else and don't write sequence to the output.
+                if (finalByte == DisplayAttributesFinalByte)
+                {
+                    ProcessParameters(ref newState, parameters);
+                }
 
                 continue;
             }
@@ -218,23 +222,26 @@ public class AnsiParser
         }
     }
 
-    private static bool IsControlSequence(ReadOnlySpan<char> span, ref int position, out int[] parameters)
+    private static bool IsControlSequence(ReadOnlySpan<char> span, ref int position, out char finalByte, out int[] parameters)
     {
         // If we're at \x1B[
         if (span.Length <= 2 || (span[0] != EscapeChar || span[1] != '['))
         {
             parameters = [];
+            finalByte = default;
             return false;
         }
 
-        // Find the index of the next 'm' character
-        var paramsEndPosition = span.IndexOf('m');
+        // Find the index of the final byte. Char in range of: @A–Z[\]^_`a–z{|}~
+        var paramsEndPosition = span.Slice(2).IndexOfAnyInRange('@', '~');
         if (paramsEndPosition < 0)
         {
-            // No end of escape with 'm' code, cannot parse params.
+            // No end of escape with final byte, cannot parse params.
             parameters = [];
+            finalByte = default;
             return false;
         }
+        paramsEndPosition += 2;
 
         // Find the index of the next escape character
         var nextEscapePosition = SubIndexOfSpan(span, EscapeChar, 1);
@@ -242,6 +249,7 @@ public class AnsiParser
         {
             // Current sequence is not finished before the next escape sequence starts.
             parameters = [];
+            finalByte = default;
             return false;
         }
 
@@ -273,6 +281,7 @@ public class AnsiParser
         // Advance the position in the span to the end of the control sequence
         position += paramsEndPosition;
         parameters = [.. ret];
+        finalByte = span[paramsEndPosition];
 
         return true;
     }
