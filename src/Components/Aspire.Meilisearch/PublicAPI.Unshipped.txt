@@ -1,0 +1,14 @@
+#nullable enable
+Aspire.Meilisearch.MeilisearchClientSettings
+Aspire.Meilisearch.MeilisearchClientSettings.DisableHealthChecks.get -> bool
+Aspire.Meilisearch.MeilisearchClientSettings.DisableHealthChecks.set -> void
+Aspire.Meilisearch.MeilisearchClientSettings.Endpoint.get -> System.Uri?
+Aspire.Meilisearch.MeilisearchClientSettings.Endpoint.set -> void
+Aspire.Meilisearch.MeilisearchClientSettings.HealthCheckTimeout.get -> int?
+Aspire.Meilisearch.MeilisearchClientSettings.HealthCheckTimeout.set -> void
+Aspire.Meilisearch.MeilisearchClientSettings.MasterKey.get -> string?
+Aspire.Meilisearch.MeilisearchClientSettings.MasterKey.set -> void
+Aspire.Meilisearch.MeilisearchClientSettings.MeilisearchClientSettings() -> void
+Microsoft.Extensions.Hosting.AspireMeilisearchExtensions
+static Microsoft.Extensions.Hosting.AspireMeilisearchExtensions.AddKeyedMeilisearchClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! name, System.Action<Aspire.Meilisearch.MeilisearchClientSettings!>? configureSettings = null) -> void
+static Microsoft.Extensions.Hosting.AspireMeilisearchExtensions.AddMeilisearchClient(this Microsoft.Extensions.Hosting.IHostApplicationBuilder! builder, string! connectionName, System.Action<Aspire.Meilisearch.MeilisearchClientSettings!>? configureSettings = null) -> void

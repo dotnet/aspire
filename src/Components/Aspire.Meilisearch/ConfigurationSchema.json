@@ -1,0 +1,39 @@
+{
+  "type": "object",
+  "properties": {
+    "Aspire": {
+      "type": "object",
+      "properties": {
+        "Meilisearch": {
+          "type": "object",
+          "properties": {
+            "Client": {
+              "type": "object",
+              "properties": {
+                "DisableHealthChecks": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the Meilisearch health check is disabled or not.",
+                  "default": false
+                },
+                "Endpoint": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "The endpoint URI string of the Meilisearch server to connect to."
+                },
+                "HealthCheckTimeout": {
+                  "type": "integer",
+                  "description": "Gets or sets a integer value that indicates the Meilisearch health check timeout in milliseconds."
+                },
+                "MasterKey": {
+                  "type": "string",
+                  "description": "The Master Key of the Meilisearch server to connect to."
+                }
+              },
+              "description": "Provides the client configuration settings for connecting to a Meilisearch server using MeilisearchClient."
+            }
+          }
+        }
+      }
+    }
+  }
+}

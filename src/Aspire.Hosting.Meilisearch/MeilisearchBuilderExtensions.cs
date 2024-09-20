@@ -1,9 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Data.Common;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Meilisearch;
 using Aspire.Hosting.Utils;
+using Aspire.Meilisearch;
+using Meilisearch;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting;
 
@@ -50,7 +55,25 @@ public static class MeilisearchBuilderExtensions
 
         var meilisearch = new MeilisearchResource(name, masterKeyParameter);
 
-        //todo: add health check
+        MeilisearchClient? meilisearchClient = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(meilisearch, async (@event, ct) =>
+        {
+            var connectionString = await meilisearch.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false)
+            ?? throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{meilisearch.Name}' resource but the connection string was null.");
+
+            meilisearchClient = CreateMeilisearchClient(connectionString);
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.Services.AddHealthChecks()
+         .Add(new HealthCheckRegistration(
+             healthCheckKey,
+             sp => new MeilisearchHealthCheck(meilisearchClient!),
+             failureStatus: default,
+             tags: default,
+             timeout: default));
+
         return builder.AddResource(meilisearch)
              .WithImage(MeilisearchContainerImageTags.Image, MeilisearchContainerImageTags.Tag)
              .WithImageRegistry(MeilisearchContainerImageTags.Registry)
@@ -58,7 +81,8 @@ public static class MeilisearchBuilderExtensions
              .WithEnvironment(context =>
              {
                  context.EnvironmentVariables["MEILI_MASTER_KEY"] = meilisearch.MasterKeyParameter;
-             });
+             })
+             .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -114,5 +138,40 @@ public static class MeilisearchBuilderExtensions
         ArgumentNullException.ThrowIfNull(source);
 
         return builder.WithBindMount(source, "/meili_data");
+    }
+
+    internal static MeilisearchClient CreateMeilisearchClient(string? connectionString)
+    {
+        if (connectionString is null)
+        {
+            throw new InvalidOperationException("Connection string is unavailable");
+        }
+
+        Uri? endpoint = null;
+        string? masterKey = null;
+
+        if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+        {
+            endpoint = uri;
+        }
+        else
+        {
+            var connectionBuilder = new DbConnectionStringBuilder
+            {
+                ConnectionString = connectionString
+            };
+
+            if (connectionBuilder.TryGetValue("Endpoint", out var endpointValue) && Uri.TryCreate(endpointValue.ToString(), UriKind.Absolute, out var serviceUri))
+            {
+                endpoint = serviceUri;
+            }
+
+            if (connectionBuilder.TryGetValue("MasterKey", out var masterKeyValue))
+            {
+                masterKey = masterKeyValue.ToString();
+            }
+        }
+
+        return new MeilisearchClient(endpoint!.ToString(), apiKey: masterKey!);
     }
 }

@@ -1,3 +1,4 @@
+#nullable enable
 Aspire.Hosting.ApplicationModel.MeilisearchResource
 Aspire.Hosting.ApplicationModel.MeilisearchResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
 Aspire.Hosting.ApplicationModel.MeilisearchResource.MasterKeyParameter.get -> Aspire.Hosting.ApplicationModel.ParameterResource!

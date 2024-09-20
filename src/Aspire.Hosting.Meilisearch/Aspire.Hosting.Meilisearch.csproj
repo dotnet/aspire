@@ -6,6 +6,10 @@
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <PackageTags>aspire integration hosting meilisearch</PackageTags>
     <Description>Meilisearch support for .NET Aspire.</Description>
+    <!-- Disable package validation as this package hasn't shipped yet. -->
+    <EnablePackageValidation>false</EnablePackageValidation>
+    <NoWarn>$(NoWarn);CS8002</NoWarn>
+    <!-- MeiliSearch package is not signed -->
   </PropertyGroup>
 
   <PropertyGroup>
@@ -14,6 +18,11 @@
 
   <ItemGroup>
     <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
+    <Compile Include="$(ComponentsDir)Aspire.Meilisearch\MeilisearchHealthCheck.cs" Link="MeilisearchHealthCheck.cs"></Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MeiliSearch" />
   </ItemGroup>
 
   <ItemGroup>
