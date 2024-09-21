@@ -33,15 +33,22 @@
         </div>
 
         <div class="filter-input-container">
-            <FluentCombobox TOption="SelectViewModel<string>"
+            <FluentCombobox TOption="SelectViewModel<FieldValue>"
                             @bind-Value="_formModel.Value"
-                            @bind-Value:after="ValueChanged"
                             Items="@_filteredValues"
                             Width="100%"
                             Height="400px"
                             OptionText="@(c => c.Name)"
+                            OptionValue="@(c => c.Name)"
                             Immediate="true"
-                            Label="@Loc[nameof(Dialogs.FilterDialogTextValuePlaceholder)]" />
+                            Label="@Loc[nameof(Dialogs.FilterDialogTextValuePlaceholder)]">
+                <OptionTemplate Context="optionContext">
+                    <FluentBadge Circular=true Appearance="Appearance.Neutral" Slot="end">
+                        @optionContext.Id!.Count
+                    </FluentBadge>
+                    @optionContext.Name
+                </OptionTemplate>
+            </FluentCombobox>
             <ValidationMessage For="() => _formModel.Value" />
         </div>
 

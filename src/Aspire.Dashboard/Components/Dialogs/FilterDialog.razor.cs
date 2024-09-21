@@ -28,8 +28,8 @@ public partial class FilterDialog
 
     private FilterDialogFormModel _formModel = default!;
     private List<SelectViewModel<string>> _parameters = default!;
-    private List<SelectViewModel<string>> _filteredValues = default!;
-    private List<SelectViewModel<string>>? _allValues;
+    private List<SelectViewModel<FieldValue>> _filteredValues = default!;
+    private List<SelectViewModel<FieldValue>>? _allValues;
 
     public EditContext EditContext { get; private set; } = default!;
 
@@ -49,7 +49,7 @@ public partial class FilterDialog
         _filteredValues = [];
     }
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         var knownFields = Content.KnownKeys.Select(p => new SelectViewModel<string> { Id = p, Name = TelemetryFilter.ResolveFieldName(p) }).ToList();
         var customFields = Content.PropertyKeys.Select(p => new SelectViewModel<string> { Id = p, Name = TelemetryFilter.ResolveFieldName(p) }).ToList();
@@ -82,7 +82,7 @@ public partial class FilterDialog
         }
 
         UpdateParameterFieldValues();
-        ValueChanged();
+        await ValueChanged();
     }
 
     private void UpdateParameterFieldValues()
@@ -91,9 +91,10 @@ public partial class FilterDialog
         {
             var fieldValues = Content.GetFieldValues(parameterName);
             _allValues = fieldValues
-                .OrderByDescending(kvp => kvp.Value)
-                .ThenBy(kvp => kvp.Key, StringComparers.OtlpFieldValue)
-                .Select(kvp => new SelectViewModel<string> { Id = kvp.Key, Name = kvp.Key })
+                .Select(kvp => new FieldValue { Value = kvp.Key, Count = kvp.Value })
+                .OrderByDescending(v => v.Count)
+                .ThenBy(v => v.Value, StringComparers.OtlpFieldValue)
+                .Select(v => new SelectViewModel<FieldValue> { Id = v, Name = v.Value })
                 .ToList();
         }
         else
@@ -112,16 +113,17 @@ public partial class FilterDialog
         // Clearing the selected value and the combo box items together wasn't correctly clearing the selected value.
         // This is hacky, but adding a delay between the two operations puts the combo box in the right state.
         await Task.Delay(100);
-        ValueChanged();
+        await ValueChanged();
     }
 
     // There is a bug in FluentUI that prevents the value changing immediately. Will be fixed in a future FluentUI update.
     // https://github.com/microsoft/fluentui-blazor/issues/2672
-    private void ValueChanged()
+    private Task ValueChanged()
     {
+
         if (_allValues != null)
         {
-            IEnumerable<SelectViewModel<string>> newValues = _allValues;
+            IEnumerable<SelectViewModel<FieldValue>> newValues = _allValues;
             if (!string.IsNullOrEmpty(_formModel.Value))
             {
                 newValues = newValues.Where(vm => vm.Name.Contains(_formModel.Value!));
@@ -134,6 +136,8 @@ public partial class FilterDialog
         {
             _filteredValues = [];
         }
+
+        return Task.CompletedTask;
     }
 
     private void Cancel()
@@ -167,5 +171,11 @@ public partial class FilterDialog
 
             Dialog!.CloseAsync(DialogResult.Ok(new FilterDialogResult() { Filter = filter, Add = true }));
         }
+    }
+
+    private class FieldValue
+    {
+        public required string Value { get; init; }
+        public required int Count { get; init; }
     }
 }
