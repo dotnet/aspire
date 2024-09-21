@@ -24,6 +24,7 @@ internal enum DcpApiOperationType
     Watch = 4,
     GetLogSubresource = 5,
     Get = 6,
+    Patch = 7
 }
 
 internal interface IKubernetesService
@@ -31,6 +32,8 @@ internal interface IKubernetesService
     Task<T> GetAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default)
         where T: CustomResource;
     Task<T> CreateAsync<T>(T obj, CancellationToken cancellationToken = default)
+        where T : CustomResource;
+    Task<T> PatchAsync<T>(T obj, V1Patch patch, CancellationToken cancellationToken = default)
         where T : CustomResource;
     Task<List<T>> ListAsync<T>(string? namespaceParameter = null, CancellationToken cancellationToken = default)
         where T : CustomResource;
@@ -115,6 +118,40 @@ internal sealed class KubernetesService(ILogger<KubernetesService> logger, IOpti
                     GroupVersion.Version,
                     namespaceParameter,
                     resourceType,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+
+               return KubernetesJson.Deserialize<T>(response.Body.ToString());
+           },
+           cancellationToken);
+    }
+
+    public Task<T> PatchAsync<T>(T obj, V1Patch patch, CancellationToken cancellationToken = default)
+        where T : CustomResource
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var resourceType = GetResourceFor<T>();
+        var namespaceParameter = obj.Namespace();
+
+        return ExecuteWithRetry(
+           DcpApiOperationType.Patch,
+           resourceType,
+           async (kubernetes) =>
+           {
+               var response = string.IsNullOrEmpty(namespaceParameter)
+                ? await kubernetes.CustomObjects.PatchClusterCustomObjectWithHttpMessagesAsync(
+                    patch,
+                    GroupVersion.Group,
+                    GroupVersion.Version,
+                    resourceType,
+                    obj.Metadata.Name,
+                    cancellationToken: cancellationToken).ConfigureAwait(false)
+                : await kubernetes.CustomObjects.PatchNamespacedCustomObjectWithHttpMessagesAsync(
+                    patch,
+                    GroupVersion.Group,
+                    GroupVersion.Version,
+                    namespaceParameter,
+                    resourceType,
+                    obj.Metadata.Name,
                     cancellationToken: cancellationToken).ConfigureAwait(false);
 
                return KubernetesJson.Deserialize<T>(response.Body.ToString());

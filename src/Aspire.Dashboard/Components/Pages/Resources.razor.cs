@@ -312,16 +312,18 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
         var response = await DashboardClient.ExecuteResourceCommandAsync(resource.Name, resource.ResourceType, command, CancellationToken.None);
 
+        var messageResourceName = GetResourceName(resource);
+
         if (response.Kind == ResourceCommandResponseKind.Succeeded)
         {
-            ToastService.ShowSuccess(string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandSuccess)], command.DisplayName));
+            ToastService.ShowSuccess(string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandSuccess)], command.DisplayName + " " + messageResourceName));
         }
         else
         {
             ToastService.ShowCommunicationToast(new ToastParameters<CommunicationToastContent>()
             {
                 Intent = ToastIntent.Error,
-                Title = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandFailed)], command.DisplayName),
+                Title = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandFailed)], command.DisplayName + " " + messageResourceName),
                 PrimaryAction = Loc[nameof(Dashboard.Resources.Resources.ResourceCommandToastViewLogs)],
                 OnPrimaryAction = EventCallback.Factory.Create<ToastResult>(this, () => NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: resource.Name))),
                 Content = new CommunicationToastContent()

@@ -74,6 +74,7 @@ public sealed class CommandViewModel
     private static readonly ConcurrentDictionary<string, CustomIcon?> s_iconCache = new();
 
     public string CommandType { get; }
+    public CommandViewModelState State { get; }
     public string DisplayName { get; }
     public string? DisplayDescription { get; }
     public string? ConfirmationMessage { get; }
@@ -81,12 +82,13 @@ public sealed class CommandViewModel
     public bool IsHighlighted { get; }
     public string? IconName { get; }
 
-    public CommandViewModel(string commandType, string displayName, string? displayDescription, string? confirmationMessage, Value? parameter, bool isHighlighted, string? iconName)
+    public CommandViewModel(string commandType, CommandViewModelState state, string displayName, string? displayDescription, string? confirmationMessage, Value? parameter, bool isHighlighted, string? iconName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(commandType);
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
 
         CommandType = commandType;
+        State = state;
         DisplayName = displayName;
         DisplayDescription = displayDescription;
         ConfirmationMessage = confirmationMessage;
@@ -116,6 +118,13 @@ public sealed class CommandViewModel
             }
         });
     }
+}
+
+public enum CommandViewModelState
+{
+    Enabled,
+    Disabled,
+    Hidden
 }
 
 [DebuggerDisplay("Name = {Name}, Value = {Value}, FromSpec = {FromSpec}, IsValueMasked = {IsValueMasked}")]

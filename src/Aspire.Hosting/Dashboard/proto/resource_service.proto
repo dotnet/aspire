@@ -46,6 +46,9 @@ message ResourceCommand {
     // Optional description of the command, to be shown in the UI.
     // Could be used as a tooltip. May be localized.
     optional string display_description = 7;
+    // The state of the command. Controls whether the command is enabled, disabled,
+    // or hidden in the UI.
+    ResourceCommandState state = 8;
 }
 
 // Represents a request to execute a command.
@@ -64,6 +67,12 @@ message ResourceCommandRequest {
     // An optional parameter to accompany the command.
     // Copied from the ResourceCommand that this request object is initialized from.
     optional google.protobuf.Value parameter = 4;
+}
+
+enum ResourceCommandState {
+    ENABLED = 0;
+    DISABLED = 1;
+    HIDDEN = 2;
 }
 
 enum ResourceCommandResponseKind {
