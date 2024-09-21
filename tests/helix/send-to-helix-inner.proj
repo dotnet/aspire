@@ -109,7 +109,11 @@
 
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="(cd $HELIX_CORRELATION_PAYLOAD/create-dotnet-devcert%3B chmod +x ubuntu-create-dotnet-devcert.sh %3B ./ubuntu-create-dotnet-devcert.sh)" />
 
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set NUGET_PACKAGES=%HELIX_WORKITEM_ROOT%\nuget-cache\" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export NUGET_PACKAGES=$HELIX_WORKITEM_ROOT/nuget-cache/" />
+    <HelixPreCommand Include="dotnet nuget add source &quot;$HELIX_WORKITEM_ROOT/nuget-cache/&quot; -n BuiltNuGetPackages" />
     <HelixPreCommand Include="dotnet new install Aspire.ProjectTemplates::9.0.0-dev --force" />
+    <HelixPreCommand Include="dotnet nuget remove source &quot;BuiltNuGetPackages&quot;" />
     <HelixPostCommand Include="dotnet new uninstall Aspire.ProjectTemplates" />
   </ItemGroup>
 
