@@ -13,7 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <TextReplacementValue Include="DefaultTargetFramework" NewValue="$(DefaultTargetFramework)" />
+    <TextReplacementValue Include="DefaultTargetFramework" NewValue="$(NetCurrent)" />
   </ItemGroup>
 
   <ItemGroup>
@@ -36,12 +36,12 @@
              Properties="Configuration=$(Configuration);Platform=$(Platform)" />
 
     <ItemGroup>
-      <_publishContentToPackage Include="$(DotNetOutputPath)Aspire.RuntimeIdentifier.Tool/$(Configuration)/$(DefaultTargetFramework)/publish/**/*" />
+      <_publishContentToPackage Include="$(DotNetOutputPath)Aspire.RuntimeIdentifier.Tool/$(Configuration)/$(NetCurrent)/publish/**/*" />
     </ItemGroup>
 
     <ItemGroup>
       <TfmSpecificPackageFile Include="@(_publishContentToPackage)"
-                              PackagePath="tools/$(DefaultTargetFramework)/%(_publishContentToPackage.RecursiveDir)" />
+                              PackagePath="tools/$(NetCurrent)/%(_publishContentToPackage.RecursiveDir)" />
     </ItemGroup>
 
   </Target>
