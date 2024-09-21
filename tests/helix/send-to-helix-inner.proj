@@ -108,6 +108,9 @@
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export TEST_LOG_PATH=$HELIX_WORKITEM_UPLOAD_ROOT/logs" />
 
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="(cd $HELIX_CORRELATION_PAYLOAD/create-dotnet-devcert%3B chmod +x ubuntu-create-dotnet-devcert.sh %3B ./ubuntu-create-dotnet-devcert.sh)" />
+
+    <HelixPreCommand Include="dotnet new install Aspire.ProjectTemplates::9.0.0-dev" />
+    <HelixPostCommand Include="dotnet new uninstall Aspire.ProjectTemplates" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(NeedsAzureFunctionsCli)' == 'true'">
