@@ -1,12 +1,12 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var redis = builder.AddRedis("redis")
-    .WithDataVolume("redis-data")
+    .WithDataVolume()
     .WithRedisCommander()
-    .WithRedisInsight(c => c.WithAcceptEula(true));
+    .WithRedisInsight(c => c.WithAcceptEula());
 
 var garnet = builder.AddGarnet("garnet")
-    .WithDataVolume("garnet-data");
+    .WithDataVolume();
 
 var valkey = builder.AddValkey("valkey")
     .WithDataVolume("valkey-data");
