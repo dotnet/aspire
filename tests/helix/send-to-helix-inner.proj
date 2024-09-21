@@ -108,13 +108,6 @@
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export TEST_LOG_PATH=$HELIX_WORKITEM_UPLOAD_ROOT/logs" />
 
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="(cd $HELIX_CORRELATION_PAYLOAD/create-dotnet-devcert%3B chmod +x ubuntu-create-dotnet-devcert.sh %3B ./ubuntu-create-dotnet-devcert.sh)" />
-
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set NUGET_PACKAGES=%HELIX_WORKITEM_ROOT%\nuget-cache\" />
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export NUGET_PACKAGES=$HELIX_WORKITEM_ROOT/nuget-cache/" />
-    <HelixPreCommand Include="dotnet nuget add source &quot;$HELIX_WORKITEM_ROOT/nuget-cache/&quot; -n BuiltNuGetPackages" />
-    <HelixPreCommand Include="dotnet new install Aspire.ProjectTemplates::9.0.0-dev --force" />
-    <HelixPreCommand Include="dotnet nuget remove source &quot;BuiltNuGetPackages&quot;" />
-    <HelixPostCommand Include="dotnet new uninstall Aspire.ProjectTemplates" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(NeedsAzureFunctionsCli)' == 'true'">
@@ -192,6 +185,11 @@
 
       <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="$(_EnvVarSetKeyword) DcpPublisher__CliPath=$(_HelixCorrelationPayloadEnvVar)/dcp/dcp" />
       <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="$(_EnvVarSetKeyword) DcpPublisher__CliPath=$(_HelixCorrelationPayloadEnvVar)\dcp\dcp.exe" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(NeedsWorkload)' == 'true'">
+      <HelixPreCommand Include="dotnet new install Aspire.ProjectTemplates::9.0.0-dev --force" />
+      <HelixPostCommand Include="dotnet new uninstall Aspire.ProjectTemplates" />
     </ItemGroup>
 
     <PropertyGroup>
