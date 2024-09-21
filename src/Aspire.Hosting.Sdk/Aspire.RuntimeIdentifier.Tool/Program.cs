@@ -48,7 +48,8 @@ sealed class Program
 
             if (!File.Exists(rgp))
             {
-                throw new FileNotFoundException("File {0} does not exist. Please ensure the runtime graph path exists.", rgp);
+                Console.WriteLine($"File {rgp} does not exist. Please ensure the runtime graph path exists.");
+                return -1;
             }
 
             RuntimeGraph graph = JsonRuntimeFormat.ReadRuntimeGraph(rgp);
