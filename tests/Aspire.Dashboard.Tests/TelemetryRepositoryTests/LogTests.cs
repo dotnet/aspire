@@ -769,7 +769,7 @@ public class LogTests
             ApplicationKey = applicationKey,
             StartIndex = 0,
             Count = 1,
-            Filters = [new LogFilter { Condition = FilterCondition.Contains, Field = nameof(OtlpLogEntry.Message), Value = "does_not_contain" }]
+            Filters = [new TelemetryFilter { Condition = FilterCondition.Contains, Field = nameof(OtlpLogEntry.Message), Value = "does_not_contain" }]
         }).Items);
 
         Assert.Single(repository.GetLogs(new GetLogsContext
@@ -777,7 +777,7 @@ public class LogTests
             ApplicationKey = applicationKey,
             StartIndex = 0,
             Count = 1,
-            Filters = [new LogFilter { Condition = FilterCondition.Contains, Field = nameof(OtlpLogEntry.Message), Value = "message" }]
+            Filters = [new TelemetryFilter { Condition = FilterCondition.Contains, Field = nameof(OtlpLogEntry.Message), Value = "message" }]
         }).Items);
     }
 
