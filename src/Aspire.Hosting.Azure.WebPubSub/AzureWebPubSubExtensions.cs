@@ -2,12 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-
 using Azure.Provisioning;
-using Azure.Provisioning.Authorization;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.WebPubSub;
 
@@ -72,15 +69,7 @@ public static class AzureWebPubSubExtensions
 
             construct.Add(new BicepOutput("endpoint", typeof(string)) { Value = BicepFunction.Interpolate($"https://{service.HostName}") });
 
-            // TODO: this should be defined in the CDK, but isn't currently
-            const string WebPubSubServiceOwnerRoleId = "12cf5a90-567b-43ae-8102-96cf46c7d9b4";
-            construct.Add(new RoleAssignment($"WebPubSubServiceOwner_{service.ResourceName}")
-            {
-                Scope = new IdentifierExpression(service.ResourceName),
-                PrincipalType = construct.PrincipalTypeParameter,
-                RoleDefinitionId = BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", WebPubSubServiceOwnerRoleId),
-                PrincipalId = construct.PrincipalIdParameter
-            });
+            construct.Add(service.AssignRole(WebPubSubBuiltInRole.WebPubSubServiceOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             var resource = (AzureWebPubSubResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);
