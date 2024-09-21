@@ -3,24 +3,23 @@
 
 using static Aspire.Hosting.Utils.VolumeNameGenerator;
 using Xunit;
-using System.Text;
-using System.Security.Cryptography;
 
 namespace Aspire.Hosting.Tests.Utils;
 
 public class VolumeNameGeneratorTests
 {
     [Fact]
-    public void VolumeGeneratorUsesFirst10CharsOfSha256FromAppHostConfig()
+    public void VolumeGeneratorUsesUniqueName()
     {
         var builder = DistributedApplication.CreateBuilder();
-        var appHostSha = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("app")));
-        builder.Configuration["AppHost:Sha256"] = appHostSha;
+
+        var volumePrefix = $"{Sanitize(builder.Environment.ApplicationName).ToLowerInvariant()}-{builder.Configuration["AppHost:Sha256"]!.ToLowerInvariant()[..10]}";
+
         var resource = builder.AddResource(new TestResource("myresource"));
 
         var volumeName = CreateVolumeName(resource, "data");
 
-        Assert.Equal($"{appHostSha[..10].ToLowerInvariant()}-{resource.Resource.Name}-data", volumeName);
+        Assert.Equal($"{volumePrefix}-{resource.Resource.Name}-data", volumeName);
     }
 
     [Theory]
