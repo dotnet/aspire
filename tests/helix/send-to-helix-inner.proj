@@ -109,7 +109,7 @@
 
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="(cd $HELIX_CORRELATION_PAYLOAD/create-dotnet-devcert%3B chmod +x ubuntu-create-dotnet-devcert.sh %3B ./ubuntu-create-dotnet-devcert.sh)" />
 
-    <HelixPreCommand Include="dotnet new install Aspire.ProjectTemplates::9.0.0-dev" />
+    <HelixPreCommand Include="dotnet new install Aspire.ProjectTemplates::9.0.0-dev --force" />
     <HelixPostCommand Include="dotnet new uninstall Aspire.ProjectTemplates" />
   </ItemGroup>
 
