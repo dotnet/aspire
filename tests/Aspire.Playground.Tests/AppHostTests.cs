@@ -148,9 +148,10 @@ public class AppHostTests
                 ],
                 whenReady: TestEventHubsAppHost),
             new TestEndpoints("Redis.AppHost",
-                resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/garnet/ping", "/garnet/get", "/garnet/set", "/redis/ping", "/redis/get", "/redis/set"] } },
+                resourceEndpoints: new() { { "apiservice", ["/alive", "/health", "/garnet/ping", "/garnet/get", "/garnet/set", "/redis/ping", "/redis/get", "/redis/set", "/valkey/ping", "/valkey/get", "/valkey/set"] } },
                 waitForTexts: [
                     new ("redis", "Ready to accept connections tcp"),
+                    new ("valkey", "Ready to accept connections tcp"),
                     new ("garnet", "Ready to accept connections"),
                     new ("apiservice", "Application started")
                 ]),
