@@ -41,7 +41,8 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
     }
 
     // Returns the unique prefix used for volumes from unnamed volumes this builder
-    public string GetVolumePrefix() => Configuration["AppHost:Sha256"]!.ToLowerInvariant()[..10];
+    public string GetVolumePrefix() =>
+        $"{VolumeNameGenerator.Sanitize(Environment.ApplicationName).ToLowerInvariant()}-{Configuration["AppHost:Sha256"]!.ToLowerInvariant()[..10]}";
 
     public static TestDistributedApplicationBuilder Create(params string[] args)
     {
