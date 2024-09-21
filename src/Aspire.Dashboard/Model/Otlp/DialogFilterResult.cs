@@ -5,7 +5,7 @@ namespace Aspire.Dashboard.Model.Otlp;
 
 public class FilterDialogResult
 {
-    public LogFilter? Filter { get; set; }
+    public TelemetryFilter? Filter { get; set; }
     public bool Delete { get; set; }
     public bool Add { get; set; }
 }

@@ -9,49 +9,49 @@ using Microsoft.Extensions.Localization;
 
 namespace Aspire.Dashboard.Model.Otlp;
 
-[DebuggerDisplay("{FilterText,nq}")]
-public class LogFilter : IEquatable<LogFilter>
+[DebuggerDisplay("{DebuggerDisplayText,nq}")]
+public class TelemetryFilter : IEquatable<TelemetryFilter>
 {
-    public const string KnownMessageField = "log.message";
-    public const string KnownCategoryField = "log.category";
-    public const string KnownApplicationField = "log.application";
-    public const string KnownTraceIdField = "log.traceid";
-    public const string KnownSpanIdField = "log.spanid";
-    public const string KnownOriginalFormatField = "log.originalformat";
-
     public string Field { get; set; } = default!;
     public FilterCondition Condition { get; set; }
     public string Value { get; set; } = default!;
 
-    public string DebuggerDisplayText => $"{Field} {ConditionToString(Condition, null)} {Value}";
+    private string DebuggerDisplayText => $"{Field} {ConditionToString(Condition, null)} {Value}";
 
-    public string GetDisplayText(IStringLocalizer<Logs> loc) => $"{ResolveFieldName(Field)} {ConditionToString(Condition, loc)} {Value}";
+    public string GetDisplayText(IStringLocalizer<StructuredFiltering> loc) => $"{ResolveFieldName(Field)} {ConditionToString(Condition, loc)} {Value}";
 
     public static string ResolveFieldName(string name)
     {
         return name switch
         {
-            KnownMessageField => "Message",
-            KnownApplicationField => "Application",
-            KnownTraceIdField => "TraceId",
-            KnownSpanIdField => "SpanId",
-            KnownOriginalFormatField => "OriginalFormat",
-            KnownCategoryField => "Category",
+            KnownStructuredLogFields.MessageField => "Message",
+            KnownStructuredLogFields.ApplicationField => "Application",
+            KnownStructuredLogFields.TraceIdField => "TraceId",
+            KnownStructuredLogFields.SpanIdField => "SpanId",
+            KnownStructuredLogFields.OriginalFormatField => "OriginalFormat",
+            KnownStructuredLogFields.CategoryField => "Category",
+            KnownTraceFields.NameField => "Name",
+            KnownTraceFields.SpanIdField => "SpanId",
+            KnownTraceFields.TraceIdField => "TraceId",
+            KnownTraceFields.KindField => "Kind",
+            KnownTraceFields.ApplicationField => "Application",
+            KnownTraceFields.StatusField => "Status",
+            KnownTraceFields.SourceField => "Source",
             _ => name
         };
     }
 
-    public static string ConditionToString(FilterCondition c, IStringLocalizer<Logs>? loc) =>
+    public static string ConditionToString(FilterCondition c, IStringLocalizer<StructuredFiltering>? loc) =>
         c switch
         {
             FilterCondition.Equals => "==",
-            FilterCondition.Contains => loc?[nameof(Logs.LogContains)] ?? "contains",
+            FilterCondition.Contains => loc?[nameof(StructuredFiltering.ConditionContains)] ?? "contains",
             FilterCondition.GreaterThan => ">",
             FilterCondition.LessThan => "<",
             FilterCondition.GreaterThanOrEqual => ">=",
             FilterCondition.LessThanOrEqual => "<=",
             FilterCondition.NotEqual => "!=",
-            FilterCondition.NotContains => loc?[nameof(Logs.LogNotContains)] ?? "not contains",
+            FilterCondition.NotContains => loc?[nameof(StructuredFiltering.ConditionNotContains)] ?? "not contains",
             _ => throw new ArgumentOutOfRangeException(nameof(c), c, null)
         };
 
@@ -101,12 +101,27 @@ public class LogFilter : IEquatable<LogFilter>
     {
         return Field switch
         {
-            KnownMessageField => x.Message,
-            KnownApplicationField => x.ApplicationView.Application.ApplicationName,
-            KnownTraceIdField => x.TraceId,
-            KnownSpanIdField => x.SpanId,
-            KnownOriginalFormatField => x.OriginalFormat,
-            KnownCategoryField => x.Scope.ScopeName,
+            KnownStructuredLogFields.MessageField => x.Message,
+            KnownStructuredLogFields.ApplicationField => x.ApplicationView.Application.ApplicationName,
+            KnownStructuredLogFields.TraceIdField => x.TraceId,
+            KnownStructuredLogFields.SpanIdField => x.SpanId,
+            KnownStructuredLogFields.OriginalFormatField => x.OriginalFormat,
+            KnownStructuredLogFields.CategoryField => x.Scope.ScopeName,
+            _ => x.Attributes.GetValue(Field)
+        };
+    }
+
+    private string? GetFieldValue(OtlpSpan x)
+    {
+        return Field switch
+        {
+            KnownTraceFields.ApplicationField => x.Source.Application.ApplicationName,
+            KnownTraceFields.TraceIdField => x.TraceId,
+            KnownTraceFields.SpanIdField => x.SpanId,
+            KnownTraceFields.KindField => x.Kind.ToString(),
+            KnownTraceFields.StatusField => x.Status.ToString(),
+            KnownTraceFields.SourceField => x.Scope.ScopeName,
+            KnownTraceFields.NameField => x.Name,
             _ => x.Attributes.GetValue(Field)
         };
     }
@@ -143,7 +158,14 @@ public class LogFilter : IEquatable<LogFilter>
         }
     }
 
-    public bool Equals(LogFilter? other)
+    public bool Apply(OtlpSpan span)
+    {
+        var fieldValue = GetFieldValue(span);
+        var func = ConditionToFuncString(Condition);
+        return func(fieldValue, Value);
+    }
+
+    public bool Equals(TelemetryFilter? other)
     {
         if (other == null)
         {
