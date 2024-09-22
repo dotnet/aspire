@@ -105,7 +105,6 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             resourceName: "funcapp",
             timeoutSecs: 160);
 
-#if !SKIP_EVENTHUBS_EMULATION
         // Assert that EventHubs triggers work correctly
         await app.CreateHttpClient("apiservice").GetAsync("/publish/eventhubs");
         await WaitForAllTextAsync(app,
@@ -115,6 +114,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             resourceName: "funcapp",
             timeoutSecs: 160);
 
+#if !SKIP_SERVICEBUS_RESOURCE
         // Assert that ServiceBus triggers work correctly
         await app.CreateHttpClient("apiservice").GetAsync("/publish/asb");
         await WaitForAllTextAsync(app,
