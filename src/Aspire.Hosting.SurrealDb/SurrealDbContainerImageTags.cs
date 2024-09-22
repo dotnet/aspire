@@ -7,5 +7,5 @@ internal sealed class SurrealDbContainerImageTags
 {
     public const string Registry = "docker.io";
     public const string Image = "surrealdb/surrealdb";
-    public const string Tag = "latest";
+    public const string Tag = "v2.0.1";
 }
