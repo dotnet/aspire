@@ -31,6 +31,9 @@ public static class SurrealDbBuilderExtensions
         int? port = null
     )
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         // The password must be at least 8 characters long and contain characters from three of the following four sets: Uppercase letters, Lowercase letters, Base 10 digits, and Symbols
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password", minLower: 1, minUpper: 1, minNumeric: 1);
 
@@ -58,6 +61,9 @@ public static class SurrealDbBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<SurrealDbDatabaseResource> AddDatabase(this IResourceBuilder<SurrealDbServerResource> builder, string name, string namespaceName = "test", string databaseName = "test")
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         builder.Resource.AddDatabase(name, databaseName);
         var surrealServerDatabase = new SurrealDbDatabaseResource(name, namespaceName, databaseName, builder.Resource);
         return builder.ApplicationBuilder.AddResource(surrealServerDatabase);
@@ -71,7 +77,11 @@ public static class SurrealDbBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only volume.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<SurrealDbServerResource> WithDataVolume(this IResourceBuilder<SurrealDbServerResource> builder, string? name = null, bool isReadOnly = false)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/opt/surreal", isReadOnly);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/var/opt/surreal", isReadOnly);
+    }
 
     /// <summary>
     /// Adds a bind mount for the data folder to a SurrealDB resource.
@@ -81,5 +91,10 @@ public static class SurrealDbBuilderExtensions
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<SurrealDbServerResource> WithDataBindMount(this IResourceBuilder<SurrealDbServerResource> builder, string source, bool isReadOnly = false)
-        => builder.WithBindMount(source, "/var/opt/surreal", isReadOnly);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(source);
+
+        return builder.WithBindMount(source, "/var/opt/surreal", isReadOnly);
+    }
 }
