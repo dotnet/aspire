@@ -64,7 +64,7 @@ public static class SurrealDbBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        builder.Resource.AddDatabase(name, databaseName);
+        builder.Resource.AddDatabase(name, namespaceName, databaseName);
         var surrealServerDatabase = new SurrealDbDatabaseResource(name, namespaceName, databaseName, builder.Resource);
         return builder.ApplicationBuilder.AddResource(surrealServerDatabase);
     }

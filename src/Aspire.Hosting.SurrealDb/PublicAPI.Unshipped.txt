@@ -7,7 +7,7 @@ Aspire.Hosting.ApplicationModel.SurrealDbDatabaseResource.Parent.get -> Aspire.H
 Aspire.Hosting.ApplicationModel.SurrealDbDatabaseResource.SurrealDbDatabaseResource(string! name, string! namespaceName, string! databaseName, Aspire.Hosting.ApplicationModel.SurrealDbServerResource! parent) -> void
 Aspire.Hosting.ApplicationModel.SurrealDbServerResource
 Aspire.Hosting.ApplicationModel.SurrealDbServerResource.ConnectionStringExpression.get -> Aspire.Hosting.ApplicationModel.ReferenceExpression!
-Aspire.Hosting.ApplicationModel.SurrealDbServerResource.Databases.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+Aspire.Hosting.ApplicationModel.SurrealDbServerResource.Databases.get -> System.Collections.Generic.IReadOnlyDictionary<string!, (string!, string!)>!
 Aspire.Hosting.ApplicationModel.SurrealDbServerResource.GetConnectionStringAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<string?>
 Aspire.Hosting.ApplicationModel.SurrealDbServerResource.PasswordParameter.get -> Aspire.Hosting.ApplicationModel.ParameterResource!
 Aspire.Hosting.ApplicationModel.SurrealDbServerResource.PrimaryEndpoint.get -> Aspire.Hosting.ApplicationModel.EndpointReference!
