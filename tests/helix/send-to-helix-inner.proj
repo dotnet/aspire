@@ -188,7 +188,7 @@
     </ItemGroup>
 
     <ItemGroup Condition="'$(NeedsWorkload)' == 'true'">
-      <HelixPreCommand Include="dotnet new install Aspire.ProjectTemplates::9.0.0-dev --force" />
+      <HelixPreCommand Include="dotnet new install Aspire.ProjectTemplates::$(Version) --force" />
       <HelixPostCommand Include="dotnet new uninstall Aspire.ProjectTemplates" />
     </ItemGroup>
 
