@@ -1044,7 +1044,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         foreach (var executable in modelExecutableResources)
         {
-            EnsureReplicaInstancesAnnotation(executable);
+            EnsureRequiredAnnotations(executable);
 
             var nameSuffix = GetRandomNameSuffix();
             var exeName = GetObjectNameForResource(executable, nameSuffix);
@@ -1076,7 +1076,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 throw new InvalidOperationException("A project resource is missing required metadata"); // Should never happen.
             }
 
-            EnsureReplicaInstancesAnnotation(project);
+            EnsureRequiredAnnotations(project);
 
             var replicas = project.GetReplicaCount();
 
@@ -1165,8 +1165,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private static void EnsureReplicaInstancesAnnotation(IResource resource)
+    private static void EnsureRequiredAnnotations(IResource resource)
     {
+        // Add the default lifecycle commands (start/stop/restart)
+        resource.AddLifeCycleCommands();
+
         // Make sure we have a replica annotation on the resource.
         // this is so that we can populate the running instance ids
         if (!resource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out _))
@@ -1411,7 +1414,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 throw new InvalidOperationException();
             }
 
-            EnsureReplicaInstancesAnnotation(container);
+            EnsureRequiredAnnotations(container);
 
             var nameSuffix = container.GetContainerLifetimeType() switch
             {

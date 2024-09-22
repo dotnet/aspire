@@ -85,12 +85,17 @@ internal static class DashboardUrls
         return url;
     }
 
-    public static string TracesUrl(string? resource = null)
+    public static string TracesUrl(string? resource = null, string? filters = null)
     {
         var url = $"/{TracesBasePath}";
         if (resource != null)
         {
             url += $"/resource/{Uri.EscapeDataString(resource)}";
+        }
+        if (filters != null)
+        {
+            // Filters should already be escaped.
+            url += (!url.Contains('?')) ? $"?filters={filters}" : $"&filters={filters}";
         }
 
         return url;

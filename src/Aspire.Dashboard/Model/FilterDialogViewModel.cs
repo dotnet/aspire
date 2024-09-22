@@ -7,6 +7,7 @@ namespace Aspire.Dashboard.Model;
 
 public sealed class FilterDialogViewModel
 {
-    public required LogFilter? Filter { get; init; }
-    public required List<string> LogPropertyKeys { get; init; }
+    public required TelemetryFilter? Filter { get; init; }
+    public required List<string> KnownKeys { get; init; }
+    public required List<string> PropertyKeys { get; init; }
 }

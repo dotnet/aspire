@@ -22,14 +22,14 @@ namespace Aspire.Dashboard.Resources {
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    public class Logs {
+    public class StructuredFiltering {
         
         private static global::System.Resources.ResourceManager resourceMan;
         
         private static global::System.Globalization.CultureInfo resourceCulture;
         
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal Logs() {
+        internal StructuredFiltering() {
         }
         
         /// <summary>
@@ -39,7 +39,7 @@ namespace Aspire.Dashboard.Resources {
         public static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Aspire.Dashboard.Resources.Logs", typeof(Logs).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Aspire.Dashboard.Resources.StructuredFiltering", typeof(StructuredFiltering).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -61,20 +61,65 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Add filter.
+        /// </summary>
+        public static string AddFilter {
+            get {
+                return ResourceManager.GetString("AddFilter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to contains.
         /// </summary>
-        public static string LogContains {
+        public static string ConditionContains {
             get {
-                return ResourceManager.GetString("LogContains", resourceCulture);
+                return ResourceManager.GetString("ConditionContains", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to not contains.
         /// </summary>
-        public static string LogNotContains {
+        public static string ConditionNotContains {
             get {
-                return ResourceManager.GetString("LogNotContains", resourceCulture);
+                return ResourceManager.GetString("ConditionNotContains", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add filter.
+        /// </summary>
+        public static string DialogTitleAddFilter {
+            get {
+                return ResourceManager.GetString("DialogTitleAddFilter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Edit filter.
+        /// </summary>
+        public static string DialogTitleEditFilter {
+            get {
+                return ResourceManager.GetString("DialogTitleEditFilter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filters.
+        /// </summary>
+        public static string Filters {
+            get {
+                return ResourceManager.GetString("Filters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No filters.
+        /// </summary>
+        public static string NoFilters {
+            get {
+                return ResourceManager.GetString("NoFilters", resourceCulture);
             }
         }
     }

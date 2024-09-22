@@ -7,7 +7,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <TestcontainersPackageVersion>3.10.0</TestcontainersPackageVersion>
-    <AzureProvisiongVersion>1.0.0-alpha.20240912.7</AzureProvisiongVersion>
+    <AzureProvisiongVersion>1.0.0-alpha.20240918.3</AzureProvisiongVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- AWS SDK for .NET dependencies -->
@@ -40,12 +40,12 @@
     <!-- Azure Management SDK for .NET dependencies -->
     <PackageVersion Include="Azure.Provisioning" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.AppConfiguration" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.ApplicationInsights" Version="1.0.0-alpha.20240912.1" />
+    <PackageVersion Include="Azure.Provisioning.ApplicationInsights" Version="1.0.0-alpha.20240918.1" />
     <PackageVersion Include="Azure.Provisioning.CognitiveServices" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.CosmosDB" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.EventHubs" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.KeyVault" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.OperationalInsights" Version="1.0.0-alpha.20240912.1" />
+    <PackageVersion Include="Azure.Provisioning.OperationalInsights" Version="1.0.0-alpha.20240918.1" />
     <PackageVersion Include="Azure.Provisioning.PostgreSql" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.Redis" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.Search" Version="$(AzureProvisiongVersion)" />
@@ -191,7 +191,7 @@
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="1.17.4" />
     <PackageVersion Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" />
     <!-- Pinned version for Component Governance - Remove when root dependencies are updated -->
-    <PackageVersion Include="Azure.Core" Version="1.42.0" />
+    <PackageVersion Include="Azure.Core" Version="1.43.0" />
     <PackageVersion Include="Azure.Identity" Version="1.12.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <!-- https://github.com/Azure/azure-cosmos-dotnet-v3/pull/3313 -->
