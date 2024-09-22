@@ -20,7 +20,9 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
     public static IResourceBuilder<ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, [ResourceName] string name, string image)
     {
-        return builder.AddContainer(name, image, "latest");
+        var container = new ContainerResource(name);
+        return builder.AddResource(container)
+                      .WithImageReference(image);
     }
 
     /// <summary>
@@ -33,9 +35,8 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
     public static IResourceBuilder<ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, [ResourceName] string name, string image, string tag)
     {
-        var container = new ContainerResource(name);
-        return builder.AddResource(container)
-                      .WithImage(image, tag);
+        return builder.AddContainer(name, image)
+                      .WithImageTag(tag);
     }
 
     /// <summary>
@@ -150,6 +151,48 @@ public static class ContainerResourceBuilderExtensions
         // if the annotation doesn't exist, create it with the given image and add it to the collection
         var containerImageAnnotation = new ContainerImageAnnotation() { Image = image, Tag = tag };
         builder.Resource.Annotations.Add(containerImageAnnotation);
+        return builder;
+    }
+
+    /// <summary>
+    /// Overrides the image, registry tag and digest of a container.
+    /// </summary>
+    /// <typeparam name="T">Type of container resource.</typeparam>
+    /// <param name="builder">Builder for the container resource.</param>
+    /// <param name="image">Image reference</param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    public static IResourceBuilder<T> WithImageReference<T>(this IResourceBuilder<T> builder, string image) where T : ContainerResource
+    {
+        var parsedReference = ContainerReferenceParser.Parse(image);
+
+        if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is not { } imageAnnotation)
+        {
+            imageAnnotation = new ContainerImageAnnotation() { Image = parsedReference.Image };
+            builder.Resource.Annotations.Add(imageAnnotation);
+        }
+
+        imageAnnotation.Registry = parsedReference.Registry;
+        imageAnnotation.Image = parsedReference.Image;
+        imageAnnotation.Tag = parsedReference.Tag;
+
+        if (parsedReference.Digest is { })
+        {
+            const string prefix = "sha256:";
+            if (!parsedReference.Digest.StartsWith(prefix))
+            {
+                throw new ArgumentOutOfRangeException(nameof(image), parsedReference.Digest, "invalid digest format");
+            }
+
+            var digest = parsedReference.Digest.Substring(prefix.Length);
+            imageAnnotation.SHA256 = digest;
+        }
+
+        if (imageAnnotation.Tag == null && parsedReference.Digest == null)
+        {
+            imageAnnotation.Tag = "latest";
+        }
+
         return builder;
     }
 

@@ -104,6 +104,53 @@ public class ContainerResourceBuilderTests
         Assert.Equal("The resource 'testcontainer' does not have a container image specified. Use WithImage to specify the container image and tag.", exception.Message);
     }
 
+    [Theory]
+    [InlineData("redis", null, "redis", "latest", null)]
+    [InlineData("registry.io/library/rabbitmq", "registry.io", "library/rabbitmq", "latest", null)]
+    [InlineData("postgres:tag", null, "postgres", "tag", null)]
+    [InlineData("kafka@sha256:01234567890abcdef01234567890abcdef01234567890abcdef01234567890ab", null, "kafka", null, "01234567890abcdef01234567890abcdef01234567890abcdef01234567890ab")]
+    [InlineData("registry.io/image:tag", "registry.io", "image", "tag", null)]
+    [InlineData("host.com/path/to/image@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "host.com", "path/to/image", null, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
+    [InlineData("another.org/path/to/another/image:tag@sha256:9999999999999999999999999999999999999999999999999999999999999999", "another.org", "path/to/another/image", null, "9999999999999999999999999999999999999999999999999999999999999999")]
+    public void WithImageReferenceMutatesContainerImageAnnotation(string reference, string? expectedRegistry, string expectedImage, string? expectedTag, string? expectedDigest)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var container = builder.AddResource(new TestContainerResource("testcontainer"));
+
+        container.WithImageReference(reference);
+
+        var containerImage = container.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
+        Assert.Multiple(() =>
+        {
+            Assert.Equal(expectedImage, containerImage.Image);
+            Assert.Equal(expectedRegistry, containerImage.Registry);
+            Assert.Equal(expectedTag, containerImage.Tag);
+            Assert.Equal(expectedDigest, containerImage.SHA256);
+        });
+    }
+
+    [Fact]
+    public void WithImageReferenceOverwritesExistingContainerImageAnnotationValues()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var redis = builder
+            .AddContainer("redis", "redis")
+            .WithImage("redis-stack")
+            .WithImageRegistry("registry")
+            .WithImageTag("tag");
+
+        redis.WithImageReference("whatever");
+
+        var containerImage = redis.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
+        Assert.Multiple(() =>
+        {
+            Assert.Equal("whatever", containerImage.Image);
+            Assert.Null(containerImage.Registry);
+            Assert.Equal("latest", containerImage.Tag);
+            Assert.Null(containerImage.SHA256);
+        });
+    }
+
     private sealed class TestContainerResource(string name) : ContainerResource(name)
     {
     }
