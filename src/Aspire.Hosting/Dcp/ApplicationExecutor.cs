@@ -403,12 +403,22 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     {
                         replicaAnnotation.Instances.TryRemove(resource.Metadata.Name, out _);
                     }
+
+                    await notificationService.PublishUpdateAsync(appModelResource, resource.Metadata.Name, s => s with { State = "Hidden" }).ConfigureAwait(false);
                 }
                 else
                 {
                     if (_logger.IsEnabled(LogLevel.Trace))
                     {
                         _logger.LogTrace("Updating application model resource {ResourceName} with {ResourceKind} resource {ResourceName}", appModelResource.Name, resourceKind, resource.Metadata.Name);
+                    }
+
+                    if (watchEventType == WatchEventType.Added)
+                    {
+                        if (appModelResource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
+                        {
+                            replicaAnnotation.Instances.TryAdd(resource.Metadata.Name, resource.Metadata.Name);
+                        }
                     }
 
                     if (_hiddenResources.TryAdd(appModelResource, true))
@@ -595,15 +605,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private CustomResourceSnapshot ToSnapshot(Container container, CustomResourceSnapshot previous)
     {
-        if (container.AppModelResourceName is not null &&
-            _applicationModel.TryGetValue(container.AppModelResourceName, out var appModelResource))
-        {
-            if (appModelResource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
-            {
-                replicaAnnotation.Instances.TryAdd(container.Metadata.Name, container.Metadata.Name);
-            }
-        }
-
         var containerId = container.Status?.ContainerId;
         var urls = GetUrls(container);
         var volumes = GetVolumes(container);
@@ -657,11 +658,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             _applicationModel.TryGetValue(executable.AppModelResourceName, out var appModelResource))
         {
             projectPath = appModelResource is ProjectResource p ? p.GetProjectMetadata().ProjectPath : null;
-
-            if (appModelResource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
-            {
-                replicaAnnotation.Instances.TryAdd(executable.Metadata.Name, executable.Metadata.Name);
-            }
         }
 
         var state = executable.AppModelInitialState is "Hidden" ? "Hidden" : executable.Status?.State;
@@ -1983,9 +1979,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         return new V1Patch(jsonPatch, V1Patch.PatchType.JsonPatch);
     }
 
-    internal async Task StopResourceAsync(string resourceName, CancellationToken cancellationToken)
+    internal async Task StopResourceAsync(IResource resource, string resourceName, CancellationToken cancellationToken)
     {
-        var matchingResource = GetMatchingResource(resourceName);
+        var matchingResource = GetMatchingResource(resource, resourceName);
 
         V1Patch patch;
         switch (matchingResource.DcpResource)
@@ -2007,10 +2003,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private AppResource GetMatchingResource(string resourceName)
+    private AppResource GetMatchingResource(IResource resource, string resourceName)
     {
         var matchingResource = _appResources
-            .Where(r => r.DcpResource is not Service)
+            .Where(r => r.ModelResource == resource)
             .SingleOrDefault(r => string.Equals(r.DcpResource.Metadata.Name, resourceName, StringComparisons.ResourceName));
         if (matchingResource == null)
         {
@@ -2020,17 +2016,17 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         return matchingResource;
     }
 
-    internal async Task StartResourceAsync(string resourceName, CancellationToken cancellationToken)
+    internal async Task StartResourceAsync(IResource resource, string resourceName, CancellationToken cancellationToken)
     {
-        var matchingResource = GetMatchingResource(resourceName);
+        var matchingResource = GetMatchingResource(resource, resourceName);
 
         switch (matchingResource.DcpResource)
         {
             case Container c:
-                await StartExecutableOrContainerAsync(c).ConfigureAwait(false);
+                await StartExecutableOrContainerAsync(resource, c).ConfigureAwait(false);
                 break;
             case Executable e:
-                await StartExecutableOrContainerAsync(e).ConfigureAwait(false);
+                await StartExecutableOrContainerAsync(resource, e).ConfigureAwait(false);
                 break;
             case ExecutableReplicaSet rs:
                 var replicas = matchingResource.ModelResource.GetReplicaCount();
@@ -2042,7 +2038,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 throw new InvalidOperationException($"Unexpected resource type: {matchingResource.DcpResource.GetType().FullName}");
         }
 
-        async Task StartExecutableOrContainerAsync<T>(T resource) where T : CustomResource
+        async Task StartExecutableOrContainerAsync<T>(IResource r, T resource) where T : CustomResource
         {
             var resourceName = resource.Metadata.Name;
             _logger.LogDebug("Starting {ResouceType} '{ResourceName}'.", typeof(T).Name, resourceName);
@@ -2092,7 +2088,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     }
                 }, cancellationToken).ConfigureAwait(false);
             }
-
+            resource.Metadata.Name = $"{r.Name}-{GetRandomNameSuffix()}";
             await kubernetesService.CreateAsync(resource, cancellationToken).ConfigureAwait(false);
         }
     }
