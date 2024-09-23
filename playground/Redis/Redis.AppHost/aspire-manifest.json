@@ -54,6 +54,31 @@
         }
       }
     },
+    "valkey": {
+      "type": "container.v0",
+      "connectionString": "{valkey.bindings.tcp.host}:{valkey.bindings.tcp.port}",
+      "image": "docker.io/valkey/valkey:8.0",
+      "args": [
+        "--save",
+        "60",
+        "1"
+      ],
+      "volumes": [
+        {
+          "name": "valkey-data",
+          "target": "/data",
+          "readOnly": false
+        }
+      ],
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 6379
+        }
+      }
+    },
     "apiservice": {
       "type": "project.v0",
       "path": "../Redis.ApiService/Redis.ApiService.csproj",
@@ -64,7 +89,8 @@
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{apiservice.bindings.http.targetPort}",
         "ConnectionStrings__redis": "{redis.connectionString}",
-        "ConnectionStrings__garnet": "{garnet.connectionString}"
+        "ConnectionStrings__garnet": "{garnet.connectionString}",
+        "ConnectionStrings__valkey": "{valkey.connectionString}"
       },
       "bindings": {
         "http": {
