@@ -11,6 +11,7 @@ using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Health;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Orchestration;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -171,6 +172,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         };
 
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
+
+        // Orchestration
+        _innerBuilder.Services.AddSingleton<IDistributedApplicationOrchestrator, DistributedApplicationOrchestrator>();
 
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));

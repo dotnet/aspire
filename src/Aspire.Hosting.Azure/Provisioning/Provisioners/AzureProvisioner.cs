@@ -10,6 +10,7 @@ using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Utils;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Orchestration;
 using Azure;
 using Azure.Core;
 using Azure.Identity;
@@ -34,7 +35,8 @@ internal sealed class AzureProvisioner(
     IServiceProvider serviceProvider,
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
-    IDistributedApplicationEventing eventing
+    IDistributedApplicationEventing eventing,
+    IDistributedApplicationOrchestrator orchestrator
     ) : IDistributedApplicationLifecycleHook
 {
     internal const string AspireResourceNameTag = "aspire-resource-name";
@@ -238,6 +240,8 @@ internal sealed class AzureProvisioner(
 
     private async Task ProcessResourceAsync(IConfiguration configuration, Lazy<Task<ProvisioningContext>> provisioningContextLazy, (IResource Resource, IAzureResource AzureResource) resource, CancellationToken cancellationToken)
     {
+        await orchestrator.WaitForDependenciesAsync(resource.Resource, cancellationToken).ConfigureAwait(false);
+
         var beforeResourceStartedEvent = new BeforeResourceStartedEvent(resource.Resource, serviceProvider);
         await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
 

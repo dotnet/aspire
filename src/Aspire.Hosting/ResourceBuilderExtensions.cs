@@ -597,7 +597,7 @@ public static class ResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T : IResource
     {
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (e, ct) =>
+        var subscription = builder.ApplicationBuilder.Eventing.Subscribe<DependentResourceWaitingEvent>(dependency.Resource, async (e, ct) =>
         {
             var rls = e.Services.GetRequiredService<ResourceLoggerService>();
             var resourceLogger = rls.GetLogger(builder.Resource);
@@ -639,7 +639,7 @@ public static class ResourceBuilderExtensions
             }
         });
 
-        return builder;
+        return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, subscription));
 
         static bool IsContinuableState(CustomResourceSnapshot snapshot) =>
             snapshot.State?.Text == KnownResourceStates.Running ||
