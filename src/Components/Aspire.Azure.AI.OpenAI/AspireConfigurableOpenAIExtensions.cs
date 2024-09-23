@@ -15,6 +15,7 @@ namespace Microsoft.Extensions.Hosting;
 public static class AspireConfigurableOpenAIExtensions
 {
     private const string ConnectionStringEndpoint = "Endpoint";
+    private const string ConnectionStringKey = "Key";
     private const string ConnectionStringIsAzure = "IsAzure";
 
     /// <summary>
@@ -80,6 +81,7 @@ public static class AspireConfigurableOpenAIExtensions
     private static bool IsAzureConnectionString(string connectionString, string connectionName)
     {
         Uri? serviceUri = null;
+        string? apiKey = null;
 
         var connectionBuilder = new DbConnectionStringBuilder
         {
@@ -91,7 +93,12 @@ public static class AspireConfigurableOpenAIExtensions
             serviceUri = endpointUri;
         }
 
-        if (serviceUri == null)
+        if (connectionBuilder.TryGetValue(ConnectionStringKey, out var key) && key != null)
+        {
+            apiKey = key.ToString()?.Trim();
+        }
+
+        if (serviceUri == null && string.IsNullOrEmpty(apiKey))
         {
             throw new InvalidOperationException($"An OpenAIClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a '{nameof(AzureOpenAISettings.Endpoint)}' or '{nameof(AzureOpenAISettings.Key)}' in the '{connectionName}' configuration section.");
         }
@@ -101,7 +108,7 @@ public static class AspireConfigurableOpenAIExtensions
             return bool.TryParse(connectionBuilder[ConnectionStringIsAzure].ToString(), out var isAzure) && isAzure;
         }
 
-        if (serviceUri.Host.Contains(".azure.", StringComparison.OrdinalIgnoreCase))
+        if (serviceUri != null && serviceUri.Host.Contains(".azure.", StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }

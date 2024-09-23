@@ -15,11 +15,11 @@ public class AspireRestClientOpenAIExtensionsTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void EmptyEndpointThrowsException(bool useKeyed)
+    public void EmptyEndpointAndKeyThrowsException(bool useKeyed)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:openai", "Key=fake")
+            new KeyValuePair<string, string?>("ConnectionStrings:openai", "IsAzure=false")
         ]);
 
         Assert.Throws<InvalidOperationException>(() =>
@@ -143,6 +143,60 @@ public class AspireRestClientOpenAIExtensionsTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:openai", "Endpoint=https://aspireopenaitests.azure.com/;Key=fake;IsAzure=false")
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddKeyedOpenAIClientFromConfiguration("openai");
+        }
+        else
+        {
+            builder.AddOpenAIClientFromConfiguration("openai");
+        }
+
+        using var host = builder.Build();
+        var openAiClient = useKeyed ?
+            host.Services.GetRequiredKeyedService<OpenAIClient>("openai") :
+            host.Services.GetRequiredService<OpenAIClient>();
+
+        Assert.IsType<OpenAIClient>(openAiClient);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void EmptyEndpointRegistersOpenAI(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:openai", "Endpoint=;Key=fake;IsAzure=false")
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddKeyedOpenAIClientFromConfiguration("openai");
+        }
+        else
+        {
+            builder.AddOpenAIClientFromConfiguration("openai");
+        }
+
+        using var host = builder.Build();
+        var openAiClient = useKeyed ?
+            host.Services.GetRequiredKeyedService<OpenAIClient>("openai") :
+            host.Services.GetRequiredService<OpenAIClient>();
+
+        Assert.IsType<OpenAIClient>(openAiClient);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void MissingEndpointRegistersOpenAI(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:openai", "Key=fake;IsAzure=false")
         ]);
 
         if (useKeyed)

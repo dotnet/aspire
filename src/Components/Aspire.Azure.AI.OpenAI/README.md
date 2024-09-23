@@ -45,11 +45,11 @@ You can retrieve the `AzureOpenAIClient` object using the base `OpenAIClient` se
 Additionally this package provides the `AddOpenAIClientFromConfiguration` extension method to register an `OpenAIClient` instance based on the connection string that is provided. This allows your application
 to register the best implementation for the OpenAI Rest API it connects. The following rules are followed:
 
-- If the `Endpoint` attribute is empty, the OpenAI service is used and an `OpenAIClient` instance is registered.
-- If the attribute `IsAzure` is provided, `AzureOpenAIClient` is registered if the value is `true`, `OpenAIClient` otherwise.
+- If the `Endpoint` attribute is empty or missing, the OpenAI service is used and an `OpenAIClient` instance is registered.
+- If the attribute `IsAzure` is provided and `true` then `AzureOpenAIClient` is registered, `OpenAIClient` otherwise.
 - If the `Endpoint` attribute contains `".azure."` then `AzureOpenAIClient` is registered, `OpenAIClient` otherwise.
 
-In any case a valid connection string with either `Endpoint` or `Key` is required.
+In any case a valid connection string must contain at least either an `Endpoint` or a `Key`.
 
 ## Configuration
 
