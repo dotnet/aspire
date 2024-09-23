@@ -29,11 +29,6 @@ public class AzureProvisioningOptionsTests(ITestOutputHelper output)
             options.ProvisioningContext.PropertyResolvers.Insert(0, new AspireV8ResourceNamePropertyResolver());
         });
 
-        //builder.Services.Configure<PublishingOptions>(o =>
-        //{
-        //    o.OutputPath = Path.Combine(tempDir.FullName, "aspire-manifest.json");
-        //});
-
         var serviceBus = builder.AddAzureServiceBus("sb");
 
         using var app = builder.Build();
@@ -52,27 +47,27 @@ public class AzureProvisioningOptionsTests(ITestOutputHelper output)
             param principalType string
 
             resource sb 'Microsoft.ServiceBus/namespaces@2017-04-01' = {
-                name: toLower(take('sb${uniqueString(resourceGroup().id)}', 24))
-                location: location
-                properties: {
-                    disableLocalAuth: true
-                }
-                sku: {
-                    name: sku
-                }
-                tags: {
-                    'aspire-resource-name': 'sb'
-                }
+              name: toLower(take('sb${uniqueString(resourceGroup().id)}', 24))
+              location: location
+              properties: {
+                disableLocalAuth: true
+              }
+              sku: {
+                name: sku
+              }
+              tags: {
+                'aspire-resource-name': 'sb'
+              }
             }
 
             resource sb_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-                name: guid(sb.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
-                properties: {
-                    principalId: principalId
-                    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')
-                    principalType: principalType
-                }
-                scope: sb
+              name: guid(sb.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')
+                principalType: principalType
+              }
+              scope: sb
             }
 
             output serviceBusEndpoint string = sb.properties.serviceBusEndpoint

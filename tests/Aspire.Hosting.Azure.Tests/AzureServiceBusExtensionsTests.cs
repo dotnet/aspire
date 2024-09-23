@@ -30,32 +30,32 @@ public class AzureServiceBusExtensionsTests(ITestOutputHelper output)
             param principalType string
 
             resource sb 'Microsoft.ServiceBus/namespaces@2017-04-01' = {
-                name: take('sb-${uniqueString(resourceGroup().id)}', 50)
-                location: location
-                properties: {
-                    disableLocalAuth: true
-                }
-                sku: {
-                    name: sku
-                }
-                tags: {
-                    'aspire-resource-name': 'sb'
-                }
+              name: take('sb-${uniqueString(resourceGroup().id)}', 50)
+              location: location
+              properties: {
+                disableLocalAuth: true
+              }
+              sku: {
+                name: sku
+              }
+              tags: {
+                'aspire-resource-name': 'sb'
+              }
             }
 
             resource sb_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-                name: guid(sb.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
-                properties: {
-                    principalId: principalId
-                    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')
-                    principalType: principalType
-                }
-                scope: sb
+              name: guid(sb.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
+              properties: {
+                principalId: principalId
+                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')
+                principalType: principalType
+              }
+              scope: sb
             }
 
             resource device-connection-state-events1234567890-even-longer 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
-                name: 'device-connection-state-events1234567890-even-longer'
-                parent: sb
+              name: 'device-connection-state-events1234567890-even-longer'
+              parent: sb
             }
 
             output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
