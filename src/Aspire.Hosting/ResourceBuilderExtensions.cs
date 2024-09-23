@@ -787,6 +787,7 @@ public static class ResourceBuilderExtensions
     /// <para>If a callback isn't specified, the command is always enabled.</para>
     /// </param>
     /// <param name="iconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
+    /// <param name="iconVariant">The icon variant.</param>
     /// <param name="isHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
     /// <returns>The resource builder.</returns>
     /// <remarks>
@@ -801,6 +802,7 @@ public static class ResourceBuilderExtensions
         Func<ExecuteCommandContext, Task<ExecuteCommandResult>> executeCommand,
         Func<UpdateCommandStateContext, ResourceCommandState>? updateState = null,
         string? iconName = null,
+        IconVariant? iconVariant = null,
         bool isHighlighted = false) where T : IResource
     {
         // Replace existing annotation with the same name.
@@ -810,6 +812,6 @@ public static class ResourceBuilderExtensions
             builder.Resource.Annotations.Remove(existingAnnotation);
         }
 
-        return builder.WithAnnotation(new ResourceCommandAnnotation(type, displayName, updateState ?? (c => ResourceCommandState.Enabled), executeCommand, iconName, isHighlighted));
+        return builder.WithAnnotation(new ResourceCommandAnnotation(type, displayName, updateState ?? (c => ResourceCommandState.Enabled), executeCommand, iconName, iconVariant, isHighlighted));
     }
 }

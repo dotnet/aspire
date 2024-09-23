@@ -40,6 +40,7 @@ internal static class CommandsConfigurationExtensions
                 }
             },
             iconName: "Play",
+            iconVariant: IconVariant.Filled,
             isHighlighted: true));
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
@@ -68,6 +69,7 @@ internal static class CommandsConfigurationExtensions
                 }
             },
             iconName: "Stop",
+            iconVariant: IconVariant.Filled,
             isHighlighted: true));
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
@@ -93,6 +95,7 @@ internal static class CommandsConfigurationExtensions
                 }
             },
             iconName: "ArrowCounterclockwise",
+            iconVariant: IconVariant.Regular,
             isHighlighted: false));
 
         static bool IsStopped(string? state) => state is "Exited" or "Finished" or "FailedToStart";

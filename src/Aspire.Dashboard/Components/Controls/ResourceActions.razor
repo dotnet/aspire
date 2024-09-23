@@ -5,7 +5,7 @@
 @foreach (var highlightedCommand in Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden))
 {
     <FluentButton Appearance="Appearance.Lightweight" Title="@(highlightedCommand.DisplayDescription ?? highlightedCommand.DisplayName)" OnClick="@(() => CommandSelected.InvokeAsync(highlightedCommand))" Disabled="@(highlightedCommand.State == CommandViewModelState.Disabled)">
-        @if (!string.IsNullOrEmpty(highlightedCommand.IconName) && CommandViewModel.ResolveIconName(highlightedCommand.IconName) is { } icon)
+        @if (!string.IsNullOrEmpty(highlightedCommand.IconName) && CommandViewModel.ResolveIconName(highlightedCommand.IconName, highlightedCommand.IconVariant) is { } icon)
         {
             <FluentIcon Value="@icon" />
         }
@@ -18,6 +18,6 @@
 
 <AspireMenuButton
     ButtonAppearance="Appearance.Lightweight"
-    Icon="@(new Icons.Regular.Size24.MoreHorizontal())"
+    Icon="@(new Icons.Regular.Size20.MoreHorizontal())"
     Items="@_menuItems"
     @ref="_menuButton" />
