@@ -170,6 +170,7 @@
     <PackageVersion Include="Microsoft.Orleans.Server" Version="8.2.0" />
     <PackageVersion Include="Microsoft.Orleans.Sdk" Version="8.2.0" />
     <!-- Pinned version for Component Governance - Remove when root dependencies are updated -->
+    <PackageVersion Include="System.Text.Json" Version="8.0.4" />
     <PackageVersion Include="Azure.Core" Version="1.42.0" />
     <PackageVersion Include="Azure.Identity" Version="1.12.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" /> <!-- https://github.com/Azure/azure-cosmos-dotnet-v3/pull/3313 -->
