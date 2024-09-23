@@ -43,7 +43,8 @@ internal static class TestData
                 "NoProblemWithThisName",
                 "orthisone",
                 "THISISALSOFINE",
-                "must-be-less-than-64-chars-long-must-be-less-than-64-chars-long"
+                // Purposefully allows 5 more characters for a suffix for tests that need it
+                "must-be-less-than-64-chars-long-must-be-less-than-64-chars"
             ]);
         }
     }

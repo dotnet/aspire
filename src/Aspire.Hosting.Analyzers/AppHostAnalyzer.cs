@@ -62,48 +62,57 @@ public partial class AppHostAnalyzer : DiagnosticAnalyzer
                 return;
             }
 
-            if (!TryGetStringToken(invocation, parameterData.Value.ModelNameParameter, out var token))
+            foreach (var (modelNameParameter, modelTypes) in parameterData)
             {
-                return;
+                if (TryGetStringToken(invocation, modelNameParameter, out var token))
+                {
+                    modelNameOperations.TryAdd(ModelNameOperation.Create(invocation, modelTypes, token), value: default);
+                }
             }
-
-            modelNameOperations.TryAdd(ModelNameOperation.Create(invocation, parameterData.Value.ModelType, token), value: default);
         }
     }
 
-    private static bool IsModelNameInvocation(WellKnownTypes wellKnownTypes, IMethodSymbol targetMethod, [NotNullWhen(true)] out (IParameterSymbol ModelNameParameter, ModelType ModelType)? parameterData)
+    private static bool IsModelNameInvocation(
+        WellKnownTypes wellKnownTypes,
+        IMethodSymbol targetMethod,
+        [NotNullWhen(true)] out (IParameterSymbol ModelNameParameter, ModelType[] ModelTypes)[]? parameterData)
     {
-        // Look for first string parameter annotated with attribute that implements IModelNameParameter
-        ModelType modelType = default;
-        var candidateParameter = targetMethod.Parameters.FirstOrDefault(ps =>
-            SymbolEqualityComparer.Default.Equals(ps.Type, wellKnownTypes.Get(SpecialType.System_String))
-            && HasModelNameAttribute(ps, out modelType));
+        // Look for string parameters annotated with attribute that implements IModelNameParameter
+        var candidateParameters = targetMethod.Parameters
+            .Select(ps => (Symbol: ps, ModelTypes: GetModelNameAttributes(ps)))
+            .Where(parameterData =>
+                SymbolEqualityComparer.Default.Equals(parameterData.Symbol.Type, wellKnownTypes.Get(SpecialType.System_String))
+                && parameterData.ModelTypes.Length > 0)
+            .ToArray();
 
-        if (candidateParameter is not null)
+        if (candidateParameters.Length > 0)
         {
-            parameterData = (candidateParameter, modelType);
+            parameterData = candidateParameters.Select(p => (p.Symbol, p.ModelTypes)).ToArray();
             return true;
         }
 
         parameterData = null;
         return false;
 
-        bool HasModelNameAttribute(IParameterSymbol parameter, out ModelType modelType)
+        ModelType[] GetModelNameAttributes(IParameterSymbol parameter)
         {
             var modelNameParameter = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.Aspire_Hosting_ApplicationModel_IModelNameParameter);
             var resourceNameAttribute = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.Aspire_Hosting_ApplicationModel_ResourceNameAttribute);
             var endpointNameAttribute = wellKnownTypes.Get(WellKnownTypeData.WellKnownType.Aspire_Hosting_ApplicationModel_EndpointNameAttribute);
 
-            var attrData = parameter.GetAttributes().SingleOrDefault(a => WellKnownTypes.Implements(a.AttributeClass, modelNameParameter));
+            var attrData = parameter.GetAttributes()
+                .Where(a => WellKnownTypes.Implements(a.AttributeClass, modelNameParameter));
 
             // Model type (e.g. Resource, Endpoint) is based on the concrete attribute type
-            modelType = SymbolEqualityComparer.Default.Equals(attrData?.AttributeClass, resourceNameAttribute)
-                ? ModelType.Resource
-                : SymbolEqualityComparer.Default.Equals(attrData?.AttributeClass, endpointNameAttribute)
-                  ? ModelType.Endpoint
-                  : ModelType.Unknown;
 
-            return attrData is not null;
+            var modelTypes = attrData.Select(a =>
+                SymbolEqualityComparer.Default.Equals(a?.AttributeClass, resourceNameAttribute)
+                    ? ModelType.Resource
+                    : SymbolEqualityComparer.Default.Equals(a?.AttributeClass, endpointNameAttribute)
+                        ? ModelType.Endpoint
+                        : (ModelType?)null);
+
+            return modelTypes.Where(m => m is not null).Select(m => m.Value).ToArray();
         }
     }
 
@@ -130,11 +139,11 @@ public partial class AppHostAnalyzer : DiagnosticAnalyzer
         return true;
     }
 
-    private record struct ModelNameOperation(IInvocationOperation Operation, ModelType ModelType, SyntaxToken ModelNameToken)
+    private record struct ModelNameOperation(IInvocationOperation Operation, ModelType[] ModelTypes, SyntaxToken ModelNameToken)
     {
-        public static ModelNameOperation Create(IInvocationOperation operation, ModelType modelType, SyntaxToken modelNameToken)
+        public static ModelNameOperation Create(IInvocationOperation operation, ModelType[] modelTypes, SyntaxToken modelNameToken)
         {
-            return new ModelNameOperation(operation, modelType, modelNameToken);
+            return new ModelNameOperation(operation, modelTypes, modelNameToken);
         }
     }
 

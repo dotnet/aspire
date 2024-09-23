@@ -19,14 +19,19 @@ public partial class AppHostAnalyzer
 
         foreach (var operation in modelNameOperations)
         {
-            var modelType = operation.Key.ModelType;
+            var modelTypes = operation.Key.ModelTypes;
             var token = operation.Key.ModelNameToken;
             var modelName = token.Value?.ToString();
 
-            if (modelName is not null && modelType != ModelType.Unknown &&
-                !ModelName.TryValidateName(modelType.ToString(), modelName, out var validationMessage))
+            if (modelName is not null && modelTypes.Length > 0)
             {
-                context.ReportDiagnostic(Diagnostic.Create(Diagnostics.s_modelNameMustBeValid, token.GetLocation(), validationMessage));
+                foreach (var modelType in modelTypes)
+                {
+                    if (!ModelName.TryValidateName(modelType.ToString(), modelName, out var validationMessage))
+                    {
+                        context.ReportDiagnostic(Diagnostic.Create(Diagnostics.s_modelNameMustBeValid, token.GetLocation(), validationMessage));
+                    }
+                }
             }
         }
     }
