@@ -32,7 +32,9 @@
       <!-- runsettings timeout in ms, default to 15 mins -->
       <_DefaultWorkItems TimeoutMs="900000" />
 
-      <_DefaultWorkItems Condition="'%(FileName)' == 'Aspire.Hosting.Elasticsearch.Tests'" TimeoutMs="3600000" />
+      <!-- Ensure that $(_workItemTimeout) is always more than the timeout being set here, or the job might
+           get terminated early. -->
+      <_DefaultWorkItems Condition="'%(FileName)' == 'Aspire.Hosting.Elasticsearch.Tests'" TimeoutMs="1800000" />
       <_DefaultWorkItems Condition="'%(FileName)' == 'Aspire.Hosting.Oracle.Tests'" TimeoutMs="1200000" />
       <_DefaultWorkItems Condition="'%(FileName)' == 'Aspire.Pomelo.EntityFrameworkCore.MySql.Tests'" TimeoutMs="1200000" />
 
@@ -42,6 +44,7 @@
 
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>
+        <Timeout Condition="'%(FileName)' == 'Aspire.Hosting.Elasticsearch.Tests'">2000000</Timeout>
 
         <!-- Download results file so coverage files can be extracted -->
         <DownloadFilesFromResults>logs/%(FileName).cobertura.xml;logs/%(FileName).trx</DownloadFilesFromResults>
