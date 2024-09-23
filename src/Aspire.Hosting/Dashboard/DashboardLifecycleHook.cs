@@ -58,7 +58,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         if (appModel.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is { } dashboardResource)
         {
             // The dashboard is visible during development. Stopping the dashboard with a command breaks the dashboard.
-            // Remove the lifecycle commands so they're not accidently clicked in during development.
+            // Remove the lifecycle commands so they're not accidently clicked during development.
             var lifecycleCommands = dashboardResource.Annotations
                 .OfType<ResourceCommandAnnotation>()
                 .Where(a => a.Type is CommandsConfigurationExtensions.StartType or CommandsConfigurationExtensions.StopType or CommandsConfigurationExtensions.RestartType)
