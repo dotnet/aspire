@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using Aspire.Hosting.Eventing;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -10,12 +9,13 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents a wait relationship between two resources.
 /// </summary>
 /// <param name="resource">The resource that will be waited on.</param>
-/// <param name="subscription">The subscription in the eventing system that is used to handle wait.</param>
+/// <param name="waitType">The type of wait to apply to the dependency resource.</param>
+/// <param name="exitCode">The exit code that the resource must return for the wait to be satisfied.</param>
 /// <remarks>
 /// The holder of this annotation is waiting on the resource in the <see cref="WaitAnnotation.Resource"/> property.
 /// </remarks>
 [DebuggerDisplay("Resource = {Resource.Name}")]
-public class WaitAnnotation(IResource resource, DistributedApplicationEventSubscription subscription) : IResourceAnnotation
+public class WaitAnnotation(IResource resource, WaitType waitType, int exitCode = 0) : IResourceAnnotation
 {
     /// <summary>
     /// The resource that will be waited on.
@@ -23,7 +23,28 @@ public class WaitAnnotation(IResource resource, DistributedApplicationEventSubsc
     public IResource Resource { get; } = resource;
 
     /// <summary>
-    /// The subscription that is invoked to handle wait logic.
+    /// The type of wait to apply to the dependency resource.
     /// </summary>
-    public DistributedApplicationEventSubscription Subscription { get; } = subscription;
+    public WaitType WaitType { get; } = waitType;
+
+    /// <summary>
+    /// The exit code that the resource must return for the wait to be satisfied.
+    /// </summary>
+    public int ExitCode { get; } = exitCode;
+}
+
+/// <summary>
+/// Specifies the type of Wait applied to dependency resources.
+/// </summary>
+public enum WaitType
+{
+    /// <summary>
+    /// Dependent resource will wait until resource starts and all health checks are satisfied.
+    /// </summary>
+    WaitUntilHealthy,
+
+    /// <summary>
+    /// Dependent resource will wait until resource completes.
+    /// </summary>
+    WaitForCompletion
 }

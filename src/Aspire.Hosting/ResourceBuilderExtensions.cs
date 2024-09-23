@@ -4,9 +4,7 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -597,57 +595,7 @@ public static class ResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T : IResource
     {
-        var subscription = builder.ApplicationBuilder.Eventing.Subscribe<DependentResourceWaitingEvent>(dependency.Resource, async (e, ct) =>
-        {
-            var rls = e.Services.GetRequiredService<ResourceLoggerService>();
-            var resourceLogger = rls.GetLogger(builder.Resource);
-            resourceLogger.LogInformation("Waiting for resource '{Name}' to enter the '{State}' state.", dependency.Resource.Name, KnownResourceStates.Running);
-
-            var rns = e.Services.GetRequiredService<ResourceNotificationService>();
-            await rns.PublishUpdateAsync(builder.Resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
-            var resourceEvent = await rns.WaitForResourceAsync(dependency.Resource.Name, re => IsContinuableState(re.Snapshot), cancellationToken: ct).ConfigureAwait(false);
-            var snapshot = resourceEvent.Snapshot;
-
-            if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
-            {
-                resourceLogger.LogError(
-                    "Dependency resource '{ResourceName}' failed to start.",
-                    dependency.Resource.Name
-                    );
-
-                throw new DistributedApplicationException($"Dependency resource '{dependency.Resource.Name}' failed to start.");
-            }
-            else if (snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited)
-            {
-                resourceLogger.LogError(
-                    "Resource '{ResourceName}' has entered the '{State}' state prematurely.",
-                    dependency.Resource.Name,
-                    snapshot.State.Text
-                    );
-
-                throw new DistributedApplicationException(
-                    $"Resource '{dependency.Resource.Name}' has entered the '{snapshot.State.Text}' state prematurely."
-                    );
-            }
-
-            // If our dependency resource has health check annotations we want to wait until they turn healthy
-            // otherwise we don't care about their health status.
-            if (dependency.Resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var _))
-            {
-                resourceLogger.LogInformation("Waiting for resource '{Name}' to become healthy.", dependency.Resource.Name);
-                await rns.WaitForResourceAsync(dependency.Resource.Name, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: ct).ConfigureAwait(false);
-            }
-
-            resourceLogger.LogInformation("Finished waiting for resource '{Name}'.", dependency.Resource.Name);
-        });
-
-        return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, subscription));
-
-        static bool IsContinuableState(CustomResourceSnapshot snapshot) =>
-            snapshot.State?.Text == KnownResourceStates.Running ||
-            snapshot.State?.Text == KnownResourceStates.Finished ||
-            snapshot.State?.Text == KnownResourceStates.Exited ||
-            snapshot.State?.Text == KnownResourceStates.FailedToStart;
+        return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitUntilHealthy));
     }
 
     /// <summary>
@@ -678,53 +626,7 @@ public static class ResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<T> WaitForCompletion<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, int exitCode = 0) where T : IResource
     {
-        var subscription = builder.ApplicationBuilder.Eventing.Subscribe<DependentResourceWaitingEvent>(dependency.Resource, async (e, ct) =>
-        {
-            if (dependency.Resource.TryGetLastAnnotation<ReplicaAnnotation>(out var replicaAnnotation) && replicaAnnotation.Replicas > 1)
-            {
-                throw new DistributedApplicationException("WaitForCompletion cannot be used with resources that have replicas.");
-            }
-
-            var rls = e.Services.GetRequiredService<ResourceLoggerService>();
-            var resourceLogger = rls.GetLogger(builder.Resource);
-            resourceLogger.LogInformation("Waiting for resource '{Name}' to complete.", dependency.Resource.Name);
-
-            var rns = e.Services.GetRequiredService<ResourceNotificationService>();
-            await rns.PublishUpdateAsync(builder.Resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
-            var resourceEvent = await rns.WaitForResourceAsync(dependency.Resource.Name, re => IsKnownTerminalState(re.Snapshot), cancellationToken: ct).ConfigureAwait(false);
-            var snapshot = resourceEvent.Snapshot;
-
-            if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
-            {
-                resourceLogger.LogError(
-                    "Dependency resource '{ResourceName}' failed to start.",
-                    dependency.Resource.Name
-                    );
-
-                throw new DistributedApplicationException($"Dependency resource '{dependency.Resource.Name}' failed to start.");
-            }
-            else if ((snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited) && snapshot.ExitCode is not null && snapshot.ExitCode != exitCode)
-            {
-                resourceLogger.LogError(
-                    "Resource '{ResourceName}' has entered the '{State}' state with exit code '{ExitCode}'",
-                    dependency.Resource.Name,
-                    snapshot.State.Text,
-                    snapshot.ExitCode
-                    );
-
-                throw new DistributedApplicationException(
-                    $"Resource '{dependency.Resource.Name}' has entered the '{snapshot.State.Text}' state with exit code '{snapshot.ExitCode}'"
-                    );
-            }
-
-            resourceLogger.LogInformation("Finished waiting for resource '{Name}'.", dependency.Resource.Name);
-        });
-
-        return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, subscription));
-
-        static bool IsKnownTerminalState(CustomResourceSnapshot snapshot) =>
-            KnownResourceStates.TerminalStates.Contains(snapshot.State?.Text) ||
-            snapshot.ExitCode is not null;
+        return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitForCompletion, exitCode));
     }
 
     /// <summary>
