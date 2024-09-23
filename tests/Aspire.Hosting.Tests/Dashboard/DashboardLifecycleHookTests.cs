@@ -70,6 +70,35 @@ public class DashboardLifecycleHookTests
         Assert.Equal(expectedLevel, logContext.LogLevel);
     }
 
+    [Fact]
+    public async Task AfterResourcesCreatedAsync_LifecycleCommands_RemovedFromDashboard()
+    {
+        // Arrange
+        var resourceLoggerService = new ResourceLoggerService();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+        var configuration = new ConfigurationBuilder().Build();
+        var hook = new DashboardLifecycleHook(
+            configuration,
+            Options.Create(new DashboardOptions { DashboardPath = "test.dll" }),
+            NullLogger<DistributedApplication>.Instance,
+            new TestDashboardEndpointProvider(),
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            resourceNotificationService,
+            resourceLoggerService,
+            NullLoggerFactory.Instance);
+
+        var model = new DistributedApplicationModel(new ResourceCollection());
+        await hook.BeforeStartAsync(model, CancellationToken.None);
+        var dashboardResource = model.Resources.Single(r => string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName));
+        dashboardResource.AddLifeCycleCommands();
+
+        // Act
+        await hook.AfterResourcesCreatedAsync(model, CancellationToken.None);
+
+        // Assert
+        Assert.Empty(dashboardResource.Annotations.OfType<ResourceCommandAnnotation>());
+    }
+
     public static IEnumerable<object?[]> Data()
     {
         var timestamp = new DateTime(2001, 12, 29, 23, 59, 59, DateTimeKind.Utc);
