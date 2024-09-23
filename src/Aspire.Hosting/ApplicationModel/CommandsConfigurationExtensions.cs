@@ -14,6 +14,11 @@ internal static class CommandsConfigurationExtensions
 
     internal static void AddLifeCycleCommands(this IResource resource)
     {
+        if (resource.TryGetLastAnnotation<ExcludeLifecycleCommandsAnnotation>(out _))
+        {
+            return;
+        }
+
         resource.Annotations.Add(new ResourceCommandAnnotation(
             type: StartType,
             displayName: "Start",
