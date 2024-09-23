@@ -110,6 +110,8 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
     private void ConfigureAspireDashboardResource(IResource dashboardResource)
     {
+        // The dashboard resource can be visible during development. We don't want people to be able to stop the dashboard from inside the dashboard.
+        // Exclude the lifecycle commands from the dashboard resource so they're not accidently clicked during development.
         dashboardResource.Annotations.Add(new ExcludeLifecycleCommandsAnnotation());
 
         // Remove endpoint annotations because we are directly configuring
