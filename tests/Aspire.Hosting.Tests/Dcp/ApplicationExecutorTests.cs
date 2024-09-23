@@ -9,6 +9,7 @@ using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Orchestration;
 using Aspire.Hosting.Tests.Utils;
 using k8s.Models;
 using Microsoft.Extensions.Configuration;
@@ -962,6 +963,9 @@ public class ApplicationExecutorTests
             configuration = builder.Build();
         }
 
+        var eventing = new DistributedApplicationEventing();
+        var orchestrator = new DistributedApplicationOrchestrator(serviceProvider, eventing);
+
         return new ApplicationExecutor(
             NullLogger<ApplicationExecutor>.Instance,
             NullLogger<DistributedApplication>.Instance,
@@ -978,8 +982,9 @@ public class ApplicationExecutorTests
             ResourceNotificationServiceTestHelpers.Create(),
             resourceLoggerService ?? new ResourceLoggerService(),
             new TestDcpDependencyCheckService(),
-            new DistributedApplicationEventing(),
-            serviceProvider
+            eventing,
+            serviceProvider,
+            orchestrator
         );
     }
 

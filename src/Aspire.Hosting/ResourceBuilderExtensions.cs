@@ -637,6 +637,8 @@ public static class ResourceBuilderExtensions
                 resourceLogger.LogInformation("Waiting for resource '{Name}' to become healthy.", dependency.Resource.Name);
                 await rns.WaitForResourceAsync(dependency.Resource.Name, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: ct).ConfigureAwait(false);
             }
+
+            resourceLogger.LogInformation("Finished waiting for resource '{Name}'.", dependency.Resource.Name);
         });
 
         return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, subscription));
@@ -676,7 +678,7 @@ public static class ResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<T> WaitForCompletion<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, int exitCode = 0) where T : IResource
     {
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (e, ct) =>
+        var subscription = builder.ApplicationBuilder.Eventing.Subscribe<DependentResourceWaitingEvent>(dependency.Resource, async (e, ct) =>
         {
             if (dependency.Resource.TryGetLastAnnotation<ReplicaAnnotation>(out var replicaAnnotation) && replicaAnnotation.Replicas > 1)
             {
@@ -714,9 +716,11 @@ public static class ResourceBuilderExtensions
                     $"Resource '{dependency.Resource.Name}' has entered the '{snapshot.State.Text}' state with exit code '{snapshot.ExitCode}'"
                     );
             }
+
+            resourceLogger.LogInformation("Finished waiting for resource '{Name}'.", dependency.Resource.Name);
         });
 
-        return builder;
+        return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, subscription));
 
         static bool IsKnownTerminalState(CustomResourceSnapshot snapshot) =>
             KnownResourceStates.TerminalStates.Contains(snapshot.State?.Text) ||
