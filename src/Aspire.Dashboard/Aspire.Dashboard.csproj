@@ -120,10 +120,10 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Routes.resx</DependentUpon>
     </Compile>
-    <Compile Update="Resources\Logs.Designer.cs">
+    <Compile Update="Resources\StructuredFiltering.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>Logs.resx</DependentUpon>
+      <DependentUpon>StructuredFiltering.resx</DependentUpon>
     </Compile>
   </ItemGroup>
 
@@ -212,12 +212,12 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Routes.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Update="Resources\Logs.resx">
+    <EmbeddedResource Update="Resources\StructuredFiltering.resx">
       <XlfSourceFormat>Resx</XlfSourceFormat>
       <XlfOutputItem>EmbeddedResource</XlfOutputItem>
       <SubType>Designer</SubType>
       <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>Logs.Designer.cs</LastGenOutput>
+      <LastGenOutput>StructuredFiltering.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
 

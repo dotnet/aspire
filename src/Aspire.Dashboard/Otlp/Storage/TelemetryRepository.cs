@@ -36,6 +36,7 @@ public sealed class TelemetryRepository
     private readonly Dictionary<string, OtlpScope> _logScopes = new();
     private readonly CircularBuffer<OtlpLogEntry> _logs;
     private readonly HashSet<(OtlpApplication Application, string PropertyKey)> _logPropertyKeys = new();
+    private readonly HashSet<(OtlpApplication Application, string PropertyKey)> _tracePropertyKeys = new();
     private readonly Dictionary<ApplicationKey, int> _applicationUnviewedErrorLogs = new();
 
     private readonly ReaderWriterLockSlim _tracesLock = new();
@@ -443,6 +444,33 @@ public sealed class TelemetryRepository
         }
     }
 
+    public List<string> GetTracePropertyKeys(ApplicationKey? applicationKey)
+    {
+        List<OtlpApplication>? applications = null;
+        if (applicationKey != null)
+        {
+            applications = GetApplications(applicationKey.Value);
+        }
+
+        _tracesLock.EnterReadLock();
+
+        try
+        {
+            var applicationKeys = _tracePropertyKeys.AsEnumerable();
+            if (applications?.Count > 0)
+            {
+                applicationKeys = applicationKeys.Where(keys => MatchApplications(keys.Application, applications));
+            }
+
+            var keys = applicationKeys.Select(keys => keys.PropertyKey).Distinct();
+            return keys.OrderBy(k => k).ToList();
+        }
+        finally
+        {
+            _tracesLock.ExitReadLock();
+        }
+    }
+
     public GetTracesResponse GetTraces(GetTracesRequest context)
     {
         List<OtlpApplication>? applications = null;
@@ -482,6 +510,33 @@ public sealed class TelemetryRepository
             if (!string.IsNullOrWhiteSpace(context.FilterText))
             {
                 results = results.Where(t => t.FullName.Contains(context.FilterText, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (context.Filters.Count > 0)
+            {
+                results = results.Where(t =>
+                {
+                    // A trace matches when one of its span matches all filters.
+                    foreach (var span in t.Spans)
+                    {
+                        var match = true;
+                        foreach (var filter in context.Filters)
+                        {
+                            if (!filter.Apply(span))
+                            {
+                                match = false;
+                                break;
+                            }
+                        }
+
+                        if (match)
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                });
             }
 
             // Traces can be modified as new spans are added. Copy traces before returning results to avoid concurrency issues.
@@ -773,6 +828,11 @@ public sealed class TelemetryRepository
                             }
                         }
 
+                        foreach (var kvp in newSpan.Attributes)
+                        {
+                            _tracePropertyKeys.Add((applicationView.Application, kvp.Key));
+                        }
+
                         lastTrace = trace;
                     }
                     catch (Exception ex)
@@ -870,20 +930,6 @@ public sealed class TelemetryRepository
         }
 
         var events = new List<OtlpSpanEvent>();
-        foreach (var e in span.Events.OrderBy(e => e.TimeUnixNano))
-        {
-            events.Add(new OtlpSpanEvent
-            {
-                Name = e.Name,
-                Time = OtlpHelpers.UnixNanoSecondsToDateTime(e.TimeUnixNano),
-                Attributes = e.Attributes.ToKeyValuePairs(options)
-            });
-
-            if (events.Count >= options.MaxSpanEventCount)
-            {
-                break;
-            }
-        }
 
         var links = new List<OtlpSpanLink>();
         foreach (var e in span.Links)
@@ -915,6 +961,21 @@ public sealed class TelemetryRepository
             Links = links,
             BackLinks = new()
         };
+
+        foreach (var e in span.Events.OrderBy(e => e.TimeUnixNano))
+        {
+            events.Add(new OtlpSpanEvent(newSpan)
+            {
+                Name = e.Name,
+                Time = OtlpHelpers.UnixNanoSecondsToDateTime(e.TimeUnixNano),
+                Attributes = e.Attributes.ToKeyValuePairs(options)
+            });
+
+            if (events.Count >= options.MaxSpanEventCount)
+            {
+                break;
+            }
+        }
         return newSpan;
     }
 

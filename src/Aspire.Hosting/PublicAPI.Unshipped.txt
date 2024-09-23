@@ -63,12 +63,16 @@ Aspire.Hosting.ApplicationModel.HealthCheckAnnotation.HealthCheckAnnotation(stri
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation.Key.get -> string!
 Aspire.Hosting.ApplicationModel.ResourceNameAttribute
 Aspire.Hosting.ApplicationModel.ResourceNameAttribute.ResourceNameAttribute() -> void
+Aspire.Hosting.ApplicationModel.IconVariant
+Aspire.Hosting.ApplicationModel.IconVariant.Filled = 1 -> Aspire.Hosting.ApplicationModel.IconVariant
+Aspire.Hosting.ApplicationModel.IconVariant.Regular = 0 -> Aspire.Hosting.ApplicationModel.IconVariant
 Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation
 Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.DisplayName.get -> string!
 Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.ExecuteCommand.get -> System.Func<Aspire.Hosting.ApplicationModel.ExecuteCommandContext!, System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ExecuteCommandResult!>!>!
 Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.IconName.get -> string?
+Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.IconVariant.get -> Aspire.Hosting.ApplicationModel.IconVariant?
 Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.IsHighlighted.get -> bool
-Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.ResourceCommandAnnotation(string! type, string! displayName, System.Func<Aspire.Hosting.ApplicationModel.UpdateCommandStateContext!, Aspire.Hosting.ApplicationModel.ResourceCommandState>! updateState, System.Func<Aspire.Hosting.ApplicationModel.ExecuteCommandContext!, System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ExecuteCommandResult!>!>! executeCommand, string? iconName, bool isHighlighted) -> void
+Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.ResourceCommandAnnotation(string! type, string! displayName, System.Func<Aspire.Hosting.ApplicationModel.UpdateCommandStateContext!, Aspire.Hosting.ApplicationModel.ResourceCommandState>! updateState, System.Func<Aspire.Hosting.ApplicationModel.ExecuteCommandContext!, System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ExecuteCommandResult!>!>! executeCommand, string? iconName, Aspire.Hosting.ApplicationModel.IconVariant? iconVariant, bool isHighlighted) -> void
 Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.Type.get -> string!
 Aspire.Hosting.ApplicationModel.ResourceCommandAnnotation.UpdateState.get -> System.Func<Aspire.Hosting.ApplicationModel.UpdateCommandStateContext!, Aspire.Hosting.ApplicationModel.ResourceCommandState>!
 Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot
@@ -76,9 +80,11 @@ Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.DisplayName.get -> strin
 Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.DisplayName.init -> void
 Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.IconName.get -> string?
 Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.IconName.init -> void
+Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.IconVariant.get -> Aspire.Hosting.ApplicationModel.IconVariant?
+Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.IconVariant.init -> void
 Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.IsHighlighted.get -> bool
 Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.IsHighlighted.init -> void
-Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.ResourceCommandSnapshot(string! Type, Aspire.Hosting.ApplicationModel.ResourceCommandState State, string! DisplayName, string? IconName, bool IsHighlighted) -> void
+Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.ResourceCommandSnapshot(string! Type, Aspire.Hosting.ApplicationModel.ResourceCommandState State, string! DisplayName, string? IconName, Aspire.Hosting.ApplicationModel.IconVariant? IconVariant, bool IsHighlighted) -> void
 Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.State.get -> Aspire.Hosting.ApplicationModel.ResourceCommandState
 Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.State.init -> void
 Aspire.Hosting.ApplicationModel.ResourceCommandSnapshot.Type.get -> string!
@@ -90,6 +96,8 @@ Aspire.Hosting.ApplicationModel.ResourceCommandState.Hidden = 2 -> Aspire.Hostin
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime, System.IServiceProvider! serviceProvider) -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, System.Func<Aspire.Hosting.ApplicationModel.ResourceEvent!, bool>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ResourceEvent!>!
+Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot.IsSensitive.get -> bool
+Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot.IsSensitive.init -> void
 Aspire.Hosting.ApplicationModel.UpdateCommandStateContext
 Aspire.Hosting.ApplicationModel.UpdateCommandStateContext.ResourceSnapshot.get -> Aspire.Hosting.ApplicationModel.CustomResourceSnapshot!
 Aspire.Hosting.ApplicationModel.UpdateCommandStateContext.ResourceSnapshot.init -> void
@@ -149,7 +157,7 @@ Aspire.Hosting.DistributedApplicationExecutionContextOptions.ServiceProvider.get
 Aspire.Hosting.DistributedApplicationExecutionContextOptions.ServiceProvider.set -> void
 static Aspire.Hosting.ResourceBuilderExtensions.WaitFor<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IResource!>! dependency) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WaitForCompletion<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IResource!>! dependency, int exitCode = 0) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
-static Aspire.Hosting.ResourceBuilderExtensions.WithCommand<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! type, string! displayName, System.Func<Aspire.Hosting.ApplicationModel.ExecuteCommandContext!, System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ExecuteCommandResult!>!>! executeCommand, System.Func<Aspire.Hosting.ApplicationModel.UpdateCommandStateContext!, Aspire.Hosting.ApplicationModel.ResourceCommandState>? updateState = null, string? iconName = null, bool isHighlighted = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithCommand<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! type, string! displayName, System.Func<Aspire.Hosting.ApplicationModel.ExecuteCommandContext!, System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ExecuteCommandResult!>!>! executeCommand, System.Func<Aspire.Hosting.ApplicationModel.UpdateCommandStateContext!, Aspire.Hosting.ApplicationModel.ResourceCommandState>? updateState = null, string? iconName = null, Aspire.Hosting.ApplicationModel.IconVariant? iconVariant = null, bool isHighlighted = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static Aspire.Hosting.ResourceBuilderExtensions.WithHealthCheck<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! key) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.Exited -> string!
 static readonly Aspire.Hosting.ApplicationModel.KnownResourceStates.FailedToStart -> string!

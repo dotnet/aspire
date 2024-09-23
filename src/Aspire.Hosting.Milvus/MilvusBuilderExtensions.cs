@@ -36,7 +36,7 @@ public static class MilvusBuilderExtensions
     /// </code>
     /// </example>
     /// <remarks>
-    /// This version the package defaults to the 2.3-latest tag of the milvusdb/milvus container image.
+    /// This version of the package defaults to the <inheritdoc cref="MilvusContainerImageTags.Tag"/> tag of the <inheritdoc cref="MilvusContainerImageTags.Image"/> container image.
     /// The .NET client library uses the gRPC port by default to communicate and this resource exposes that endpoint.
     /// A web-based administration tool for Milvus can also be added using <see cref="WithAttu"/>.
     /// </remarks>
@@ -172,7 +172,7 @@ public static class MilvusBuilderExtensions
     }
 
     /// <summary>
-    /// Adds an administration and development platform for Milvus to the application model using Attu. This version the package defaults to the 2.3-latest tag of the attu container image
+    /// Adds an administration and development platform for Milvus to the application model using Attu. This version of the package defaults to the <inheritdoc cref="MilvusContainerImageTags.AttuTag"/> tag of the <inheritdoc cref="MilvusContainerImageTags.AttuImage"/> container image
     /// </summary>
     /// <example>
     /// Use in application host with a Milvus resource

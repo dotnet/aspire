@@ -39,10 +39,6 @@
                 <PropertyGrid TItem="SpanPropertyViewModel"
                               Items="@FilteredItems"
                               GridTemplateColumns="1fr 2fr"
-                              NameColumnValue="(vm) => vm.Name"
-                              ValueColumnValue="(vm) => vm.Value"
-                              NameSort="_nameSort"
-                              ValueSort="_valueSort"
                               HighlightText="@_filter" />
             </FluentAccordionItem>
             <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsContextHeader)]" Expanded="true">
@@ -54,10 +50,6 @@
                 <PropertyGrid TItem="SpanPropertyViewModel"
                               Items="@FilteredContextItems"
                               GridTemplateColumns="1fr 2fr"
-                              NameColumnValue="(vm) => vm.Name"
-                              ValueColumnValue="(vm) => vm.Value"
-                              NameSort="_nameSort"
-                              ValueSort="_valueSort"
                               HighlightText="@_filter" />
             </FluentAccordionItem>
             <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsResourceHeader)]" Expanded="true">
@@ -69,10 +61,6 @@
                 <PropertyGrid TItem="SpanPropertyViewModel"
                               Items="@FilteredResourceItems"
                               GridTemplateColumns="1fr 2fr"
-                              NameColumnValue="(vm) => vm.Name"
-                              ValueColumnValue="(vm) => vm.Value"
-                              NameSort="_nameSort"
-                              ValueSort="_valueSort"
                               HighlightText="@_filter" />
             </FluentAccordionItem>
             <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsEventsHeader)]" Expanded="true">
@@ -84,9 +72,7 @@
                 <PropertyGrid TItem="OtlpSpanEvent"
                               Items="@FilteredSpanEvents"
                               GridTemplateColumns="1fr 2fr"
-                              NameColumnValue="(vm) => DurationFormatter.FormatDuration(vm.TimeOffset(ViewModel.Span))"
                               NameColumnTitle="@(Loc[nameof(ControlsStrings.TimeOffsetColumnHeader)])"
-                              ValueColumnValue="(vm) => vm.Name"
                               ValueColumnTitle="@(Loc[nameof(ControlsStrings.EventColumnHeader)])"
                               IsNameSortable="false"
                               IsValueSortable="false"
@@ -94,15 +80,9 @@
                     <ExtraValueContent>
                         @if (context.Attributes.Length > 0)
                         {
-                            // There's a weird bug where trying to render a nested FluentDataGrid here with a non-primitive
-                            // TItem leads to the click event not being raised *only in the value (not header) rows*. A
-                            // workaround is to use the attribute index as the item and query the attributes list for its
-                            // name and value in the name/value producers.
-                            <PropertyGrid TItem="int"
-                                          Items="@context.Attributes.Select((_, i) => i).AsQueryable()"
+                            <PropertyGrid TItem="OtlpSpanAttributeItem"
+                                          Items="@context.Attributes.Select(pair => new OtlpSpanAttributeItem(pair.Key, pair.Value)).AsQueryable()"
                                           GridTemplateColumns="1fr 2fr"
-                                          NameColumnValue="(i) => context.Attributes[i].Key"
-                                          ValueColumnValue="(i) => context.Attributes[i].Value"
                                           IsNameSortable="false"
                                           IsValueSortable="false"
                                           GenerateHeader="GenerateHeaderOption.Default" />
@@ -176,15 +156,9 @@
         </div>
         @if (context.Attributes.Length > 0)
         {
-            // There's a weird bug where trying to render a nested FluentDataGrid here with a non-primitive
-            // TItem leads to the click event not being raised *only in the value (not header) rows*. A
-            // workaround is to use the attribute index as the item and query the attributes list for its
-            // name and value in the name/value producers.
-            <PropertyGrid TItem="int"
-                          Items="@context.Attributes.Select((_, i) => i).AsQueryable()"
+            <PropertyGrid TItem="OtlpSpanAttributeItem"
+                          Items="@context.Attributes.Select(pair => new OtlpSpanAttributeItem(pair.Key, pair.Value)).AsQueryable()"
                           GridTemplateColumns="1fr 2fr"
-                          NameColumnValue="(i) => context.Attributes[i].Key"
-                          ValueColumnValue="(i) => context.Attributes[i].Value"
                           IsNameSortable="false"
                           IsValueSortable="false"
                           GenerateHeader="GenerateHeaderOption.Default" />

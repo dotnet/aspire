@@ -621,7 +621,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 new(KnownProperties.Container.Image, container.Spec.Image),
                 new(KnownProperties.Container.Id, containerId),
                 new(KnownProperties.Container.Command, container.Spec.Command),
-                new(KnownProperties.Container.Args, container.Status?.EffectiveArgs ?? []),
+                new(KnownProperties.Container.Args, container.Status?.EffectiveArgs ?? []) { IsSensitive = true },
                 new(KnownProperties.Container.Ports, GetPorts()),
             ],
             EnvironmentVariables = environment,
@@ -680,7 +680,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 Properties = [
                     new(KnownProperties.Executable.Path, executable.Spec.ExecutablePath),
                     new(KnownProperties.Executable.WorkDir, executable.Spec.WorkingDirectory),
-                    new(KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []),
+                    new(KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []) { IsSensitive = true },
                     new(KnownProperties.Executable.Pid, executable.Status?.ProcessId),
                     new(KnownProperties.Project.Path, projectPath)
                 ],
@@ -698,7 +698,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             Properties = [
                 new(KnownProperties.Executable.Path, executable.Spec.ExecutablePath),
                 new(KnownProperties.Executable.WorkDir, executable.Spec.WorkingDirectory),
-                new(KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []),
+                new(KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []) { IsSensitive = true },
                 new(KnownProperties.Executable.Pid, executable.Status?.ProcessId)
             ],
             EnvironmentVariables = environment,
@@ -1044,7 +1044,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         foreach (var executable in modelExecutableResources)
         {
-            EnsureReplicaInstancesAnnotation(executable);
+            EnsureRequiredAnnotations(executable);
 
             var nameSuffix = GetRandomNameSuffix();
             var exeName = GetObjectNameForResource(executable, nameSuffix);
@@ -1076,7 +1076,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 throw new InvalidOperationException("A project resource is missing required metadata"); // Should never happen.
             }
 
-            EnsureReplicaInstancesAnnotation(project);
+            EnsureRequiredAnnotations(project);
 
             var replicas = project.GetReplicaCount();
 
@@ -1165,8 +1165,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private static void EnsureReplicaInstancesAnnotation(IResource resource)
+    private static void EnsureRequiredAnnotations(IResource resource)
     {
+        // Add the default lifecycle commands (start/stop/restart)
+        resource.AddLifeCycleCommands();
+
         // Make sure we have a replica annotation on the resource.
         // this is so that we can populate the running instance ids
         if (!resource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out _))
@@ -1411,7 +1414,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 throw new InvalidOperationException();
             }
 
-            EnsureReplicaInstancesAnnotation(container);
+            EnsureRequiredAnnotations(container);
 
             var nameSuffix = container.GetContainerLifetimeType() switch
             {

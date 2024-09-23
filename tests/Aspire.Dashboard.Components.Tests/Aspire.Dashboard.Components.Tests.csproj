@@ -19,4 +19,8 @@
     <Compile Include="$(TestsSharedDir)Logging\*.cs" LinkBase="shared/Logging" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Aspire.Dashboard.Tests\Model\MockKnownPropertyLookup.cs" Link="Shared\MockKnownPropertyLookup.cs" />
+  </ItemGroup>
+
 </Project>

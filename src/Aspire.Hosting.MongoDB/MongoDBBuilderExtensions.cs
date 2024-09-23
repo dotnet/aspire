@@ -17,7 +17,7 @@ public static class MongoDBBuilderExtensions
     private const int DefaultContainerPort = 27017;
 
     /// <summary>
-    /// Adds a MongoDB resource to the application model. A container is used for local development. This version the package defaults to the 7.0.8 tag of the mongo container image.
+    /// Adds a MongoDB resource to the application model. A container is used for local development. This version of the package defaults to the <inheritdoc cref="MongoDBContainerImageTags.Tag"/> tag of the <inheritdoc cref="MongoDBContainerImageTags.Image"/> container image.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -76,7 +76,7 @@ public static class MongoDBBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a MongoExpress administration and development platform for MongoDB to the application model. This version the package defaults to the 1.0.2-20 tag of the mongo-express container image
+    /// Adds a MongoExpress administration and development platform for MongoDB to the application model. This version of the package defaults to the <inheritdoc cref="MongoDBContainerImageTags.MongoExpressTag"/> tag of the <inheritdoc cref="MongoDBContainerImageTags.MongoExpressImage"/> container image
     /// </summary>
     /// <param name="builder">The MongoDB server resource builder.</param>
     /// <param name="configureContainer">Configuration callback for Mongo Express container resource.</param>
