@@ -172,12 +172,12 @@ public class SqlServerPublicApiTests
         var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
 
         string name = "sqlserver";
-        string databaseName = null!;
+        string databaseName = "";
         var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(distributedApplicationBuilder, "password", special: false);
         var parent = new SqlServerServerResource("sqlserver", password);
         var action = () => new SqlServerDatabaseResource(name, databaseName, parent);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(databaseName), exception.ParamName);
     }
 

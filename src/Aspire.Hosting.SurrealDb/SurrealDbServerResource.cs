@@ -83,15 +83,15 @@ public class SurrealDbServerResource : ContainerResource, IResourceWithConnectio
         return ConnectionString.GetValueAsync(cancellationToken);
     }
 
-    private readonly Dictionary<string, (string, string)> _databases = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _namespaces = new(StringComparer.Ordinal);
 
     /// <summary>
-    /// A dictionary where the key is the resource name and the value is the pair (namespace name, database name).
+    /// A dictionary where the key is the resource name and the value is the namespace name.
     /// </summary>
-    public IReadOnlyDictionary<string, (string, string)> Databases => _databases;
+    public IReadOnlyDictionary<string, string> Namespaces => _namespaces;
 
-    internal void AddDatabase(string name, string namespaceName, string databaseName)
+    internal void AddNamespace(string name, string namespaceName)
     {
-        _databases.TryAdd(name, (namespaceName, databaseName));
+        _namespaces.TryAdd(name, namespaceName);
     }
 }

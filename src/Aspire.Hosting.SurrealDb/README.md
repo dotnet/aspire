@@ -17,13 +17,16 @@ dotnet add package Aspire.Hosting.SurrealDb
 Then, in the _Program.cs_ file of `AppHost`, add a SurrealDB resource and consume the connection using the following methods:
 
 ```csharp
-var db = builder.AddSurrealServer("surreal").AddDatabase("db");
+var db = builder.AddSurrealServer("surreal")
+                .AddNamespace("ns")
+                .AddDatabase("db");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(db);
 ```
 
 ## Additional documentation
+
 https://learn.microsoft.com/dotnet/aspire/database/surrealdb-component
 
 ## Feedback & contributing

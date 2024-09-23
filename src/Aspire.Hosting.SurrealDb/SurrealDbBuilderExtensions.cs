@@ -48,24 +48,61 @@ public static class SurrealDbBuilderExtensions
                           context.EnvironmentVariables[PasswordEnvVarName] = surrealServer.PasswordParameter;
                       })
                       .WithEntrypoint("/surreal")
-                      .WithArgs("start", "--auth");
+                      .WithArgs("start");
     }
 
     /// <summary>
-    /// Adds a SurrealDB database to the application model. This is a child resource of a <see cref="SurrealDbServerResource"/>.
+    /// Adds a SurrealDB namespace to the application model. This is a child resource of a <see cref="SurrealDbServerResource"/>.
     /// </summary>
     /// <param name="builder">The SurrealDB resource builders.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <param name="namespaceName">The name of the namespace. If not provided, this defaults to "test".</param>
-    /// <param name="databaseName">The name of the database. If not provided, this defaults to "test".</param>
+    /// <param name="namespaceName">The name of the namespace. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<SurrealDbDatabaseResource> AddDatabase(this IResourceBuilder<SurrealDbServerResource> builder, string name, string namespaceName = "test", string databaseName = "test")
+    public static IResourceBuilder<SurrealDbNamespaceResource> AddNamespace(this IResourceBuilder<SurrealDbServerResource> builder, string name, string? namespaceName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        builder.Resource.AddDatabase(name, namespaceName, databaseName);
-        var surrealServerDatabase = new SurrealDbDatabaseResource(name, namespaceName, databaseName, builder.Resource);
+        // Use the resource name as the namespace name if it's not provided
+        namespaceName ??= name;
+
+        builder.Resource.AddNamespace(name, namespaceName);
+        var surrealServerNamespace = new SurrealDbNamespaceResource(name, namespaceName, builder.Resource);
+        return builder.ApplicationBuilder.AddResource(surrealServerNamespace);
+    }
+
+    /// <summary>
+    /// Adds a SurrealDB database to the application model. This is a child resource of a <see cref="SurrealDbNamespaceResource"/>.
+    /// </summary>
+    /// <param name="builder">The SurrealDB resource builders.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<SurrealDbDatabaseResource> AddDatabase(this IResourceBuilder<SurrealDbNamespaceResource> builder, string name, string? databaseName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        // Use the resource name as the database name if it's not provided
+        databaseName ??= name;
+
+        builder.Resource.AddDatabase(name, databaseName);
+        var surrealServerDatabase = new SurrealDbDatabaseResource(name, databaseName, builder.Resource);
+
+        string? connectionString = null;
+
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(surrealServerDatabase, async (@event, ct) =>
+        {
+            connectionString = await surrealServerDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{surrealServerDatabase}' resource but the connection string was null.");
+            }
+        });
+
+        // TODO : Add HealthChecks, waiting for https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks/pull/2047
+
         return builder.ApplicationBuilder.AddResource(surrealServerDatabase);
     }
 

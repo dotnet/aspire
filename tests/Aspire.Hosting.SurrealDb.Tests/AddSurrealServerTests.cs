@@ -108,7 +108,8 @@ public class AddSurrealServerTests
         appBuilder
             .AddSurrealServer("surreal", null, pass)
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 8000))
-            .AddDatabase("db", "myns", "mydb");
+            .AddNamespace("ns", "myns")
+            .AddDatabase("db", "mydb");
 
         using var app = appBuilder.Build();
 
@@ -119,7 +120,7 @@ public class AddSurrealServerTests
         var connectionString = await connectionStringResource.GetConnectionStringAsync();
 
         Assert.Equal("Server=ws://127.0.0.1:8000/rpc;User=root;Password=p@ssw0rd1;Namespace=myns;Database=mydb", connectionString);
-        Assert.Equal("{surreal.connectionString};Namespace=myns;Database=mydb", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{ns.connectionString};Database=mydb", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -127,7 +128,7 @@ public class AddSurrealServerTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var sqlServer = builder.AddSurrealServer("surreal");
-        var db = sqlServer.AddDatabase("db");
+        var db = sqlServer.AddNamespace("ns").AddDatabase("db");
 
         var serverManifest = await ManifestUtils.GetManifest(sqlServer.Resource);
         var dbManifest = await ManifestUtils.GetManifest(db.Resource);
@@ -139,8 +140,7 @@ public class AddSurrealServerTests
               "image": "{{SurrealDbContainerImageTags.Registry}}/{{SurrealDbContainerImageTags.Image}}:{{SurrealDbContainerImageTags.Tag}}",
               "entrypoint": "/surreal",
               "args": [
-                "start",
-                "--auth"
+                "start"
               ],
               "env": {
                 "SURREAL_USER": "root",
@@ -161,7 +161,7 @@ public class AddSurrealServerTests
         expectedManifest = """
             {
               "type": "value.v0",
-              "connectionString": "{surreal.connectionString};Namespace=test;Database=test"
+              "connectionString": "{ns.connectionString};Database=db"
             }
             """;
         Assert.Equal(expectedManifest, dbManifest.ToString());
@@ -184,8 +184,7 @@ public class AddSurrealServerTests
               "image": "{{SurrealDbContainerImageTags.Registry}}/{{SurrealDbContainerImageTags.Image}}:{{SurrealDbContainerImageTags.Tag}}",
               "entrypoint": "/surreal",
               "args": [
-                "start",
-                "--auth"
+                "start"
               ],
               "env": {
                 "SURREAL_USER": "root",
@@ -210,9 +209,9 @@ public class AddSurrealServerTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var db = builder.AddSurrealServer("surreal1");
-        db.AddDatabase("db");
+        db.AddNamespace("ns").AddDatabase("db");
 
-        Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
+        Assert.Throws<DistributedApplicationException>(() => db.AddNamespace("ns").AddDatabase("db"));
     }
 
     [Fact]
@@ -221,27 +220,28 @@ public class AddSurrealServerTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         builder.AddSurrealServer("surreal1")
+            .AddNamespace("ns")
             .AddDatabase("db");
 
         var db = builder.AddSurrealServer("surreal2");
-        Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
+        Assert.Throws<DistributedApplicationException>(() => db.AddNamespace("ns").AddDatabase("db"));
     }
 
     [Fact]
-    public void CanAddDatabasesWithDifferentNamesOnSingleServer()
+    public void CanAddDatabasesWithDifferentNamesOnSingleServerAndNamespace()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        var surrealServer1 = builder.AddSurrealServer("surreal1");
+        var surrealNs = builder.AddSurrealServer("surreal1").AddNamespace("ns");
 
-        var db1 = surrealServer1.AddDatabase("db1", "ns", "customers1");
-        var db2 = surrealServer1.AddDatabase("db2", "ns", "customers2");
+        var db1 = surrealNs.AddDatabase("db1", "customers1");
+        var db2 = surrealNs.AddDatabase("db2", "customers2");
 
         Assert.Equal("customers1", db1.Resource.DatabaseName);
         Assert.Equal("customers2", db2.Resource.DatabaseName);
 
-        Assert.Equal("{surreal1.connectionString};Namespace=ns;Database=customers1", db1.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("{surreal1.connectionString};Namespace=ns;Database=customers2", db2.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{ns.connectionString};Database=customers1", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{ns.connectionString};Database=customers2", db2.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -250,15 +250,17 @@ public class AddSurrealServerTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var db1 = builder.AddSurrealServer("surreal1")
-            .AddDatabase("db1", "ns", "imports");
+            .AddNamespace("ns1", "ns")
+            .AddDatabase("db1", "imports");
 
         var db2 = builder.AddSurrealServer("surreal2")
-            .AddDatabase("db2", "ns", "imports");
+            .AddNamespace("ns2", "ns")
+            .AddDatabase("db2", "imports");
 
         Assert.Equal("imports", db1.Resource.DatabaseName);
         Assert.Equal("imports", db2.Resource.DatabaseName);
 
-        Assert.Equal("{surreal1.connectionString};Namespace=ns;Database=imports", db1.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("{surreal2.connectionString};Namespace=ns;Database=imports", db2.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{ns1.connectionString};Database=imports", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("{ns2.connectionString};Database=imports", db2.Resource.ConnectionStringExpression.ValueExpression);
     }
 }

@@ -36,7 +36,7 @@ public class SurrealDbPublicApiTests
     [Fact]
     public void AddDatabaseShouldThrowWhenBuilderIsNull()
     {
-        IResourceBuilder<SurrealDbServerResource> builder = null!;
+        IResourceBuilder<SurrealDbNamespaceResource> builder = null!;
         const string name = "surreal";
 
         var action = () => builder.AddDatabase(name);
@@ -49,7 +49,8 @@ public class SurrealDbPublicApiTests
     public void AddDatabaseShouldThrowWhenNameIsNull()
     {
         var builder = DistributedApplication.CreateBuilder([])
-            .AddSurrealServer("surreal");
+            .AddSurrealServer("surreal")
+            .AddNamespace("ns");
         string name = null!;
 
         var action = () => builder.AddDatabase(name);
@@ -62,7 +63,8 @@ public class SurrealDbPublicApiTests
     public void AddDatabaseShouldThrowWhenNameIsEmpty()
     {
         var builder = DistributedApplication.CreateBuilder([])
-            .AddSurrealServer("surreal");
+            .AddSurrealServer("surreal")
+            .AddNamespace("ns");
         string name = "";
 
         var action = () => builder.AddDatabase(name);
@@ -131,7 +133,8 @@ public class SurrealDbPublicApiTests
         string databaseName = "db1";
         var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(distributedApplicationBuilder, "password", special: false);
         var parent = new SurrealDbServerResource("surreal", null, password);
-        var action = () => new SurrealDbDatabaseResource(name, namespaceName, databaseName, parent);
+        var nsParent = new SurrealDbNamespaceResource("ns", namespaceName, parent);
+        var action = () => new SurrealDbDatabaseResource(name, databaseName, nsParent);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
@@ -147,41 +150,38 @@ public class SurrealDbPublicApiTests
         string databaseName = "db1";
         var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(distributedApplicationBuilder, "password", special: false);
         var parent = new SurrealDbServerResource("surreal", null, password);
-        var action = () => new SurrealDbDatabaseResource(name, namespaceName, databaseName, parent);
+        var nsParent = new SurrealDbNamespaceResource("ns", namespaceName, parent);
+        var action = () => new SurrealDbDatabaseResource(name, databaseName, nsParent);
 
         var exception = Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
     [Fact]
-    public void CtorSurrealServerDatabaseResourceShouldThrowWhenNamespaceNameIsNull()
+    public void CtorSurrealServerNamespaceResourceShouldThrowWhenNamespaceNameIsNull()
     {
         var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
 
-        string name = "surreal";
         string namespaceName = null!;
-        string databaseName = null!;
         var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(distributedApplicationBuilder, "password", special: false);
         var parent = new SurrealDbServerResource("surreal", null, password);
-        var action = () => new SurrealDbDatabaseResource(name, namespaceName, databaseName, parent);
+        var action = () => new SurrealDbNamespaceResource("ns", namespaceName, parent);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(namespaceName), exception.ParamName);
     }
 
     [Fact]
-    public void CtorSurrealServerDatabaseResourceShouldThrowWhenNamespaceNameIsEmpty()
+    public void CtorSurrealServerNamespaceResourceShouldThrowWhenNamespaceNameIsEmpty()
     {
         var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
 
-        string name = "surreal";
-        string namespaceName = null!;
-        string databaseName = null!;
+        string namespaceName = "";
         var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(distributedApplicationBuilder, "password", special: false);
         var parent = new SurrealDbServerResource("surreal", null, password);
-        var action = () => new SurrealDbDatabaseResource(name, namespaceName, databaseName, parent);
+        var action = () => new SurrealDbNamespaceResource("ns", namespaceName, parent);
 
-        var exception = Assert.Throws<ArgumentNullException>(action);
+        var exception = Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(namespaceName), exception.ParamName);
     }
 
@@ -195,7 +195,8 @@ public class SurrealDbPublicApiTests
         string databaseName = null!;
         var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(distributedApplicationBuilder, "password", special: false);
         var parent = new SurrealDbServerResource("surreal", null, password);
-        var action = () => new SurrealDbDatabaseResource(name, namespaceName, databaseName, parent);
+        var nsParent = new SurrealDbNamespaceResource("ns", namespaceName, parent);
+        var action = () => new SurrealDbDatabaseResource(name, databaseName, nsParent);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(databaseName), exception.ParamName);
@@ -211,7 +212,8 @@ public class SurrealDbPublicApiTests
         string databaseName = null!;
         var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(distributedApplicationBuilder, "password", special: false);
         var parent = new SurrealDbServerResource("surreal", null, password);
-        var action = () => new SurrealDbDatabaseResource(name, namespaceName, databaseName, parent);
+        var nsParent = new SurrealDbNamespaceResource("ns", namespaceName, parent);
+        var action = () => new SurrealDbDatabaseResource(name, databaseName, nsParent);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(databaseName), exception.ParamName);
@@ -223,11 +225,10 @@ public class SurrealDbPublicApiTests
         var distributedApplicationBuilder = DistributedApplication.CreateBuilder([]);
 
         string name = "surreal";
-        string namespaceName = "ns1";
         string databaseName = "db1";
         var password = ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(distributedApplicationBuilder, "password", special: false);
-        SurrealDbServerResource parent = null!;
-        var action = () => new SurrealDbDatabaseResource(name, namespaceName, databaseName, parent);
+        SurrealDbNamespaceResource parent = null!;
+        var action = () => new SurrealDbDatabaseResource(name, databaseName, parent);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(parent), exception.ParamName);
