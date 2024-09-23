@@ -49,9 +49,6 @@ public partial class SpanDetails : IDisposable
 
     private readonly CancellationTokenSource _cts = new();
 
-    private readonly GridSort<SpanPropertyViewModel> _nameSort = GridSort<SpanPropertyViewModel>.ByAscending(vm => vm.Name);
-    private readonly GridSort<SpanPropertyViewModel> _valueSort = GridSort<SpanPropertyViewModel>.ByAscending(vm => vm.Value);
-
     private bool ApplyFilter(SpanPropertyViewModel vm)
     {
         return vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||

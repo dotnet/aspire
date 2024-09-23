@@ -87,6 +87,7 @@
                                         Loading="_isLoading"
                                         ShowHover="true"
                                         TGridItem="ResourceViewModel"
+                                        ItemKey="@(r => r.Name)"
                                         OnRowClick="@(r => r.ExecuteOnDefault(d => ShowResourceDetailsAsync(d, buttonId: null)))"
                                         Class="enable-row-click">
                             <ChildContent>
