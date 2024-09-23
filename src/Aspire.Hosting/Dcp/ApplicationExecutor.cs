@@ -15,7 +15,6 @@ using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Orchestration;
 using Aspire.Hosting.Utils;
 using Json.Patch;
 using k8s;
@@ -78,8 +77,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           ResourceLoggerService loggerService,
                                           IDcpDependencyCheckService dcpDependencyCheckService,
                                           IDistributedApplicationEventing eventing,
-                                          IServiceProvider serviceProvider,
-                                          IDistributedApplicationOrchestrator orchestrator
+                                          IServiceProvider serviceProvider
                                           )
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
@@ -1249,8 +1247,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             await eventing.PublishAsync(connectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
         }
 
-        await orchestrator.WaitForDependenciesAsync(er.ModelResource, cancellationToken).ConfigureAwait(false);
-
         var beforeResourceStartedEvent = new BeforeResourceStartedEvent(er.ModelResource, serviceProvider);
         await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
 
@@ -1547,8 +1543,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(cr.ModelResource, serviceProvider);
             await eventing.PublishAsync(connectionStringAvailableEvent, cancellationToken).ConfigureAwait(false);
         }
-
-        await orchestrator.WaitForDependenciesAsync(cr.ModelResource, cancellationToken).ConfigureAwait(false);
 
         var beforeResourceStartedEvent = new BeforeResourceStartedEvent(cr.ModelResource, serviceProvider);
         await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);

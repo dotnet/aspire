@@ -11,7 +11,6 @@ using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Health;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Orchestration;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -173,8 +172,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
 
-        // Orchestration
-        _innerBuilder.Services.AddSingleton<IDistributedApplicationOrchestrator, DistributedApplicationOrchestrator>();
+        // 
+        Eventing.Subscribe<BeforeResourceStartedEvent>(async (@event, ct) =>
+        {
+            var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
+            await rns.WaitForDependenciesAsync(@event.Resource, ct).ConfigureAwait(false);
+        });
 
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
