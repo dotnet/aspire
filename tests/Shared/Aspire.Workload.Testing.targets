@@ -1,10 +1,7 @@
 <Project>
   <PropertyGroup>
-    <GetWorkloadInputsDependsOn>_GetWorkloadsToInstall;$(GetWorkloadInputsDependsOn)</GetWorkloadInputsDependsOn>
     <GetNuGetsToBuildForWorkloadTestingDependsOn>_ValidateExpectedSetOfPackagesExist;_GetNuGetsToBuild;$(GetNuGetsToBuildForWorkloadTestingDependsOn)</GetNuGetsToBuildForWorkloadTestingDependsOn>
-
-    <!-- this will cause the output for `dotnet workload install` to be visible to the user -->
-    <WorkloadInstallCommandOutputImportance>High</WorkloadInstallCommandOutputImportance>
+    
     <NuGetConfigPackageSourceMappingsForWorkloadTesting>*Aspire*</NuGetConfigPackageSourceMappingsForWorkloadTesting>
 
     <_ShippingPackagesDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'packages', $(Configuration), 'Shipping'))</_ShippingPackagesDir>
@@ -63,17 +60,6 @@
               Targets="Restore;Build" />
   </Target>
 
-  <Target Name="_GetWorkloadsToInstall" DependsOnTargets="_SetPackageVersionForWorkloadsTesting" Returns="@(WorkloadIdForTesting);@(WorkloadCombinationsToInstall);@(AdditionalSharedFrameworkToInstallArguments)">
-    <ItemGroup>
-      <WorkloadIdForTesting Include="aspire"
-                            ManifestName="Microsoft.NET.Sdk.Aspire"
-                            Variant="latest"
-                            Version="$(PackageVersionForWorkloadManifests)" />
-
-      <WorkloadCombinationsToInstall Include="latest" Variants="latest" />
-    </ItemGroup>
-  </Target>
-
   <Target Name="_InstallSharedFrameworksForWorkloadTesting" AfterTargets="ProvisionDotNetForWorkloadTesting">
     <Exec Condition="'%(AdditionalSharedFrameworkToInstallArguments.Identity)' != '' and !$([MSBuild]::IsOSPlatform('windows'))"
           IgnoreStandardErrorWarningFormat="true"
@@ -82,13 +68,6 @@
     <Exec Condition="'%(AdditionalSharedFrameworkToInstallArguments.Identity)' != '' and $([MSBuild]::IsOSPlatform('windows'))"
           IgnoreStandardErrorWarningFormat="true"
           Command='powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; $(_DotNetInstallScriptPath) -InstallDir $(_SdkWithNoWorkloadPath) -SkipNonVersionedFiles %(AdditionalSharedFrameworkToInstallArguments.Identity)"' />
-  </Target>
-
-  <Target Name="CheckForWorkloadInstalled" BeforeTargets="VSTest" Condition="'$(TestsRunningOutsideOfRepo)' == 'true'">
-    <Error Condition="'$(SdkWithWorkloadForTestingPath)' == '' or !Exists($(SdkWithWorkloadForTestingPath))"
-      Text="Could not find %24(SdkWithWorkloadForTestingPath)=$(SdkWithWorkloadForTestingPath) . Prepare it by following:
-      1. .\build.cmd -pack (or ./build.sh on unix)
-      2. dotnet build tests/workloads.proj /p:Configuration=$(Configuration)" />
   </Target>
 
   <Target Name="_ValidateExpectedSetOfPackagesExist" Condition="'$(SkipPackageCheckForWorkloadTesting)' != 'true'">
