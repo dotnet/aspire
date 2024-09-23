@@ -194,14 +194,15 @@ public class ResourceNotificationService
         else if ((snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited) && snapshot.ExitCode is not null && snapshot.ExitCode != exitCode)
         {
             resourceLogger.LogError(
-                "Resource '{ResourceName}' has entered the '{State}' state with exit code '{ExitCode}'",
+                "Resource '{ResourceName}' has entered the '{State}' state with exit code '{ExitCode}' expected '{ExpectedExitCode}'.",
                 dependency.Name,
                 snapshot.State.Text,
-                snapshot.ExitCode
+                snapshot.ExitCode,
+                exitCode
                 );
 
             throw new DistributedApplicationException(
-                $"Resource '{dependency.Name}' has entered the '{snapshot.State.Text}' state with exit code '{snapshot.ExitCode}'"
+                $"Resource '{dependency.Name}' has entered the '{snapshot.State.Text}' state with exit code '{snapshot.ExitCode}', expected '{exitCode}'."
                 );
         }
 
