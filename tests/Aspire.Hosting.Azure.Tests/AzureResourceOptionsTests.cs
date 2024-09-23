@@ -8,23 +8,23 @@ using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureProvisioningOptionsTests(ITestOutputHelper output)
+public class AzureResourceOptionsTests(ITestOutputHelper output)
 {
     /// <summary>
-    /// Ensures that an AzureProvisioningOptions can be configured to modify the ProvisioningContext
+    /// Ensures that an AzureResourceOptions can be configured to modify the ProvisioningContext
     /// used when building the bicep for an Azure resource.
     ///
     /// This uses the .NET Aspire v8.x naming policy, which always calls toLower, appends a unique string with no separator,
     /// and uses a max of 24 characters.
     /// </summary>
     [Fact]
-    public async Task AzureProvisioningOptionsCanBeConfigured()
+    public async Task AzureResourceOptionsCanBeConfigured()
     {
         var tempDir = Directory.CreateTempSubdirectory();
         var outputPath = Path.Combine(tempDir.FullName, "aspire-manifest.json");
 
         using var builder = TestDistributedApplicationBuilder.Create("Publishing:Publisher=manifest", "--output-path", outputPath);
-        builder.Services.Configure<AzureProvisioningOptions>(options =>
+        builder.Services.Configure<AzureResourceOptions>(options =>
         {
             options.ProvisioningContext.PropertyResolvers.Insert(0, new AspireV8ResourceNamePropertyResolver());
         });

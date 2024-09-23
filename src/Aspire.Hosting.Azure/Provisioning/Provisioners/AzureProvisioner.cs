@@ -27,7 +27,7 @@ namespace Aspire.Hosting.Azure;
 // Provisions azure resources for development purposes
 internal sealed class AzureProvisioner(
     IOptions<AzureProvisionerOptions> options,
-    IOptions<AzureProvisioningOptions> provisioningOptions,
+    IOptions<AzureResourceOptions> provisioningOptions,
     DistributedApplicationExecutionContext executionContext,
     IConfiguration configuration,
     IHostEnvironment environment,
