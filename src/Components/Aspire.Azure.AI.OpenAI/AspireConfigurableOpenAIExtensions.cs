@@ -3,6 +3,7 @@
 
 using System.Data.Common;
 using Aspire.Azure.AI.OpenAI;
+using Azure.AI.OpenAI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenAI;
@@ -10,7 +11,7 @@ using OpenAI;
 namespace Microsoft.Extensions.Hosting;
 
 /// <summary>
-/// Provides extension methods for registering <see cref="OpenAIClient"/> as a singleton in the services provided by the <see cref="IHostApplicationBuilder"/>.
+/// Provides extension methods for registering <see cref="OpenAIClient"/> or <see cref="AzureOpenAIClient"/> as a singleton in the services provided by the <see cref="IHostApplicationBuilder"/>.
 /// </summary>
 public static class AspireConfigurableOpenAIExtensions
 {
@@ -19,7 +20,7 @@ public static class AspireConfigurableOpenAIExtensions
     private const string ConnectionStringIsAzure = "IsAzure";
 
     /// <summary>
-    /// Registers <see cref="OpenAIClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
+    /// Registers <see cref="OpenAIClient"/> or <see cref="AzureOpenAIClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
     /// The concrete implementation is selected automatically from configuration.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
@@ -100,7 +101,7 @@ public static class AspireConfigurableOpenAIExtensions
 
         if (serviceUri == null && string.IsNullOrEmpty(apiKey))
         {
-            throw new InvalidOperationException($"An OpenAIClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a '{nameof(AzureOpenAISettings.Endpoint)}' or '{nameof(AzureOpenAISettings.Key)}' in the '{connectionName}' configuration section.");
+            throw new InvalidOperationException($"An OpenAIClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}'.");
         }
 
         if (connectionBuilder.ContainsKey(ConnectionStringIsAzure))

@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Aspire.Azure.AI.OpenAI.Tests;
 
-public class AspireRestClientOpenAIExtensionsTests
+public class AspireConfigurableOpenAIExtensionsTests
 {
     [Theory]
     [InlineData(true)]
