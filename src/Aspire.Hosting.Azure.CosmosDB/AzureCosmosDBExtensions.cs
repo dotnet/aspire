@@ -11,10 +11,8 @@ using Azure.Provisioning;
 using Azure.Provisioning.CosmosDB;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
-using Azure.ResourceManager.CosmosDB.Models;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace Aspire.Hosting;
