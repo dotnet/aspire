@@ -51,42 +51,31 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     /// <summary>
     /// Gets the connection string for the MongoDB server.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"{ConnectionStringWithoutOptionsExpression}{ConnectionStringOptionsExpression}");
+    public ReferenceExpression ConnectionStringExpression => BuildConnectionString();
 
-    /// <summary>
-    /// Gets the connection string for the MongoDB server without options parameters.
-    /// </summary>
-    internal ReferenceExpression ConnectionStringWithoutOptionsExpression
+    internal ReferenceExpression BuildConnectionString(string? databaseName = null)
     {
-        get
-        {
-            if (PasswordParameter is null)
-            {
-                return ReferenceExpression.Create($"mongodb://{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
-            }
-            else
-            {
-                return ReferenceExpression.Create($"mongodb://{UserNameReference}:{PasswordParameter}@{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
-            }
-        }
-    }
+        var builder = new ReferenceExpressionBuilder();
+        builder.AppendLiteral("mongodb://");
 
-    /// <summary>
-    /// Gets the options parameters for connection string of the MongoDB server.
-    /// </summary>
-    internal ReferenceExpression ConnectionStringOptionsExpression
-    {
-        get
+        if (PasswordParameter is not null)
         {
-            if (PasswordParameter is null)
-            {
-                return ReferenceExpression.Create($"");
-            }
-            else
-            {
-                return ReferenceExpression.Create($"?authSource={DefaultAuthenticationDatabase}&authMechanism={DefaultAuthenticationMechanism}");
-            }
+            builder.Append($"{UserNameReference}:{PasswordParameter}@");
         }
+
+        builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.Host)}:{PrimaryEndpoint.Property(EndpointProperty.Port)}");
+
+        if (databaseName is not null)
+        {
+            builder.Append($"/{databaseName}");
+        }
+
+        if (PasswordParameter is not null)
+        {
+            builder.Append($"?authSource={DefaultAuthenticationDatabase}&authMechanism={DefaultAuthenticationMechanism}");
+        }
+
+        return builder.Build();
     }
 
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
