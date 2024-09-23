@@ -203,8 +203,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             }
 
             // Wait for the first render to complete so that the log viewer is available.
-            Logger.LogDebug("Ensuring log viewer is available.");
-            await _logViewerReadyTcs.Task;
+            if (!_logViewerReadyTcs.Task.IsCompletedSuccessfully)
+            {
+                Logger.LogDebug("Waiting for log viewer to be available.");
+                await _logViewerReadyTcs.Task;
+            }
 
             LogViewer.ClearLogs();
 
