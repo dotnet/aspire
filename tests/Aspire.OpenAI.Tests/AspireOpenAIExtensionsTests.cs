@@ -39,6 +39,7 @@ public class AspireOpenAIExtensionsTests
             host.Services.GetRequiredService<OpenAIClient>();
 
         Assert.NotNull(client);
+        Assert.IsType<OpenAIClient>(client);
     }
 
     [Theory]
