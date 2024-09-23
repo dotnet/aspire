@@ -770,4 +770,48 @@ public static class ResourceBuilderExtensions
 
         return builder;
     }
+
+    /// <summary>
+    /// Adds a <see cref="ResourceCommandAnnotation"/> to the resource annotations to add a resource command.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="type">The type of command. The type uniquely identifies the command.</param>
+    /// <param name="displayName">The display name visible in UI.</param>
+    /// <param name="executeCommand">
+    /// A callback that is executed when the command is executed. The callback is run inside the .NET Aspire host.
+    /// The callback result is used to indicate success or failure in the UI.
+    /// </param>
+    /// <param name="updateState">
+    /// <para>A callback that is used to update the command state. The callback is executed when the command's resource snapshot is updated.</para>
+    /// <para>If a callback isn't specified, the command is always enabled.</para>
+    /// </param>
+    /// <param name="iconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
+    /// <param name="iconVariant">The icon variant.</param>
+    /// <param name="isHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
+    /// <returns>The resource builder.</returns>
+    /// <remarks>
+    /// <para>The <c>WithCommand</c> method is used to add commands to the resource. Commands are displayed in the dashboard
+    /// and can be executed by a user using the dashboard UI.</para>
+    /// <para>When a command is executed, the <paramref name="executeCommand"/> callback is called and is run inside the .NET Aspire host.</para>
+    /// </remarks>
+    public static IResourceBuilder<T> WithCommand<T>(
+        this IResourceBuilder<T> builder,
+        string type,
+        string displayName,
+        Func<ExecuteCommandContext, Task<ExecuteCommandResult>> executeCommand,
+        Func<UpdateCommandStateContext, ResourceCommandState>? updateState = null,
+        string? iconName = null,
+        IconVariant? iconVariant = null,
+        bool isHighlighted = false) where T : IResource
+    {
+        // Replace existing annotation with the same name.
+        var existingAnnotation = builder.Resource.Annotations.OfType<ResourceCommandAnnotation>().SingleOrDefault(a => a.Type == type);
+        if (existingAnnotation != null)
+        {
+            builder.Resource.Annotations.Remove(existingAnnotation);
+        }
+
+        return builder.WithAnnotation(new ResourceCommandAnnotation(type, displayName, updateState ?? (c => ResourceCommandState.Enabled), executeCommand, iconName, iconVariant, isHighlighted));
+    }
 }

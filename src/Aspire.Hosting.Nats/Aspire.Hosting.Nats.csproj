@@ -14,10 +14,15 @@
 
   <ItemGroup>
     <Compile Include="$(SharedDir)VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
+    <Compile Include="$(ComponentsDir)Aspire.NATS.Net\NatsHealthCheck.cs" Link="NatsHealthCheck"></Compile>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NATS.Net" />
   </ItemGroup>
 
 </Project>

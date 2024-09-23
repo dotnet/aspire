@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Microsoft.Extensions.Hosting;
@@ -17,6 +18,7 @@ public class ResourceNotificationService
     // Resource state is keyed by the resource and the unique name of the resource. This could be the name of the resource, or a replica ID.
     private readonly ConcurrentDictionary<(IResource, string), ResourceNotificationState> _resourceNotificationStates = new();
     private readonly ILogger<ResourceNotificationService> _logger;
+    private readonly IServiceProvider _serviceProvider;
     private readonly CancellationToken _applicationStopping;
 
     private Action<ResourceEvent>? OnResourceUpdated { get; set; }
@@ -25,18 +27,21 @@ public class ResourceNotificationService
     /// Creates a new instance of <see cref="ResourceNotificationService"/>.
     /// </summary>
     /// <remarks>
-    /// Obsolete. Use the constructor that accepts an <see cref="ILogger{ResourceNotificationService}"/> and <see cref="IHostApplicationLifetime"/>.<br/>
+    /// Obsolete. Use the constructor that accepts an <see cref="ILogger{ResourceNotificationService}"/>, <see cref="IHostApplicationLifetime"/> and <see cref="IServiceProvider"/>.<br/>
     /// This constructor will be removed in the next major version of Aspire.
     /// </remarks>
     /// <param name="logger">The logger.</param>
+    /// <param name="hostApplicationLifetime">The host application lifetime.</param>
     [Obsolete($"""
-        {nameof(ResourceNotificationService)} now requires an {nameof(IHostApplicationLifetime)}.
-        Use the constructor that accepts an {nameof(ILogger)}<{nameof(ResourceNotificationService)}> and {nameof(IHostApplicationLifetime)}.
+        {nameof(ResourceNotificationService)} now requires an {nameof(IServiceProvider)}.
+        Use the constructor that accepts an {nameof(ILogger)}<{nameof(ResourceNotificationService)}>, {nameof(IHostApplicationLifetime)} and {nameof(IServiceProvider)}.
         This constructor will be removed in the next major version of Aspire.
         """)]
-    public ResourceNotificationService(ILogger<ResourceNotificationService> logger)
+    public ResourceNotificationService(ILogger<ResourceNotificationService> logger, IHostApplicationLifetime hostApplicationLifetime)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _serviceProvider = new NullServiceProvider();
+        _applicationStopping = hostApplicationLifetime?.ApplicationStopping ?? throw new ArgumentNullException(nameof(hostApplicationLifetime));
     }
 
     /// <summary>
@@ -44,10 +49,17 @@ public class ResourceNotificationService
     /// </summary>
     /// <param name="logger">The logger.</param>
     /// <param name="hostApplicationLifetime">The host application lifetime.</param>
-    public ResourceNotificationService(ILogger<ResourceNotificationService> logger, IHostApplicationLifetime hostApplicationLifetime)
+    /// <param name="serviceProvider">The service provider.</param>
+    public ResourceNotificationService(ILogger<ResourceNotificationService> logger, IHostApplicationLifetime hostApplicationLifetime, IServiceProvider serviceProvider)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _serviceProvider = serviceProvider;
         _applicationStopping = hostApplicationLifetime?.ApplicationStopping ?? throw new ArgumentNullException(nameof(hostApplicationLifetime));
+    }
+
+    private class NullServiceProvider : IServiceProvider
+    {
+        public object? GetService(Type serviceType) => null;
     }
 
     /// <summary>
@@ -197,6 +209,8 @@ public class ResourceNotificationService
 
             var newState = stateFactory(previousState);
 
+            newState = UpdateCommands(resource, newState);
+
             notificationState.LastSnapshot = newState;
 
             OnResourceUpdated?.Invoke(new ResourceEvent(resource, resourceId, newState));
@@ -228,8 +242,82 @@ public class ResourceNotificationService
                     newState.ExitCode, string.Join(", ", newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")), string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
                     string.Join(", ", newState.Properties.Select(p => $"{p.Name} = {p.Value}")));
             }
+        }
 
-            return Task.CompletedTask;
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Use command annotations to update resource snapshot.
+    /// </summary>
+    private CustomResourceSnapshot UpdateCommands(IResource resource, CustomResourceSnapshot previousState)
+    {
+        ImmutableArray<ResourceCommandSnapshot>.Builder? builder = null;
+
+        foreach (var annotation in resource.Annotations.OfType<ResourceCommandAnnotation>())
+        {
+            var existingCommand = FindByType(previousState.Commands, annotation.Type);
+
+            if (existingCommand == null)
+            {
+                if (builder == null)
+                {
+                    builder = ImmutableArray.CreateBuilder<ResourceCommandSnapshot>(previousState.Commands.Length);
+                    builder.AddRange(previousState.Commands);
+                }
+
+                // Command doesn't exist in snapshot. Create from annotation.
+                builder.Add(CreateCommandFromAnnotation(annotation, previousState, _serviceProvider));
+            }
+            else
+            {
+                // Command already exists in snapshot. Update its state based on annotation callback.
+                var newState = annotation.UpdateState(new UpdateCommandStateContext { ResourceSnapshot = previousState, ServiceProvider = _serviceProvider });
+
+                if (existingCommand.State != newState)
+                {
+                    if (builder == null)
+                    {
+                        builder = ImmutableArray.CreateBuilder<ResourceCommandSnapshot>(previousState.Commands.Length);
+                        builder.AddRange(previousState.Commands);
+                    }
+
+                    var newCommand = existingCommand with
+                    {
+                        State = newState
+                    };
+
+                    builder.Replace(existingCommand, newCommand);
+                }
+            }
+        }
+
+        // Commands are unchanged. Return unchanged state.
+        if (builder == null)
+        {
+            return previousState;
+        }
+
+        return previousState with { Commands = builder.ToImmutable() };
+
+        static ResourceCommandSnapshot? FindByType(ImmutableArray<ResourceCommandSnapshot> commands, string type)
+        {
+            for (var i = 0; i < commands.Length; i++)
+            {
+                if (commands[i].Type == type)
+                {
+                    return commands[i];
+                }
+            }
+
+            return null;
+        }
+
+        static ResourceCommandSnapshot CreateCommandFromAnnotation(ResourceCommandAnnotation annotation, CustomResourceSnapshot previousState, IServiceProvider serviceProvider)
+        {
+            var state = annotation.UpdateState(new UpdateCommandStateContext { ResourceSnapshot = previousState, ServiceProvider = serviceProvider });
+
+            return new ResourceCommandSnapshot(annotation.Type, state, annotation.DisplayName, annotation.IconName, annotation.IconVariant, annotation.IsHighlighted);
         }
     }
 

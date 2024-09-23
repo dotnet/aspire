@@ -56,6 +56,11 @@ public sealed record CustomResourceSnapshot
     /// The volumes that should show up in the dashboard for this resource.
     /// </summary>
     public ImmutableArray<VolumeSnapshot> Volumes { get; init; } = [];
+
+    /// <summary>
+    /// The commands available in the dashboard for this resource.
+    /// </summary>
+    public ImmutableArray<ResourceCommandSnapshot> Commands { get; init; } = [];
 }
 
 /// <summary>
@@ -104,6 +109,36 @@ public sealed record VolumeSnapshot(string? Source, string Target, string MountT
 /// <param name="Name">The name of the property.</param>
 /// <param name="Value">The value of the property.</param>
 public sealed record ResourcePropertySnapshot(string Name, object? Value);
+
+/// <summary>
+/// A snapshot of a resource command.
+/// </summary>
+/// <param name="Type">The type of command. The type uniquely identifies the command.</param>
+/// <param name="State">The state of the command.</param>
+/// <param name="DisplayName">The display name visible in UI for the command.</param>
+/// <param name="IconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
+/// <param name="IconVariant">The icon variant.</param>
+/// <param name="IsHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
+public sealed record ResourceCommandSnapshot(string Type, ResourceCommandState State, string DisplayName, string? IconName, IconVariant? IconVariant, bool IsHighlighted);
+
+/// <summary>
+/// The state of a resource command.
+/// </summary>
+public enum ResourceCommandState
+{
+    /// <summary>
+    /// Command is visible and enabled for use.
+    /// </summary>
+    Enabled,
+    /// <summary>
+    /// Command is visible and disabled for use.
+    /// </summary>
+    Disabled,
+    /// <summary>
+    /// Command is hidden.
+    /// </summary>
+    Hidden
+}
 
 /// <summary>
 /// The set of well known resource states.

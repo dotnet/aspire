@@ -11,7 +11,7 @@
 
 @inject IStringLocalizer<Dashboard.Resources.StructuredLogs> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
-@inject IStringLocalizer<Logs> LogsLoc
+@inject IStringLocalizer<StructuredFiltering> FilterLoc
 
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.StructuredLogs.StructuredLogsPageTitle)" Loc="@Loc" /></PageTitle>
 
@@ -56,28 +56,28 @@
                                 HandleSelectedLogLevelChangedAsync="@HandleSelectedLogLevelChangedAsync" />
             }
             <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-            <FluentLabel slot="end">@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsFilters)]</FluentLabel>
+            <FluentLabel slot="end">@FilterLoc[nameof(StructuredFiltering.Filters)]</FluentLabel>
             @if (ViewModel.Filters.Count == 0)
             {
-                <span slot="end">@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsNoFilters)]</span>
+                <span slot="end">@FilterLoc[nameof(StructuredFiltering.NoFilters)]</span>
             }
             else
             {
                 foreach (var filter in ViewModel.Filters)
                 {
-                    <FluentButton slot="end" Appearance="Appearance.Outline" OnClick="() => OpenFilterAsync(filter)">@filter.GetDisplayText(LogsLoc)</FluentButton>
+                    <FluentButton slot="end" Appearance="Appearance.Outline" OnClick="() => OpenFilterAsync(filter)">@filter.GetDisplayText(FilterLoc)</FluentButton>
                     <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
                 }
             }
 
             @if (ViewportInformation.IsDesktop)
             {
-                <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter)]" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
+                <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="@FilterLoc[nameof(StructuredFiltering.AddFilter)]" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
             }
             else
             {
-                <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter)]" OnClick="() => OpenFilterAsync(null)">
-                    <FluentIcon Class="align-text-bottom" Value="@(new Icons.Regular.Size16.Filter())" /> @Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter)]
+                <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="@FilterLoc[nameof(StructuredFiltering.AddFilter)]" OnClick="() => OpenFilterAsync(null)">
+                    <FluentIcon Class="align-text-bottom" Value="@(new Icons.Regular.Size16.Filter())" /> @Loc[nameof(StructuredFiltering.AddFilter)]
                 </FluentButton>
             }
         </ToolbarSection>
@@ -116,6 +116,7 @@
                                                 TGridItem="OtlpLogEntry"
                                                 GridTemplateColumns="@_manager.GetGridTemplateColumns()"
                                                 ShowHover="true"
+                                                ItemKey="@(r => r.InternalId)"
                                                 OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, buttonId: null)))"
                                                 Class="enable-row-click">
                                     <ChildContent>

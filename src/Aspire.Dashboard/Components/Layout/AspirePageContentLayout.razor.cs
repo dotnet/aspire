@@ -91,7 +91,11 @@ public partial class AspirePageContentLayout : ComponentBase
                 Modal = false,
                 PrimaryAction = null,
                 SecondaryAction = null,
-                OnDialogClosing = EventCallback.Factory.Create<DialogInstance>(this, InvokeListeners)
+                OnDialogClosing = EventCallback.Factory.Create<DialogInstance>(this, async () =>
+                {
+                    await InvokeListenersAsync();
+                    _toolbarPanel = null;
+                })
             });
     }
 
@@ -101,13 +105,13 @@ public partial class AspirePageContentLayout : ComponentBase
         {
             await _toolbarPanel.CloseAsync();
             // CloseAsync doesn't invoke OnDialogClosing, so we need to call InvokeListeners ourselves
-            await InvokeListeners();
+            await InvokeListenersAsync();
 
             _toolbarPanel = null;
         }
     }
 
-    private async Task InvokeListeners()
+    private async Task InvokeListenersAsync()
     {
         foreach (var dialogCloseListener in DialogCloseListeners.Values)
         {

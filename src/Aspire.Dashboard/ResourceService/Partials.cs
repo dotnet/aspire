@@ -5,6 +5,7 @@ using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Aspire.Dashboard.Model;
+using FluentUIIconVariant = Microsoft.FluentUI.AspNetCore.Components.IconVariant;
 
 namespace Aspire.ResourceService.Proto.V1;
 
@@ -31,6 +32,11 @@ partial class Resource
                 State = HasState ? State : null,
                 KnownState = HasState ? Enum.TryParse(State, out KnownResourceState knownState) ? knownState : null : null,
                 StateStyle = HasStateStyle ? StateStyle : null,
+                ReadinessState = HasHealthState ? HealthState switch
+                {
+                    HealthStateKind.Healthy => ReadinessState.Ready,
+                    _ => ReadinessState.NotReady,
+                } : ReadinessState.Unknown,
                 Commands = GetCommands()
             };
         }
@@ -66,8 +72,27 @@ partial class Resource
         ImmutableArray<CommandViewModel> GetCommands()
         {
             return Commands
-                .Select(c => new CommandViewModel(c.CommandType, c.DisplayName, c.HasDisplayDescription ? c.DisplayDescription : null, c.ConfirmationMessage, c.Parameter, c.IsHighlighted, c.HasIconName ? c.IconName : null))
+                .Select(c => new CommandViewModel(c.CommandType, MapState(c.State), c.DisplayName, c.DisplayDescription, c.ConfirmationMessage, c.Parameter, c.IsHighlighted, c.IconName, MapIconVariant(c.IconVariant)))
                 .ToImmutableArray();
+            static CommandViewModelState MapState(ResourceCommandState state)
+            {
+                return state switch
+                {
+                    ResourceCommandState.Enabled => CommandViewModelState.Enabled,
+                    ResourceCommandState.Disabled => CommandViewModelState.Disabled,
+                    ResourceCommandState.Hidden => CommandViewModelState.Hidden,
+                    _ => throw new InvalidOperationException("Unknown state: " + state),
+                };
+            }
+            static FluentUIIconVariant MapIconVariant(IconVariant iconVariant)
+            {
+                return iconVariant switch
+                {
+                    IconVariant.Regular => FluentUIIconVariant.Regular,
+                    IconVariant.Filled => FluentUIIconVariant.Filled,
+                    _ => throw new InvalidOperationException("Unknown icon variant: " + iconVariant),
+                };
+            }
         }
 
         T ValidateNotNull<T>(T value, [CallerArgumentExpression(nameof(value))] string? expression = null) where T : class

@@ -27,6 +27,7 @@ public sealed class MockDashboardClient : IDashboardClient
         State = "Running",
         Uid = Guid.NewGuid().ToString(),
         StateStyle = null,
+        ReadinessState = ReadinessState.Ready,
         Urls = [],
         Volumes = []
     };
@@ -36,7 +37,7 @@ public sealed class MockDashboardClient : IDashboardClient
     public string ApplicationName => "IntegrationTestApplication";
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     public Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken) => throw new NotImplementedException();
-    public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>>? SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
 
     public Task<ResourceViewModelSubscription> SubscribeResourcesAsync(CancellationToken cancellationToken)
     {

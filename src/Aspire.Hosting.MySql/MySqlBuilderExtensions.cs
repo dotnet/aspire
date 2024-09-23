@@ -16,7 +16,7 @@ public static class MySqlBuilderExtensions
     private const string PasswordEnvVarName = "MYSQL_ROOT_PASSWORD";
 
     /// <summary>
-    /// Adds a MySQL server resource to the application model. For local development a container is used. This version the package defaults to the 8.3.0 tag of the mysql container image
+    /// Adds a MySQL server resource to the application model. For local development a container is used. This version of the package defaults to the <inheritdoc cref="MySqlContainerImageTags.Tag"/> tag of the <inheritdoc cref="MySqlContainerImageTags.Image"/> container image
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -49,7 +49,7 @@ public static class MySqlBuilderExtensions
             {
                 if (!lookup.TryGetValue(databaseName.Key, out var databaseResource))
                 {
-                    throw new DistributedApplicationException($"Database resource '{databaseName}' under SQL Server resource '{resource.Name}' was not found in the model.");
+                    throw new DistributedApplicationException($"Database resource '{databaseName}' under MySql resource '{resource.Name}' was not found in the model.");
                 }
 
                 var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(databaseResource, @event.Services);
@@ -112,7 +112,7 @@ public static class MySqlBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a phpMyAdmin administration and development platform for MySql to the application model. This version the package defaults to the 5.2 tag of the phpmyadmin container image
+    /// Adds a phpMyAdmin administration and development platform for MySql to the application model. This version of the package defaults to the <inheritdoc cref="MySqlContainerImageTags.PhpMyAdminTag"/> tag of the <inheritdoc cref="MySqlContainerImageTags.PhpMyAdminImage"/> container image
     /// </summary>
     /// <param name="builder">The MySql server resource builder.</param>
     /// <param name="configureContainer">Callback to configure PhpMyAdmin container resource.</param>
