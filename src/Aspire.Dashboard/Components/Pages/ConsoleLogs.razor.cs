@@ -175,7 +175,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         }
 
         var selectedResourceName = PageViewModel.SelectedResource?.Name;
-        if (string.Equals(selectedResourceName, _consoleLogsSubscription?.Name, StringComparisons.ResourceName))
+        if (!string.Equals(selectedResourceName, _consoleLogsSubscription?.Name, StringComparisons.ResourceName))
         {
             Logger.LogDebug("New resource {ResourceName} selected.", selectedResourceName);
 
