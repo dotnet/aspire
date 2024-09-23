@@ -361,9 +361,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             return (Value: containerImage, ContentAfterValue: null, ValueToCopy: containerImage, Tooltip: containerImage);
         }
 
-        if (resource.Properties.TryGetValue(KnownProperties.Resource.Source, out var value) && value.HasStringValue)
+        if (resource.Properties.TryGetValue(KnownProperties.Resource.Source, out var property) && property.Value is { HasStringValue: true, StringValue: var value })
         {
-            return (Value: value.StringValue, ContentAfterValue: null, ValueToCopy: value.StringValue, Tooltip: value.StringValue);
+            return (Value: value, ContentAfterValue: null, ValueToCopy: value, Tooltip: value);
         }
 
         return null;

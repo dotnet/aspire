@@ -14,7 +14,7 @@ partial class Resource
     /// <summary>
     /// Converts this gRPC message object to a view model for use in the dashboard UI.
     /// </summary>
-    public ResourceViewModel ToViewModel()
+    public ResourceViewModel ToViewModel(BrowserTimeProvider timeProvider, IKnownPropertyLookup knownPropertyLookup)
     {
         try
         {
@@ -25,7 +25,21 @@ partial class Resource
                 DisplayName = ValidateNotNull(DisplayName),
                 Uid = ValidateNotNull(Uid),
                 CreationTimeStamp = ValidateNotNull(CreatedAt).ToDateTime(),
-                Properties = Properties.ToFrozenDictionary(property => ValidateNotNull(property.Name), property => ValidateNotNull(property.Value), StringComparers.ResourcePropertyName),
+                Properties = Properties.ToFrozenDictionary(
+                    comparer: StringComparers.ResourcePropertyName,
+                    keySelector: property => ValidateNotNull(property.Name),
+                    elementSelector: property =>
+                    {
+                        var (priority, knownProperty) = knownPropertyLookup.FindProperty(ResourceType, property.Name);
+
+                        return new ResourcePropertyViewModel(
+                            name: ValidateNotNull(property.Name),
+                            value: ValidateNotNull(property.Value),
+                            isValueSensitive: property.IsSensitive,
+                            knownProperty: knownProperty,
+                            priority: priority,
+                            timeProvider: timeProvider);
+                    }),
                 Environment = GetEnvironment(),
                 Urls = GetUrls(),
                 Volumes = GetVolumes(),

@@ -32,7 +32,7 @@ public static class ParameterResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">Distributed application builder</param>
     /// <param name="name">Name of parameter resource</param>
-    /// <param name="value">A string value to use for the paramater</param>
+    /// <param name="value">A string value to use for the parameter</param>
     /// <param name="publishValueAsDefault">Indicates whether the value should be published to the manifest. This is not meant for sensitive data.</param>
     /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
     /// <returns>Resource builder for the parameter.</returns>
@@ -140,13 +140,13 @@ public static class ParameterResourceBuilderExtensions
             State = KnownResourceStates.Hidden,
             Properties = [
                 new("parameter.secret", secret.ToString()),
-                new(CustomResourceKnownProperties.Source, configurationKey)
+                new(CustomResourceKnownProperties.Source, configurationKey) { IsSensitive = secret }
             ]
         };
 
         try
         {
-            state = state with { Properties = [.. state.Properties, new("Value", resource.Value)] };
+            state = state with { Properties = [.. state.Properties, new("Value", resource.Value) { IsSensitive = secret }] };
         }
         catch (DistributedApplicationException ex)
         {
