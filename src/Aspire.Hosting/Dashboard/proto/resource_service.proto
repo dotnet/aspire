@@ -43,12 +43,19 @@ message ResourceCommand {
     // Optional icon name. This name should be a valid FluentUI icon name.
     // https://aka.ms/fluentui-system-icons
     optional string icon_name = 6;
+    // Optional icon variant.
+    optional IconVariant icon_variant = 7;
     // Optional description of the command, to be shown in the UI.
     // Could be used as a tooltip. May be localized.
-    optional string display_description = 7;
+    optional string display_description = 8;
     // The state of the command. Controls whether the command is enabled, disabled,
     // or hidden in the UI.
-    ResourceCommandState state = 8;
+    ResourceCommandState state = 9;
+}
+
+enum IconVariant {
+    REGULAR = 0;
+    FILLED = 1;
 }
 
 // Represents a request to execute a command.

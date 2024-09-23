@@ -5,6 +5,7 @@ using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Aspire.Dashboard.Model;
+using FluentUIIconVariant = Microsoft.FluentUI.AspNetCore.Components.IconVariant;
 
 namespace Aspire.ResourceService.Proto.V1;
 
@@ -71,9 +72,9 @@ partial class Resource
         ImmutableArray<CommandViewModel> GetCommands()
         {
             return Commands
-                .Select(c => new CommandViewModel(c.CommandType, Map(c.State), c.DisplayName, c.HasDisplayDescription ? c.DisplayDescription : null, c.ConfirmationMessage, c.Parameter, c.IsHighlighted, c.HasIconName ? c.IconName : null))
+                .Select(c => new CommandViewModel(c.CommandType, MapState(c.State), c.DisplayName, c.DisplayDescription, c.ConfirmationMessage, c.Parameter, c.IsHighlighted, c.IconName, MapIconVariant(c.IconVariant)))
                 .ToImmutableArray();
-            static CommandViewModelState Map(ResourceCommandState state)
+            static CommandViewModelState MapState(ResourceCommandState state)
             {
                 return state switch
                 {
@@ -81,6 +82,15 @@ partial class Resource
                     ResourceCommandState.Disabled => CommandViewModelState.Disabled,
                     ResourceCommandState.Hidden => CommandViewModelState.Hidden,
                     _ => throw new InvalidOperationException("Unknown state: " + state),
+                };
+            }
+            static FluentUIIconVariant MapIconVariant(IconVariant iconVariant)
+            {
+                return iconVariant switch
+                {
+                    IconVariant.Regular => FluentUIIconVariant.Regular,
+                    IconVariant.Filled => FluentUIIconVariant.Filled,
+                    _ => throw new InvalidOperationException("Unknown icon variant: " + iconVariant),
                 };
             }
         }
