@@ -12,6 +12,20 @@ namespace Aspire.Hosting.Tests;
 public class WaitForTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
+    public void ResourceCannotWaitForItself()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resource = builder.AddResource(new CustomResource("test"));
+
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            resource.WaitFor(resource);
+        });
+
+        Assert.Equal("The 'test' resource cannot wait for itself.", ex.Message);
+    }
+
+    [Fact]
     [RequiresDocker]
     public async Task EnsureDependentResourceMovesIntoWaitingState()
     {
