@@ -6,12 +6,14 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -29,21 +31,21 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
     private readonly CancellationTokenSource _shutdownCts = new();
     private Task? _dashboardLogsTask;
 
-    public Task BeforeStartAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
+    public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
         Debug.Assert(executionContext.IsRunMode, "Dashboard resource should only be added in run mode");
 
-        if (model.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is { } dashboardResource)
+        if (appModel.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is { } dashboardResource)
         {
             ConfigureAspireDashboardResource(dashboardResource);
 
             // Make the dashboard first in the list so it starts as fast as possible.
-            model.Resources.Remove(dashboardResource);
-            model.Resources.Insert(0, dashboardResource);
+            appModel.Resources.Remove(dashboardResource);
+            appModel.Resources.Insert(0, dashboardResource);
         }
         else
         {
-            AddDashboardResource(model);
+            AddDashboardResource(appModel);
         }
 
         _dashboardLogsTask = WatchDashboardLogsAsync(_shutdownCts.Token);
@@ -108,6 +110,10 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
     private void ConfigureAspireDashboardResource(IResource dashboardResource)
     {
+        // The dashboard resource can be visible during development. We don't want people to be able to stop the dashboard from inside the dashboard.
+        // Exclude the lifecycle commands from the dashboard resource so they're not accidently clicked during development.
+        dashboardResource.Annotations.Add(new ExcludeLifecycleCommandsAnnotation());
+
         // Remove endpoint annotations because we are directly configuring
         // the dashboard app (it doesn't go through the proxy!).
         var endpointAnnotations = dashboardResource.Annotations.OfType<EndpointAnnotation>().ToList();
@@ -160,6 +166,41 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
             if (otlpHttpEndpointUrl != null)
             {
                 context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName] = otlpHttpEndpointUrl;
+
+                var model = context.ExecutionContext.ServiceProvider.GetRequiredService<DistributedApplicationModel>();
+                var allResourceEndpoints = model.Resources
+                    .Where(r => !string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName))
+                    .SelectMany(r => r.Annotations)
+                    .OfType<EndpointAnnotation>()
+                    .ToList();
+
+                var corsOrigins = new HashSet<string>(StringComparers.UrlHost);
+                foreach (var endpoint in allResourceEndpoints)
+                {
+                    if (endpoint.UriScheme is "http" or "https")
+                    {
+                        // Prefer allocated endpoint over EndpointAnnotation.Port.
+                        var origin = endpoint.AllocatedEndpoint?.UriString;
+                        var targetOrigin = (endpoint.TargetPort != null)
+                            ? $"{endpoint.UriScheme}://localhost:{endpoint.TargetPort}"
+                            : null;
+
+                        if (origin != null)
+                        {
+                            corsOrigins.Add(origin);
+                        }
+                        if (targetOrigin != null)
+                        {
+                            corsOrigins.Add(targetOrigin);
+                        }
+                    }
+                }
+
+                if (corsOrigins.Count > 0)
+                {
+                    context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpCorsAllowedOriginsKeyName.EnvVarName] = string.Join(',', corsOrigins);
+                    context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpCorsAllowedHeadersKeyName.EnvVarName] = "*";
+                }
             }
 
             // Configure frontend browser token
@@ -264,7 +305,13 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
                     try
                     {
-                        logMessage = JsonSerializer.Deserialize(logLine.Content, DashboardLogMessageContext.Default.DashboardLogMessage);
+                        var content = logLine.Content;
+                        if (TimestampParser.TryParseConsoleTimestamp(content, out var result))
+                        {
+                            content = result.Value.ModifiedText;
+                        }
+
+                        logMessage = JsonSerializer.Deserialize(content, DashboardLogMessageContext.Default.DashboardLogMessage);
                     }
                     catch (JsonException)
                     {
@@ -316,8 +363,16 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         },
         loggerFactory);
 
-        // TODO: We should log the state as well.
-        logger.Log(logMessage.LogLevel, logMessage.EventId, logMessage.Message, null, (s, _) => s);
+        if (logger.IsEnabled(logMessage.LogLevel))
+        {
+            // TODO: We should log the state as well.
+            logger.Log(
+                logMessage.LogLevel,
+                logMessage.EventId,
+                logMessage.Message,
+                null,
+                (s, _) => (logMessage.Exception is { } e) ? s + Environment.NewLine + e : s);
+        }
     }
 }
 
@@ -329,6 +384,7 @@ internal sealed class DashboardLogMessage
     public LogLevel LogLevel { get; set; }
     public string Category { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
+    public string? Exception { get; set; }
     public JsonObject? State { get; set; }
 }
 

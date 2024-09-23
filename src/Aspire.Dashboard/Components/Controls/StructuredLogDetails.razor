@@ -7,7 +7,7 @@
 <div class="structured-log-details-layout">
     <FluentToolbar Orientation="Orientation.Horizontal">
         <div>
-            @((MarkupString)string.Format(ControlsStrings.StructuredLogsDetailsResource, ViewModel.LogEntry.Application.ApplicationName))
+            @((MarkupString)string.Format(ControlsStrings.StructuredLogsDetailsResource, ViewModel.LogEntry.ApplicationView.Application.ApplicationName))
         </div>
         <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <div title="@FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, ViewModel.LogEntry.TimeStamp, MillisecondsDisplay.Full)">
@@ -30,10 +30,6 @@
                 <PropertyGrid TItem="LogEntryPropertyViewModel"
                               Items="@FilteredItems"
                               GridTemplateColumns="1fr 2fr"
-                              NameColumnValue="(vm) => vm.Name"
-                              ValueColumnValue="(vm) => vm.Value"
-                              NameSort="_nameSort"
-                              ValueSort="_valueSort"
                               HighlightText="@_filter" />
             </FluentAccordionItem>
             <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.StructuredLogsDetailsContextHeader)]" Expanded="true">
@@ -45,10 +41,6 @@
                 <PropertyGrid TItem="LogEntryPropertyViewModel"
                               Items="@FilteredContextItems"
                               GridTemplateColumns="1fr 2fr"
-                              NameColumnValue="(vm) => vm.Name"
-                              ValueColumnValue="(vm) => vm.Value"
-                              NameSort="_nameSort"
-                              ValueSort="_valueSort"
                               HighlightText="@_filter" />
             </FluentAccordionItem>
             @if (_exceptionAttributes.Count > 0)
@@ -62,10 +54,6 @@
                     <PropertyGrid TItem="LogEntryPropertyViewModel"
                                   Items="@FilteredExceptionItems"
                                   GridTemplateColumns="1fr 2fr"
-                                  NameColumnValue="(vm) => vm.Name"
-                                  ValueColumnValue="(vm) => vm.Value"
-                                  NameSort="_nameSort"
-                                  ValueSort="_valueSort"
                                   HighlightText="@_filter" />
                 </FluentAccordionItem>
             }
@@ -78,10 +66,6 @@
                 <PropertyGrid TItem="LogEntryPropertyViewModel"
                               Items="@FilteredResourceItems"
                               GridTemplateColumns="1fr 2fr"
-                              NameColumnValue="(vm) => vm.Name"
-                              ValueColumnValue="(vm) => vm.Value"
-                              NameSort="_nameSort"
-                              ValueSort="_valueSort"
                               HighlightText="@_filter" />
             </FluentAccordionItem>
         </FluentAccordion>

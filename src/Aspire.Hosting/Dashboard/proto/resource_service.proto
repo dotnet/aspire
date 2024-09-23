@@ -38,11 +38,29 @@ message ResourceCommand {
     // Clients must return any value provided by the server when invoking
     // the command.
     optional google.protobuf.Value parameter = 4;
+    // A flag that indicates whether the command is highlighted in the UI.
+    bool is_highlighted = 5;
+    // Optional icon name. This name should be a valid FluentUI icon name.
+    // https://aka.ms/fluentui-system-icons
+    optional string icon_name = 6;
+    // Optional icon variant.
+    optional IconVariant icon_variant = 7;
+    // Optional description of the command, to be shown in the UI.
+    // Could be used as a tooltip. May be localized.
+    optional string display_description = 8;
+    // The state of the command. Controls whether the command is enabled, disabled,
+    // or hidden in the UI.
+    ResourceCommandState state = 9;
+}
+
+enum IconVariant {
+    REGULAR = 0;
+    FILLED = 1;
 }
 
 // Represents a request to execute a command.
 // Sent by the dashboard to DashboardService.ExecuteResourceCommand.
-// Constructed with data from a corresponding 
+// Constructed with data from a corresponding ResourceCommand.
 message ResourceCommandRequest {
     // Unique identifier for the command.
     // Copied from the ResourceCommand that this request object is initialized from.
@@ -56,6 +74,12 @@ message ResourceCommandRequest {
     // An optional parameter to accompany the command.
     // Copied from the ResourceCommand that this request object is initialized from.
     optional google.protobuf.Value parameter = 4;
+}
+
+enum ResourceCommandState {
+    ENABLED = 0;
+    DISABLED = 1;
+    HIDDEN = 2;
 }
 
 enum ResourceCommandResponseKind {
@@ -99,17 +123,6 @@ message EnvironmentVariable {
     bool is_from_spec = 3;
 }
 
-message Endpoint {
-    string endpoint_url = 1;
-    string proxy_url = 2;
-}
-
-message Service {
-    string name = 1;
-    optional string allocated_address = 2;
-    optional int32 allocated_port = 3;
-}
-
 message Url {
     // The name of the url
     string name = 1;
@@ -120,18 +133,35 @@ message Url {
     bool is_internal = 3;
 }
 
+// Data about a volume mounted to a container.
+message Volume {
+    // The source of the volume, such as "TestShop.AppHost-postgres-data".
+    string source = 1;
+    // The target path in the container, such as "/var/lib/postgresql/data".
+    string target = 2;
+    // The type of the mount, such as "bind" or "volume".
+    string mount_type = 3;
+    // Whether the volume is mounted as read-only or not.
+    bool is_read_only = 4;
+}
+
 message ResourceProperty {
     // Name of the data item, e.g. "container.id", "executable.pid", "project.path", ...
     string name = 1;
-    // TODO move display_name to reference data, sent once when the connection starts
+    // TODO move display_name to reference data, sent once when the connection starts (https://github.com/dotnet/aspire/issues/1644)
     // Optional display name, may be localized
     optional string display_name = 2;
     // The data value. May be null, a number, a string, a boolean, a dictionary of values (Struct), or a list of values (ValueList).
     google.protobuf.Value value = 3;
+    // TODO move is_sensitive to reference data, sent once when the connection starts (https://github.com/dotnet/aspire/issues/1644)
+    // Whether the value is sensitive and should be masked in the UI by default.
+    // Defaults to false. When true, the user must explicitly unmask the value to view it.
+    optional bool is_sensitive = 4;
 }
 
 // Models the full state of an resource (container, executable, project, etc) at a particular point in time.
 message Resource {
+    reserved 8, 9, 10;
     string name = 1;
     string resource_type = 2;
     string display_name = 3;
@@ -139,11 +169,6 @@ message Resource {
     optional string state = 5;
     optional google.protobuf.Timestamp created_at = 6;
     repeated EnvironmentVariable environment = 7;
-
-    // Deprecated and replaced with urls
-    optional int32 expected_endpoints_count = 8 [deprecated = true];
-    repeated Endpoint endpoints = 9 [deprecated = true];
-    repeated Service services = 10 [deprecated = true];
 
     repeated ResourceCommand commands = 11;
 
@@ -162,6 +187,19 @@ message Resource {
     // Supported styles are "success", "info", "warning" and "error". Any other style
     // will be treated as "unknown".
     optional string state_style = 14;
+
+    // The set of volumes mounted to the resource. Only applies to containers.
+    repeated Volume volumes = 15;
+
+    // The aggregate health state of the resource
+    optional HealthStateKind HealthState = 16;
+}
+
+enum HealthStateKind {
+    UNKNOWN = 0;
+    HEALTHY = 1;
+    UNHEALTHY = 2;
+    DEGRADED = 3;
 }
 
 ////////////////////////////////////////////

@@ -7,20 +7,23 @@ var kafka = builder.AddKafka("kafka")
     .WithKafkaUI(kafkaUi => kafkaUi.WithHostPort(8080));
 
 builder.AddProject<Projects.Producer>("producer")
-    .WithReference(kafka)
+    .WithReference(kafka).WaitFor(kafka)
     .WithArgs(kafka.Resource.Name);
 
 builder.AddProject<Projects.Consumer>("consumer")
-    .WithReference(kafka)
+    .WithReference(kafka).WaitFor(kafka)
     .WithArgs(kafka.Resource.Name);
 
 builder.AddKafka("kafka2").WithKafkaUI();
 
+#if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code
-// to test end developer dashboard launch experience. Refer to Directory.Build.props
-// for the path to the dashboard binary (defaults to the Aspire.Dashboard bin output
-// in the artifacts dir).
+// or build with `/p:SkipDashboardReference=true`, to test end developer
+// dashboard launch experience, Refer to Directory.Build.props for the path to
+// the dashboard binary (defaults to the Aspire.Dashboard bin output in the
+// artifacts dir).
 builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
+#endif
 
 builder.Build().Run();

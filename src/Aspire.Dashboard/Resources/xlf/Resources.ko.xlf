@@ -2,6 +2,16 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ko" original="../Resources.resx">
     <body>
+      <trans-unit id="ResourceActionConsoleLogsText">
+        <source>Console logs</source>
+        <target state="new">Console logs</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceActionViewDetailsText">
+        <source>View details</source>
+        <target state="new">View details</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourceCommandFailed">
         <source>"{0}" command failed</source>
         <target state="translated">"{0}" 명령이 실패했습니다.</target>
@@ -27,14 +37,14 @@
         <target state="translated">프록시 URL</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesCommandsColumnHeader">
-        <source>Commands</source>
-        <target state="translated">명령</target>
+      <trans-unit id="ResourceDetailsViewConsoleLogs">
+        <source>View console logs</source>
+        <target state="new">View console logs</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesDetailsColumnHeader">
-        <source>Details</source>
-        <target state="translated">세부 정보</target>
+      <trans-unit id="ResourcesActionsColumnHeader">
+        <source>Actions</source>
+        <target state="new">Actions</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerArgumentsProperty">
@@ -92,6 +102,11 @@
         <target state="translated">종료 코드</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsHealthStateProperty">
+        <source>Health State</source>
+        <target state="new">Health State</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
         <source>Project path</source>
         <target state="translated">프로젝트 경로</target>
@@ -115,11 +130,6 @@
       <trans-unit id="ResourcesEnvironmentColumnHeader">
         <source>Environment</source>
         <target state="translated">환경</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ResourcesLogsColumnHeader">
-        <source>Logs</source>
-        <target state="translated">로그</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesSourceColumnHeader">

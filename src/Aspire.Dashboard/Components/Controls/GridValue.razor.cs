@@ -4,13 +4,20 @@
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
 
-public partial class GridValue : IDisposable
+public partial class GridValue
 {
     [Parameter, EditorRequired]
     public string? Value { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string ValueDescription { get; set; }
+
+    [Parameter]
+    public string? TextVisualizerTitle { get; set; }
 
     /// <summary>
     /// Content to include, if any, after the Value string
@@ -54,15 +61,26 @@ public partial class GridValue : IDisposable
     [Parameter]
     public string? ToolTip { get; set; }
 
-    [Parameter] public string PreCopyToolTip { get; set; } = null!;
+    [Parameter]
+    public string PreCopyToolTip { get; set; } = null!;
 
-    [Parameter] public string PostCopyToolTip { get; set; } = null!;
+    [Parameter]
+    public string PostCopyToolTip { get; set; } = null!;
+
+    [Inject]
+    public required IDialogService DialogService { get; init; }
+
+    [Inject]
+    public required IJSRuntime JS { get; init; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
 
     private readonly Icon _maskIcon = new Icons.Regular.Size16.EyeOff();
     private readonly Icon _unmaskIcon = new Icons.Regular.Size16.Eye();
-    private readonly string _anchorId = $"copy-{Guid.NewGuid():N}";
-
-    private FluentTooltip? _tooltipComponent;
+    private readonly string _copyId = $"copy-{Guid.NewGuid():N}";
+    private readonly string _menuAnchorId = $"menu-{Guid.NewGuid():N}";
+    private bool _isMenuOpen;
 
     protected override void OnInitialized()
     {
@@ -70,10 +88,14 @@ public partial class GridValue : IDisposable
         PostCopyToolTip = Loc[nameof(ControlsStrings.GridValueCopied)];
     }
 
-    private string GetContainerClass() => EnableMasking ? "container masking-enabled wrap" : "container wrap";
+    private string GetContainerClass() => EnableMasking ? "container masking-enabled" : "container";
 
     private async Task ToggleMaskStateAsync()
-        => await IsMaskedChanged.InvokeAsync(!IsMasked);
+    {
+        IsMasked = !IsMasked;
+
+        await IsMaskedChanged.InvokeAsync(IsMasked);
+    }
 
     private string TrimLength(string? text)
     {
@@ -85,8 +107,8 @@ public partial class GridValue : IDisposable
         return text ?? "";
     }
 
-    public void Dispose()
+    private void ToggleMenuOpen()
     {
-        _tooltipComponent?.Dispose();
+        _isMenuOpen = !_isMenuOpen;
     }
 }

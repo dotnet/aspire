@@ -1,6 +1,6 @@
 # Aspire.Azure.Messaging.EventHubs
 
-Offers options for registering an [EventHubProducerClient](https://learn.microsoft.com/en-us/dotnet/api/azure.messaging.eventhubs.producer.eventhubproducerclient), an [EventHubConsumerClient](https://learn.microsoft.com/dotnet/api/azure.messaging.eventhubs.consumer.eventhubconsumerclient), an [EventProcessorClient](https://learn.microsoft.com/dotnet/api/azure.messaging.eventhubs.eventprocessorclient) or a [PartitionReceiver](https://learn.microsoft.com/en-us/dotnet/api/azure.messaging.eventhubs.primitives.partitionreceiver) in the DI container for connecting to Azure Event Hubs.
+Offers options for registering an [EventHubProducerClient](https://learn.microsoft.com/en-us/dotnet/api/azure.messaging.eventhubs.producer.eventhubproducerclient), an [EventHubConsumerClient](https://learn.microsoft.com/dotnet/api/azure.messaging.eventhubs.consumer.eventhubconsumerclient), an [EventHubBufferedProducerClient](https://learn.microsoft.com/dotnet/api/azure.messaging.eventhubs.producer.eventhubbufferedproducerclient), an [EventProcessorClient](https://learn.microsoft.com/dotnet/api/azure.messaging.eventhubs.eventprocessorclient) or a [PartitionReceiver](https://learn.microsoft.com/en-us/dotnet/api/azure.messaging.eventhubs.primitives.partitionreceiver) in the DI container for connecting to Azure Event Hubs.
 
 ## Getting started
 
@@ -21,12 +21,13 @@ dotnet add package Aspire.Azure.Messaging.EventHubs
 
 The following clients are supported by the library, along with their corresponding Options and Settings classes:
 
-| Client Type             | Options Class                 | Settings Class                 |
-|------------------------------------------|-------------------------------|-------------------------------|
-| EventHubProducerClient | EventHubProducerClientOptions | AzureMessagingEventHubsProducerSettings |
-| EventHubConsumerClient | EventHubConsumerClientOptions | AzureMessagingEventHubsConsumerSettings |
-| EventProcessorClient   | EventProcessorClientOptions   | AzureMessagingEventHubsProcessorSettings |
-| PartitionReceiver      | PartitionReceiverOptions      | AzureMessagingEventHubsPartitionReceiverSettings |
+| Client Type                    | Options Class                         | Settings Class                                   |
+|--------------------------------|---------------------------------------|--------------------------------------------------|
+| EventHubProducerClient         | EventHubProducerClientOptions         | AzureMessagingEventHubsProducerSettings          |
+| EventHubConsumerClient         | EventHubConsumerClientOptions         | AzureMessagingEventHubsConsumerSettings          |
+| EventHubBufferedProducerClient | EventHubBufferedProducerClientOptions | AzureMessagingEventHubsBufferedProducerSettings  |
+| EventProcessorClient           | EventProcessorClientOptions           | AzureMessagingEventHubsProcessorSettings         |
+| PartitionReceiver              | PartitionReceiverOptions              | AzureMessagingEventHubsPartitionReceiverSettings |
 
 ## Usage example
 

@@ -49,7 +49,7 @@ public class WorkloadTestsBase
         testOutput.WriteLine($"Waiting for resources to appear on the dashboard");
         await Task.Delay(500);
 
-        Dictionary<string, ResourceRow> expectedRowsTable = expectedResources.ToDictionary(r => r.Name);
+        var expectedRowsTable = expectedResources.ToDictionary(r => r.Name);
         HashSet<string> foundNames = [];
         List<ResourceRow> foundRows = [];
 
@@ -61,7 +61,7 @@ public class WorkloadTestsBase
             await Task.Delay(500);
 
             // _testOutput.WriteLine($"Checking for rows again");
-            ILocator rowsLocator = dashboardPage.Locator("//fluent-data-grid-row[@class='resource-row']");
+            var rowsLocator = dashboardPage.Locator("//fluent-data-grid-row[@class='hover resource-row']");
             var allRows = await rowsLocator.AllAsync();
             // _testOutput.WriteLine($"found rows#: {allRows.Count}");
             if (allRows.Count == 0)
@@ -70,14 +70,13 @@ public class WorkloadTestsBase
                 continue;
             }
 
-            foreach (ILocator rowLoc in allRows)
+            foreach (var rowLoc in allRows)
             {
                 // get the cells
-                IReadOnlyList<ILocator> cellLocs = await rowLoc.Locator("//fluent-data-grid-cell[@role='gridcell']").AllAsync();
-                Assert.Equal(8, cellLocs.Count);
+                var cellLocs = await rowLoc.Locator("//fluent-data-grid-cell[@role='gridcell']").AllAsync();
 
                 // is the resource name expected?
-                string resourceName = await cellLocs[1].InnerTextAsync();
+                var resourceName = await cellLocs[1].InnerTextAsync();
                 if (!expectedRowsTable.TryGetValue(resourceName, out var expectedRow))
                 {
                     Assert.Fail($"Row with unknown name found: {resourceName}");
@@ -87,11 +86,9 @@ public class WorkloadTestsBase
                     continue;
                 }
 
-                string resourceNameInCell = await cellLocs[1].InnerTextAsync().ConfigureAwait(false);
-                resourceNameInCell.Trim();
-                AssertEqual(expectedRow.Name, resourceNameInCell, $"Name for {resourceName}");
+                AssertEqual(expectedRow.Name, resourceName, $"Name for {resourceName}");
 
-                string actualState = await cellLocs[2].InnerTextAsync().ConfigureAwait(false);
+                var actualState = await cellLocs[2].InnerTextAsync().ConfigureAwait(false);
                 actualState = actualState.Trim();
                 if (expectedRow.State != actualState && actualState != "Finished" && !actualState.Contains("failed", StringComparison.OrdinalIgnoreCase))
                 {
@@ -102,7 +99,7 @@ public class WorkloadTestsBase
 
                 // Match endpoints
 
-                int matchingEndpoints = 0;
+                var matchingEndpoints = 0;
                 var expectedEndpoints = expectedRow.Endpoints;
 
                 var endpointsFound =
@@ -110,9 +107,6 @@ public class WorkloadTestsBase
                         .Select(async e => await e.InnerTextAsync())
                         .Select(t => t.Result.Trim(','))
                         .ToList();
-
-                var firstEndpoint = await rowLoc.Locator("//div[@class='endpoint-first']").InnerTextAsync();
-                endpointsFound.Insert(0, firstEndpoint.Trim().Trim(','));
 
                 if (expectedEndpoints.Length != endpointsFound.Count)
                 {

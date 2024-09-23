@@ -41,13 +41,17 @@ public static class AzureAppConfigurationExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var store = new AppConfigurationStore(construct, name: name, skuName: "standard");
-            store.AddOutput("appConfigEndpoint", x => x.Endpoint);
-            var appConfigurationDataOwnerRoleAssignemnt = store.AssignRole(RoleDefinition.AppConfigurationDataOwner);
-            appConfigurationDataOwnerRoleAssignemnt.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
-            appConfigurationDataOwnerRoleAssignemnt.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);
+            var store = new AppConfigurationStore(name)
+            {
+                SkuName = "standard",
+                DisableLocalAuth = true,
+                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+            };
+            construct.Add(store);
 
-            store.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+            construct.Add(new BicepOutput("appConfigEndpoint", typeof(string)) { Value = store.Endpoint });
+
+            construct.Add(store.AssignRole(AppConfigurationBuiltInRole.AppConfigurationDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             var resource = (AzureAppConfigurationResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);

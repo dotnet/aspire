@@ -3,6 +3,7 @@
 
 using System.Net.Http.Json;
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.Tests.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -43,11 +44,11 @@ public class TestingFactoryTests(DistributedApplicationFixture<Projects.TestingA
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4650", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task HttpClientGetTest()
     {
-        // Wait for resource to start.
-        var rns = _app.Services.GetRequiredService<ResourceNotificationService>();
-        await rns.WaitForResourceAsync("mywebapp1").WaitAsync(TimeSpan.FromSeconds(60));
+        // Wait for the application to be ready
+        await _app.WaitForTextAsync("Application started.", "mywebapp1").WaitAsync(TimeSpan.FromMinutes(1));
 
         var httpClient = _app.CreateHttpClientWithResilience("mywebapp1");
+
         var result1 = await httpClient.GetFromJsonAsync<WeatherForecast[]>("/weatherforecast");
         Assert.NotNull(result1);
         Assert.True(result1.Length > 0);

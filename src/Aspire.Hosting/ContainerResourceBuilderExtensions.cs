@@ -221,6 +221,26 @@ public static class ContainerResourceBuilderExtensions
         return builder.WithAnnotation(annotation);
     }
 
+    /// <summary>
+    /// Sets the lifetime behavior of the container resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">Builder for the container resource.</param>
+    /// <param name="lifetime">The lifetime behavior of the container resource (defaults behavior is <see cref="ContainerLifetime.Default"/>)</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <example>
+    /// Marking a container resource to have a <see cref="ContainerLifetime.Persistent"/> lifetime.
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// builder.AddContainer("mycontainer", "myimage")
+    ///        .WithContainerLifetime(ContainerLifetimeType.Persistent);
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<T> WithLifetime<T>(this IResourceBuilder<T> builder, ContainerLifetime lifetime) where T : ContainerResource
+    {
+        return builder.WithAnnotation(new ContainerLifetimeAnnotation { Lifetime = lifetime }, ResourceAnnotationMutationBehavior.Replace);
+    }
+
     private static IResourceBuilder<T> ThrowResourceIsNotContainer<T>(IResourceBuilder<T> builder) where T : ContainerResource
     {
         throw new InvalidOperationException($"The resource '{builder.Resource.Name}' does not have a container image specified. Use WithImage to specify the container image and tag.");
@@ -335,9 +355,27 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Overrides the default container name for this resource. By default Aspire generates a unique container name based on the
+    /// resource name and a random postfix (or a postfix based on a hash of the AppHost project path for persistent container resources).
+    /// This method allows you to override that behavior with a custom name, but could lead to naming conflicts if the specified name is not unique.
+    /// </summary>
+    /// <remarks>
+    /// Combining this with <see cref="ContainerLifetime.Persistent"/> will allow Aspire to re-use an existing container that was not
+    /// created by an Aspire AppHost.
+    /// </remarks>
+    /// <typeparam name="T">The type of container resource.</typeparam>
+    /// <param name="builder">The resource builder for the container resource.</param>
+    /// <param name="name">The desired container name. Must be a valid container name or your runtime will report an error.</param>
+    /// <returns>The resource bulder for the container resource.</returns>
+    public static IResourceBuilder<T> WithContainerName<T>(this IResourceBuilder<T> builder, string name) where T : ContainerResource
+    {
+        return builder.WithAnnotation(new ContainerNameAnnotation { Name = name }, ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
     /// Adds a build argument when the container is build from a Dockerfile.
     /// </summary>
-    /// <typeparam name="T">The type of container resoruce.</typeparam>
+    /// <typeparam name="T">The type of container resource.</typeparam>
     /// <param name="builder">The resource builder for the container resource.</param>
     /// <param name="name">The name of the build argument.</param>
     /// <param name="value">The value of the build argument.</param>
@@ -460,51 +498,6 @@ public static class ContainerResourceBuilderExtensions
         }
 
         annotation.BuildSecrets[name] = value.Resource;
-
-        return builder;
-    }
-
-    /// <summary>
-    /// Adds a secret build argument when the container is built from a Dockerfile.
-    /// </summary>
-    /// <typeparam name="T">The type of container resoruce.</typeparam>
-    /// <param name="builder">The resource builder for the container resource.</param>
-    /// <param name="name">The name of the secret build argument.</param>
-    /// <param name="filePath">The resource builder for a parameter resource.</param>
-    /// <returns>The resource builder for the container resource.</returns>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown when <see cref="ContainerResourceBuilderExtensions.WithBuildSecret{T}(IResourceBuilder{T}, string, FileInfo)"/> is
-    /// called before <see cref="ContainerResourceBuilderExtensions.WithDockerfile{T}(IResourceBuilder{T}, string, string?, string?)"/>.
-    /// </exception>
-    /// <remarks>
-    /// <para>
-    /// The <see cref="ContainerResourceBuilderExtensions.WithBuildSecret{T}(IResourceBuilder{T}, string, FileInfo)"/> extension method results in a
-    /// <c>--secret</c> argument being appended to the <c>docker build</c> or <c>podman build</c> command. This overload allows for specifying a secret
-    /// file to be mapped into the environment. The file must be present on the host machine and will be exposed to the container during the build process.
-    /// </para>
-    /// </remarks>
-    /// <example>
-    /// Adding a build secret based on a file.
-    /// <code language="csharp">
-    /// var builder = DistributedApplication.CreateBuilder(args);
-    /// builder.AddContainer("mycontainer", "myimage")
-    ///        .WithDockerfile("../mycontainer")
-    ///        .WithBuildSecret("NPMRC", new FileInfo(".npmrc"));
-    /// </code>
-    /// </example>
-    public static IResourceBuilder<T> WithBuildSecret<T>(this IResourceBuilder<T> builder, string name, FileInfo filePath) where T : ContainerResource
-    {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        ArgumentNullException.ThrowIfNull(filePath);
-
-        var annotation = builder.Resource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault();
-
-        if (annotation is null)
-        {
-            throw new InvalidOperationException("The resource does not have a Dockerfile build annotation. Call WithDockerfile before calling WithSecretBuildArg.");
-        }
-
-        annotation.BuildSecrets[name] = filePath;
 
         return builder;
     }

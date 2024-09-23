@@ -12,7 +12,8 @@ namespace Aspire.Hosting.Azure;
 /// <param name="storage">The <see cref="AzureStorageResource"/> that the resource is stored in.</param>
 public class AzureBlobStorageResource(string name, AzureStorageResource storage) : Resource(name),
     IResourceWithConnectionString,
-    IResourceWithParent<AzureStorageResource>
+    IResourceWithParent<AzureStorageResource>,
+    IResourceWithAzureFunctionsConfig
 {
     /// <summary>
     /// Gets the parent AzureStorageResource of this AzureBlobStorageResource.
@@ -24,4 +25,18 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
        Parent.GetBlobConnectionString();
+
+    void IResourceWithAzureFunctionsConfig.ApplyAzureFunctionsConfiguration(IDictionary<string, object> target, string connectionName)
+    {
+        if (Parent.IsEmulator)
+        {
+            target[connectionName] = Parent.GetEmulatorConnectionString();
+        }
+        else
+        {
+            // Blob and Queue services are required to make blob triggers work.
+            target[$"{connectionName}__blobServiceUri"] = Parent.BlobEndpoint;
+            target[$"{connectionName}__queueServiceUri"] = Parent.QueueEndpoint;
+        }
+    }
 }

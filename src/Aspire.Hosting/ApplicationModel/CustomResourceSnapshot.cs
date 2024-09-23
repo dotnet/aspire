@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using Aspire.Hosting.Dcp.Model;
+using HealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -36,6 +38,11 @@ public sealed record CustomResourceSnapshot
     public int? ExitCode { get; init; }
 
     /// <summary>
+    /// The health status of the resource.
+    /// </summary>
+    public HealthStatus? HealthStatus { get; init; }
+
+    /// <summary>
     /// The environment variables that should show up in the dashboard for this resource.
     /// </summary>
     public ImmutableArray<EnvironmentVariableSnapshot> EnvironmentVariables { get; init; } = [];
@@ -44,6 +51,16 @@ public sealed record CustomResourceSnapshot
     /// The URLs that should show up in the dashboard for this resource.
     /// </summary>
     public ImmutableArray<UrlSnapshot> Urls { get; init; } = [];
+
+    /// <summary>
+    /// The volumes that should show up in the dashboard for this resource.
+    /// </summary>
+    public ImmutableArray<VolumeSnapshot> Volumes { get; init; } = [];
+
+    /// <summary>
+    /// The commands available in the dashboard for this resource.
+    /// </summary>
+    public ImmutableArray<ResourceCommandSnapshot> Commands { get; init; } = [];
 }
 
 /// <summary>
@@ -78,11 +95,66 @@ public sealed record EnvironmentVariableSnapshot(string Name, string? Value, boo
 public sealed record UrlSnapshot(string Name, string Url, bool IsInternal);
 
 /// <summary>
+/// A snapshot of a volume, mounted to a container.
+/// </summary>
+/// <param name="Source">The name of the volume. Can be <c>null</c> if the mount is an anonymous volume.</param>
+/// <param name="Target">The target of the mount.</param>
+/// <param name="MountType">Gets the mount type, such as <see cref="VolumeMountType.Bind"/> or <see cref="VolumeMountType.Volume"/></param>
+/// <param name="IsReadOnly">Whether the volume mount is read-only or not.</param>
+public sealed record VolumeSnapshot(string? Source, string Target, string MountType, bool IsReadOnly);
+
+/// <summary>
 /// A snapshot of the resource property.
 /// </summary>
 /// <param name="Name">The name of the property.</param>
 /// <param name="Value">The value of the property.</param>
-public sealed record ResourcePropertySnapshot(string Name, object? Value);
+public sealed record ResourcePropertySnapshot(string Name, object? Value)
+{
+    /// <summary>
+    /// Whether this property is considered sensitive or not.
+    /// </summary>
+    /// <remarks>
+    /// Sensitive properties are masked when displayed in UI and require an explicit user action to reveal.
+    /// </remarks>
+    public bool IsSensitive { get; init; }
+
+    internal void Deconstruct(out string name, out object? value, out bool isSensitive)
+    {
+        name = Name;
+        value = Value;
+        isSensitive = IsSensitive;
+    }
+}
+
+/// <summary>
+/// A snapshot of a resource command.
+/// </summary>
+/// <param name="Type">The type of command. The type uniquely identifies the command.</param>
+/// <param name="State">The state of the command.</param>
+/// <param name="DisplayName">The display name visible in UI for the command.</param>
+/// <param name="IconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
+/// <param name="IconVariant">The icon variant.</param>
+/// <param name="IsHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
+public sealed record ResourceCommandSnapshot(string Type, ResourceCommandState State, string DisplayName, string? IconName, IconVariant? IconVariant, bool IsHighlighted);
+
+/// <summary>
+/// The state of a resource command.
+/// </summary>
+public enum ResourceCommandState
+{
+    /// <summary>
+    /// Command is visible and enabled for use.
+    /// </summary>
+    Enabled,
+    /// <summary>
+    /// Command is visible and disabled for use.
+    /// </summary>
+    Disabled,
+    /// <summary>
+    /// Command is hidden.
+    /// </summary>
+    Hidden
+}
 
 /// <summary>
 /// The set of well known resource states.
@@ -100,7 +172,7 @@ public static class KnownResourceStateStyles
     public static readonly string Error = "error";
 
     /// <summary>
-    /// The info state. Useful for infomational messages.
+    /// The info state. Useful for informational messages.
     /// </summary>
     public static readonly string Info = "info";
 
@@ -131,7 +203,7 @@ public static class KnownResourceStates
     public static readonly string Running = nameof(Running);
 
     /// <summary>
-    /// The finished state. Useful for showing the resource has failed to start successully.
+    /// The finished state. Useful for showing the resource has failed to start successfully.
     /// </summary>
     public static readonly string FailedToStart = nameof(FailedToStart);
 
@@ -149,4 +221,14 @@ public static class KnownResourceStates
     /// The finished state. Useful for showing the resource has finished.
     /// </summary>
     public static readonly string Finished = nameof(Finished);
+
+    /// <summary>
+    /// The waiting state. Useful for showing the resource is waiting for a dependency.
+    /// </summary>
+    public static readonly string Waiting = nameof(Waiting);
+
+    /// <summary>
+    /// List of terminal states.
+    /// </summary>
+    public static readonly IReadOnlyList<string> TerminalStates = [Finished, FailedToStart, Exited];
 }

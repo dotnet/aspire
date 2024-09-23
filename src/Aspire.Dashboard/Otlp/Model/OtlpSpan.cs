@@ -21,7 +21,7 @@ public class OtlpSpan
 
     public string TraceId => Trace.TraceId;
     public OtlpTrace Trace { get; }
-    public OtlpApplication Source { get; }
+    public OtlpApplicationView Source { get; }
 
     public required string SpanId { get; init; }
     public required string? ParentSpanId { get; init; }
@@ -34,6 +34,8 @@ public class OtlpSpan
     public required string? State { get; init; }
     public required KeyValuePair<string, string>[] Attributes { get; init; }
     public required List<OtlpSpanEvent> Events { get; init; }
+    public required List<OtlpSpanLink> Links { get; init; }
+    public required List<OtlpSpanLink> BackLinks { get; init; }
 
     public OtlpScope Scope { get; }
     public TimeSpan Duration => EndTime - StartTime;
@@ -41,9 +43,9 @@ public class OtlpSpan
     public IEnumerable<OtlpSpan> GetChildSpans() => Trace.Spans.Where(s => s.ParentSpanId == SpanId);
     public OtlpSpan? GetParentSpan() => string.IsNullOrEmpty(ParentSpanId) ? null : Trace.Spans.Where(s => s.SpanId == ParentSpanId).FirstOrDefault();
 
-    public OtlpSpan(OtlpApplication application, OtlpTrace trace, OtlpScope scope)
+    public OtlpSpan(OtlpApplicationView applicationView, OtlpTrace trace, OtlpScope scope)
     {
-        Source = application;
+        Source = applicationView;
         Trace = trace;
         Scope = scope;
     }
@@ -62,7 +64,9 @@ public class OtlpSpan
             StatusMessage = item.StatusMessage,
             State = item.State,
             Attributes = item.Attributes,
-            Events = item.Events
+            Events = item.Events,
+            Links = item.Links,
+            BackLinks = item.BackLinks,
         };
     }
 

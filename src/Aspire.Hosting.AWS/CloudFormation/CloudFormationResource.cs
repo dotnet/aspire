@@ -4,12 +4,15 @@
 using Amazon.CloudFormation;
 using Amazon.CloudFormation.Model;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.AWS.CloudFormation;
 
-/// <inheritdoc/>
-internal abstract class CloudFormationResource(string name) : Resource(name), ICloudFormationResource
+/// <inheritdoc cref="Aspire.Hosting.AWS.CloudFormation.ICloudFormationResource" />
+internal abstract class CloudFormationResource(string name, string stackName) : Resource(name), ICloudFormationResource
 {
+    public string StackName { get; } = stackName;
+
     /// <inheritdoc/>
     public IAWSSDKConfig? AWSSDKConfig { get; set; }
 
@@ -21,4 +24,6 @@ internal abstract class CloudFormationResource(string name) : Resource(name), IC
 
     /// <inheritdoc/>
     public TaskCompletionSource? ProvisioningTaskCompletionSource { get; set; }
+
+    internal abstract void WriteToManifest(ManifestPublishingContext context);
 }

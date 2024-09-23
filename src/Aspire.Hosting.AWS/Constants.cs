@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 namespace Aspire.Hosting.AWS;
-internal sealed class Constants
+internal static class Constants
 {
 
     /// <summary>
@@ -19,4 +19,9 @@ internal sealed class Constants
     /// Success state for Aspire resource dashboard
     /// </summary>
     public const string ResourceStateRunning = "Running";
+
+    /// <summary>
+    /// Default Configuration Section
+    /// </summary>
+    public const string DefaultConfigSection = "AWS:Resources";
 }

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>230093c1-93fe-469d-bcdb-9c8a3c1f699c</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Keycloak" />
+    <ProjectReference Include="..\Keycloak.ApiService\Keycloak.ApiService.csproj" />
+    <ProjectReference Include="..\Keycloak.Web\Keycloak.Web.csproj" />
+  </ItemGroup>
+
+</Project>

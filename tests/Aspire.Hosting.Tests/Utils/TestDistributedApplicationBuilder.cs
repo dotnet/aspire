@@ -4,10 +4,15 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Dashboard;
+using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Utils;
 
@@ -35,17 +40,29 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
         return Create(args);
     }
 
+    // Returns the unique prefix used for volumes from unnamed volumes this builder
+    public string GetVolumePrefix() =>
+        $"{VolumeNameGenerator.Sanitize(Environment.ApplicationName).ToLowerInvariant()}-{Configuration["AppHost:Sha256"]!.ToLowerInvariant()[..10]}";
+
     public static TestDistributedApplicationBuilder Create(params string[] args)
     {
         return new TestDistributedApplicationBuilder(options => options.Args = args);
     }
 
-    public static TestDistributedApplicationBuilder Create(Action<DistributedApplicationOptions> configureOptions)
+    public static TestDistributedApplicationBuilder Create(ITestOutputHelper testOutputHelper, params string[] args)
     {
-        return new TestDistributedApplicationBuilder(configureOptions);
+        return new TestDistributedApplicationBuilder(options => options.Args = args, testOutputHelper);
     }
 
-    private TestDistributedApplicationBuilder(Action<DistributedApplicationOptions> configureOptions)
+    public static TestDistributedApplicationBuilder Create(Action<DistributedApplicationOptions>? configureOptions, ITestOutputHelper? testOutputHelper = null)
+    {
+        return new TestDistributedApplicationBuilder(configureOptions, testOutputHelper);
+    }
+
+    public static TestDistributedApplicationBuilder CreateWithTestContainerRegistry(ITestOutputHelper testOutputHelper) =>
+        Create(o => o.ContainerRegistryOverride = TestConstants.AspireTestContainerRegistry, testOutputHelper);
+
+    private TestDistributedApplicationBuilder(Action<DistributedApplicationOptions>? configureOptions, ITestOutputHelper? testOutputHelper = null)
     {
         var appAssembly = typeof(TestDistributedApplicationBuilder).Assembly;
         var assemblyName = appAssembly.FullName;
@@ -61,6 +78,10 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
 
         _innerBuilder.Services.AddHttpClient();
         _innerBuilder.Services.ConfigureHttpClientDefaults(http => http.AddStandardResilienceHandler());
+        if (testOutputHelper is not null)
+        {
+            WithTestAndResourceLogging(testOutputHelper);
+        }
 
         void Configure(DistributedApplicationOptions applicationOptions, HostApplicationBuilderSettings hostBuilderOptions)
         {
@@ -76,8 +97,16 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
                 ["DcpPublisher:ResourceNameSuffix"] = $"{Random.Shared.Next():x}",
             });
 
-            configureOptions(applicationOptions);
+            configureOptions?.Invoke(applicationOptions);
         }
+    }
+
+    public TestDistributedApplicationBuilder WithTestAndResourceLogging(ITestOutputHelper testOutputHelper)
+    {
+        Services.AddXunitLogging(testOutputHelper);
+        Services.AddHostedService<ResourceLoggerForwarderService>();
+        Services.AddLogging(builder => builder.AddFilter("Aspire.Hosting", LogLevel.Trace));
+        return this;
     }
 
     public ConfigurationManager Configuration => _innerBuilder.Configuration;
@@ -93,6 +122,8 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
     public DistributedApplicationExecutionContext ExecutionContext => _innerBuilder.ExecutionContext;
 
     public IResourceCollection Resources => _innerBuilder.Resources;
+
+    public IDistributedApplicationEventing Eventing => _innerBuilder.Eventing;
 
     public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => _innerBuilder.AddResource(resource);
 

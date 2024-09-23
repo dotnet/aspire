@@ -31,19 +31,19 @@ public sealed class ApplicationsSelectHelpersTests
             app =>
             {
                 Assert.Equal("app", app.Name);
-                Assert.Equal(OtlpApplicationType.ReplicaSet, app.Id!.Type);
+                Assert.Equal(OtlpApplicationType.ResourceGrouping, app.Id!.Type);
                 Assert.Null(app.Id!.InstanceId);
             },
             app =>
             {
                 Assert.Equal("app-app", app.Name);
-                Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
+                Assert.Equal(OtlpApplicationType.Instance, app.Id!.Type);
                 Assert.Equal("app", app.Id!.InstanceId);
             },
             app =>
             {
                 Assert.Equal("app-app-abc", app.Name);
-                Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
+                Assert.Equal(OtlpApplicationType.Instance, app.Id!.Type);
                 Assert.Equal("app-abc", app.Id!.InstanceId);
             },
             app =>
@@ -54,11 +54,11 @@ public sealed class ApplicationsSelectHelpersTests
             });
 
         // Act
-        var app = appVMs.GetApplication(NullLogger.Instance, "app-app-abc", null!);
+        var app = appVMs.GetApplication(NullLogger.Instance, "app-app-abc", canSelectGrouping: false, null!);
 
         // Assert
         Assert.Equal("app-abc", app.Id!.InstanceId);
-        Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
+        Assert.Equal(OtlpApplicationType.Instance, app.Id!.Type);
     }
 
     [Fact]
@@ -75,19 +75,19 @@ public sealed class ApplicationsSelectHelpersTests
             app =>
             {
                 Assert.Equal("app", app.Name);
-                Assert.Equal(OtlpApplicationType.ReplicaSet, app.Id!.Type);
+                Assert.Equal(OtlpApplicationType.ResourceGrouping, app.Id!.Type);
                 Assert.Null(app.Id!.InstanceId);
             },
             app =>
             {
                 Assert.Equal("APP-app", app.Name);
-                Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
+                Assert.Equal(OtlpApplicationType.Instance, app.Id!.Type);
                 Assert.Equal("app", app.Id!.InstanceId);
             },
             app =>
             {
                 Assert.Equal("APP-app-abc", app.Name);
-                Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
+                Assert.Equal(OtlpApplicationType.Instance, app.Id!.Type);
                 Assert.Equal("app-abc", app.Id!.InstanceId);
             });
 
@@ -95,11 +95,11 @@ public sealed class ApplicationsSelectHelpersTests
         var factory = LoggerFactory.Create(b => b.AddProvider(new TestLoggerProvider(testSink)));
 
         // Act
-        var app = appVMs.GetApplication(factory.CreateLogger("Test"), "app-app", null!);
+        var app = appVMs.GetApplication(factory.CreateLogger("Test"), "app-app", canSelectGrouping: false, null!);
 
         // Assert
         Assert.Equal("app", app.Id!.InstanceId);
-        Assert.Equal(OtlpApplicationType.ReplicaInstance, app.Id!.Type);
+        Assert.Equal(OtlpApplicationType.Instance, app.Id!.Type);
         Assert.Empty(testSink.Writes);
     }
 
@@ -119,12 +119,87 @@ public sealed class ApplicationsSelectHelpersTests
         var factory = LoggerFactory.Create(b => b.AddProvider(new TestLoggerProvider(testSink)));
 
         // Act
-        var app = appVMs.GetApplication(factory.CreateLogger("Test"), "test", null!);
+        var app = appVMs.GetApplication(factory.CreateLogger("Test"), "test", canSelectGrouping: false, null!);
 
         // Assert
         Assert.Equal("test-abc", app.Id!.InstanceId);
         Assert.Equal(OtlpApplicationType.Singleton, app.Id!.Type);
         Assert.Single(testSink.Writes);
+    }
+
+    [Fact]
+    public void GetApplication_SelectGroup_NotEnabled_ReturnNull()
+    {
+        // Arrange
+        var appVMs = ApplicationsSelectHelpers.CreateApplications(new List<OtlpApplication>
+        {
+            CreateOtlpApplication(name: "app", instanceId: "123"),
+            CreateOtlpApplication(name: "app", instanceId: "456")
+        });
+
+        Assert.Collection(appVMs,
+            app =>
+            {
+                Assert.Equal("app", app.Name);
+                Assert.Equal(OtlpApplicationType.ResourceGrouping, app.Id!.Type);
+                Assert.Null(app.Id!.InstanceId);
+            },
+            app =>
+            {
+                Assert.Equal("app-123", app.Name);
+                Assert.Equal(OtlpApplicationType.Instance, app.Id!.Type);
+                Assert.Equal("123", app.Id!.InstanceId);
+            },
+            app =>
+            {
+                Assert.Equal("app-456", app.Name);
+                Assert.Equal(OtlpApplicationType.Instance, app.Id!.Type);
+                Assert.Equal("456", app.Id!.InstanceId);
+            });
+
+        // Act
+        var app = appVMs.GetApplication(NullLogger.Instance, "app", canSelectGrouping: false, null!);
+
+        // Assert
+        Assert.Null(app);
+    }
+
+    [Fact]
+    public void GetApplication_SelectGroup_Enabled_ReturnGroup()
+    {
+        // Arrange
+        var appVMs = ApplicationsSelectHelpers.CreateApplications(new List<OtlpApplication>
+        {
+            CreateOtlpApplication(name: "app", instanceId: "123"),
+            CreateOtlpApplication(name: "app", instanceId: "456")
+        });
+
+        Assert.Collection(appVMs,
+            app =>
+            {
+                Assert.Equal("app", app.Name);
+                Assert.Equal(OtlpApplicationType.ResourceGrouping, app.Id!.Type);
+                Assert.Null(app.Id!.InstanceId);
+            },
+            app =>
+            {
+                Assert.Equal("app-123", app.Name);
+                Assert.Equal(OtlpApplicationType.Instance, app.Id!.Type);
+                Assert.Equal("123", app.Id!.InstanceId);
+            },
+            app =>
+            {
+                Assert.Equal("app-456", app.Name);
+                Assert.Equal(OtlpApplicationType.Instance, app.Id!.Type);
+                Assert.Equal("456", app.Id!.InstanceId);
+            });
+
+        // Act
+        var app = appVMs.GetApplication(NullLogger.Instance, "app", canSelectGrouping: true, null!);
+
+        // Assert
+        Assert.Equal("app", app.Name);
+        Assert.Equal(OtlpApplicationType.ResourceGrouping, app.Id!.Type);
     }
 
     private static OtlpApplication CreateOtlpApplication(string name, string instanceId)
@@ -139,6 +214,6 @@ public sealed class ApplicationsSelectHelpersTests
         };
         var applicationKey = OtlpHelpers.GetApplicationKey(resource);
 
-        return new OtlpApplication(applicationKey.Name, applicationKey.InstanceId, resource, NullLogger.Instance, new TelemetryLimitOptions());
+        return new OtlpApplication(applicationKey.Name, applicationKey.InstanceId!, NullLogger.Instance, new TelemetryLimitOptions());
     }
 }

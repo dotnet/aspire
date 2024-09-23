@@ -15,6 +15,7 @@ public class OtlpTrace
 
     public string FullName { get; private set; }
     public OtlpSpan FirstSpan => Spans[0]; // There should always be at least one span in a trace.
+    public DateTime TimeStamp => FirstSpan.StartTime;
     public OtlpSpan? RootSpan => _rootSpan;
     public TimeSpan Duration
     {
@@ -64,15 +65,35 @@ public class OtlpTrace
         if (!added)
         {
             Spans.Insert(0, span);
-            FullName = $"{span.Source.ApplicationName}: {span.Name}";
+
+            // If there isn't a root span then the first span is used as the trace name.
+            if (_rootSpan == null && !string.IsNullOrEmpty(span.ParentSpanId))
+            {
+                FullName = BuildFullName(span);
+            }
         }
 
         if (string.IsNullOrEmpty(span.ParentSpanId))
         {
-            _rootSpan = span;
+            // There should only be one span with no parent span ID.
+            // Incase there isn't, the first span with no parent span ID is considered to be the root.
+            foreach (var existingSpan in Spans)
+            {
+                if (string.IsNullOrEmpty(existingSpan.ParentSpanId))
+                {
+                    _rootSpan = existingSpan;
+                    FullName = BuildFullName(existingSpan);
+                    break;
+                }
+            }
         }
 
         AssertSpanOrder();
+
+        static string BuildFullName(OtlpSpan existingSpan)
+        {
+            return $"{existingSpan.Source.Application.ApplicationName}: {existingSpan.Name}";
+        }
     }
 
     [Conditional("DEBUG")]

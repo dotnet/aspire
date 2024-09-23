@@ -59,7 +59,8 @@
       "value": "{signaturesecret.inputs.value}",
       "inputs": {
         "value": {
-          "type": "string"
+          "type": "string",
+          "secret": true
         }
       }
     },

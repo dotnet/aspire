@@ -20,7 +20,7 @@ public class AspireProject : IAsyncDisposable
     private static readonly Regex s_dashboardUrlRegex = new(@"Login to the dashboard at (?<url>.*)", RegexOptions.Compiled);
 
     public static string GetNuGetConfigPathFor(string targetFramework) =>
-        Path.Combine(BuildEnvironment.TestDataPath, "nuget8.config");
+        Path.Combine(BuildEnvironment.TestAssetsPath, "nuget8.config");
 
     public static Lazy<HttpClient> Client => new(CreateHttpClient);
     public Process? AppHostProcess { get; private set; }
@@ -92,7 +92,7 @@ public class AspireProject : IAsyncDisposable
         var project = new AspireProject(id, rootDir, testOutput, buildEnvironment);
         if (addEndpointsHook)
         {
-            File.Copy(Path.Combine(BuildEnvironment.TestDataPath, "EndPointWriterHook_cs"), Path.Combine(project.AppHostProjectDirectory, "EndPointWriterHook.cs"));
+            File.Copy(Path.Combine(BuildEnvironment.TestAssetsPath, "EndPointWriterHook_cs"), Path.Combine(project.AppHostProjectDirectory, "EndPointWriterHook.cs"));
             string programCsPath = Path.Combine(project.AppHostProjectDirectory, "Program.cs");
             string programCs = File.ReadAllText(programCsPath);
             programCs = "using Aspire.Hosting.Lifecycle; " + programCs;
@@ -261,10 +261,12 @@ public class AspireProject : IAsyncDisposable
         _testOutput.WriteLine($"-- Ready to run tests --");
     }
 
-    public async Task BuildAsync(string[]? extraBuildArgs = default, CancellationToken token = default)
+    public async Task BuildAsync(string[]? extraBuildArgs = default, CancellationToken token = default, string? workingDirectory = null)
     {
+        workingDirectory ??= Path.Combine(RootDir, $"{Id}.AppHost");
+
         using var restoreCmd = new DotNetCommand(_testOutput, buildEnv: _buildEnv, label: "restore")
-                                    .WithWorkingDirectory(Path.Combine(RootDir, $"{Id}.AppHost"));
+                                    .WithWorkingDirectory(workingDirectory);
         var res = await restoreCmd.ExecuteAsync($"restore \"-bl:{Path.Combine(LogPath!, $"{Id}-restore.binlog")}\" /p:TreatWarningsAsErrors=true");
         res.EnsureSuccessful();
 
@@ -274,7 +276,7 @@ public class AspireProject : IAsyncDisposable
             buildArgs += " " + string.Join(" ", extraBuildArgs);
         }
         using var buildCmd = new DotNetCommand(_testOutput, buildEnv: _buildEnv, label: "build")
-                                        .WithWorkingDirectory(Path.Combine(RootDir, $"{Id}.AppHost"));
+                                        .WithWorkingDirectory(workingDirectory);
         res = await buildCmd.ExecuteAsync(buildArgs);
         res.EnsureSuccessful();
     }

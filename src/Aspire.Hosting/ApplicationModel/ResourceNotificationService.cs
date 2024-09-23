@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Microsoft.Extensions.Hosting;
@@ -17,6 +18,7 @@ public class ResourceNotificationService
     // Resource state is keyed by the resource and the unique name of the resource. This could be the name of the resource, or a replica ID.
     private readonly ConcurrentDictionary<(IResource, string), ResourceNotificationState> _resourceNotificationStates = new();
     private readonly ILogger<ResourceNotificationService> _logger;
+    private readonly IServiceProvider _serviceProvider;
     private readonly CancellationToken _applicationStopping;
 
     private Action<ResourceEvent>? OnResourceUpdated { get; set; }
@@ -25,18 +27,21 @@ public class ResourceNotificationService
     /// Creates a new instance of <see cref="ResourceNotificationService"/>.
     /// </summary>
     /// <remarks>
-    /// Obsolete. Use the constructor that accepts an <see cref="ILogger{ResourceNotificationService}"/> and <see cref="IHostApplicationLifetime"/>.<br/>
+    /// Obsolete. Use the constructor that accepts an <see cref="ILogger{ResourceNotificationService}"/>, <see cref="IHostApplicationLifetime"/> and <see cref="IServiceProvider"/>.<br/>
     /// This constructor will be removed in the next major version of Aspire.
     /// </remarks>
     /// <param name="logger">The logger.</param>
+    /// <param name="hostApplicationLifetime">The host application lifetime.</param>
     [Obsolete($"""
-        {nameof(ResourceNotificationService)} now requires an {nameof(IHostApplicationLifetime)}.
-        Use the constructor that accepts an {nameof(ILogger)}<{nameof(ResourceNotificationService)}> and {nameof(IHostApplicationLifetime)}.
+        {nameof(ResourceNotificationService)} now requires an {nameof(IServiceProvider)}.
+        Use the constructor that accepts an {nameof(ILogger)}<{nameof(ResourceNotificationService)}>, {nameof(IHostApplicationLifetime)} and {nameof(IServiceProvider)}.
         This constructor will be removed in the next major version of Aspire.
         """)]
-    public ResourceNotificationService(ILogger<ResourceNotificationService> logger)
+    public ResourceNotificationService(ILogger<ResourceNotificationService> logger, IHostApplicationLifetime hostApplicationLifetime)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _serviceProvider = new NullServiceProvider();
+        _applicationStopping = hostApplicationLifetime?.ApplicationStopping ?? throw new ArgumentNullException(nameof(hostApplicationLifetime));
     }
 
     /// <summary>
@@ -44,10 +49,17 @@ public class ResourceNotificationService
     /// </summary>
     /// <param name="logger">The logger.</param>
     /// <param name="hostApplicationLifetime">The host application lifetime.</param>
-    public ResourceNotificationService(ILogger<ResourceNotificationService> logger, IHostApplicationLifetime hostApplicationLifetime)
+    /// <param name="serviceProvider">The service provider.</param>
+    public ResourceNotificationService(ILogger<ResourceNotificationService> logger, IHostApplicationLifetime hostApplicationLifetime, IServiceProvider serviceProvider)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _serviceProvider = serviceProvider;
         _applicationStopping = hostApplicationLifetime?.ApplicationStopping ?? throw new ArgumentNullException(nameof(hostApplicationLifetime));
+    }
+
+    private class NullServiceProvider : IServiceProvider
+    {
+        public object? GetService(Type serviceType) => null;
     }
 
     /// <summary>
@@ -56,10 +68,10 @@ public class ResourceNotificationService
     /// <remarks>
     /// This method returns a task that will complete when the resource reaches the specified target state. If the resource
     /// is already in the target state, the method will return immediately.<br/>
-    /// If the resource doesn't reach one of the target states before <paramref name="cancellationToken"/> is signalled, this method
+    /// If the resource doesn't reach one of the target states before <paramref name="cancellationToken"/> is signaled, this method
     /// will throw <see cref="OperationCanceledException"/>.
     /// </remarks>
-    /// <param name="resourceName">The name of the resouce.</param>
+    /// <param name="resourceName">The name of the resource.</param>
     /// <param name="targetState"></param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> </param>
     /// <returns>A <see cref="Task"/> representing the wait operation.</returns>
@@ -77,12 +89,12 @@ public class ResourceNotificationService
     /// <remarks>
     /// This method returns a task that will complete when the resource reaches one of the specified target states. If the resource
     /// is already in the target state, the method will return immediately.<br/>
-    /// If the resource doesn't reach one of the target states before <paramref name="cancellationToken"/> is signalled, this method
+    /// If the resource doesn't reach one of the target states before <paramref name="cancellationToken"/> is signaled, this method
     /// will throw <see cref="OperationCanceledException"/>.
     /// </remarks>
     /// <param name="resourceName">The name of the resource.</param>
     /// <param name="targetStates">The set of states to wait for the resource to transition to one of. See <see cref="KnownResourceStates"/> for common states.</param>
-    /// <param name="cancellationToken">A cancellation token that cancels the wait operation when signalled.</param>
+    /// <param name="cancellationToken">A cancellation token that cancels the wait operation when signaled.</param>
     /// <returns>A <see cref="Task{String}"/> representing the wait operation and which of the target states the resource reached.</returns>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
                                                      Justification = "targetState(s) parameters are mutually exclusive.")]
@@ -102,6 +114,39 @@ public class ResourceNotificationService
 
         throw new OperationCanceledException($"The operation was cancelled before the resource reached one of the target states: [{string.Join(", ", targetStates)}]");
     }
+
+    /// <summary>
+    /// Waits until a resource satisfies the specified predicate.
+    /// </summary>
+    /// <remarks>
+    /// This method returns a task that will complete when the specified predicate returns <see langword="true" />.<br/>
+    /// If the predicate isn't satisfied before <paramref name="cancellationToken"/> is signaled, this method
+    /// will throw <see cref="OperationCanceledException"/>.
+    /// </remarks>
+    /// <param name="resourceName">The name of the resource.</param>
+    /// <param name="predicate">A predicate which is evaluated for each <see cref="ResourceEvent"/> for the selected resource.</param>
+    /// <param name="cancellationToken">A cancellation token that cancels the wait operation when signaled.</param>
+    /// <returns>A <see cref="Task{ResourceEvent}"/> representing the wait operation and which of the target states the resource reached.</returns>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
+                                                     Justification = "predicate and targetState(s) parameters are mutually exclusive.")]
+    public async Task<ResourceEvent> WaitForResourceAsync(string resourceName, Func<ResourceEvent, bool> predicate, CancellationToken cancellationToken = default)
+    {
+        using var watchCts = CancellationTokenSource.CreateLinkedTokenSource(_applicationStopping, cancellationToken);
+        var watchToken = watchCts.Token;
+        await foreach (var resourceEvent in WatchAsync(watchToken).ConfigureAwait(false))
+        {
+            if (string.Equals(resourceName, resourceEvent.Resource.Name, StringComparisons.ResourceName)
+                && resourceEvent.Snapshot.State?.Text is { Length: > 0 } statusText
+                && predicate(resourceEvent))
+            {
+                return resourceEvent;
+            }
+        }
+
+        throw new OperationCanceledException($"The operation was cancelled before the resource met the predicate condition.");
+    }
+
+    private readonly object _onResourceUpdatedLock = new();
 
     /// <summary>
     /// Watch for changes to the state for all resources.
@@ -125,7 +170,10 @@ public class ResourceNotificationService
         void WriteToChannel(ResourceEvent resourceEvent) =>
             channel.Writer.TryWrite(resourceEvent);
 
-        OnResourceUpdated += WriteToChannel;
+        lock (_onResourceUpdatedLock)
+        {
+            OnResourceUpdated += WriteToChannel;
+        }
 
         try
         {
@@ -136,7 +184,10 @@ public class ResourceNotificationService
         }
         finally
         {
-            OnResourceUpdated -= WriteToChannel;
+            lock (_onResourceUpdatedLock)
+            {
+                OnResourceUpdated -= WriteToChannel;
+            }
 
             channel.Writer.TryComplete();
         }
@@ -157,6 +208,8 @@ public class ResourceNotificationService
             var previousState = GetCurrentSnapshot(resource, notificationState);
 
             var newState = stateFactory(previousState);
+
+            newState = UpdateCommands(resource, newState);
 
             notificationState.LastSnapshot = newState;
 
@@ -181,15 +234,90 @@ public class ResourceNotificationService
             {
                 _logger.LogTrace("Resource {Resource}/{ResourceId} update published: " +
                     "ResourceType = {ResourceType}, CreationTimeStamp = {CreationTimeStamp:s}, State = {{ Text = {StateText}, Style = {StateStyle} }}, " +
+                    "HealthStatus = {HealthStatus} " +
                     "ExitCode = {ExitCode}, EnvironmentVariables = {{ {EnvironmentVariables} }}, Urls = {{ {Urls} }}, " +
                     "Properties = {{ {Properties} }}",
                     resource.Name, resourceId,
-                    newState.ResourceType, newState.CreationTimeStamp, newState.State?.Text, newState.State?.Style,
+                    newState.ResourceType, newState.CreationTimeStamp, newState.State?.Text, newState.State?.Style, newState.HealthStatus,
                     newState.ExitCode, string.Join(", ", newState.EnvironmentVariables.Select(e => $"{e.Name} = {e.Value}")), string.Join(", ", newState.Urls.Select(u => $"{u.Name} = {u.Url}")),
                     string.Join(", ", newState.Properties.Select(p => $"{p.Name} = {p.Value}")));
             }
+        }
 
-            return Task.CompletedTask;
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Use command annotations to update resource snapshot.
+    /// </summary>
+    private CustomResourceSnapshot UpdateCommands(IResource resource, CustomResourceSnapshot previousState)
+    {
+        ImmutableArray<ResourceCommandSnapshot>.Builder? builder = null;
+
+        foreach (var annotation in resource.Annotations.OfType<ResourceCommandAnnotation>())
+        {
+            var existingCommand = FindByType(previousState.Commands, annotation.Type);
+
+            if (existingCommand == null)
+            {
+                if (builder == null)
+                {
+                    builder = ImmutableArray.CreateBuilder<ResourceCommandSnapshot>(previousState.Commands.Length);
+                    builder.AddRange(previousState.Commands);
+                }
+
+                // Command doesn't exist in snapshot. Create from annotation.
+                builder.Add(CreateCommandFromAnnotation(annotation, previousState, _serviceProvider));
+            }
+            else
+            {
+                // Command already exists in snapshot. Update its state based on annotation callback.
+                var newState = annotation.UpdateState(new UpdateCommandStateContext { ResourceSnapshot = previousState, ServiceProvider = _serviceProvider });
+
+                if (existingCommand.State != newState)
+                {
+                    if (builder == null)
+                    {
+                        builder = ImmutableArray.CreateBuilder<ResourceCommandSnapshot>(previousState.Commands.Length);
+                        builder.AddRange(previousState.Commands);
+                    }
+
+                    var newCommand = existingCommand with
+                    {
+                        State = newState
+                    };
+
+                    builder.Replace(existingCommand, newCommand);
+                }
+            }
+        }
+
+        // Commands are unchanged. Return unchanged state.
+        if (builder == null)
+        {
+            return previousState;
+        }
+
+        return previousState with { Commands = builder.ToImmutable() };
+
+        static ResourceCommandSnapshot? FindByType(ImmutableArray<ResourceCommandSnapshot> commands, string type)
+        {
+            for (var i = 0; i < commands.Length; i++)
+            {
+                if (commands[i].Type == type)
+                {
+                    return commands[i];
+                }
+            }
+
+            return null;
+        }
+
+        static ResourceCommandSnapshot CreateCommandFromAnnotation(ResourceCommandAnnotation annotation, CustomResourceSnapshot previousState, IServiceProvider serviceProvider)
+        {
+            var state = annotation.UpdateState(new UpdateCommandStateContext { ResourceSnapshot = previousState, ServiceProvider = serviceProvider });
+
+            return new ResourceCommandSnapshot(annotation.Type, state, annotation.DisplayName, annotation.IconName, annotation.IconVariant, annotation.IsHighlighted);
         }
     }
 

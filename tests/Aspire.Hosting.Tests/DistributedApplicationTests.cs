@@ -4,12 +4,15 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Utils;
 using Aspire.Hosting.Testing;
+using Aspire.Hosting.Testing.Tests;
 using Aspire.Hosting.Tests.Helpers;
+using Aspire.Hosting.Tests.Utils;
+using Aspire.Hosting.Utils;
 using k8s.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -18,8 +21,6 @@ using Microsoft.Extensions.Options;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
-using Aspire.Components.Common.Tests;
-using Aspire.Hosting.Testing.Tests;
 
 namespace Aspire.Hosting.Tests;
 
@@ -138,7 +139,7 @@ public class DistributedApplicationTests
         var lifecycleHookDescriptors = testProgram.AppBuilder.Services.Where(sd => sd.ServiceType == typeof(IDistributedApplicationLifecycleHook));
 
         Assert.Single(lifecycleHookDescriptors.Where(sd => sd.ImplementationFactory == callback1));
-        Assert.Empty(lifecycleHookDescriptors.Where(sd => sd.ImplementationFactory == callback2));
+        Assert.DoesNotContain(lifecycleHookDescriptors, sd => sd.ImplementationFactory == callback2);
     }
 
     [Fact]
@@ -259,9 +260,86 @@ public class DistributedApplicationTests
     [Fact]
     [RequiresDocker]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
+    public async Task VerifyContainerStopStartWorks()
+    {
+        using var testProgram = CreateTestProgram(randomizePorts: false);
+
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        testProgram.AppBuilder.AddContainer("redis0", "redis")
+            .WithEndpoint(targetPort: 6379, name: "tcp", env: "REDIS_PORT");
+
+        await using var app = testProgram.Build();
+
+        var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
+        var applicationExecutor = app.Services.GetRequiredService<ApplicationExecutor>();
+        var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
+
+        await app.StartAsync();
+
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromMinutes(1));
+        var token = cts.Token;
+
+        var containerPattern = $"redis0-{ReplicaIdRegex}-{suffix}";
+        var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, containerPattern, r => r.Status?.State == ContainerState.Running, token);
+        Assert.NotNull(redisContainer);
+
+        await applicationExecutor.StopResourceAsync(redisContainer.Metadata.Name, token);
+
+        redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, containerPattern, r => r.Status?.State == ContainerState.Exited, token);
+        Assert.NotNull(redisContainer);
+
+        // TODO: Container start has issues in DCP. Waiting for fix.
+        //await applicationExecutor.StartResourceAsync(redisContainer.Metadata.Name, token);
+
+        //redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, containerPattern, r => r.Status?.State == ContainerState.Running, token);
+        //Assert.NotNull(redisContainer);
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
+    public async Task VerifyExecutableStopStartWorks()
+    {
+        using var testProgram = CreateTestProgram(randomizePorts: false);
+
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        await using var app = testProgram.Build();
+
+        var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
+        var applicationExecutor = app.Services.GetRequiredService<ApplicationExecutor>();
+        var suffix = app.Services.GetRequiredService<IOptions<DcpOptions>>().Value.ResourceNameSuffix;
+
+        await app.StartAsync();
+
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromMinutes(1));
+        var token = cts.Token;
+
+        var executablePattern = $"servicea-{ReplicaIdRegex}-{suffix}";
+        var serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Running, token);
+        Assert.NotNull(serviceA);
+
+        await applicationExecutor.StopResourceAsync(serviceA.Metadata.Name, token);
+
+        serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Finished, token);
+        Assert.NotNull(serviceA);
+
+        await applicationExecutor.StartResourceAsync(serviceA.Metadata.Name, token);
+
+        serviceA = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, executablePattern, r => r.Status?.State == ExecutableState.Running, token);
+        Assert.NotNull(serviceA);
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task SpecifyingEnvPortInEndpointFlowsToEnv()
     {
-        using var testProgram = CreateTestProgram(includeNodeApp: true, randomizePorts: false);
+        using var testProgram = CreateTestProgram(randomizePorts: false);
 
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
@@ -270,6 +348,9 @@ public class DistributedApplicationTests
 
         testProgram.AppBuilder.AddContainer("redis0", "redis")
             .WithEndpoint(targetPort: 6379, name: "tcp", env: "REDIS_PORT");
+
+        testProgram.AppBuilder.AddNodeApp("nodeapp", "fakePath")
+            .WithHttpEndpoint(port: 5031, env: "PORT");
 
         await using var app = testProgram.Build();
 
@@ -532,7 +613,7 @@ public class DistributedApplicationTests
     [ActiveIssue("https://github.com/dotnet/aspire/issues/4651", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnCI))]
     public async Task KubernetesHasResourceNameForContainersAndExes()
     {
-        using var testProgram = CreateTestProgram(includeIntegrationServices: true, includeNodeApp: true);
+        using var testProgram = CreateTestProgram(includeIntegrationServices: true);
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         await using var app = testProgram.Build();
@@ -550,8 +631,6 @@ public class DistributedApplicationTests
             "serviceb",
             "servicec",
             "workera",
-            "nodeapp",
-            "npmapp",
             "integrationservicea"
         };
 
@@ -560,9 +639,7 @@ public class DistributedApplicationTests
             "redis",
             "postgres",
             "mongodb",
-            "oracledatabase",
             "cosmos",
-            "sqlserver",
             "mysql",
             "rabbitmq",
             "kafka"
@@ -755,6 +832,9 @@ public class DistributedApplicationTests
         using var app = builder.Build();
         await app.StartAsync();
 
+        // Wait for the application to be ready
+        await app.WaitForTextAsync("Application started.").WaitAsync(TimeSpan.FromMinutes(1));
+
         // Wait until the service itself starts.
         using var clientA = app.CreateHttpClient(servicea.Resource.Name, "http");
         await clientA.GetStringAsync("/");
@@ -845,13 +925,11 @@ public class DistributedApplicationTests
     private static TestProgram CreateTestProgram(
         string[]? args = null,
         bool includeIntegrationServices = false,
-        bool includeNodeApp = false,
         bool disableDashboard = true,
         bool randomizePorts = true) =>
         TestProgram.Create<DistributedApplicationTests>(
             args,
             includeIntegrationServices: includeIntegrationServices,
-            includeNodeApp: includeNodeApp,
             disableDashboard: disableDashboard,
             randomizePorts: randomizePorts);
 }

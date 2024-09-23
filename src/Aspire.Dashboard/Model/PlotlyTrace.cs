@@ -6,8 +6,10 @@ namespace Aspire.Dashboard.Model;
 public class PlotlyTrace
 {
     public required string Name { get; init; }
-    public required List<double?> Values { get; init; }
+    public required List<DateTimeOffset> X { get; init; }
+    public required List<double?> Y { get; init; }
     public required List<string?> Tooltips { get; init; }
+    public required List<object?> TraceData { get; init; }
 }
 
 public class PlotlyUserLocale

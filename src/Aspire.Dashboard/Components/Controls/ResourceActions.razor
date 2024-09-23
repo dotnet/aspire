@@ -1,0 +1,23 @@
+﻿@namespace Aspire.Dashboard.Components
+@using Aspire.Dashboard.Model
+@using Microsoft.FluentUI.AspNetCore.Components
+
+@foreach (var highlightedCommand in Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden))
+{
+    <FluentButton Appearance="Appearance.Lightweight" Title="@(highlightedCommand.DisplayDescription ?? highlightedCommand.DisplayName)" OnClick="@(() => CommandSelected.InvokeAsync(highlightedCommand))" Disabled="@(highlightedCommand.State == CommandViewModelState.Disabled)">
+        @if (!string.IsNullOrEmpty(highlightedCommand.IconName) && CommandViewModel.ResolveIconName(highlightedCommand.IconName, highlightedCommand.IconVariant) is { } icon)
+        {
+            <FluentIcon Value="@icon" />
+        }
+        else
+        {
+            @highlightedCommand.DisplayName
+        }
+    </FluentButton>
+}
+
+<AspireMenuButton
+    ButtonAppearance="Appearance.Lightweight"
+    Icon="@(new Icons.Regular.Size20.MoreHorizontal())"
+    Items="@_menuItems"
+    @ref="_menuButton" />

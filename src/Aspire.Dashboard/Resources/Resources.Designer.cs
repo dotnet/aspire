@@ -61,6 +61,24 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Console logs.
+        /// </summary>
+        public static string ResourceActionConsoleLogsText {
+            get {
+                return ResourceManager.GetString("ResourceActionConsoleLogsText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to View details.
+        /// </summary>
+        public static string ResourceActionViewDetailsText {
+            get {
+                return ResourceManager.GetString("ResourceActionViewDetailsText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to &quot;{0}&quot; command failed.
         /// </summary>
         public static string ResourceCommandFailed {
@@ -106,20 +124,20 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Commands.
+        ///   Looks up a localized string similar to View console logs.
         /// </summary>
-        public static string ResourcesCommandsColumnHeader {
+        public static string ResourceDetailsViewConsoleLogs {
             get {
-                return ResourceManager.GetString("ResourcesCommandsColumnHeader", resourceCulture);
+                return ResourceManager.GetString("ResourceDetailsViewConsoleLogs", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Details.
+        ///   Looks up a localized string similar to Actions.
         /// </summary>
-        public static string ResourcesDetailsColumnHeader {
+        public static string ResourcesActionsColumnHeader {
             get {
-                return ResourceManager.GetString("ResourcesDetailsColumnHeader", resourceCulture);
+                return ResourceManager.GetString("ResourcesActionsColumnHeader", resourceCulture);
             }
         }
         
@@ -223,6 +241,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Health State.
+        /// </summary>
+        public static string ResourcesDetailsHealthStateProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsHealthStateProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Project path.
         /// </summary>
         public static string ResourcesDetailsProjectPathProperty {
@@ -282,15 +309,6 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourcesHeader {
             get {
                 return ResourceManager.GetString("ResourcesHeader", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Logs.
-        /// </summary>
-        public static string ResourcesLogsColumnHeader {
-            get {
-                return ResourceManager.GetString("ResourcesLogsColumnHeader", resourceCulture);
             }
         }
         

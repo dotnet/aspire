@@ -1,0 +1,65 @@
+<Project>
+  <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.props" />
+
+  <Import Project="$(SharedDir)Workload.targets" />
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <!-- Unset PackageType as that is being set by Workload.targets to DotnetPlatform, which this package no longer is. -->
+    <PackageType />
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <PackageOutputPath Condition=" '$(PackageOutputPath)' == '' ">$(ArtifactsShippingPackagesDir)</PackageOutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Description>Dashboard browser interface for .NET Aspire.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <TextReplacementValue Include="PlatformRuntime" NewValue="$(DashboardRuntime)" />
+    <TextReplacementValue Include="PackageName" NewValue="$(AssemblyName)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="build*/*.props;build*/*.targets" Pack="true" PerformTextReplacement="true" PackagePath="%(RecursiveDir)$(AssemblyName)%(Extension)" />
+  </ItemGroup>
+
+  <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.targets" />
+
+  <Target Name="Build" />
+
+
+  <Target Name="BeforeBuild" BeforeTargets="Build">
+    <MSBuild Projects="../../src/Aspire.Dashboard/Aspire.Dashboard.csproj" Targets="publish"
+      Properties="Configuration=$(Configuration);Platform=$(Platform);TargetFramework=$(TargetFramework);RuntimeIdentifier=$(DashboardRuntime);PlatformName=$(DashboardRuntime)" />
+
+    <!-- After publishing the project, we ensure that the published assets get packed in the nuspec. -->
+    <ItemGroup>
+      <_PublishItems
+        Include="$(DotNetOutputPath)Aspire.Dashboard/$(DashboardRuntime)/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish/**/*" />
+      <None Include="@(_PublishItems)" Pack="true" PackagePath="tools/" />
+    </ItemGroup>
+
+    <MakeDir Directories="$(DashboardPublishedArtifactsOutputDir)/$(DashboardRuntime)" />
+    <ZipDirectory
+      SourceDirectory="$(DotNetOutputPath)Aspire.Dashboard/$(DashboardRuntime)/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish"
+      DestinationFile="$(DashboardPublishedArtifactsOutputDir)/$(DashboardRuntime)/aspire-dashboard-$(DashboardRuntime).zip"
+      Overwrite="true" />
+
+    <!-- Throw an error if _PublishItems is empty. -->
+    <Error Condition="'@(_PublishItems)' == ''"
+      Text="No files were found to pack. Ensure that the project being packed has a publish target defined." />
+  </Target>
+
+  <ItemGroup>
+    <None Include="Sdk.props" Pack="true" PackagePath="build/$(AssemblyName).props" />
+    <None Include="Sdk.targets" Pack="true" PackagePath="build/$(AssemblyName).targets" />
+    <None Include="UnixFilePermissions.xml" Pack="true" PackagePath="data/"
+      Condition=" '$(DashboardPlatformType)' == 'Unix' " />
+  </ItemGroup>
+
+</Project>
