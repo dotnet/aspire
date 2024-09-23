@@ -37,16 +37,16 @@ internal abstract partial class CloudFormationResourceProvisioner<T>(ResourceLog
     {
         var list = ImmutableArray.CreateBuilder<ResourcePropertySnapshot>();
 
-        list.Add(new ResourcePropertySnapshot(CustomResourceKnownProperties.Source, stack.StackId, IsSensitive: false));
+        list.Add(new ResourcePropertySnapshot(CustomResourceKnownProperties.Source, stack.StackId));
 
         if (!string.IsNullOrEmpty(templateFile))
         {
-            list.Add(new("aws.cloudformation.template", templateFile, IsSensitive: false));
+            list.Add(new("aws.cloudformation.template", templateFile));
         }
 
         foreach (var output in stack.Outputs)
         {
-            list.Add(new ResourcePropertySnapshot("aws.cloudformation.output." + output.OutputKey, output.OutputValue, IsSensitive: false));
+            list.Add(new ResourcePropertySnapshot("aws.cloudformation.output." + output.OutputKey, output.OutputValue));
         }
 
         return list.ToImmutableArray();

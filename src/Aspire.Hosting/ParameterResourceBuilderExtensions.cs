@@ -139,21 +139,21 @@ public static class ParameterResourceBuilderExtensions
             // hide parameters by default
             State = KnownResourceStates.Hidden,
             Properties = [
-                new("parameter.secret", secret.ToString(), IsSensitive: false),
-                new(CustomResourceKnownProperties.Source, configurationKey, IsSensitive: secret)
+                new("parameter.secret", secret.ToString()),
+                new(CustomResourceKnownProperties.Source, configurationKey) { IsSensitive = secret }
             ]
         };
 
         try
         {
-            state = state with { Properties = [.. state.Properties, new("Value", resource.Value, IsSensitive: secret)] };
+            state = state with { Properties = [.. state.Properties, new("Value", resource.Value) { IsSensitive = secret }] };
         }
         catch (DistributedApplicationException ex)
         {
             state = state with
             {
                 State = new ResourceStateSnapshot("Configuration missing", KnownResourceStateStyles.Error),
-                Properties = [.. state.Properties, new("Value", ex.Message, IsSensitive: false)]
+                Properties = [.. state.Properties, new("Value", ex.Message)]
             };
 
             builder.Services.AddLifecycleHook((sp) => new WriteParameterLogsHook(

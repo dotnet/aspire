@@ -22,7 +22,7 @@ public class ResourceNotificationTests
             .WithInitialState(new()
             {
                 ResourceType = "MyResource",
-                Properties = [new("A", "B", IsSensitive: false)],
+                Properties = [new("A", "B")],
             });
 
         var annotation = custom.Resource.Annotations.OfType<ResourceSnapshotAnnotation>().SingleOrDefault();
@@ -67,9 +67,9 @@ public class ResourceNotificationTests
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var enumerableTask = GetValuesAsync(cts.Token);
 
-        await notificationService.PublishUpdateAsync(resource, state => state with { Properties = state.Properties.Add(new("A", "value", IsSensitive: false)) });
+        await notificationService.PublishUpdateAsync(resource, state => state with { Properties = state.Properties.Add(new("A", "value")) });
 
-        await notificationService.PublishUpdateAsync(resource, state => state with { Properties = state.Properties.Add(new("B", "value", IsSensitive: false)) });
+        await notificationService.PublishUpdateAsync(resource, state => state with { Properties = state.Properties.Add(new("B", "value")) });
 
         var values = await enumerableTask;
 
@@ -118,11 +118,11 @@ public class ResourceNotificationTests
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var enumerableTask = GetValuesAsync(cts.Token);
 
-        await notificationService.PublishUpdateAsync(resource1, state => state with { Properties = state.Properties.Add(new("A", "value", IsSensitive: false)) });
+        await notificationService.PublishUpdateAsync(resource1, state => state with { Properties = state.Properties.Add(new("A", "value")) });
 
-        await notificationService.PublishUpdateAsync(resource2, state => state with { Properties = state.Properties.Add(new("B", "value", IsSensitive: false)) });
+        await notificationService.PublishUpdateAsync(resource2, state => state with { Properties = state.Properties.Add(new("B", "value")) });
 
-        await notificationService.PublishUpdateAsync(resource1, "replica1", state => state with { Properties = state.Properties.Add(new("C", "value", IsSensitive: false)) });
+        await notificationService.PublishUpdateAsync(resource1, "replica1", state => state with { Properties = state.Properties.Add(new("C", "value")) });
 
         var values = await enumerableTask;
 

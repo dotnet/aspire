@@ -87,7 +87,6 @@ Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotification
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, System.Func<Aspire.Hosting.ApplicationModel.ResourceEvent!, bool>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ResourceEvent!>!
 Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot.IsSensitive.get -> bool
 Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot.IsSensitive.init -> void
-Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot.ResourcePropertySnapshot(string! Name, object? Value, bool IsSensitive) -> void
 Aspire.Hosting.ApplicationModel.UpdateCommandStateContext
 Aspire.Hosting.ApplicationModel.UpdateCommandStateContext.ResourceSnapshot.get -> Aspire.Hosting.ApplicationModel.CustomResourceSnapshot!
 Aspire.Hosting.ApplicationModel.UpdateCommandStateContext.ResourceSnapshot.init -> void

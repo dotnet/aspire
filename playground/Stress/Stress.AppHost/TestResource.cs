@@ -17,8 +17,8 @@ static class TestResourceExtensions
                           ResourceType = "Test Resource",
                           State = "Starting",
                           Properties = [
-                              new("P1", "P2", IsSensitive: false),
-                              new(CustomResourceKnownProperties.Source, "Custom", IsSensitive: false)
+                              new("P1", "P2"),
+                              new(CustomResourceKnownProperties.Source, "Custom")
                           ]
                       })
                       .ExcludeFromManifest();
@@ -47,7 +47,7 @@ internal sealed class TestResourceLifecycleHook(ResourceNotificationService noti
 
                 await notificationService.PublishUpdateAsync(resource, state => state with
                 {
-                    Properties = [.. state.Properties, new("Interval", seconds.ToString(CultureInfo.InvariantCulture), IsSensitive: false)]
+                    Properties = [.. state.Properties, new("Interval", seconds.ToString(CultureInfo.InvariantCulture))]
                 });
 
                 using var timer = new PeriodicTimer(TimeSpan.FromSeconds(seconds));

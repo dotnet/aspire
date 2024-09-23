@@ -108,8 +108,23 @@ public sealed record VolumeSnapshot(string? Source, string Target, string MountT
 /// </summary>
 /// <param name="Name">The name of the property.</param>
 /// <param name="Value">The value of the property.</param>
-/// <param name="IsSensitive">Whether this property is considered sensitive or not.</param>
-public sealed record ResourcePropertySnapshot(string Name, object? Value, bool IsSensitive);
+public sealed record ResourcePropertySnapshot(string Name, object? Value)
+{
+    /// <summary>
+    /// Whether this property is considered sensitive or not.
+    /// </summary>
+    /// <remarks>
+    /// Sensitive properties are masked when displayed in UI and require an explicit user action to reveal.
+    /// </remarks>
+    public bool IsSensitive { get; init; }
+
+    internal void Deconstruct(out string name, out object? value, out bool isSensitive)
+    {
+        name = Name;
+        value = Value;
+        isSensitive = IsSensitive;
+    }
+}
 
 /// <summary>
 /// A snapshot of a resource command.

@@ -618,11 +618,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             // Map a container exit code of -1 (unknown) to null
             ExitCode = container.Status?.ExitCode is null or Conventions.UnknownExitCode ? null : container.Status.ExitCode,
             Properties = [
-                new(KnownProperties.Container.Image, container.Spec.Image, IsSensitive: false),
-                new(KnownProperties.Container.Id, containerId, IsSensitive: false),
-                new(KnownProperties.Container.Command, container.Spec.Command, IsSensitive: false),
-                new(KnownProperties.Container.Args, container.Status?.EffectiveArgs ?? [], IsSensitive: true),
-                new(KnownProperties.Container.Ports, GetPorts(), IsSensitive: false),
+                new(KnownProperties.Container.Image, container.Spec.Image),
+                new(KnownProperties.Container.Id, containerId),
+                new(KnownProperties.Container.Command, container.Spec.Command),
+                new(KnownProperties.Container.Args, container.Status?.EffectiveArgs ?? []) { IsSensitive = true },
+                new(KnownProperties.Container.Ports, GetPorts()),
             ],
             EnvironmentVariables = environment,
             CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
@@ -678,11 +678,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 State = state,
                 ExitCode = executable.Status?.ExitCode,
                 Properties = [
-                    new(KnownProperties.Executable.Path, executable.Spec.ExecutablePath, IsSensitive: false),
-                    new(KnownProperties.Executable.WorkDir, executable.Spec.WorkingDirectory, IsSensitive: false),
-                    new(KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? [], IsSensitive: true),
-                    new(KnownProperties.Executable.Pid, executable.Status?.ProcessId, IsSensitive: false),
-                    new(KnownProperties.Project.Path, projectPath, IsSensitive: false)
+                    new(KnownProperties.Executable.Path, executable.Spec.ExecutablePath),
+                    new(KnownProperties.Executable.WorkDir, executable.Spec.WorkingDirectory),
+                    new(KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []) { IsSensitive = true },
+                    new(KnownProperties.Executable.Pid, executable.Status?.ProcessId),
+                    new(KnownProperties.Project.Path, projectPath)
                 ],
                 EnvironmentVariables = environment,
                 CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
@@ -696,10 +696,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             State = state,
             ExitCode = executable.Status?.ExitCode,
             Properties = [
-                new(KnownProperties.Executable.Path, executable.Spec.ExecutablePath, IsSensitive: false),
-                new(KnownProperties.Executable.WorkDir, executable.Spec.WorkingDirectory, IsSensitive: false),
-                new(KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? [], IsSensitive: true),
-                new(KnownProperties.Executable.Pid, executable.Status?.ProcessId, IsSensitive: false)
+                new(KnownProperties.Executable.Path, executable.Spec.ExecutablePath),
+                new(KnownProperties.Executable.WorkDir, executable.Spec.WorkingDirectory),
+                new(KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []) { IsSensitive = true },
+                new(KnownProperties.Executable.Pid, executable.Status?.ProcessId)
             ],
             EnvironmentVariables = environment,
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
@@ -1482,7 +1482,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     State = "Starting",
                     Properties = [
-                        new(KnownProperties.Container.Image, cr.ModelResource.TryGetContainerImageName(out var imageName) ? imageName : "", IsSensitive: false),
+                        new(KnownProperties.Container.Image, cr.ModelResource.TryGetContainerImageName(out var imageName) ? imageName : ""),
                    ],
                     ResourceType = KnownResourceTypes.Container
                 })

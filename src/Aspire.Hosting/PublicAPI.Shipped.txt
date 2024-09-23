@@ -302,6 +302,7 @@ Aspire.Hosting.ApplicationModel.ResourceNotificationService.WatchAsync(System.Th
 Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot
 Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot.Name.get -> string!
 Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot.Name.init -> void
+Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot.ResourcePropertySnapshot(string! Name, object? Value) -> void
 Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot.Value.get -> object?
 Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot.Value.init -> void
 Aspire.Hosting.ApplicationModel.ResourceSnapshotAnnotation
