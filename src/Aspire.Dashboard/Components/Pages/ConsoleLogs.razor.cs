@@ -175,7 +175,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         }
 
         var selectedResourceName = PageViewModel.SelectedResource?.Name;
-        if (selectedResourceName != _consoleLogsSubscription?.Name)
+        if (string.Equals(selectedResourceName, _consoleLogsSubscription?.Name, StringComparisons.ResourceName))
         {
             Logger.LogDebug("New resource {ResourceName} selected.", selectedResourceName);
 
@@ -183,11 +183,15 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             if (selectedResourceName is not null)
             {
                 newConsoleLogsSubscription = new ConsoleLogsSubscription { Name = selectedResourceName };
-                newConsoleLogsSubscription.CancellationToken.Register(state =>
+
+                if (Logger.IsEnabled(LogLevel.Debug))
                 {
-                    var s = (ConsoleLogsSubscription)state!;
-                    Logger.LogDebug("Canceling current subscription to {ResourceName}.", s.Name);
-                }, newConsoleLogsSubscription);
+                    newConsoleLogsSubscription.CancellationToken.Register(state =>
+                    {
+                        var s = (ConsoleLogsSubscription)state!;
+                        Logger.LogDebug("Canceling current subscription to {ResourceName}.", s.Name);
+                    }, newConsoleLogsSubscription);
+                }
             }
 
             if (_consoleLogsSubscription is { } currentSubscription)
