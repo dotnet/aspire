@@ -74,6 +74,7 @@
                                             RowClass="@GetRowClass"
                                             GridTemplateColumns="@_manager.GetGridTemplateColumns()"
                                             ShowHover="true"
+                                            ItemKey="@(s => s.Span.SpanId)"
                                             OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, buttonId: null)))">
                                 <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" UseCustomHeaderTemplate="false" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailNameHeader)]">
                                     <div class="col-long-content" title="@context.GetTooltip(_applications)">
