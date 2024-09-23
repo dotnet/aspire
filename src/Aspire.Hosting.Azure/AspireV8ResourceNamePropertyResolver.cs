@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Azure;
 /// Uses the .NET Aspire v8.x naming scheme to provide default names for Azure resources.
 /// </summary>
 /// <remarks>
-/// Can be used to keep a consistent name with .NET Aspire 8.x.
+/// Can be used to keep consistent Azure resource names with .NET Aspire 8.x.
 /// </remarks>
 public sealed class AspireV8ResourceNamePropertyResolver : DynamicResourceNamePropertyResolver
 {
