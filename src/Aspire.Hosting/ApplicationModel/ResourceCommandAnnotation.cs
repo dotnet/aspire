@@ -20,6 +20,7 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
         Func<UpdateCommandStateContext, ResourceCommandState> updateState,
         Func<ExecuteCommandContext, Task<ExecuteCommandResult>> executeCommand,
         string? iconName,
+        IconVariant? iconVariant,
         bool isHighlighted)
     {
         ArgumentNullException.ThrowIfNull(type);
@@ -32,6 +33,7 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
         UpdateState = updateState;
         ExecuteCommand = executeCommand;
         IconName = iconName;
+        IconVariant = iconVariant;
         IsHighlighted = isHighlighted;
     }
 
@@ -63,9 +65,29 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
     public string? IconName { get; }
 
     /// <summary>
+    /// The icon variant for the command.
+    /// </summary>
+    public IconVariant? IconVariant { get; }
+
+    /// <summary>
     /// A flag indicating whether the command is highlighted in the UI.
     /// </summary>
     public bool IsHighlighted { get; }
+}
+
+/// <summary>
+/// The icon variant.
+/// </summary>
+public enum IconVariant
+{
+    /// <summary>
+    /// Regular variant of icons.
+    /// </summary>
+    Regular,
+    /// <summary>
+    /// Filled variant of icons.
+    /// </summary>
+    Filled
 }
 
 /// <summary>

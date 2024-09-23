@@ -129,7 +129,7 @@ public class AddValkeyTests
 
         var volumeAnnotation = valkey.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
-        Assert.Equal("Aspire.Hosting.Tests-myValkey-data", volumeAnnotation.Source);
+        Assert.Equal($"{builder.GetVolumePrefix()}-myValkey-data", volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);

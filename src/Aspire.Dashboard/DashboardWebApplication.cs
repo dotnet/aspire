@@ -227,6 +227,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddScoped<ILocalStorage, LocalBrowserStorage>();
         builder.Services.AddScoped<ISessionStorage, SessionBrowserStorage>();
 
+        builder.Services.AddScoped<IKnownPropertyLookup, KnownPropertyLookup>();
+
         builder.Services.AddScoped<DimensionManager>();
 
         builder.Services.AddLocalization();

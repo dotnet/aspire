@@ -42,7 +42,7 @@ partial class Resource
 
         foreach (var property in snapshot.Properties)
         {
-            resource.Properties.Add(new ResourceProperty { Name = property.Name, Value = property.Value });
+            resource.Properties.Add(new ResourceProperty { Name = property.Name, Value = property.Value, IsSensitive = property.IsSensitive });
         }
 
         foreach (var volume in snapshot.Volumes)
@@ -58,10 +58,21 @@ partial class Resource
 
         foreach (var command in snapshot.Commands)
         {
-            resource.Commands.Add(new ResourceCommand { CommandType = command.Type, DisplayName = command.DisplayName, IconName = command.IconName, IsHighlighted = command.IsHighlighted, State = MapCommandState(command.State) });
+            resource.Commands.Add(new ResourceCommand { CommandType = command.Type, DisplayName = command.DisplayName, IconName = command.IconName ?? string.Empty, IconVariant = MapIconVariant(command.IconVariant), IsHighlighted = command.IsHighlighted, State = MapCommandState(command.State) });
         }
 
         return resource;
+    }
+
+    private static IconVariant MapIconVariant(Hosting.ApplicationModel.IconVariant? iconVariant)
+    {
+        return iconVariant switch
+        {
+            Hosting.ApplicationModel.IconVariant.Regular => IconVariant.Regular,
+            Hosting.ApplicationModel.IconVariant.Filled => IconVariant.Filled,
+            null => IconVariant.Regular,
+            _ => throw new InvalidOperationException("Unexpected icon variant: " + iconVariant)
+        };
     }
 
     private static ResourceCommandState MapCommandState(Hosting.ApplicationModel.ResourceCommandState state)

@@ -8,24 +8,6 @@ namespace Aspire.Hosting.Tests;
 
 public class ResourceCommandAnnotationTests
 {
-    [Fact]
-    public void AddContainer_HasKnownCommandAnnotations()
-    {
-        HasKnownCommandAnnotationsCore(builder => builder.AddContainer("name", "image"));
-    }
-
-    [Fact]
-    public void AddProject_HasKnownCommandAnnotations()
-    {
-        HasKnownCommandAnnotationsCore(builder => builder.AddProject("name", "path", o => o.ExcludeLaunchProfile = true));
-    }
-
-    [Fact]
-    public void AddExecutable_HasKnownCommandAnnotations()
-    {
-        HasKnownCommandAnnotationsCore(builder => builder.AddExecutable("name", "command", "workingDirectory"));
-    }
-
     [Theory]
     [InlineData(CommandsConfigurationExtensions.StartType, "Starting", ResourceCommandState.Disabled)]
     [InlineData(CommandsConfigurationExtensions.StartType, "Stopping", ResourceCommandState.Hidden)]
@@ -53,6 +35,7 @@ public class ResourceCommandAnnotationTests
         // Arrange
         var builder = DistributedApplication.CreateBuilder();
         var resourceBuilder = builder.AddContainer("name", "image");
+        resourceBuilder.Resource.AddLifeCycleCommands();
 
         var startCommand = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().Single(a => a.Type == commandType);
 
@@ -70,21 +53,5 @@ public class ResourceCommandAnnotationTests
 
         // Assert
         Assert.Equal(commandState, state);
-    }
-
-    private static void HasKnownCommandAnnotationsCore<T>(Func<IDistributedApplicationBuilder, IResourceBuilder<T>> createResourceBuilder) where T : IResource
-    {
-        // Arrange
-        var builder = DistributedApplication.CreateBuilder();
-
-        // Act
-        var resourceBuilder = createResourceBuilder(builder);
-
-        // Assert
-        var commandAnnotations = resourceBuilder.Resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
-        Assert.Collection(commandAnnotations,
-            a => Assert.Equal(CommandsConfigurationExtensions.StartType, a.Type),
-            a => Assert.Equal(CommandsConfigurationExtensions.StopType, a.Type),
-            a => Assert.Equal(CommandsConfigurationExtensions.RestartType, a.Type));
     }
 }

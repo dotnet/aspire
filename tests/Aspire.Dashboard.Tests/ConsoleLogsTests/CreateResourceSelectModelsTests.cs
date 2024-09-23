@@ -6,7 +6,6 @@ using System.Collections.Frozen;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
-using Google.Protobuf.WellKnownTypes;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.ConsoleLogsTests;
@@ -112,7 +111,7 @@ public class CreateResourceSelectModelsTests
             Uid = Guid.NewGuid().ToString(),
             CreationTimeStamp = DateTime.UtcNow,
             Environment = [],
-            Properties = FrozenDictionary<string, Value>.Empty,
+            Properties = FrozenDictionary<string, ResourcePropertyViewModel>.Empty,
             Urls = [],
             Volumes = [],
             State = state?.ToString(),

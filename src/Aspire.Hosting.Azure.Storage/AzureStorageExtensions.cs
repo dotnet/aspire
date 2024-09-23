@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Azure.Storage;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.Storage;
@@ -16,7 +17,7 @@ namespace Aspire.Hosting;
 public static class AzureStorageExtensions
 {
     /// <summary>
-    /// Adds an Azure Storage resource to the application model.This resource can be used to create Azure blob, table, and queue resources.
+    /// Adds an Azure Storage resource to the application model. This resource can be used to create Azure blob, table, and queue resources.
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
@@ -29,7 +30,7 @@ public static class AzureStorageExtensions
     }
 
     /// <summary>
-    /// Adds an Azure Storage resource to the application model.This resource can be used to create Azure blob, table, and queue resources.
+    /// Adds an Azure Storage resource to the application model. This resource can be used to create Azure blob, table, and queue resources.
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
@@ -92,7 +93,7 @@ public static class AzureStorageExtensions
     }
 
     /// <summary>
-    /// Configures an Azure Storage resource to be emulated using Azurite. This resource requires an <see cref="AzureStorageResource"/> to be added to the application model. This version the package defaults to version 3.29.0 of the mcr.microsoft.com/azure-storage/azurite container image.
+    /// Configures an Azure Storage resource to be emulated using Azurite. This resource requires an <see cref="AzureStorageResource"/> to be added to the application model. This version of the package defaults to the <inheritdoc cref="StorageEmulatorContainerImageTags.Tag"/> tag of the <inheritdoc cref="StorageEmulatorContainerImageTags.Registry"/>/<inheritdoc cref="StorageEmulatorContainerImageTags.Image"/> container image.
     /// </summary>
     /// <param name="builder">The Azure storage resource builder.</param>
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
@@ -109,9 +110,9 @@ public static class AzureStorageExtensions
                .WithEndpoint(name: "table", targetPort: 10002)
                .WithAnnotation(new ContainerImageAnnotation
                {
-                   Registry = "mcr.microsoft.com",
-                   Image = "azure-storage/azurite",
-                   Tag = "3.31.0"
+                   Registry = StorageEmulatorContainerImageTags.Registry,
+                   Image = StorageEmulatorContainerImageTags.Image,
+                   Tag = StorageEmulatorContainerImageTags.Tag
                });
 
         if (configureContainer != null)

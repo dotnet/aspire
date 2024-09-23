@@ -12,9 +12,14 @@ internal static class CommandsConfigurationExtensions
     internal const string StopType = "stop";
     internal const string RestartType = "restart";
 
-    internal static IResourceBuilder<T> WithLifeCycleCommands<T>(this IResourceBuilder<T> builder) where T : IResource
+    internal static void AddLifeCycleCommands(this IResource resource)
     {
-        builder.WithCommand(
+        if (resource.TryGetLastAnnotation<ExcludeLifecycleCommandsAnnotation>(out _))
+        {
+            return;
+        }
+
+        resource.Annotations.Add(new ResourceCommandAnnotation(
             type: StartType,
             displayName: "Start",
             executeCommand: async context =>
@@ -40,9 +45,10 @@ internal static class CommandsConfigurationExtensions
                 }
             },
             iconName: "Play",
-            isHighlighted: true);
+            iconVariant: IconVariant.Filled,
+            isHighlighted: true));
 
-        builder.WithCommand(
+        resource.Annotations.Add(new ResourceCommandAnnotation(
             type: StopType,
             displayName: "Stop",
             executeCommand: async context =>
@@ -68,9 +74,10 @@ internal static class CommandsConfigurationExtensions
                 }
             },
             iconName: "Stop",
-            isHighlighted: true);
+            iconVariant: IconVariant.Filled,
+            isHighlighted: true));
 
-        builder.WithCommand(
+        resource.Annotations.Add(new ResourceCommandAnnotation(
             type: RestartType,
             displayName: "Restart",
             executeCommand: async context =>
@@ -93,9 +100,8 @@ internal static class CommandsConfigurationExtensions
                 }
             },
             iconName: "ArrowCounterclockwise",
-            isHighlighted: false);
-
-        return builder;
+            iconVariant: IconVariant.Regular,
+            isHighlighted: false));
 
         static bool IsStopped(string? state) => state is "Exited" or "Finished" or "FailedToStart";
         static bool IsStopping(string? state) => state is "Stopping";
