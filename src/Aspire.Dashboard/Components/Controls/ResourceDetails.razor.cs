@@ -65,6 +65,8 @@ public partial class ResourceDetails
         if (!ReferenceEquals(Resource, _resource))
         {
             _resource = Resource;
+
+            // Collapse details sections when they have no data.
             _isEndpointsExpanded = GetEndpoints().Any();
             _isEnvironmentVariablesExpanded = _resource.Environment.Any();
             _isVolumesExpanded = _resource.Volumes.Any();

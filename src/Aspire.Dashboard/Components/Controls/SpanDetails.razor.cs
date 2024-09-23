@@ -78,6 +78,7 @@ public partial class SpanDetails : IDisposable
             _contextAttributes.Add(new KeyValuePair<string, string>("TraceId", ViewModel.Span.TraceId));
         }
 
+        // Collapse details sections when they have no data.
         _isSpanEventsExpanded = ViewModel.Span.Events.Any();
         _isSpanLinksExpanded = ViewModel.Span.Links.Any();
         _isSpanBacklinksExpanded = ViewModel.Span.BackLinks.Any();
