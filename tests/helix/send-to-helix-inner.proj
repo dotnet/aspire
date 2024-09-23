@@ -166,6 +166,16 @@
     <DownloadFile SourceUrl="https://raw.githubusercontent.com/BorisWilhelms/create-dotnet-devcert/main/scripts/common.sh" DestinationFolder="$(_CreateDotNetDevCertsDirectory)" />
   </Target>
 
+  <!-- Once the dotnet sdk and path is set for the environment, we install Aspire Project templates if they are needed for the test run. -->
+  <Target Name="InstallProjectTemplates" 
+          Condition="'$(NeedsWorkload)' == 'true'"
+          AfterTargets="AddDotNetSdk">
+    <PropertyGroup>
+      <HelixPreCommands>$(HelixPreCommands);dotnet new install Aspire.ProjectTemplates::$(Version) --force</HelixPreCommands>
+      <HelixPostCommands>dotnet new uninstall Aspire.ProjectTemplates;$(HelixPostCommands)</HelixPostCommands>
+    </PropertyGroup>
+  </Target>
+
   <Target Name="BuildHelixWorkItems" DependsOnTargets="$(BuildHelixWorkItemsDependsOn)" BeforeTargets="Build">
     <Error Condition="'$(_DotNetCoverageToolDir)' == '' or !Exists($(_DotNetCoverageToolDir))"
            Text="Could not find dotnet-coverage tool. %24(_DotNetCoverageToolDir)=$(_DotNetCoverageToolDir)" />
@@ -185,11 +195,6 @@
 
       <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="$(_EnvVarSetKeyword) DcpPublisher__CliPath=$(_HelixCorrelationPayloadEnvVar)/dcp/dcp" />
       <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="$(_EnvVarSetKeyword) DcpPublisher__CliPath=$(_HelixCorrelationPayloadEnvVar)\dcp\dcp.exe" />
-    </ItemGroup>
-
-    <ItemGroup Condition="'$(NeedsWorkload)' == 'true'">
-      <HelixPreCommand Include="dotnet new install Aspire.ProjectTemplates::$(Version) --force" />
-      <HelixPostCommand Include="dotnet new uninstall Aspire.ProjectTemplates" />
     </ItemGroup>
 
     <PropertyGroup>
