@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Hosting.Azure.CosmosDB.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.Tests" />
   </ItemGroup>
 
 </Project>
