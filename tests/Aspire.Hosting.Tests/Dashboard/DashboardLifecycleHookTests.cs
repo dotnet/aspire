@@ -71,7 +71,7 @@ public class DashboardLifecycleHookTests
     }
 
     [Fact]
-    public async Task AfterResourcesCreatedAsync_LifecycleCommands_RemovedFromDashboard()
+    public async Task BeforeStartAsync_ExcludeLifecycleCommands_CommandsNotAddedToDashboard()
     {
         // Arrange
         var resourceLoggerService = new ResourceLoggerService();
@@ -88,14 +88,14 @@ public class DashboardLifecycleHookTests
             NullLoggerFactory.Instance);
 
         var model = new DistributedApplicationModel(new ResourceCollection());
+
+        // Act
         await hook.BeforeStartAsync(model, CancellationToken.None);
         var dashboardResource = model.Resources.Single(r => string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName));
         dashboardResource.AddLifeCycleCommands();
 
-        // Act
-        await hook.AfterResourcesCreatedAsync(model, CancellationToken.None);
-
         // Assert
+        Assert.Single(dashboardResource.Annotations.OfType<ExcludeLifecycleCommandsAnnotation>());
         Assert.Empty(dashboardResource.Annotations.OfType<ResourceCommandAnnotation>());
     }
 

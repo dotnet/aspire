@@ -53,26 +53,6 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
         return Task.CompletedTask;
     }
 
-    public Task AfterResourcesCreatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
-    {
-        if (appModel.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is { } dashboardResource)
-        {
-            // The dashboard is visible during development. Stopping the dashboard with a command breaks the dashboard.
-            // Remove the lifecycle commands so they're not accidently clicked during development.
-            var lifecycleCommands = dashboardResource.Annotations
-                .OfType<ResourceCommandAnnotation>()
-                .Where(a => a.Type is CommandsConfigurationExtensions.StartType or CommandsConfigurationExtensions.StopType or CommandsConfigurationExtensions.RestartType)
-                .ToList();
-
-            foreach (var command in lifecycleCommands)
-            {
-                dashboardResource.Annotations.Remove(command);
-            }
-        }
-
-        return Task.CompletedTask;
-    }
-
     public async ValueTask DisposeAsync()
     {
         _shutdownCts.Cancel();
@@ -130,6 +110,10 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
     private void ConfigureAspireDashboardResource(IResource dashboardResource)
     {
+        // The dashboard resource can be visible during development. We don't want people to be able to stop the dashboard from inside the dashboard.
+        // Exclude the lifecycle commands from the dashboard resource so they're not accidently clicked during development.
+        dashboardResource.Annotations.Add(new ExcludeLifecycleCommandsAnnotation());
+
         // Remove endpoint annotations because we are directly configuring
         // the dashboard app (it doesn't go through the proxy!).
         var endpointAnnotations = dashboardResource.Annotations.OfType<EndpointAnnotation>().ToList();
