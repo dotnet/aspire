@@ -9,7 +9,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
-using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting;
 
@@ -24,7 +23,12 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
     /// Callback for configuring construct.
     /// </summary>
     public Action<ResourceModuleConstruct> ConfigureConstruct { get; internal set; } = configureConstruct;
-    internal ProvisioningContext? ProvisioningContext { get; set; }
+
+    /// <summary>
+    /// Gets or sets the <see cref="Azure.Provisioning.ProvisioningContext"/> which contains common settings and
+    /// functionality for building Azure resources.
+    /// </summary>
+    public ProvisioningContext? ProvisioningContext { get; set; }
 
     /// <inheritdoc/>
     public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
@@ -80,23 +84,6 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
         }
 
         return _generatedBicep;
-    }
-}
-
-/// <summary>
-/// 
-/// </summary>
-public sealed class AzureResourceNamePropertyResolverAspirev8 : DynamicResourceNamePropertyResolver
-{
-    /// <summary>
-    /// Override the default Name property resolver and use a .NET Aspire 8.x compatible name scheme.
-    ///
-    /// This is to keep a consistent name with .NET Aspire 8.x so updating doesn't change resource names.
-    /// </summary>
-    public override BicepValue<string>? ResolveName(ProvisioningContext context, global::Azure.Provisioning.Primitives.Resource resource, ResourceNameRequirements requirements)
-    {
-        var suffix = GetUniqueSuffix(context, resource);
-        return BicepFunction.ToLower(BicepFunction.Take(BicepFunction.Interpolate($"{resource.ResourceName}{suffix}"), 24));
     }
 }
 
