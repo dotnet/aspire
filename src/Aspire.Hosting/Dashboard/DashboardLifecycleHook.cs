@@ -31,24 +31,38 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
     private readonly CancellationTokenSource _shutdownCts = new();
     private Task? _dashboardLogsTask;
 
-    public Task BeforeStartAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
+    public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
         Debug.Assert(executionContext.IsRunMode, "Dashboard resource should only be added in run mode");
 
-        if (model.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is { } dashboardResource)
+        if (appModel.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is { } dashboardResource)
         {
             ConfigureAspireDashboardResource(dashboardResource);
 
             // Make the dashboard first in the list so it starts as fast as possible.
-            model.Resources.Remove(dashboardResource);
-            model.Resources.Insert(0, dashboardResource);
+            appModel.Resources.Remove(dashboardResource);
+            appModel.Resources.Insert(0, dashboardResource);
         }
         else
         {
-            AddDashboardResource(model);
+            AddDashboardResource(appModel);
         }
 
         _dashboardLogsTask = WatchDashboardLogsAsync(_shutdownCts.Token);
+
+        return Task.CompletedTask;
+    }
+
+    public Task AfterResourcesCreatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    {
+        if (appModel.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is { } dashboardResource)
+        {
+            var commands = dashboardResource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
+            foreach (var command in commands)
+            {
+                dashboardResource.Annotations.Remove(command);
+            }
+        }
 
         return Task.CompletedTask;
     }
