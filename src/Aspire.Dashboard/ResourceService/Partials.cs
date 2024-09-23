@@ -25,6 +25,8 @@ partial class Resource
                 DisplayName = ValidateNotNull(DisplayName),
                 Uid = ValidateNotNull(Uid),
                 CreationTimeStamp = ValidateNotNull(CreatedAt).ToDateTime(),
+                StartTimeStamp = StartedAt?.ToDateTime(),
+                StopTimeStamp = StoppedAt?.ToDateTime(),
                 Properties = Properties.ToFrozenDictionary(
                     comparer: StringComparers.ResourcePropertyName,
                     keySelector: property => ValidateNotNull(property.Name),

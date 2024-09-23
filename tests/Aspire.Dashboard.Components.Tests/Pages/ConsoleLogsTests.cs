@@ -188,6 +188,8 @@ public partial class ConsoleLogsTests : TestContext
             DisplayName = displayName ?? appName,
             Uid = Guid.NewGuid().ToString(),
             CreationTimeStamp = DateTime.UtcNow,
+            StartTimeStamp = DateTime.UtcNow,
+            StopTimeStamp = DateTime.UtcNow,
             Environment = [],
             Properties = FrozenDictionary<string, ResourcePropertyViewModel>.Empty,
             Urls = [],

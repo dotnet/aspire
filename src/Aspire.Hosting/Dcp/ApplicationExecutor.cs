@@ -625,7 +625,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 new(KnownProperties.Container.Ports, GetPorts()),
             ],
             EnvironmentVariables = environment,
-            CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
+            CreationTimeStamp = container.Metadata.CreationTimestamp?.ToUniversalTime(),
+            StartTimeStamp = container.Status?.StartupTimestamp?.ToUniversalTime().UtcDateTime,
+            StopTimeStamp = container.Status?.FinishTimestamp?.ToUniversalTime().UtcDateTime,
             Urls = urls,
             Volumes = volumes
         };
@@ -685,7 +687,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     new(KnownProperties.Project.Path, projectPath)
                 ],
                 EnvironmentVariables = environment,
-                CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
+                CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToUniversalTime(),
+                StartTimeStamp = executable.Status?.StartupTimestamp?.ToUniversalTime().UtcDateTime,
+                StopTimeStamp = executable.Status?.FinishTimestamp?.ToUniversalTime().UtcDateTime,
                 Urls = urls
             };
         }
@@ -702,7 +706,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 new(KnownProperties.Executable.Pid, executable.Status?.ProcessId)
             ],
             EnvironmentVariables = environment,
-            CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
+            CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToUniversalTime(),
+            StartTimeStamp = executable.Status?.StartupTimestamp?.ToUniversalTime().UtcDateTime,
+            StopTimeStamp = executable.Status?.FinishTimestamp?.ToUniversalTime().UtcDateTime,
             Urls = urls
         };
     }
