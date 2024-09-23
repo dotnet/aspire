@@ -11,7 +11,7 @@ namespace EventHubsConsumer;
 ///   production scenario, as it offers a much more robust experience with higher throughput.
 ///
 ///   It is important to note that this method does not guarantee fairness amongst the partitions during iteration; each of the partitions compete to publish
-///   events to be read by the enumerator.  Depending on service communication, there may be a clustering of events per partition and/or there may be a noticeable
+///   events to be read by the enumerator. Depending on service communication, there may be a clustering of events per partition and/or there may be a noticeable
 ///   bias for a given partition or subset of partitions.
 ///
 ///   Each reader of events is presented with an independent iterator; if there are multiple readers, each receive their own copy of an event to

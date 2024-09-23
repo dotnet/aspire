@@ -7,7 +7,7 @@ namespace Aspire.Dashboard.Extensions;
 
 public static class LogFilterFormatter
 {
-    private static string SerializeLogFilterToString(LogFilter filter)
+    private static string SerializeLogFilterToString(TelemetryFilter filter)
     {
         var condition = filter.Condition switch
         {
@@ -25,13 +25,13 @@ public static class LogFilterFormatter
         return $"{filter.Field}:{condition}:{Uri.EscapeDataString(filter.Value)}";
     }
 
-    public static string SerializeLogFiltersToString(IEnumerable<LogFilter> filters)
+    public static string SerializeLogFiltersToString(IEnumerable<TelemetryFilter> filters)
     {
         // "%2B" is the escaped form of +
         return string.Join("%2B", filters.Select(SerializeLogFilterToString));
     }
 
-    private static LogFilter? DeserializeLogFilterFromString(string filterString)
+    private static TelemetryFilter? DeserializeLogFilterFromString(string filterString)
     {
         var parts = filterString.Split(':');
         if (parts.Length != 3)
@@ -61,16 +61,16 @@ public static class LogFilterFormatter
 
         var value = Uri.UnescapeDataString(parts[2]);
 
-        return new LogFilter { Condition = condition.Value, Field = field, Value = value };
+        return new TelemetryFilter { Condition = condition.Value, Field = field, Value = value };
     }
 
-    public static List<LogFilter> DeserializeLogFiltersFromString(string filtersString)
+    public static List<TelemetryFilter> DeserializeLogFiltersFromString(string filtersString)
     {
         return filtersString
             .Split('+') // + turns into space from query parameter (' ')
             .Select(DeserializeLogFilterFromString)
             .Where(filter => filter is not null)
-            .Cast<LogFilter>()
+            .Cast<TelemetryFilter>()
             .ToList();
     }
 }

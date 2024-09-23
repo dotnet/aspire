@@ -10,9 +10,9 @@ internal sealed class GenericResourceSnapshot(CustomResourceSnapshot state) : Re
 {
     public override string ResourceType => state.ResourceType;
 
-    protected override IEnumerable<(string Key, Value Value)> GetProperties()
+    protected override IEnumerable<(string Key, Value Value, bool IsSensitive)> GetProperties()
     {
-        foreach (var (key, value) in state.Properties)
+        foreach (var (key, value, isSensitive) in state.Properties)
         {
             var result = value switch
             {
@@ -24,7 +24,7 @@ internal sealed class GenericResourceSnapshot(CustomResourceSnapshot state) : Re
                 _ => Value.ForString(value.ToString())
             };
 
-            yield return (key, result);
+            yield return (key, result, isSensitive);
         }
     }
 }

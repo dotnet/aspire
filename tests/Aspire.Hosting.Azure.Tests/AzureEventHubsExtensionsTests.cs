@@ -55,7 +55,7 @@ public class AzureEventHubsExtensionsTests
 
         // Ignoring the annotation created for the custom Config.json file
         var volumeAnnotation = eventHubs.Resource.Annotations.OfType<ContainerMountAnnotation>().Single(a => !a.Target.Contains("Config.json"));
-        Assert.Equal("Aspire.Hosting.Tests-eh-data", volumeAnnotation.Source);
+        Assert.Equal($"{builder.GetVolumePrefix()}-eh-data", volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
         Assert.False(volumeAnnotation.IsReadOnly);
