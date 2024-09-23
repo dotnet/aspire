@@ -74,5 +74,7 @@ public class AzureProvisioningOptionsTests(ITestOutputHelper output)
             """;
         output.WriteLine(actualBicep);
         Assert.Equal(expectedBicep, actualBicep);
+
+        tempDir.Delete(recursive: true);
     }
 }
