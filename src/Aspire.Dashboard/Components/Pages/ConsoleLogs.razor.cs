@@ -174,12 +174,24 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             return;
         }
 
-        if (PageViewModel.SelectedResource?.Name != _consoleLogsSubscription?.Name)
+        var selectedResourceName = PageViewModel.SelectedResource?.Name;
+        if (!string.Equals(selectedResourceName, _consoleLogsSubscription?.Name, StringComparisons.ResourceName))
         {
+            Logger.LogDebug("New resource {ResourceName} selected.", selectedResourceName);
+
             ConsoleLogsSubscription? newConsoleLogsSubscription = null;
-            if (PageViewModel.SelectedResource is not null)
+            if (selectedResourceName is not null)
             {
-                newConsoleLogsSubscription = new ConsoleLogsSubscription { Name = PageViewModel.SelectedResource!.Name };
+                newConsoleLogsSubscription = new ConsoleLogsSubscription { Name = selectedResourceName };
+
+                if (Logger.IsEnabled(LogLevel.Debug))
+                {
+                    newConsoleLogsSubscription.CancellationToken.Register(state =>
+                    {
+                        var s = (ConsoleLogsSubscription)state!;
+                        Logger.LogDebug("Canceling current subscription to {ResourceName}.", s.Name);
+                    }, newConsoleLogsSubscription);
+                }
             }
 
             if (_consoleLogsSubscription is { } currentSubscription)
@@ -195,7 +207,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             }
 
             // Wait for the first render to complete so that the log viewer is available.
-            await _logViewerReadyTcs.Task;
+            if (!_logViewerReadyTcs.Task.IsCompletedSuccessfully)
+            {
+                Logger.LogDebug("Waiting for log viewer to be available.");
+                await _logViewerReadyTcs.Task;
+            }
 
             LogViewer.ClearLogs();
 
@@ -210,6 +226,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     {
         if (firstRender)
         {
+            Logger.LogDebug("Log viewer ready.");
             _logViewerReadyTcs.SetResult();
         }
     }
@@ -287,6 +304,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     private void LoadLogs(ConsoleLogsSubscription newConsoleLogsSubscription)
     {
+        Logger.LogDebug("Starting log subscription.");
         var consoleLogsTask = Task.Run(async () =>
         {
             newConsoleLogsSubscription.CancellationToken.ThrowIfCancellationRequested();
