@@ -30,7 +30,7 @@ internal sealed class EventHubProducerClientComponent : EventHubsComponent<Azure
     {
         return ((IAzureClientFactoryBuilderWithCredential)azureFactoryBuilder).RegisterClientFactory<EventHubProducerClient, EventHubProducerClientOptions>((options, cred) =>
         {
-            // ensure that the connection string or namespace+eventhubname is provided 
+            // ensure that the connection string or namespace+eventhubname is provided
             EnsureConnectionStringOrNamespaceProvided(settings, connectionName, configurationSectionName);
 
             // If no connection is provided use TokenCredential
