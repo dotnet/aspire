@@ -434,8 +434,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     await SetChildResourceAsync(
                         appModelResource,
                         status.State,
-                        status.StartupTimestamp?.ToUniversalTime().UtcDateTime,
-                        status.FinishTimestamp?.ToUniversalTime().UtcDateTime).ConfigureAwait(false);
+                        status.StartupTimestamp?.ToUniversalTime(),
+                        status.FinishTimestamp?.ToUniversalTime()).ConfigureAwait(false);
                 }
             }
             else
@@ -631,8 +631,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             ],
             EnvironmentVariables = environment,
             CreationTimeStamp = container.Metadata.CreationTimestamp?.ToUniversalTime(),
-            StartTimeStamp = container.Status?.StartupTimestamp?.ToUniversalTime().UtcDateTime,
-            StopTimeStamp = container.Status?.FinishTimestamp?.ToUniversalTime().UtcDateTime,
+            StartTimeStamp = container.Status?.StartupTimestamp?.ToUniversalTime(),
+            StopTimeStamp = container.Status?.FinishTimestamp?.ToUniversalTime(),
             Urls = urls,
             Volumes = volumes
         };
@@ -693,8 +693,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 ],
                 EnvironmentVariables = environment,
                 CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToUniversalTime(),
-                StartTimeStamp = executable.Status?.StartupTimestamp?.ToUniversalTime().UtcDateTime,
-                StopTimeStamp = executable.Status?.FinishTimestamp?.ToUniversalTime().UtcDateTime,
+                StartTimeStamp = executable.Status?.StartupTimestamp?.ToUniversalTime(),
+                StopTimeStamp = executable.Status?.FinishTimestamp?.ToUniversalTime(),
                 Urls = urls
             };
         }
@@ -712,8 +712,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             ],
             EnvironmentVariables = environment,
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToUniversalTime(),
-            StartTimeStamp = executable.Status?.StartupTimestamp?.ToUniversalTime().UtcDateTime,
-            StopTimeStamp = executable.Status?.FinishTimestamp?.ToUniversalTime().UtcDateTime,
+            StartTimeStamp = executable.Status?.StartupTimestamp?.ToUniversalTime(),
+            StopTimeStamp = executable.Status?.FinishTimestamp?.ToUniversalTime(),
             Urls = urls
         };
     }
