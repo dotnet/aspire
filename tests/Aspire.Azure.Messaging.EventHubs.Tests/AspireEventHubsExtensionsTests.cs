@@ -138,9 +138,7 @@ public class AspireEventHubsExtensionsTests
             s_clientAdders[clientIndex](builder, "eh", null);
         }
 
-        using var host = builder.Build();
-
-        await Task.Delay(500);
+        using var host = builder.Build();        
 
         var client = RetrieveClient(key, clientIndex, host) as EventProcessorClient;
 
