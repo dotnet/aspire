@@ -8,17 +8,16 @@ using Aspire.Hosting.Utils;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// This class is retained only for compatibility.
+/// Provides extension methods for adding Python applications to an <see cref="IDistributedApplicationBuilder"/>.
 /// </summary>
-[Obsolete("PythonProjectResource is deprecated. Please use PythonAppResource instead.")]
-public static class PythonProjectResourceBuilderExtensions
+public static class PythonAppResourceBuilderExtensions
 {
     /// <summary>
-    /// This method is retained only for compatibility.
+    /// Adds a python application with a virtual environment to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="projectDirectory">The path to the directory containing the python project files.</param>
+    /// <param name="projectDirectory">The path to the directory containing the python app files.</param>
     /// <param name="scriptPath">The path to the script relative to the project directory to run.</param>
     /// <param name="scriptArgs">The arguments for the script.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
@@ -26,7 +25,7 @@ public static class PythonProjectResourceBuilderExtensions
     /// <para>
     /// The virtual environment must be initialized before running the project. By default the virtual environment folder is expected
     /// to be named <c>.venv</c> and be located in the project directory. If the virtual environment is located in a different directory
-    /// this default can be specified by using the <see cref="AddPythonProject(IDistributedApplicationBuilder, string, string, string, string, string[])"/>
+    /// this default can be specified by using the <see cref="AddPythonApp(IDistributedApplicationBuilder, string, string, string, string, string[])"/>
     /// overload of this method.
     /// </para>
     /// <para>
@@ -45,7 +44,7 @@ public static class PythonProjectResourceBuilderExtensions
     /// </para>
     /// </remarks>
     /// <example>
-    /// Add a python project to the application model. In this example the project is located in the <c>PythonProject</c> directory
+    /// Add a python app or executible to the application model. In this example the python code entry point is located in the <c>PythonProject</c> directory
     /// if this path is relative then it is assumed to be relative to the AppHost directory, and the virtual enviroment path if relative
     /// is relative to the project directory. In the example below, if the app host directory is <c>$HOME/repos/MyApp/src/MyApp.AppHost</c> then
     /// the ProjectPath would be <c>$HOME/repos/MyApp/src/MyApp.AppHost/PythonProject</c> and the virtual environment path (defaulted) would
@@ -53,22 +52,21 @@ public static class PythonProjectResourceBuilderExtensions
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// builder.AddPythonProject("python-project", "PythonProject", "main.py");
+    /// builder.AddPythonApp("python-project", "PythonProject", "main.py");
     /// 
     /// builder.Build().Run(); 
     /// </code>
     /// </example>
-    [Obsolete("AddPythonProject is deprecated. Please use AddPythonApp instead.")]
-    public static IResourceBuilder<PythonProjectResource> AddPythonProject(
+    public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath, params string[] scriptArgs)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.AddPythonProject(name, projectDirectory, scriptPath, ".venv", scriptArgs);
+        return builder.AddPythonApp(name, projectDirectory, scriptPath, ".venv", scriptArgs);
     }
 
     /// <summary>
-    /// This method is retained only for compatibility.
+    /// Adds a python application with a virtual environment to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the resource.</param>
@@ -95,7 +93,7 @@ public static class PythonProjectResourceBuilderExtensions
     /// </para>
     /// </remarks>
     /// <example>
-    /// Add a python project to the application model. In this example the project is located in the <c>PythonProject</c> directory
+    /// Add a python app or executible to the application model. In this example the python code is located in the <c>PythonProject</c> directory
     /// if this path is relative then it is assumed to be relative to the AppHost directory, and the virtual enviroment path if relative
     /// is relative to the project directory. In the example below, if the app host directory is <c>$HOME/repos/MyApp/src/MyApp.AppHost</c> then
     /// the ProjectPath would be <c>$HOME/repos/MyApp/src/MyApp.AppHost/PythonProject</c> and the virtual environment path (defaulted) would
@@ -103,13 +101,12 @@ public static class PythonProjectResourceBuilderExtensions
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// builder.AddPythonProject("python-project", "PythonProject", "main.py");
+    /// builder.AddPythonApp("python-project", "PythonProject", "main.py");
     /// 
     /// builder.Build().Run(); 
     /// </code>
     /// </example>
-    [Obsolete("AddPythonProject is deprecated. Please use AddPythonApp instead.")]
-    public static IResourceBuilder<PythonProjectResource> AddPythonProject(
+    public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, string name, string projectDirectory, string scriptPath,
         string virtualEnvironmentPath, params string[] scriptArgs)
     {
@@ -129,7 +126,7 @@ public static class PythonProjectResourceBuilderExtensions
         var pythonExecutable = virtualEnvironment.GetRequiredExecutable("python");
         var projectExecutable = instrumentationExecutable ?? pythonExecutable;
 
-        var projectResource = new PythonProjectResource(name, projectExecutable, projectDirectory);
+        var projectResource = new PythonAppResource(name, projectExecutable, projectDirectory);
 
         var resourceBuilder = builder.AddResource(projectResource).WithArgs(context =>
         {

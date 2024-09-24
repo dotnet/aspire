@@ -3,7 +3,7 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddPythonProject("script-only", "../script_only", "main.py");
-builder.AddPythonProject("instrumented-script", "../instrumented_script", "main.py");
+builder.AddPythonApp("script-only", "../script_only", "main.py");
+builder.AddPythonApp("instrumented-script", "../instrumented_script", "main.py");
 
 builder.Build().Run();
