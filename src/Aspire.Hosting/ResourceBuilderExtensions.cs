@@ -595,64 +595,12 @@ public static class ResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T : IResource
     {
-<<<<<<< HEAD
-        return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitUntilHealthy));
-=======
         if (builder.Resource as IResource == dependency.Resource)
         {
             throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for itself.");
         }
 
-        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (e, ct) =>
-        {
-            var rls = e.Services.GetRequiredService<ResourceLoggerService>();
-            var resourceLogger = rls.GetLogger(builder.Resource);
-            resourceLogger.LogInformation("Waiting for resource '{Name}' to enter the '{State}' state.", dependency.Resource.Name, KnownResourceStates.Running);
-
-            var rns = e.Services.GetRequiredService<ResourceNotificationService>();
-            await rns.PublishUpdateAsync(builder.Resource, s => s with { State = KnownResourceStates.Waiting }).ConfigureAwait(false);
-            var resourceEvent = await rns.WaitForResourceAsync(dependency.Resource.Name, re => IsContinuableState(re.Snapshot), cancellationToken: ct).ConfigureAwait(false);
-            var snapshot = resourceEvent.Snapshot;
-
-            if (snapshot.State?.Text == KnownResourceStates.FailedToStart)
-            {
-                resourceLogger.LogError(
-                    "Dependency resource '{ResourceName}' failed to start.",
-                    dependency.Resource.Name
-                    );
-
-                throw new DistributedApplicationException($"Dependency resource '{dependency.Resource.Name}' failed to start.");
-            }
-            else if (snapshot.State!.Text == KnownResourceStates.Finished || snapshot.State!.Text == KnownResourceStates.Exited)
-            {
-                resourceLogger.LogError(
-                    "Resource '{ResourceName}' has entered the '{State}' state prematurely.",
-                    dependency.Resource.Name,
-                    snapshot.State.Text
-                    );
-
-                throw new DistributedApplicationException(
-                    $"Resource '{dependency.Resource.Name}' has entered the '{snapshot.State.Text}' state prematurely."
-                    );
-            }
-
-            // If our dependency resource has health check annotations we want to wait until they turn healthy
-            // otherwise we don't care about their health status.
-            if (dependency.Resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var _))
-            {
-                resourceLogger.LogInformation("Waiting for resource '{Name}' to become healthy.", dependency.Resource.Name);
-                await rns.WaitForResourceAsync(dependency.Resource.Name, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: ct).ConfigureAwait(false);
-            }
-        });
-
-        return builder;
-
-        static bool IsContinuableState(CustomResourceSnapshot snapshot) =>
-            snapshot.State?.Text == KnownResourceStates.Running ||
-            snapshot.State?.Text == KnownResourceStates.Finished ||
-            snapshot.State?.Text == KnownResourceStates.Exited ||
-            snapshot.State?.Text == KnownResourceStates.FailedToStart;
->>>>>>> 101f7cfba (Cannot wait self.)
+        return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitUntilHealthy));
     }
 
     /// <summary>
@@ -683,6 +631,11 @@ public static class ResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<T> WaitForCompletion<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, int exitCode = 0) where T : IResource
     {
+        if (builder.Resource as IResource == dependency.Resource)
+        {
+            throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for itself.");
+        }
+
         return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitForCompletion, exitCode));
     }
 

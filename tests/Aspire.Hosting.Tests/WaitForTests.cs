@@ -17,12 +17,19 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         using var builder = TestDistributedApplicationBuilder.Create();
         var resource = builder.AddResource(new CustomResource("test"));
 
-        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        var waitForEx = Assert.Throws<DistributedApplicationException>(() =>
         {
             resource.WaitFor(resource);
         });
 
-        Assert.Equal("The 'test' resource cannot wait for itself.", ex.Message);
+        Assert.Equal("The 'test' resource cannot wait for itself.", waitForEx.Message);
+
+        var waitForCompletionEx = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            resource.WaitForCompletion(resource);
+        });
+
+        Assert.Equal("The 'test' resource cannot wait for itself.", waitForCompletionEx.Message);
     }
 
     [Fact]
