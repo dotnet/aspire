@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Hosting.ConsoleLogs;
 using Microsoft.Extensions.Logging;
 
@@ -66,11 +67,12 @@ public class ResourceLoggerService
     /// The internal logger is used when adding logs from resource's stream logs.
     /// It allows the parsed date from text to be used as the log line date.
     /// </summary>
-    internal Action<DateTime?, string, bool> GetInternalLogger(string resourceName)
+    internal Action<LogEntry> GetInternalLogger(string resourceName)
     {
         ArgumentNullException.ThrowIfNull(resourceName);
 
-        return GetResourceLoggerState(resourceName).AddLog;
+        var state = GetResourceLoggerState(resourceName);
+        return (logEntry) => state.AddLog(logEntry, inMemorySource: false);
     }
 
     /// <summary>
@@ -193,7 +195,8 @@ public class ResourceLoggerService
         private readonly CancellationTokenSource _logStreamCts = new();
         private readonly object _lock = new();
 
-        private readonly LogEntries _backlog = new(10000) { BaseLineNumber = 0 };
+        private readonly CircularBuffer<LogEntry> _inMemoryEntries = new(10_000);
+        private readonly LogEntries _backlog = new(10_000) { BaseLineNumber = 0 };
         private readonly TimeProvider _timeProvider;
 
         /// <summary>
@@ -246,7 +249,7 @@ public class ResourceLoggerService
 
             using var _ = _logStreamCts.Token.Register(() => channel.Writer.TryComplete());
 
-            // No need to lock in the log method because TryWrite/TryComplete are already threadsafe.
+            // No need to lock in the log method because TryWrite/TryComplete are already thread safe.
             void Log(LogEntry log) => channel.Writer.TryWrite(log);
 
             LogEntry[] backlogSnapshot;
@@ -254,6 +257,10 @@ public class ResourceLoggerService
             {
                 // Get back
                 backlogSnapshot = GetBacklogSnapshot();
+                if (backlogSnapshot.Length == 0)
+                {
+                    backlogSnapshot.AddRange(_inMemoryEntries);
+                }
                 OnNewLog += Log;
             }
 
@@ -369,12 +376,15 @@ public class ResourceLoggerService
             }
         }
 
-        public void AddLog(DateTime? timestamp, string logMessage, bool isErrorMessage)
+        public void AddLog(LogEntry logEntry, bool inMemorySource)
         {
-            var logEntry = new LogEntry { Timestamp = timestamp, Content = logMessage, Type = isErrorMessage ? LogEntryType.Error : LogEntryType.Default };
             lock (_lock)
             {
                 _backlog.InsertSorted(logEntry);
+                if (inMemorySource)
+                {
+                    _inMemoryEntries.Add(logEntry);
+                }
             }
 
             _onNewLog?.Invoke(logEntry);
@@ -399,7 +409,7 @@ public class ResourceLoggerService
                 var logMessage = formatter(state, exception) + (exception is null ? "" : $"\n{exception}");
                 var isErrorMessage = logLevel >= LogLevel.Error;
 
-                loggerState.AddLog(logTime, logMessage, isErrorMessage);
+                loggerState.AddLog(LogEntry.Create(logTime, logMessage, isErrorMessage), inMemorySource: true);
             }
         }
     }

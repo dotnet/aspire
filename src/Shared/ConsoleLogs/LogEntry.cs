@@ -12,6 +12,16 @@ internal sealed class LogEntry
     public DateTime? Timestamp { get; set; }
     public LogEntryType Type { get; init; } = LogEntryType.Default;
     public int LineNumber { get; set; }
+
+    public static LogEntry Create(DateTime? timestamp, string logMessage, bool isErrorMessage)
+    {
+        return new LogEntry
+        {
+            Timestamp = timestamp,
+            Content = logMessage,
+            Type = isErrorMessage ? LogEntryType.Error : LogEntryType.Default
+        };
+    }
 }
 
 internal enum LogEntryType
