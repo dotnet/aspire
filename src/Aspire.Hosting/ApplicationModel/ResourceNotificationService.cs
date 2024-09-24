@@ -178,10 +178,9 @@ public class ResourceNotificationService
     /// This method returns a task that will complete with the resource is healthy. A resource
     /// without <see cref="HealthCheckAnnotation"/> annotations will be considered healthy.
     /// </remarks>
-    public async Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, CancellationToken cancellationToken)
+    public Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, CancellationToken cancellationToken)
     {
-        var resourceEvent = await WaitForResourceAsync(resourceName, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: cancellationToken).ConfigureAwait(false);
-        return resourceEvent;
+        return WaitForResourceAsync(resourceName, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: cancellationToken);
     }
 
     private async Task WaitUntilCompletionAsync(IResource resource, IResource dependency, int exitCode, CancellationToken cancellationToken)
