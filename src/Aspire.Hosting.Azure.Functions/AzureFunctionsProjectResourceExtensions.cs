@@ -109,10 +109,13 @@ public static class AzureFunctionsProjectResourceExtensions
         if (launchProfile is not null)
         {
             var commandLineArgs = CommandLineArgsParser.Parse(launchProfile.LaunchProfile.CommandLineArgs ?? string.Empty);
-            if (commandLineArgs is { Count: > 0 })
+            if (commandLineArgs is { Count: > 0 } &&
+                commandLineArgs.IndexOf("--port") is var indexOfPort &&
+                indexOfPort > -1 &&
+                indexOfPort + 1 < commandLineArgs.Count &&
+                int.TryParse(commandLineArgs[indexOfPort + 1], CultureInfo.InvariantCulture, out var parsedPort))
             {
-                var indexOfPort = commandLineArgs.IndexOf("--port");
-                port = indexOfPort > -1 ? int.Parse(commandLineArgs[indexOfPort + 1], CultureInfo.InvariantCulture) : null;
+                port = parsedPort;
             }
         }
         return builder.WithHttpEndpoint(port: port, targetPort: port, isProxied: port == null);
