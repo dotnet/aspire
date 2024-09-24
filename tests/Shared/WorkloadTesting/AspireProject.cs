@@ -77,11 +77,11 @@ public class AspireProject : IAsyncDisposable
         File.WriteAllText(Path.Combine(rootDir, "Directory.Build.props"), "<Project />");
         File.WriteAllText(Path.Combine(rootDir, "Directory.Build.targets"), "<Project />");
 
-        using var cmd = new DotNetCommand(testOutput, useDefaultArgs: true, label: "dotnet-new")
+        using var cmd = new DotNetNewCommand(testOutput)
                             .WithWorkingDirectory(Path.GetDirectoryName(rootDir)!)
                             .WithTimeout(TimeSpan.FromMinutes(5));
 
-        var res = await cmd.ExecuteAsync($"new {template} {extraArgs} -o \"{id}\"").ConfigureAwait(false);
+        var res = await cmd.ExecuteAsync($"{template} {extraArgs} -o \"{id}\"").ConfigureAwait(false);
         res.EnsureSuccessful();
         if (res.Output.Contains("Restore failed", StringComparison.OrdinalIgnoreCase) ||
             res.Output.Contains("Post action failed", StringComparison.OrdinalIgnoreCase))

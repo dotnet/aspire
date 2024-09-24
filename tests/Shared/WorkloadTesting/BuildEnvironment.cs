@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Xunit.Sdk;
 
@@ -18,6 +19,7 @@ public class BuildEnvironment
     public bool                             HasWorkloadFromArtifacts      { get; init; }
     public bool                             UsesSystemDotNet => !HasWorkloadFromArtifacts;
     public string?                          NuGetPackagesPath             { get; init; }
+    public string                           TemplatesHomeDirectory        { get; init; }
     public TestTargetFramework              TargetFramework               { get; init; }
     public DirectoryInfo?                   RepoRoot                      { get; init; }
 
@@ -34,8 +36,14 @@ public class BuildEnvironment
     public static BuildEnvironment ForNet80 => s_instance_80.Value;
     public static BuildEnvironment ForDefaultFramework => ForNet80;
 
-    public BuildEnvironment(bool useSystemDotNet = false, TestTargetFramework targetFramework = DefaultTargetFramework)
+    public BuildEnvironment(bool useSystemDotNet = true, TestTargetFramework targetFramework = DefaultTargetFramework, bool installTemplates = true)
     {
+        if (!useSystemDotNet)
+        {
+            Console.WriteLine($"** IGNORING unsupported config with useSystemDotNet={useSystemDotNet}");
+            useSystemDotNet = true;
+        }
+
         HasWorkloadFromArtifacts = !useSystemDotNet;
         TargetFramework = targetFramework;
         RepoRoot = TestUtils.FindRepoRoot();
@@ -111,6 +119,7 @@ public class BuildEnvironment
         DefaultBuildArgs = string.Empty;
         WorkloadPacksDir = Path.Combine(sdkForWorkloadPath, "packs");
         NuGetPackagesPath = HasWorkloadFromArtifacts ? Path.Combine(AppContext.BaseDirectory, $"nuget-cache-{TargetFramework}") : null;
+        TemplatesHomeDirectory = Path.Combine(Path.GetTempPath(), "templates", Guid.NewGuid().ToString());
 
         EnvVars = new Dictionary<string, string>();
         if (HasWorkloadFromArtifacts)
@@ -120,9 +129,9 @@ public class BuildEnvironment
             EnvVars["DOTNET_MULTILEVEL_LOOKUP"] = "0";
             EnvVars["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1";
             EnvVars["PATH"] = $"{sdkForWorkloadPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}";
-            EnvVars["BUILT_NUGETS_PATH"] = BuiltNuGetsPath;
             EnvVars["NUGET_PACKAGES"] = NuGetPackagesPath!;
         }
+        EnvVars["BUILT_NUGETS_PATH"] = BuiltNuGetsPath;
         EnvVars["TreatWarningsAsErrors"] = "true";
         // Set DEBUG_SESSION_PORT='' to avoid the app from the tests connecting
         // to the IDE
@@ -166,6 +175,33 @@ public class BuildEnvironment
             {
                 Console.WriteLine($"*** [{TargetFramework}] Using NuGet cache (never deleted automatically): {NuGetPackagesPath}");
             }
+        }
+
+        Console.WriteLine($"*** [{TargetFramework}] Using templates custom hive: {TemplatesHomeDirectory}");
+        Directory.CreateDirectory(TemplatesHomeDirectory);
+        InstallTemplate("Aspire.ProjectTemplates");
+
+        void InstallTemplate(string templatePackagesId)
+        {
+            var packages = Directory.EnumerateFiles(BuiltNuGetsPath, $"{templatePackagesId}*.nupkg");
+            if (!packages.Any())
+            {
+                throw new ArgumentException($"Cannot find {templatePackagesId}*.nupkg in {BuiltNuGetsPath}. Found packages: {string.Join(", ", Directory.EnumerateFiles(BuiltNuGetsPath))}");
+            }
+            if (packages.Count() > 1)
+            {
+                throw new ArgumentException($"Found more than one {templatePackagesId}*.nupkg in {BuiltNuGetsPath}: {string.Join(", ", packages)}");
+            }
+
+            var installCmd = $"new install --debug:custom-hive {TemplatesHomeDirectory} {packages.Single()}";
+            using var cmd = new ToolCommand(DotNet,
+                                            new TestOutputWrapper(forceShowBuildOutput: true),
+                                            label: "template install");
+
+            var cmdTask = cmd.ExecuteAsync(installCmd);
+            cmdTask.Wait();
+            var res = cmdTask.Result;
+            res.EnsureSuccessful();
         }
 
         static void CleanupTestRootPath()
@@ -214,6 +250,7 @@ public class BuildEnvironment
         BuiltNuGetsPath = otherBuildEnvironment.BuiltNuGetsPath;
         HasWorkloadFromArtifacts = otherBuildEnvironment.HasWorkloadFromArtifacts;
         NuGetPackagesPath = otherBuildEnvironment.NuGetPackagesPath;
+        TemplatesHomeDirectory = otherBuildEnvironment.TemplatesHomeDirectory;
         TargetFramework = otherBuildEnvironment.TargetFramework;
         RepoRoot = otherBuildEnvironment.RepoRoot;
     }

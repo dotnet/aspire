@@ -39,13 +39,9 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     {
         _diagnosticMessageSink = diagnosticMessageSink;
         _testOutput = new TestOutputWrapper(messageSink: _diagnosticMessageSink);
-        BuildEnvironment = new(useSystemDotNet: !TestsRunningOutsideOfRepo);
+        BuildEnvironment = new(useSystemDotNet: !TestsRunningOutsideOfRepo, installTemplates: false);
         if (TestsRunningOutsideOfRepo)
         {
-            if (!BuildEnvironment.HasWorkloadFromArtifacts)
-            {
-                throw new InvalidOperationException("Expected to have sdk+workload from artifacts when running tests outside of the repo");
-            }
             BuildEnvironment.EnvVars["TestsRunningOutsideOfRepo"] = "true";
             _testProjectPath = Path.Combine(BuildEnvironment.TestAssetsPath, "testproject");
         }
