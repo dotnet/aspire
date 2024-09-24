@@ -193,6 +193,11 @@ message Resource {
 
     // The aggregate health state of the resource
     optional HealthStateKind HealthState = 16;
+
+    // The resource start time.
+    optional google.protobuf.Timestamp started_at = 17;
+    // The resource stop time.
+    optional google.protobuf.Timestamp stopped_at = 18;
 }
 
 enum HealthStateKind {
