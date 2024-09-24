@@ -278,6 +278,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>());
             }
 
+            if (options.EnableResourceLogging)
+            {
+                // This must be added before DcpHostService to ensure that it can subscribe to the ResourceNotificationService and ResourceLoggerService
+                _innerBuilder.Services.AddHostedService<ResourceLoggerForwarderService>();
+            }
+
             // Orchestrator
             _innerBuilder.Services.AddSingleton<ApplicationOrchestrator>();
             _innerBuilder.Services.AddHostedService<OrchestratorHostService>();

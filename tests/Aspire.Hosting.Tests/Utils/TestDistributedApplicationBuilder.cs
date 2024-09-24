@@ -93,6 +93,7 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
             hostBuilderOptions.ApplicationName = appAssembly.GetName().Name;
             applicationOptions.AssemblyName = assemblyName;
             applicationOptions.DisableDashboard = true;
+            applicationOptions.EnableResourceLogging = true;
             var cfg = hostBuilderOptions.Configuration ??= new();
             cfg.AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -108,12 +109,7 @@ public sealed class TestDistributedApplicationBuilder : IDistributedApplicationB
     public TestDistributedApplicationBuilder WithTestAndResourceLogging(ITestOutputHelper testOutputHelper)
     {
         Services.AddXunitLogging(testOutputHelper);
-        Services.Insert(0, ServiceDescriptor.Singleton<IHostedService, ResourceLoggerForwarderService>());
-        Services.AddLogging(builder =>
-        {
-            builder.AddFilter("Aspire.Hosting", LogLevel.Trace);
-            builder.SetMinimumLevel(LogLevel.Trace);
-        });
+        Services.AddLogging(builder => builder.AddFilter("Aspire.Hosting", LogLevel.Trace));
         return this;
     }
 

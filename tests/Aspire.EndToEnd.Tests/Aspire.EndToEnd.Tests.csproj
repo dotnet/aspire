@@ -33,8 +33,6 @@
 
   <ItemGroup Condition="'$(_BuildForTestsRunningOutsideOfRepo)' == 'true'">
     <None Include="..\testproject\**\*" Link="$(DeployOutsideOfRepoSupportFilesDir)%(RecursiveDir)%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <!-- Needed by TestProject.AppHost -->
-    <None Include="$(RepoRoot)src\Aspire.Hosting.Testing\ResourceLoggerForwarderService.cs" Link="$(DeployOutsideOfRepoSupportFilesDir)TestProject.AppHost\ResourceLoggerForwarderService.cs" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\.editorconfig" Link="$(DeployOutsideOfRepoSupportFilesDir)..\%(FileName)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
