@@ -173,9 +173,6 @@
     <Error Condition="'$(_DotNetCoverageToolDir)' == '' or !Exists($(_DotNetCoverageToolDir))"
            Text="Could not find dotnet-coverage tool. %24(_DotNetCoverageToolDir)=$(_DotNetCoverageToolDir)" />
 
-    <Error Condition="'$(NeedsDcpPathOverride)' == 'true' and !Exists('$(ArtifactsBinDir)dotnet-latest')"
-           Text="Could not find workload installed in $(ArtifactsBinDir)dotnet-latest required for %24(NeedsDcpPathOverride)==true" />
-
     <MSBuild Projects="$(RepoRoot)\eng\dcppack\Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier).csproj" Targets="GetDCPBinaryLocation">
       <Output TaskParameter="TargetOutputs" PropertyName="DCPBinaryLocation" />
     </MSBuild>
