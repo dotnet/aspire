@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
-#if !SKIP_SERVICEBUS_RESOURCE
+#if !SKIP_AZURE_RESOURCE
 using Azure.Messaging.ServiceBus;
 #endif
 using Azure.Storage.Blobs;
@@ -15,7 +15,7 @@ builder.AddServiceDefaults();
 builder.AddAzureQueueClient("queue");
 builder.AddAzureBlobClient("blob");
 builder.AddAzureEventHubProducerClient("eventhubs", static settings => settings.EventHubName = "myhub");
-#if !SKIP_SERVICEBUS_RESOURCE
+#if !SKIP_AZURE_RESOURCE
 builder.AddAzureServiceBusClient("messaging");
 #endif
 
@@ -56,7 +56,7 @@ app.MapGet("/publish/eventhubs", async (EventHubProducerClient client, Cancellat
     return Results.Ok("Message sent to Azure EventHubs.");
 });
 
-#if !SKIP_SERVICEBUS_RESOURCE
+#if !SKIP_AZURE_RESOURCE
 app.MapGet("/publish/asb", async (ServiceBusClient client, CancellationToken cancellationToken, int length = 20) =>
 {
     var sender = client.CreateSender("myqueue");

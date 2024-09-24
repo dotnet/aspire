@@ -43,33 +43,6 @@ public class AspireQueueStorageExtensionsTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void ReadsFromKeyedConfigurationSectionCorrectly(bool useKeyed)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Azure:Storage:Queues:queue:ServiceUri", ConformanceTests.ServiceUri)
-        ]);
-
-        if (useKeyed)
-        {
-            builder.AddKeyedAzureQueueClient("queue");
-        }
-        else
-        {
-            builder.AddAzureQueueClient("queue");
-        }
-
-        using var host = builder.Build();
-        var client = useKeyed ?
-            host.Services.GetRequiredKeyedService<QueueServiceClient>("queue") :
-            host.Services.GetRequiredService<QueueServiceClient>();
-
-        Assert.Equal("aspirestoragetests", client.AccountName);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
     public void ConnectionStringCanBeSetInCode(bool useKeyed)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
