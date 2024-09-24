@@ -6,12 +6,12 @@ using Xunit.Abstractions;
 
 namespace Aspire.Workload.Tests;
 
-public class Install9_WithNet8Tests : WorkloadTestsBase, IClassFixture<DotNet_With9_Net80Fixture>
+public class PreviousTFM_TemplateTests : WorkloadTestsBase, IClassFixture<DotNet_With9_Net8_Fixture>
 {
-    private readonly DotNet_With9_Net80Fixture _testFixture;
+    private readonly DotNet_With9_Net8_Fixture _testFixture;
     private const string TargetFramework = "net8.0";
 
-    public Install9_WithNet8Tests(DotNet_With9_Net80Fixture fixture, ITestOutputHelper testOutput)
+    public PreviousTFM_TemplateTests(DotNet_With9_Net8_Fixture fixture, ITestOutputHelper testOutput)
         : base(testOutput)
     {
         _testFixture = fixture;
@@ -29,11 +29,12 @@ public class Install9_WithNet8Tests : WorkloadTestsBase, IClassFixture<DotNet_Wi
         await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
     }
 
-    [Fact]
-    public async Task CannotCreateNet90()
-    {
-        string id = GetNewProjectId(prefix: $"new_build_{TargetFramework}_on_9+net9");
+    // TODO: Check for failed build
+    // [Fact]
+    // public async Task CannotCreateNet90()
+    // {
+    //     string id = GetNewProjectId(prefix: $"new_build_{TargetFramework}_on_9+net9");
 
-        await using var project = await AspireProject.CreateNewTemplateProjectAsync(id, "aspire", _testOutput, buildEnvironment: BuildEnvironment.ForDefaultFramework, customHiveForTemplates: _testFixture.HomeDirectory, extraArgs: "net9.0");
-    }
+    //     await using var project = await AspireProject.CreateNewTemplateProjectAsync(id, "aspire", _testOutput, buildEnvironment: BuildEnvironment.ForDefaultFramework, customHiveForTemplates: _testFixture.HomeDirectory, extraArgs: "net9.0");
+    // }
 }

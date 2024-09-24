@@ -19,6 +19,7 @@ public class BuildEnvironment
     public string                           TemplatesHomeDirectory        { get; init; }
     public TestTargetFramework              TargetFramework               { get; init; }
     public DirectoryInfo?                   RepoRoot                      { get; init; }
+    public string[]                         InstalledTemplatePackageIds   { get; init; }
 
     public const TestTargetFramework        DefaultTargetFramework = TestTargetFramework.Net90;
     public static readonly string           TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "testassets");
@@ -27,6 +28,12 @@ public class BuildEnvironment
     public static bool IsRunningOnHelix => Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is not null;
     public static bool IsRunningOnCIBuildMachine => Environment.GetEnvironmentVariable("BUILD_BUILDID") is not null;
     public static bool IsRunningOnCI => IsRunningOnHelix || IsRunningOnCIBuildMachine;
+
+    private static readonly string[] s_defaultTemplatePackageIds =
+    [
+        TemplatePackageIds.AspireProjectTemplates_9_0_net8,
+        TemplatePackageIds.AspireProjectTemplates_9_0_net9
+    ];
 
     private static readonly Lazy<BuildEnvironment> s_instance_80 = new(() => new BuildEnvironment(targetFramework: TestTargetFramework.Net80));
     private static readonly Lazy<BuildEnvironment> s_instance_90 = new(() => new BuildEnvironment(targetFramework: TestTargetFramework.Net90));
@@ -40,7 +47,7 @@ public class BuildEnvironment
         _ => throw new ArgumentOutOfRangeException(nameof(DefaultTargetFramework))
     };
 
-    public BuildEnvironment(bool useSystemDotNet = true, TestTargetFramework targetFramework = DefaultTargetFramework, bool installTemplates = true)
+    public BuildEnvironment(bool useSystemDotNet = true, TestTargetFramework targetFramework = DefaultTargetFramework, string[]? templatePackageIds = default)
     {
         if (!useSystemDotNet)
         {
@@ -191,7 +198,12 @@ public class BuildEnvironment
 
         Console.WriteLine($"*** [{TargetFramework}] Using templates custom hive: {TemplatesHomeDirectory}");
         Directory.CreateDirectory(TemplatesHomeDirectory);
-        InstallTemplate("Aspire.ProjectTemplates");
+
+        InstalledTemplatePackageIds = templatePackageIds ?? s_defaultTemplatePackageIds;
+        foreach (var templatePackageId in InstalledTemplatePackageIds)
+        {
+            InstallTemplate(templatePackageId);
+        }
 
         void InstallTemplate(string templatePackagesId)
         {
@@ -258,7 +270,7 @@ public class BuildEnvironment
         DefaultBuildArgs = otherBuildEnvironment.DefaultBuildArgs;
         EnvVars = new Dictionary<string, string>(otherBuildEnvironment.EnvVars);
         LogRootPath = otherBuildEnvironment.LogRootPath;
-        // WorkloadPacksDir = otherBuildEnvironment.WorkloadPacksDir;
+        InstalledTemplatePackageIds = otherBuildEnvironment.InstalledTemplatePackageIds;
         BuiltNuGetsPath = otherBuildEnvironment.BuiltNuGetsPath;
         HasWorkloadFromArtifacts = otherBuildEnvironment.HasWorkloadFromArtifacts;
         NuGetPackagesPath = otherBuildEnvironment.NuGetPackagesPath;
