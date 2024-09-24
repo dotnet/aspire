@@ -80,8 +80,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
         await app.CreateHttpClient("funcapp").GetAsync("/api/weatherforecast");
         await WaitForAllTextAsync(app,
             [
-                "Executing HTTP request:",
-                "api/weatherforecast"
+                "Executed 'Functions.weatherforecast'"
             ],
             resourceName: "funcapp",
             timeoutSecs: 160);
