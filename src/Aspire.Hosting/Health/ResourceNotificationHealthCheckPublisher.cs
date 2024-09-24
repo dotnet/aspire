@@ -22,9 +22,9 @@ internal class ResourceNotificationHealthCheckPublisher(DistributedApplicationMo
 
                 if (status == HealthStatus.Healthy)
                 {
+                    _alreadyHealthy.Add(resource.Name); // Immediately flag that this resource is healthy and forever will be healthy.
                     var @event = new ResourceHealthyEvent(resource, services);
-                    await eventing.PublishAsync(@event, cancellationToken).ConfigureAwait(false);
-                    _alreadyHealthy.Add(resource.Name);
+                    await eventing.PublishAsync(@event, EventDispatchBehavior.NonBlockingSequential, cancellationToken).ConfigureAwait(false);
                 }
 
                 await resourceNotificationService.PublishUpdateAsync(resource, s => s with

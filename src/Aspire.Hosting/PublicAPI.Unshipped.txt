@@ -136,6 +136,7 @@ Aspire.Hosting.DistributedApplicationBuilder.AppHostPath.get -> string!
 Aspire.Hosting.DistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!
 Aspire.Hosting.Eventing.DistributedApplicationEventing
 Aspire.Hosting.Eventing.DistributedApplicationEventing.DistributedApplicationEventing() -> void
+Aspire.Hosting.Eventing.DistributedApplicationEventing.PublishAsync<T>(T event, Aspire.Hosting.Eventing.EventDispatchBehavior dispatchBehavior, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Aspire.Hosting.Eventing.DistributedApplicationEventing.PublishAsync<T>(T event, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Aspire.Hosting.Eventing.DistributedApplicationEventing.Subscribe<T>(Aspire.Hosting.ApplicationModel.IResource! resource, System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.Eventing.DistributedApplicationEventSubscription!
 Aspire.Hosting.Eventing.DistributedApplicationEventing.Subscribe<T>(System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.Eventing.DistributedApplicationEventSubscription!
@@ -146,8 +147,14 @@ Aspire.Hosting.Eventing.DistributedApplicationEventSubscription.DistributedAppli
 Aspire.Hosting.Eventing.DistributedApplicationResourceEventSubscription
 Aspire.Hosting.Eventing.DistributedApplicationResourceEventSubscription.DistributedApplicationResourceEventSubscription(Aspire.Hosting.ApplicationModel.IResource? resource, System.Func<Aspire.Hosting.Eventing.IDistributedApplicationResourceEvent!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> void
 Aspire.Hosting.Eventing.DistributedApplicationResourceEventSubscription.Resource.get -> Aspire.Hosting.ApplicationModel.IResource?
+Aspire.Hosting.Eventing.EventDispatchBehavior
+Aspire.Hosting.Eventing.EventDispatchBehavior.BlockingConcurrent = 1 -> Aspire.Hosting.Eventing.EventDispatchBehavior
+Aspire.Hosting.Eventing.EventDispatchBehavior.BlockingSequential = 0 -> Aspire.Hosting.Eventing.EventDispatchBehavior
+Aspire.Hosting.Eventing.EventDispatchBehavior.NonBlockingConcurrent = 3 -> Aspire.Hosting.Eventing.EventDispatchBehavior
+Aspire.Hosting.Eventing.EventDispatchBehavior.NonBlockingSequential = 2 -> Aspire.Hosting.Eventing.EventDispatchBehavior
 Aspire.Hosting.Eventing.IDistributedApplicationEvent
 Aspire.Hosting.Eventing.IDistributedApplicationEventing
+Aspire.Hosting.Eventing.IDistributedApplicationEventing.PublishAsync<T>(T event, Aspire.Hosting.Eventing.EventDispatchBehavior dispatchBehavior, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Aspire.Hosting.Eventing.IDistributedApplicationEventing.PublishAsync<T>(T event, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Aspire.Hosting.Eventing.IDistributedApplicationEventing.Subscribe<T>(Aspire.Hosting.ApplicationModel.IResource! resource, System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.Eventing.DistributedApplicationEventSubscription!
 Aspire.Hosting.Eventing.IDistributedApplicationEventing.Subscribe<T>(System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.Eventing.DistributedApplicationEventSubscription!
