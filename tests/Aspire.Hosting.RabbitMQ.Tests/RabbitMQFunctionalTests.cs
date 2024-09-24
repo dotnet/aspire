@@ -18,14 +18,12 @@ namespace Aspire.Hosting.RabbitMQ.Tests;
 
 public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
 {
-    private const string RabbitMQReadyText = "Time to start RabbitMQ:";
-
     [Fact]
     [RequiresDocker]
     public async Task VerifyWaitForOnRabbitMQBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
-        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
         builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
@@ -51,7 +49,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
         await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
@@ -140,7 +138,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
-                        await app.WaitForTextAsync(RabbitMQReadyText, resourceName: rabbitMQ1.Resource.Name).WaitAsync(TimeSpan.FromMinutes(1));
+                        await app.WaitForHealthyAsync(rabbitMQ1).WaitAsync(TimeSpan.FromMinutes(1));
 
                         var connection = host.Services.GetRequiredService<IConnection>();
 
@@ -197,7 +195,7 @@ public class RabbitMQFunctionalTests(ITestOutputHelper testOutputHelper)
                     using (var host = hb.Build())
                     {
                         await host.StartAsync();
-                        await app.WaitForTextAsync(RabbitMQReadyText, resourceName: rabbitMQ2.Resource.Name).WaitAsync(TimeSpan.FromMinutes(1));
+                        await app.WaitForHealthyAsync(rabbitMQ2).WaitAsync(TimeSpan.FromMinutes(1));
 
                         var connection = host.Services.GetRequiredService<IConnection>();
 

@@ -64,6 +64,10 @@ internal sealed class ContainerSpec
     [JsonPropertyName("networks")]
     public List<ContainerNetworkConnection>? Networks { get; set; }
 
+    // Should this resource be stopped?
+    [JsonPropertyName("stop")]
+    public bool? Stop { get; set; }
+
     /// <summary>
     /// Optional lifecycle key for the resource (used to identify changes to persistent resources requiring a restart).
     /// If unset, DCP will calculate a default lifecycle key based on a hash of various resource spec properties.
@@ -277,11 +281,11 @@ internal sealed class ContainerStatus : V1Status
 
     // Timestamp of the Container start attempt
     [JsonPropertyName("startupTimestamp")]
-    public DateTimeOffset? StartupTimestamp { get; set; }
+    public DateTime? StartupTimestamp { get; set; }
 
     // Timestamp when the Container was terminated last
     [JsonPropertyName("finishTimestamp")]
-    public DateTimeOffset? FinishTimestamp { get; set; }
+    public DateTime? FinishTimestamp { get; set; }
 
     // Exit code of the Container.
     // Default is -1, meaning the exit code is not known, or the container is still running.

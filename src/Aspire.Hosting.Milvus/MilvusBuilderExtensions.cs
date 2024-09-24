@@ -1,9 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Data.Common;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Milvus;
 using Aspire.Hosting.Utils;
+using Aspire.Milvus.Client;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
+using Milvus.Client;
 
 namespace Aspire.Hosting;
 
@@ -30,7 +36,7 @@ public static class MilvusBuilderExtensions
     /// </code>
     /// </example>
     /// <remarks>
-    /// This version the package defaults to the 2.3-latest tag of the milvusdb/milvus container image.
+    /// This version of the package defaults to the <inheritdoc cref="MilvusContainerImageTags.Tag"/> tag of the <inheritdoc cref="MilvusContainerImageTags.Image"/> container image.
     /// The .NET client library uses the gRPC port by default to communicate and this resource exposes that endpoint.
     /// A web-based administration tool for Milvus can also be added using <see cref="WithAttu"/>.
     /// </remarks>
@@ -51,6 +57,40 @@ public static class MilvusBuilderExtensions
 
         var milvus = new MilvusServerResource(name, apiKeyParameter);
 
+        MilvusClient? milvusClient = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(milvus, async (@event, ct) =>
+        {
+            var connectionString = await milvus.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false)
+            ?? throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{milvus.Name}' resource but the connection string was null.");
+
+            milvusClient = CreateMilvusClient(@event.Services, connectionString);
+            var lookup = builder.Resources.OfType<MilvusDatabaseResource>().ToDictionary(d => d.Name);
+            foreach (var databaseName in milvus.Databases)
+            {
+                if (!lookup.TryGetValue(databaseName.Key, out var databaseResource))
+                {
+                    throw new DistributedApplicationException($"Database resource '{databaseName}' under Milvus Server resource '{milvus.Name}' was not found in the model.");
+                }
+                var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(databaseResource, @event.Services);
+                await builder.Eventing.PublishAsync<ConnectionStringAvailableEvent>(connectionStringAvailableEvent, ct).ConfigureAwait(false);
+
+                var beforeResourceStartedEvent = new BeforeResourceStartedEvent(databaseResource, @event.Services);
+                await builder.Eventing.PublishAsync(beforeResourceStartedEvent, ct).ConfigureAwait(false);
+            }
+        });
+
+        var healthCheckKey = $"{name}_check";
+        // TODO: Use health check from AspNetCore.Diagnostics.HealthChecks once it's implemented via this issue:
+        // https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks/issues/2214
+        builder.Services.AddHealthChecks()
+          .Add(new HealthCheckRegistration(
+              healthCheckKey,
+              sp => new MilvusHealthCheck(milvusClient!),
+              failureStatus: default,
+              tags: default,
+              timeout: default));
+
         return builder.AddResource(milvus)
             .WithImage(MilvusContainerImageTags.Image, MilvusContainerImageTags.Tag)
             .WithImageRegistry(MilvusContainerImageTags.Registry)
@@ -67,7 +107,8 @@ public static class MilvusBuilderExtensions
             {
                 ctx.EnvironmentVariables["COMMON_SECURITY_DEFAULTROOTPASSWORD"] = milvus.ApiKeyParameter;
             })
-            .WithArgs("milvus", "run", "standalone");
+            .WithArgs("milvus", "run", "standalone")
+            .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
@@ -92,7 +133,7 @@ public static class MilvusBuilderExtensions
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <remarks>This method does not actually create the database in Milvus, rather helps complete a connection string that is used by the client component.</remarks>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<MilvusDatabaseResource> AddDatabase(this IResourceBuilder<MilvusServerResource> builder, string name, string? databaseName = null)
+    public static IResourceBuilder<MilvusDatabaseResource> AddDatabase(this IResourceBuilder<MilvusServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
@@ -101,12 +142,37 @@ public static class MilvusBuilderExtensions
         databaseName ??= name;
 
         builder.Resource.AddDatabase(name, databaseName);
-        var milvusResource = new MilvusDatabaseResource(name, databaseName, builder.Resource);
-        return builder.ApplicationBuilder.AddResource(milvusResource);
+        var milvusDatabaseResource = new MilvusDatabaseResource(name, databaseName, builder.Resource);
+
+        string? connectionString = null;
+        MilvusClient? milvusClient = null;
+        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(milvusDatabaseResource, async (@event, ct) =>
+        {
+            connectionString = await milvusDatabaseResource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{milvusDatabaseResource.Name}' resource but the connection string was null.");
+            }
+            milvusClient = CreateMilvusClient(@event.Services, connectionString);
+        });
+
+        var healthCheckKey = $"{name}_check";
+        // TODO: Use health check from AspNetCore.Diagnostics.HealthChecks once it's implemented via this issue:
+        // https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks/issues/2214
+        builder.ApplicationBuilder.Services.AddHealthChecks()
+            .Add(new HealthCheckRegistration(
+                healthCheckKey,
+                sp => new MilvusHealthCheck(milvusClient!),
+                failureStatus: default,
+                tags: default,
+                timeout: default));
+
+        return builder.ApplicationBuilder.AddResource(milvusDatabaseResource)
+                                         .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
-    /// Adds an administration and development platform for Milvus to the application model using Attu. This version the package defaults to the 2.3-latest tag of the attu container image
+    /// Adds an administration and development platform for Milvus to the application model using Attu. This version of the package defaults to the <inheritdoc cref="MilvusContainerImageTags.AttuTag"/> tag of the <inheritdoc cref="MilvusContainerImageTags.AttuImage"/> container image
     /// </summary>
     /// <example>
     /// Use in application host with a Milvus resource
@@ -189,5 +255,45 @@ public static class MilvusBuilderExtensions
         // Attu assumes Milvus is being accessed over a default Aspire container network and hardcodes the resource address
         // This will need to be refactored once updated service discovery APIs are available
         context.EnvironmentVariables.Add("MILVUS_URL", $"{resource.PrimaryEndpoint.Scheme}://{resource.Name}:{resource.PrimaryEndpoint.TargetPort}");
+    }
+    internal static MilvusClient CreateMilvusClient(IServiceProvider sp, string? connectionString)
+    {
+        if (connectionString is null)
+        {
+            throw new InvalidOperationException("Connection string is unavailable");
+        }
+
+        Uri? endpoint = null;
+        string? key = null;
+        string? database = null;
+
+        if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+        {
+            endpoint = uri;
+        }
+        else
+        {
+            var connectionBuilder = new DbConnectionStringBuilder
+            {
+                ConnectionString = connectionString
+            };
+
+            if (connectionBuilder.ContainsKey("Endpoint") && Uri.TryCreate(connectionBuilder["Endpoint"].ToString(), UriKind.Absolute, out var serviceUri))
+            {
+                endpoint = serviceUri;
+            }
+
+            if (connectionBuilder.ContainsKey("Key"))
+            {
+                key = connectionBuilder["Key"].ToString();
+            }
+
+            if (connectionBuilder.ContainsKey("Database"))
+            {
+                database = connectionBuilder["Database"].ToString();
+            }
+        }
+
+        return new MilvusClient(endpoint!, apiKey: key!, database: database, loggerFactory: sp.GetRequiredService<ILoggerFactory>());
     }
 }

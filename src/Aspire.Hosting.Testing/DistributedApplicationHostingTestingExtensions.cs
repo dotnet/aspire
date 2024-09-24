@@ -16,9 +16,9 @@ public static class DistributedApplicationHostingTestingExtensions
     /// <summary>
     /// Creates an <see cref="HttpClient"/> configured to communicate with the specified resource.
     /// </summary>
-    /// <param resourceName="app">The application.</param>
-    /// <param resourceName="resourceName">The resourceName of the resource.</param>
-    /// <param resourceName="endpointName">The resourceName of the endpoint on the resource to communicate with.</param>
+    /// <param name="app">The application.</param>
+    /// <param name="resourceName">The resourceName of the resource.</param>
+    /// <param name="endpointName">The resourceName of the endpoint on the resource to communicate with.</param>
     /// <returns>The <see cref="HttpClient"/>.</returns>
     public static HttpClient CreateHttpClient(this DistributedApplication app, string resourceName, string? endpointName = default)
     {

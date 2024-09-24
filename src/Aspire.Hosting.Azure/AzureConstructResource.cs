@@ -3,10 +3,12 @@
 
 #pragma warning disable AZPROVISION001
 
-using System.Linq.Expressions;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
+using Azure.Provisioning.Expressions;
 
 namespace Aspire.Hosting;
 
@@ -22,15 +24,16 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
     /// </summary>
     public Action<ResourceModuleConstruct> ConfigureConstruct { get; internal set; } = configureConstruct;
 
+    /// <summary>
+    /// Gets or sets the <see cref="Azure.Provisioning.ProvisioningContext"/> which contains common settings and
+    /// functionality for building Azure resources.
+    /// </summary>
+    public ProvisioningContext? ProvisioningContext { get; set; }
+
     /// <inheritdoc/>
     public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
     {
-        var configuration = new Configuration()
-        {
-            UseInteractiveMode = true
-        };
-
-        var resourceModuleConstruct = new ResourceModuleConstruct(this, configuration);
+        var resourceModuleConstruct = new ResourceModuleConstruct(this, Name);
 
         ConfigureConstruct(resourceModuleConstruct);
 
@@ -40,8 +43,8 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
         //          put them into a dictionary for quick lookup so we don't need to scan
         //          through the parameter enumerable each time.
         var constructParameters = resourceModuleConstruct.GetParameters();
-        var distinctConstructParameters = constructParameters.DistinctBy(p => p.Name);
-        var distinctConstructParametersLookup = distinctConstructParameters.ToDictionary(p => p.Name);
+        var distinctConstructParameters = constructParameters.DistinctBy(p => p.ResourceName);
+        var distinctConstructParametersLookup = distinctConstructParameters.ToDictionary(p => p.ResourceName);
 
         foreach (var aspireParameter in this.Parameters)
         {
@@ -50,16 +53,20 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
                 continue;
             }
 
-            var constructParameter = new Parameter(aspireParameter.Key);
-            resourceModuleConstruct.AddParameter(constructParameter);
+            var constructParameter = new BicepParameter(aspireParameter.Key, typeof(string));
+            resourceModuleConstruct.Add(constructParameter);
         }
 
         var generationPath = Directory.CreateTempSubdirectory("aspire").FullName;
-        resourceModuleConstruct.Build(generationPath);
-
         var moduleSourcePath = Path.Combine(generationPath, "main.bicep");
-        var moduleDestinationPath = Path.Combine(directory ?? generationPath, $"{Name}.module.bicep");
 
+        var plan = resourceModuleConstruct.Build(ProvisioningContext);
+        var compilation = plan.Compile();
+        Debug.Assert(compilation.Count == 1);
+        var compiledBicep = compilation.First();
+        File.WriteAllText(moduleSourcePath, compiledBicep.Value);
+
+        var moduleDestinationPath = Path.Combine(directory ?? generationPath, $"{Name}.module.bicep");
         File.Copy(moduleSourcePath, moduleDestinationPath, true);
 
         return new BicepTemplateFile(moduleDestinationPath, directory is null);
@@ -92,7 +99,7 @@ public static class AzureConstructResourceExtensions
     /// <param name="name">The name of the resource being added.</param>
     /// <param name="configureConstruct">A callback used to configure the construct resource.</param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureConstructResource> AddAzureConstruct(this IDistributedApplicationBuilder builder, string name, Action<ResourceModuleConstruct> configureConstruct)
+    public static IResourceBuilder<AzureConstructResource> AddAzureConstruct(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<ResourceModuleConstruct> configureConstruct)
     {
         builder.AddAzureProvisioning();
 
@@ -108,7 +115,7 @@ public static class AzureConstructResourceExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="configure">The configuration callback.</param>
     /// <returns>The resource builder.</returns>
-    public static IResourceBuilder<T> ConfigureConstruct<T>(this IResourceBuilder<T> builder, Action<ResourceModuleConstruct> configure) 
+    public static IResourceBuilder<T> ConfigureConstruct<T>(this IResourceBuilder<T> builder, Action<ResourceModuleConstruct> configure)
         where T : AzureConstructResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -119,67 +126,79 @@ public static class AzureConstructResourceExtensions
     }
 
     /// <summary>
-    /// Assigns an Aspire parameter resource to an Azure construct resource.
+    /// Creates a new <see cref="BicepParameter"/> in <paramref name="construct"/>, or reuses an existing bicep parameter if one with
+    /// the same name already exists, that corresponds to <paramref name="parameterResourceBuilder"/>.
     /// </summary>
-    /// <typeparam name="T">Type of the CDK resource.</typeparam>
-    /// <param name="resource">The CDK resource.</param>
-    /// <param name="propertySelector">Property selection expression.</param>
-    /// <param name="parameterResourceBuilder">Aspire parameter resource builder.</param>
+    /// <param name="parameterResourceBuilder">
+    /// The <see cref="IResourceBuilder{ParameterResource}"/> that represents a parameter in the <see cref="Aspire.Hosting.ApplicationModel" />
+    /// to get or create a corresponding <see cref="BicepParameter"/>.
+    /// </param>
+    /// <param name="construct">The <see cref="ResourceModuleConstruct"/> that contains the <see cref="BicepParameter"/>.</param>
     /// <param name="parameterName">The name of the parameter to be assigned.</param>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
-    public static void AssignProperty<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, IResourceBuilder<ParameterResource> parameterResourceBuilder, string? parameterName = null) where T: notnull
+    /// <returns>
+    /// The corresponding <see cref="BicepParameter"/> that was found or newly created.
+    /// </returns>
+    /// <remarks>
+    /// This is useful when assigning a <see cref="BicepValue"/> to the value of an Aspire <see cref="ParameterResource"/>.
+    /// </remarks>
+    [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
+        Justification = "The 'this' arguments are mutually exclusive")]
+    public static BicepParameter AsBicepParameter(this IResourceBuilder<ParameterResource> parameterResourceBuilder, ResourceModuleConstruct construct, string? parameterName = null)
     {
-        parameterName ??= parameterResourceBuilder.Resource.Name;
+        ArgumentNullException.ThrowIfNull(parameterResourceBuilder);
+        ArgumentNullException.ThrowIfNull(construct);
 
-        if (resource.Scope is not ResourceModuleConstruct construct)
-        {
-            throw new ArgumentException("Cannot bind Aspire parameter resource to this construct.", nameof(resource));
-        }
+        parameterName ??= parameterResourceBuilder.Resource.Name;
 
         construct.Resource.Parameters[parameterName] = parameterResourceBuilder.Resource;
 
-        if (resource.Scope.GetParameters().Any(p => p.Name == parameterName))
+        var parameter = construct.GetParameters().FirstOrDefault(p => p.ResourceName == parameterName);
+        if (parameter is null)
         {
-            var parameter = resource.Scope.GetParameters().Single(p => p.Name == parameterName);
-            resource.AssignProperty(propertySelector, parameter.Name);
+            parameter = new BicepParameter(parameterName, typeof(string))
+            {
+                IsSecure = parameterResourceBuilder.Resource.Secret
+            };
+            construct.Add(parameter);
         }
-        else
-        {
-            var parameter = new Parameter(parameterName, isSecure: parameterResourceBuilder.Resource.Secret);
-            resource.AssignProperty(propertySelector, parameter);
-        }
+
+        return parameter;
     }
 
     /// <summary>
-    /// Assigns an Aspire Bicep output reference to an Azure construct resource.
+    /// Creates a new <see cref="BicepParameter"/> in <paramref name="construct"/>, or reuses an existing bicep parameter if one with
+    /// the same name already exists, that corresponds to <paramref name="outputReference"/>.
     /// </summary>
-    /// <typeparam name="T">Type of the CDK resource.</typeparam>
-    /// <param name="resource">The CDK resource.</param>
-    /// <param name="propertySelector">Property selection expression.</param>
+    /// <param name="outputReference">
+    /// The <see cref="BicepOutputReference"/> that contains the value to use for the <see cref="BicepParameter"/>.
+    /// </param>
+    /// <param name="construct">The <see cref="ResourceModuleConstruct"/> that contains the <see cref="BicepParameter"/>.</param>
     /// <param name="parameterName">The name of the parameter to be assigned.</param>
-    /// <param name="outputReference">Aspire parameter resource builder.</param>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters", Justification = "<Pending>")]
-    public static void AssignProperty<T>(this Resource<T> resource, Expression<Func<T, object?>> propertySelector, BicepOutputReference outputReference, string? parameterName = null) where T : notnull
+    /// <returns>
+    /// The corresponding <see cref="BicepParameter"/> that was found or newly created.
+    /// </returns>
+    /// <remarks>
+    /// This is useful when assigning a <see cref="BicepValue"/> to the value of an Aspire <see cref="BicepOutputReference"/>.
+    /// </remarks>
+    [SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
+        Justification = "The 'this' arguments are mutually exclusive")]
+    public static BicepParameter AsBicepParameter(this BicepOutputReference outputReference, ResourceModuleConstruct construct, string? parameterName = null)
     {
-        parameterName ??= outputReference.Resource.Name;
+        ArgumentNullException.ThrowIfNull(outputReference);
+        ArgumentNullException.ThrowIfNull(construct);
 
-        if (resource.Scope is not ResourceModuleConstruct construct)
-        {
-            throw new ArgumentException("Cannot bind Aspire parameter resource to this construct.", nameof(resource));
-        }
+        parameterName ??= outputReference.Name;
 
         construct.Resource.Parameters[parameterName] = outputReference;
 
-        if (resource.Scope.GetParameters().Any(p => p.Name == parameterName))
+        var parameter = construct.GetParameters().FirstOrDefault(p => p.ResourceName == parameterName);
+        if (parameter is null)
         {
-            var parameter = resource.Scope.GetParameters().Single(p => p.Name == parameterName);
-            resource.AssignProperty(propertySelector, parameter);
+            parameter = new BicepParameter(parameterName, typeof(string));
+            construct.Add(parameter);
         }
-        else
-        {
-            var parameter = new Parameter(parameterName);
-            resource.AssignProperty(propertySelector, parameter);
-        }
+
+        return parameter;
     }
 }
 
@@ -188,9 +207,18 @@ public static class AzureConstructResourceExtensions
 /// </summary>
 public class ResourceModuleConstruct : Infrastructure
 {
-    internal ResourceModuleConstruct(AzureConstructResource resource, Configuration configuration) : base(constructScope: ConstructScope.ResourceGroup, tenantId: Guid.Empty, subscriptionId: Guid.Empty, envName: "temp", configuration: configuration)
+    internal ResourceModuleConstruct(AzureConstructResource resource, string name) : base(name)
     {
         Resource = resource;
+
+        // Always add a default location parameter.
+        // azd assumes there will be a location parameter for every module.
+        // The Infrastructure location resolver will resolve unset Location properties to this parameter.
+        Add(new BicepParameter("location", typeof(string))
+        {
+            Description = "The location for the resource(s) to be deployed.",
+            Value = BicepFunction.GetResourceGroup().Location
+        });
     }
 
     /// <summary>
@@ -201,15 +229,17 @@ public class ResourceModuleConstruct : Infrastructure
     /// <summary>
     /// The common principalId parameter injected into most Aspire-based Bicep files.
     /// </summary>
-    public Parameter PrincipalIdParameter => new Parameter("principalId");
+    public BicepParameter PrincipalIdParameter => new BicepParameter("principalId", typeof(string));
 
     /// <summary>
     /// The common principalType parameter injected into most Aspire-based Bicep files.
     /// </summary>
-    public Parameter PrincipalTypeParameter => new Parameter("principalType");
+    public BicepParameter PrincipalTypeParameter => new BicepParameter("principalType", typeof(string));
 
     /// <summary>
     /// The common principalName parameter injected into some Aspire-based Bicep files.
     /// </summary>
-    public Parameter PrincipalNameParameter => new Parameter("principalName");
+    public BicepParameter PrincipalNameParameter => new BicepParameter("principalName", typeof(string));
+
+    internal IEnumerable<BicepParameter> GetParameters() => GetResources().OfType<BicepParameter>();
 }

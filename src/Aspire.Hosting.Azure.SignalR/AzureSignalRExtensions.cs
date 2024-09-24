@@ -20,7 +20,7 @@ public static class AzureSignalRExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, string name)
+    public static IResourceBuilder<AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
 #pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return builder.AddAzureSignalR(name, null);
@@ -35,21 +35,36 @@ public static class AzureSignalRExtensions
     /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.SignalR.SignalRService"/> resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureSignalRResource>, ResourceModuleConstruct, SignalRService>? configureResource)
+    public static IResourceBuilder<AzureSignalRResource> AddAzureSignalR(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<IResourceBuilder<AzureSignalRResource>, ResourceModuleConstruct, SignalRService>? configureResource)
     {
         builder.AddAzureProvisioning();
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var service = new SignalRService(construct, name: name);
-            service.AssignProperty(x => x.Kind, "'SignalR'");
-            service.AddOutput("hostName", x => x.HostName);
+            var service = new SignalRService(name, "2022-02-01") // TODO: resource version should come from CDK
+            {
+                Kind = SignalRServiceKind.SignalR,
+                Sku = new SignalRResourceSku()
+                {
+                    Name = "Free_F1",
+                    Capacity = 1
+                },
+                Features =
+                [
+                    new SignalRFeature()
+                    {
+                        Flag = SignalRFeatureFlag.ServiceMode,
+                        Value = "Default"
+                    }
+                ],
+                CorsAllowedOrigins = ["*"],
+                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+            };
+            construct.Add(service);
 
-            service.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+            construct.Add(new BicepOutput("hostName", typeof(string)) { Value = service.HostName });
 
-            var appServerRole = service.AssignRole(RoleDefinition.SignalRAppServer);
-            appServerRole.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
-            appServerRole.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);
+            construct.Add(service.AssignRole(SignalRBuiltInRole.SignalRAppServer, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             var resource = (AzureSignalRResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);

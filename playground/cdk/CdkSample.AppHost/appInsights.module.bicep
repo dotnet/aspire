@@ -1,30 +1,24 @@
-targetScope = 'resourceGroup'
-
-@description('')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-@description('')
 param applicationType string = 'web'
 
-@description('')
 param kind string = 'web'
 
-@description('')
 param logAnalyticsWorkspaceId string
 
-
-resource applicationInsightsComponent_eYAu4rv7j 'Microsoft.Insights/components@2020-02-02' = {
-  name: toLower(take('appInsights${uniqueString(resourceGroup().id)}', 24))
+resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name: take('appInsights-${uniqueString(resourceGroup().id)}', 260)
+  kind: kind
   location: location
+  properties: {
+    Application_Type: applicationType
+    IngestionMode: 'LogAnalytics'
+    WorkspaceResourceId: logAnalyticsWorkspaceId
+  }
   tags: {
     'aspire-resource-name': 'appInsights'
   }
-  kind: kind
-  properties: {
-    Application_Type: applicationType
-    WorkspaceResourceId: logAnalyticsWorkspaceId
-    IngestionMode: 'LogAnalytics'
-  }
 }
 
-output appInsightsConnectionString string = applicationInsightsComponent_eYAu4rv7j.properties.ConnectionString
+output appInsightsConnectionString string = appInsights.properties.ConnectionString

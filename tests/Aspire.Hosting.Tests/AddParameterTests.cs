@@ -112,36 +112,46 @@ public class AddParameterTests
         Assert.Equal("ValueFromConfiguration", parameterResource.Value);
     }
 
-    [Fact]
-    public async Task ParametersWithDefaultValueStringOverloadUsedRegardlessOfConfigurationValue()
+    [Theory]
+    // We test all the combinations of {direct param, callback param} x {config value, no config value}
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task ParametersWithDefaultValueStringOverloadUsedRegardlessOfConfigurationValue(bool useCallback, bool hasConfig)
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        if (hasConfig)
         {
-            ["Parameters:val1"] = "ValueFromConfiguration",
-        });
+            appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Parameters:pass"] = "ValueFromConfiguration"
+            });
+        }
 
-        // We have 2 params, one with a config value and one without. Both get a default value.
-        var parameter1 = appBuilder.AddParameter("val1", "DefaultValue1");
-        var parameter2 = appBuilder.AddParameter("val2", "DefaultValue2");
+        if (useCallback)
+        {
+            appBuilder.AddParameter("pass", () => "DefaultValue");
+        }
+        else
+        {
+            appBuilder.AddParameter("pass", "DefaultValue");
+        }
 
         using var app = appBuilder.Build();
-
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        // In both cases, make sure the code value is used, regardless of the config value
-        var parameterResource1 = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "val1");
-        Assert.Equal("DefaultValue1", parameterResource1.Value);
-        var parameterResource2 = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "val2");
-        Assert.Equal("DefaultValue2", parameterResource2.Value);
+        // Make sure the code value is used, ignoring any config value
+        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "pass");
+        Assert.Equal($"DefaultValue", parameterResource.Value);
 
-        // Note that the manifest should not include anything about the default value
-        var param1Manifest = await ManifestUtils.GetManifest(parameter1.Resource);
+        // The manifest should not include anything about the default value
+        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass"));
         var expectedManifest = $$"""
             {
               "type": "parameter.v0",
-              "value": "{val1.inputs.value}",
+              "value": "{pass.inputs.value}",
               "inputs": {
                 "value": {
                   "type": "string"
@@ -149,45 +159,107 @@ public class AddParameterTests
               }
             }
             """;
-        Assert.Equal(expectedManifest, param1Manifest.ToString());
+        Assert.Equal(expectedManifest, paramManifest.ToString());
     }
 
-    [Fact]
-    public async Task ParametersWithDefaultValueObjectOverloadUsedRegardlessOfConfigurationValue()
+    [Theory]
+    // We test all the combinations of {direct param, callback param} x {config value, no config value}
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task ParametersWithDefaultValueGetPublishedIfPublishFlagIsPassed(bool useCallback, bool hasConfig)
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        if (hasConfig)
         {
-            ["Parameters:val1"] = "ValueFromConfiguration",
-        });
+            appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Parameters:pass"] = "ValueFromConfiguration"
+            });
+        }
 
-        var genParam = new GenerateParameterDefault
+        if (useCallback)
         {
-            MinLength = 10,
-        };
-
-        // We have 2 params, one with a config value and one without. Both get a generated param default value.
-        var parameter1 = appBuilder.AddParameter("val1", genParam);
-        var parameter2 = appBuilder.AddParameter("val2", genParam);
+            appBuilder.AddParameter("pass", () => "DefaultValue", publishValueAsDefault: true);
+        }
+        else
+        {
+            appBuilder.AddParameter("pass", "DefaultValue", publishValueAsDefault: true);
+        }
 
         using var app = appBuilder.Build();
-
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        // In both cases, make sure the the generated default value is used, regardless of the config value
-        // We can't test the exact value since it's random, but we can test the length
-        var parameterResource1 = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "val1");
-        Assert.Equal(10, parameterResource1.Value.Length);
-        var parameterResource2 = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "val2");
-        Assert.Equal(10, parameterResource2.Value.Length);
+        // Make sure the code value is used, ignoring any config value
+        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "pass");
+        Assert.Equal($"DefaultValue", parameterResource.Value);
 
-        // The manifest should include the fields for the generated default value
-        var param1Manifest = await ManifestUtils.GetManifest(parameter1.Resource);
+        // The manifest should include the default value, since we passed publishValueAsDefault: true
+        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass"));
         var expectedManifest = $$"""
             {
               "type": "parameter.v0",
-              "value": "{val1.inputs.value}",
+              "value": "{pass.inputs.value}",
+              "inputs": {
+                "value": {
+                  "type": "string",
+                  "default": {
+                    "value": "DefaultValue"
+                  }
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, paramManifest.ToString());
+    }
+
+    [Fact]
+    public void AddParameterWithBothPublishValueAsDefaultAndSecretFails()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        // publishValueAsDefault and secret are mutually exclusive. Test both overloads.
+        var ex1 = Assert.Throws<ArgumentException>(() => appBuilder.AddParameter("pass", () => "SomeSecret", publishValueAsDefault: true, secret: true));
+        Assert.Equal($"A parameter cannot be both secret and published as a default value. (Parameter 'secret')", ex1.Message);
+        var ex2 = Assert.Throws<ArgumentException>(() => appBuilder.AddParameter("pass", "SomeSecret", publishValueAsDefault: true, secret: true));
+        Assert.Equal($"A parameter cannot be both secret and published as a default value. (Parameter 'secret')", ex2.Message);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ParametersWithDefaultValueObjectOverloadUsedRegardlessOfConfigurationValue(bool hasConfig)
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        if (hasConfig)
+        {
+            appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Parameters:pass"] = "ValueFromConfiguration"
+            });
+        }
+
+        var genParam = new GenerateParameterDefault { MinLength = 10 };
+
+        var parameter = appBuilder.AddParameter("pass", genParam);
+
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Make sure the the generated default value is used, regardless of the config value
+        // We can't test the exact value since it's random, but we can test the length
+        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "pass");
+        Assert.Equal(10, parameterResource.Value.Length);
+
+        // The manifest should include the fields for the generated default value
+        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass"));
+        var expectedManifest = $$"""
+            {
+              "type": "parameter.v0",
+              "value": "{pass.inputs.value}",
               "inputs": {
                 "value": {
                   "type": "string",
@@ -200,7 +272,7 @@ public class AddParameterTests
               }
             }
             """;
-        Assert.Equal(expectedManifest, param1Manifest.ToString());
+        Assert.Equal(expectedManifest, paramManifest.ToString());
     }
 
     [Fact]
@@ -215,6 +287,42 @@ public class AddParameterTests
         // Here it should not get wrapped, since we don't pass the persist flag
         var parameter2 = appBuilder.AddParameter("val2", new GenerateParameterDefault());
         Assert.IsType<GenerateParameterDefault>(parameter2.Resource.Default);
+    }
+
+    [Fact]
+    public async Task ParametersCanGetValueFromNonDefaultConfigurationKeys()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Parameters:val"] = "ValueFromConfigurationParams",
+            ["Auth:AccessToken"] = "MyAccessToken",
+        });
+
+        var parameter = appBuilder.AddParameterFromConfiguration("val", "Auth:AccessToken");
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "val");
+        Assert.Equal($"MyAccessToken", parameterResource.Value);
+
+        // The manifest is not affected by the custom configuration key
+        var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "val"));
+        var expectedManifest = $$"""
+                {
+                  "type": "parameter.v0",
+                  "value": "{val.inputs.value}",
+                  "inputs": {
+                    "value": {
+                      "type": "string"
+                    }
+                  }
+                }
+                """;
+        Assert.Equal(expectedManifest, paramManifest.ToString());
     }
 
     private sealed class TestParameterDefault(string defaultValue) : ParameterDefault

@@ -22,7 +22,7 @@ public static class DynamoDBResourceExtensions
     /// <param name="builder">The builder for the AWS CDK stack.</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="props">The properties of the table.</param>
-    public static IResourceBuilder<IConstructResource<Table>> AddDynamoDBTable(this IResourceBuilder<IStackResource> builder, string name, ITableProps props)
+    public static IResourceBuilder<IConstructResource<Table>> AddDynamoDBTable(this IResourceBuilder<IStackResource> builder, [ResourceName] string name, ITableProps props)
     {
         return builder.AddConstruct(name, scope => new Table(scope, name, props));
     }

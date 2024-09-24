@@ -29,7 +29,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     public async Task VerifyWaitForOnMySqlBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
-        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
         builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
@@ -55,7 +55,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
         await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
@@ -69,7 +69,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
     public async Task VerifyWaitForOnMySqlDatabaseBlocksDependentResources()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
         builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
@@ -99,7 +99,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
         // Create the database.
         var connectionString = await resource.Resource.ConnectionStringExpression.GetValueAsync(cts.Token);
@@ -110,7 +110,7 @@ public class MySqlFunctionalTests(ITestOutputHelper testOutputHelper)
         command.CommandText = "CREATE DATABASE db;";
         await command.ExecuteNonQueryAsync(cts.Token);
 
-        await rns.WaitForResourceAsync(db.Resource.Name, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cts.Token);
+        await rns.WaitForResourceHealthyAsync(db.Resource.Name, cts.Token);
 
         await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 

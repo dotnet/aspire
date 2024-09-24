@@ -11,6 +11,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
+using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -245,7 +246,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     {
         _elementIdBeforeDetailsViewOpened = buttonId;
 
-        if (SelectedResource == resource)
+        if (string.Equals(SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
         {
             await ClearSelectedResourceAsync();
         }
@@ -295,7 +296,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     }
 
     private string GetRowClass(ResourceViewModel resource)
-        => resource == SelectedResource ? "selected-row resource-row" : "resource-row";
+        => string.Equals(resource.Name, SelectedResource?.Name, StringComparisons.ResourceName) ? "selected-row resource-row" : "resource-row";
 
     private async Task ExecuteResourceCommandAsync(ResourceViewModel resource, CommandViewModel command)
     {
@@ -311,16 +312,18 @@ public partial class Resources : ComponentBase, IAsyncDisposable
 
         var response = await DashboardClient.ExecuteResourceCommandAsync(resource.Name, resource.ResourceType, command, CancellationToken.None);
 
+        var messageResourceName = GetResourceName(resource);
+
         if (response.Kind == ResourceCommandResponseKind.Succeeded)
         {
-            ToastService.ShowSuccess(string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandSuccess)], command.DisplayName));
+            ToastService.ShowSuccess(string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandSuccess)], command.DisplayName + " " + messageResourceName));
         }
         else
         {
             ToastService.ShowCommunicationToast(new ToastParameters<CommunicationToastContent>()
             {
                 Intent = ToastIntent.Error,
-                Title = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandFailed)], command.DisplayName),
+                Title = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandFailed)], command.DisplayName + " " + messageResourceName),
                 PrimaryAction = Loc[nameof(Dashboard.Resources.Resources.ResourceCommandToastViewLogs)],
                 OnPrimaryAction = EventCallback.Factory.Create<ToastResult>(this, () => NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: resource.Name))),
                 Content = new CommunicationToastContent()
@@ -330,6 +333,11 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             });
         }
     }
+
+    private static string GetResourceStateTooltip(ResourceViewModel resource) =>
+        resource.ShowReadinessState() ?
+        $"{resource.State.Humanize()} ({resource.ReadinessState.Humanize()})"
+        : resource.State.Humanize();
 
     private static (string Value, string? ContentAfterValue, string ValueToCopy, string Tooltip)? GetSourceColumnValueAndTooltip(ResourceViewModel resource)
     {
@@ -353,9 +361,9 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             return (Value: containerImage, ContentAfterValue: null, ValueToCopy: containerImage, Tooltip: containerImage);
         }
 
-        if (resource.Properties.TryGetValue(KnownProperties.Resource.Source, out var value) && value.HasStringValue)
+        if (resource.Properties.TryGetValue(KnownProperties.Resource.Source, out var property) && property.Value is { HasStringValue: true, StringValue: var value })
         {
-            return (Value: value.StringValue, ContentAfterValue: null, ValueToCopy: value.StringValue, Tooltip: value.StringValue);
+            return (Value: value, ContentAfterValue: null, ValueToCopy: value, Tooltip: value);
         }
 
         return null;

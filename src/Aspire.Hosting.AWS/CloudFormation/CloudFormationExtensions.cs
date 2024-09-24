@@ -22,7 +22,7 @@ public static class CloudFormationExtensions
     /// <param name="stackName">The name of the CloudFormation stack. If not specified, the CloudFormation stack name will be the resource name prefixed with 'Aspire-'</param>
     /// <param name="templatePath">The path to the CloudFormation template that defines the CloudFormation stack.</param>
     /// <returns></returns>
-    public static IResourceBuilder<ICloudFormationTemplateResource> AddAWSCloudFormationTemplate(this IDistributedApplicationBuilder builder, string name, string templatePath, string? stackName = null)
+    public static IResourceBuilder<ICloudFormationTemplateResource> AddAWSCloudFormationTemplate(this IDistributedApplicationBuilder builder, [ResourceName] string name, string templatePath, string? stackName = null)
     {
         builder.AddAWSProvisioning();
         var resource = new CloudFormationTemplateResource(name, stackName ?? name, templatePath);
@@ -56,7 +56,7 @@ public static class CloudFormationExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="stackName">The name of the CloudFormation stack. If not specified, the CloudFormation stack name will be the resource name prefixed with 'Aspire-'</param>
     /// <returns></returns>
-    public static IResourceBuilder<ICloudFormationStackResource> AddAWSCloudFormationStack(this IDistributedApplicationBuilder builder, string name, string? stackName = null)
+    public static IResourceBuilder<ICloudFormationStackResource> AddAWSCloudFormationStack(this IDistributedApplicationBuilder builder, [ResourceName] string name, string? stackName = null)
     {
         builder.AddAWSProvisioning();
         var resource = new CloudFormationStackResource(name, stackName ?? name);
@@ -92,7 +92,10 @@ public static class CloudFormationExtensions
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, StackOutputReference stackOutputReference)
         where T : IResourceWithEnvironment
     {
-        stackOutputReference.Resource.Annotations.Add(new CloudFormationReferenceAnnotation(builder.Resource.Name));
+        if (!stackOutputReference.Resource.Annotations.Any(x => x is CloudFormationReferenceAnnotation cf && string.Equals(cf.TargetResource, builder.Resource.Name, StringComparison.Ordinal)))
+        {
+            stackOutputReference.Resource.Annotations.Add(new CloudFormationReferenceAnnotation(builder.Resource.Name));
+        }
 
         return builder.WithEnvironment(async ctx =>
         {
@@ -149,7 +152,10 @@ public static class CloudFormationExtensions
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<ICloudFormationResource> cloudFormationResourceBuilder, string configSection = Constants.DefaultConfigSection)
         where TDestination : IResourceWithEnvironment
     {
-        cloudFormationResourceBuilder.WithAnnotation(new CloudFormationReferenceAnnotation(builder.Resource.Name));
+        if (!cloudFormationResourceBuilder.Resource.Annotations.Any(x => x is CloudFormationReferenceAnnotation cf && string.Equals(cf.TargetResource, builder.Resource.Name, StringComparison.Ordinal)))
+        {
+            cloudFormationResourceBuilder.WithAnnotation(new CloudFormationReferenceAnnotation(builder.Resource.Name));
+        }
 
         builder.WithEnvironment(async ctx =>
         {

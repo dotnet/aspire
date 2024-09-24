@@ -102,6 +102,11 @@
         <target state="translated">終了コード</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsHealthStateProperty">
+        <source>Health State</source>
+        <target state="new">Health State</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
         <source>Project path</source>
         <target state="translated">プロジェクト パス</target>
@@ -115,6 +120,11 @@
       <trans-unit id="ResourcesDetailsStateProperty">
         <source>State</source>
         <target state="translated">状態</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesDetailsStopTimeProperty">
+        <source>Stop time</source>
+        <target state="new">Stop time</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesEndpointsColumnHeader">

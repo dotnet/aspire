@@ -62,7 +62,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
         // ... and wait for the resource as a whole to move into the health state.
-        await rns.WaitForResourceAsync(postgres.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+        await rns.WaitForResourceHealthyAsync(postgres.Resource.Name, cts.Token);
 
         // ... then the dependent resource should be able to move into a running state.
         await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
@@ -118,7 +118,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
         // ... and wait for the resource as a whole to move into the health state.
-        await rns.WaitForResourceAsync(postgres.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+        await rns.WaitForResourceHealthyAsync(postgres.Resource.Name, cts.Token);
 
         // Create the database.
         var connectionString = await postgres.Resource.GetConnectionStringAsync(cts.Token);
@@ -130,7 +130,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         await command.ExecuteNonQueryAsync(cts.Token);
 
         // ... then wait for the database to turn healthy.
-        await rns.WaitForResourceAsync(db.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+        await rns.WaitForResourceHealthyAsync(db.Resource.Name, cts.Token);
 
         // ... then the dependent resource should be able to move into a running state.
         await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
@@ -212,43 +212,34 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/5785")]
     public async Task VerifyWithPgWeb()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
         IResourceBuilder<PgWebContainerResource>? pgWebBuilder = null;
         var dbName = "postgres";
-        var pg = builder.AddPostgres("pg1").WithPgWeb(c=> pgWebBuilder = c).AddDatabase(dbName);
+        var pg = builder.AddPostgres("pg1").WithPgWeb(c => pgWebBuilder = c).AddDatabase(dbName);
         Assert.NotNull(pgWebBuilder);
 
         using var app = builder.Build();
 
         await app.StartAsync();
 
+        await app.WaitForTextAsync("Starting server...", resourceName: pgWebBuilder.Resource.Name);
+
         var client = app.CreateHttpClient(pgWebBuilder.Resource.Name, "http");
 
-        var pipeline = new ResiliencePipelineBuilder().AddRetry(new Polly.Retry.RetryStrategyOptions
+        var httpContent = new MultipartFormDataContent
         {
-            Delay = TimeSpan.FromSeconds(2),
-            MaxRetryAttempts = 10,
-        }).Build();
+            { new StringContent(dbName), "bookmark_id" }
+        };
 
-        await pipeline.ExecuteAsync(async (ct) =>
-        {
-            var httpContent = new MultipartFormDataContent
-            {
-                { new StringContent(dbName), "bookmark_id" }
-            };
+        client.DefaultRequestHeaders.Add("x-session-id", Guid.NewGuid().ToString());
 
-            client.DefaultRequestHeaders.Add("x-session-id", Guid.NewGuid().ToString());
-
-            var response = await client.PostAsync("/api/connect", httpContent, ct)
-                .ConfigureAwait(false);
-
-            response.EnsureSuccessStatusCode();
-        }, cts.Token);
+        var response = await client.PostAsync("/api/connect", httpContent);
+        var d = await response.Content.ReadAsStringAsync();
+        response.EnsureSuccessStatusCode();
     }
 
     [Theory]
