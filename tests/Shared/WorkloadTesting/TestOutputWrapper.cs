@@ -14,7 +14,7 @@ public class TestOutputWrapper(ITestOutputHelper? testOutputHelper = null, IMess
         testOutputHelper?.WriteLine(message);
         messageSink?.OnMessage(new DiagnosticMessage(message));
 
-        if (EnvironmentVariables.ShowBuildOutput || forceShowBuildOutput)
+        if (forceShowBuildOutput || EnvironmentVariables.ShowBuildOutput)
         {
             Console.WriteLine(message);
         }
@@ -24,7 +24,7 @@ public class TestOutputWrapper(ITestOutputHelper? testOutputHelper = null, IMess
     {
         testOutputHelper?.WriteLine(format, args);
         messageSink?.OnMessage(new DiagnosticMessage(string.Format(CultureInfo.CurrentCulture, format, args)));
-        if (EnvironmentVariables.ShowBuildOutput || forceShowBuildOutput)
+        if (forceShowBuildOutput || EnvironmentVariables.ShowBuildOutput)
         {
             Console.WriteLine(format, args);
         }
