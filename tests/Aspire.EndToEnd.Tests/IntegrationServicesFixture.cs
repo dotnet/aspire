@@ -43,6 +43,8 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         if (TestsRunningOutsideOfRepo)
         {
             BuildEnvironment.EnvVars["TestsRunningOutsideOfRepo"] = "true";
+            BuildEnvironment.EnvVars["RestoreAdditionalProjectSources"] = BuildEnvironment.BuiltNuGetsPath;
+            BuildEnvironment.EnvVars["SkipAspireWorkloadManifest"] = "true";
             _testProjectPath = Path.Combine(BuildEnvironment.TestAssetsPath, "testproject");
         }
         else

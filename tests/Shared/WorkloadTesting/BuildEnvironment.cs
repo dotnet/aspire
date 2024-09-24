@@ -118,7 +118,7 @@ public class BuildEnvironment
         sdkForWorkloadPath = Path.GetFullPath(sdkForWorkloadPath);
         DefaultBuildArgs = string.Empty;
         WorkloadPacksDir = Path.Combine(sdkForWorkloadPath, "packs");
-        NuGetPackagesPath = HasWorkloadFromArtifacts ? Path.Combine(AppContext.BaseDirectory, $"nuget-cache-{TargetFramework}") : null;
+        NuGetPackagesPath = IsRunningOnCI ? null : Path.Combine(AppContext.BaseDirectory, $"nuget-cache-{TargetFramework}");
         TemplatesHomeDirectory = Path.Combine(Path.GetTempPath(), "templates", Guid.NewGuid().ToString());
 
         EnvVars = new Dictionary<string, string>();
@@ -129,8 +129,8 @@ public class BuildEnvironment
             EnvVars["DOTNET_MULTILEVEL_LOOKUP"] = "0";
             EnvVars["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1";
             EnvVars["PATH"] = $"{sdkForWorkloadPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}";
-            EnvVars["NUGET_PACKAGES"] = NuGetPackagesPath!;
         }
+        EnvVars["NUGET_PACKAGES"] = NuGetPackagesPath!;
         EnvVars["BUILT_NUGETS_PATH"] = BuiltNuGetsPath;
         EnvVars["TreatWarningsAsErrors"] = "true";
         // Set DEBUG_SESSION_PORT='' to avoid the app from the tests connecting
@@ -161,7 +161,7 @@ public class BuildEnvironment
         Directory.CreateDirectory(TestRootPath);
 
         Console.WriteLine($"*** [{TargetFramework}] Using workload path: {sdkForWorkloadPath}");
-        if (HasWorkloadFromArtifacts)
+        // if (HasWorkloadFromArtifacts)
         {
             if (EnvironmentVariables.IsRunningOnCI)
             {
@@ -173,6 +173,13 @@ public class BuildEnvironment
             }
             else
             {
+                if (NuGetPackagesPath is not null && Directory.Exists(NuGetPackagesPath))
+                {
+                    foreach (var dir in Directory.GetDirectories(NuGetPackagesPath, "aspire*"))
+                    {
+                        Directory.Delete(dir, recursive: true);
+                    }
+                }
                 Console.WriteLine($"*** [{TargetFramework}] Using NuGet cache (never deleted automatically): {NuGetPackagesPath}");
             }
         }
