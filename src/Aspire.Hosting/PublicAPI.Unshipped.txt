@@ -96,6 +96,7 @@ Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotification
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime, System.IServiceProvider! serviceProvider, Aspire.Hosting.ApplicationModel.ResourceLoggerService! resourceLoggerService) -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForDependenciesAsync(Aspire.Hosting.ApplicationModel.IResource! resource, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, System.Func<Aspire.Hosting.ApplicationModel.ResourceEvent!, bool>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ResourceEvent!>!
+Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceHealthyAsync(string! resourceName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ResourceEvent!>!
 Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot.IsSensitive.get -> bool
 Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot.IsSensitive.init -> void
 Aspire.Hosting.ApplicationModel.UpdateCommandStateContext
