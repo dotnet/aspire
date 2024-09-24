@@ -33,6 +33,28 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public void ResourceCannotWaitForItsParent()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var parentResourceBuilder = builder.AddResource(new CustomResource("parent"));
+        var childResourceBuilder = builder.AddResource(new CustomChildResource("child", parentResourceBuilder.Resource));
+
+        var waitForEx = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            childResourceBuilder.WaitFor(parentResourceBuilder);
+        });
+
+        Assert.Equal("The 'child' resource cannot wait for its parent 'parent'.", waitForEx.Message);
+
+        var waitForCompletionEx = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            childResourceBuilder.WaitForCompletion(parentResourceBuilder);
+        });
+
+        Assert.Equal("The 'child' resource cannot wait for its parent 'parent'.", waitForCompletionEx.Message);
+    }
+
+    [Fact]
     [RequiresDocker]
     public async Task EnsureDependentResourceMovesIntoWaitingState()
     {
@@ -291,6 +313,11 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         await startTask;
 
         await app.StopAsync();
+    }
+
+    private sealed class CustomChildResource(string name, CustomResource parent) : Resource(name), IResourceWithParent<CustomResource>
+    {
+        public CustomResource Parent => parent;
     }
 
     private sealed class CustomResource(string name) : Resource(name), IResourceWithConnectionString
