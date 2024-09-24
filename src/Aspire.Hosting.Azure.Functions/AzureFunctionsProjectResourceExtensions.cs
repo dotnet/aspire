@@ -118,6 +118,10 @@ public static class AzureFunctionsProjectResourceExtensions
                 port = parsedPort;
             }
         }
+        // When a port is defined in the launch profile, Azure Functions will favor that port over
+        // the port configured in the `WithArgs` callback when starting the project. To that end
+        // we register an endpoint where the target port matches the port the Azure Functions worker
+        // is actually configured to listen on and the endpoint is not proxied by DCP.
         return builder.WithHttpEndpoint(port: port, targetPort: port, isProxied: port == null);
     }
 
