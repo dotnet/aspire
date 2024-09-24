@@ -28,6 +28,8 @@ Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsSettings.ConnectionStrin
 Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsSettings.ConnectionString.set -> void
 Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsSettings.Credential.get -> Azure.Core.TokenCredential?
 Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsSettings.Credential.set -> void
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsSettings.DisableHealthChecks.get -> bool
+Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsSettings.DisableHealthChecks.set -> void
 Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsSettings.DisableTracing.get -> bool
 Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsSettings.DisableTracing.set -> void
 Aspire.Azure.Messaging.EventHubs.AzureMessagingEventHubsSettings.EventHubName.get -> string?

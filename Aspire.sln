@@ -146,8 +146,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 		Directory.Packages.props = Directory.Packages.props
-		global.json = global.json
 		spelling.dic = spelling.dic
+		global.json = global.json
 		eng\Versions.props = eng\Versions.props
 	EndProjectSection
 EndProject
@@ -623,9 +623,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redis.ApiService", "playgro
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redis.AppHost", "playground\Redis\Redis.AppHost\Redis.AppHost.csproj", "{6249A193-3BF4-4FFB-AB81-6590A8318889}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Sdk.Tests", "tests\Aspire.Hosting.Sdk.Tests\Aspire.Hosting.Sdk.Tests.csproj", "{AEF07BC6-76D8-4A45-89D5-54FC4483863F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Sdk.Tests", "tests\Aspire.Hosting.Sdk.Tests\Aspire.Hosting.Sdk.Tests.csproj", "{AEF07BC6-76D8-4A45-89D5-54FC4483863F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.RuntimeIdentifier.Tool", "src\Aspire.Hosting.Sdk\Aspire.RuntimeIdentifier.Tool\Aspire.RuntimeIdentifier.Tool.csproj", "{FF2895FC-A613-43DC-96B8-E5DFA69125CA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.RuntimeIdentifier.Tool", "src\Aspire.Hosting.Sdk\Aspire.RuntimeIdentifier.Tool\Aspire.RuntimeIdentifier.Tool.csproj", "{FF2895FC-A613-43DC-96B8-E5DFA69125CA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
