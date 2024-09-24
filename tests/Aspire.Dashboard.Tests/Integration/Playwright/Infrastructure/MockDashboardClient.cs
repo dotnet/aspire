@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Frozen;
 using Aspire.Dashboard.Model;
+using Aspire.Tests.Shared.DashboardModel;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -12,15 +12,10 @@ public sealed class MockDashboardClient : IDashboardClient
 {
     private static readonly BrowserTimeProvider s_timeProvider = new(NullLoggerFactory.Instance);
 
-    public static readonly ResourceViewModel TestResource1 = new()
-    {
-        Name = "TestResource",
-        DisplayName = "TestResource",
-        Commands = [],
-        CreationTimeStamp = DateTime.Now,
-        Environment = [],
-        ResourceType = KnownResourceTypes.Project,
-        Properties = new[]
+    public static readonly ResourceViewModel TestResource1 = ModelTestHelpers.CreateResource(
+        appName: "TestResource",
+        resourceType: KnownResourceTypes.Project,
+        properties: new[]
         {
             new KeyValuePair<string, ResourcePropertyViewModel>(
                 KnownProperties.Project.Path,
@@ -34,14 +29,8 @@ public sealed class MockDashboardClient : IDashboardClient
                     knownProperty: new(KnownProperties.Project.Path, "Path"),
                     priority: 0,
                     timeProvider: s_timeProvider))
-        }.ToFrozenDictionary(),
-        State = "Running",
-        Uid = Guid.NewGuid().ToString(),
-        StateStyle = null,
-        ReadinessState = ReadinessState.Ready,
-        Urls = [],
-        Volumes = []
-    };
+        }.ToDictionary(),
+        state: KnownResourceState.Running);
 
     public bool IsEnabled => true;
     public Task WhenConnected => Task.CompletedTask;
