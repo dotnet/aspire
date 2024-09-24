@@ -53,7 +53,7 @@
                     HighlightText="@_filter"
                     GridTemplateColumns="1fr 1.5fr" />
             </FluentAccordionItem>
-            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsEndpointsHeader)]" Expanded="true">
+            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsEndpointsHeader)]" Expanded="@_isEndpointsExpanded">
                 <div slot="end">
                     <FluentBadge Appearance="Appearance.Neutral" Circular="true">
                         @FilteredEndpoints.Count()
@@ -68,7 +68,7 @@
                     HighlightText="@_filter"
                     GridTemplateColumns="1fr 1.5fr" />
             </FluentAccordionItem>
-            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsEnvironmentVariablesHeader)]" Expanded="true">
+            <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsEnvironmentVariablesHeader)]" Expanded="@_isEnvironmentVariablesExpanded">
                 <div slot="end">
                     <FluentBadge Appearance="Appearance.Neutral" Circular="true">
                         @FilteredEnvironmentVariables.Count()
@@ -83,7 +83,7 @@
             </FluentAccordionItem>
             @if (Resource.IsContainer())
             {
-                <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsVolumesHeader)]" Expanded="true">
+                <FluentAccordionItem Heading="@ControlStringsLoc[nameof(ControlsStrings.ResourceDetailsVolumesHeader)]" Expanded="@_isVolumesExpanded">
                     <div slot="end">
                         <FluentBadge Appearance="Appearance.Neutral" Circular="true">
                             @FilteredVolumes.Count()

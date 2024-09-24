@@ -402,7 +402,7 @@ internal sealed class HealthProbeResult
     /// The timestamp when the health probe result was determined.
     /// </summary>
     [JsonPropertyName("timestamp")]
-    public DateTimeOffset? Timestamp { get; set; }
+    public DateTime? Timestamp { get; set; }
 
     /// <summary>
     /// The name of the probe that generated this result. Corresponds to a specific <see cref="HealthProbe"/>

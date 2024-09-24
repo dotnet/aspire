@@ -30,6 +30,16 @@ partial class Resource
             resource.CreatedAt = Timestamp.FromDateTime(snapshot.CreationTimeStamp.Value.ToUniversalTime());
         }
 
+        if (snapshot.StartTimeStamp.HasValue)
+        {
+            resource.StartedAt = Timestamp.FromDateTime(snapshot.StartTimeStamp.Value.ToUniversalTime());
+        }
+
+        if (snapshot.StopTimeStamp.HasValue)
+        {
+            resource.StoppedAt = Timestamp.FromDateTime(snapshot.StopTimeStamp.Value.ToUniversalTime());
+        }
+
         foreach (var env in snapshot.Environment)
         {
             resource.Environment.Add(new EnvironmentVariable { Name = env.Name, Value = env.Value ?? "", IsFromSpec = env.IsFromSpec });

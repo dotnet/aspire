@@ -21,6 +21,8 @@ internal abstract class ResourceSnapshot
     public required string? StateStyle { get; init; }
     public required int? ExitCode { get; init; }
     public required DateTime? CreationTimeStamp { get; init; }
+    public required DateTime? StartTimeStamp { get; init; }
+    public required DateTime? StopTimeStamp { get; init; }
     public required ImmutableArray<EnvironmentVariableSnapshot> Environment { get; init; }
     public required ImmutableArray<VolumeSnapshot> Volumes { get; init; }
     public required ImmutableArray<UrlSnapshot> Urls { get; init; }
@@ -40,6 +42,8 @@ internal abstract class ResourceSnapshot
             yield return (KnownProperties.Resource.State, State is null ? Value.ForNull() : Value.ForString(State), IsSensitive: false);
             yield return (KnownProperties.Resource.ExitCode, ExitCode is null ? Value.ForNull() : Value.ForString(ExitCode.Value.ToString("D", CultureInfo.InvariantCulture)), IsSensitive: false);
             yield return (KnownProperties.Resource.CreateTime, CreationTimeStamp is null ? Value.ForNull() : Value.ForString(CreationTimeStamp.Value.ToString("O")), IsSensitive: false);
+            yield return (KnownProperties.Resource.StartTime, StartTimeStamp is null ? Value.ForNull() : Value.ForString(StartTimeStamp.Value.ToString("O")), IsSensitive: false);
+            yield return (KnownProperties.Resource.StopTime, StopTimeStamp is null ? Value.ForNull() : Value.ForString(StopTimeStamp.Value.ToString("O")), IsSensitive: false);
             yield return (KnownProperties.Resource.HealthState, HealthState is null ? Value.ForNull() : Value.ForString(HealthState.ToString()), IsSensitive: false);
 
             foreach (var property in GetProperties())

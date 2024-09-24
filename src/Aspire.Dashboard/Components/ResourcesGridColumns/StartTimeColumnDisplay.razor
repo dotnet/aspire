@@ -3,7 +3,7 @@
 @using System.Globalization
 @using Aspire.Dashboard.Utils
 
-@if (Resource.CreationTimeStamp is {} timeStamp)
+@if (Resource.StartTimeStamp is {} timeStamp)
 {
     // Don't include milliseconds as resource server returned time stamp is second precision.
     @FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, timeStamp)
