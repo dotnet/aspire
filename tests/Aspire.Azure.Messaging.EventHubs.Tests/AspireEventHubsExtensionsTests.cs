@@ -108,6 +108,47 @@ public class AspireEventHubsExtensionsTests
     }
 
     [Theory]
+    [InlineData(false, EventProcessorClientIndex)]
+    [InlineData(true, EventProcessorClientIndex)]
+    public async Task BindsEventProcessorClientOptionsIdentifier(bool useKeyed, int clientIndex)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        ConfigureBlobServiceClient(useKeyed, builder.Services);
+
+        var key = useKeyed ? "eh" : null;
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "ClientOptions:Identifier"), "customidentifier"),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "BlobContainerName"), "checkpoints"),
+            new KeyValuePair<string, string?>("ConnectionStrings:eh", EhConnectionString),
+        ]);
+
+        if (useKeyed)
+        {
+            s_keyedClientAdders[clientIndex](builder, "eh", null);
+        }
+        else
+        {
+            s_clientAdders[clientIndex](builder, "eh", null);
+        }
+
+        using var host = builder.Build();
+
+        await Task.Delay(500);
+
+        var client = RetrieveClient(key, clientIndex, host) as EventProcessorClient;
+
+        Assert.NotNull(client);
+        Assert.Equal("customidentifier", client.Identifier);
+    }
+
+    [Theory]
     [InlineData(false, EventHubProducerClientIndex)]
     [InlineData(true, EventHubProducerClientIndex)]
     [InlineData(false, EventHubConsumerClientIndex)]
