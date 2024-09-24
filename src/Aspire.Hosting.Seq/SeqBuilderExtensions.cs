@@ -20,9 +20,7 @@ public static class SeqBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name to give the resource.</param>
     /// <param name="port">The host port for the Seq server.</param>
-#pragma warning disable RS0016 // Add public types and members to the declared API
     public static IResourceBuilder<SeqResource> AddSeq(
-#pragma warning restore RS0016 // Add public types and members to the declared API
         this IDistributedApplicationBuilder builder,
         string name,
         int? port = null)
@@ -31,8 +29,7 @@ public static class SeqBuilderExtensions
         var resourceBuilder = builder.AddResource(seqResource)
             .WithHttpEndpoint(port: port, targetPort: 80, name: SeqResource.PrimaryEndpointName)
             .WithImage(SeqContainerImageTags.Image, SeqContainerImageTags.Tag)
-            .WithImageRegistry(SeqContainerImageTags.Registry)
-            .WithEnvironment("ACCEPT_EULA", "Y");
+            .WithImageRegistry(SeqContainerImageTags.Registry);
 
         return resourceBuilder;
     }
@@ -56,4 +53,20 @@ public static class SeqBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<SeqResource> WithDataBindMount(this IResourceBuilder<SeqResource> builder, string source, bool isReadOnly = false)
         => builder.WithBindMount(source, SeqContainerDataDirectory, isReadOnly);
+
+    /// <summary>
+    /// Configures the acceptance of the End User License Agreement (EULA) for Seq.
+    /// </summary>
+    /// <param name="builder">The resource builder for Seq.</param>
+    /// <param name="accept">A boolean value indicating whether to accept the EULA. If <see langword="true"/>, the EULA is accepted.</param>
+    /// <returns>The resource builder for Seq.</returns>
+    public static IResourceBuilder<SeqResource> WithAcceptEula(this IResourceBuilder<SeqResource> builder, bool accept = true)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        if (accept)
+        {
+            return builder.WithEnvironment("ACCEPT_EULA", "Y");
+        }
+        return builder;
+    }
 }

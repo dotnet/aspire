@@ -612,7 +612,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WaitForSandbox.Common", "pl
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.OpenAI", "src\Components\Aspire.OpenAI\Aspire.OpenAI.csproj", "{F5421CC9-7303-4455-8A8D-F548143D7909}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.OpenAI.Tests", "tests\Aspire.OpenAI.Tests\Aspire.OpenAI.Tests.csproj", "{C7B77A8D-719E-479E-A063-08A3859B713E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.OpenAI.Tests", "tests\Aspire.OpenAI.Tests\Aspire.OpenAI.Tests.csproj", "{C7B77A8D-719E-479E-A063-08A3859B713E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SqlServerEndToEnd.Common", "playground\SqlServerEndToEnd\SqlServerEndToEnd.Common\SqlServerEndToEnd.Common.csproj", "{1997067D-8EF2-43B3-AB13-9B2E12B52709}"
 EndProject
@@ -626,10 +626,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redis.ApiService", "playgro
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redis.AppHost", "playground\Redis\Redis.AppHost\Redis.AppHost.csproj", "{6249A193-3BF4-4FFB-AB81-6590A8318889}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Analyzers.Tests", "tests\Aspire.Hosting.Analyzers.Tests\Aspire.Hosting.Analyzers.Tests.csproj", "{F21F921E-1930-4BD5-B665-5EF1B82BD4D2}"
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Sdk.Tests", "tests\Aspire.Hosting.Sdk.Tests\Aspire.Hosting.Sdk.Tests.csproj", "{AEF07BC6-76D8-4A45-89D5-54FC4483863F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Analyzers.Tests", "tests\Aspire.Hosting.Analyzers.Tests\Aspire.Hosting.Analyzers.Tests.csproj", "{F21F921E-1930-4BD5-B665-5EF1B82BD4D2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.RuntimeIdentifier.Tool", "src\Aspire.Hosting.Sdk\Aspire.RuntimeIdentifier.Tool\Aspire.RuntimeIdentifier.Tool.csproj", "{FF2895FC-A613-43DC-96B8-E5DFA69125CA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Sdk.Tests", "tests\Aspire.Hosting.Sdk.Tests\Aspire.Hosting.Sdk.Tests.csproj", "{AEF07BC6-76D8-4A45-89D5-54FC4483863F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.RuntimeIdentifier.Tool", "src\Aspire.Hosting.Sdk\Aspire.RuntimeIdentifier.Tool\Aspire.RuntimeIdentifier.Tool.csproj", "{FF2895FC-A613-43DC-96B8-E5DFA69125CA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Seq.Tests", "tests\Aspire.Hosting.Seq.Tests\Aspire.Hosting.Seq.Tests.csproj", "{434A2845-F60A-45FA-AFC8-487FBA0D1616}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1661,6 +1664,10 @@ Global
 		{FF2895FC-A613-43DC-96B8-E5DFA69125CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FF2895FC-A613-43DC-96B8-E5DFA69125CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FF2895FC-A613-43DC-96B8-E5DFA69125CA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{434A2845-F60A-45FA-AFC8-487FBA0D1616}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{434A2845-F60A-45FA-AFC8-487FBA0D1616}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{434A2845-F60A-45FA-AFC8-487FBA0D1616}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{434A2845-F60A-45FA-AFC8-487FBA0D1616}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1965,6 +1972,7 @@ Global
 		{F21F921E-1930-4BD5-B665-5EF1B82BD4D2} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
 		{AEF07BC6-76D8-4A45-89D5-54FC4483863F} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{FF2895FC-A613-43DC-96B8-E5DFA69125CA} = {F534D4F8-5E3A-42FC-BCD7-4C2D6060F9C8}
+		{434A2845-F60A-45FA-AFC8-487FBA0D1616} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

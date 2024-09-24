@@ -3,7 +3,8 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var seq = builder.AddSeq("seq");
+var seq = builder.AddSeq("seq")
+    .WithAcceptEula();
 
 builder.AddProject<Projects.Seq_ApiService>("api")
     .WithExternalHttpEndpoints()
