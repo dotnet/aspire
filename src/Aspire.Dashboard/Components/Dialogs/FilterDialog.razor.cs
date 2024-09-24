@@ -49,7 +49,7 @@ public partial class FilterDialog
         _filteredValues = [];
     }
 
-    protected override async Task OnParametersSetAsync()
+    protected override void OnParametersSet()
     {
         var knownFields = Content.KnownKeys.Select(p => new SelectViewModel<string> { Id = p, Name = TelemetryFilter.ResolveFieldName(p) }).ToList();
         var customFields = Content.PropertyKeys.Select(p => new SelectViewModel<string> { Id = p, Name = TelemetryFilter.ResolveFieldName(p) }).ToList();
@@ -82,7 +82,7 @@ public partial class FilterDialog
         }
 
         UpdateParameterFieldValues();
-        await ValueChanged();
+        ValueChanged();
     }
 
     private void UpdateParameterFieldValues()
@@ -113,14 +113,13 @@ public partial class FilterDialog
         // Clearing the selected value and the combo box items together wasn't correctly clearing the selected value.
         // This is hacky, but adding a delay between the two operations puts the combo box in the right state.
         await Task.Delay(100);
-        await ValueChanged();
+        ValueChanged();
     }
 
     // There is a bug in FluentUI that prevents the value changing immediately. Will be fixed in a future FluentUI update.
     // https://github.com/microsoft/fluentui-blazor/issues/2672
-    private Task ValueChanged()
+    private void ValueChanged()
     {
-
         if (_allValues != null)
         {
             IEnumerable<SelectViewModel<FieldValue>> newValues = _allValues;
@@ -136,8 +135,6 @@ public partial class FilterDialog
         {
             _filteredValues = [];
         }
-
-        return Task.CompletedTask;
     }
 
     private void Cancel()
