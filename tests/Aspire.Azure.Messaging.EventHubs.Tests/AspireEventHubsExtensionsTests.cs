@@ -110,7 +110,7 @@ public class AspireEventHubsExtensionsTests
     [Theory]
     [InlineData(false, EventProcessorClientIndex)]
     [InlineData(true, EventProcessorClientIndex)]
-    public async Task BindsEventProcessorClientOptionsIdentifier(bool useKeyed, int clientIndex)
+    public void BindsEventProcessorClientOptionsIdentifier(bool useKeyed, int clientIndex)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
