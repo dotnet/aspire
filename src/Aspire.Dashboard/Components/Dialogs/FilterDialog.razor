@@ -35,6 +35,7 @@
         <div class="filter-input-container">
             <FluentCombobox TOption="SelectViewModel<FieldValue>"
                             @bind-Value="_formModel.Value"
+                            @bind-Value:after="ValueChanged"
                             Items="@_filteredValues"
                             Width="100%"
                             Height="400px"
