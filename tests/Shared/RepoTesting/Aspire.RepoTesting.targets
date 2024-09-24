@@ -33,6 +33,8 @@
     `AspireProjectOrPackageReference` - maps to projects in `src/` or `src/Components/`
   -->
 
+  <Import Project="Sdk.props" Sdk="Aspire.AppHost.Sdk" Version="$(PackageVersion)" Condition="'$(IsAspireHost)' == 'true' and '$(RepoRoot)' == '' and '$(TestsRunningOutsideOfRepo)' == 'true'" />
+
   <PropertyGroup>
     <!-- copy by default only when archiving tests, and for test projects that support running out of repo -->
     <DeployOutsideOfRepoSupportFiles Condition="'$(DeployOutsideOfRepoSupportFiles)' == '' and '$(ArchiveTests)' == 'true' and '$(IsTestProject)' == 'true'">true</DeployOutsideOfRepoSupportFiles>
@@ -87,6 +89,7 @@
     <PropertyForHelixRun Include="MSTestTestAdapterVersion" />
     <PropertyForHelixRun Include="MicrosoftNETTestSdkVersion" />
     <PropertyForHelixRun Include="MicrosoftDotNetXUnitAssertVersion" />
+    <PropertyForHelixRun Include="PackageVersion" />
   </ItemGroup>
 
   <Target Name="_UpdateArchiveSourcePath" BeforeTargets="ZipTestArchive" Condition="'$(ArchiveTests)' == 'true' and '$(DeployOutsideOfRepoSupportFilesRelativeDir)' != ''">
@@ -146,5 +149,7 @@
     <!-- This is for in-repo testing and required for Aspire.Hosting.AppHost targets loading correctly. On real projects, this comes from SDK.props in Aspire.AppHost.SDK. -->
     <AspireHostingSDKVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion)</AspireHostingSDKVersion>
   </PropertyGroup>
+
+  <Import Project="Sdk.targets" Sdk="Aspire.AppHost.Sdk" Version="$(PackageVersion)" Condition="'$(IsAspireHost)' == 'true' and '$(RepoRoot)' == '' and '$(TestsRunningOutsideOfRepo)' == 'true'" />
 
 </Project>

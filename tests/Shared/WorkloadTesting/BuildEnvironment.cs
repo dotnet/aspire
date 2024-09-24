@@ -133,6 +133,7 @@ public class BuildEnvironment
         // Set DEBUG_SESSION_PORT='' to avoid the app from the tests connecting
         // to the IDE
         EnvVars["DEBUG_SESSION_PORT"] = "";
+        EnvVars["SkipAspireWorkloadManifest"] = "true";
 
         DotNet = "dotnet";
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
