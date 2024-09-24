@@ -6,7 +6,7 @@ param principalId string
 param principalName string
 
 resource sql 'Microsoft.Sql/servers@2021-11-01' = {
-  name: toLower(take('sql${uniqueString(resourceGroup().id)}', 24))
+  name: take('sql-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {
     administrators: {

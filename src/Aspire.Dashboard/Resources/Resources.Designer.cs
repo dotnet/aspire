@@ -277,6 +277,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Stop time.
+        /// </summary>
+        public static string ResourcesDetailsStopTimeProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsStopTimeProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Endpoints.
         /// </summary>
         public static string ResourcesEndpointsColumnHeader {

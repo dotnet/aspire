@@ -25,6 +25,8 @@ public sealed class ResourceViewModel
     public required string? StateStyle { get; init; }
     public required ReadinessState ReadinessState { get; init; }
     public required DateTime? CreationTimeStamp { get; init; }
+    public required DateTime? StartTimeStamp { get; init; }
+    public required DateTime? StopTimeStamp { get; init; }
     public required ImmutableArray<EnvironmentVariableViewModel> Environment { get; init; }
     public required ImmutableArray<UrlViewModel> Urls { get; init; }
     public required ImmutableArray<VolumeViewModel> Volumes { get; init; }

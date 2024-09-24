@@ -14,6 +14,14 @@
     <ProjectReference Include="$(RepoRoot)src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(IsAspireHost)' == 'true' and '$(SkipAspireHostingAnalyzersReference)' != 'true'">
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj" IsAspireProjectResource="false"
+                      PrivateAssets="all"
+                      ReferenceOutputAssembly="false"
+                      OutputItemType="Analyzer"
+                      SetTargetFramework="TargetFramework=netstandard2.0" />
+  </ItemGroup>
+
   <!-- Import only when in-repo. For the out-of-repo case a parent Directory.Build.targets does the import -->
   <Import Project="$(TestsSharedRepoTestingDir)Aspire.RepoTesting.targets" Condition="'$(RepoRoot)' != ''" />
 

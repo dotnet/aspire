@@ -1,7 +1,15 @@
 #nullable enable
+Aspire.Hosting.Azure.AspireV8ResourceNamePropertyResolver
+Aspire.Hosting.Azure.AspireV8ResourceNamePropertyResolver.AspireV8ResourceNamePropertyResolver() -> void
+Aspire.Hosting.Azure.AzureResourceOptions
+Aspire.Hosting.Azure.AzureResourceOptions.AzureResourceOptions() -> void
+Aspire.Hosting.Azure.AzureResourceOptions.ProvisioningContext.get -> Azure.Provisioning.ProvisioningContext!
+Aspire.Hosting.AzureConstructResource.ProvisioningContext.get -> Azure.Provisioning.ProvisioningContext?
+Aspire.Hosting.AzureConstructResource.ProvisioningContext.set -> void
 Aspire.Hosting.ResourceModuleConstruct.PrincipalIdParameter.get -> Azure.Provisioning.BicepParameter!
 Aspire.Hosting.ResourceModuleConstruct.PrincipalNameParameter.get -> Azure.Provisioning.BicepParameter!
 Aspire.Hosting.ResourceModuleConstruct.PrincipalTypeParameter.get -> Azure.Provisioning.BicepParameter!
+override Aspire.Hosting.Azure.AspireV8ResourceNamePropertyResolver.ResolveName(Azure.Provisioning.ProvisioningContext! context, Azure.Provisioning.Primitives.Resource! resource, Azure.Provisioning.Primitives.ResourceNameRequirements requirements) -> Azure.Provisioning.BicepValue<string!>?
 static Aspire.Hosting.AzureBicepResourceExtensions.WithParameter<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, Aspire.Hosting.ApplicationModel.EndpointReference! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.AzureBicepResourceExtensions.WithParameter<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name, Aspire.Hosting.ApplicationModel.ReferenceExpression! value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 Aspire.Hosting.Azure.IResourceWithAzureFunctionsConfig

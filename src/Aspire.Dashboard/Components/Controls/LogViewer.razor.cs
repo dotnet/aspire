@@ -91,6 +91,7 @@ public sealed partial class LogViewer
     // This exposes way to tell the log view it has updated and to re-render.
     internal async Task LogsAddedAsync()
     {
+        Logger.LogDebug("Logs added.");
         await InvokeAsync(StateHasChanged);
     }
 }

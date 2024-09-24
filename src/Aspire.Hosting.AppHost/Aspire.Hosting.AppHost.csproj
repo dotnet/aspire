@@ -32,4 +32,16 @@
     <PackageDownload Include="Microsoft.DeveloperControlPlane.$(BuildOs)-$(BuildArch)" Version="[$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)]" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Reference the analyzer to ensure it's built but don't reference its output -->
+    <ProjectReference Include="..\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj" OutputItemType="AnalyzerAssemblyPath" ReferenceOutputAssembly="false" Private="true" />
+  </ItemGroup>
+
+  <!-- Include the analyzer in the package -->
+  <Target Name="IncludeAnalyzerInPackage" AfterTargets="ResolveProjectReferences">
+    <ItemGroup>
+      <None Include="@(AnalyzerAssemblyPath -> '%(Identity)')" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    </ItemGroup>
+  </Target>
+
 </Project>

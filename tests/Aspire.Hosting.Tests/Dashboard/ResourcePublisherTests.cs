@@ -193,6 +193,8 @@ public class ResourcePublisherTests
             StateStyle = null,
             ExitCode = null,
             CreationTimeStamp = null,
+            StartTimeStamp = null,
+            StopTimeStamp = null,
             DisplayName = "",
             Urls = [],
             Volumes = [],
