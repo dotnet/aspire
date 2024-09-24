@@ -286,7 +286,7 @@ public partial class TraceDetail : ComponentBase
     {
         _elementIdBeforeDetailsViewOpened = buttonId;
 
-        if (SelectedSpan?.Span == viewModel.Span)
+        if (SelectedSpan?.Span.SpanId == viewModel.Span.SpanId)
         {
             await ClearSelectedSpanAsync();
         }

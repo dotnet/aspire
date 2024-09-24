@@ -239,7 +239,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         _elementIdBeforeDetailsViewOpened = buttonId;
 
-        if (SelectedLogEntry?.LogEntry == entry)
+        if (SelectedLogEntry?.LogEntry.InternalId == entry.InternalId)
         {
             await ClearSelectedLogEntryAsync();
         }
