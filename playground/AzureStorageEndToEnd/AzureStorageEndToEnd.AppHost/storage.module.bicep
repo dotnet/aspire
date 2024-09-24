@@ -6,7 +6,7 @@ param principalId string
 param principalType string
 
 resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
-  name: toLower(take('storage${uniqueString(resourceGroup().id)}', 24))
+  name: take('storage${uniqueString(resourceGroup().id)}', 24)
   kind: 'StorageV2'
   location: location
   sku: {

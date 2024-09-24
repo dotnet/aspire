@@ -6,7 +6,7 @@ param principalId string
 param principalType string
 
 resource kv3 'Microsoft.KeyVault/vaults@2019-09-01' = {
-  name: toLower(take('kv3${uniqueString(resourceGroup().id)}', 24))
+  name: take('kv3-${uniqueString(resourceGroup().id)}', 24)
   location: location
   properties: {
     tenantId: tenant().tenantId
