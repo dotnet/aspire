@@ -12,6 +12,49 @@ namespace Aspire.Hosting.Tests;
 public class WaitForTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
+    public void ResourceCannotWaitForItself()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var resource = builder.AddResource(new CustomResource("test"));
+
+        var waitForEx = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            resource.WaitFor(resource);
+        });
+
+        Assert.Equal("The 'test' resource cannot wait for itself.", waitForEx.Message);
+
+        var waitForCompletionEx = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            resource.WaitForCompletion(resource);
+        });
+
+        Assert.Equal("The 'test' resource cannot wait for itself.", waitForCompletionEx.Message);
+    }
+
+    [Fact]
+    public void ResourceCannotWaitForItsParent()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var parentResourceBuilder = builder.AddResource(new CustomResource("parent"));
+        var childResourceBuilder = builder.AddResource(new CustomChildResource("child", parentResourceBuilder.Resource));
+
+        var waitForEx = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            childResourceBuilder.WaitFor(parentResourceBuilder);
+        });
+
+        Assert.Equal("The 'child' resource cannot wait for its parent 'parent'.", waitForEx.Message);
+
+        var waitForCompletionEx = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            childResourceBuilder.WaitForCompletion(parentResourceBuilder);
+        });
+
+        Assert.Equal("The 'child' resource cannot wait for its parent 'parent'.", waitForCompletionEx.Message);
+    }
+
+    [Fact]
     [RequiresDocker]
     public async Task EnsureDependentResourceMovesIntoWaitingState()
     {
@@ -270,6 +313,11 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         await startTask;
 
         await app.StopAsync();
+    }
+
+    private sealed class CustomChildResource(string name, CustomResource parent) : Resource(name), IResourceWithParent<CustomResource>
+    {
+        public CustomResource Parent => parent;
     }
 
     private sealed class CustomResource(string name) : Resource(name), IResourceWithConnectionString

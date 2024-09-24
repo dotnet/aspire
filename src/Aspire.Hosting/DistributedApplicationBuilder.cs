@@ -172,6 +172,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
 
+        // 
+        Eventing.Subscribe<BeforeResourceStartedEvent>(async (@event, ct) =>
+        {
+            var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
+            await rns.WaitForDependenciesAsync(@event.Resource, ct).ConfigureAwait(false);
+        });
+
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddHostedService<DistributedApplicationLifecycle>();

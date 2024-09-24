@@ -13,7 +13,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
 }
 
 resource postgres2 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
-  name: toLower(take('postgres2${uniqueString(resourceGroup().id)}', 24))
+  name: take('postgres${uniqueString(resourceGroup().id)}', 24)
   location: location
   properties: {
     administratorLogin: administratorLogin

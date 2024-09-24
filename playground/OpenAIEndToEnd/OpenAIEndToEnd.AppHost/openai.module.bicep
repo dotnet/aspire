@@ -6,7 +6,7 @@ param principalId string
 param principalType string
 
 resource openai 'Microsoft.CognitiveServices/accounts@2022-12-01' = {
-  name: toLower(take('openai${uniqueString(resourceGroup().id)}', 24))
+  name: take('openai-${uniqueString(resourceGroup().id)}', 64)
   location: location
   kind: 'OpenAI'
   properties: {

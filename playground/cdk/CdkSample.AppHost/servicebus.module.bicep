@@ -8,7 +8,7 @@ param principalId string
 param principalType string
 
 resource servicebus 'Microsoft.ServiceBus/namespaces@2017-04-01' = {
-  name: toLower(take('servicebus${uniqueString(resourceGroup().id)}', 24))
+  name: take('servicebus-${uniqueString(resourceGroup().id)}', 50)
   location: location
   properties: {
     disableLocalAuth: true

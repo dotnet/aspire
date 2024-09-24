@@ -962,6 +962,8 @@ public class ApplicationExecutorTests
             configuration = builder.Build();
         }
 
+        var eventing = new DistributedApplicationEventing();
+
         return new ApplicationExecutor(
             NullLogger<ApplicationExecutor>.Instance,
             NullLogger<DistributedApplication>.Instance,
@@ -978,7 +980,7 @@ public class ApplicationExecutorTests
             ResourceNotificationServiceTestHelpers.Create(),
             resourceLoggerService ?? new ResourceLoggerService(),
             new TestDcpDependencyCheckService(),
-            new DistributedApplicationEventing(),
+            eventing,
             serviceProvider
         );
     }
