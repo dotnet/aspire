@@ -97,6 +97,10 @@ Aspire.Hosting.ApplicationModel.ResourceCommandState
 Aspire.Hosting.ApplicationModel.ResourceCommandState.Disabled = 1 -> Aspire.Hosting.ApplicationModel.ResourceCommandState
 Aspire.Hosting.ApplicationModel.ResourceCommandState.Enabled = 0 -> Aspire.Hosting.ApplicationModel.ResourceCommandState
 Aspire.Hosting.ApplicationModel.ResourceCommandState.Hidden = 2 -> Aspire.Hosting.ApplicationModel.ResourceCommandState
+Aspire.Hosting.ApplicationModel.ResourceHealthyEvent
+Aspire.Hosting.ApplicationModel.ResourceHealthyEvent.Resource.get -> Aspire.Hosting.ApplicationModel.IResource!
+Aspire.Hosting.ApplicationModel.ResourceHealthyEvent.ResourceHealthyEvent(Aspire.Hosting.ApplicationModel.IResource! resource, System.IServiceProvider! services) -> void
+Aspire.Hosting.ApplicationModel.ResourceHealthyEvent.Services.get -> System.IServiceProvider!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime, System.IServiceProvider! serviceProvider, Aspire.Hosting.ApplicationModel.ResourceLoggerService! resourceLoggerService) -> void
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForDependenciesAsync(Aspire.Hosting.ApplicationModel.IResource! resource, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!

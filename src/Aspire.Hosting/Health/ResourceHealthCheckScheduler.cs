@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 
@@ -12,11 +13,14 @@ internal class ResourceHealthCheckScheduler : BackgroundService
     private readonly ResourceNotificationService _resourceNotificationService;
     private readonly DistributedApplicationModel _model;
     private readonly Dictionary<string, bool> _checkEnablement = new();
+    private readonly List<string> _healthyResources = new();
 
-    public ResourceHealthCheckScheduler(ResourceNotificationService resourceNotificationService, DistributedApplicationModel model)
+    public ResourceHealthCheckScheduler(ResourceNotificationService resourceNotificationService, DistributedApplicationModel model, IDistributedApplicationEventing eventing)
     {
         _resourceNotificationService = resourceNotificationService ?? throw new ArgumentNullException(nameof(resourceNotificationService));
         _model = model ?? throw new ArgumentNullException(nameof(model));
+
+        eventing.Subscribe<ResourceHealthyEvent>(StopTrackingHealthyResourcesAsync);
 
         foreach (var resource in model.Resources)
         {
@@ -29,6 +33,13 @@ internal class ResourceHealthCheckScheduler : BackgroundService
         };
     }
 
+    private Task StopTrackingHealthyResourcesAsync(ResourceHealthyEvent resourceHealthyEvent, CancellationToken cancellationToken)
+    {
+        _healthyResources.Add(resourceHealthyEvent.Resource.Name);
+        UpdateCheckEnablement(resourceHealthyEvent.Resource, false);
+        return Task.CompletedTask;
+    }
+
     public Func<HealthCheckRegistration, bool> Predicate { get; init; }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -39,10 +50,11 @@ internal class ResourceHealthCheckScheduler : BackgroundService
 
             await foreach (var resourceEvent in resourceEvents.ConfigureAwait(false))
             {
-                if (resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running)
+                if (!_healthyResources.Contains(resourceEvent.Resource.Name) && resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running)
                 {
                     // Each time we receive an event that tells us that the resource is
-                    // running we need to enable the health check annotation.
+                    // running we need to enable the health check annotation. If the resource
+                    // has already been marked as healthy we won't enable the health check again.
                     UpdateCheckEnablement(resourceEvent.Resource, true);
                 }
             }
