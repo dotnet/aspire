@@ -215,6 +215,18 @@ public class AddParameterTests
         Assert.Equal(expectedManifest, paramManifest.ToString());
     }
 
+    [Fact]
+    public void AddParameterWithBothPublishValueAsDefaultAndSecretFails()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        // publishValueAsDefault and secret are mutually exclusive. Test both overloads.
+        var ex1 = Assert.Throws<ArgumentException>(() => appBuilder.AddParameter("pass", () => "SomeSecret", publishValueAsDefault: true, secret: true));
+        Assert.Equal($"A parameter cannot be both secret and published as a default value. (Parameter 'secret')", ex1.Message);
+        var ex2 = Assert.Throws<ArgumentException>(() => appBuilder.AddParameter("pass", "SomeSecret", publishValueAsDefault: true, secret: true));
+        Assert.Equal($"A parameter cannot be both secret and published as a default value. (Parameter 'secret')", ex2.Message);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
