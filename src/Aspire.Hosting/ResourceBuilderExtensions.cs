@@ -595,6 +595,16 @@ public static class ResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<T> WaitFor<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T : IResource
     {
+        if (builder.Resource as IResource == dependency.Resource)
+        {
+            throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for itself.");
+        }
+
+        if (builder.Resource is IResourceWithParent resourceWithParent && resourceWithParent.Parent == dependency.Resource)
+        {
+            throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for its parent '{dependency.Resource.Name}'.");
+        }
+
         return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitUntilHealthy));
     }
 
@@ -626,6 +636,16 @@ public static class ResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<T> WaitForCompletion<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, int exitCode = 0) where T : IResource
     {
+        if (builder.Resource as IResource == dependency.Resource)
+        {
+            throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for itself.");
+        }
+
+        if (builder.Resource is IResourceWithParent resourceWithParent && resourceWithParent.Parent == dependency.Resource)
+        {
+            throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for its parent '{dependency.Resource.Name}'.");
+        }
+
         return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitForCompletion, exitCode));
     }
 
