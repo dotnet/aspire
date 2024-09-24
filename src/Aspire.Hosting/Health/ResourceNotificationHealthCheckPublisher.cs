@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Health;
 
 internal class ResourceNotificationHealthCheckPublisher(DistributedApplicationModel model, ResourceNotificationService resourceNotificationService, IDistributedApplicationEventing eventing, IServiceProvider services) : IHealthCheckPublisher
 {
-    private readonly List<string> _alreadyHealthy = new();
+    private readonly HashSet<string> _alreadyHealthy = new();
 
     public async Task PublishAsync(HealthReport report, CancellationToken cancellationToken)
     {

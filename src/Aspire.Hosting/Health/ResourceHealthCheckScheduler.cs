@@ -13,7 +13,7 @@ internal class ResourceHealthCheckScheduler : BackgroundService
     private readonly ResourceNotificationService _resourceNotificationService;
     private readonly DistributedApplicationModel _model;
     private readonly Dictionary<string, bool> _checkEnablement = new();
-    private readonly List<string> _healthyResources = new();
+    private readonly HashSet<string> _healthyResources = new();
 
     public ResourceHealthCheckScheduler(ResourceNotificationService resourceNotificationService, DistributedApplicationModel model, IDistributedApplicationEventing eventing)
     {
