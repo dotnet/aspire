@@ -129,8 +129,9 @@ public class BuildEnvironment
         EnvVars["DEBUG_SESSION_PORT"] = "";
         // Avoid using the msbuild terminal logger, so the output can be read
         // in the tests
+        EnvVars["_MSBUILDTLENABLED"] = "0";
+        // .. and disable new output style for vstest
         EnvVars["VsTestUseMSBuildOutput"] = "false";
-        EnvVars["MSBUILDENSURESTDOUTFORTASKPROCESSES"] = "1";
 
         DotNet = Path.Combine(sdkForWorkloadPath!, "dotnet");
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
