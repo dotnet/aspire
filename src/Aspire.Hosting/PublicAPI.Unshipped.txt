@@ -1,4 +1,7 @@
 #nullable enable
+Aspire.Hosting.ApplicationModel.EndpointNameAttribute
+Aspire.Hosting.ApplicationModel.EndpointNameAttribute.EndpointNameAttribute() -> void
+Aspire.Hosting.ApplicationModel.IModelNameParameter
 Aspire.Hosting.ApplicationModel.AfterEndpointsAllocatedEvent
 Aspire.Hosting.ApplicationModel.AfterEndpointsAllocatedEvent.AfterEndpointsAllocatedEvent(System.IServiceProvider! services, Aspire.Hosting.ApplicationModel.DistributedApplicationModel! model) -> void
 Aspire.Hosting.ApplicationModel.AfterEndpointsAllocatedEvent.Model.get -> Aspire.Hosting.ApplicationModel.DistributedApplicationModel!
@@ -62,6 +65,8 @@ Aspire.Hosting.ApplicationModel.ExecuteCommandResult.Success.init -> void
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation.HealthCheckAnnotation(string! key) -> void
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation.Key.get -> string!
+Aspire.Hosting.ApplicationModel.ResourceNameAttribute
+Aspire.Hosting.ApplicationModel.ResourceNameAttribute.ResourceNameAttribute() -> void
 Aspire.Hosting.ApplicationModel.IconVariant
 Aspire.Hosting.ApplicationModel.IconVariant.Filled = 1 -> Aspire.Hosting.ApplicationModel.IconVariant
 Aspire.Hosting.ApplicationModel.IconVariant.Regular = 0 -> Aspire.Hosting.ApplicationModel.IconVariant

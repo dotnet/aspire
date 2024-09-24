@@ -21,7 +21,7 @@ public static class CDKExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the stack resource.</param>
-    public static IResourceBuilder<IStackResource> AddAWSCDKStack(this IDistributedApplicationBuilder builder, string name)
+    public static IResourceBuilder<IStackResource> AddAWSCDKStack(this IDistributedApplicationBuilder builder, [ResourceName] string name)
         => AddAWSCDKStack(builder, name, name);
 
     /// <summary>
@@ -31,7 +31,7 @@ public static class CDKExtensions
     /// <param name="name">The name of the stack resource.</param>
     /// <param name="stackName">Cloud Formation stack same if different from the resource name.</param>
     /// <returns></returns>
-    public static IResourceBuilder<IStackResource> AddAWSCDKStack(this IDistributedApplicationBuilder builder, string name,
+    public static IResourceBuilder<IStackResource> AddAWSCDKStack(this IDistributedApplicationBuilder builder, [ResourceName] string name,
         string stackName)
     {
         builder.AddAWSProvisioning();
@@ -77,7 +77,7 @@ public static class CDKExtensions
     /// <param name="constructBuilder">The construct builder delegate.</param>
     /// <returns></returns>
     public static IResourceBuilder<IConstructResource<T>> AddConstruct<T>(
-        this IResourceBuilder<IResourceWithConstruct> builder, string name,
+        this IResourceBuilder<IResourceWithConstruct> builder, [ResourceName] string name,
         ConstructBuilderDelegate<T> constructBuilder)
         where T : Construct
     {
