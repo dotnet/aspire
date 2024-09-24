@@ -1,2 +1,2 @@
 #nullable enable
-
+static Aspire.Hosting.SqlServerBuilderExtensions.WithAcceptEula(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SqlServerServerResource!>! builder, bool accept = true) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SqlServerServerResource!>!

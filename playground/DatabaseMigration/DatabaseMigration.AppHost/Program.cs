@@ -3,7 +3,9 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var db1 = builder.AddSqlServer("sql1").AddDatabase("db1");
+var db1 = builder.AddSqlServer("sql1")
+    .WithAcceptEula()
+    .AddDatabase("db1");
 
 builder.AddProject<Projects.DatabaseMigration_ApiService>("api")
        .WithExternalHttpEndpoints()

@@ -16,6 +16,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 // probably have, but in our repo we'll probably want to experiment with seperately
 // deployed resources a little bit.
 var db = builder.AddSqlServer("sql")
+                .WithAcceptEula()
                 .PublishAsConnectionString()
                 .AddDatabase("db");
 

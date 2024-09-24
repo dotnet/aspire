@@ -4,11 +4,13 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var sql1 = builder.AddSqlServer("sql1")
+                  .WithAcceptEula()
                   .PublishAsAzureSqlDatabase();
 
 var db1 = sql1.AddDatabase("db1");
 
 var sql2 = builder.AddSqlServer("sql2")
+                  .WithAcceptEula()
                   .PublishAsContainer();
 
 var db2 = sql2.AddDatabase("db2");

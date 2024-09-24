@@ -32,9 +32,11 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         });
 
         var resource = builder.AddSqlServer("resource")
+                              .WithAcceptEula()
                               .WithHealthCheck("blocking_check");
 
         var dependentResource = builder.AddSqlServer("dependentresource")
+                                       .WithAcceptEula()
                                        .WaitFor(resource);
 
         using var app = builder.Build();
@@ -72,11 +74,13 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         });
 
         var resource = builder.AddSqlServer("resource")
+                              .WithAcceptEula()
                               .WithHealthCheck("blocking_check");
 
         var db = resource.AddDatabase("db");
 
         var dependentResource = builder.AddSqlServer("dependentresource")
+                                       .WithAcceptEula()       
                                        .WaitFor(db);
 
         using var app = builder.Build();
@@ -189,7 +193,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
         {
             using var builder1 = TestDistributedApplicationBuilder.Create(o => { }, testOutputHelper);
 
-            var sqlserver1 = builder1.AddSqlServer("sqlserver");
+            var sqlserver1 = builder1.AddSqlServer("sqlserver").WithAcceptEula();
             var masterdb1 = sqlserver1.AddDatabase("master");
 
             var password = sqlserver1.Resource.PasswordParameter.Value;
@@ -298,7 +302,7 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
             builder2.Configuration["Parameters:pwd"] = password;
 
-            var sqlserver2 = builder2.AddSqlServer("sqlserver", passwordParameter2);
+            var sqlserver2 = builder2.AddSqlServer("sqlserver", passwordParameter2).WithAcceptEula();
             var masterdb2 = sqlserver2.AddDatabase("master");
 
             if (useVolume)

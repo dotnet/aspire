@@ -65,7 +65,6 @@ public static class SqlServerBuilderExtensions
                       .WithEndpoint(port: port, targetPort: 1433, name: SqlServerServerResource.PrimaryEndpointName)
                       .WithImage(SqlServerContainerImageTags.Image, SqlServerContainerImageTags.Tag)
                       .WithImageRegistry(SqlServerContainerImageTags.Registry)
-                      .WithEnvironment("ACCEPT_EULA", "Y")
                       .WithEnvironment(context =>
                       {
                           context.EnvironmentVariables["MSSQL_SA_PASSWORD"] = sqlServer.PasswordParameter;
@@ -150,6 +149,22 @@ public static class SqlServerBuilderExtensions
             builder.WithBindMount(path, $"/var/opt/mssql/{dir}", isReadOnly);
         }
 
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the acceptance of the End User License Agreement (EULA) for SQL Server.
+    /// </summary>
+    /// <param name="builder">The resource builder for SQL Server.</param>
+    /// <param name="accept">A boolean value indicating whether to accept the EULA. If <see langword="true"/>, the EULA is accepted.</param>
+    /// <returns>The resource builder for SQL Server.</returns>
+    public static IResourceBuilder<SqlServerServerResource> WithAcceptEula(this IResourceBuilder<SqlServerServerResource> builder, bool accept = true)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        if (accept)
+        {
+            return builder.WithEnvironment("ACCEPT_EULA", "Y");
+        }
         return builder;
     }
 }

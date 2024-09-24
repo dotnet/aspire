@@ -95,6 +95,17 @@ public class SqlServerPublicApiTests
     }
 
     [Fact]
+    public void WithAcceptEulaShouldThrowWhenBuilderIsNull()
+    {
+        IResourceBuilder<SqlServerServerResource> builder = null!;
+
+        var action = () => builder.WithAcceptEula();
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Fact]
     public void WithDataBindMountShouldThrowWhenSourceIsNull()
     {
         var builderResource = TestDistributedApplicationBuilder.Create();

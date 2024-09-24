@@ -23,7 +23,9 @@ var storage = builder.AddAzureStorage("storage", (_, construct, account) =>
 
 var blobs = storage.AddBlobs("blobs");
 
-var sqldb = builder.AddSqlServer("sql").AsAzureSqlDatabase().AddDatabase("sqldb");
+var sqldb = builder.AddSqlServer("sql")
+    .WithAcceptEula()
+    .AsAzureSqlDatabase().AddDatabase("sqldb");
 
 var signaturesecret = builder.AddParameter("signaturesecret", secret: true);
 var keyvault = builder.AddAzureKeyVault("mykv", (_, construct, keyVault) =>

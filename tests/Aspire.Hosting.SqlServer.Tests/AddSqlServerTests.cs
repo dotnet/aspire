@@ -62,18 +62,10 @@ public class AddSqlServerTests
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(containerResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
-        Assert.Collection(config,
-            env =>
-            {
-                Assert.Equal("ACCEPT_EULA", env.Key);
-                Assert.Equal("Y", env.Value);
-            },
-            env =>
-            {
-                Assert.Equal("MSSQL_SA_PASSWORD", env.Key);
-                Assert.NotNull(env.Value);
-                Assert.True(env.Value.Length >= 8);
-            });
+        var env = Assert.Single(config);
+        Assert.Equal("MSSQL_SA_PASSWORD", env.Key);
+        Assert.NotNull(env.Value);
+        Assert.True(env.Value.Length >= 8);
     }
 
     [Fact]
@@ -138,7 +130,6 @@ public class AddSqlServerTests
               "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver-password.value};TrustServerCertificate=true",
               "image": "{{SqlServerContainerImageTags.Registry}}/{{SqlServerContainerImageTags.Image}}:{{SqlServerContainerImageTags.Tag}}",
               "env": {
-                "ACCEPT_EULA": "Y",
                 "MSSQL_SA_PASSWORD": "{sqlserver-password.value}"
               },
               "bindings": {
@@ -178,7 +169,6 @@ public class AddSqlServerTests
               "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={pass.value};TrustServerCertificate=true",
               "image": "{{SqlServerContainerImageTags.Registry}}/{{SqlServerContainerImageTags.Image}}:{{SqlServerContainerImageTags.Tag}}",
               "env": {
-                "ACCEPT_EULA": "Y",
                 "MSSQL_SA_PASSWORD": "{pass.value}"
               },
               "bindings": {
@@ -192,6 +182,46 @@ public class AddSqlServerTests
             }
             """;
         Assert.Equal(expectedManifest, serverManifest.ToString());
+    }
+
+    [Fact]
+    public async Task VerifyManifestWithAcceptEula()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var sqlServer = builder.AddSqlServer("sqlserver").WithAcceptEula();
+        var db = sqlServer.AddDatabase("db");
+
+        var serverManifest = await ManifestUtils.GetManifest(sqlServer.Resource);
+        var dbManifest = await ManifestUtils.GetManifest(db.Resource);
+
+        var expectedManifest = $$"""
+            {
+              "type": "container.v0",
+              "connectionString": "Server={sqlserver.bindings.tcp.host},{sqlserver.bindings.tcp.port};User ID=sa;Password={sqlserver-password.value};TrustServerCertificate=true",
+              "image": "{{SqlServerContainerImageTags.Registry}}/{{SqlServerContainerImageTags.Image}}:{{SqlServerContainerImageTags.Tag}}",
+              "env": {
+                "MSSQL_SA_PASSWORD": "{sqlserver-password.value}",
+                "ACCEPT_EULA": "Y"
+              },
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "targetPort": 1433
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, serverManifest.ToString());
+
+        expectedManifest = """
+            {
+              "type": "value.v0",
+              "connectionString": "{sqlserver.connectionString};Database=db"
+            }
+            """;
+        Assert.Equal(expectedManifest, dbManifest.ToString());
     }
 
     [Fact]
@@ -250,5 +280,27 @@ public class AddSqlServerTests
 
         Assert.Equal("{sqlserver1.connectionString};Database=imports", db1.Resource.ConnectionStringExpression.ValueExpression);
         Assert.Equal("{sqlserver2.connectionString};Database=imports", db2.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task WithAcceptEula(bool accept)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var seq = builder.AddSqlServer("sqlserver")
+            .WithAcceptEula(accept);
+
+        var config = await seq.Resource.GetEnvironmentVariableValuesAsync();
+        config.TryGetValue("ACCEPT_EULA", out var value);
+        if (accept)
+        {
+            Assert.Equal("Y", value);
+        }
+        else
+        {
+            Assert.Null(value);
+        }
     }
 }
