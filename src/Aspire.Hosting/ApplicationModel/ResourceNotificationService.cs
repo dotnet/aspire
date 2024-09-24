@@ -169,7 +169,7 @@ public class ResourceNotificationService
     }
 
     /// <summary>
-    /// Waits for a resource to become health.
+    /// Waits for a resource to become healthy.
     /// </summary>
     /// <param name="resourceName">The name of the resource.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
