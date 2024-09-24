@@ -13,7 +13,7 @@ public static class ModelTestHelpers
         string? appName = null,
         KnownResourceState? state = null,
         string? displayName = null,
-        ImmutableArray<UrlViewModel> urls = default,
+        ImmutableArray<UrlViewModel>? urls = null,
         Dictionary<string, ResourcePropertyViewModel>? properties = null,
         string? resourceType = null)
     {
@@ -27,7 +27,7 @@ public static class ModelTestHelpers
             StartTimeStamp = DateTime.UtcNow,
             StopTimeStamp = DateTime.UtcNow,
             Environment = [],
-            Urls = urls,
+            Urls = urls ?? [],
             Volumes = [],
             Properties = properties?.ToFrozenDictionary() ?? FrozenDictionary<string, ResourcePropertyViewModel>.Empty,
             State = state?.ToString(),

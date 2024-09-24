@@ -207,15 +207,16 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     }
 
     // Sets the state of the resource's children
-    async Task SetChildResourceStateAsync(IResource resource, string state)
+    async Task SetChildResourceAsync(IResource resource, string? state, DateTime? startTimeStamp, DateTime? stopTimeStamp)
     {
         foreach (var child in _parentChildLookup[resource])
         {
             await notificationService.PublishUpdateAsync(child, s => s with
             {
-                State = state
-            })
-            .ConfigureAwait(false);
+                State = state,
+                StartTimeStamp = startTimeStamp,
+                StopTimeStamp = stopTimeStamp
+            }).ConfigureAwait(false);
         }
     }
 
@@ -428,9 +429,13 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
 
                 // Update all child resources of containers
-                if (resource is Container c && c.Status?.State is string state)
+                if (resource is Container c && c.Status is { } status)
                 {
-                    await SetChildResourceStateAsync(appModelResource, state).ConfigureAwait(false);
+                    await SetChildResourceAsync(
+                        appModelResource,
+                        status.State,
+                        status.StartupTimestamp?.ToUniversalTime().UtcDateTime,
+                        status.FinishTimestamp?.ToUniversalTime().UtcDateTime).ConfigureAwait(false);
                 }
             }
             else
@@ -1497,7 +1502,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 })
                 .ConfigureAwait(false);
 
-                await SetChildResourceStateAsync(cr.ModelResource, "Starting").ConfigureAwait(false);
+                await SetChildResourceAsync(cr.ModelResource, state: "Starting", startTimeStamp: null, stopTimeStamp: null).ConfigureAwait(false);
 
                 try
                 {
@@ -1516,7 +1521,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                     await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
 
-                    await SetChildResourceStateAsync(cr.ModelResource, "FailedToStart").ConfigureAwait(false);
+                    await SetChildResourceAsync(cr.ModelResource, state: "FailedToStart", startTimeStamp: null, stopTimeStamp: null).ConfigureAwait(false);
                 }
             }
 
