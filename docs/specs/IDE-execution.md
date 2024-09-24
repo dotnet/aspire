@@ -122,7 +122,7 @@ Project launch configuration contains details for launching programs that have p
 
 ### Launch profile processing (project launch configuration)
 
-Launch profiles should be applied to service run sessions according to following rules:
+Launch profiles should be applied to service run sessions according to the following rules:
 
 1. The values of `launch_profile` and `disable_launch_profile` properties determine the **base profile** used for the service run session. The base profile may be nonexistent (empty), or it might be that one of the launch profiles defined for the service project serves as the base profile, see point 3 below.
 
