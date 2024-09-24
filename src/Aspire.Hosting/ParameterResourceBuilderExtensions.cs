@@ -36,6 +36,7 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="publishValueAsDefault">Indicates whether the value should be published to the manifest. This is not meant for sensitive data.</param>
     /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
     /// <returns>Resource builder for the parameter.</returns>
+    /// <remarks>publishValueAsDefault and secret are mutually exclusive.</remarks>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
                                                      Justification = "third parameters are mutually exclusive.")]
     public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, [ResourceName] string name, string value, bool publishValueAsDefault = false, bool secret = false)
@@ -52,10 +53,17 @@ public static class ParameterResourceBuilderExtensions
     /// <param name="publishValueAsDefault">Indicates whether the value should be published to the manifest. This is not meant for sensitive data.</param>
     /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
     /// <returns>Resource builder for the parameter.</returns>
+    /// <remarks>publishValueAsDefault and secret are mutually exclusive.</remarks>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("ApiDesign", "RS0026:Do not add multiple public overloads with optional parameters",
                                                      Justification = "third parameters are mutually exclusive.")]
     public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, Func<string> valueGetter, bool publishValueAsDefault = false, bool secret = false)
     {
+        // We don't allow a parameter to be both secret and published, as that would write the secret to the manifest.
+        if (publishValueAsDefault && secret)
+        {
+            throw new ArgumentException("A parameter cannot be both secret and published as a default value.", nameof(secret));
+        }
+
         // If publishValueAsDefault is set, we wrap the valueGetter in a ConstantParameterDefault, which gives
         // us both the runtime value and the value to publish to the manifest.
         // Otherwise, we just use the valueGetter directly, which only gives us the runtime value.
