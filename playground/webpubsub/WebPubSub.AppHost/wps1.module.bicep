@@ -10,7 +10,7 @@ param principalId string
 param principalType string
 
 resource wps1 'Microsoft.SignalRService/webPubSub@2021-10-01' = {
-  name: toLower(take('wps1${uniqueString(resourceGroup().id)}', 24))
+  name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
   location: location
   sku: {
     name: sku

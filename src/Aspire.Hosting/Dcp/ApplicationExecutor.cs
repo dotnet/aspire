@@ -207,15 +207,16 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     }
 
     // Sets the state of the resource's children
-    async Task SetChildResourceStateAsync(IResource resource, string state)
+    async Task SetChildResourceAsync(IResource resource, string? state, DateTime? startTimeStamp, DateTime? stopTimeStamp)
     {
         foreach (var child in _parentChildLookup[resource])
         {
             await notificationService.PublishUpdateAsync(child, s => s with
             {
-                State = state
-            })
-            .ConfigureAwait(false);
+                State = state,
+                StartTimeStamp = startTimeStamp,
+                StopTimeStamp = stopTimeStamp
+            }).ConfigureAwait(false);
         }
     }
 
@@ -354,7 +355,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
             catch (Exception ex)
             {
-                _logger.LogCritical(ex, "Watch task over Kubernetes {ResourceType} resources terminated unexpectedly. Check to ensure dcpd process is running.", typeof(T).Name);
+                _logger.LogCritical(ex, "Watch task over Kubernetes {ResourceType} resources terminated unexpectedly.", typeof(T).Name);
             }
             finally
             {
@@ -428,9 +429,13 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
 
                 // Update all child resources of containers
-                if (resource is Container c && c.Status?.State is string state)
+                if (resource is Container c && c.Status is { } status)
                 {
-                    await SetChildResourceStateAsync(appModelResource, state).ConfigureAwait(false);
+                    await SetChildResourceAsync(
+                        appModelResource,
+                        status.State,
+                        status.StartupTimestamp?.ToUniversalTime(),
+                        status.FinishTimestamp?.ToUniversalTime()).ConfigureAwait(false);
                 }
             }
             else
@@ -625,7 +630,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 new(KnownProperties.Container.Ports, GetPorts()),
             ],
             EnvironmentVariables = environment,
-            CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
+            CreationTimeStamp = container.Metadata.CreationTimestamp?.ToUniversalTime(),
+            StartTimeStamp = container.Status?.StartupTimestamp?.ToUniversalTime(),
+            StopTimeStamp = container.Status?.FinishTimestamp?.ToUniversalTime(),
             Urls = urls,
             Volumes = volumes
         };
@@ -685,7 +692,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     new(KnownProperties.Project.Path, projectPath)
                 ],
                 EnvironmentVariables = environment,
-                CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
+                CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToUniversalTime(),
+                StartTimeStamp = executable.Status?.StartupTimestamp?.ToUniversalTime(),
+                StopTimeStamp = executable.Status?.FinishTimestamp?.ToUniversalTime(),
                 Urls = urls
             };
         }
@@ -702,7 +711,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 new(KnownProperties.Executable.Pid, executable.Status?.ProcessId)
             ],
             EnvironmentVariables = environment,
-            CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
+            CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToUniversalTime(),
+            StartTimeStamp = executable.Status?.StartupTimestamp?.ToUniversalTime(),
+            StopTimeStamp = executable.Status?.FinishTimestamp?.ToUniversalTime(),
             Urls = urls
         };
     }
@@ -1491,7 +1502,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 })
                 .ConfigureAwait(false);
 
-                await SetChildResourceStateAsync(cr.ModelResource, "Starting").ConfigureAwait(false);
+                await SetChildResourceAsync(cr.ModelResource, state: "Starting", startTimeStamp: null, stopTimeStamp: null).ConfigureAwait(false);
 
                 try
                 {
@@ -1510,7 +1521,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                     await notificationService.PublishUpdateAsync(cr.ModelResource, s => s with { State = "FailedToStart" }).ConfigureAwait(false);
 
-                    await SetChildResourceStateAsync(cr.ModelResource, "FailedToStart").ConfigureAwait(false);
+                    await SetChildResourceAsync(cr.ModelResource, state: "FailedToStart", startTimeStamp: null, stopTimeStamp: null).ConfigureAwait(false);
                 }
             }
 

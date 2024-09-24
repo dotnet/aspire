@@ -156,7 +156,7 @@ public class ResourceNotificationService
         if (dependency.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var _))
         {
             resourceLogger.LogInformation("Waiting for resource '{Name}' to become healthy.", dependency.Name);
-            await WaitForResourceAsync(dependency.Name, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await WaitForResourceHealthyAsync(dependency.Name, cancellationToken).ConfigureAwait(false);
         }
 
         resourceLogger.LogInformation("Finished waiting for resource '{Name}'.", dependency.Name);
@@ -166,6 +166,21 @@ public class ResourceNotificationService
             snapshot.State?.Text == KnownResourceStates.Finished ||
             snapshot.State?.Text == KnownResourceStates.Exited ||
             snapshot.State?.Text == KnownResourceStates.FailedToStart;
+    }
+
+    /// <summary>
+    /// Waits for a resource to become healthy.
+    /// </summary>
+    /// <param name="resourceName">The name of the resource.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task.</returns>
+    /// <remarks>
+    /// This method returns a task that will complete with the resource is healthy. A resource
+    /// without <see cref="HealthCheckAnnotation"/> annotations will be considered healthy.
+    /// </remarks>
+    public Task<ResourceEvent> WaitForResourceHealthyAsync(string resourceName, CancellationToken cancellationToken)
+    {
+        return WaitForResourceAsync(resourceName, re => re.Snapshot.HealthStatus == HealthStatus.Healthy, cancellationToken: cancellationToken);
     }
 
     private async Task WaitUntilCompletionAsync(IResource resource, IResource dependency, int exitCode, CancellationToken cancellationToken)

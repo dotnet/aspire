@@ -28,6 +28,16 @@ public sealed record CustomResourceSnapshot
     public DateTime? CreationTimeStamp { get; init; }
 
     /// <summary>
+    /// The start timestamp of the resource.
+    /// </summary>
+    public DateTime? StartTimeStamp { get; init; }
+
+    /// <summary>
+    /// The stop timestamp of the resource.
+    /// </summary>
+    public DateTime? StopTimeStamp { get; init; }
+
+    /// <summary>
     /// Represents the state of the resource.
     /// </summary>
     public ResourceStateSnapshot? State { get; init; }

@@ -6,7 +6,7 @@ param principalId string
 param principalType string
 
 resource appConfig 'Microsoft.AppConfiguration/configurationStores@2019-10-01' = {
-  name: toLower(take('appConfig${uniqueString(resourceGroup().id)}', 24))
+  name: take('appConfig-${uniqueString(resourceGroup().id)}', 50)
   location: location
   properties: {
     disableLocalAuth: true

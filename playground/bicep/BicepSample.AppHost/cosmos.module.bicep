@@ -8,7 +8,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
 }
 
 resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-05-15-preview' = {
-  name: toLower(take('cosmos${uniqueString(resourceGroup().id)}', 24))
+  name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
   location: location
   properties: {
     locations: [

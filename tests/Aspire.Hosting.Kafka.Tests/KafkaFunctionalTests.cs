@@ -48,7 +48,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
         await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
@@ -161,7 +161,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
             {
                 await app.StartAsync();
 
-                await app.WaitForTextAsync("Server started, listening for requests...", kafka1.Resource.Name);
+                await app.WaitForHealthyAsync(kafka1);
                 try
                 {
                     var hb = Host.CreateApplicationBuilder();
@@ -212,7 +212,7 @@ public class KafkaFunctionalTests(ITestOutputHelper testOutputHelper)
             using (var app = builder2.Build())
             {
                 await app.StartAsync();
-                await app.WaitForTextAsync("Server started, listening for requests...", kafka1.Resource.Name);
+                await app.WaitForHealthyAsync(kafka1);
 
                 try
                 {
