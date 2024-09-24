@@ -5,6 +5,7 @@ using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Aspire.Dashboard.Model;
+using FluentUIIconVariant = Microsoft.FluentUI.AspNetCore.Components.IconVariant;
 
 namespace Aspire.ResourceService.Proto.V1;
 
@@ -13,7 +14,7 @@ partial class Resource
     /// <summary>
     /// Converts this gRPC message object to a view model for use in the dashboard UI.
     /// </summary>
-    public ResourceViewModel ToViewModel()
+    public ResourceViewModel ToViewModel(BrowserTimeProvider timeProvider, IKnownPropertyLookup knownPropertyLookup)
     {
         try
         {
@@ -24,13 +25,32 @@ partial class Resource
                 DisplayName = ValidateNotNull(DisplayName),
                 Uid = ValidateNotNull(Uid),
                 CreationTimeStamp = ValidateNotNull(CreatedAt).ToDateTime(),
-                Properties = Properties.ToFrozenDictionary(property => ValidateNotNull(property.Name), property => ValidateNotNull(property.Value), StringComparers.ResourcePropertyName),
+                Properties = Properties.ToFrozenDictionary(
+                    comparer: StringComparers.ResourcePropertyName,
+                    keySelector: property => ValidateNotNull(property.Name),
+                    elementSelector: property =>
+                    {
+                        var (priority, knownProperty) = knownPropertyLookup.FindProperty(ResourceType, property.Name);
+
+                        return new ResourcePropertyViewModel(
+                            name: ValidateNotNull(property.Name),
+                            value: ValidateNotNull(property.Value),
+                            isValueSensitive: property.IsSensitive,
+                            knownProperty: knownProperty,
+                            priority: priority,
+                            timeProvider: timeProvider);
+                    }),
                 Environment = GetEnvironment(),
                 Urls = GetUrls(),
                 Volumes = GetVolumes(),
                 State = HasState ? State : null,
                 KnownState = HasState ? Enum.TryParse(State, out KnownResourceState knownState) ? knownState : null : null,
                 StateStyle = HasStateStyle ? StateStyle : null,
+                ReadinessState = HasHealthState ? HealthState switch
+                {
+                    HealthStateKind.Healthy => ReadinessState.Ready,
+                    _ => ReadinessState.NotReady,
+                } : ReadinessState.Unknown,
                 Commands = GetCommands()
             };
         }
@@ -66,8 +86,27 @@ partial class Resource
         ImmutableArray<CommandViewModel> GetCommands()
         {
             return Commands
-                .Select(c => new CommandViewModel(c.CommandType, c.DisplayName, c.HasDisplayDescription ? c.DisplayDescription : null, c.ConfirmationMessage, c.Parameter, c.IsHighlighted, c.HasIconName ? c.IconName : null))
+                .Select(c => new CommandViewModel(c.CommandType, MapState(c.State), c.DisplayName, c.DisplayDescription, c.ConfirmationMessage, c.Parameter, c.IsHighlighted, c.IconName, MapIconVariant(c.IconVariant)))
                 .ToImmutableArray();
+            static CommandViewModelState MapState(ResourceCommandState state)
+            {
+                return state switch
+                {
+                    ResourceCommandState.Enabled => CommandViewModelState.Enabled,
+                    ResourceCommandState.Disabled => CommandViewModelState.Disabled,
+                    ResourceCommandState.Hidden => CommandViewModelState.Hidden,
+                    _ => throw new InvalidOperationException("Unknown state: " + state),
+                };
+            }
+            static FluentUIIconVariant MapIconVariant(IconVariant iconVariant)
+            {
+                return iconVariant switch
+                {
+                    IconVariant.Regular => FluentUIIconVariant.Regular,
+                    IconVariant.Filled => FluentUIIconVariant.Filled,
+                    _ => throw new InvalidOperationException("Unknown icon variant: " + iconVariant),
+                };
+            }
         }
 
         T ValidateNotNull<T>(T value, [CallerArgumentExpression(nameof(value))] string? expression = null) where T : class

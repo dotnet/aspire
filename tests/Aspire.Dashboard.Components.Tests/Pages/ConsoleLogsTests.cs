@@ -9,7 +9,6 @@ using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.BrowserStorage;
 using Bunit;
-using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
@@ -88,6 +87,54 @@ public partial class ConsoleLogsTests : TestContext
         Assert.Equal("test-resource", Assert.Single(subscribedResourceNames));
     }
 
+    [Fact]
+    public async Task ResourceName_ViaUrlAndResourceLoaded_LogViewerUpdated()
+    {
+        // Arrange
+        var testResource = CreateResourceViewModel("test-resource", KnownResourceState.Running);
+        var subscribedResourceNameTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name =>
+            {
+                subscribedResourceNameTcs.TrySetResult(name);
+                return consoleLogsChannel;
+            },
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource]);
+
+        SetupConsoleLogsServices(dashboardClient);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        // Act
+        var cut = RenderComponent<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ResourceName, "test-resource");
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        var instance = cut.Instance;
+        var logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
+
+        // Assert
+        logger.LogInformation("Resource and subscription should be set immediately on first render.");
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
+        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
+
+        var subscribedResource = await subscribedResourceNameTcs.Task;
+        Assert.Equal("test-resource", subscribedResource);
+
+        logger.LogInformation("Log results are added to log viewer.");
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, "Hello world", IsErrorMessage: false)]);
+        cut.WaitForState(() => instance.LogViewer.LogEntries.EntriesCount > 0);
+    }
+
     private void SetupConsoleLogsServices(TestDashboardClient? dashboardClient = null)
     {
         var version = typeof(FluentMain).Assembly.GetName().Version!;
@@ -142,12 +189,13 @@ public partial class ConsoleLogsTests : TestContext
             Uid = Guid.NewGuid().ToString(),
             CreationTimeStamp = DateTime.UtcNow,
             Environment = [],
-            Properties = FrozenDictionary<string, Value>.Empty,
+            Properties = FrozenDictionary<string, ResourcePropertyViewModel>.Empty,
             Urls = [],
             Volumes = [],
             State = state?.ToString(),
             KnownState = state,
             StateStyle = null,
+            ReadinessState = ReadinessState.Ready,
             Commands = []
         };
     }

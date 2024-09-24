@@ -4,6 +4,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using OpenAI;
 using Xunit;
 
@@ -38,6 +39,7 @@ public class AspireOpenAIExtensionsTests
             host.Services.GetRequiredService<OpenAIClient>();
 
         Assert.NotNull(client);
+        Assert.IsType<OpenAIClient>(client);
     }
 
     [Theory]
@@ -162,16 +164,17 @@ public class AspireOpenAIExtensionsTests
             new KeyValuePair<string, string?>("Aspire:OpenAI:ClientOptions:ProjectId", "myproject")
         ]);
 
-        OpenAIClientOptions? localOptions = null;
-
         builder.AddOpenAIClient("openai", configureOptions: options =>
         {
             options.ApplicationId = "myapplication";
-            localOptions = options;
         });
 
-        Assert.NotNull(localOptions);
-        Assert.Equal("myproject", localOptions.ProjectId);
-        Assert.Equal("myapplication", localOptions.ApplicationId);
+        using var host = builder.Build();
+
+        var options = host.Services.GetRequiredService<IOptions<OpenAIClientOptions>>().Value;
+
+        Assert.NotNull(options);
+        Assert.Equal("myproject", options.ProjectId);
+        Assert.Equal("myapplication", options.ApplicationId);
     }
 }

@@ -52,7 +52,7 @@
             },
             "Key": {
               "type": "string",
-              "description": "Gets or sets a the API key to used to authenticate with the service.."
+              "description": "Gets or sets a the API key to used to authenticate with the service."
             }
           },
           "description": "The settings relevant to accessing OpenAI."

@@ -6,6 +6,8 @@
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Azure.Provisioning;
+using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Sql;
 
 namespace Aspire.Hosting;
@@ -21,41 +23,61 @@ public static class AzureSqlExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var sqlServer = new SqlServer(construct, builder.Resource.Name);
+            var sqlServer = new SqlServer(builder.Resource.Name)
+            {
+                Administrators = new ServerExternalAdministrator()
+                {
+                    AdministratorType = SqlAdministratorType.ActiveDirectory,
+                    IsAzureADOnlyAuthenticationEnabled = true,
+                    Sid = construct.PrincipalIdParameter,
+                    Login = construct.PrincipalNameParameter,
+                    TenantId = BicepFunction.GetSubscription().TenantId
+                },
+                Version = "12.0",
+                PublicNetworkAccess = ServerNetworkAccessFlag.Enabled,
+                MinTlsVersion = SqlMinimalTlsVersion.Tls1_2,
+                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+            };
+            construct.Add(sqlServer);
 
-            sqlServer.AssignProperty(x => x.Administrators.AdministratorType, "'ActiveDirectory'");
-            sqlServer.AssignProperty(x => x.Administrators.IsAzureADOnlyAuthenticationEnabled, "true");
-            sqlServer.AssignProperty(x => x.Administrators.Sid, construct.PrincipalIdParameter);
-            sqlServer.AssignProperty(x => x.Administrators.Login, construct.PrincipalNameParameter);
-            sqlServer.AssignProperty(x => x.Administrators.TenantId, "subscription().tenantId");
-            sqlServer.AssignProperty(x => x.MinimalTlsVersion, "'1.2'");
-
-            sqlServer.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
-
-            var azureServicesFirewallRule = new SqlFirewallRule(construct, sqlServer, "AllowAllAzureIps");
-            azureServicesFirewallRule.AssignProperty(x => x.StartIPAddress, "'0.0.0.0'");
-            azureServicesFirewallRule.AssignProperty(x => x.EndIPAddress, "'0.0.0.0'");
+            construct.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllAzureIps", sqlServer.ResourceVersion)
+            {
+                Parent = sqlServer,
+                Name = "AllowAllAzureIps",
+                StartIPAddress = "0.0.0.0",
+                EndIPAddress = "0.0.0.0"
+            });
 
             if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
             {
                 // When in run mode we inject the users identity and we need to specify
                 // the principalType.
-                sqlServer.AssignProperty(x => x.Administrators.PrincipalType, construct.PrincipalTypeParameter);
+                sqlServer.Administrators.Value!.PrincipalType = construct.PrincipalTypeParameter;
 
-                var sqlFirewall = new SqlFirewallRule(construct, sqlServer);
-                sqlFirewall.AssignProperty(x => x.StartIPAddress, "'0.0.0.0'");
-                sqlFirewall.AssignProperty(x => x.EndIPAddress, "'255.255.255.255'");
+                construct.Add(new SqlFirewallRule("sqlFirewallRule_AllowAllIps", sqlServer.ResourceVersion)
+                {
+                    Parent = sqlServer,
+                    Name = "AllowAllIps",
+                    StartIPAddress = "0.0.0.0",
+                    EndIPAddress = "255.255.255.255"
+                });
             }
 
             List<SqlDatabase> sqlDatabases = new List<SqlDatabase>();
             foreach (var databaseNames in builder.Resource.Databases)
             {
+                var resourceName = databaseNames.Key;
                 var databaseName = databaseNames.Value;
-                var sqlDatabase = new SqlDatabase(construct, sqlServer, databaseName);
+                var sqlDatabase = new SqlDatabase(resourceName, sqlServer.ResourceVersion)
+                {
+                    Parent = sqlServer,
+                    Name = databaseName
+                };
+                construct.Add(sqlDatabase);
                 sqlDatabases.Add(sqlDatabase);
             }
 
-            sqlServer.AddOutput("sqlServerFqdn", x => x.FullyQualifiedDomainName);
+            construct.Add(new BicepOutput("sqlServerFqdn", typeof(string)) { Value = sqlServer.FullyQualifiedDomainName });
 
             var resource = (AzureSqlServerResource)construct.Resource;
             var resourceBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource);

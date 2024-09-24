@@ -4,11 +4,14 @@
 using System.Collections.Frozen;
 using Aspire.Dashboard.Model;
 using Google.Protobuf.WellKnownTypes;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
 
 public sealed class MockDashboardClient : IDashboardClient
 {
+    private static readonly BrowserTimeProvider s_timeProvider = new(NullLoggerFactory.Instance);
+
     public static readonly ResourceViewModel TestResource1 = new()
     {
         Name = "TestResource",
@@ -19,14 +22,23 @@ public sealed class MockDashboardClient : IDashboardClient
         ResourceType = KnownResourceTypes.Project,
         Properties = new[]
         {
-            new KeyValuePair<string, Value>(KnownProperties.Project.Path, new Value()
-            {
-                StringValue = "C:/MyProjectPath/Project.csproj"
-            })
+            new KeyValuePair<string, ResourcePropertyViewModel>(
+                KnownProperties.Project.Path,
+                new ResourcePropertyViewModel(
+                    KnownProperties.Project.Path,
+                    new Value()
+                    {
+                        StringValue = "C:/MyProjectPath/Project.csproj"
+                    },
+                    isValueSensitive: false,
+                    knownProperty: new(KnownProperties.Project.Path, "Path"),
+                    priority: 0,
+                    timeProvider: s_timeProvider))
         }.ToFrozenDictionary(),
         State = "Running",
         Uid = Guid.NewGuid().ToString(),
         StateStyle = null,
+        ReadinessState = ReadinessState.Ready,
         Urls = [],
         Volumes = []
     };

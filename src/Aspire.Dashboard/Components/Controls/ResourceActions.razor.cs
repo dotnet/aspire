@@ -10,8 +10,8 @@ namespace Aspire.Dashboard.Components;
 
 public partial class ResourceActions : ComponentBase
 {
-    private static readonly Icon s_viewDetailsIcon = new Icons.Regular.Size20.Info();
-    private static readonly Icon s_consoleLogsIcon = new Icons.Regular.Size20.SlideText();
+    private static readonly Icon s_viewDetailsIcon = new Icons.Regular.Size16.Info();
+    private static readonly Icon s_consoleLogsIcon = new Icons.Regular.Size16.SlideText();
 
     private AspireMenuButton? _menuButton;
 
@@ -49,21 +49,22 @@ public partial class ResourceActions : ComponentBase
             OnClick = OnConsoleLogs.InvokeAsync
         });
 
-        var menuCommands = Commands.Where(c => !c.IsHighlighted).ToList();
+        var menuCommands = Commands.Where(c => !c.IsHighlighted && c.State != CommandViewModelState.Hidden).ToList();
         if (menuCommands.Count > 0)
         {
             _menuItems.Add(new MenuButtonItem { IsDivider = true });
 
             foreach (var command in menuCommands)
             {
-                var icon = (!string.IsNullOrEmpty(command.IconName) && CommandViewModel.ResolveIconName(command.IconName) is { } i) ? i : null;
+                var icon = (!string.IsNullOrEmpty(command.IconName) && CommandViewModel.ResolveIconName(command.IconName, command.IconVariant) is { } i) ? i : null;
 
                 _menuItems.Add(new MenuButtonItem
                 {
                     Text = command.DisplayName,
                     Tooltip = command.DisplayDescription,
                     Icon = icon,
-                    OnClick = () => CommandSelected.InvokeAsync(command)
+                    OnClick = () => CommandSelected.InvokeAsync(command),
+                    IsDisabled = command.State == CommandViewModelState.Disabled
                 });
             }
         }

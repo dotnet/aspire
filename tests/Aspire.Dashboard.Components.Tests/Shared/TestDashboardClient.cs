@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Aspire.Dashboard.Model;
@@ -11,6 +12,7 @@ public class TestDashboardClient : IDashboardClient
 {
     private readonly Func<string, Channel<IReadOnlyList<ResourceLogLine>>>? _consoleLogsChannelProvider;
     private readonly Func<Channel<IReadOnlyList<ResourceViewModelChange>>>? _resourceChannelProvider;
+    private readonly IList<ResourceViewModel>? _initialResources;
 
     public bool IsEnabled { get; }
     public Task WhenConnected { get; } = Task.CompletedTask;
@@ -19,11 +21,13 @@ public class TestDashboardClient : IDashboardClient
     public TestDashboardClient(
         bool? isEnabled = false,
         Func<string, Channel<IReadOnlyList<ResourceLogLine>>>? consoleLogsChannelProvider = null,
-        Func<Channel<IReadOnlyList<ResourceViewModelChange>>>? resourceChannelProvider = null)
+        Func<Channel<IReadOnlyList<ResourceViewModelChange>>>? resourceChannelProvider = null,
+        IList<ResourceViewModel>? initialResources = null)
     {
         IsEnabled = isEnabled ?? false;
         _consoleLogsChannelProvider = consoleLogsChannelProvider;
         _resourceChannelProvider = resourceChannelProvider;
+        _initialResources = initialResources;
     }
 
     public ValueTask DisposeAsync()
@@ -60,7 +64,7 @@ public class TestDashboardClient : IDashboardClient
 
         var channel = _resourceChannelProvider();
 
-        return Task.FromResult(new ResourceViewModelSubscription([], BuildSubscription(channel, cancellationToken)));
+        return Task.FromResult(new ResourceViewModelSubscription(_initialResources?.ToImmutableArray() ?? [], BuildSubscription(channel, cancellationToken)));
 
         async static IAsyncEnumerable<IReadOnlyList<ResourceViewModelChange>> BuildSubscription(Channel<IReadOnlyList<ResourceViewModelChange>> channel, [EnumeratorCancellation] CancellationToken cancellationToken)
         {

@@ -23,6 +23,12 @@ public class AnsiParserTests
 
     [Theory]
     [InlineData("\x1B[2m", "")]
+    [InlineData("\x1B[2A", "")]
+    [InlineData("\x1B[u", "")]
+    [InlineData("\x1B[2@", "")]
+    [InlineData("\x1B[2~", "")]
+    [InlineData("\x1B[?25h", "")]
+    [InlineData("\x1B[?25l", "")]
     [InlineData("\x1B[23m", "")]
     [InlineData("\x1B[2m\x1B[23m", "")]
     [InlineData("Real Text Before\x1B[2m\x1B[23m", "Real Text Before")]
@@ -30,6 +36,20 @@ public class AnsiParserTests
     [InlineData("\x1B[2mReal Text Between\x1B[23m", "Real Text Between")]
     [InlineData("Real Text Before\x1B[2mReal Text Between\x1B[23mReal Text After", "Real Text BeforeReal Text BetweenReal Text After")]
     public void ConvertToHtml_IgnoresUnsupportedButValidCodes(string input, string expectedOutput)
+    {
+        var result = AnsiParser.ConvertToHtml(input);
+
+        Assert.Equal(expectedOutput, result.ConvertedText);
+        Assert.Equal(default, result.ResidualState);
+    }
+
+    [Theory]
+    [InlineData("\x1b]9;4;3;\x1b\\", "")]
+    [InlineData("\x1b]9;4;3;\x07", "")]
+    [InlineData("Real Text Before\x1b]9;4;3;\x1b\\", "Real Text Before")]
+    [InlineData("\x1b]9;4;3;\x1b\\Real Text After", "Real Text After")]
+    [InlineData("\u001b]9;4;3;\u001b\\Real Text Between\u001b]9;4;3;\u001b\\", "Real Text Between")]
+    public void ConvertToHtml_IgnoresUnsupportedConEmuCodes(string input, string expectedOutput)
     {
         var result = AnsiParser.ConvertToHtml(input);
 
@@ -53,6 +73,17 @@ public class AnsiParserTests
     public void ConvertToHtml_ColorOpenedAndClosed()
     {
         var input = "\x1B[32mThis is some green text\x1B[39m";
+        var expectedOutput = "<span class=\"ansi-fg-green\">This is some green text</span>";
+        var result = AnsiParser.ConvertToHtml(input);
+
+        Assert.Equal(expectedOutput, result.ConvertedText);
+        Assert.Equal(default, result.ResidualState);
+    }
+
+    [Fact]
+    public void ConvertToHtml_ColorOpenedAndClosedWithIgnoredSequencesInMiddle()
+    {
+        var input = "\x1B[32mThis is \x1B[?25hsome green\u001b]9;4;3;\u001b\\ text\x1B[39m";
         var expectedOutput = "<span class=\"ansi-fg-green\">This is some green text</span>";
         var result = AnsiParser.ConvertToHtml(input);
 

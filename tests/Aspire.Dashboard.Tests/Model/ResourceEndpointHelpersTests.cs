@@ -4,7 +4,6 @@
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using Aspire.Dashboard.Model;
-using Google.Protobuf.WellKnownTypes;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Model;
@@ -199,10 +198,11 @@ public sealed class ResourceEndpointHelpersTests
             Environment = [],
             Urls = urls,
             Volumes = [],
-            Properties = FrozenDictionary<string, Value>.Empty,
+            Properties = FrozenDictionary<string, ResourcePropertyViewModel>.Empty,
             State = null,
             KnownState = null,
             StateStyle = null,
+            ReadinessState = ReadinessState.Ready,
             Commands = []
         };
     }

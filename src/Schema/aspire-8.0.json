@@ -228,53 +228,65 @@
                     },
                     "default": {
                       "type": "object",
-                      "required": ["generate"],
-                      "properties": {
-                        "generate": {
-                          "type": "object",
-                          "required": ["minLength"],
+                      "oneOf": [
+                        {
+                          "required": ["generate"],
                           "properties": {
-                            "minLength": {
-                              "type": "number",
-                              "description": "The minimum length of the generated value."
+                            "generate": {
+                              "type": "object",
+                              "required": ["minLength"],
+                              "properties": {
+                                "minLength": {
+                                  "type": "number",
+                                  "description": "The minimum length of the generated value."
+                                },
+                                "lower": {
+                                  "type": "boolean",
+                                  "description": "Indicates whether lower case characters are allowed in the generated value."
+                                },
+                                "upper": {
+                                  "type": "boolean",
+                                  "description": "Indicates whether upper case characters are allowed in the generated value."
+                                },
+                                "numeric": {
+                                  "type": "boolean",
+                                  "description": "Indicates whether numeric characters are allowed in the generated value."
+                                },
+                                "special": {
+                                  "type": "boolean",
+                                  "description": "Indicates whether special characters are allowed in the generated value."
+                                },
+                                "minLower": {
+                                  "type": "number",
+                                  "description": "Specifies the minimum number of lower case characters that must appear in the generated value."
+                                },
+                                "minUpper": {
+                                  "type": "number",
+                                  "description": "Specifies the minimum number of upper case characters that must appear in the generated value."
+                                },
+                                "minNumeric": {
+                                  "type": "number",
+                                  "description": "Specifies the minimum number of numeric characters that must appear in the generated value."
+                                },
+                                "minSpecial": {
+                                  "type": "number",
+                                  "description": "Specifies the minimum number of special characters that must appear in the generated value."
+                                }
+                              }
                             },
-                            "lower": {
-                              "type": "boolean",
-                              "description": "Indicates whether lower case characters are allowed in the generated value."
-                            },
-                            "upper": {
-                              "type": "boolean",
-                              "description": "Indicates whether upper case characters are allowed in the generated value."
-                            },
-                            "numeric": {
-                              "type": "boolean",
-                              "description": "Indicates whether numeric characters are allowed in the generated value."
-                            },
-                            "special": {
-                              "type": "boolean",
-                              "description": "Indicates whether special characters are allowed in the generated value."
-                            },
-                            "minLower": {
-                              "type": "number",
-                              "description": "Specifies the minimum number of lower case characters that must appear in the generated value."
-                            },
-                            "minUpper": {
-                              "type": "number",
-                              "description": "Specifies the minimum number of upper case characters that must appear in the generated value."
-                            },
-                            "minNumeric": {
-                              "type": "number",
-                              "description": "Specifies the minimum number of numeric characters that must appear in the generated value."
-                            },
-                            "minSpecial": {
-                              "type": "number",
-                              "description": "Specifies the minimum number of special characters that must appear in the generated value."
+                            "additionalProperties": false
+                          }
+                        },
+                        {
+                          "required": ["value"],
+                          "properties": {
+                            "value": {
+                              "type": "string",
+                              "description": "The default value to use if the parameter is not provided at deployment time."
                             }
-                          },
-                          "additionalProperties": false
+                          }
                         }
-                      },
-                      "additionalProperties": false
+                      ]
                     }
                   },
                   "additionalProperties": false

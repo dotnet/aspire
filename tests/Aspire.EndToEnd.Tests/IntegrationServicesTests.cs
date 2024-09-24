@@ -49,6 +49,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     public Task VerifyAzureEventHubsComponentWorks()
         => VerifyComponentWorks(TestResourceNames.eventhubs);
 
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/5820")]
     [ConditionalTheory]
     [Trait("scenario", "cosmos")]
     [InlineData(TestResourceNames.cosmos)]
@@ -65,7 +66,8 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
 
     [Fact]
     // Include all the scenarios here so this test gets run for all of them.
-    [Trait("scenario", "cosmos")]
+    // https://github.com/dotnet/aspire/issues/5820
+    // [Trait("scenario", "cosmos")]
     [Trait("scenario", "basicservices")]
     public Task VerifyHealthyOnIntegrationServiceA()
         => RunTestAsync(async () =>

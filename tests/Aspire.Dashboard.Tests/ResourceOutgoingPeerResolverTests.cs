@@ -5,7 +5,6 @@ using System.Collections.Frozen;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Aspire.Dashboard.Model;
-using Google.Protobuf.WellKnownTypes;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests;
@@ -22,10 +21,11 @@ public class ResourceOutgoingPeerResolverTests
             Uid = Guid.NewGuid().ToString(),
             CreationTimeStamp = DateTime.UtcNow,
             Environment = [],
-            Properties = FrozenDictionary<string, Value>.Empty,
+            Properties = FrozenDictionary<string, ResourcePropertyViewModel>.Empty,
             Urls = servicePort is null || servicePort is null ? [] : [new UrlViewModel(name, new($"http://{serviceAddress}:{servicePort}"), isInternal: false)],
             Volumes = [],
             State = null,
+            ReadinessState = ReadinessState.Ready,
             KnownState = null,
             StateStyle = null,
             Commands = []
