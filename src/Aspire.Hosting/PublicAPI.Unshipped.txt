@@ -134,9 +134,15 @@ Aspire.Hosting.Eventing.IDistributedApplicationResourceEvent.Resource.get -> Asp
 Aspire.Hosting.IDistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!
 Aspire.Hosting.IProjectMetadata.LaunchSettings.get -> Aspire.Hosting.Launch.LaunchSettings?
 Aspire.Hosting.Launch.LaunchProfile
+Aspire.Hosting.Launch.LaunchProfile.ApplicationUrl.get -> string?
+Aspire.Hosting.Launch.LaunchProfile.ApplicationUrl.set -> void
 Aspire.Hosting.Launch.LaunchProfile.CommandLineArgs.get -> string?
 Aspire.Hosting.Launch.LaunchProfile.CommandLineArgs.set -> void
+Aspire.Hosting.Launch.LaunchProfile.EnvironmentVariables.get -> System.Collections.Generic.Dictionary<string!, string!>!
+Aspire.Hosting.Launch.LaunchProfile.EnvironmentVariables.set -> void
 Aspire.Hosting.Launch.LaunchProfile.LaunchProfile() -> void
+Aspire.Hosting.Launch.LaunchProfile.LaunchUrl.get -> string?
+Aspire.Hosting.Launch.LaunchProfile.LaunchUrl.set -> void
 Aspire.Hosting.Launch.LaunchSettings
 Aspire.Hosting.Launch.LaunchSettings.LaunchSettings() -> void
 Aspire.Hosting.Launch.LaunchSettings.Profiles.get -> System.Collections.Generic.Dictionary<string!, Aspire.Hosting.Launch.LaunchProfile!>!

@@ -38,17 +38,17 @@ public sealed class LaunchProfile
     /// Gets or sets the launch URL for the launch profile.
     /// </summary>
     [JsonPropertyName("launchUrl")]
-    internal string? LaunchUrl { get; set; }
+    public string? LaunchUrl { get; set; }
 
     /// <summary>
     /// Gets or sets the application URL for the launch profile.
     /// </summary>
     [JsonPropertyName("applicationUrl")]
-    internal string? ApplicationUrl { get; set; }
+    public string? ApplicationUrl { get; set; }
 
     /// <summary>
     /// Gets or sets the environment variables for the launch profile.
     /// </summary>
     [JsonPropertyName("environmentVariables")]
-    internal Dictionary<string, string> EnvironmentVariables { get; set; } = [];
+    public Dictionary<string, string> EnvironmentVariables { get; set; } = [];
 }
