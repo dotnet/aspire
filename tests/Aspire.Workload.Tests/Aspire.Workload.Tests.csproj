@@ -6,6 +6,11 @@
     <TestUsingWorkloads>true</TestUsingWorkloads>
     <InstallWorkloadForTesting>true</InstallWorkloadForTesting>
 
+    <!-- https://github.com/dotnet/aspire/issues/5926
+     The template tests are unreliable ever since we merged the workload removal PR.
+     Temporarily skipping them while we work on making them reliable -->
+    <SkipTests Condition="'$(OS)' == 'Windows_NT'">true</SkipTests>
+
     <XunitRunnerJson>xunit.runner.json</XunitRunnerJson>
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
     <TestArchiveTestsDir>$(TestArchiveTestsDirForWorkloadTests)</TestArchiveTestsDir>
