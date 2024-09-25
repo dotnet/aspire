@@ -21,6 +21,7 @@ public class BuildEnvironment
     public DirectoryInfo?                   RepoRoot                      { get; init; }
     public TemplatesCustomHive?             TemplatesCustomHive           { get; init; }
 
+    // FIXME: make it settable via environment variable
     public const TestTargetFramework        DefaultTargetFramework = TestTargetFramework.Net90;
     public static readonly string           TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "testassets");
     public static readonly string           TestRootPath = Path.Combine(Path.GetTempPath(), "testroot");
@@ -40,14 +41,13 @@ public class BuildEnvironment
     private static readonly Lazy<BuildEnvironment> s_instance_80 = new(() =>
         new BuildEnvironment(
                 targetFramework: TestTargetFramework.Net80,
-                templatesCustomHive: new TemplatesCustomHive(
-                        [TemplatePackageIdNames.AspireProjectTemplates_9_0_net9], "templates-9_net8")));
+                // FIXME: use the instances from the TemplatesCustomHive, but they are lazy
+                templatesCustomHive: TemplatesCustomHive.Net9_0_Net8));
 
     private static readonly Lazy<BuildEnvironment> s_instance_90 = new(() =>
         new BuildEnvironment(
                 targetFramework: TestTargetFramework.Net90,
-                templatesCustomHive: new TemplatesCustomHive(
-                        [TemplatePackageIdNames.AspireProjectTemplates_9_0_net9], "templates-9_net9")));
+                templatesCustomHive: TemplatesCustomHive.Net9_0_Net9));
 
     public static BuildEnvironment ForNet80 => s_instance_80.Value;
     public static BuildEnvironment ForNet90 => s_instance_90.Value;

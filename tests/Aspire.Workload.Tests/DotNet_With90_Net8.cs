@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#if false
 using Aspire.Workload.Tests;
 using Xunit;
 
@@ -21,3 +22,5 @@ public class DotNet_With9_Net8_Fixture : IAsyncLifetime
         return Task.CompletedTask;
     }
 }
+
+#endif

@@ -6,41 +6,13 @@ using Xunit.Abstractions;
 
 namespace Aspire.Workload.Tests;
 
-public class PreviousTFM_TemplateTests : WorkloadTestsBase, IClassFixture<DotNet_With9_Net8_Fixture>
+public class PreviousTFM_TemplateTests : WorkloadTestsBase
 {
-    // private readonly DotNet_With9_Net8_Fixture _testFixture;
-    private const string TargetFramework = "net8.0";
-    private readonly DotNet_With9_Net8_Fixture _testFixture;
-
-    public PreviousTFM_TemplateTests(DotNet_With9_Net8_Fixture fixture, ITestOutputHelper testOutput)
+    public PreviousTFM_TemplateTests(ITestOutputHelper testOutput)
         : base(testOutput)
     {
-        _testFixture = fixture;
     }
 
-    // FIXME: new+build tests
-    /*
-     * aspire-starter
-     * aspire-starter with tests
-     * aspire
-     * also check that the default framework is as expected
-     *  - add this oen for CurrentTFM also
-     *
-
-
-
-     * With both installed
-        * - can create and build net8, and net9
-    * with 9 installed
-        [x] can create and build net9
-        [ ] cannot create net8
-    * with net8 installed (and 8 sdk)
-        [x] can create and build net8
-        [ ] cannot create net9
-
-      Current:
-
-    */
     [Theory]
     [InlineData("aspire", TestTargetFramework.Net90)]
     [InlineData("aspire", TestTargetFramework.Net80)]
@@ -48,11 +20,11 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase, IClassFixture<DotNet
     [InlineData("aspire-starter", TestTargetFramework.Net80)]
     public async Task CanNewAndBuildWithMatchingTemplatePackInstalled(string templateName, TestTargetFramework tfm)
     {
-        var id = GetNewProjectId(prefix: $"new_build_{TargetFramework}_on_9+{tfm.ToTFMString()}");
+        var id = GetNewProjectId(prefix: $"new_build_{tfm.ToTFMString()}_on_9+{tfm.ToTFMString()}");
 
         var buildEnvToUse = tfm == TestTargetFramework.Net90 ? BuildEnvironment.ForNet90 : BuildEnvironment.ForNet80;
         var templateHive = tfm == TestTargetFramework.Net90 ? TemplatesCustomHive.Net9_0_Net9 : TemplatesCustomHive.Net9_0_Net8;
-        await templateHive.Value.InstallAsync(
+        await templateHive.InstallAsync(
             BuildEnvironment.GetNewTemplateCustomHiveDefaultDirectory(),
             buildEnvToUse.BuiltNuGetsPath,
             buildEnvToUse.DotNet);
@@ -62,7 +34,7 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase, IClassFixture<DotNet
             _testOutput,
             buildEnvironment: buildEnvToUse,
             extraArgs: $"-f {tfm.ToTFMString()}",
-            customHiveForTemplates: templateHive.Value.CustomHiveDirectory);
+            customHiveForTemplates: templateHive.CustomHiveDirectory);
 
         string config = "Debug";
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
@@ -86,11 +58,11 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase, IClassFixture<DotNet
     [InlineData("aspire-nunit", TestTargetFramework.Net80)]
     public async Task CannotCreate(string templateName, TestTargetFramework tfm)
     {
-        string id = GetNewProjectId(prefix: $"new_fail_{templateName}_{TargetFramework}");
+        string id = GetNewProjectId(prefix: $"new_fail_{templateName}_{tfm.ToTFMString()}");
 
         var buildEnvToUse = tfm == TestTargetFramework.Net90 ? BuildEnvironment.ForNet90 : BuildEnvironment.ForNet80;
         var templateHive = tfm == TestTargetFramework.Net90 ? TemplatesCustomHive.Net9_0_Net8 : TemplatesCustomHive.Net9_0_Net9;
-        await templateHive.Value.InstallAsync(
+        await templateHive.InstallAsync(
             BuildEnvironment.GetNewTemplateCustomHiveDefaultDirectory(),
             buildEnvToUse.BuiltNuGetsPath,
             buildEnvToUse.DotNet);
@@ -103,7 +75,7 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase, IClassFixture<DotNet
                 _testOutput,
                 buildEnvironment: buildEnvToUse,
                 extraArgs: $"-f {tfm.ToTFMString()}",
-                customHiveForTemplates: templateHive.Value.CustomHiveDirectory);
+                customHiveForTemplates: templateHive.CustomHiveDirectory);
         }
         catch (ToolCommandException tce)
         {

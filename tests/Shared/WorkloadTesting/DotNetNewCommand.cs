@@ -17,7 +17,7 @@ public class DotNetNewCommand : DotNetCommand
         string label = "dotnet-new")
             : base(_testOutput, useDefaultArgs, buildEnv, label)
     {
-        _customHive = hiveDirectory ?? buildEnv?.TemplatesCustomHive?.CustomHiveDirectory;
+        _customHive = hiveDirectory ?? _buildEnvironment.TemplatesCustomHive?.CustomHiveDirectory;
     }
 
     public DotNetNewCommand WithCustomHive(string hiveDirectory)

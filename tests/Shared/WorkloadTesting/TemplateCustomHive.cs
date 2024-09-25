@@ -12,18 +12,15 @@ public class TemplatesCustomHive
     private readonly string _customHiveDirName;
 
     // FIXME: these are not doing the install, so no need to be lazy!
-    public static Lazy<TemplatesCustomHive> Net9_0_Net8_And_Net9 => new(() =>
-        new(
+    public static TemplatesCustomHive Net9_0_Net8_And_Net9 => new(
             [
                 TemplatePackageIdNames.AspireProjectTemplates_9_0_net9,
                 TemplatePackageIdNames.AspireProjectTemplates_9_0_net8
-            ], "templates-with-9-net8-net9"));
+            ], "templates-with-9-net8-net9");
 
-    public static Lazy<TemplatesCustomHive> Net9_0_Net8 = new(() =>
-        new([TemplatePackageIdNames.AspireProjectTemplates_9_0_net8], "templates-with-9-net8"));
+    public static TemplatesCustomHive Net9_0_Net8 = new([TemplatePackageIdNames.AspireProjectTemplates_9_0_net8], "templates-with-9-net8");
 
-    public static Lazy<TemplatesCustomHive> Net9_0_Net9 = new(() =>
-        new([TemplatePackageIdNames.AspireProjectTemplates_9_0_net9], "templates-with-9-net9"));
+    public static TemplatesCustomHive Net9_0_Net9 = new([TemplatePackageIdNames.AspireProjectTemplates_9_0_net9], "templates-with-9-net9");
 
     public TemplatesCustomHive(string[] templatePackageIds, string customHiveDirName)
     {

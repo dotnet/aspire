@@ -24,7 +24,7 @@ public class TestsWithBothTemplatePacksInstalled : WorkloadTestsBase
 
         var buildEnvToUse = tfm == TestTargetFramework.Net90 ? BuildEnvironment.ForNet90 : BuildEnvironment.ForNet80;
         var templateHive = TemplatesCustomHive.Net9_0_Net8_And_Net9;
-        await templateHive.Value.InstallAsync(
+        await templateHive.InstallAsync(
             BuildEnvironment.GetNewTemplateCustomHiveDefaultDirectory(),
             buildEnvToUse.BuiltNuGetsPath,
             buildEnvToUse.DotNet);
@@ -35,11 +35,10 @@ public class TestsWithBothTemplatePacksInstalled : WorkloadTestsBase
             buildEnvironment: buildEnvToUse,
             extraArgs: $"-f {tfm.ToTFMString()}",
             addEndpointsHook: templateName is "aspire" or "aspire-starter",
-            customHiveForTemplates: templateHive.Value.CustomHiveDirectory);
+            customHiveForTemplates: templateHive.CustomHiveDirectory);
 
         string config = "Debug";
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
-        // await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
     }
 
     [Theory]
@@ -59,7 +58,7 @@ public class TestsWithBothTemplatePacksInstalled : WorkloadTestsBase
 
         var buildEnvToUse = tfm == TestTargetFramework.Net90 ? BuildEnvironment.ForNet90 : BuildEnvironment.ForNet80;
         var templateHive = TemplatesCustomHive.Net9_0_Net8_And_Net9;
-        await templateHive.Value.InstallAsync(
+        await templateHive.InstallAsync(
             BuildEnvironment.GetNewTemplateCustomHiveDefaultDirectory(),
             buildEnvToUse.BuiltNuGetsPath,
             buildEnvToUse.DotNet);
@@ -70,10 +69,9 @@ public class TestsWithBothTemplatePacksInstalled : WorkloadTestsBase
             buildEnvironment: buildEnvToUse,
             extraArgs: $"-f {tfm.ToTFMString()}",
             addEndpointsHook: templateName is "aspire" or "aspire-starter",
-            customHiveForTemplates: templateHive.Value.CustomHiveDirectory);
+            customHiveForTemplates: templateHive.CustomHiveDirectory);
 
         string config = "Debug";
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"], workingDirectory: project.RootDir);
-        // await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
     }
 }
