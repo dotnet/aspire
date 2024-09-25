@@ -234,6 +234,369 @@ public class AzureContainerAppsTests
         Assert.Equal(expectedBicep, bicep);
     }
 
+    [Fact]
+    public async Task ProjectWithManyReferenceTypes()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddContainerAppsInfrastructure();
+
+        // CosmosDB uses secret outputs
+        var db = builder.AddAzureCosmosDB("mydb").AddDatabase("db");
+
+        // Postgres uses secret outputs + a literal connection string
+        var pgdb = builder.AddPostgres("pg").PublishAsAzurePostgresFlexibleServer().AddDatabase("db");
+
+        // Connection string (should be considered a secret)
+        var blob = builder.AddAzureStorage("storage").AddBlobs("blobs");
+
+        // Secret parameters
+        var secretValue = builder.AddParameter("value0", "x", secret: true);
+
+        // Normal parameters
+        var value = builder.AddParameter("value1", "y");
+
+        var project = builder.AddProject<Project>("api", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithHttpsEndpoint()
+            .WithHttpEndpoint(name: "internal")
+            .WithReference(db)
+            .WithReference(blob)
+            .WithReference(pgdb)
+            .WithEnvironment("SecretVal", secretValue)
+            .WithEnvironment("Value", value);
+
+        project.WithEnvironment(context =>
+        {
+            var httpEp = project.GetEndpoint("http");
+            var httpsEp = project.GetEndpoint("https");
+            var internalEp = project.GetEndpoint("internal");
+
+            context.EnvironmentVariables["HTTP_EP"] = project.GetEndpoint("http");
+            context.EnvironmentVariables["HTTPS_EP"] = project.GetEndpoint("https");
+            context.EnvironmentVariables["INTERNAL_EP"] = project.GetEndpoint("internal");
+            context.EnvironmentVariables["TARGET_PORT"] = httpEp.Property(EndpointProperty.TargetPort);
+            context.EnvironmentVariables["PORT"] = httpEp.Property(EndpointProperty.Port);
+            context.EnvironmentVariables["HOST"] = httpEp.Property(EndpointProperty.Host);
+            context.EnvironmentVariables["SCHEME"] = httpEp.Property(EndpointProperty.Scheme);
+        });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = Assert.Single(model.GetProjectResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureConstructResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await ManifestUtils.GetManifestWithBicep(resource);
+
+        var m = manifest.ToString();
+
+        var expectedManifest =
+        """
+        {
+          "type": "azure.bicep.v0",
+          "path": "api.module.bicep",
+          "params": {
+            "api_containerport": "{api.containerPort}",
+            "mydb_secretoutputs_connectionstring": "{mydb.secretOutputs.connectionString}",
+            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+            "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
+            "pg_password_value": "{pg-password.value}",
+            "value0_value": "{value0.value}",
+            "value1_value": "{value1.value}",
+            "outputs_azure_container_apps_environment_default_domain": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
+            "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+            "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+            "outputs_azure_container_registry_endpoint": "{.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+            "api_containerimage": "{api.containerImage}"
+          }
+        }
+        """;
+
+        Assert.Equal(expectedManifest, m);
+
+        var expectedBicep =
+        """
+        @description('The location for the resource(s) to be deployed.')
+        param location string = resourceGroup().location
+
+        param api_containerport string
+
+        @secure()
+        param mydb_secretoutputs_connectionstring string
+
+        param outputs_azure_container_registry_managed_identity_id string
+
+        param storage_outputs_blobendpoint string
+
+        @secure()
+        param pg_password_value string
+
+        @secure()
+        param value0_value string
+
+        param value1_value string
+
+        param outputs_azure_container_apps_environment_default_domain string
+
+        param outputs_managed_identity_client_id string
+
+        param outputs_azure_container_apps_environment_id string
+
+        param outputs_azure_container_registry_endpoint string
+
+        param api_containerimage string
+
+        resource api 'Microsoft.App/containerApps@2024-03-01' = {
+          name: 'api'
+          location: location
+          properties: {
+            configuration: {
+              secrets: [
+                {
+                  name: 'connectionstrings--mydb'
+                  value: mydb_secretoutputs_connectionstring
+                  identity: outputs_azure_container_registry_managed_identity_id
+                }
+                {
+                  name: 'connectionstrings--blobs'
+                  value: storage_outputs_blobendpoint
+                }
+                {
+                  name: 'connectionstrings--db'
+                  value: 'Host=pg;Port=5432;Username=postgres;Password=${pg_password_value};Database=db'
+                }
+                {
+                  name: 'secretval'
+                  value: value0_value
+                }
+              ]
+              activeRevisionsMode: 'Single'
+              ingress: {
+                external: false
+                targetPort: api_containerport
+                transport: 'http'
+                additionalPortMappings: [
+                  {
+                    external: false
+                    targetPort: 10000
+                  }
+                ]
+              }
+              registries: [
+                {
+                  server: outputs_azure_container_registry_endpoint
+                  identity: outputs_azure_container_registry_managed_identity_id
+                }
+              ]
+            }
+            environmentId: outputs_azure_container_apps_environment_id
+            template: {
+              containers: [
+                {
+                  image: api_containerimage
+                  name: 'api'
+                  env: [
+                    {
+                      name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES'
+                      value: 'true'
+                    }
+                    {
+                      name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES'
+                      value: 'true'
+                    }
+                    {
+                      name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY'
+                      value: 'in_memory'
+                    }
+                    {
+                      name: 'ASPNETCORE_FORWARDEDHEADERS_ENABLED'
+                      value: 'true'
+                    }
+                    {
+                      name: 'HTTP_PORTS'
+                      value: '${api_containerport};10000'
+                    }
+                    {
+                      name: 'HTTPS_PORTS'
+                      value: api_containerport
+                    }
+                    {
+                      name: 'ConnectionStrings__mydb'
+                      secretRef: 'connectionstrings--mydb'
+                    }
+                    {
+                      name: 'ConnectionStrings__blobs'
+                      secretRef: 'connectionstrings--blobs'
+                    }
+                    {
+                      name: 'ConnectionStrings__db'
+                      secretRef: 'connectionstrings--db'
+                    }
+                    {
+                      name: 'SecretVal'
+                      secretRef: 'secretval'
+                    }
+                    {
+                      name: 'Value'
+                      value: value1_value
+                    }
+                    {
+                      name: 'HTTP_EP'
+                      value: 'http://api.internal.${outputs_azure_container_apps_environment_default_domain}'
+                    }
+                    {
+                      name: 'HTTPS_EP'
+                      value: 'https://api.internal.${outputs_azure_container_apps_environment_default_domain}'
+                    }
+                    {
+                      name: 'INTERNAL_EP'
+                      value: 'http://api:10000'
+                    }
+                    {
+                      name: 'TARGET_PORT'
+                      value: api_containerport
+                    }
+                    {
+                      name: 'PORT'
+                      value: '80'
+                    }
+                    {
+                      name: 'HOST'
+                      value: 'api.internal.${outputs_azure_container_apps_environment_default_domain}'
+                    }
+                    {
+                      name: 'SCHEME'
+                      value: 'http'
+                    }
+                    {
+                      name: 'AZURE_CLIENT_ID'
+                      value: outputs_managed_identity_client_id
+                    }
+                  ]
+                }
+              ]
+              scale: {
+                minReplicas: 1
+              }
+            }
+          }
+          identity: {
+            type: 'UserAssigned'
+            userAssignedIdentities: {
+              '${outputs_azure_container_registry_managed_identity_id}': { }
+            }
+          }
+        }
+        """;
+
+        Assert.Equal(expectedBicep, bicep);
+    }
+
+    [Fact]
+    public async Task PublishAsContainerAppInfluencesContainerAppDefinition()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddContainerAppsInfrastructure();
+        builder.AddContainer("api", "myimage")
+            .PublishAsContainerApp((module, c) =>
+            {
+#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+                c.Template.Value!.Scale.Value!.MinReplicas = 0;
+#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureConstructResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await ManifestUtils.GetManifestWithBicep(resource);
+
+        var m = manifest.ToString();
+
+        var expectedManifest =
+        """
+        {
+          "type": "azure.bicep.v0",
+          "path": "api.module.bicep",
+          "params": {
+            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+            "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+            "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
+          }
+        }
+        """;
+
+        Assert.Equal(expectedManifest, m);
+
+        var expectedBicep =
+        """
+        @description('The location for the resource(s) to be deployed.')
+        param location string = resourceGroup().location
+
+        param outputs_azure_container_registry_managed_identity_id string
+
+        param outputs_managed_identity_client_id string
+
+        param outputs_azure_container_apps_environment_id string
+
+        resource api 'Microsoft.App/containerApps@2024-03-01' = {
+          name: 'api'
+          location: location
+          properties: {
+            configuration: {
+              activeRevisionsMode: 'Single'
+            }
+            environmentId: outputs_azure_container_apps_environment_id
+            template: {
+              containers: [
+                {
+                  image: 'myimage:latest'
+                  name: 'api'
+                  env: [
+                    {
+                      name: 'AZURE_CLIENT_ID'
+                      value: outputs_managed_identity_client_id
+                    }
+                  ]
+                }
+              ]
+              scale: {
+                minReplicas: 0
+              }
+            }
+          }
+          identity: {
+            type: 'UserAssigned'
+            userAssignedIdentities: {
+              '${outputs_azure_container_registry_managed_identity_id}': { }
+            }
+          }
+        }
+        """;
+
+        Assert.Equal(expectedBicep, bicep);
+    }
+
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 
