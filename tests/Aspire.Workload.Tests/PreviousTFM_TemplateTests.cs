@@ -98,11 +98,23 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase, IClassFixture<DotNet
         // await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
     }
 
-    [Fact]
-    public async Task CannotCreateNet90()
+    [Theory]
+    [InlineData("aspire", TestTargetFramework.Net90)]
+    [InlineData("aspire", TestTargetFramework.Net80)]
+    [InlineData("aspire-starter", TestTargetFramework.Net90)]
+    [InlineData("aspire-starter", TestTargetFramework.Net80)]
+    [InlineData("aspire-apphost", TestTargetFramework.Net90)]
+    [InlineData("aspire-apphost", TestTargetFramework.Net80)]
+    [InlineData("aspire-servicedefaults", TestTargetFramework.Net90)]
+    [InlineData("aspire-servicedefaults", TestTargetFramework.Net80)]
+    [InlineData("aspire-mstest", TestTargetFramework.Net90)]
+    [InlineData("aspire-mstest", TestTargetFramework.Net80)]
+    [InlineData("aspire-xunit", TestTargetFramework.Net90)]
+    [InlineData("aspire-xunit", TestTargetFramework.Net80)]
+    [InlineData("aspire-nunit", TestTargetFramework.Net90)]
+    [InlineData("aspire-nunit", TestTargetFramework.Net80)]
+    public async Task CannotCreate(string templateName, TestTargetFramework tfm)
     {
-        string templateName = "aspire";
-        var tfm = TestTargetFramework.Net90;
         string id = GetNewProjectId(prefix: $"new_build_{TargetFramework}_on_9+net9");
 
         var buildEnvToUse = tfm == TestTargetFramework.Net90 ? BuildEnvironment.ForNet90 : BuildEnvironment.ForNet80;
