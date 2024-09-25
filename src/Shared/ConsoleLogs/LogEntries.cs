@@ -7,7 +7,11 @@ using Aspire.Dashboard.Otlp.Storage;
 namespace Aspire.Hosting.ConsoleLogs;
 
 [DebuggerDisplay("Count = {EntriesCount}")]
+#if ASPIRE_DASHBOARD
+public sealed class LogEntries(int maximumEntryCount)
+#else
 internal sealed class LogEntries(int maximumEntryCount)
+#endif
 {
     private readonly CircularBuffer<LogEntry> _logEntries = new(maximumEntryCount);
 
