@@ -4,13 +4,12 @@
 // FIXME: rename to CustomHive or something?
 using Aspire.Workload.Tests;
 using Xunit;
-using Xunit.Abstractions;
 
 public class TemplatesCustomHiveFixture : IAsyncLifetime
 {
     // FIXME: rename
     public string HomeDirectory { get; set; }
-    private readonly ITestOutputHelper _testOutput;
+    private readonly TestOutputWrapper _testOutput;
     private readonly string _templatesPackageId;
 
     // FIXME: pass the BE also for tfm

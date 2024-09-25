@@ -9,9 +9,15 @@ public class DotNetNewCommand : DotNetCommand
 {
     private string? _customHive;
 
-    public DotNetNewCommand(ITestOutputHelper _testOutput, bool useDefaultArgs = true, BuildEnvironment? buildEnv = null, string label = "dotnet-new")
+    public DotNetNewCommand(
+        ITestOutputHelper _testOutput,
+        bool useDefaultArgs = true,
+        BuildEnvironment? buildEnv = null,
+        string? hiveDirectory = null,
+        string label = "dotnet-new")
             : base(_testOutput, useDefaultArgs, buildEnv, label)
     {
+        _customHive = hiveDirectory ?? buildEnv?.TemplatesHomeDirectory;
     }
 
     public DotNetNewCommand WithCustomHive(string hiveDirectory)

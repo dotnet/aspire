@@ -78,8 +78,7 @@ public class AspireProject : IAsyncDisposable
         File.WriteAllText(Path.Combine(rootDir, "Directory.Build.targets"), "<Project />");
 
         using var cmd = new DotNetNewCommand(testOutput, useDefaultArgs: true)
-                               // FIXME:
-                               .WithCustomHive(customHiveForTemplates ?? "/Users/ankj/.templateengine")
+                               .WithCustomHive(customHiveForTemplates ?? buildEnvironment.TemplatesHomeDirectory)
                                .WithWorkingDirectory(Path.GetDirectoryName(rootDir)!)
                                .WithTimeout(TimeSpan.FromMinutes(5));
 
