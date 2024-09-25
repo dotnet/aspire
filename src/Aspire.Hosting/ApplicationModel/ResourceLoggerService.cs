@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
-using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Hosting.ConsoleLogs;
 using Microsoft.Extensions.Logging;
 

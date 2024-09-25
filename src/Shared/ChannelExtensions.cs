@@ -3,7 +3,6 @@
 
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
-using Aspire.Dashboard.Otlp.Storage;
 
 namespace Aspire;
 
