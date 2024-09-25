@@ -11,11 +11,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Azure.Messaging.EventHubs.Tests;
 
-public class AspireEventHubsExtensionsTests(ITestOutputHelper output)
+public class AspireEventHubsExtensionsTests
 {    
     private const string AspireEventHubsSection = "Aspire:Azure:Messaging:EventHubs:";
     private const string EhConnectionString = "Endpoint=sb://aspireeventhubstests.servicebus.windows.net/;" +
@@ -152,8 +151,6 @@ public class AspireEventHubsExtensionsTests(ITestOutputHelper output)
                     key, "EventHubName"), "MyHub"),
         ]);
 
-        output.WriteLine(builder.Configuration.GetDebugView());
-
         if (useKeyed)
         {
             s_keyedClientAdders[clientIndex](builder, "eh", null);
@@ -215,8 +212,6 @@ public class AspireEventHubsExtensionsTests(ITestOutputHelper output)
                     AspireEventHubsSection + s_clientTypes[clientIndex].Name, key, "PartitionId"), "foo"),
             new KeyValuePair<string, string?>("ConnectionStrings:eh", EhConnectionString)
         ]);
-
-        output.WriteLine(builder.Configuration.GetDebugView());
 
         if (useKeyed)
         {
@@ -283,8 +278,6 @@ public class AspireEventHubsExtensionsTests(ITestOutputHelper output)
                     key, "EventHubName"), "MyHub"),
             new KeyValuePair<string, string?>("ConnectionStrings:eh", EhConnectionString),
         ]);
-
-        output.WriteLine(builder.Configuration.GetDebugView());
 
         if (useKeyed)
         {
