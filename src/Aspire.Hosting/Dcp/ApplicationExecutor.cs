@@ -12,6 +12,7 @@ using System.Threading.Channels;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Eventing;
@@ -392,9 +393,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                         logStream.Cancellation.Cancel();
                     }
 
-                    // Complete the log stream
-                    loggerService.Complete(resource.Metadata.Name);
-
                     // TODO: Handle resource deletion
                     if (_logger.IsEnabled(LogLevel.Trace))
                     {
@@ -515,7 +513,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                 timestamp = result.Value.Timestamp.UtcDateTime;
                             }
 
-                            logger(timestamp, resolvedContent, isError);
+                            logger(LogEntry.Create(timestamp, resolvedContent, isError));
                         }
                     }
                 }
