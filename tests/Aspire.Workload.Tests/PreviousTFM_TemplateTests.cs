@@ -27,21 +27,27 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase, IClassFixture<DotNet
      *  - add this oen for CurrentTFM also
     */
     [Theory]
-    [InlineData("aspire", TestTargetFramework.Net8)]
-    [InlineData("aspire-starter", TestTargetFramework.Net8)]
+    [InlineData("aspire", TestTargetFramework.Net90)]
+    [InlineData("aspire", TestTargetFramework.Net80)]
+    [InlineData("aspire-starter", TestTargetFramework.Net90)]
+    [InlineData("aspire-starter", TestTargetFramework.Net80)]
     public async Task CanNewAndBuild(string templateName, TestTargetFramework tfm)
     {
-        string id = GetNewProjectId(prefix: $"new_build_{TargetFramework}_on_9+{tfm.ToTFMString()}");
+        var id = GetNewProjectId(prefix: $"new_build_{TargetFramework}_on_9+{tfm.ToTFMString()}");
 
-        var buildEnvToUse = tfm == TestTargetFramework.Net9 ? BuildEnvironment.ForNet90 : BuildEnvironment.ForNet80;
-        var templateHive = tfm == TestTargetFramework.Net9 ?
+        var buildEnvToUse = tfm == TestTargetFramework.Net90 ? BuildEnvironment.ForNet90 : BuildEnvironment.ForNet80;
+        var templateHive = tfm == TestTargetFramework.Net90 ? TemplatesCustomHive.Net9_0_Net9 : TemplatesCustomHive.Net9_0_Net8;
+        await templateHive.Value.InstallAsync(
+            BuildEnvironment.GetNewTemplateCustomHiveDefaultDirectory(),
+            buildEnvToUse.BuiltNuGetsPath,
+            buildEnvToUse.DotNet);
         await using var project = await AspireProject.CreateNewTemplateProjectAsync(
             id,
             templateName,
             _testOutput,
             buildEnvironment: buildEnvToUse,
-            extraArgs: $"-f {TargetFramework}",
-            customHiveForTemplates: _testFixture.CustomHiveDirectory);
+            extraArgs: $"-f {tfm.ToTFMString()}",
+            customHiveForTemplates: templateHive.Value.CustomHiveDirectory);
 
         string config = "Debug";
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
