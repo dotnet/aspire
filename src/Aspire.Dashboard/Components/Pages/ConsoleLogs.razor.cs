@@ -212,6 +212,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 _consoleLogsSubscription = newConsoleLogsSubscription;
             }
 
+            Logger.LogDebug("Creating new log entries collection.");
             _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
 
             if (newConsoleLogsSubscription is not null)
