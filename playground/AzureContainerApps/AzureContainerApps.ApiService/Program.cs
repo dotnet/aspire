@@ -17,7 +17,26 @@ builder.AddRedisClient("cache");
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
-app.MapGet("/", async (BlobServiceClient bsc) =>
+
+app.MapGet("/", () =>
+{
+    return Results.Content("""
+    <html>
+        <body>
+            <ul>
+                <li><a href="/blobs">Blobs</a></li>
+                <li><a href="/cosmos">Cosmos</a></li>
+                <li><a href="/redis/ping">Redis Ping</a></li>
+                <li><a href="/redis/set">Redis Set</a></li>
+                <li><a href="/redis/get">Redis Get</a></li>
+            </ul>
+        </body>
+    </html>
+    """,
+    "text/html");
+});
+
+app.MapGet("/blobs", async (BlobServiceClient bsc) =>
 {
     var container = bsc.GetBlobContainerClient("mycontainer");
     await container.CreateIfNotExistsAsync();
