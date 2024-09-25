@@ -92,8 +92,8 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(NeedsWorkload)' == 'true'">
-    <!--<HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\dotnet-latest%3B%PATH%" />-->
-    <!--<HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/dotnet-latest:$PATH" />-->
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set PATH=%HELIX_CORRELATION_PAYLOAD%\dotnet-latest%3B%PATH%" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export PATH=$HELIX_CORRELATION_PAYLOAD/dotnet-latest:$PATH" />
 
     <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set SDK_DIR_NAME=dotnet-latest" />
     <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export SDK_DIR_NAME=dotnet-latest" />
@@ -142,7 +142,8 @@
     <!-- Disable playwright tests on helix/linux. Issue: https://github.com/dotnet/aspire/issues/4623 -->
     <HelixPreCommand Condition="'$(DisablePlaywrightTests)' == 'true'" Include="$(_EnvVarSetKeyword) DISABLE_PLAYWRIGHT_TESTS=true" />
 
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="%HELIX_CORRELATION_PAYLOAD%\dotnet-cli\dotnet.exe dev-certs https --trust" />
+    <!--<HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="%HELIX_CORRELATION_PAYLOAD%\dotnet-cli\dotnet.exe dev-certs https --trust" />-->
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="dotnet dev-certs https --trust" />
 
     <HelixPostCommand Include="$(_CleanupProcessesCommand)" />
   </ItemGroup>
