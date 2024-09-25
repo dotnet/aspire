@@ -29,7 +29,7 @@ internal static class ResourceViewModelExtensions
 
     public static bool IsUnusableTransitoryState(this ResourceViewModel resource)
     {
-        return resource.KnownState is KnownResourceState.Starting or KnownResourceState.Building or KnownResourceState.Waiting or KnownResourceState.Stopping;
+        return resource.KnownState is KnownResourceState.Starting or KnownResourceState.Building or KnownResourceState.Waiting or KnownResourceState.Stopping or KnownResourceState.Unknown;
     }
 
     public static bool HasNoState(this ResourceViewModel resource) => string.IsNullOrEmpty(resource.State);
