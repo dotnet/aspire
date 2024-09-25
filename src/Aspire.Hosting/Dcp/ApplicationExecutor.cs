@@ -14,6 +14,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Launch;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Json.Patch;

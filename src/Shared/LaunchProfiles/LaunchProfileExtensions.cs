@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Properties;
+using Aspire.Hosting.Launch;
 
 namespace Aspire.Hosting;
 

@@ -8,6 +8,7 @@ using System.Threading.Channels;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Launch;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Tests.Utils;
 using k8s.Models;
