@@ -7,7 +7,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <TestcontainersPackageVersion>3.10.0</TestcontainersPackageVersion>
-    <AzureProvisiongVersion>1.0.0-alpha.20240912.7</AzureProvisiongVersion>
+    <AzureProvisiongVersion>1.0.0-alpha.20240918.3</AzureProvisiongVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- AWS SDK for .NET dependencies -->
@@ -23,7 +23,7 @@
     <!-- AWS CDK dependencies -->
     <PackageVersion Include="Amazon.CDK.Lib" Version="2.158.0" />
     <!-- Azure SDK for .NET dependencies -->
-    <PackageVersion Include="Azure.AI.OpenAI" Version="2.0.0-beta.5" />
+    <PackageVersion Include="Azure.AI.OpenAI" Version="2.0.0-beta.6" />
     <PackageVersion Include="Azure.Data.Tables" Version="12.9.0" />
     <PackageVersion Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.3.2" />
     <PackageVersion Include="Azure.Messaging.EventHubs.Processor" Version="5.11.5" />
@@ -40,12 +40,12 @@
     <!-- Azure Management SDK for .NET dependencies -->
     <PackageVersion Include="Azure.Provisioning" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.AppConfiguration" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.ApplicationInsights" Version="1.0.0-alpha.20240912.1" />
+    <PackageVersion Include="Azure.Provisioning.ApplicationInsights" Version="1.0.0-alpha.20240918.1" />
     <PackageVersion Include="Azure.Provisioning.CognitiveServices" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.CosmosDB" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.EventHubs" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.KeyVault" Version="$(AzureProvisiongVersion)" />
-    <PackageVersion Include="Azure.Provisioning.OperationalInsights" Version="1.0.0-alpha.20240912.1" />
+    <PackageVersion Include="Azure.Provisioning.OperationalInsights" Version="1.0.0-alpha.20240918.1" />
     <PackageVersion Include="Azure.Provisioning.PostgreSql" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.Redis" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.Search" Version="$(AzureProvisiongVersion)" />
@@ -98,6 +98,8 @@
     <PackageVersion Include="Microsoft.Extensions.Primitives" Version="$(MicrosoftExtensionsPrimitivesPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsHttpResiliencePackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(MicrosoftExtensionsTimeProviderTestingVersion)" />
+    <!-- NuGet dependencies -->
+    <PackageVersion Include="NuGet.ProjectModel" Version="6.11.0" />
     <!-- external dependencies -->
     <PackageVersion Include="Confluent.Kafka" Version="2.5.3" />
     <PackageVersion Include="Dapper" Version="2.1.44" />
@@ -121,6 +123,7 @@
     <PackageVersion Include="NATS.Net" Version="2.3.3" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.3" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
+    <PackageVersion Include="OpenAI" Version="2.0.0-beta.12" />
     <PackageVersion Include="Oracle.EntityFrameworkCore" Version="8.23.50" />
     <PackageVersion Include="Oracle.ManagedDataAccess.OpenTelemetry" Version="23.5.0" />
     <PackageVersion Include="Polly.Core" Version="8.4.1" />
@@ -151,6 +154,7 @@
     <!-- unit test dependencies -->
     <PackageVersion Include="bUnit" Version="1.31.3" />
     <PackageVersion Include="JsonSchema.Net" Version="7.2.2" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" Version="1.1.2" />
     <PackageVersion Include="Microsoft.DotNet.RemoteExecutor" Version="$(MicrosoftDotNetRemoteExecutorPackageVersion)" />
     <PackageVersion Include="Microsoft.DotNet.XUnitExtensions" Version="$(MicrosoftDotNetXUnitExtensionsPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="$(MicrosoftExtensionsDiagnosticsTestingPackageVersion)" />
@@ -180,18 +184,16 @@
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Blobs" Version="6.6.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues" Version="5.5.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" Version="5.22.0" />
-
-
-
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.EventHubs" Version="6.3.6"/>
-
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.OpenTelemetry" Version="1.0.0-preview1" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="1.17.4" />
     <PackageVersion Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" />
-    <!-- Pinned version for Component Governance - Remove when root dependencies are updated -->
-    <PackageVersion Include="Azure.Core" Version="1.42.0" />
+
+    <!-- Pinned versions for Component Governance - Remove when root dependencies are updated -->
+    <PackageVersion Include="Azure.Core" Version="1.43.0" />
     <PackageVersion Include="Azure.Identity" Version="1.12.0" />
-    <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <!-- https://github.com/Azure/azure-cosmos-dotnet-v3/pull/3313 -->
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageVersion Include="System.Formats.Asn1" Version="8.0.1" />
   </ItemGroup>
 </Project>

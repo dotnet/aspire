@@ -28,6 +28,16 @@ public sealed record CustomResourceSnapshot
     public DateTime? CreationTimeStamp { get; init; }
 
     /// <summary>
+    /// The start timestamp of the resource.
+    /// </summary>
+    public DateTime? StartTimeStamp { get; init; }
+
+    /// <summary>
+    /// The stop timestamp of the resource.
+    /// </summary>
+    public DateTime? StopTimeStamp { get; init; }
+
+    /// <summary>
     /// Represents the state of the resource.
     /// </summary>
     public ResourceStateSnapshot? State { get; init; }
@@ -108,7 +118,23 @@ public sealed record VolumeSnapshot(string? Source, string Target, string MountT
 /// </summary>
 /// <param name="Name">The name of the property.</param>
 /// <param name="Value">The value of the property.</param>
-public sealed record ResourcePropertySnapshot(string Name, object? Value);
+public sealed record ResourcePropertySnapshot(string Name, object? Value)
+{
+    /// <summary>
+    /// Whether this property is considered sensitive or not.
+    /// </summary>
+    /// <remarks>
+    /// Sensitive properties are masked when displayed in UI and require an explicit user action to reveal.
+    /// </remarks>
+    public bool IsSensitive { get; init; }
+
+    internal void Deconstruct(out string name, out object? value, out bool isSensitive)
+    {
+        name = Name;
+        value = Value;
+        isSensitive = IsSensitive;
+    }
+}
 
 /// <summary>
 /// A snapshot of a resource command.
@@ -117,8 +143,9 @@ public sealed record ResourcePropertySnapshot(string Name, object? Value);
 /// <param name="State">The state of the command.</param>
 /// <param name="DisplayName">The display name visible in UI for the command.</param>
 /// <param name="IconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
+/// <param name="IconVariant">The icon variant.</param>
 /// <param name="IsHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
-public sealed record ResourceCommandSnapshot(string Type, ResourceCommandState State, string DisplayName, string? IconName, bool IsHighlighted);
+public sealed record ResourceCommandSnapshot(string Type, ResourceCommandState State, string DisplayName, string? IconName, IconVariant? IconVariant, bool IsHighlighted);
 
 /// <summary>
 /// The state of a resource command.

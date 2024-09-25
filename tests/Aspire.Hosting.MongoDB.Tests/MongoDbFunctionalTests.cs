@@ -59,7 +59,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
         await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
@@ -121,6 +121,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
         {
             using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var mongodb1 = builder1.AddMongoDB("mongodb");
+            var password = mongodb1.Resource.PasswordParameter!.Value;
             var db1 = mongodb1.AddDatabase(dbName);
 
             if (useVolume)
@@ -168,7 +169,10 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-            var mongodb2 = builder2.AddMongoDB("mongodb");
+            var passwordParameter2 = builder2.AddParameter("pwd");
+            builder2.Configuration["Parameters:pwd"] = password;
+
+            var mongodb2 = builder2.AddMongoDB("mongodb", password: passwordParameter2);
             var db2 = mongodb2.AddDatabase(dbName);
 
             if (useVolume)

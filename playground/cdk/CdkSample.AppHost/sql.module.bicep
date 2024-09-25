@@ -6,38 +6,38 @@ param principalId string
 param principalName string
 
 resource sql 'Microsoft.Sql/servers@2021-11-01' = {
-    name: toLower(take('sql${uniqueString(resourceGroup().id)}', 24))
-    location: location
-    properties: {
-        administrators: {
-            administratorType: 'ActiveDirectory'
-            login: principalName
-            sid: principalId
-            tenantId: subscription().tenantId
-            azureADOnlyAuthentication: true
-        }
-        minimalTlsVersion: '1.2'
-        publicNetworkAccess: 'Enabled'
-        version: '12.0'
+  name: take('sql-${uniqueString(resourceGroup().id)}', 63)
+  location: location
+  properties: {
+    administrators: {
+      administratorType: 'ActiveDirectory'
+      login: principalName
+      sid: principalId
+      tenantId: subscription().tenantId
+      azureADOnlyAuthentication: true
     }
-    tags: {
-        'aspire-resource-name': 'sql'
-    }
+    minimalTlsVersion: '1.2'
+    publicNetworkAccess: 'Enabled'
+    version: '12.0'
+  }
+  tags: {
+    'aspire-resource-name': 'sql'
+  }
 }
 
 resource sqlFirewallRule_AllowAllAzureIps 'Microsoft.Sql/servers/firewallRules@2021-11-01' = {
-    name: 'AllowAllAzureIps'
-    properties: {
-        endIpAddress: '0.0.0.0'
-        startIpAddress: '0.0.0.0'
-    }
-    parent: sql
+  name: 'AllowAllAzureIps'
+  properties: {
+    endIpAddress: '0.0.0.0'
+    startIpAddress: '0.0.0.0'
+  }
+  parent: sql
 }
 
 resource sqldb 'Microsoft.Sql/servers/databases@2021-11-01' = {
-    name: 'sqldb'
-    location: location
-    parent: sql
+  name: 'sqldb'
+  location: location
+  parent: sql
 }
 
 output sqlServerFqdn string = sql.properties.fullyQualifiedDomainName

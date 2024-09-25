@@ -44,13 +44,14 @@ public partial class SpanDetails : IDisposable
     private IQueryable<SpanLinkViewModel> FilteredSpanBacklinks =>
         ViewModel.Backlinks.Where(e => e.SpanId.Contains(_filter, StringComparison.CurrentCultureIgnoreCase)).AsQueryable();
 
+    private bool _isSpanEventsExpanded;
+    private bool _isSpanLinksExpanded;
+    private bool _isSpanBacklinksExpanded;
+
     private string _filter = "";
     private List<KeyValuePair<string, string>> _contextAttributes = null!;
 
     private readonly CancellationTokenSource _cts = new();
-
-    private readonly GridSort<SpanPropertyViewModel> _nameSort = GridSort<SpanPropertyViewModel>.ByAscending(vm => vm.Name);
-    private readonly GridSort<SpanPropertyViewModel> _valueSort = GridSort<SpanPropertyViewModel>.ByAscending(vm => vm.Value);
 
     private bool ApplyFilter(SpanPropertyViewModel vm)
     {
@@ -76,6 +77,11 @@ public partial class SpanDetails : IDisposable
         {
             _contextAttributes.Add(new KeyValuePair<string, string>("TraceId", ViewModel.Span.TraceId));
         }
+
+        // Collapse details sections when they have no data.
+        _isSpanEventsExpanded = ViewModel.Span.Events.Any();
+        _isSpanLinksExpanded = ViewModel.Span.Links.Any();
+        _isSpanBacklinksExpanded = ViewModel.Span.BackLinks.Any();
     }
 
     public async Task OnViewDetailsAsync(SpanLinkViewModel linkVM)

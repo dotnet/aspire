@@ -91,7 +91,11 @@ public partial class GridValue
     private string GetContainerClass() => EnableMasking ? "container masking-enabled" : "container";
 
     private async Task ToggleMaskStateAsync()
-        => await IsMaskedChanged.InvokeAsync(!IsMasked);
+    {
+        IsMasked = !IsMasked;
+
+        await IsMaskedChanged.InvokeAsync(IsMasked);
+    }
 
     private string TrimLength(string? text)
     {
