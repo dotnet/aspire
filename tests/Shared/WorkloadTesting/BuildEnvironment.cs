@@ -46,14 +46,8 @@ public class BuildEnvironment
         _ => throw new ArgumentOutOfRangeException(nameof(DefaultTargetFramework))
     };
 
-    public BuildEnvironment(bool useSystemDotNet = true, TestTargetFramework targetFramework = DefaultTargetFramework, string[]? templatePackageIds = default)
+    public BuildEnvironment(bool useSystemDotNet = false, TestTargetFramework targetFramework = DefaultTargetFramework, string[]? templatePackageIds = default)
     {
-        if (!useSystemDotNet)
-        {
-            Console.WriteLine($"** IGNORING unsupported config with useSystemDotNet={useSystemDotNet}");
-            useSystemDotNet = true;
-        }
-
         HasWorkloadFromArtifacts = !useSystemDotNet;
         TargetFramework = targetFramework;
         RepoRoot = TestUtils.FindRepoRoot();
@@ -62,26 +56,26 @@ public class BuildEnvironment
         if (RepoRoot is not null)
         {
             // Local run
-            // if (!useSystemDotNet)
-            // {
-            //     var sdkDirName = string.IsNullOrEmpty(EnvironmentVariables.SdkDirName) ? "dotnet-latest" : EnvironmentVariables.SdkDirName;
-            //     var sdkFromArtifactsPath = Path.Combine(RepoRoot!.FullName, "artifacts", "bin", sdkDirName);
-            //     if (Directory.Exists(sdkFromArtifactsPath))
-            //     {
-            //         sdkForWorkloadPath = Path.GetFullPath(sdkFromArtifactsPath);
-            //     }
-            //     else
-            //     {
-            //         string buildCmd = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".\\build.cmd" : "./build.sh";
-            //         string workloadsProjString = Path.Combine("tests", "workloads.proj");
-            //         throw new XunitException(
-            //             $"Could not find a sdk with the workload installed at {sdkFromArtifactsPath} computed from {nameof(RepoRoot)}={RepoRoot}." +
-            //             $" Build all the packages with '{buildCmd} -pack'." +
-            //             $" Then install the sdk+workload with 'dotnet build {workloadsProjString}'." +
-            //             " See https://github.com/dotnet/aspire/tree/main/tests/Aspire.Workload.Tests#readme for more details.");
-            //     }
-            // }
-            // else
+            if (!useSystemDotNet)
+            {
+                var sdkDirName = string.IsNullOrEmpty(EnvironmentVariables.SdkDirName) ? "dotnet-latest" : EnvironmentVariables.SdkDirName;
+                var sdkFromArtifactsPath = Path.Combine(RepoRoot!.FullName, "artifacts", "bin", sdkDirName);
+                if (Directory.Exists(sdkFromArtifactsPath))
+                {
+                    sdkForWorkloadPath = Path.GetFullPath(sdkFromArtifactsPath);
+                }
+                else
+                {
+                    string buildCmd = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".\\build.cmd" : "./build.sh";
+                    string workloadsProjString = Path.Combine("tests", "workloads.proj");
+                    throw new XunitException(
+                        $"Could not find a sdk with the workload installed at {sdkFromArtifactsPath} computed from {nameof(RepoRoot)}={RepoRoot}." +
+                        $" Build all the packages with '{buildCmd} -pack'." +
+                        $" Then install the sdk+workload with 'dotnet build {workloadsProjString}'." +
+                        " See https://github.com/dotnet/aspire/tree/main/tests/Aspire.Workload.Tests#readme for more details.");
+                }
+            }
+            else
             {
                 string? dotnetPath = Environment.GetEnvironmentVariable("PATH")!
                     .Split(Path.PathSeparator)
@@ -101,11 +95,11 @@ public class BuildEnvironment
         else
         {
             // CI - helix
-            // if (string.IsNullOrEmpty(EnvironmentVariables.SdkForWorkloadTestingPath) || !Directory.Exists(EnvironmentVariables.SdkForWorkloadTestingPath))
-            // {
-            //     throw new ArgumentException($"Cannot find 'SDK_FOR_WORKLOAD_TESTING_PATH={EnvironmentVariables.SdkForWorkloadTestingPath}'");
-            // }
-            // sdkForWorkloadPath = EnvironmentVariables.SdkForWorkloadTestingPath;
+            if (string.IsNullOrEmpty(EnvironmentVariables.SdkForWorkloadTestingPath) || !Directory.Exists(EnvironmentVariables.SdkForWorkloadTestingPath))
+            {
+                throw new ArgumentException($"Cannot find 'SDK_FOR_WORKLOAD_TESTING_PATH={EnvironmentVariables.SdkForWorkloadTestingPath}'");
+            }
+            sdkForWorkloadPath = EnvironmentVariables.SdkForWorkloadTestingPath;
 
             if (string.IsNullOrEmpty(EnvironmentVariables.BuiltNuGetsPath) || !Directory.Exists(EnvironmentVariables.BuiltNuGetsPath))
             {
@@ -119,13 +113,13 @@ public class BuildEnvironment
             throw new ArgumentException($"Cannot find TestAssetsPath={TestAssetsPath}");
         }
 
-        // if (!string.IsNullOrEmpty(EnvironmentVariables.SdkForWorkloadTestingPath))
-        // {
-        //     // always allow overridding the dotnet used for testing
-        //     sdkForWorkloadPath = EnvironmentVariables.SdkForWorkloadTestingPath;
-        // }
+        if (!string.IsNullOrEmpty(EnvironmentVariables.SdkForWorkloadTestingPath))
+        {
+            // always allow overridding the dotnet used for testing
+            sdkForWorkloadPath = EnvironmentVariables.SdkForWorkloadTestingPath;
+        }
 
-        // sdkForWorkloadPath = Path.GetFullPath(sdkForWorkloadPath);
+        sdkForWorkloadPath = Path.GetFullPath(sdkForWorkloadPath);
         DefaultBuildArgs = string.Empty;
         // WorkloadPacksDir = Path.Combine(sdkForWorkloadPath, "packs");
         NuGetPackagesPath = IsRunningOnCI ? null : Path.Combine(AppContext.BaseDirectory, $"nuget-cache-{TargetFramework}");
@@ -134,11 +128,11 @@ public class BuildEnvironment
         EnvVars = new Dictionary<string, string>();
         if (HasWorkloadFromArtifacts)
         {
-            // EnvVars["DOTNET_ROOT"] = sdkForWorkloadPath;
-            // EnvVars["DOTNET_INSTALL_DIR"] = sdkForWorkloadPath;
-            // EnvVars["DOTNET_MULTILEVEL_LOOKUP"] = "0";
-            // EnvVars["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1";
-            // EnvVars["PATH"] = $"{sdkForWorkloadPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}";
+            EnvVars["DOTNET_ROOT"] = sdkForWorkloadPath;
+            EnvVars["DOTNET_INSTALL_DIR"] = sdkForWorkloadPath;
+            EnvVars["DOTNET_MULTILEVEL_LOOKUP"] = "0";
+            EnvVars["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1";
+            EnvVars["PATH"] = $"{sdkForWorkloadPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}";
         }
         EnvVars["NUGET_PACKAGES"] = NuGetPackagesPath!;
         EnvVars["BUILT_NUGETS_PATH"] = BuiltNuGetsPath;
@@ -172,7 +166,7 @@ public class BuildEnvironment
         Directory.CreateDirectory(TestRootPath);
 
         // Console.WriteLine($"*** [{TargetFramework}] Using workload path: {sdkForWorkloadPath}");
-        // if (HasWorkloadFromArtifacts)
+        if (HasWorkloadFromArtifacts)
         {
             if (EnvironmentVariables.IsRunningOnCI)
             {

@@ -17,7 +17,6 @@ public class TemplatesCustomHiveFixture : IAsyncLifetime
     {
         HomeDirectory = Path.Combine(Path.GetTempPath(), tempDirName ?? Guid.NewGuid().ToString());
         _templatesPackageId = templatesPackageId;
-        // FIXME: use alwaysstdout=true
         _testOutput = new TestOutputWrapper(forceShowBuildOutput: true);
     }
 
