@@ -7,7 +7,7 @@ builder.AddAzureQueueClient("queue");
 builder.AddAzureBlobClient("blob");
 builder.AddAzureEventHubProducerClient("eventhubs", static settings => settings.EventHubName = "myhub");
 #if !SKIP_AZURE_RESOURCE
-builder.AddKeyedAzureServiceBusClient("messaging");
+builder.AddAzureServiceBusClient("messaging");
 #endif
 
 var host = builder.Build();

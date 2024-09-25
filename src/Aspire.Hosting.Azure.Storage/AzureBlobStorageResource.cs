@@ -30,7 +30,11 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
     {
         if (Parent.IsEmulator)
         {
-            target[connectionName] = Parent.GetEmulatorConnectionString();
+            var connectionString = Parent.GetBlobConnectionString();
+            target[connectionName] = connectionString;
+            // Injected to support Aspire client integration for Azure Storage.
+            target[$"{AzureStorageResource.BlobsConnectionKeyPrefix}__{connectionName}__ConnectionString"] = connectionString;
+            target[$"{AzureStorageResource.QueuesConnectionKeyPrefix}__{connectionName}__ConnectionString"] = connectionString;
         }
         else
         {
@@ -38,8 +42,8 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
             target[$"{connectionName}__blobServiceUri"] = Parent.BlobEndpoint;
             target[$"{connectionName}__queueServiceUri"] = Parent.QueueEndpoint;
             // Injected to support Aspire client integration for Azure Storage.
-            target[$"Aspire__Azure__Storage__Blobs__{connectionName}__ServiceUri"] = Parent.BlobEndpoint;
-            target[$"Aspire__Azure__Storage__Queues__{connectionName}__ServiceUri"] = Parent.QueueEndpoint;
+            target[$"{AzureStorageResource.BlobsConnectionKeyPrefix}__{connectionName}__ServiceUri"] = Parent.BlobEndpoint;
+            target[$"{AzureStorageResource.QueuesConnectionKeyPrefix}__{connectionName}__ServiceUri"] = Parent.QueueEndpoint;
         }
     }
 }

@@ -28,6 +28,8 @@ public class AzureEventHubsResource(string name, Action<ResourceModuleConstruct>
         "EventHubBufferedProducerClient"
     ];
 
+    private const string ConnectionKeyPrefix = "Aspire__Azure__Messaging__EventHubs";
+
     internal List<(string Name, Action<IResourceBuilder<AzureEventHubsResource>, ResourceModuleConstruct, EventHub>? Configure)> Hubs { get; } = [];
 
     /// <summary>
@@ -54,7 +56,13 @@ public class AzureEventHubsResource(string name, Action<ResourceModuleConstruct>
     {
         if (IsEmulator)
         {
+            // Injected to support Azure Functions listener initialization.
             target[connectionName] = ConnectionStringExpression;
+            // Injected to support Aspire client integration for each EventHubs client in Azure Functions projects.
+            foreach (var clientName in s_eventHubClientNames)
+            {
+                target[$"{ConnectionKeyPrefix}__{clientName}__{connectionName}__ConnectionString"] = ConnectionStringExpression;
+            }
         }
         else
         {
@@ -63,7 +71,7 @@ public class AzureEventHubsResource(string name, Action<ResourceModuleConstruct>
             // Injected to support Aspire client integration for each EventHubs client in Azure Functions projects.
             foreach (var clientName in s_eventHubClientNames)
             {
-                target[$"Aspire__Azure__Messaging__EventHubs__{clientName}__{connectionName}__FullyQualifiedNamespace"] = EventHubsEndpoint;
+                target[$"{ConnectionKeyPrefix}__{clientName}__{connectionName}__FullyQualifiedNamespace"] = EventHubsEndpoint;
             }
         }
     }
