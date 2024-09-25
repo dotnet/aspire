@@ -24,16 +24,6 @@
             @ContentAfterValue
         </span>
     }
-    @if (EnableMasking)
-    {
-        <div @onclick:stopPropagation="true">
-            <FluentButton Appearance="Appearance.Lightweight"
-                          IconEnd="@(IsMasked ? _unmaskIcon : _maskIcon)"
-                          Title="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])"
-                          OnClick="ToggleMaskStateAsync"
-                          aria-label="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])" />
-        </div>
-    }
 
     @{
         (string, object)[] uncapturedCopyAttributes = [
@@ -75,4 +65,15 @@
             </FluentMenuItem>
         </FluentMenu>
     </div>
+
+    @if (EnableMasking)
+    {
+        <div @onclick:stopPropagation="true">
+            <FluentButton Appearance="Appearance.Lightweight"
+                          IconEnd="@(IsMasked ? _unmaskIcon : _maskIcon)"
+                          Title="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])"
+                          OnClick="ToggleMaskStateAsync"
+                          aria-label="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])" />
+        </div>
+    }
 </div>

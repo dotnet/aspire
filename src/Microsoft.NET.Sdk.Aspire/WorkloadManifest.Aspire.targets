@@ -1,6 +1,0 @@
-<Project>
-
-  <Import Project="Sdk.props" Sdk="Aspire.Hosting.Sdk" />
-  <Import Project="Sdk.targets" Sdk="Aspire.Hosting.Sdk" />
-
-</Project>

@@ -1,15 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Frozen;
 using System.Threading.Channels;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.BrowserStorage;
+using Aspire.Tests.Shared.DashboardModel;
 using Bunit;
-using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
@@ -66,7 +65,7 @@ public partial class ConsoleLogsTests : TestContext
         logger.LogInformation("Console log page is waiting for resource.");
         cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsLoadingResources)]);
 
-        var testResource = CreateResourceViewModel("test-resource", KnownResourceState.Running);
+        var testResource = ModelTestHelpers.CreateResource(appName: "test-resource", state: KnownResourceState.Running);
         resourceChannel.Writer.TryWrite([
             new ResourceViewModelChange(ResourceViewModelChangeType.Upsert, testResource)
         ]);
@@ -86,6 +85,54 @@ public partial class ConsoleLogsTests : TestContext
         cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs)]);
 
         Assert.Equal("test-resource", Assert.Single(subscribedResourceNames));
+    }
+
+    [Fact]
+    public async Task ResourceName_ViaUrlAndResourceLoaded_LogViewerUpdated()
+    {
+        // Arrange
+        var testResource = ModelTestHelpers.CreateResource(appName: "test-resource", state: KnownResourceState.Running);
+        var subscribedResourceNameTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
+        var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
+        var dashboardClient = new TestDashboardClient(
+            isEnabled: true,
+            consoleLogsChannelProvider: name =>
+            {
+                subscribedResourceNameTcs.TrySetResult(name);
+                return consoleLogsChannel;
+            },
+            resourceChannelProvider: () => resourceChannel,
+            initialResources: [testResource]);
+
+        SetupConsoleLogsServices(dashboardClient);
+
+        var dimensionManager = Services.GetRequiredService<DimensionManager>();
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        dimensionManager.InvokeOnViewportInformationChanged(viewport);
+
+        // Act
+        var cut = RenderComponent<Components.Pages.ConsoleLogs>(builder =>
+        {
+            builder.Add(p => p.ResourceName, "test-resource");
+            builder.Add(p => p.ViewportInformation, viewport);
+        });
+
+        var instance = cut.Instance;
+        var logger = Services.GetRequiredService<ILogger<ConsoleLogsTests>>();
+        var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
+
+        // Assert
+        logger.LogInformation("Resource and subscription should be set immediately on first render.");
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
+        cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
+
+        var subscribedResource = await subscribedResourceNameTcs.Task;
+        Assert.Equal("test-resource", subscribedResource);
+
+        logger.LogInformation("Log results are added to log viewer.");
+        consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, "Hello world", IsErrorMessage: false)]);
+        cut.WaitForState(() => instance.LogViewer.LogEntries.EntriesCount > 0);
     }
 
     private void SetupConsoleLogsServices(TestDashboardClient? dashboardClient = null)
@@ -129,26 +176,5 @@ public partial class ConsoleLogsTests : TestContext
     private static string GetFluentFile(string filePath, Version version)
     {
         return $"{filePath}?v={version}";
-    }
-
-    // display name will be replica set when there are multiple resources with the same display name
-    private static ResourceViewModel CreateResourceViewModel(string appName, KnownResourceState? state, string? displayName = null)
-    {
-        return new ResourceViewModel
-        {
-            Name = appName,
-            ResourceType = "CustomResource",
-            DisplayName = displayName ?? appName,
-            Uid = Guid.NewGuid().ToString(),
-            CreationTimeStamp = DateTime.UtcNow,
-            Environment = [],
-            Properties = FrozenDictionary<string, Value>.Empty,
-            Urls = [],
-            Volumes = [],
-            State = state?.ToString(),
-            KnownState = state,
-            StateStyle = null,
-            Commands = []
-        };
     }
 }

@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading.Channels;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Tests.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -33,7 +34,7 @@ public class DashboardLifecycleHookTests
         testSink.MessageLogged += c => logChannel.Writer.TryWrite(c);
 
         var resourceLoggerService = new ResourceLoggerService();
-        var resourceNotificationService = new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, new TestHostApplicationLifetime());
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
         var configuration = new ConfigurationBuilder().Build();
         var hook = new DashboardLifecycleHook(
             configuration,
@@ -67,6 +68,35 @@ public class DashboardLifecycleHookTests
         Assert.Equal(expectedCategory, logContext.LoggerName);
         Assert.Equal(expectedMessage, logContext.Message);
         Assert.Equal(expectedLevel, logContext.LogLevel);
+    }
+
+    [Fact]
+    public async Task BeforeStartAsync_ExcludeLifecycleCommands_CommandsNotAddedToDashboard()
+    {
+        // Arrange
+        var resourceLoggerService = new ResourceLoggerService();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+        var configuration = new ConfigurationBuilder().Build();
+        var hook = new DashboardLifecycleHook(
+            configuration,
+            Options.Create(new DashboardOptions { DashboardPath = "test.dll" }),
+            NullLogger<DistributedApplication>.Instance,
+            new TestDashboardEndpointProvider(),
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            resourceNotificationService,
+            resourceLoggerService,
+            NullLoggerFactory.Instance);
+
+        var model = new DistributedApplicationModel(new ResourceCollection());
+
+        // Act
+        await hook.BeforeStartAsync(model, CancellationToken.None);
+        var dashboardResource = model.Resources.Single(r => string.Equals(r.Name, KnownResourceNames.AspireDashboard, StringComparisons.ResourceName));
+        dashboardResource.AddLifeCycleCommands();
+
+        // Assert
+        Assert.Single(dashboardResource.Annotations.OfType<ExcludeLifecycleCommandsAnnotation>());
+        Assert.Empty(dashboardResource.Annotations.OfType<ResourceCommandAnnotation>());
     }
 
     public static IEnumerable<object?[]> Data()

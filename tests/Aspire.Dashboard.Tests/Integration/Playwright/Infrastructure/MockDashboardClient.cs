@@ -1,35 +1,36 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Frozen;
 using Aspire.Dashboard.Model;
+using Aspire.Tests.Shared.DashboardModel;
 using Google.Protobuf.WellKnownTypes;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration.Playwright.Infrastructure;
 
 public sealed class MockDashboardClient : IDashboardClient
 {
-    public static readonly ResourceViewModel TestResource1 = new()
-    {
-        Name = "TestResource",
-        DisplayName = "TestResource",
-        Commands = [],
-        CreationTimeStamp = DateTime.Now,
-        Environment = [],
-        ResourceType = KnownResourceTypes.Project,
-        Properties = new[]
+    private static readonly BrowserTimeProvider s_timeProvider = new(NullLoggerFactory.Instance);
+
+    public static readonly ResourceViewModel TestResource1 = ModelTestHelpers.CreateResource(
+        appName: "TestResource",
+        resourceType: KnownResourceTypes.Project,
+        properties: new[]
         {
-            new KeyValuePair<string, Value>(KnownProperties.Project.Path, new Value()
-            {
-                StringValue = "C:/MyProjectPath/Project.csproj"
-            })
-        }.ToFrozenDictionary(),
-        State = "Running",
-        Uid = Guid.NewGuid().ToString(),
-        StateStyle = null,
-        Urls = [],
-        Volumes = []
-    };
+            new KeyValuePair<string, ResourcePropertyViewModel>(
+                KnownProperties.Project.Path,
+                new ResourcePropertyViewModel(
+                    KnownProperties.Project.Path,
+                    new Value()
+                    {
+                        StringValue = "C:/MyProjectPath/Project.csproj"
+                    },
+                    isValueSensitive: false,
+                    knownProperty: new(KnownProperties.Project.Path, "Path"),
+                    priority: 0,
+                    timeProvider: s_timeProvider))
+        }.ToDictionary(),
+        state: KnownResourceState.Running);
 
     public bool IsEnabled => true;
     public Task WhenConnected => Task.CompletedTask;

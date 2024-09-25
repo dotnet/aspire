@@ -32,4 +32,8 @@
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.OpenAI\Aspire.OpenAI.csproj" />
+  </ItemGroup>
+
 </Project>

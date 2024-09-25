@@ -3,6 +3,8 @@
 
 using System.Diagnostics;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
@@ -59,6 +61,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     /// <inheritdoc />
     public string AppHostDirectory { get; }
+
+    /// <inheritdoc />
+    public string AppHostPath { get; }
 
     /// <inheritdoc />
     public Assembly? AppHostAssembly => _options.Assembly;
@@ -143,13 +148,20 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Logging.AddConfiguration(_innerBuilder.Configuration.GetSection("Logging"));
 
         AppHostDirectory = options.ProjectDirectory ?? _innerBuilder.Environment.ContentRootPath;
+        var appHostName = options.ProjectName ?? _innerBuilder.Environment.ApplicationName;
+        AppHostPath = Path.Join(AppHostDirectory, appHostName);
+
+        var appHostShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(AppHostPath));
+        var appHostSha = Convert.ToHexString(appHostShaBytes);
 
         // Set configuration
         ConfigurePublishingOptions(options);
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             // Make the app host directory available to the application via configuration
-            ["AppHost:Directory"] = AppHostDirectory
+            ["AppHost:Directory"] = AppHostDirectory,
+            ["AppHost:Path"] = AppHostPath,
+            ["AppHost:Sha256"] = appHostSha,
         });
 
         _executionContextOptions = _innerBuilder.Configuration["Publishing:Publisher"] switch
@@ -159,6 +171,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         };
 
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
+
+        // 
+        Eventing.Subscribe<BeforeResourceStartedEvent>(async (@event, ct) =>
+        {
+            var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
+            await rns.WaitForDependenciesAsync(@event.Resource, ct).ConfigureAwait(false);
+        });
 
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
@@ -218,6 +237,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                     );
                 }
 
+                _innerBuilder.Services.AddSingleton<DashboardCommandExecutor>();
                 _innerBuilder.Services.AddOptions<TransportOptions>().ValidateOnStart().PostConfigure(MapTransportOptionsFromCustomKeys);
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<TransportOptions>, TransportOptionsValidator>());
                 _innerBuilder.Services.AddSingleton<DashboardServiceHost>();

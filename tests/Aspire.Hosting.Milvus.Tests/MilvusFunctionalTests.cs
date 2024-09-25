@@ -2,10 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Grpc.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Milvus.Client;
 using Polly;
@@ -229,4 +231,96 @@ public class MilvusFunctionalTests(ITestOutputHelper testOutputHelper)
             }
         }
     }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWaitForOnMilvusBlocksDependentResources()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
+        builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
+        {
+            return healthCheckTcs.Task;
+        });
+
+        var resource = builder.AddMilvus("resource")
+                              .WithHealthCheck("blocking_check");
+
+        var dependentResource = builder.AddMilvus("dependentresource")
+                                       .WaitFor(resource);
+
+        using var app = builder.Build();
+
+        var pendingStart = app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+
+        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
+
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await pendingStart;
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWaitForOnMilvusDatabaseBlocksDependentResources()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
+        builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
+        {
+            return healthCheckTcs.Task;
+        });
+
+        var resource = builder.AddMilvus("resource")
+                              .WithHealthCheck("blocking_check");
+
+        var db = resource.AddDatabase("db");
+
+        var dependentResource = builder.AddMilvus("dependentresource")
+                                       .WaitFor(db);
+
+        using var app = builder.Build();
+
+        var pendingStart = app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await rns.WaitForResourceAsync(db.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+
+        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
+
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+
+        // Create the database.
+        var connectionString = await resource.Resource.ConnectionStringExpression.GetValueAsync(cts.Token);
+        var milvusClient = MilvusBuilderExtensions.CreateMilvusClient(app.Services, connectionString);
+        await milvusClient.CreateDatabaseAsync(db.Resource.Name);
+
+        await rns.WaitForResourceHealthyAsync(db.Resource.Name, cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await pendingStart;
+
+        await app.StopAsync();
+    }
+
 }

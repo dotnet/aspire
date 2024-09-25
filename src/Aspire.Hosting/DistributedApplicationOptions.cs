@@ -12,9 +12,11 @@ public sealed class DistributedApplicationOptions
 {
     private readonly Lazy<Assembly?> _assembly;
     private readonly Lazy<string?> _projectDirectoryLazy;
+    private readonly Lazy<string?> _projectNameLazy;
     private readonly Lazy<string?> _configurationLazy;
     // This is for testing
     private string? _projectDirectory;
+    private string? _projectName;
 
     /// <summary>
     /// Initializes a new instance of <see cref="DistributedApplicationOptions"/>.
@@ -23,6 +25,7 @@ public sealed class DistributedApplicationOptions
     {
         _assembly = new(ResolveAssembly);
         _projectDirectoryLazy = new(ResolveProjectDirectory);
+        _projectNameLazy = new(ResolveProjectName);
         _configurationLazy = new(ResolveConfiguration);
     }
 
@@ -57,6 +60,12 @@ public sealed class DistributedApplicationOptions
         set => _projectDirectory = value;
     }
 
+    internal string? ProjectName
+    {
+        get => _projectName ?? _projectNameLazy.Value;
+        set => _projectName = value;
+    }
+
     internal bool DashboardEnabled => !DisableDashboard;
 
     /// <summary>
@@ -68,6 +77,12 @@ public sealed class DistributedApplicationOptions
     {
         var assemblyMetadata = Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
         return GetMetadataValue(assemblyMetadata, "AppHostProjectPath");
+    }
+
+    private string? ResolveProjectName()
+    {
+        var assemblyMetadata = Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
+        return GetMetadataValue(assemblyMetadata, "AppHostProjectName");
     }
 
     private Assembly? ResolveAssembly()

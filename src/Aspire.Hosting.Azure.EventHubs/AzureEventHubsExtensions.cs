@@ -9,6 +9,7 @@ using Aspire.Hosting.Azure.EventHubs;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.EventHubs;
+using Azure.Provisioning.Expressions;
 
 namespace Aspire.Hosting;
 
@@ -24,7 +25,7 @@ public static class AzureEventHubsExtensions
     /// <param name="name">The name of the resource.</param>
     /// <returns></returns>
     public static IResourceBuilder<AzureEventHubsResource> AddAzureEventHubs(
-        this IDistributedApplicationBuilder builder, string name)
+        this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
 #pragma warning disable AZPROVISION001 // This API requires opting into experimental features
         return builder.AddAzureEventHubs(name, null);
@@ -39,23 +40,32 @@ public static class AzureEventHubsExtensions
     /// <param name="configureResource">Optional callback to configure the Event Hubs namespace.</param>
     /// <returns></returns>
     [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureEventHubsResource> AddAzureEventHubs(this IDistributedApplicationBuilder builder, string name,
+    public static IResourceBuilder<AzureEventHubsResource> AddAzureEventHubs(this IDistributedApplicationBuilder builder, [ResourceName] string name,
         Action<IResourceBuilder<AzureEventHubsResource>, ResourceModuleConstruct, EventHubsNamespace>? configureResource)
     {
         builder.AddAzureProvisioning();
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var eventHubsNamespace = new EventHubsNamespace(construct, name: name);
+            var skuParameter = new BicepParameter("sku", typeof(string))
+            {
+                Value = new StringLiteral("Standard")
+            };
+            construct.Add(skuParameter);
 
-            eventHubsNamespace.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+            var eventHubsNamespace = new EventHubsNamespace(name)
+            {
+                Sku = new EventHubsSku()
+                {
+                    Name = skuParameter
+                },
+                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+            };
+            construct.Add(eventHubsNamespace);
 
-            eventHubsNamespace.AssignProperty(p => p.Sku.Name, new Parameter("sku", defaultValue: "Standard"));
+            construct.Add(eventHubsNamespace.AssignRole(EventHubsBuiltInRole.AzureEventHubsDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
-            var eventHubsDataOwnerRole = eventHubsNamespace.AssignRole(RoleDefinition.EventHubsDataOwner);
-            eventHubsDataOwnerRole.AssignProperty(p => p.PrincipalType, construct.PrincipalTypeParameter);
-
-            eventHubsNamespace.AddOutput("eventHubsEndpoint", sa => sa.ServiceBusEndpoint);
+            construct.Add(new BicepOutput("eventHubsEndpoint", typeof(string)) { Value = eventHubsNamespace.ServiceBusEndpoint });
 
             var azureResource = (AzureEventHubsResource)construct.Resource;
             var azureResourceBuilder = builder.CreateResourceBuilder(azureResource);
@@ -63,10 +73,14 @@ public static class AzureEventHubsExtensions
 
             foreach (var hub in azureResource.Hubs)
             {
-                var hubResource = new EventHub(construct, name: hub.Name, parent: eventHubsNamespace);
+                var hubResource = new EventHub(hub.Name)
+                {
+                    Parent = eventHubsNamespace,
+                    Name = hub.Name
+                };
+                construct.Add(hubResource);
                 hub.Configure?.Invoke(azureResourceBuilder, construct, hubResource);
             }
-
         };
         var resource = new AzureEventHubsResource(name, configureConstruct);
 
@@ -82,7 +96,7 @@ public static class AzureEventHubsExtensions
     /// </summary>
     /// <param name="builder">The Azure Event Hubs resource builder.</param>
     /// <param name="name">The name of the Event Hub.</param>
-    public static IResourceBuilder<AzureEventHubsResource> AddEventHub(this IResourceBuilder<AzureEventHubsResource> builder, string name)
+    public static IResourceBuilder<AzureEventHubsResource> AddEventHub(this IResourceBuilder<AzureEventHubsResource> builder, [ResourceName] string name)
     {
 #pragma warning disable AZPROVISION001 // This API requires opting into experimental features
         return builder.AddEventHub(name, null);

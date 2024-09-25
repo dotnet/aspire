@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net.Http.Json;
 using System.Net;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
@@ -14,6 +15,7 @@ using Microsoft.Extensions.Hosting;
 using StackExchange.Redis;
 using Xunit;
 using Xunit.Abstractions;
+using Newtonsoft.Json.Linq;
 
 namespace Aspire.Hosting.Redis.Tests;
 
@@ -26,22 +28,17 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
-        // We use the following check added to the Redis resource to block
-        // dependent reosurces from starting. This means we'll have two checks
-        // associated with the redis resource ... the built in one and the
-        // one that we add here. We'll manipulate the TCS to allow us to check
-        // states at various stages of the execution.
         var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
         builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
         {
             return healthCheckTcs.Task;
         });
 
-        var redis = builder.AddRedis("redis")
+        var resource = builder.AddRedis("resource")
                            .WithHealthCheck("blocking_check");
 
         var dependentResource = builder.AddRedis("dependentresource")
-                                       .WaitFor(redis); // Just using another redis instance as a dependent resource.
+                                       .WaitFor(resource);
 
         using var app = builder.Build();
 
@@ -49,24 +46,18 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
-        // What for the Redis server to start.
-        await rns.WaitForResourceAsync(redis.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
-        // Wait for the dependent resource to be in the Waiting state.
         await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
-        // Now unblock the health check.
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        // ... and wait for the resource as a whole to move into the health state.
-        await rns.WaitForResourceAsync(redis.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
-        // ... then the dependent resource should be able to move into a running state.
         await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
-        await pendingStart; // Startup should now complete.
+        await pendingStart;
 
-        // ... but we'll shut everything down immediately because we are done.
         await app.StopAsync();
     }
 
@@ -128,6 +119,112 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         var value = await db.StringGetAsync("key");
 
         Assert.Equal("value", value);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWithRedisInsightImportDatabases()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        var redis1 = builder.AddRedis("redis-1");
+        IResourceBuilder<RedisInsightResource>? redisInsightBuilder = null;
+        var redis2 = builder.AddRedis("redis-2").WithRedisInsight(c => redisInsightBuilder = c);
+        Assert.NotNull(redisInsightBuilder);
+        using var app = builder.Build();
+
+        await app.StartAsync();
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceAsync(redisInsightBuilder.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        var client = app.CreateHttpClient(redisInsightBuilder.Resource.Name, "http");
+
+        var response = await client.GetAsync("/api/databases", cts.Token);
+        response.EnsureSuccessStatusCode();
+
+        var databases = await response.Content.ReadFromJsonAsync<List<RedisInsightDatabaseModel>>(cts.Token);
+
+        Assert.NotNull(databases);
+        Assert.Collection(databases,
+        db =>
+        {
+            Assert.Equal(redis1.Resource.Name, db.Name);
+            Assert.Equal(redis1.Resource.Name, db.Host);
+            Assert.Equal(redis1.Resource.PrimaryEndpoint.TargetPort, db.Port);
+            Assert.Equal("STANDALONE", db.ConnectionType);
+            Assert.Equal(0, db.Db);
+        },
+        db =>
+        {
+            Assert.Equal(redis2.Resource.Name, db.Name);
+            Assert.Equal(redis2.Resource.Name, db.Host);
+            Assert.Equal(redis2.Resource.PrimaryEndpoint.TargetPort, db.Port);
+            Assert.Equal("STANDALONE", db.ConnectionType);
+            Assert.Equal(0, db.Db);
+        });
+
+        foreach (var db in databases)
+        {
+            var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+            var testConnectionResponse = await client.GetAsync($"/api/databases/test/{db.Id}", cts2.Token);
+            response.EnsureSuccessStatusCode();
+        }
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    [RequiresDocker]
+    public async Task VerifyWithRedisInsightAcceptEula(bool accept)
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        IResourceBuilder<RedisInsightResource>? redisInsightBuilder = null;
+        var redis = builder.AddRedis("redis").WithRedisInsight(c =>
+        {
+            c.WithAcceptEula(accept);
+            redisInsightBuilder = c;
+        });
+
+        Assert.NotNull(redisInsightBuilder);
+        Assert.Equal(accept, redisInsightBuilder.Resource.AcceptedEula);
+
+        using var app = builder.Build();
+
+        await app.StartAsync();
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceAsync(redisInsightBuilder.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        var client = app.CreateHttpClient(redisInsightBuilder.Resource.Name, "http");
+
+        var response = await client.GetAsync("/api/settings", cts.Token);
+        response.EnsureSuccessStatusCode();
+
+        var content = await response.Content.ReadAsStringAsync();
+
+        var jo = JObject.Parse(content);
+        var agreements = jo["agreements"];
+        if (accept)
+        {
+            Assert.NotNull(agreements);
+            Assert.False(agreements["analytics"]!.Value<bool>());
+            Assert.False(agreements["notifications"]!.Value<bool>());
+            Assert.False(agreements["encryption"]!.Value<bool>());
+            Assert.True(agreements["eula"]!.Value<bool>());
+        }
+        else
+        {
+            Assert.NotNull(agreements);
+            Assert.False(agreements.HasValues);
+        }
     }
 
     [Fact]
@@ -374,5 +471,15 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
             await app.StopAsync();
         }
+    }
+
+    internal sealed class RedisInsightDatabaseModel
+    {
+        public string? Id { get; set; }
+        public string? Host { get; set; }
+        public int? Port { get; set; }
+        public string? Name { get; set; }
+        public int? Db { get; set; }
+        public string? ConnectionType { get; set; }
     }
 }

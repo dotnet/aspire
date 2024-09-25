@@ -17,8 +17,6 @@ namespace Aspire.Hosting.Valkey.Tests;
 
 public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
 {
-    const string ValkeyReadyText = "Ready to accept connections";
-
     [Fact]
     [RequiresDocker]
     public async Task VerifyValkeyResource()
@@ -44,7 +42,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
 
         await host.StartAsync();
 
-        await app.WaitForTextAsync(ValkeyReadyText);
+        await app.WaitForHealthyAsync(valkey).WaitAsync(TimeSpan.FromMinutes(2));
 
         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -105,7 +103,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
-                        await app.WaitForTextAsync(ValkeyReadyText);
+                        await app.WaitForHealthyAsync(valkey1).WaitAsync(TimeSpan.FromMinutes(2));
 
                         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -156,7 +154,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
                     {
                         await host.StartAsync();
 
-                        await app.WaitForTextAsync(ValkeyReadyText);
+                        await app.WaitForHealthyAsync(valkey2).WaitAsync(TimeSpan.FromMinutes(2));
 
                         var redisClient = host.Services.GetRequiredService<IConnectionMultiplexer>();
 
@@ -226,7 +224,7 @@ public class ValkeyFunctionalTests(ITestOutputHelper testOutputHelper)
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
         await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
