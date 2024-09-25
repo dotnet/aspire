@@ -3,19 +3,32 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
+
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 
 namespace Microsoft.Extensions.Hosting;
 
-// Adds common .NET Aspire services: service discovery, resilience, health checks, and OpenTelemetry.
-// This project should be referenced by each service project in your solution.
-// To learn more about using this project, see https://aka.ms/dotnet/aspire/service-defaults
-public static class Extensions
+/// <summary>
+/// Adds common .NET Aspire services: service discovery, resilience, health checks, and OpenTelemetry.
+/// </summary>
+/// <remarks>
+/// This project should be referenced by each service project in your solution.
+/// To learn more about using this project, see https://aka.ms/dotnet/aspire/service-defaults
+/// </remarks>
+public static class ServiceDefaultsExtensions
 {
+    /// <summary>
+    /// Adds default services including service discovery, resilience, health checks, and OpenTelemetry to the specified <see cref="IHostApplicationBuilder"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder"/> to add the services to.</param>
+    /// <returns>The <see cref="IHostApplicationBuilder"/> with the added services.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if the <paramref name="builder"/> is null.</exception>
     public static IHostApplicationBuilder AddServiceDefaults(this IHostApplicationBuilder builder)
     {
+        ArgumentNullException.ThrowIfNull(builder, nameof(builder));
+
         builder.ConfigureOpenTelemetry();
 
         builder.AddDefaultHealthChecks();
@@ -34,8 +47,16 @@ public static class Extensions
         return builder;
     }
 
+    /// <summary>
+    /// Configures OpenTelemetry for the specified <see cref="IHostApplicationBuilder"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder"/> to configure OpenTelemetry for.</param>
+    /// <returns>The <see cref="IHostApplicationBuilder"/> with OpenTelemetry configured.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if the <paramref name="builder"/> is null.</exception>
     public static IHostApplicationBuilder ConfigureOpenTelemetry(this IHostApplicationBuilder builder)
     {
+        ArgumentNullException.ThrowIfNull(builder, nameof(builder));
+
         builder.Logging.AddOpenTelemetry(logging =>
         {
             logging.IncludeFormattedMessage = true;
@@ -62,8 +83,15 @@ public static class Extensions
         return builder;
     }
 
+    /// <summary>
+    /// Adds OpenTelemetry exporters to the specified <see cref="IHostApplicationBuilder"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder"/> to add the exporters to.</param>
+    /// <returns>The <see cref="IHostApplicationBuilder"/> with the added exporters.</returns>
     private static IHostApplicationBuilder AddOpenTelemetryExporters(this IHostApplicationBuilder builder)
     {
+        ArgumentNullException.ThrowIfNull(builder, nameof(builder));
+
         var useOtlpExporter = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
 
         if (useOtlpExporter)
@@ -81,8 +109,16 @@ public static class Extensions
         return builder;
     }
 
+    /// <summary>
+    /// Adds default health checks to the specified <see cref="IHostApplicationBuilder"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder"/> to add the health checks to.</param>
+    /// <returns>The <see cref="IHostApplicationBuilder"/> with the added health checks.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if the <paramref name="builder"/> is null.</exception>
     public static IHostApplicationBuilder AddDefaultHealthChecks(this IHostApplicationBuilder builder)
     {
+        ArgumentNullException.ThrowIfNull(builder, nameof(builder));
+
         builder.Services.AddHealthChecks()
             // Add a default liveness check to ensure app is responsive
             .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
@@ -90,8 +126,16 @@ public static class Extensions
         return builder;
     }
 
+    /// <summary>
+    /// Maps default endpoints including health checks to the specified <see cref="WebApplication"/>.
+    /// </summary>
+    /// <param name="app">The <see cref="WebApplication"/> to map the endpoints to.</param>
+    /// <returns>The <see cref="WebApplication"/> with the mapped endpoints.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if the <paramref name="app"/> is null.</exception>
     public static WebApplication MapDefaultEndpoints(this WebApplication app)
     {
+        ArgumentNullException.ThrowIfNull(app, nameof(app));
+
         // Adding health checks endpoints to applications in non-development environments has security implications.
         // See https://aka.ms/dotnet/aspire/healthchecks for details before enabling these endpoints in non-development environments.
         if (app.Environment.IsDevelopment())
