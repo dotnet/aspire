@@ -40,6 +40,9 @@ function getFluentMenuItemForTarget(element) {
 function addClickAndKeyboardListener(element, callback) {
     element.addEventListener("click", callback);
     element.addEventListener("keydown", function (e) {
+        // 13 is ENTER
+        // 32 is SPACE
+        // both of these keys indicate the user is performing an action on the element
         if (e.keyCode === 13 || e.keyCode === 32) {
             callback(e);
         }
