@@ -1083,7 +1083,7 @@ public sealed class TelemetryRepository
         else
         {
             var allDimensions = new List<DimensionScope>();
-            var allKnownAttributes = new Dictionary<string, List<string>>();
+            var allKnownAttributes = new Dictionary<string, List<string?>>();
 
             foreach (var instrument in instruments)
             {

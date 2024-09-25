@@ -134,11 +134,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         var value = OtlpHelpers.GetValue(attributes, filter.Name);
         foreach (var item in filter.SelectedValues)
         {
-            if (item.Empty && string.IsNullOrEmpty(value))
-            {
-                return true;
-            }
-            if (item.Name == value)
+            if (item.Value == value)
             {
                 return true;
             }
@@ -210,11 +206,16 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
                 dimensionModel.Values.AddRange(item.Value.OrderBy(v => v).Select(v =>
                 {
-                    var empty = string.IsNullOrEmpty(v);
+                    var text = v switch
+                    {
+                        null => "(Unset)",
+                        { Length: 0 } => "(Empty)",
+                        _ => v
+                    };
                     return new DimensionValueViewModel
                     {
-                        Name = empty ? "(Empty)" : v,
-                        Empty = empty
+                        Text = text,
+                        Value = v
                     };
                 }));
 
@@ -242,7 +243,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                         // Automatically select new incoming values if existing values are all selected.
                         var newSelectedValues = (existing.AreAllValuesSelected ?? false)
                             ? item.Values
-                            : item.Values.Where(newValue => existing.SelectedValues.Any(existingValue => existingValue.Name == newValue.Name));
+                            : item.Values.Where(newValue => existing.SelectedValues.Any(existingValue => existingValue.Value == newValue.Value));
 
                         foreach (var v in newSelectedValues)
                         {

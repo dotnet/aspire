@@ -335,7 +335,8 @@ public class MetricsTests
                             CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(2)),
                             CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(1), attributes: [KeyValuePair.Create("key1", "value1")]),
                             CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(1), attributes: [KeyValuePair.Create("key1", "value2")]),
-                            CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(1), attributes: [KeyValuePair.Create("key1", "value1"), KeyValuePair.Create("key2", "value1")])
+                            CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(1), attributes: [KeyValuePair.Create("key1", "value1"), KeyValuePair.Create("key2", "value1")]),
+                            CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(1), attributes: [KeyValuePair.Create("key1", "value1"), KeyValuePair.Create("key2", "")])
                         }
                     }
                 }
@@ -372,15 +373,15 @@ public class MetricsTests
             e =>
             {
                 Assert.Equal("key1", e.Key);
-                Assert.Equal(new[] { "", "value1", "value2" }, e.Value);
+                Assert.Equal(new[] { null, "value1", "value2" }, e.Value);
             },
             e =>
             {
                 Assert.Equal("key2", e.Key);
-                Assert.Equal(new[] { "", "value1" }, e.Value);
+                Assert.Equal(new[] { null, "value1", "" }, e.Value);
             });
 
-        Assert.Equal(4, instrumentData.Dimensions.Count);
+        Assert.Equal(5, instrumentData.Dimensions.Count);
 
         var dimension = instrumentData.Dimensions.Single(d => d.Attributes.Length == 0);
         var exemplar = Assert.Single(dimension.Values[0].Exemplars);

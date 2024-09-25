@@ -18,7 +18,7 @@
                             GenerateHeader="GenerateHeaderOption.None">
                 <ChildContent>
                     <AspirePropertyColumn Tooltip="true" TooltipText="@(c => c.Name)" Property="@(c => c.Name)"/>
-                    <AspireTemplateColumn Tooltip="true" TooltipText="@(c => c.SelectedValues.Count == 0 ? Loc[nameof(ControlsStrings.None)] : string.Join(", ", c.SelectedValues.Select(v => v.Name)))">
+                    <AspireTemplateColumn Tooltip="true" TooltipText="@(c => c.SelectedValues.Count == 0 ? Loc[nameof(ControlsStrings.None)] : string.Join(", ", c.SelectedValues.OrderBy(v => v.Text).Select(v => v.Text)))">
                         <FluentOverflow Class="dimension-overflow">
                             <ChildContent>
                                 @if (context.SelectedValues.Count == 0)
@@ -28,11 +28,11 @@
                                 else
                                 {
                                     var i = 0;
-                                    foreach (var item in context.SelectedValues.OrderBy(g => g.Name))
+                                    foreach (var item in context.SelectedValues.OrderBy(v => v.Text))
                                     {
                                         // Always display the first item by setting a fixed value.
                                         <FluentOverflowItem Fixed="@((i == 0) ? OverflowItemFixed.Ellipsis : OverflowItemFixed.None)">
-                                            <span class="dimension-tag">@item.Name</span>
+                                            <span class="dimension-tag">@item.Text</span>
                                         </FluentOverflowItem>
                                         i++;
                                     }
@@ -67,11 +67,11 @@
                                                 ShowIndeterminate="false"
                                                 ThreeStateOrderUncheckToIntermediate="true"
                                                 @bind-CheckState="context.AreAllValuesSelected"/>
-                                @foreach (var tag in context.Values)
+                                @foreach (var tag in context.Values.OrderBy(v => v.Text))
                                 {
                                     var isChecked = context.SelectedValues.Contains(tag);
-                                    <FluentCheckbox Label="@tag.Name"
-                                                    title="@tag.Name"
+                                    <FluentCheckbox Label="@tag.Text"
+                                                    title="@tag.Text"
                                                     @key=tag
                                                     @bind-Value:get="isChecked"
                                                     @bind-Value:set="c => context.OnTagSelectionChanged(tag, c)"/>
