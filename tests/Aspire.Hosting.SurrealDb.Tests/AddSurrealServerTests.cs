@@ -204,6 +204,41 @@ public class AddSurrealServerTests
     }
 
     [Fact]
+    public async Task VerifyManifestWithStrictMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var surrealServer = builder.AddSurrealServer("surreal", strictMode: true);
+        var serverManifest = await ManifestUtils.GetManifest(surrealServer.Resource);
+
+        var expectedManifest = $$"""
+            {
+              "type": "container.v0",
+              "connectionString": "Server=ws://{surreal.bindings.tcp.host}:{surreal.bindings.tcp.port}/rpc;User=root;Password={surreal-password.value}",
+              "image": "{{SurrealDbContainerImageTags.Registry}}/{{SurrealDbContainerImageTags.Image}}:{{SurrealDbContainerImageTags.Tag}}",
+              "entrypoint": "/surreal",
+              "args": [
+                "start",
+                "--strict"
+              ],
+              "env": {
+                "SURREAL_USER": "root",
+                "SURREAL_PASS": "{surreal-password.value}"
+              },
+              "bindings": {
+                "tcp": {
+                  "scheme": "tcp",
+                  "protocol": "tcp",
+                  "transport": "tcp",
+                  "targetPort": 8000
+                }
+              }
+            }
+            """;
+        Assert.Equal(expectedManifest, serverManifest.ToString());
+    }
+
+    [Fact]
     public void ThrowsWithIdenticalChildResourceNames()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
