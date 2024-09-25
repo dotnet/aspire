@@ -44,6 +44,9 @@ Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.StartTimeStamp.get -> Sys
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.StartTimeStamp.init -> void
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.StopTimeStamp.get -> System.DateTime?
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.StopTimeStamp.init -> void
+Aspire.Hosting.ApplicationModel.DeploymentTargetAnnotation
+Aspire.Hosting.ApplicationModel.DeploymentTargetAnnotation.DeploymentTarget.get -> Aspire.Hosting.ApplicationModel.IResource!
+Aspire.Hosting.ApplicationModel.DeploymentTargetAnnotation.DeploymentTargetAnnotation(Aspire.Hosting.ApplicationModel.IResource! target) -> void
 Aspire.Hosting.ApplicationModel.EndpointAnnotation.TargetHost.get -> string!
 Aspire.Hosting.ApplicationModel.EndpointAnnotation.TargetHost.set -> void
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Volumes.get -> System.Collections.Immutable.ImmutableArray<Aspire.Hosting.ApplicationModel.VolumeSnapshot!>
