@@ -10,8 +10,8 @@ namespace Aspire.Dashboard.Components;
 
 public partial class ResourceActions : ComponentBase
 {
-    private static readonly Icon s_viewDetailsIcon = new Icons.Regular.Size20.Info();
-    private static readonly Icon s_consoleLogsIcon = new Icons.Regular.Size20.SlideText();
+    private static readonly Icon s_viewDetailsIcon = new Icons.Regular.Size16.Info();
+    private static readonly Icon s_consoleLogsIcon = new Icons.Regular.Size16.SlideText();
 
     private AspireMenuButton? _menuButton;
 
@@ -56,7 +56,7 @@ public partial class ResourceActions : ComponentBase
 
             foreach (var command in menuCommands)
             {
-                var icon = (!string.IsNullOrEmpty(command.IconName) && CommandViewModel.ResolveIconName(command.IconName) is { } i) ? i : null;
+                var icon = (!string.IsNullOrEmpty(command.IconName) && CommandViewModel.ResolveIconName(command.IconName, command.IconVariant) is { } i) ? i : null;
 
                 _menuItems.Add(new MenuButtonItem
                 {

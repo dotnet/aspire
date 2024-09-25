@@ -6,7 +6,7 @@ param principalId string
 param principalType string
 
 resource signalr 'Microsoft.SignalRService/signalR@2022-02-01' = {
-  name: toLower(take('signalr${uniqueString(resourceGroup().id)}', 24))
+  name: take('signalr-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {
     cors: {

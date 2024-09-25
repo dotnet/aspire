@@ -40,6 +40,9 @@
     </Protobuf>
   </ItemGroup>
 
+  <!-- Used by publishing infrastructure to get the version to use for blob publishing -->
+  <Target Name="ReturnPackageVersion" Returns="$(PackageVersion)" />
+
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="Humanizer.Core" />

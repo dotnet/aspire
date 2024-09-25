@@ -17,7 +17,6 @@
     <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessResult.cs" Link="Provisioning\Utils\ProcessResult.cs" />
     <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessSpec.cs" Link="Provisioning\Utils\ProcessSpec.cs" />
     <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessUtil.cs" Link="Provisioning\Utils\ProcessUtil.cs" />
-    <Compile Include="..\Shared\Cosmos\CosmosConstants.cs" Link="Shared\CosmosConstants.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="**/*.targets;AspireAzureConfigurationSchema.json" Pack="true" PackagePath="%(RecursiveDir)%(Filename)%(Extension)"  />
+    <None Include="**/*.targets;AspireAzureConfigurationSchema.json" Pack="true" PackagePath="%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

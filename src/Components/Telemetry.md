@@ -257,6 +257,14 @@ Aspire.Npgsql.EntityFrameworkCore.PostgreSQL:
     - "db.client.connections.timeouts"
     - "db.client.connections.usage"
 
+Aspire.OpenAI:
+- Log categories:
+  - none  
+- Activity source names:
+  - "OpenAI.*":
+- Metric names:
+  - "OpenAI.*"
+
 Aspire.Oracle.EntityFrameworkCore:
 - Log categories:
   - "Microsoft.EntityFrameworkCore.ChangeTracking"

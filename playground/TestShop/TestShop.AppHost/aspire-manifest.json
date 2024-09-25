@@ -7,7 +7,7 @@
       "image": "docker.io/library/postgres:16.4",
       "volumes": [
         {
-          "name": "TestShop.AppHost-postgres-data",
+          "name": "testshop.apphost-a23213a1a9-postgres-data",
           "target": "/var/lib/postgresql/data",
           "readOnly": false
         }
@@ -42,7 +42,7 @@
       ],
       "volumes": [
         {
-          "name": "TestShop.AppHost-basketcache-data",
+          "name": "testshop.apphost-a23213a1a9-basketcache-data",
           "target": "/data",
           "readOnly": false
         }
@@ -110,7 +110,7 @@
       "image": "docker.io/library/rabbitmq:3.13-management",
       "volumes": [
         {
-          "name": "TestShop.AppHost-messaging-data",
+          "name": "testshop.apphost-a23213a1a9-messaging-data",
           "target": "/var/lib/rabbitmq",
           "readOnly": false
         }

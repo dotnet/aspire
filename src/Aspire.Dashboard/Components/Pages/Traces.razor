@@ -70,6 +70,7 @@
                                     TGridItem="OtlpTrace"
                                     GridTemplateColumns="@_manager.GetGridTemplateColumns()"
                                     ShowHover="true"
+                                    ItemKey="@(r => r.TraceId)"
                                     OnRowClick="@(r => r.ExecuteOnDefault(d => NavigationManager.NavigateTo(DashboardUrls.TraceDetailUrl(d.TraceId))))"
                                     Class="enable-row-click">
                         <ChildContent>
