@@ -190,12 +190,14 @@ public class ResourceLoggerService
     /// </summary>
     internal sealed class ResourceLoggerState
     {
+        private const int MaxLogCount = 10_000;
+
         private readonly ResourceLogger _logger;
         private readonly CancellationTokenSource _logStreamCts = new();
         private readonly object _lock = new();
 
-        private readonly CircularBuffer<LogEntry> _inMemoryEntries = new(10_000);
-        private readonly LogEntries _backlog = new(10_000) { BaseLineNumber = 0 };
+        private readonly CircularBuffer<LogEntry> _inMemoryEntries = new(MaxLogCount);
+        private readonly LogEntries _backlog = new(MaxLogCount) { BaseLineNumber = 0 };
         private readonly TimeProvider _timeProvider;
 
         /// <summary>
@@ -270,13 +272,13 @@ public class ResourceLoggerService
                 OnNewLog += Log;
             }
 
-            if (backlogSnapshot.Length > 0)
-            {
-                yield return CreateLogLines(ref lineNumber, backlogSnapshot);
-            }
-
             try
             {
+                if (backlogSnapshot.Length > 0)
+                {
+                    yield return CreateLogLines(ref lineNumber, backlogSnapshot);
+                }
+
                 await foreach (var entry in channel.GetBatchesAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
                 {
                     yield return CreateLogLines(ref lineNumber, entry);
