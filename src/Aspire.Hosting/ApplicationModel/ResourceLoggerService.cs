@@ -266,9 +266,7 @@ public class ResourceLoggerService
                     }
                 }
 
-                // Get backlog
                 backlogSnapshot = GetBacklogSnapshot();
-
                 OnNewLog += Log;
             }
 
