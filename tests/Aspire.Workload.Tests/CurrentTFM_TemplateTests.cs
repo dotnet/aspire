@@ -7,14 +7,9 @@ using Xunit.Abstractions;
 namespace Aspire.Workload.Tests;
 
 // FIXME: rename to show that this is when only one nuget is installed
-public class CurrentTFM_TemplateTests : WorkloadTestsBase
+public class CurrentTFM_TemplateTests(ITestOutputHelper testOutput) : WorkloadTestsBase(testOutput)
 {
     private const string TargetFramework = "net9.0";
-
-    public CurrentTFM_TemplateTests(ITestOutputHelper testOutput)
-        : base(testOutput)
-    {
-    }
 
     [Fact]
     public async Task CanNewAndBuild()
