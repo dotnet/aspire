@@ -17,10 +17,9 @@ public class BuildEnvironment
     public bool                             HasWorkloadFromArtifacts      { get; init; }
     public bool                             UsesSystemDotNet => !HasWorkloadFromArtifacts;
     public string?                          NuGetPackagesPath             { get; init; }
-    public string                           TemplatesHomeDirectory        { get; init; }
     public TestTargetFramework              TargetFramework               { get; init; }
     public DirectoryInfo?                   RepoRoot                      { get; init; }
-    public string[]                         InstalledTemplatePackageIds   { get; init; }
+    public TemplatesCustomHive?             TemplatesCustomHive           { get; init; }
 
     public const TestTargetFramework        DefaultTargetFramework = TestTargetFramework.Net90;
     public static readonly string           TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "testassets");
@@ -30,22 +29,25 @@ public class BuildEnvironment
     public static bool IsRunningOnCIBuildMachine => Environment.GetEnvironmentVariable("BUILD_BUILDID") is not null;
     public static bool IsRunningOnCI => IsRunningOnHelix || IsRunningOnCIBuildMachine;
 
-    private static readonly string[] s_defaultTemplatePackageIds =
-    [
-        TemplatePackageIds.AspireProjectTemplates_9_0_net9
-    ];
+    // private static readonly string[] s_defaultTemplatePackageIds =
+    // [
+    //     TemplatePackageIds.AspireProjectTemplates_9_0_net9
+    // ];
+
+    public static string GetNewTemplateCustomHiveDefaultDirectory()
+        => IsRunningOnCI ? Path.GetTempPath() : Path.Combine(AppContext.BaseDirectory, "templates");
 
     private static readonly Lazy<BuildEnvironment> s_instance_80 = new(() =>
         new BuildEnvironment(
                 targetFramework: TestTargetFramework.Net80,
-                templatePackageIds: [TemplatePackageIds.AspireProjectTemplates_9_0_net8],
-                templateDirectoryName: "templates-9_net8"));
+                templatesCustomHive: new TemplatesCustomHive(
+                        [TemplatePackageIdNames.AspireProjectTemplates_9_0_net9], "templates-9_net8")));
 
     private static readonly Lazy<BuildEnvironment> s_instance_90 = new(() =>
         new BuildEnvironment(
                 targetFramework: TestTargetFramework.Net90,
-                templatePackageIds: [TemplatePackageIds.AspireProjectTemplates_9_0_net9],
-                templateDirectoryName: "templates-9_net9"));
+                templatesCustomHive: new TemplatesCustomHive(
+                        [TemplatePackageIdNames.AspireProjectTemplates_9_0_net9], "templates-9_net9")));
 
     public static BuildEnvironment ForNet80 => s_instance_80.Value;
     public static BuildEnvironment ForNet90 => s_instance_90.Value;
@@ -56,7 +58,7 @@ public class BuildEnvironment
         _ => throw new ArgumentOutOfRangeException(nameof(DefaultTargetFramework))
     };
 
-    public BuildEnvironment(bool useSystemDotNet = false, TestTargetFramework targetFramework = DefaultTargetFramework, string[]? templatePackageIds = default, string? templateDirectoryName = default)
+    public BuildEnvironment(bool useSystemDotNet = false, TestTargetFramework targetFramework = DefaultTargetFramework, TemplatesCustomHive? templatesCustomHive = default)
     {
         HasWorkloadFromArtifacts = !useSystemDotNet;
         TargetFramework = targetFramework;
@@ -198,44 +200,8 @@ public class BuildEnvironment
             }
         }
 
-        InstalledTemplatePackageIds = templatePackageIds ?? s_defaultTemplatePackageIds;
-        templateDirectoryName ??= $"templates-{Guid.NewGuid()}";
-
-        // Use deterministic, and persistent path for local runs
-        TemplatesHomeDirectory = Path.Combine(
-            IsRunningOnCI ? Path.GetTempPath() : AppContext.BaseDirectory,
-            templateDirectoryName);
-
-        Console.WriteLine($"*** [{TargetFramework}] Using templates custom hive: {TemplatesHomeDirectory}");
-        Directory.CreateDirectory(TemplatesHomeDirectory);
-
-        foreach (var templatePackageId in InstalledTemplatePackageIds)
-        {
-            InstallTemplate(templatePackageId);
-        }
-
-        void InstallTemplate(string templatePackagesId)
-        {
-            var packages = Directory.EnumerateFiles(BuiltNuGetsPath, $"{templatePackagesId}*.nupkg");
-            if (!packages.Any())
-            {
-                throw new ArgumentException($"Cannot find {templatePackagesId}*.nupkg in {BuiltNuGetsPath}. Found packages: {string.Join(", ", Directory.EnumerateFiles(BuiltNuGetsPath))}");
-            }
-            if (packages.Count() > 1)
-            {
-                throw new ArgumentException($"Found more than one {templatePackagesId}*.nupkg in {BuiltNuGetsPath}: {string.Join(", ", packages)}");
-            }
-
-            var installCmd = $"new install --debug:custom-hive {TemplatesHomeDirectory} {packages.Single()}";
-            using var cmd = new ToolCommand(DotNet,
-                                            new TestOutputWrapper(forceShowBuildOutput: true),
-                                            label: "template install");
-
-            var cmdTask = cmd.ExecuteAsync(installCmd);
-            cmdTask.Wait();
-            var res = cmdTask.Result;
-            res.EnsureSuccessful();
-        }
+        TemplatesCustomHive = templatesCustomHive;
+        TemplatesCustomHive?.InstallAsync(GetNewTemplateCustomHiveDefaultDirectory(), BuiltNuGetsPath, DotNet).Wait();
 
         static void CleanupTestRootPath()
         {
@@ -265,6 +231,7 @@ public class BuildEnvironment
                         Console.WriteLine($"\tFailed to delete {dir} : {ioex.Message}. Ignoring.");
                     }
                 }
+
             }
             catch (Exception ex)
             {
@@ -279,13 +246,12 @@ public class BuildEnvironment
         DefaultBuildArgs = otherBuildEnvironment.DefaultBuildArgs;
         EnvVars = new Dictionary<string, string>(otherBuildEnvironment.EnvVars);
         LogRootPath = otherBuildEnvironment.LogRootPath;
-        InstalledTemplatePackageIds = otherBuildEnvironment.InstalledTemplatePackageIds;
         BuiltNuGetsPath = otherBuildEnvironment.BuiltNuGetsPath;
         HasWorkloadFromArtifacts = otherBuildEnvironment.HasWorkloadFromArtifacts;
         NuGetPackagesPath = otherBuildEnvironment.NuGetPackagesPath;
-        TemplatesHomeDirectory = otherBuildEnvironment.TemplatesHomeDirectory;
         TargetFramework = otherBuildEnvironment.TargetFramework;
         RepoRoot = otherBuildEnvironment.RepoRoot;
+        // TemplatesCustomHive = otherBuildEnvironment.TemplatesCustomHive;
     }
 }
 

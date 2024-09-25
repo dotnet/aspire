@@ -63,7 +63,15 @@ public class AspireProject : IAsyncDisposable
         File.Copy(srcNuGetConfigPath, targetNuGetConfigPath);
     }
 
-    public static async Task<AspireProject> CreateNewTemplateProjectAsync(string id, string template, ITestOutputHelper testOutput, BuildEnvironment buildEnvironment, string extraArgs = "", bool addEndpointsHook = true, string? customHiveForTemplates = null, bool expectSuccess = true)
+    public static async Task<AspireProject> CreateNewTemplateProjectAsync(
+        string id,
+        string template,
+        ITestOutputHelper testOutput,
+        BuildEnvironment buildEnvironment,
+        string extraArgs = "",
+        bool addEndpointsHook = true,
+        string? customHiveForTemplates = null,
+        bool expectSuccess = true)
     {
         string rootDir = Path.Combine(BuildEnvironment.TestRootPath, id);
         string logPath = Path.Combine(BuildEnvironment.ForDefaultFramework.LogRootPath, id);
@@ -77,10 +85,14 @@ public class AspireProject : IAsyncDisposable
         File.WriteAllText(Path.Combine(rootDir, "Directory.Build.props"), "<Project />");
         File.WriteAllText(Path.Combine(rootDir, "Directory.Build.targets"), "<Project />");
 
-        using var cmd = new DotNetNewCommand(testOutput, useDefaultArgs: true)
-                               .WithCustomHive(customHiveForTemplates ?? buildEnvironment.TemplatesHomeDirectory)
-                               .WithWorkingDirectory(Path.GetDirectoryName(rootDir)!)
-                               .WithTimeout(TimeSpan.FromMinutes(5));
+        using var cmd = new DotNetNewCommand(
+            testOutput,
+            useDefaultArgs: true,
+            buildEnv: buildEnvironment,
+            hiveDirectory: customHiveForTemplates);
+
+        cmd.WithWorkingDirectory(Path.GetDirectoryName(rootDir)!)
+           .WithTimeout(TimeSpan.FromMinutes(5));
 
         var res = await cmd.ExecuteAsync($"{template} {extraArgs} -o \"{id}\"").ConfigureAwait(false);
         if (!expectSuccess)

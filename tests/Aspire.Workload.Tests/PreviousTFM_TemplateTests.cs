@@ -8,8 +8,9 @@ namespace Aspire.Workload.Tests;
 
 public class PreviousTFM_TemplateTests : WorkloadTestsBase, IClassFixture<DotNet_With9_Net8_Fixture>
 {
-    private readonly DotNet_With9_Net8_Fixture _testFixture;
+    // private readonly DotNet_With9_Net8_Fixture _testFixture;
     private const string TargetFramework = "net8.0";
+    private readonly DotNet_With9_Net8_Fixture _testFixture;
 
     public PreviousTFM_TemplateTests(DotNet_With9_Net8_Fixture fixture, ITestOutputHelper testOutput)
         : base(testOutput)
@@ -22,9 +23,6 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase, IClassFixture<DotNet
      * aspire-starter
      * aspire-starter with tests
      * aspire
-
-
-
     */
     [Fact]
     public async Task CanNewAndBuild()
@@ -36,8 +34,8 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase, IClassFixture<DotNet
             "aspire",
             _testOutput,
             buildEnvironment: BuildEnvironment.ForDefaultFramework,
-            customHiveForTemplates: _testFixture.HomeDirectory,
-            extraArgs: $"-f {TargetFramework}");
+            extraArgs: $"-f {TargetFramework}",
+            customHiveForTemplates: _testFixture.CustomHiveDirectory);
 
         string config = "Debug";
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
