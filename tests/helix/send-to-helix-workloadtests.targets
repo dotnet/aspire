@@ -10,8 +10,7 @@
 
   <ItemGroup>
     <HelixPreCommand Include="$(_EnvVarSetKeyword) TEST_NAME=$(TestProjectName)" />
-    <!-- xunit diagnostic output doesn't show up on windows, so use SHOW_BUILD_OUTPUT=true -->
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="$(_EnvVarSetKeyword) SHOW_BUILD_OUTPUT=true" />
+    <HelixPreCommand Include="$(_EnvVarSetKeyword) SHOW_BUILD_OUTPUT=true" />
 
     <HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="mv $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/$(TestProjectName)-${TEST_NAME_SUFFIX}.trx" />
     <HelixPostCommand Condition="'$(OS)' == 'Windows_NT'" Include="move &quot;$(_HelixLogsPath)\TestResults.trx&quot; &quot;$(_HelixLogsPath)\$(TestProjectName)-%TEST_NAME_SUFFIX%.trx&quot;" />

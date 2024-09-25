@@ -134,8 +134,7 @@ public class BuildEnvironment
 
         sdkForWorkloadPath = Path.GetFullPath(sdkForWorkloadPath);
         DefaultBuildArgs = string.Empty;
-        // WorkloadPacksDir = Path.Combine(sdkForWorkloadPath, "packs");
-        NuGetPackagesPath = IsRunningOnCI ? null : Path.Combine(AppContext.BaseDirectory, $"nuget-cache-{TargetFramework}");
+        NuGetPackagesPath = HasWorkloadFromArtifacts ? Path.Combine(AppContext.BaseDirectory, $"nuget-cache-{TargetFramework}") : null;
         EnvVars = new Dictionary<string, string>();
         if (HasWorkloadFromArtifacts)
         {
@@ -153,7 +152,7 @@ public class BuildEnvironment
         EnvVars["DEBUG_SESSION_PORT"] = "";
         EnvVars["SkipAspireWorkloadManifest"] = "true";
 
-        DotNet = "dotnet";
+        DotNet = Path.Combine(sdkForWorkloadPath!, "dotnet");
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             DotNet += ".exe";
