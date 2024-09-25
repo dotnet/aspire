@@ -6,6 +6,7 @@ using Xunit.Abstractions;
 
 namespace Aspire.Workload.Tests;
 
+// FIXME: rename to show that this is when only one nuget is installed
 public class CurrentTFM_TemplateTests : WorkloadTestsBase, IClassFixture<DotNet_With9_Net9_Fixture>
 {
     private readonly DotNet_With9_Net9_Fixture _testFixture;
@@ -22,9 +23,15 @@ public class CurrentTFM_TemplateTests : WorkloadTestsBase, IClassFixture<DotNet_
     {
         string id = GetNewProjectId(prefix: $"new_build_{TargetFramework}_on_9+net9");
 
-        await using var project = await AspireProject.CreateNewTemplateProjectAsync(id, "aspire", _testOutput, buildEnvironment: BuildEnvironment.ForDefaultFramework, customHiveForTemplates: _testFixture.HomeDirectory, extraArgs: $"-f {TargetFramework}");
+        await using var project = await AspireProject.CreateNewTemplateProjectAsync(
+            id,
+            "aspire",
+            _testOutput,
+            buildEnvironment: BuildEnvironment.ForDefaultFramework,
+            customHiveForTemplates: _testFixture.HomeDirectory,
+            extraArgs: $"-f {TargetFramework}");
 
-        string config = "Debug";
+        var config = "Debug";
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
         await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
     }

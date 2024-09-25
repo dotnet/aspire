@@ -31,7 +31,6 @@ public class BuildEnvironment
 
     private static readonly string[] s_defaultTemplatePackageIds =
     [
-        TemplatePackageIds.AspireProjectTemplates_9_0_net8,
         TemplatePackageIds.AspireProjectTemplates_9_0_net9
     ];
 

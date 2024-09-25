@@ -17,12 +17,27 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase, IClassFixture<DotNet
         _testFixture = fixture;
     }
 
+    // FIXME: new+build tests
+    /*
+     * aspire-starter
+     * aspire-starter with tests
+     * aspire
+
+
+
+    */
     [Fact]
     public async Task CanNewAndBuild()
     {
         string id = GetNewProjectId(prefix: $"new_build_{TargetFramework}_on_9+net8");
 
-        await using var project = await AspireProject.CreateNewTemplateProjectAsync(id, "aspire", _testOutput, buildEnvironment: BuildEnvironment.ForDefaultFramework, customHiveForTemplates: _testFixture.HomeDirectory, extraArgs: $"-f {TargetFramework}");
+        await using var project = await AspireProject.CreateNewTemplateProjectAsync(
+            id,
+            "aspire",
+            _testOutput,
+            buildEnvironment: BuildEnvironment.ForDefaultFramework,
+            customHiveForTemplates: _testFixture.HomeDirectory,
+            extraArgs: $"-f {TargetFramework}");
 
         string config = "Debug";
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
