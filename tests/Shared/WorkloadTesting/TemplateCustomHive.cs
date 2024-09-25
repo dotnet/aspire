@@ -17,7 +17,7 @@ public class TemplatesCustomHive
             [
                 TemplatePackageIdNames.AspireProjectTemplates_9_0_net9,
                 TemplatePackageIdNames.AspireProjectTemplates_9_0_net8
-            ], "templates-with-9-net8"));
+            ], "templates-with-9-net8-net9"));
 
     public static Lazy<TemplatesCustomHive> Net9_0_Net8 = new(() =>
         new([TemplatePackageIdNames.AspireProjectTemplates_9_0_net8], "templates-with-9-net8"));
