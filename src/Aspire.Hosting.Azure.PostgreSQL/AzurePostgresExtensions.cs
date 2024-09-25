@@ -11,6 +11,7 @@ using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.PostgreSql;
+using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting;
 
@@ -21,32 +22,77 @@ public static class AzurePostgresExtensions
 {
     private static IResourceBuilder<T> WithLoginAndPassword<T>(this IResourceBuilder<T> builder, PostgresServerResource postgresResource) where T : AzureBicepResource
     {
-        if (postgresResource.UserNameParameter is null)
-        {
-            var generatedUserName = new GenerateParameterDefault
-            {
-                MinLength = 10,
-                // just use letters for the username since it can't start with a number
-                Numeric = false,
-                Special = false
-            };
-
-            var userParam = ParameterResourceBuilderExtensions.CreateGeneratedParameter(
-                builder.ApplicationBuilder, $"{builder.Resource.Name}-username", secret: false, generatedUserName);
-
-            builder.WithParameter("administratorLogin", userParam);
-        }
-        else
-        {
-            builder.WithParameter("administratorLogin", postgresResource.UserNameParameter);
-        }
+        var userParam = postgresResource.UserNameParameter ??
+            CreateDefaultUserNameParameter(builder);
+        builder.WithParameter("administratorLogin", userParam);
 
         builder.WithParameter("administratorLoginPassword", postgresResource.PasswordParameter);
 
         return builder;
     }
 
-    internal static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServerInternal(
+    private static PostgreSqlFlexibleServer CreatePostgreSqlFlexibleServer(ResourceModuleConstruct construct, IDistributedApplicationBuilder distributedApplicationBuilder, IReadOnlyDictionary<string, string> databases)
+    {
+        var postgres = new PostgreSqlFlexibleServer(construct.Resource.Name)
+        {
+            StorageSizeInGB = 32,
+            Sku = new PostgreSqlFlexibleServerSku()
+            {
+                Name = "Standard_B1ms",
+                Tier = PostgreSqlFlexibleServerSkuTier.Burstable
+            },
+            Version = new StringLiteral("16"),
+            HighAvailability = new PostgreSqlFlexibleServerHighAvailability()
+            {
+                Mode = PostgreSqlFlexibleServerHighAvailabilityMode.Disabled
+            },
+            Backup = new PostgreSqlFlexibleServerBackupProperties()
+            {
+                BackupRetentionDays = 7,
+                GeoRedundantBackup = PostgreSqlFlexibleServerGeoRedundantBackupEnum.Disabled
+            },
+            AvailabilityZone = "1",
+            Tags = { { "aspire-resource-name", construct.Resource.Name } }
+        };
+        construct.Add(postgres);
+
+        // Opens access to all Azure services.
+        construct.Add(new PostgreSqlFlexibleServerFirewallRule("postgreSqlFirewallRule_AllowAllAzureIps", postgres.ResourceVersion)
+        {
+            Parent = postgres,
+            Name = "AllowAllAzureIps",
+            StartIPAddress = new IPAddress([0, 0, 0, 0]),
+            EndIPAddress = new IPAddress([0, 0, 0, 0])
+        });
+
+        if (distributedApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            // Opens access to the Internet.
+            construct.Add(new PostgreSqlFlexibleServerFirewallRule("postgreSqlFirewallRule_AllowAllIps", postgres.ResourceVersion)
+            {
+                Parent = postgres,
+                Name = "AllowAllIps",
+                StartIPAddress = new IPAddress([0, 0, 0, 0]),
+                EndIPAddress = new IPAddress([255, 255, 255, 255])
+            });
+        }
+
+        foreach (var databaseNames in databases)
+        {
+            var resourceName = databaseNames.Key;
+            var databaseName = databaseNames.Value;
+            var pgsqlDatabase = new PostgreSqlFlexibleServerDatabase(resourceName, postgres.ResourceVersion)
+            {
+                Parent = postgres,
+                Name = databaseName
+            };
+            construct.Add(pgsqlDatabase);
+        }
+
+        return postgres;
+    }
+
+    private static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServerInternal(
         this IResourceBuilder<PostgresServerResource> builder,
         Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer>? configureResource,
         bool useProvisioner = false)
@@ -68,63 +114,9 @@ public static class AzurePostgresExtensions
             keyVault.Name = kvNameParam;
             construct.Add(keyVault);
 
-            var postgres = new PostgreSqlFlexibleServer(construct.Resource.Name)
-            {
-                StorageSizeInGB = 32,
-                AdministratorLogin = administratorLogin,
-                AdministratorLoginPassword = administratorLoginPassword,
-                Sku = new PostgreSqlFlexibleServerSku()
-                {
-                    Name = "Standard_B1ms",
-                    Tier = PostgreSqlFlexibleServerSkuTier.Burstable
-                },
-                Version = new StringLiteral("16"),
-                HighAvailability = new PostgreSqlFlexibleServerHighAvailability()
-                {
-                    Mode = PostgreSqlFlexibleServerHighAvailabilityMode.Disabled
-                },
-                Backup = new PostgreSqlFlexibleServerBackupProperties()
-                {
-                    BackupRetentionDays = 7,
-                    GeoRedundantBackup = PostgreSqlFlexibleServerGeoRedundantBackupEnum.Disabled
-                },
-                AvailabilityZone = "1",
-                Tags = { { "aspire-resource-name", construct.Resource.Name } }
-            };
-            construct.Add(postgres);
-
-            // Opens access to all Azure services.
-            construct.Add(new PostgreSqlFlexibleServerFirewallRule("postgreSqlFirewallRule_AllowAllAzureIps", postgres.ResourceVersion)
-            {
-                Parent = postgres,
-                Name = "AllowAllAzureIps",
-                StartIPAddress = new IPAddress([0, 0, 0, 0]),
-                EndIPAddress = new IPAddress([0, 0, 0, 0])
-            });
-
-            if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
-            {
-                // Opens access to the Internet.
-                construct.Add(new PostgreSqlFlexibleServerFirewallRule("postgreSqlFirewallRule_AllowAllIps", postgres.ResourceVersion)
-                {
-                    Parent = postgres,
-                    Name = "AllowAllIps",
-                    StartIPAddress = new IPAddress([0, 0, 0, 0]),
-                    EndIPAddress = new IPAddress([255, 255, 255, 255])
-                });
-            }
-
-            foreach (var databaseNames in builder.Resource.Databases)
-            {
-                var resourceName = databaseNames.Key;
-                var databaseName = databaseNames.Value;
-                var pgsqlDatabase = new PostgreSqlFlexibleServerDatabase(resourceName, postgres.ResourceVersion)
-                {
-                    Parent = postgres,
-                    Name = databaseName
-                };
-                construct.Add(pgsqlDatabase);
-            }
+            var postgres = CreatePostgreSqlFlexibleServer(construct, builder.ApplicationBuilder, builder.Resource.Databases);
+            postgres.AdministratorLogin = administratorLogin;
+            postgres.AdministratorLoginPassword = administratorLoginPassword;
 
             var secret = new KeyVaultSecret("connectionString")
             {
@@ -188,9 +180,7 @@ public static class AzurePostgresExtensions
     public static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServer(
         this IResourceBuilder<PostgresServerResource> builder)
     {
-#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return builder.PublishAsAzurePostgresFlexibleServer(null);
-#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     /// <summary>
@@ -201,9 +191,7 @@ public static class AzurePostgresExtensions
     public static IResourceBuilder<PostgresServerResource> AsAzurePostgresFlexibleServer(
         this IResourceBuilder<PostgresServerResource> builder)
     {
-#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return builder.AsAzurePostgresFlexibleServer(null);
-#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     }
 
     /// <summary>
@@ -220,5 +208,258 @@ public static class AzurePostgresExtensions
         return builder.PublishAsAzurePostgresFlexibleServerInternal(
             configureResource,
             useProvisioner: true);
+    }
+
+    /// <summary>
+    /// Adds an Azure Postgres Flexible Server resource to the application model.
+    /// </summary>
+    /// <param name="builder">The builder for the distributed application.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzurePostgresFlexibleServerResource}"/> builder.</returns>
+    public static IResourceBuilder<AzurePostgresFlexibleServerResource> AddAzurePostgresFlexibleServer(this IDistributedApplicationBuilder builder, string name)
+    {
+        builder.AddAzureProvisioning();
+
+        var configureConstruct = (ResourceModuleConstruct construct) =>
+        {
+            var azureResource = (AzurePostgresFlexibleServerResource)construct.Resource;
+            var postgres = CreatePostgreSqlFlexibleServer(construct, builder, azureResource.Databases);
+
+            postgres.AuthConfig = new PostgreSqlFlexibleServerAuthConfig()
+            {
+                ActiveDirectoryAuth = PostgreSqlFlexibleServerActiveDirectoryAuthEnum.Enabled,
+                PasswordAuth = PostgreSqlFlexibleServerPasswordAuthEnum.Disabled
+            };
+
+            var admin = new PostgreSqlFlexibleServerActiveDirectoryAdministrator($"{azureResource.Name}_admin", postgres.ResourceVersion)
+            {
+                Parent = postgres,
+                Name = construct.PrincipalIdParameter,
+                PrincipalType = construct.PrincipalTypeParameter,
+                PrincipalName = construct.PrincipalNameParameter,
+            };
+
+            // This is a workaround for a bug in the API that requires the parent to be fully resolved
+            admin.DependsOn.Add(postgres);
+            foreach (var firewall in construct.GetResources().OfType<PostgreSqlFlexibleServerFirewallRule>())
+            {
+                admin.DependsOn.Add(firewall);
+            }
+            construct.Add(admin);
+
+            construct.Add(new BicepOutput("connectionString", typeof(string))
+            {
+                Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName};Username={construct.PrincipalNameParameter}")
+            });
+        };
+
+        var resource = new AzurePostgresFlexibleServerResource(name, configureConstruct);
+        return builder.AddResource(resource)
+            .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
+            .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
+            .WithParameter(AzureBicepResource.KnownParameters.PrincipalName)
+            .WithManifestPublishingCallback(resource.WriteToManifest);
+    }
+
+    /// <summary>
+    /// Adds a Azure PostgreSQL database to the application model.
+    /// </summary>
+    /// <param name="builder">The Azure PostgreSQL server resource builder.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzurePostgresFlexibleServerDatabaseResource> AddDatabase(this IResourceBuilder<AzurePostgresFlexibleServerResource> builder, string name, string? databaseName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+
+        // Use the resource name as the database name if it's not provided
+        databaseName ??= name;
+
+        var azureResource = builder.Resource;
+        var azurePostgresDatabase = new AzurePostgresFlexibleServerDatabaseResource(name, databaseName, azureResource);
+
+        if (azureResource.InnerResource is null)
+        {
+            builder.Resource.AddDatabase(name, databaseName);
+
+            return builder.ApplicationBuilder.AddResource(azurePostgresDatabase);
+        }
+        else
+        {
+            // need to add the database to the InnerResource
+            var innerBuilder = builder.ApplicationBuilder.CreateResourceBuilder(azureResource.InnerResource);
+            innerBuilder.AddDatabase(name, databaseName);
+
+            // create a builder, but don't add the Azure database to the model
+            return builder.ApplicationBuilder.CreateResourceBuilder(azurePostgresDatabase);
+        }
+    }
+
+    /// <summary>
+    /// TOOD
+    /// </summary>
+    public static IResourceBuilder<AzurePostgresFlexibleServerResource> RunAsContainer(this IResourceBuilder<AzurePostgresFlexibleServerResource> builder, Action<IResourceBuilder<PostgresServerResource>>? configureContainer = null)
+    {
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder;
+        }
+
+        var azureResource = builder.Resource;
+        RemoveAzureResources(builder.ApplicationBuilder, azureResource);
+
+        var userNameParameterBuilder = azureResource.UserNameParameter is not null ?
+            builder.ApplicationBuilder.CreateResourceBuilder(azureResource.UserNameParameter) :
+            null;
+        var passwordParameterBuilder = azureResource.PasswordParameter is not null ?
+            builder.ApplicationBuilder.CreateResourceBuilder(azureResource.PasswordParameter) :
+            null;
+
+        var postgresContainer = builder.ApplicationBuilder.AddPostgres(
+            azureResource.Name,
+            userNameParameterBuilder,
+            passwordParameterBuilder);
+
+        azureResource.InnerResource = postgresContainer.Resource;
+
+        foreach (var database in azureResource.Databases)
+        {
+            postgresContainer.AddDatabase(database.Key, database.Value);
+        }
+
+        configureContainer?.Invoke(postgresContainer);
+
+        return builder;
+    }
+
+    private static void RemoveAzureResources(IDistributedApplicationBuilder appBuilder, AzurePostgresFlexibleServerResource azureResource)
+    {
+        List<IResource> resourcesToRemove = [azureResource];
+        resourcesToRemove.AddRange(
+            appBuilder.Resources.OfType<AzurePostgresFlexibleServerDatabaseResource>()
+                .Where(db => db.Parent == azureResource));
+
+        foreach (var resource in resourcesToRemove)
+        {
+            appBuilder.Resources.Remove(resource);
+        }
+    }
+
+    /// <summary>
+    /// TODO
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="userName"></param>
+    /// <param name="password"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzurePostgresFlexibleServerResource> WithPasswordAuth(
+        this IResourceBuilder<AzurePostgresFlexibleServerResource> builder,
+        IResourceBuilder<ParameterResource>? userName = null,
+        IResourceBuilder<ParameterResource>? password = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var azureResource = builder.Resource;
+
+        azureResource.UserNameParameter = userName?.Resource ??
+            CreateDefaultUserNameParameter(builder);
+        builder.WithParameter("administratorLogin", azureResource.UserNameParameter);
+
+        azureResource.PasswordParameter = password?.Resource ??
+            ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder.ApplicationBuilder, $"{builder.Resource.Name}-password");
+        builder.WithParameter("administratorLoginPassword", azureResource.PasswordParameter);
+
+        azureResource.ConnectionStringSecretOutput = new BicepSecretOutputReference("connectionString", azureResource);
+
+        // TODO: If someone already called RunAsContainer - do we need to reset the username/password parameters on the InnerResource?
+
+        return builder
+            .RemoveActiveDirectoryParameters()
+            .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
+            .ConfigureConstruct(construct =>
+            {
+                RemoveActiveDirectoryAuthResources(construct);
+
+                var postgres = construct.GetResources().OfType<PostgreSqlFlexibleServer>().FirstOrDefault(r => r.ResourceName == builder.Resource.Name)
+                    ?? throw new InvalidOperationException($"Could not find a PostgreSqlFlexibleServer with name {builder.Resource.Name}.");
+
+                var administratorLogin = new BicepParameter("administratorLogin", typeof(string));
+                construct.Add(administratorLogin);
+
+                var administratorLoginPassword = new BicepParameter("administratorLoginPassword", typeof(string)) { IsSecure = true };
+                construct.Add(administratorLoginPassword);
+
+                var kvNameParam = new BicepParameter("keyVaultName", typeof(string));
+                construct.Add(kvNameParam);
+
+                var keyVault = KeyVaultService.FromExisting("keyVault");
+                keyVault.Name = kvNameParam;
+                construct.Add(keyVault);
+
+                postgres.AuthConfig = new PostgreSqlFlexibleServerAuthConfig()
+                {
+                    ActiveDirectoryAuth = PostgreSqlFlexibleServerActiveDirectoryAuthEnum.Disabled,
+                    PasswordAuth = PostgreSqlFlexibleServerPasswordAuthEnum.Enabled
+                };
+
+                postgres.AdministratorLogin = administratorLogin;
+                postgres.AdministratorLoginPassword = administratorLoginPassword;
+
+                var secret = new KeyVaultSecret("connectionString")
+                {
+                    Parent = keyVault,
+                    Name = "connectionString",
+                    Properties = new SecretProperties
+                    {
+                        Value = BicepFunction.Interpolate($"Host={postgres.FullyQualifiedDomainName};Username={administratorLogin};Password={administratorLoginPassword}")
+                    }
+                };
+                construct.Add(secret);
+            });
+    }
+
+    private static IResourceBuilder<AzurePostgresFlexibleServerResource> RemoveActiveDirectoryParameters(
+        this IResourceBuilder<AzurePostgresFlexibleServerResource> builder)
+    {
+        builder.Resource.Parameters.Remove(AzureBicepResource.KnownParameters.PrincipalId);
+        builder.Resource.Parameters.Remove(AzureBicepResource.KnownParameters.PrincipalType);
+        builder.Resource.Parameters.Remove(AzureBicepResource.KnownParameters.PrincipalName);
+        return builder;
+    }
+
+    private static void RemoveActiveDirectoryAuthResources(ResourceModuleConstruct construct)
+    {
+        var resourcesToRemove = new List<Provisionable>();
+        foreach (var resource in construct.GetResources())
+        {
+            if (resource is PostgreSqlFlexibleServerActiveDirectoryAdministrator)
+            {
+                resourcesToRemove.Add(resource);
+            }
+            else if (resource is BicepOutput output && output.ResourceName == "connectionString")
+            {
+                resourcesToRemove.Add(resource);
+            }
+        }
+
+        foreach (var resourceToRemove in resourcesToRemove)
+        {
+            construct.Remove(resourceToRemove);
+        }
+    }
+
+    private static ParameterResource CreateDefaultUserNameParameter<T>(IResourceBuilder<T> builder) where T : AzureBicepResource
+    {
+        var generatedUserName = new GenerateParameterDefault
+        {
+            MinLength = 10,
+            // just use letters for the username since it can't start with a number
+            Numeric = false,
+            Special = false
+        };
+
+        return ParameterResourceBuilderExtensions.CreateGeneratedParameter(
+            builder.ApplicationBuilder, $"{builder.Resource.Name}-username", secret: false, generatedUserName);
     }
 }

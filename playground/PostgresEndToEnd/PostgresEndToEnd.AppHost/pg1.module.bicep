@@ -8,8 +8,8 @@ param administratorLoginPassword string
 
 param keyVaultName string
 
-resource pgsql 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
-  name: take('pgsql${uniqueString(resourceGroup().id)}', 24)
+resource pg1 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
+  name: toLower(take('pg1${uniqueString(resourceGroup().id)}', 24))
   location: location
   properties: {
     administratorLogin: administratorLogin
@@ -36,7 +36,7 @@ resource pgsql 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
     tier: 'Burstable'
   }
   tags: {
-    'aspire-resource-name': 'pgsql'
+    'aspire-resource-name': 'pg1'
   }
 }
 
@@ -46,12 +46,12 @@ resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flex
     endIpAddress: '0.0.0.0'
     startIpAddress: '0.0.0.0'
   }
-  parent: pgsql
+  parent: pg1
 }
 
-resource pgsqldb 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2022-12-01' = {
-  name: 'pgsqldb'
-  parent: pgsql
+resource db1 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2022-12-01' = {
+  name: 'db1'
+  parent: pg1
 }
 
 resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
@@ -61,7 +61,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
 resource connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
   name: 'connectionString'
   properties: {
-    value: 'Host=${pgsql.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
+    value: 'Host=${pg1.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
   }
   parent: keyVault
 }
