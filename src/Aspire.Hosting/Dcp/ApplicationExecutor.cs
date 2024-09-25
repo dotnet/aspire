@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Data;
 using System.Diagnostics;
+using System.Globalization;
 using System.Net.Sockets;
 using System.Text.Json;
 using System.Threading.Channels;
@@ -1102,6 +1103,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 exeSpec.Annotate(CustomResource.OtelServiceNameAnnotation, project.Name);
                 exeSpec.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, nameSuffix);
                 exeSpec.Annotate(CustomResource.ResourceNameAnnotation, project.Name);
+                exeSpec.Annotate(CustomResource.ResourceReplicaCount, replicas.ToString(CultureInfo.InvariantCulture));
+                exeSpec.Annotate(CustomResource.ResourceReplicaIndex, i.ToString(CultureInfo.InvariantCulture));
 
                 SetInitialResourceState(project, exeSpec);
 
@@ -1817,7 +1820,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
             else if (!ea.IsProxied)
             {
-                if (appResource.DcpResource is ExecutableReplicaSet ers && ers.Spec.Replicas > 1)
+                if (HasMultipleReplicas(appResource.DcpResource))
                 {
                     throw new InvalidOperationException($"Resource '{modelResourceName}' uses multiple replicas and a proxy-less endpoint '{ea.Name}'. These features do not work together.");
                 }
@@ -1837,7 +1840,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                         $"The endpoint '{ea.Name}' for resource '{modelResourceName}' requested a proxy ({nameof(ea.IsProxied)} is true). Non-container resources cannot be proxied when both {nameof(ea.TargetPort)} and {nameof(ea.Port)} are specified with the same value.");
                 }
 
-                if (appResource.DcpResource is ExecutableReplicaSet && ea.TargetPort is int)
+                if (HasMultipleReplicas(appResource.DcpResource) && ea.TargetPort is int)
                 {
                     throw new InvalidOperationException(
                         $"Resource '{modelResourceName}' can have multiple replicas, and it uses endpoint '{ea.Name}' that has {nameof(ea.TargetPort)} property set. Each replica must have a unique port; setting {nameof(ea.TargetPort)} is not allowed.");
@@ -1848,6 +1851,19 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             spAnn.Port = ea.TargetPort;
             dcpResource.AnnotateAsObjectList(CustomResource.ServiceProducerAnnotation, spAnn);
             appResource.ServicesProduced.Add(sp);
+        }
+
+        static bool HasMultipleReplicas(CustomResource resource)
+        {
+            if (resource is ExecutableReplicaSet ers && ers.Spec.Replicas > 1)
+            {
+                return true;
+            }
+            if (resource is Executable exe && exe.Metadata.Annotations.TryGetValue(CustomResource.ResourceReplicaCount, out var value) && int.TryParse(value, out var replicas) && replicas > 1)
+            {
+                return true;
+            }
+            return false;
         }
     }
 
