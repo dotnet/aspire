@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.InteropServices;
+using Xunit.Sdk;
 
 namespace Aspire.Workload.Tests;
 
@@ -52,7 +53,7 @@ public class BuildEnvironment
         TargetFramework = targetFramework;
         RepoRoot = TestUtils.FindRepoRoot();
 
-        // string sdkForWorkloadPath;
+        string sdkForWorkloadPath;
         if (RepoRoot is not null)
         {
             // Local run
@@ -85,7 +86,7 @@ public class BuildEnvironment
                 {
                     throw new ArgumentException($"Could not find dotnet.exe in PATH={Environment.GetEnvironmentVariable("PATH")}");
                 }
-                // sdkForWorkloadPath = Path.GetDirectoryName(dotnetPath)!;
+                sdkForWorkloadPath = Path.GetDirectoryName(dotnetPath)!;
             }
 
             BuiltNuGetsPath = Path.Combine(RepoRoot.FullName, "artifacts", "packages", EnvironmentVariables.BuildConfiguration, "Shipping");

@@ -7,28 +7,25 @@ using Xunit.Abstractions;
 namespace Aspire.Workload.Tests;
 
 // FIXME: rename to show that this is when only one nuget is installed
-public class CurrentTFM_TemplateTests : WorkloadTestsBase, IClassFixture<DotNet_With9_Net9_Fixture>
+public class CurrentTFM_TemplateTests : WorkloadTestsBase
 {
-    private readonly DotNet_With9_Net9_Fixture _testFixture;
     private const string TargetFramework = "net9.0";
 
-    public CurrentTFM_TemplateTests(DotNet_With9_Net9_Fixture fixture, ITestOutputHelper testOutput)
+    public CurrentTFM_TemplateTests(ITestOutputHelper testOutput)
         : base(testOutput)
     {
-        _testFixture = fixture;
     }
 
     [Fact]
     public async Task CanNewAndBuild()
     {
-        string id = GetNewProjectId(prefix: $"new_build_{TargetFramework}_on_9+net9");
+        var id = GetNewProjectId(prefix: $"new_build_{TargetFramework}_on_9+net9");
 
         await using var project = await AspireProject.CreateNewTemplateProjectAsync(
             id,
             "aspire",
             _testOutput,
             buildEnvironment: BuildEnvironment.ForDefaultFramework,
-            customHiveForTemplates: _testFixture.HomeDirectory,
             extraArgs: $"-f {TargetFramework}");
 
         var config = "Debug";
