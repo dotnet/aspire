@@ -57,6 +57,11 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
         // to allow connection-specific settings.
         BindSettingsToConfiguration(settings, configSection);
         BindSettingsToConfiguration(settings, configSection.GetSection(connectionName));
+        // Support service key-based binding for clients that support it (e.g. WebPubSubServiceClient).
+        if (configSection.GetSection($"{connectionName}:{serviceKey}").Exists())
+        {
+            BindSettingsToConfiguration(settings, configSection.GetSection($"{connectionName}:{serviceKey}"));
+        }
 
         Debug.Assert(settings is IConnectionStringSettings, $"The settings object should implement {nameof(IConnectionStringSettings)}.");
         if (settings is IConnectionStringSettings csSettings &&

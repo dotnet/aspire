@@ -138,7 +138,7 @@ public static class AzureFunctionsProjectResourceExtensions
     }
 
     /// <summary>
-    /// Injects Azure Functions specific connection information into the environment variables of the azure functions
+    /// Injects Azure Functions specific connection information into the environment variables of the Azure Functions
     /// project resource.
     /// </summary>
     /// <typeparam name="TSource">The resource that implements the <see cref="IResourceWithAzureFunctionsConfig"/>.</typeparam>
@@ -148,13 +148,9 @@ public static class AzureFunctionsProjectResourceExtensions
     public static IResourceBuilder<AzureFunctionsProjectResource> WithReference<TSource>(this IResourceBuilder<AzureFunctionsProjectResource> destination, IResourceBuilder<TSource> source, string? connectionName = null)
         where TSource : IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
     {
-        // REVIEW: There's a conflict with the connection strings formats and various azure functions extensions
-        // we want to keep injecting the normal connection strings as this will currently stop the aspire components from working in functions projects.
-
         return destination.WithEnvironment(context =>
         {
             connectionName ??= source.Resource.Name;
-
             source.Resource.ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, connectionName);
         });
     }
