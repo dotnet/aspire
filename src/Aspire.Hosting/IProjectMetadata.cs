@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Configuration;
-using Aspire.Hosting.Launch;
 
 namespace Aspire.Hosting;
 

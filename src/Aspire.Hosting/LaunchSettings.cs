@@ -3,7 +3,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace Aspire.Hosting.Launch;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Represents the launch settings for a <see cref="ApplicationModel.ProjectResource"/>.

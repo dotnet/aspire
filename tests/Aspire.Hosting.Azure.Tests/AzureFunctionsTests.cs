@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Launch;
 using Aspire.Hosting.Utils;
 using Xunit;
 
@@ -106,6 +105,7 @@ public class AzureFunctionsTests
                 ["funcapp"] = new()
                 {
                     CommandLineArgs = "--port 7071",
+                    LaunchBrowser = false,
                 }
             }
         };
@@ -122,6 +122,7 @@ public class AzureFunctionsTests
                 ["funcapp"] = new()
                 {
                     CommandLineArgs = "--port 70b1",
+                    LaunchBrowser = false,
                 }
             }
         };
@@ -138,6 +139,7 @@ public class AzureFunctionsTests
                 ["funcapp"] = new()
                 {
                     CommandLineArgs = "--port",
+                    LaunchBrowser = false,
                 }
             }
         };
@@ -151,7 +153,10 @@ public class AzureFunctionsTests
         {
             Profiles = new Dictionary<string, LaunchProfile>
             {
-                ["funcapp"] = new() { }
+                ["funcapp"] = new()
+                {
+                    LaunchBrowser = false,
+                }
             }
         };
     }
@@ -167,6 +172,7 @@ public class AzureFunctionsTests
                 ["funcapp"] = new()
                 {
                     CommandLineArgs = "--port 7072 --port 7071",
+                    LaunchBrowser = false,
                 }
             }
         };

@@ -5,7 +5,6 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
-using Aspire.Hosting.Launch;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
@@ -512,6 +511,7 @@ public class DashboardResourceTests
 
             _tcs.TrySetResult(message);
         }
+            
 
         public sealed class LogMessage
         {
