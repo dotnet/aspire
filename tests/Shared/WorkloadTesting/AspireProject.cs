@@ -73,6 +73,7 @@ public class AspireProject : IAsyncDisposable
         ITestOutputHelper testOutput,
         BuildEnvironment buildEnvironment,
         string extraArgs = "",
+        TestTargetFramework? targetFramework = default,
         bool addEndpointsHook = true,
         string? customHiveForTemplates = null)
     {
@@ -94,12 +95,15 @@ public class AspireProject : IAsyncDisposable
         cmd.WithWorkingDirectory(Path.GetDirectoryName(rootDir)!)
            .WithTimeout(TimeSpan.FromMinutes(5));
 
-        var res = await cmd.ExecuteAsync($"{template} {extraArgs} -o \"{id}\"").ConfigureAwait(false);
+        var tfmToUse = targetFramework ?? BuildEnvironment.DefaultTargetFramework;
+        var cmdString = $"{template} {extraArgs} -o \"{id}\" -f {tfmToUse.ToTFMString()}";
+
+        var res = await cmd.ExecuteAsync(cmdString).ConfigureAwait(false);
         res.EnsureSuccessful();
         if (res.Output.Contains("Restore failed", StringComparison.OrdinalIgnoreCase) ||
             res.Output.Contains("Post action failed", StringComparison.OrdinalIgnoreCase))
         {
-            throw new XunitException($"`dotnet {$"new {template} {extraArgs} -o \"{id}\""}` . Output: {res.Output}");
+            throw new XunitException($"`dotnet new {cmdString}` . Output: {res.Output}");
         }
 
         var project = new AspireProject(id, rootDir, testOutput, buildEnvironment);

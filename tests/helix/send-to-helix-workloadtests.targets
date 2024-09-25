@@ -12,6 +12,9 @@
     <HelixPreCommand Include="$(_EnvVarSetKeyword) TEST_NAME=$(TestProjectName)" />
     <HelixPreCommand Include="$(_EnvVarSetKeyword) SHOW_BUILD_OUTPUT=true" />
 
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="rm ~/.templateengine/packages/Aspire*" />
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="del %USERPROFILE%\.templateengine\Aspire*" />
+
     <HelixPostCommand Condition="'$(OS)' != 'Windows_NT'" Include="mv $(_HelixLogsPath)/TestResults.trx $(_HelixLogsPath)/$(TestProjectName)-${TEST_NAME_SUFFIX}.trx" />
     <HelixPostCommand Condition="'$(OS)' == 'Windows_NT'" Include="move &quot;$(_HelixLogsPath)\TestResults.trx&quot; &quot;$(_HelixLogsPath)\$(TestProjectName)-%TEST_NAME_SUFFIX%.trx&quot;" />
   </ItemGroup>

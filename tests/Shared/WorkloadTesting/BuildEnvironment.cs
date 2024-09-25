@@ -21,8 +21,7 @@ public class BuildEnvironment
     public DirectoryInfo?                   RepoRoot                      { get; init; }
     public TemplatesCustomHive?             TemplatesCustomHive           { get; init; }
 
-    // FIXME: make it settable via environment variable
-    public const TestTargetFramework        DefaultTargetFramework = TestTargetFramework.Net90;
+    public static readonly TestTargetFramework DefaultTargetFramework = ComputeDefaultTargetFramework();
     public static readonly string           TestAssetsPath = Path.Combine(AppContext.BaseDirectory, "testassets");
     public static readonly string           TestRootPath = Path.Combine(Path.GetTempPath(), "testroot");
 
@@ -30,18 +29,12 @@ public class BuildEnvironment
     public static bool IsRunningOnCIBuildMachine => Environment.GetEnvironmentVariable("BUILD_BUILDID") is not null;
     public static bool IsRunningOnCI => IsRunningOnHelix || IsRunningOnCIBuildMachine;
 
-    // private static readonly string[] s_defaultTemplatePackageIds =
-    // [
-    //     TemplatePackageIds.AspireProjectTemplates_9_0_net9
-    // ];
-
     public static string GetNewTemplateCustomHiveDefaultDirectory()
         => IsRunningOnCI ? Path.GetTempPath() : Path.Combine(AppContext.BaseDirectory, "templates");
 
     private static readonly Lazy<BuildEnvironment> s_instance_80 = new(() =>
         new BuildEnvironment(
                 targetFramework: TestTargetFramework.Net80,
-                // FIXME: use the instances from the TemplatesCustomHive, but they are lazy
                 templatesCustomHive: TemplatesCustomHive.Net9_0_Net8));
 
     private static readonly Lazy<BuildEnvironment> s_instance_90 = new(() =>
@@ -58,10 +51,27 @@ public class BuildEnvironment
         _ => throw new ArgumentOutOfRangeException(nameof(DefaultTargetFramework))
     };
 
-    public BuildEnvironment(bool useSystemDotNet = false, TestTargetFramework targetFramework = DefaultTargetFramework, TemplatesCustomHive? templatesCustomHive = default)
+    private static TestTargetFramework ComputeDefaultTargetFramework()
+    {
+        if (EnvironmentVariables.DefaultTFMForTesting is not null)
+        {
+            return EnvironmentVariables.DefaultTFMForTesting switch
+            {
+                "" or "net9.0" => TestTargetFramework.Net90,
+                "net8.0" => TestTargetFramework.Net80,
+                _ => throw new ArgumentOutOfRangeException(nameof(EnvironmentVariables.DefaultTFMForTesting), EnvironmentVariables.DefaultTFMForTesting, "Invalid value")
+            };
+        }
+        else
+        {
+            return TestTargetFramework.Net90;
+        }
+    }
+
+    public BuildEnvironment(bool useSystemDotNet = false, TestTargetFramework? targetFramework = default, TemplatesCustomHive? templatesCustomHive = default)
     {
         HasWorkloadFromArtifacts = !useSystemDotNet;
-        TargetFramework = targetFramework;
+        TargetFramework = targetFramework ?? DefaultTargetFramework;
         RepoRoot = TestUtils.FindRepoRoot();
 
         string sdkForWorkloadPath;
@@ -250,7 +260,7 @@ public class BuildEnvironment
         NuGetPackagesPath = otherBuildEnvironment.NuGetPackagesPath;
         TargetFramework = otherBuildEnvironment.TargetFramework;
         RepoRoot = otherBuildEnvironment.RepoRoot;
-        // TemplatesCustomHive = otherBuildEnvironment.TemplatesCustomHive;
+        TemplatesCustomHive = otherBuildEnvironment.TemplatesCustomHive;
     }
 }
 
