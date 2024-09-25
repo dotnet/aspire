@@ -78,11 +78,10 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             timeoutSecs: 160);
 
         // Assert that HTTP triggers work correctly
-        await app.CreateHttpClient("funcapp").GetAsync("/api/weatherforecast");
+        await app.CreateHttpClient("funcapp").GetAsync("/api/injected-resources");
         await WaitForAllTextAsync(app,
             [
-                "Executing HTTP request:",
-                "api/weatherforecast"
+                "Executed 'Functions.injected-resources'"
             ],
             resourceName: "funcapp",
             timeoutSecs: 160);
