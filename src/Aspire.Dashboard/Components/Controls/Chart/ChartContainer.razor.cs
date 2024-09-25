@@ -1,11 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -204,12 +204,12 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                     Name = item.Key
                 };
 
-                dimensionModel.Values.AddRange(item.Value.OrderBy(v => v).Select(v =>
+                dimensionModel.Values.AddRange(item.Value.Select(v =>
                 {
                     var text = v switch
                     {
-                        null => "(Unset)",
-                        { Length: 0 } => "(Empty)",
+                        null => Loc[ControlsStrings.Unset],
+                        { Length: 0 } => Loc[ControlsStrings.Empty],
                         _ => v
                     };
                     return new DimensionValueViewModel
@@ -217,7 +217,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                         Text = text,
                         Value = v
                     };
-                }));
+                }).OrderBy(v => v.Text));
 
                 filters.Add(dimensionModel);
             }
@@ -270,8 +270,8 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         var id = newTab.Id?.Substring("tab-".Length);
 
         if (id is null
-            || !Enum.TryParse(typeof(Metrics.MetricViewKind), id, out var o)
-            || o is not Metrics.MetricViewKind viewKind)
+            || !Enum.TryParse(typeof(Pages.Metrics.MetricViewKind), id, out var o)
+            || o is not Pages.Metrics.MetricViewKind viewKind)
         {
             return Task.CompletedTask;
         }

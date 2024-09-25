@@ -72,6 +72,11 @@
         <target state="translated">Durata</target>
         <note />
       </trans-unit>
+      <trans-unit id="Empty">
+        <source>(Empty)</source>
+        <target state="new">(Empty)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="EventColumnHeader">
         <source>Event</source>
         <target state="translated">Evento</target>
@@ -400,6 +405,11 @@
       <trans-unit id="TraceDetailAttributesHeader">
         <source>Attributes</source>
         <target state="translated">Attributi</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Unset">
+        <source>(Unset)</source>
+        <target state="new">(Unset)</target>
         <note />
       </trans-unit>
       <trans-unit id="ViewAction">

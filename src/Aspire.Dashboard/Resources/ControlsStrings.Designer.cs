@@ -187,6 +187,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to (Empty).
+        /// </summary>
+        public static string Empty {
+            get {
+                return ResourceManager.GetString("Empty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Show all.
         /// </summary>
         public static string EnvironmentVariablesFilterToggleShowAll {
@@ -673,6 +682,33 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Add filter.
+        /// </summary>
+        public static string StructuredFilteringAddFilter {
+            get {
+                return ResourceManager.GetString("StructuredFilteringAddFilter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filters.
+        /// </summary>
+        public static string StructuredFilteringFilters {
+            get {
+                return ResourceManager.GetString("StructuredFilteringFilters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No filters.
+        /// </summary>
+        public static string StructuredFilteringNoFilters {
+            get {
+                return ResourceManager.GetString("StructuredFilteringNoFilters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Context.
         /// </summary>
         public static string StructuredLogsDetailsContextHeader {
@@ -786,6 +822,15 @@ namespace Aspire.Dashboard.Resources {
         public static string TraceDetailAttributesHeader {
             get {
                 return ResourceManager.GetString("TraceDetailAttributesHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to (Unset).
+        /// </summary>
+        public static string Unset {
+            get {
+                return ResourceManager.GetString("Unset", resourceCulture);
             }
         }
         

@@ -386,4 +386,10 @@
   <data name="StructuredFilteringAddFilter" xml:space="preserve">
     <value>Add filter</value>
   </data>
+  <data name="Empty" xml:space="preserve">
+    <value>(Empty)</value>
+  </data>
+  <data name="Unset" xml:space="preserve">
+    <value>(Unset)</value>
+  </data>
 </root>
