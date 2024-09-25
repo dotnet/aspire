@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Azure;
 
@@ -72,7 +74,7 @@ public static class AzureFunctionsProjectResourceExtensions
                 context.Args.Add(http.Property(EndpointProperty.TargetPort));
             })
             .WithOtlpExporter()
-            .WithHttpEndpoint()
+            .WithFunctionsHttpEndpoint()
             .WithManifestPublishingCallback(async (context) =>
             {
                 context.Writer.WriteString("type", "function.v0");
@@ -91,6 +93,36 @@ public static class AzureFunctionsProjectResourceExtensions
 
                 context.Writer.WriteEndObject();
             });
+    }
+
+    /// <summary>
+    /// Configures the Azure Functions project resource to use the specified port as its HTTP endpoint.
+    /// This method queries the launch profile of the project to determine the port to
+    /// use based on the command line arguments configure in the launch profile,
+    /// </summary>
+    /// <param name="builder">The resource builder for the Azure Functions project resource.</param>
+    /// <returns>An <see cref="IResourceBuilder{AzureFunctionsProjectResource}"/> for the Azure Functions project resource with the endpoint configured.</returns>
+    private static IResourceBuilder<AzureFunctionsProjectResource> WithFunctionsHttpEndpoint(this IResourceBuilder<AzureFunctionsProjectResource> builder)
+    {
+        var launchProfile = builder.Resource.GetEffectiveLaunchProfile();
+        int? port = null;
+        if (launchProfile is not null)
+        {
+            var commandLineArgs = CommandLineArgsParser.Parse(launchProfile.LaunchProfile.CommandLineArgs ?? string.Empty);
+            if (commandLineArgs is { Count: > 0 } &&
+                commandLineArgs.IndexOf("--port") is var indexOfPort &&
+                indexOfPort > -1 &&
+                indexOfPort + 1 < commandLineArgs.Count &&
+                int.TryParse(commandLineArgs[indexOfPort + 1], CultureInfo.InvariantCulture, out var parsedPort))
+            {
+                port = parsedPort;
+            }
+        }
+        // When a port is defined in the launch profile, Azure Functions will favor that port over
+        // the port configured in the `WithArgs` callback when starting the project. To that end
+        // we register an endpoint where the target port matches the port the Azure Functions worker
+        // is actually configured to listen on and the endpoint is not proxied by DCP.
+        return builder.WithHttpEndpoint(port: port, targetPort: port, isProxied: port == null);
     }
 
     /// <summary>
