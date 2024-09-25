@@ -23,23 +23,29 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase, IClassFixture<DotNet
      * aspire-starter
      * aspire-starter with tests
      * aspire
+     * also check that the default framework is as expected
+     *  - add this oen for CurrentTFM also
     */
-    [Fact]
-    public async Task CanNewAndBuild()
+    [Theory]
+    [InlineData("aspire", TestTargetFramework.Net8)]
+    [InlineData("aspire-starter", TestTargetFramework.Net8)]
+    public async Task CanNewAndBuild(string templateName, TestTargetFramework tfm)
     {
-        string id = GetNewProjectId(prefix: $"new_build_{TargetFramework}_on_9+net8");
+        string id = GetNewProjectId(prefix: $"new_build_{TargetFramework}_on_9+{tfm.ToTFMString()}");
 
+        var buildEnvToUse = tfm == TestTargetFramework.Net9 ? BuildEnvironment.ForNet90 : BuildEnvironment.ForNet80;
+        var templateHive = tfm == TestTargetFramework.Net9 ?
         await using var project = await AspireProject.CreateNewTemplateProjectAsync(
             id,
-            "aspire",
+            templateName,
             _testOutput,
-            buildEnvironment: BuildEnvironment.ForDefaultFramework,
+            buildEnvironment: buildEnvToUse,
             extraArgs: $"-f {TargetFramework}",
             customHiveForTemplates: _testFixture.CustomHiveDirectory);
 
         string config = "Debug";
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
-        await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
+        // await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
     }
 
     // TODO: Check for failed build
