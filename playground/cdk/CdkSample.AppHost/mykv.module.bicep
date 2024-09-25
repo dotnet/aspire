@@ -9,7 +9,7 @@ param principalId string
 param principalType string
 
 resource mykv 'Microsoft.KeyVault/vaults@2019-09-01' = {
-  name: toLower(take('mykv${uniqueString(resourceGroup().id)}', 24))
+  name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
   location: location
   properties: {
     tenantId: tenant().tenantId

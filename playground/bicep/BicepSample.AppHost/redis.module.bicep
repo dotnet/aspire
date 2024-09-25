@@ -8,7 +8,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
 }
 
 resource redis 'Microsoft.Cache/redis@2020-06-01' = {
-  name: toLower(take('redis${uniqueString(resourceGroup().id)}', 24))
+  name: take('redis-${uniqueString(resourceGroup().id)}', 63)
   location: location
   properties: {
     sku: {

@@ -40,6 +40,8 @@ internal sealed class DashboardServiceData : IAsyncDisposable
                 {
                     Uid = resourceId,
                     CreationTimeStamp = snapshot.CreationTimeStamp ?? creationTimestamp,
+                    StartTimeStamp = snapshot.StartTimeStamp,
+                    StopTimeStamp = snapshot.StopTimeStamp,
                     Name = resourceId,
                     DisplayName = resource.Name,
                     Urls = snapshot.Urls,

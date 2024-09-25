@@ -239,7 +239,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         _elementIdBeforeDetailsViewOpened = buttonId;
 
-        if (SelectedLogEntry?.LogEntry == entry)
+        if (SelectedLogEntry?.LogEntry.InternalId == entry.InternalId)
         {
             await ClearSelectedLogEntryAsync();
         }
@@ -353,7 +353,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     private string GetRowClass(OtlpLogEntry entry)
     {
-        if (entry == SelectedLogEntry?.LogEntry)
+        if (entry.InternalId == SelectedLogEntry?.LogEntry.InternalId)
         {
             return "selected-row";
         }

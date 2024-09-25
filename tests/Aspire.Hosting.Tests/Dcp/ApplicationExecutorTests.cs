@@ -913,6 +913,34 @@ public class ApplicationExecutorTests
         Assert.Equal($"Failed to delete '{dcpCtr.Metadata.Name}' successfully before restart.", ex.Message);
     }
 
+    [Fact]
+    public async Task AddsDefaultsCommandsToResources()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var container = builder.AddContainer("database", "image");
+        var exe = builder.AddExecutable("node", "node.exe", ".");
+        var project = builder.AddProject<TestProject>("project");
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var appExecutor = CreateAppExecutor(distributedAppModel, app.Services, kubernetesService: kubernetesService);
+        await appExecutor.RunApplicationAsync();
+
+        HasKnownCommandAnnotations(exe.Resource);
+        HasKnownCommandAnnotations(container.Resource);
+        HasKnownCommandAnnotations(project.Resource);
+    }
+
+    private static void HasKnownCommandAnnotations(IResource resource)
+    {
+        var commandAnnotations = resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
+        Assert.Collection(commandAnnotations,
+            a => Assert.Equal(CommandsConfigurationExtensions.StartType, a.Type),
+            a => Assert.Equal(CommandsConfigurationExtensions.StopType, a.Type),
+            a => Assert.Equal(CommandsConfigurationExtensions.RestartType, a.Type));
+    }
+
     private static ApplicationExecutor CreateAppExecutor(
         DistributedApplicationModel distributedAppModel,
         IServiceProvider serviceProvider,
@@ -934,6 +962,8 @@ public class ApplicationExecutorTests
             configuration = builder.Build();
         }
 
+        var eventing = new DistributedApplicationEventing();
+
         return new ApplicationExecutor(
             NullLogger<ApplicationExecutor>.Instance,
             NullLogger<DistributedApplication>.Instance,
@@ -950,8 +980,14 @@ public class ApplicationExecutorTests
             ResourceNotificationServiceTestHelpers.Create(),
             resourceLoggerService ?? new ResourceLoggerService(),
             new TestDcpDependencyCheckService(),
-            new DistributedApplicationEventing(),
+            eventing,
             serviceProvider
         );
+    }
+
+    private sealed class TestProject : IProjectMetadata
+    {
+        public string ProjectPath => "TestProject";
+        public LaunchSettings LaunchSettings { get; } = new();
     }
 }

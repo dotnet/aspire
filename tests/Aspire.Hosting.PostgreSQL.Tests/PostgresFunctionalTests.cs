@@ -62,7 +62,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
         // ... and wait for the resource as a whole to move into the health state.
-        await rns.WaitForResourceAsync(postgres.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+        await rns.WaitForResourceHealthyAsync(postgres.Resource.Name, cts.Token);
 
         // ... then the dependent resource should be able to move into a running state.
         await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
@@ -118,7 +118,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
         // ... and wait for the resource as a whole to move into the health state.
-        await rns.WaitForResourceAsync(postgres.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+        await rns.WaitForResourceHealthyAsync(postgres.Resource.Name, cts.Token);
 
         // Create the database.
         var connectionString = await postgres.Resource.GetConnectionStringAsync(cts.Token);
@@ -130,7 +130,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         await command.ExecuteNonQueryAsync(cts.Token);
 
         // ... then wait for the database to turn healthy.
-        await rns.WaitForResourceAsync(db.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+        await rns.WaitForResourceHealthyAsync(db.Resource.Name, cts.Token);
 
         // ... then the dependent resource should be able to move into a running state.
         await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);

@@ -28,22 +28,17 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
 
-        // We use the following check added to the Redis resource to block
-        // dependent reosurces from starting. This means we'll have two checks
-        // associated with the redis resource ... the built in one and the
-        // one that we add here. We'll manipulate the TCS to allow us to check
-        // states at various stages of the execution.
         var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
         builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
         {
             return healthCheckTcs.Task;
         });
 
-        var redis = builder.AddRedis("redis")
+        var resource = builder.AddRedis("resource")
                            .WithHealthCheck("blocking_check");
 
         var dependentResource = builder.AddRedis("dependentresource")
-                                       .WaitFor(redis); // Just using another redis instance as a dependent resource.
+                                       .WaitFor(resource);
 
         using var app = builder.Build();
 
@@ -51,24 +46,18 @@ public class RedisFunctionalTests(ITestOutputHelper testOutputHelper)
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
-        // What for the Redis server to start.
-        await rns.WaitForResourceAsync(redis.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
-        // Wait for the dependent resource to be in the Waiting state.
         await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
-        // Now unblock the health check.
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        // ... and wait for the resource as a whole to move into the health state.
-        await rns.WaitForResourceAsync(redis.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
-        // ... then the dependent resource should be able to move into a running state.
         await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
-        await pendingStart; // Startup should now complete.
+        await pendingStart;
 
-        // ... but we'll shut everything down immediately because we are done.
         await app.StopAsync();
     }
 

@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
 using Xunit;
 
@@ -81,7 +83,7 @@ public class AzureResourceExtensionsTests
         });
 
         var volumeAnnotation = storage.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
-        Assert.Equal("Aspire.Hosting.Tests-storage-data", volumeAnnotation.Source);
+        Assert.Equal($"{builder.GetVolumePrefix()}-storage-data", volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
         Assert.Equal(isReadOnly ?? false, volumeAnnotation.IsReadOnly);
@@ -172,5 +174,20 @@ public class AzureResourceExtensionsTests
 
         var actualTag = containerImageAnnotation.Tag;
         Assert.Equal(imageTag ?? "latest", actualTag);
+    }
+
+    [Theory]
+    [InlineData(30)]
+    [InlineData(12)]
+    public async Task AddAzureCosmosDBWithPartitionCountCanOverrideNumberOfPartitions(int partitionCount)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos");
+
+        cosmos.RunAsEmulator(r => r.WithPartitionCount(partitionCount));
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(cosmos.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+
+        Assert.Equal(partitionCount.ToString(CultureInfo.InvariantCulture), config["AZURE_COSMOS_EMULATOR_PARTITION_COUNT"]);
     }
 }

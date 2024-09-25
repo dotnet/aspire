@@ -25,7 +25,7 @@ public static class S3ResourceExtensions
     /// <param name="builder">The builder for the AWS CDK stack.</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="props">The properties of the bucket.</param>
-    public static IResourceBuilder<IConstructResource<Bucket>> AddS3Bucket(this IResourceBuilder<IStackResource> builder, string name, IBucketProps? props = null)
+    public static IResourceBuilder<IConstructResource<Bucket>> AddS3Bucket(this IResourceBuilder<IStackResource> builder, [ResourceName] string name, IBucketProps? props = null)
     {
         return builder.AddConstruct(name, scope => new Bucket(scope, name, props));
     }
