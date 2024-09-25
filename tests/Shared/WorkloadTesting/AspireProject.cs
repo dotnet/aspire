@@ -54,6 +54,10 @@ public class AspireProject : IAsyncDisposable
 
     protected static void InitProjectDir(string dir, string targetFramework = DefaultTargetFramework)
     {
+        if (Directory.Exists(dir))
+        {
+            Directory.Delete(dir, recursive: true);
+        }
         Directory.CreateDirectory(dir);
         File.WriteAllText(Path.Combine(dir, "Directory.Build.props"), "<Project />");
         File.WriteAllText(Path.Combine(dir, "Directory.Build.targets"), "<Project />");
@@ -74,10 +78,7 @@ public class AspireProject : IAsyncDisposable
     {
         string rootDir = Path.Combine(BuildEnvironment.TestRootPath, id);
         string logPath = Path.Combine(BuildEnvironment.ForDefaultFramework.LogRootPath, id);
-        if (!Directory.Exists(logPath))
-        {
-            Directory.CreateDirectory(logPath);
-        }
+        Directory.CreateDirectory(logPath);
 
         InitProjectDir(rootDir);
 

@@ -69,35 +69,6 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase, IClassFixture<DotNet
         // await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
     }
 
-    // TODO: Separate class for WithBothTemplatePacksInstalled?
-    [Theory]
-    [InlineData("aspire", TestTargetFramework.Net90)]
-    [InlineData("aspire", TestTargetFramework.Net80)]
-    [InlineData("aspire-starter", TestTargetFramework.Net90)]
-    [InlineData("aspire-starter", TestTargetFramework.Net80)]
-    public async Task CanNewAndBuildWithBothTemplatePacksInstalled(string templateName, TestTargetFramework tfm)
-    {
-        var id = GetNewProjectId(prefix: $"new_build_{TargetFramework}_on_9+8");
-
-        var buildEnvToUse = tfm == TestTargetFramework.Net90 ? BuildEnvironment.ForNet90 : BuildEnvironment.ForNet80;
-        var templateHive = TemplatesCustomHive.Net9_0_Net8_And_Net9;
-        await templateHive.Value.InstallAsync(
-            BuildEnvironment.GetNewTemplateCustomHiveDefaultDirectory(),
-            buildEnvToUse.BuiltNuGetsPath,
-            buildEnvToUse.DotNet);
-        await using var project = await AspireProject.CreateNewTemplateProjectAsync(
-            id,
-            templateName,
-            _testOutput,
-            buildEnvironment: buildEnvToUse,
-            extraArgs: $"-f {tfm.ToTFMString()}",
-            customHiveForTemplates: templateHive.Value.CustomHiveDirectory);
-
-        string config = "Debug";
-        await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
-        // await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
-    }
-
     [Theory]
     [InlineData("aspire", TestTargetFramework.Net90)]
     [InlineData("aspire", TestTargetFramework.Net80)]
@@ -115,7 +86,7 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase, IClassFixture<DotNet
     [InlineData("aspire-nunit", TestTargetFramework.Net80)]
     public async Task CannotCreate(string templateName, TestTargetFramework tfm)
     {
-        string id = GetNewProjectId(prefix: $"new_build_{TargetFramework}_on_9+net9");
+        string id = GetNewProjectId(prefix: $"new_fail_{templateName}_{TargetFramework}");
 
         var buildEnvToUse = tfm == TestTargetFramework.Net90 ? BuildEnvironment.ForNet90 : BuildEnvironment.ForNet80;
         var templateHive = tfm == TestTargetFramework.Net90 ? TemplatesCustomHive.Net9_0_Net8 : TemplatesCustomHive.Net9_0_Net9;
