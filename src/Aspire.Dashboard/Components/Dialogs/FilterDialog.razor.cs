@@ -112,6 +112,7 @@ public partial class FilterDialog
 
         // Clearing the selected value and the combo box items together wasn't correctly clearing the selected value.
         // This is hacky, but adding a delay between the two operations puts the combo box in the right state.
+        // Limitation of FluentUI: https://github.com/microsoft/fluentui-blazor/issues/2708
         await Task.Delay(100);
         ValueChanged();
     }
@@ -170,7 +171,7 @@ public partial class FilterDialog
         }
     }
 
-    private class FieldValue
+    private sealed class FieldValue
     {
         public required string Value { get; init; }
         public required int Count { get; init; }
