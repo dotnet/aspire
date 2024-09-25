@@ -35,8 +35,17 @@ public class BuildEnvironment
         TemplatePackageIds.AspireProjectTemplates_9_0_net9
     ];
 
-    private static readonly Lazy<BuildEnvironment> s_instance_80 = new(() => new BuildEnvironment(targetFramework: TestTargetFramework.Net80));
-    private static readonly Lazy<BuildEnvironment> s_instance_90 = new(() => new BuildEnvironment(targetFramework: TestTargetFramework.Net90));
+    private static readonly Lazy<BuildEnvironment> s_instance_80 = new(() =>
+        new BuildEnvironment(
+                targetFramework: TestTargetFramework.Net80,
+                templatePackageIds: [TemplatePackageIds.AspireProjectTemplates_9_0_net8],
+                templateDirectoryName: "templates-9_net8"));
+
+    private static readonly Lazy<BuildEnvironment> s_instance_90 = new(() =>
+        new BuildEnvironment(
+                targetFramework: TestTargetFramework.Net90,
+                templatePackageIds: [TemplatePackageIds.AspireProjectTemplates_9_0_net9],
+                templateDirectoryName: "templates-9_net9"));
 
     public static BuildEnvironment ForNet80 => s_instance_80.Value;
     public static BuildEnvironment ForNet90 => s_instance_90.Value;
@@ -47,7 +56,7 @@ public class BuildEnvironment
         _ => throw new ArgumentOutOfRangeException(nameof(DefaultTargetFramework))
     };
 
-    public BuildEnvironment(bool useSystemDotNet = false, TestTargetFramework targetFramework = DefaultTargetFramework, string[]? templatePackageIds = default)
+    public BuildEnvironment(bool useSystemDotNet = false, TestTargetFramework targetFramework = DefaultTargetFramework, string[]? templatePackageIds = default, string? templateDirectoryName = default)
     {
         HasWorkloadFromArtifacts = !useSystemDotNet;
         TargetFramework = targetFramework;
@@ -67,6 +76,7 @@ public class BuildEnvironment
                 }
                 else
                 {
+                    // FIXME: update
                     string buildCmd = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".\\build.cmd" : "./build.sh";
                     string workloadsProjString = Path.Combine("tests", "workloads.proj");
                     throw new XunitException(
@@ -124,8 +134,6 @@ public class BuildEnvironment
         DefaultBuildArgs = string.Empty;
         // WorkloadPacksDir = Path.Combine(sdkForWorkloadPath, "packs");
         NuGetPackagesPath = IsRunningOnCI ? null : Path.Combine(AppContext.BaseDirectory, $"nuget-cache-{TargetFramework}");
-        TemplatesHomeDirectory = Path.Combine(Path.GetTempPath(), "templates", Guid.NewGuid().ToString());
-
         EnvVars = new Dictionary<string, string>();
         if (HasWorkloadFromArtifacts)
         {
@@ -190,10 +198,17 @@ public class BuildEnvironment
             }
         }
 
+        InstalledTemplatePackageIds = templatePackageIds ?? s_defaultTemplatePackageIds;
+        templateDirectoryName ??= $"templates-{Guid.NewGuid()}";
+
+        // Use deterministic, and persistent path for local runs
+        TemplatesHomeDirectory = Path.Combine(
+            IsRunningOnCI ? Path.GetTempPath() : AppContext.BaseDirectory,
+            templateDirectoryName);
+
         Console.WriteLine($"*** [{TargetFramework}] Using templates custom hive: {TemplatesHomeDirectory}");
         Directory.CreateDirectory(TemplatesHomeDirectory);
 
-        InstalledTemplatePackageIds = templatePackageIds ?? s_defaultTemplatePackageIds;
         foreach (var templatePackageId in InstalledTemplatePackageIds)
         {
             InstallTemplate(templatePackageId);
