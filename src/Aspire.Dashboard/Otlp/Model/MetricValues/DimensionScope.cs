@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Metrics.V1;
 
