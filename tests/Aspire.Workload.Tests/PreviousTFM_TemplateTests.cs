@@ -25,6 +25,21 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase, IClassFixture<DotNet
      * aspire
      * also check that the default framework is as expected
      *  - add this oen for CurrentTFM also
+     *
+
+
+
+     * With both installed
+        * - can create and build net8, and net9
+    * with 9 installed
+        [x] can create and build net9
+        [ ] cannot create net8
+    * with net8 installed (and 8 sdk)
+        [x] can create and build net8
+        [ ] cannot create net9
+
+      Current:
+
     */
     [Theory]
     [InlineData("aspire", TestTargetFramework.Net90)]
@@ -82,12 +97,35 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase, IClassFixture<DotNet
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
         // await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
     }
-    // TODO: Check for failed build
-    // [Fact]
-    // public async Task CannotCreateNet90()
-    // {
-    //     string id = GetNewProjectId(prefix: $"new_build_{TargetFramework}_on_9+net9");
 
-    //     await using var project = await AspireProject.CreateNewTemplateProjectAsync(id, "aspire", _testOutput, buildEnvironment: BuildEnvironment.ForDefaultFramework, customHiveForTemplates: _testFixture.HomeDirectory, extraArgs: "net9.0");
-    // }
+    [Fact]
+    public async Task CannotCreateNet90()
+    {
+        string templateName = "aspire";
+        var tfm = TestTargetFramework.Net90;
+        string id = GetNewProjectId(prefix: $"new_build_{TargetFramework}_on_9+net9");
+
+        var buildEnvToUse = tfm == TestTargetFramework.Net90 ? BuildEnvironment.ForNet90 : BuildEnvironment.ForNet80;
+        var templateHive = tfm == TestTargetFramework.Net90 ? TemplatesCustomHive.Net9_0_Net8 : TemplatesCustomHive.Net9_0_Net9;
+        await templateHive.Value.InstallAsync(
+            BuildEnvironment.GetNewTemplateCustomHiveDefaultDirectory(),
+            buildEnvToUse.BuiltNuGetsPath,
+            buildEnvToUse.DotNet);
+
+        try
+        {
+            await using var project = await AspireProject.CreateNewTemplateProjectAsync(
+                id,
+                templateName,
+                _testOutput,
+                buildEnvironment: buildEnvToUse,
+                extraArgs: $"-f {tfm.ToTFMString()}",
+                customHiveForTemplates: templateHive.Value.CustomHiveDirectory);
+        }
+        catch (ToolCommandException tce)
+        {
+            Assert.NotNull(tce.Result);
+            Assert.Contains($"'{tfm.ToTFMString()}' is not a valid value for -f", tce.Result.Value.Output);
+        }
+    }
 }

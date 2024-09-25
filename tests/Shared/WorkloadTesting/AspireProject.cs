@@ -70,8 +70,7 @@ public class AspireProject : IAsyncDisposable
         BuildEnvironment buildEnvironment,
         string extraArgs = "",
         bool addEndpointsHook = true,
-        string? customHiveForTemplates = null,
-        bool expectSuccess = true)
+        string? customHiveForTemplates = null)
     {
         string rootDir = Path.Combine(BuildEnvironment.TestRootPath, id);
         string logPath = Path.Combine(BuildEnvironment.ForDefaultFramework.LogRootPath, id);
@@ -95,11 +94,6 @@ public class AspireProject : IAsyncDisposable
            .WithTimeout(TimeSpan.FromMinutes(5));
 
         var res = await cmd.ExecuteAsync($"{template} {extraArgs} -o \"{id}\"").ConfigureAwait(false);
-        if (!expectSuccess)
-        {
-            return new AspireProject(id, rootDir, testOutput, buildEnvironment);
-        }
-
         res.EnsureSuccessful();
         if (res.Output.Contains("Restore failed", StringComparison.OrdinalIgnoreCase) ||
             res.Output.Contains("Post action failed", StringComparison.OrdinalIgnoreCase))
