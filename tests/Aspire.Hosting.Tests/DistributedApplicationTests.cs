@@ -638,11 +638,8 @@ public class DistributedApplicationTests
         {
             "redis",
             "postgres",
-            "mongodb",
             "cosmos",
-            "mysql",
-            "rabbitmq",
-            "kafka"
+            "eventhubns"
         };
 
         await foreach (var resource in s.WatchAsync<Container>(cancellationToken: token))
