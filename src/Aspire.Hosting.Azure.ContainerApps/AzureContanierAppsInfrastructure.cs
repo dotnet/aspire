@@ -932,23 +932,15 @@ internal sealed class AzureContainerAppsInfastructure(DistributedApplicationExec
         }
     }
 
-    private static class ProjectResourceExpression
+    private sealed class ProjectResourceExpression(ProjectResource projectResource, string propertyExpression) : IManifestExpressionProvider
     {
+        public string ValueExpression => $"{{{projectResource.Name}.{propertyExpression}}}";
+
         public static IManifestExpressionProvider GetContainerImageExpression(ProjectResource p) =>
-            new ProjectContainerImage(p);
+            new ProjectResourceExpression(p, "containerImage");
 
         public static IManifestExpressionProvider GetTargetPortExpression(ProjectResource p) =>
-            new ProjectContainerPort(p);
-
-        private sealed class ProjectContainerImage(ProjectResource resource) : IManifestExpressionProvider
-        {
-            public string ValueExpression => $"{{{resource.Name}.containerImage}}";
-        }
-
-        private sealed class ProjectContainerPort(ProjectResource resource) : IManifestExpressionProvider
-        {
-            public string ValueExpression => $"{{{resource.Name}.containerPort}}";
-        }
+            new ProjectResourceExpression(p, "containerPort");
     }
 
     /// <summary>
