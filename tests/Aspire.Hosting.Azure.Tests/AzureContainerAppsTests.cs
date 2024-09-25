@@ -597,6 +597,140 @@ public class AzureContainerAppsTests
         Assert.Equal(expectedBicep, bicep);
     }
 
+    [Fact]
+    public async Task VolumesAndBindMountsAreTranslation()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddContainerAppsInfrastructure();
+
+        builder.AddContainer("api", "myimage")
+            .WithVolume("vol1", "/path1")
+            .WithVolume("vol2", "/path2")
+            .WithBindMount("bind1", "/path3");
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureConstructResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await ManifestUtils.GetManifestWithBicep(resource);
+
+        var m = manifest.ToString();
+
+        var expectedManifest =
+        """
+        {
+          "type": "azure.bicep.v0",
+          "path": "api.module.bicep",
+          "params": {
+            "api_volumes_0_storage": "{api.volumes.0.storage}",
+            "api_volumes_1_storage": "{api.volumes.1.storage}",
+            "api_bindmounts_0_storage": "{api.bindMounts.0.storage}",
+            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+            "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+            "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
+          }
+        }
+        """;
+
+        Assert.Equal(expectedManifest, m);
+
+        var expectedBicep =
+        """
+        @description('The location for the resource(s) to be deployed.')
+        param location string = resourceGroup().location
+
+        param api_volumes_0_storage string
+
+        param api_volumes_1_storage string
+
+        param api_bindmounts_0_storage string
+
+        param outputs_azure_container_registry_managed_identity_id string
+
+        param outputs_managed_identity_client_id string
+
+        param outputs_azure_container_apps_environment_id string
+
+        resource api 'Microsoft.App/containerApps@2024-03-01' = {
+          name: 'api'
+          location: location
+          properties: {
+            configuration: {
+              activeRevisionsMode: 'Single'
+            }
+            environmentId: outputs_azure_container_apps_environment_id
+            template: {
+              containers: [
+                {
+                  image: 'myimage:latest'
+                  name: 'api'
+                  env: [
+                    {
+                      name: 'AZURE_CLIENT_ID'
+                      value: outputs_managed_identity_client_id
+                    }
+                  ]
+                  volumeMounts: [
+                    {
+                      volumeName: 'v0'
+                      mountPath: '/path1'
+                    }
+                    {
+                      volumeName: 'v1'
+                      mountPath: '/path2'
+                    }
+                    {
+                      volumeName: 'bm0'
+                      mountPath: '/path3'
+                    }
+                  ]
+                }
+              ]
+              scale: {
+                minReplicas: 1
+              }
+              volumes: [
+                {
+                  name: 'v0'
+                  storageType: 'AzureFile'
+                  storageName: api_volumes_0_storage
+                }
+                {
+                  name: 'v1'
+                  storageType: 'AzureFile'
+                  storageName: api_volumes_1_storage
+                }
+                {
+                  name: 'bm0'
+                  storageType: 'AzureFile'
+                  storageName: api_bindmounts_0_storage
+                }
+              ]
+            }
+          }
+          identity: {
+            type: 'UserAssigned'
+            userAssignedIdentities: {
+              '${outputs_azure_container_registry_managed_identity_id}': { }
+            }
+          }
+        }
+        """;
+
+        Assert.Equal(expectedBicep, bicep);
+    }
+
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
     private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 
