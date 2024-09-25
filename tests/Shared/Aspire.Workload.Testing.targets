@@ -78,6 +78,8 @@
     <Touch Files="$(SdkStampPathForCurrentAndPreviousTFM)" AlwaysCreate="true" />
   </Target>
 
+  <Target Name="InstallSdksForTemplateTesting" DependsOnTargets="ProvisionSdkForCurrentAndPreviousTFM" />
+
   <Target Name="_GetNuGetsToBuild" Returns="@(NuGetsToBuildForWorkloadTesting)">
     <Error Condition="'$(NETCoreSdkRuntimeIdentifier)' == ''" Text="%24(NETCoreSdkRuntimeIdentifier) is unset. This is needed to build the Aspire.Hosting.Orchestration nuget" />
 
