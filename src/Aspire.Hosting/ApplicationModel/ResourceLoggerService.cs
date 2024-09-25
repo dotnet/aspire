@@ -255,12 +255,21 @@ public class ResourceLoggerService
             LogEntry[] backlogSnapshot;
             lock (_lock)
             {
-                // Get back
-                backlogSnapshot = GetBacklogSnapshot();
-                if (backlogSnapshot.Length == 0)
+                // If there are no subscribers then the backlog must be empty. Populate it with any in-memory logs.
+                if (!HasSubscribers)
                 {
-                    backlogSnapshot.AddRange(_inMemoryEntries);
+                    Debug.Assert(_backlog.EntriesCount == 0, "The backlog should be empty if there are no subscribers.");
+
+                    // Populate backlog with in-memory log messages on first subscription.
+                    foreach (var logEntry in _inMemoryEntries)
+                    {
+                        _backlog.InsertSorted(logEntry);
+                    }
                 }
+
+                // Get backlog
+                backlogSnapshot = GetBacklogSnapshot();
+
                 OnNewLog += Log;
             }
 
@@ -302,6 +311,15 @@ public class ResourceLoggerService
                 }
 
                 return logs;
+            }
+        }
+
+        private bool HasSubscribers
+        {
+            get
+            {
+                Debug.Assert(Monitor.IsEntered(_lock));
+                return _onNewLog != null;
             }
         }
 
@@ -380,7 +398,15 @@ public class ResourceLoggerService
         {
             lock (_lock)
             {
-                _backlog.InsertSorted(logEntry);
+                // Only add logs into the backlog if there are subscribers. If there aren't subscribers then
+                // logs are replayed into this collection from various sources (DCP, in-memory).
+                if (HasSubscribers)
+                {
+                    _backlog.InsertSorted(logEntry);
+                }
+
+                // Keep in-memory logs (i.e. logs not loaded from DCP) in their own collection.
+                // These logs are replayed into the backlog when a log watch starts.
                 if (inMemorySource)
                 {
                     _inMemoryEntries.Add(logEntry);
