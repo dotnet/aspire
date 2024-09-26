@@ -17,8 +17,9 @@ var queue = stack.AddSQSQueue("queue");
 topic.AddSubscription(queue);
 
 builder.AddProject<Projects.Frontend>("frontend")
-    //.WithReference(stack) // Reference all outputs of a construct
+    //.WithReference(stack, s) // Reference all outputs of a construct
     .WithEnvironment("AWS__Resources__BucketName", customStack.GetOutput("BucketName")) // Reference a construct/stack output
-    .WithEnvironment("AWS__Resources__ChatTopicArn", topic, t => t.TopicArn);
+    .WithEnvironment("AWS__Resources__ChatTopicArn", topic, t => t.TopicArn)
+    .WithReference(customStack, s => s.Queue.QueueUrl, "QueueUrl", "AWS:Resources:Queue");
 
 builder.Build().Run();

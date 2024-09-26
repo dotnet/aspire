@@ -175,7 +175,7 @@ public static class CDKExtensions
     ///     .WithReference(stack, s => s.ServiceUrl, "ServiceUrl");
     /// </code>
     /// </example>
-    public static IResourceBuilder<TDestination> WithReference<TDestination, TConstruct>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IConstructResource<TConstruct>> construct, ConstructOutputDelegate<TConstruct> outputDelegate, string outputName, string? configSection = null)
+    public static IResourceBuilder<TDestination> WithReference<TDestination, TConstruct>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithConstruct<TConstruct>> construct, ConstructOutputDelegate<TConstruct> outputDelegate, string outputName, string? configSection = null)
         where TConstruct : IConstruct
         where TDestination : IResourceWithEnvironment
     {
