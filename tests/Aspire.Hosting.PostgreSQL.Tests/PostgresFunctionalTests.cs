@@ -154,7 +154,7 @@ public class PostgresFunctionalTests(ITestOutputHelper testOutputHelper)
         var db = pg.AddDatabase(dbName);
         pg.WithPgWeb(c =>
         {
-            c.WaitFor(db);
+            c.WaitFor(pg);
             pgWebBuilder = c;
         });
 
