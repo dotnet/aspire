@@ -66,11 +66,12 @@ public class ResourceLoggerService
     /// The internal logger is used when adding logs from resource's stream logs.
     /// It allows the parsed date from text to be used as the log line date.
     /// </summary>
-    internal Action<DateTime?, string, bool> GetInternalLogger(string resourceName)
+    internal Action<LogEntry> GetInternalLogger(string resourceName)
     {
         ArgumentNullException.ThrowIfNull(resourceName);
 
-        return GetResourceLoggerState(resourceName).AddLog;
+        var state = GetResourceLoggerState(resourceName);
+        return (logEntry) => state.AddLog(logEntry, inMemorySource: false);
     }
 
     /// <summary>
@@ -189,11 +190,14 @@ public class ResourceLoggerService
     /// </summary>
     internal sealed class ResourceLoggerState
     {
+        private const int MaxLogCount = 10_000;
+
         private readonly ResourceLogger _logger;
         private readonly CancellationTokenSource _logStreamCts = new();
         private readonly object _lock = new();
 
-        private readonly LogEntries _backlog = new(10000) { BaseLineNumber = 0 };
+        private readonly CircularBuffer<LogEntry> _inMemoryEntries = new(MaxLogCount);
+        private readonly LogEntries _backlog = new(MaxLogCount) { BaseLineNumber = 0 };
         private readonly TimeProvider _timeProvider;
 
         /// <summary>
@@ -246,24 +250,35 @@ public class ResourceLoggerService
 
             using var _ = _logStreamCts.Token.Register(() => channel.Writer.TryComplete());
 
-            // No need to lock in the log method because TryWrite/TryComplete are already threadsafe.
+            // No need to lock in the log method because TryWrite/TryComplete are already thread safe.
             void Log(LogEntry log) => channel.Writer.TryWrite(log);
 
             LogEntry[] backlogSnapshot;
             lock (_lock)
             {
-                // Get back
+                // If there are no subscribers then the backlog must be empty. Populate it with any in-memory logs.
+                if (!HasSubscribers)
+                {
+                    Debug.Assert(_backlog.EntriesCount == 0, "The backlog should be empty if there are no subscribers.");
+
+                    // Populate backlog with in-memory log messages on first subscription.
+                    foreach (var logEntry in _inMemoryEntries)
+                    {
+                        _backlog.InsertSorted(logEntry);
+                    }
+                }
+
                 backlogSnapshot = GetBacklogSnapshot();
                 OnNewLog += Log;
             }
 
-            if (backlogSnapshot.Length > 0)
-            {
-                yield return CreateLogLines(ref lineNumber, backlogSnapshot);
-            }
-
             try
             {
+                if (backlogSnapshot.Length > 0)
+                {
+                    yield return CreateLogLines(ref lineNumber, backlogSnapshot);
+                }
+
                 await foreach (var entry in channel.GetBatchesAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
                 {
                     yield return CreateLogLines(ref lineNumber, entry);
@@ -295,6 +310,15 @@ public class ResourceLoggerService
                 }
 
                 return logs;
+            }
+        }
+
+        private bool HasSubscribers
+        {
+            get
+            {
+                Debug.Assert(Monitor.IsEntered(_lock));
+                return _onNewLog != null;
             }
         }
 
@@ -369,12 +393,23 @@ public class ResourceLoggerService
             }
         }
 
-        public void AddLog(DateTime? timestamp, string logMessage, bool isErrorMessage)
+        public void AddLog(LogEntry logEntry, bool inMemorySource)
         {
-            var logEntry = new LogEntry { Timestamp = timestamp, Content = logMessage, Type = isErrorMessage ? LogEntryType.Error : LogEntryType.Default };
             lock (_lock)
             {
-                _backlog.InsertSorted(logEntry);
+                // Only add logs into the backlog if there are subscribers. If there aren't subscribers then
+                // logs are replayed into this collection from various sources (DCP, in-memory).
+                if (HasSubscribers)
+                {
+                    _backlog.InsertSorted(logEntry);
+                }
+
+                // Keep in-memory logs (i.e. logs not loaded from DCP) in their own collection.
+                // These logs are replayed into the backlog when a log watch starts.
+                if (inMemorySource)
+                {
+                    _inMemoryEntries.Add(logEntry);
+                }
             }
 
             _onNewLog?.Invoke(logEntry);
@@ -399,7 +434,7 @@ public class ResourceLoggerService
                 var logMessage = formatter(state, exception) + (exception is null ? "" : $"\n{exception}");
                 var isErrorMessage = logLevel >= LogLevel.Error;
 
-                loggerState.AddLog(logTime, logMessage, isErrorMessage);
+                loggerState.AddLog(LogEntry.Create(logTime, logMessage, isErrorMessage), inMemorySource: true);
             }
         }
     }

@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">
         <source>Select resource</source>
-        <target state="new">Select resource</target>
+        <target state="translated">Wybierz zasób</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">

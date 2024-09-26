@@ -104,7 +104,7 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsHealthStateProperty">
         <source>Health State</source>
-        <target state="new">Health State</target>
+        <target state="translated">运行状况状态</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
@@ -124,7 +124,7 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsStopTimeProperty">
         <source>Stop time</source>
-        <target state="new">Stop time</target>
+        <target state="translated">停止时间</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesEndpointsColumnHeader">
