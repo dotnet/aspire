@@ -612,9 +612,19 @@ public static class ResourceBuilderExtensions
             // the child resource itself does not have any health checks setup.
             var parentBuilder = builder.ApplicationBuilder.CreateResourceBuilder(dependencyResourceWithParent.Parent);
             builder.WaitFor(parentBuilder);
+
+            var parentHealthCheckAnnotations = parentBuilder.Resource.Annotations.OfType<HealthCheckAnnotation>().Select(hca => hca.Key);
+            var resourceHealthCheckAnnotations = builder.Resource.Annotations.OfType<HealthCheckAnnotation>().Select(hca => hca.Key);
+            var missingHealthChecks = parentHealthCheckAnnotations.Except(resourceHealthCheckAnnotations);
+
+            foreach (var missingHealthCheck in missingHealthChecks)
+            {
+                dependency.WithHealthCheck(missingHealthCheck);
+            }
         }
 
-        return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitUntilHealthy));
+        builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitUntilHealthy));
+        return builder;
     }
 
     /// <summary>
