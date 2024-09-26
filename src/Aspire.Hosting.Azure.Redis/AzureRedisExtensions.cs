@@ -12,6 +12,7 @@ using Azure.Provisioning.Redis;
 using Azure.Provisioning.KeyVault;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
+using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting;
 
@@ -42,7 +43,7 @@ public static class AzureRedisExtensions
         return builder.PublishAsAzureRedisInternal(configureResource);
     }
 
-    internal static IResourceBuilder<RedisResource> PublishAsAzureRedisInternal(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, CdkRedisResource>? configureResource, bool useProvisioner = false)
+    private static IResourceBuilder<RedisResource> PublishAsAzureRedisInternal(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, CdkRedisResource>? configureResource, bool useProvisioner = false)
     {
         builder.ApplicationBuilder.AddAzureProvisioning();
 
@@ -55,19 +56,7 @@ public static class AzureRedisExtensions
             keyVault.Name = kvNameParam;
             construct.Add(keyVault);
 
-            var redisCache = new CdkRedisResource(builder.Resource.Name, "2020-06-01") // TODO: resource version should come from CDK
-            {
-                Sku = new RedisSku()
-                {
-                    Name = RedisSkuName.Basic,
-                    Family = RedisSkuFamily.BasicOrStandard,
-                    Capacity = 1
-                },
-                EnableNonSslPort = false,
-                MinimumTlsVersion = RedisTlsVersion.Tls1_2,
-                Tags = { { "aspire-resource-name", construct.Resource.Name } }
-            };
-            construct.Add(redisCache);
+            var redisCache = CreateRedisResource(construct);
 
             var secret = new KeyVaultSecret("connectionString")
             {
@@ -126,5 +115,158 @@ public static class AzureRedisExtensions
     public static IResourceBuilder<RedisResource> AsAzureRedis(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, CdkRedisResource>? configureResource)
     {
         return builder.PublishAsAzureRedisInternal(configureResource, useProvisioner: true);
+    }
+
+    /// <summary>
+    /// Adds an Azure Cache for Redis resource to the application model.
+    /// </summary>
+    /// <param name="builder">The builder for the distributed application.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureRedisCacheResource}"/> builder.</returns>
+    public static IResourceBuilder<AzureRedisCacheResource> AddAzureRedis(this IDistributedApplicationBuilder builder, string name)
+    {
+        builder.AddAzureProvisioning();
+
+        var configureConstruct = (ResourceModuleConstruct construct) =>
+        {
+            var redisCache = CreateRedisResource(construct);
+
+            redisCache.RedisConfiguration = new RedisCommonConfiguration()
+            {
+                IsAadEnabled= "true"
+            };
+
+            construct.Add(new RedisCacheAccessPolicyAssignment($"{redisCache.ResourceName}_admin", redisCache.ResourceVersion)
+            {
+                Parent = redisCache,
+                AccessPolicyName = "Data Owner",
+                ObjectId = construct.PrincipalIdParameter,
+                ObjectIdAlias = construct.PrincipalNameParameter
+            });
+
+            construct.Add(new BicepOutput("connectionString", typeof(string))
+            {
+                Value = BicepFunction.Interpolate($"{redisCache.HostName},ssl=true")
+            });
+        };
+
+        var resource = new AzureRedisCacheResource(name, configureConstruct);
+        return builder.AddResource(resource)
+            .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
+            .WithParameter(AzureBicepResource.KnownParameters.PrincipalName)
+            .WithManifestPublishingCallback(resource.WriteToManifest);
+    }
+
+    /// <summary>
+    /// TOOD
+    /// </summary>
+    public static IResourceBuilder<AzureRedisCacheResource> RunAsContainer(this IResourceBuilder<AzureRedisCacheResource> builder, Action<IResourceBuilder<RedisResource>>? configureContainer = null)
+    {
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder;
+        }
+
+        var azureResource = builder.Resource;
+        builder.ApplicationBuilder.Resources.Remove(azureResource);
+
+        var redisContainer = builder.ApplicationBuilder.AddRedis(azureResource.Name);
+
+        azureResource.InnerResource = redisContainer.Resource;
+
+        configureContainer?.Invoke(redisContainer);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// TODO
+    /// </summary>
+    public static IResourceBuilder<AzureRedisCacheResource> WithAccessKeyAuth(this IResourceBuilder<AzureRedisCacheResource> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var azureResource = builder.Resource;
+        azureResource.ConnectionStringSecretOutput = new BicepSecretOutputReference("connectionString", azureResource);
+
+        return builder
+           .RemoveActiveDirectoryParameters()
+           .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
+           .ConfigureConstruct(construct =>
+           {
+               RemoveActiveDirectoryAuthResources(construct);
+
+               var redis = construct.GetResources().OfType<CdkRedisResource>().FirstOrDefault(r => r.ResourceName == builder.Resource.Name)
+                   ?? throw new InvalidOperationException($"Could not find a RedisResource with name {builder.Resource.Name}.");
+
+               var kvNameParam = new BicepParameter("keyVaultName", typeof(string));
+               construct.Add(kvNameParam);
+
+               var keyVault = KeyVaultService.FromExisting("keyVault");
+               keyVault.Name = kvNameParam;
+               construct.Add(keyVault);
+
+               redis.RedisConfiguration.Value!.IsAadEnabled = "false";
+
+               var secret = new KeyVaultSecret("connectionString")
+               {
+                   Parent = keyVault,
+                   Name = "connectionString",
+                   Properties = new SecretProperties
+                   {
+                       Value = BicepFunction.Interpolate($"{redis.HostName},ssl=true,password={redis.GetKeys().PrimaryKey}")
+                   }
+               };
+               construct.Add(secret);
+           });
+    }
+
+    private static CdkRedisResource CreateRedisResource(ResourceModuleConstruct construct)
+    {
+        var redisCache = new CdkRedisResource(construct.Resource.Name, "2024-03-01") // TODO: resource version should come from CDK
+        {
+            Sku = new RedisSku()
+            {
+                Name = RedisSkuName.Basic,
+                Family = RedisSkuFamily.BasicOrStandard,
+                Capacity = 1
+            },
+            EnableNonSslPort = false,
+            MinimumTlsVersion = RedisTlsVersion.Tls1_2,
+            Tags = { { "aspire-resource-name", construct.Resource.Name } }
+        };
+        construct.Add(redisCache);
+
+        return redisCache;
+    }
+
+    private static IResourceBuilder<AzureRedisCacheResource> RemoveActiveDirectoryParameters(
+        this IResourceBuilder<AzureRedisCacheResource> builder)
+    {
+        builder.Resource.Parameters.Remove(AzureBicepResource.KnownParameters.PrincipalId);
+        builder.Resource.Parameters.Remove(AzureBicepResource.KnownParameters.PrincipalName);
+        return builder;
+    }
+
+    private static void RemoveActiveDirectoryAuthResources(ResourceModuleConstruct construct)
+    {
+        var resourcesToRemove = new List<Provisionable>();
+        foreach (var resource in construct.GetResources())
+        {
+            if (resource is RedisCacheAccessPolicyAssignment accessPolicy &&
+                accessPolicy.ResourceName == $"{construct.Resource.Name}_admin")
+            {
+                resourcesToRemove.Add(resource);
+            }
+            else if (resource is BicepOutput output && output.ResourceName == "connectionString")
+            {
+                resourcesToRemove.Add(resource);
+            }
+        }
+
+        foreach (var resourceToRemove in resourcesToRemove)
+        {
+            construct.Remove(resourceToRemove);
+        }
     }
 }
