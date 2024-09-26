@@ -17,7 +17,9 @@ public class WorkloadTestsBase
     public static readonly string[] TestFrameworkTypes = ["none", "mstest", "nunit", "xunit.net"];
 
     public WorkloadTestsBase(ITestOutputHelper testOutput)
-        => _testOutput = new TestOutputWrapper(testOutput);
+    {
+        _testOutput = new TestOutputWrapper(testOutput);
+    }
 
     private static IBrowser CreateBrowser()
     {

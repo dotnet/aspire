@@ -113,9 +113,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Dashboard.Tests", "t
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Workload", "Workload", "{F534D4F8-5E3A-42FC-BCD7-4C2D6060F9C8}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.NET.Sdk.Aspire", "src\Microsoft.NET.Sdk.Aspire\Microsoft.NET.Sdk.Aspire.csproj", "{8C6877C0-3CB2-4B99-B8BD-1B7D0CADB543}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Sdk", "src\Aspire.Hosting.Sdk\Aspire.Hosting.Sdk.csproj", "{E20280B8-8BE0-4967-AFC2-65FFCD6EC5E4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.AppHost.Sdk", "src\Aspire.AppHost.Sdk\Aspire.AppHost.Sdk.csproj", "{E20280B8-8BE0-4967-AFC2-65FFCD6EC5E4}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Npgsql.Tests", "tests\Aspire.Npgsql.Tests\Aspire.Npgsql.Tests.csproj", "{6EAA089D-7ADD-4C74-B040-FD3D75DB5C75}"
 EndProject
@@ -628,11 +626,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redis.AppHost", "playground
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Analyzers.Tests", "tests\Aspire.Hosting.Analyzers.Tests\Aspire.Hosting.Analyzers.Tests.csproj", "{F21F921E-1930-4BD5-B665-5EF1B82BD4D2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Seq.Tests", "tests\Aspire.Hosting.Seq.Tests\Aspire.Hosting.Seq.Tests.csproj", "{434A2845-F60A-45FA-AFC8-487FBA0D1616}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Sdk.Tests", "tests\Aspire.Hosting.Sdk.Tests\Aspire.Hosting.Sdk.Tests.csproj", "{AEF07BC6-76D8-4A45-89D5-54FC4483863F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.RuntimeIdentifier.Tool", "src\Aspire.Hosting.Sdk\Aspire.RuntimeIdentifier.Tool\Aspire.RuntimeIdentifier.Tool.csproj", "{FF2895FC-A613-43DC-96B8-E5DFA69125CA}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Seq.Tests", "tests\Aspire.Hosting.Seq.Tests\Aspire.Hosting.Seq.Tests.csproj", "{434A2845-F60A-45FA-AFC8-487FBA0D1616}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.RuntimeIdentifier.Tool", "src\Aspire.AppHost.Sdk\Aspire.RuntimeIdentifier.Tool\Aspire.RuntimeIdentifier.Tool.csproj", "{76FCBF5C-4DB2-4F6C-BB3C-91FD89735AC7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -816,10 +814,6 @@ Global
 		{1ABCD945-5CAA-4F30-A741-7A9DA919254A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1ABCD945-5CAA-4F30-A741-7A9DA919254A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1ABCD945-5CAA-4F30-A741-7A9DA919254A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8C6877C0-3CB2-4B99-B8BD-1B7D0CADB543}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8C6877C0-3CB2-4B99-B8BD-1B7D0CADB543}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8C6877C0-3CB2-4B99-B8BD-1B7D0CADB543}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8C6877C0-3CB2-4B99-B8BD-1B7D0CADB543}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E20280B8-8BE0-4967-AFC2-65FFCD6EC5E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E20280B8-8BE0-4967-AFC2-65FFCD6EC5E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E20280B8-8BE0-4967-AFC2-65FFCD6EC5E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -1668,6 +1662,10 @@ Global
 		{434A2845-F60A-45FA-AFC8-487FBA0D1616}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{434A2845-F60A-45FA-AFC8-487FBA0D1616}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{434A2845-F60A-45FA-AFC8-487FBA0D1616}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76FCBF5C-4DB2-4F6C-BB3C-91FD89735AC7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76FCBF5C-4DB2-4F6C-BB3C-91FD89735AC7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76FCBF5C-4DB2-4F6C-BB3C-91FD89735AC7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76FCBF5C-4DB2-4F6C-BB3C-91FD89735AC7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1719,7 +1717,6 @@ Global
 		{A37AAFDB-545B-4599-806A-EFCB8B310446} = {975F6F41-B455-451D-A312-098DE4A167B6}
 		{8CB12764-E469-4BB5-8554-5F9CA0F6DE18} = {975F6F41-B455-451D-A312-098DE4A167B6}
 		{1ABCD945-5CAA-4F30-A741-7A9DA919254A} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
-		{8C6877C0-3CB2-4B99-B8BD-1B7D0CADB543} = {F534D4F8-5E3A-42FC-BCD7-4C2D6060F9C8}
 		{E20280B8-8BE0-4967-AFC2-65FFCD6EC5E4} = {F534D4F8-5E3A-42FC-BCD7-4C2D6060F9C8}
 		{6EAA089D-7ADD-4C74-B040-FD3D75DB5C75} = {C424395C-1235-41A4-BF55-07880A04368C}
 		{9D9C360B-9DF1-4076-8416-66964427C8F3} = {C424395C-1235-41A4-BF55-07880A04368C}
@@ -1973,6 +1970,7 @@ Global
 		{AEF07BC6-76D8-4A45-89D5-54FC4483863F} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{FF2895FC-A613-43DC-96B8-E5DFA69125CA} = {F534D4F8-5E3A-42FC-BCD7-4C2D6060F9C8}
 		{434A2845-F60A-45FA-AFC8-487FBA0D1616} = {830A89EC-4029-4753-B25A-068BAE37DEC7}
+		{76FCBF5C-4DB2-4F6C-BB3C-91FD89735AC7} = {F534D4F8-5E3A-42FC-BCD7-4C2D6060F9C8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

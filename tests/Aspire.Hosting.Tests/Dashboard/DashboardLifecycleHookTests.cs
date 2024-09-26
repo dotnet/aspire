@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Threading.Channels;
+using Aspire.Hosting.ConsoleLogs;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Tests.Utils;
@@ -61,7 +62,7 @@ public class DashboardLifecycleHookTests
 
         // Act
         var dashboardLoggerState = resourceLoggerService.GetResourceLoggerState(KnownResourceNames.AspireDashboard);
-        dashboardLoggerState.AddLog(timestamp, logMessage, isErrorMessage: false);
+        dashboardLoggerState.AddLog(LogEntry.Create(timestamp, logMessage, isErrorMessage: false), inMemorySource: true);
 
         // Assert
         var logContext = await logChannel.Reader.ReadAsync();
