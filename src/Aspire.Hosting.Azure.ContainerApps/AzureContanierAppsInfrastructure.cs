@@ -452,7 +452,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
 
                         if (secretType != SecretType.None)
                         {
-                            var secretName = kv.Key.Replace("__", "--").ToLowerInvariant();
+                            var secretName = kv.Key.Replace("_", "-").ToLowerInvariant();
 
                             var secret = new ContainerAppWritableSecret()
                             {

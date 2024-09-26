@@ -250,7 +250,7 @@ public class AzureContainerAppsTests
         // Connection string (should be considered a secret)
         var blob = builder.AddAzureStorage("storage").AddBlobs("blobs");
 
-        // Secret parameters
+        // Secret parameters (_ isn't supported and will be replaced by -)
         var secretValue = builder.AddParameter("value0", "x", secret: true);
 
         // Normal parameters
@@ -264,6 +264,7 @@ public class AzureContainerAppsTests
             .WithReference(blob)
             .WithReference(pgdb)
             .WithEnvironment("SecretVal", secretValue)
+            .WithEnvironment("secret_value_1", secretValue)
             .WithEnvironment("Value", value);
 
         project.WithEnvironment(context =>
@@ -378,6 +379,10 @@ public class AzureContainerAppsTests
                   name: 'secretval'
                   value: value0_value
                 }
+                {
+                  name: 'secret-value-1'
+                  value: value0_value
+                }
               ]
               activeRevisionsMode: 'Single'
               ingress: {
@@ -444,6 +449,10 @@ public class AzureContainerAppsTests
                     {
                       name: 'SecretVal'
                       secretRef: 'secretval'
+                    }
+                    {
+                      name: 'secret_value_1'
+                      secretRef: 'secret-value-1'
                     }
                     {
                       name: 'Value'
