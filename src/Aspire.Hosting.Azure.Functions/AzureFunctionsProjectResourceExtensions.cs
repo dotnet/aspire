@@ -12,6 +12,8 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 public static class AzureFunctionsProjectResourceExtensions
 {
+    internal const string DefaultAzureFunctionsHostStorageName = "azFuncHostStorage";
+
     /// <summary>
     /// Adds an Azure Functions project to the distributed application.
     /// </summary>
@@ -24,11 +26,11 @@ public static class AzureFunctionsProjectResourceExtensions
         var resource = new AzureFunctionsProjectResource(name);
 
         // Add the default storage resource if it doesn't already exist.
-        var storage = builder.Resources.OfType<AzureStorageResource>().FirstOrDefault(r => r.Name == "azure-functions-default-storage");
+        var storage = builder.Resources.OfType<AzureStorageResource>().FirstOrDefault(r => r.Name == DefaultAzureFunctionsHostStorageName);
 
         if (storage is null)
         {
-            storage = builder.AddAzureStorage("azure-functions-default-storage").RunAsEmulator().Resource;
+            storage = builder.AddAzureStorage("azFuncHostStorage").RunAsEmulator().Resource;
 
             builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
             {
