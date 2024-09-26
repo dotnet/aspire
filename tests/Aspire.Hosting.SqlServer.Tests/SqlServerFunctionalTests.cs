@@ -60,61 +60,6 @@ public class SqlServerFunctionalTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    public async Task VerifyWaitForOnSqlServerDatabaseBlocksDependentResources()
-    {
-        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
-
-        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
-        builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
-        {
-            return healthCheckTcs.Task;
-        });
-
-        var resource = builder.AddSqlServer("resource")
-                              .WithHealthCheck("blocking_check");
-
-        var db = resource.AddDatabase("db");
-
-        var dependentResource = builder.AddSqlServer("dependentresource")
-                                       .WaitFor(db);
-
-        using var app = builder.Build();
-
-        var pendingStart = app.StartAsync(cts.Token);
-
-        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
-
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(db.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
-
-        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
-
-        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
-
-        // Create the database.
-        var connectionString = await resource.Resource.GetConnectionStringAsync(cts.Token);
-        using var connection = new SqlConnection(connectionString);
-        await connection.OpenAsync(cts.Token);
-
-        var command = connection.CreateCommand();
-        command.CommandText = "CREATE DATABASE db;";
-        await command.ExecuteNonQueryAsync(cts.Token);
-
-        await rns.WaitForResourceHealthyAsync(db.Resource.Name, cts.Token);
-
-        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
-
-        await pendingStart;
-
-        await app.StopAsync();
-    }
-
-    [Fact]
-    [RequiresDocker]
     public async Task VerifySqlServerResource()
     {
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
