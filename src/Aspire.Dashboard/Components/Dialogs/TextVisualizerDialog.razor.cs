@@ -5,7 +5,6 @@ using System.Text;
 using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
-using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Microsoft.AspNetCore.Components;
