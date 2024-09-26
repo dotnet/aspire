@@ -4,6 +4,7 @@
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -270,6 +271,90 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
 
         await startTask;
 
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task ChildResourceGetsParentHealthChecks()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+
+        var healthCheck = () => HealthCheckResult.Healthy();
+
+        builder.Services.AddHealthChecks().AddCheck("parent_check", healthCheck);
+
+        var parent = builder.AddResource(new CustomResource("parent"))
+                            .WithHealthCheck("parent_check");
+
+        var child = builder.AddResource(new CustomChildResource("child", parent.Resource));
+
+        var waiter = builder.AddResource(new CustomResource("waiter"))
+                            .WaitFor(child);
+
+        var assertBlock = new TaskCompletionSource();
+
+        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(child.Resource, (@event, ct) =>
+        {
+            // By the time this runs it means that the health check should have already
+            // been copied from the parent to the child. Doing this so we don't have to
+            // slap an sleep in the test to make execution as fast as possible.
+            assertBlock.SetResult();
+            return Task.CompletedTask;
+        });
+
+        using var app = builder.Build();
+
+        var pendingStart = app.StartAsync();
+
+        Assert.True(child.Resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var childHealthCheckAnnotations));
+        Assert.Collection(childHealthCheckAnnotations, a => Assert.Equal("parent_check", a.Key));
+
+        await pendingStart;
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task ChildResourceFollowsParentStatus()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+
+        var desiredStatus = HealthCheckResult.Unhealthy();
+        var healthCheck = () => desiredStatus;
+        builder.Services.AddHealthChecks().AddCheck("parent_check", healthCheck);
+
+        var parent = builder.AddResource(new CustomResource("parent"))
+                            .WithHealthCheck("parent_check");
+
+        var child = builder.AddResource(new CustomChildResource("child", parent.Resource));
+
+        var waiter = builder.AddResource(new CustomResource("waiter"))
+                            .WaitFor(child);
+
+        using var app = builder.Build();
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        builder.Eventing.Subscribe<AfterEndpointsAllocatedEvent>(async (@event, ct) =>
+        {
+            // Make the parent and child resources go into a running state.
+            await rns.PublishUpdateAsync(parent.Resource, s => s with { State = KnownResourceStates.Running });
+            await rns.PublishUpdateAsync(child.Resource, s => s with { State = KnownResourceStates.Running });
+        });
+
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)); // More than enough time, should take just a few seconds
+                                                                         // for the first health checks to run.
+
+        var pendingStart = app.StartAsync(cts.Token);
+
+        await rns.WaitForResourceAsync(parent.Resource.Name, (re) => re.Snapshot.HealthStatus == HealthStatus.Unhealthy, cts.Token);
+        await rns.WaitForResourceAsync(child.Resource.Name, (re) => re.Snapshot.HealthStatus == HealthStatus.Unhealthy, cts.Token);
+
+        desiredStatus = HealthCheckResult.Healthy();
+
+        await rns.WaitForResourceAsync(parent.Resource.Name, (re) => re.Snapshot.HealthStatus == HealthStatus.Healthy, cts.Token);
+        await rns.WaitForResourceAsync(child.Resource.Name, (re) => re.Snapshot.HealthStatus == HealthStatus.Healthy, cts.Token);
+
+        await pendingStart;
         await app.StopAsync();
     }
 
