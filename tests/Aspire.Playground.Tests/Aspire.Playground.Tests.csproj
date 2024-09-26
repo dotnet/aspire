@@ -18,14 +18,14 @@
     <TestsSharedDir>$(MSBuildThisFileDirectory)..\Shared\</TestsSharedDir>
     <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
     <!-- Skip Azure resources that require provisioning when running in CI. -->
-    <SkipAzureResource Condition="'$(SkipAzureResource)' == '' and ('$(RepoRoot)' == '' or '$(ContinuousIntegrationBuild)' == 'true' or '$(CODESPACES)' == 'true')">true</SkipAzureResource>
+    <SkipProvisionedAzureResource Condition="'$(SkipProvisionedAzureResource)' == '' and ('$(RepoRoot)' == '' or '$(ContinuousIntegrationBuild)' == 'true' or '$(CODESPACES)' == 'true')">true</SkipProvisionedAzureResource>
 
     <!-- on helix this will be available in the source dir -->
     <XunitRunnerJson Condition="'$(RepoRoot)' == ''">xunit.runner.json</XunitRunnerJson>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(SkipAzureResource)' == 'true'">
-    <DefineConstants>SKIP_AZURE_RESOURCE;$(DefineConstants)</DefineConstants>
+  <PropertyGroup Condition="'$(SkipProvisionedAzureResource)' == 'true'">
+    <DefineConstants>SKIP_PROVISIONED_AZURE_RESOURCE;$(DefineConstants)</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -65,7 +65,7 @@
     <ProjectReference Include="$(PlaygroundSourceDir)mysql/MySqlDb.AppHost/MySqlDb.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)nats/Nats.AppHost/Nats.AppHost.csproj" />
     <ProjectReference Include="$(PlaygroundSourceDir)seq/Seq.AppHost/Seq.AppHost.csproj" />
-   
+
     <Using Include="Aspire.Hosting.Testing" />
   </ItemGroup>
 

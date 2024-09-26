@@ -37,9 +37,6 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
 
     protected abstract IHealthCheck CreateHealthCheck(TClient client, TSettings settings);
 
-    internal static string GetKeyedConfigurationSectionName(string key, string defaultConfigSectionName)
-        => $"{defaultConfigSectionName}:{key}";
-
     internal void AddClient(
         IHostApplicationBuilder builder,
         string configurationSectionName,
@@ -58,9 +55,10 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
         BindSettingsToConfiguration(settings, configSection);
         BindSettingsToConfiguration(settings, configSection.GetSection(connectionName));
         // Support service key-based binding for clients that support it (e.g. WebPubSubServiceClient).
-        if (configSection.GetSection($"{connectionName}:{serviceKey}").Exists())
+        var serviceKeySection = configSection.GetSection($"{connectionName}:{serviceKey}");
+        if (serviceKeySection.Exists())
         {
-            BindSettingsToConfiguration(settings, configSection.GetSection($"{connectionName}:{serviceKey}"));
+            BindSettingsToConfiguration(settings, serviceKeySection);
         }
 
         Debug.Assert(settings is IConnectionStringSettings, $"The settings object should implement {nameof(IConnectionStringSettings)}.");
@@ -94,6 +92,7 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
             }
 
             BindClientOptionsToConfiguration(clientBuilder, configSection.GetSection("ClientOptions"));
+            BindClientOptionsToConfiguration(clientBuilder, configSection.GetSection($"{connectionName}:ClientOptions"));
 
             configureClientBuilder?.Invoke(clientBuilder);
 

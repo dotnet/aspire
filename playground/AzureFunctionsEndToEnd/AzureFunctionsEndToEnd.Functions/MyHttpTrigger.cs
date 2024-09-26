@@ -4,7 +4,7 @@
 using System.Globalization;
 using System.Text;
 using Azure.Messaging.EventHubs.Producer;
-#if !SKIP_AZURE_RESOURCE
+#if !SKIP_PROVISIONED_AZURE_RESOURCE
 using Azure.Messaging.ServiceBus;
 #endif
 using Azure.Storage.Blobs;
@@ -17,7 +17,7 @@ namespace AzureFunctionsEndToEnd.Functions;
 
 public class MyHttpTrigger(
     ILogger<MyHttpTrigger> logger,
-#if !SKIP_AZURE_RESOURCE
+#if !SKIP_PROVISIONED_AZURE_RESOURCE
     ServiceBusClient serviceBusClient,
 #endif
     EventHubProducerClient eventHubProducerClient,
@@ -29,7 +29,7 @@ public class MyHttpTrigger(
     {
         logger.LogInformation("C# HTTP trigger function processed a request.");
         var stringBuilder = new StringBuilder();
-#if !SKIP_AZURE_RESOURCE
+#if !SKIP_PROVISIONED_AZURE_RESOURCE
         stringBuilder.AppendLine(CultureInfo.InvariantCulture, $"Aspire-injected ServiceBusClient namespace: {serviceBusClient.FullyQualifiedNamespace}");
 #endif
         stringBuilder.AppendLine(CultureInfo.InvariantCulture, $"Aspire-injected EventHubProducerClient namespace: {eventHubProducerClient.FullyQualifiedNamespace}");

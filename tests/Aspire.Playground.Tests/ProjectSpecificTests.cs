@@ -113,7 +113,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             resourceName: "funcapp",
             timeoutSecs: 160);
 
-#if !SKIP_AZURE_RESOURCE
+#if !SKIP_PROVISIONED_AZURE_RESOURCE
         // Assert that ServiceBus triggers work correctly
         await app.CreateHttpClient("apiservice").GetAsync("/publish/asb");
         await WaitForAllTextAsync(app,
