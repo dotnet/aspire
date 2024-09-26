@@ -207,6 +207,10 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                         if (changeType == ResourceViewModelChangeType.Upsert)
                         {
                             _resourceByName[resource.Name] = resource;
+                            if (string.Equals(SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
+                            {
+                                SelectedResource = resource;
+                            }
 
                             _allResourceTypes[resource.ResourceType] = true;
                             _visibleResourceTypes[resource.ResourceType] = true;
