@@ -637,7 +637,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
     private static void AssertIPv4OrIPv6Endpoint(Func<EndpointInfo> endPointAccessor)
     {
-        // Check that the specified dynamic port of 0 is overridden with the actual port number.
+        // Check that the address is IPv4 or IPv6 any.
         var ipEndPoint = endPointAccessor().EndPoint;
         Assert.True(ipEndPoint.Address.Equals(IPAddress.Any) || ipEndPoint.Address.Equals(IPAddress.IPv6Any), "Endpoint address should be IPv4 or IPv6.");
     }
