@@ -17,7 +17,7 @@ public class AzureFunctionsTests
 
         // Assert that default storage resource is configured
         Assert.Contains(builder.Resources, resource =>
-            resource is AzureStorageResource && resource.Name == "azure-functions-default-storage");
+            resource is AzureStorageResource && resource.Name == AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName);
         // Assert that custom project resource type is configured
         Assert.Contains(builder.Resources, resource =>
             resource is AzureFunctionsProjectResource && resource.Name == "funcapp");
