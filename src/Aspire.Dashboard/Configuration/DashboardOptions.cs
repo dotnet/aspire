@@ -69,8 +69,8 @@ public sealed class AllowedCertificateRule
 // Don't set values after validating/parsing options.
 public sealed class OtlpOptions
 {
-    private Uri? _parsedGrpcEndpointUrl;
-    private Uri? _parsedHttpEndpointUrl;
+    private BindingAddress? _parsedGrpcEndpointUrl;
+    private BindingAddress? _parsedHttpEndpointUrl;
     private byte[]? _primaryApiKeyBytes;
     private byte[]? _secondaryApiKeyBytes;
 
@@ -83,12 +83,12 @@ public sealed class OtlpOptions
 
     public List<AllowedCertificateRule> AllowedCertificates { get; set; } = new();
 
-    public Uri? GetGrpcEndpointUri()
+    public BindingAddress? GetGrpcEndpointUri()
     {
         return _parsedGrpcEndpointUrl;
     }
 
-    public Uri? GetHttpEndpointUri()
+    public BindingAddress? GetHttpEndpointUri()
     {
         return _parsedHttpEndpointUrl;
     }
@@ -111,13 +111,13 @@ public sealed class OtlpOptions
             return false;
         }
 
-        if (!string.IsNullOrEmpty(GrpcEndpointUrl) && !Uri.TryCreate(GrpcEndpointUrl, UriKind.Absolute, out _parsedGrpcEndpointUrl))
+        if (!string.IsNullOrEmpty(GrpcEndpointUrl) && !OptionsHelpers.TryParseBindingAddress(GrpcEndpointUrl, out _parsedGrpcEndpointUrl))
         {
             errorMessage = $"Failed to parse OTLP gRPC endpoint URL '{GrpcEndpointUrl}'.";
             return false;
         }
 
-        if (!string.IsNullOrEmpty(HttpEndpointUrl) && !Uri.TryCreate(HttpEndpointUrl, UriKind.Absolute, out _parsedHttpEndpointUrl))
+        if (!string.IsNullOrEmpty(HttpEndpointUrl) && !OptionsHelpers.TryParseBindingAddress(HttpEndpointUrl, out _parsedHttpEndpointUrl))
         {
             errorMessage = $"Failed to parse OTLP HTTP endpoint URL '{HttpEndpointUrl}'.";
             return false;
@@ -146,7 +146,7 @@ public sealed class OtlpCors
 // Don't set values after validating/parsing options.
 public sealed class FrontendOptions
 {
-    private List<Uri>? _parsedEndpointUrls;
+    private List<BindingAddress>? _parsedEndpointUrls;
     private byte[]? _browserTokenBytes;
 
     public string? EndpointUrls { get; set; }
@@ -166,7 +166,7 @@ public sealed class FrontendOptions
 
     public byte[]? GetBrowserTokenBytes() => _browserTokenBytes;
 
-    public IReadOnlyList<Uri> GetEndpointUris()
+    public IReadOnlyList<BindingAddress> GetEndpointUris()
     {
         Debug.Assert(_parsedEndpointUrls is not null, "Should have been parsed during validation.");
         return _parsedEndpointUrls;
@@ -182,16 +182,18 @@ public sealed class FrontendOptions
         else
         {
             var parts = EndpointUrls.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            var uris = new List<Uri>(parts.Length);
+            var uris = new List<BindingAddress>(parts.Length);
             foreach (var part in parts)
             {
-                if (!Uri.TryCreate(part, UriKind.Absolute, out var uri))
+                if (OptionsHelpers.TryParseBindingAddress(part, out var bindingAddress))
+                {
+                    uris.Add(bindingAddress);
+                }
+                else
                 {
                     errorMessage = $"Failed to parse frontend endpoint URLs '{EndpointUrls}'.";
                     return false;
                 }
-
-                uris.Add(uri);
             }
             _parsedEndpointUrls = uris;
         }
@@ -200,6 +202,23 @@ public sealed class FrontendOptions
 
         errorMessage = null;
         return true;
+    }
+}
+
+public static class OptionsHelpers
+{
+    public static bool TryParseBindingAddress(string address, [NotNullWhen(true)] out BindingAddress? bindingAddress)
+    {
+        try
+        {
+            bindingAddress = BindingAddress.Parse(address);
+            return true;
+        }
+        catch
+        {
+            bindingAddress = null;
+            return false;
+        }
     }
 }
 

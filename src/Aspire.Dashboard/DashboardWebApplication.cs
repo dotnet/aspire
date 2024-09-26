@@ -172,7 +172,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 // This is added so CORS middleware doesn't report failure for dashboard browser requests that include an origin header.
                 options.AddDefaultPolicy(builder =>
                 {
-                    builder.WithOrigins(dashboardOptions.Frontend.GetEndpointUris().Select(uri => uri.OriginalString).ToArray());
+                    //builder.WithOrigins(dashboardOptions.Frontend.GetEndpointUris().Select(uri => uri.OriginalString).ToArray());
                     builder.AllowAnyHeader();
                     builder.AllowAnyMethod();
                 });
@@ -461,17 +461,17 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             // to Kestrel's schema for loading endpoints from configuration.
             if (otlpGrpcUri != null)
             {
-                AddEndpointConfiguration(initialValues, "OtlpGrpc", otlpGrpcUri.OriginalString, HttpProtocols.Http2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
+                AddEndpointConfiguration(initialValues, "OtlpGrpc", otlpGrpcUri.ToString(), HttpProtocols.Http2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
             }
             if (otlpHttpUri != null)
             {
-                AddEndpointConfiguration(initialValues, "OtlpHttp", otlpHttpUri.OriginalString, HttpProtocols.Http1AndHttp2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
+                AddEndpointConfiguration(initialValues, "OtlpHttp", otlpHttpUri.ToString(), HttpProtocols.Http1AndHttp2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
             }
 
             if (frontendUris.Count == 1)
             {
                 browserEndpointNames.Add("Browser");
-                AddEndpointConfiguration(initialValues, "Browser", frontendUris[0].OriginalString);
+                AddEndpointConfiguration(initialValues, "Browser", frontendUris[0].ToString());
             }
             else
             {
@@ -479,14 +479,14 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 {
                     var name = $"Browser{i}";
                     browserEndpointNames.Add(name);
-                    AddEndpointConfiguration(initialValues, name, frontendUris[i].OriginalString);
+                    AddEndpointConfiguration(initialValues, name, frontendUris[i].ToString());
                 }
             }
         }
         else
         {
             // At least one gRPC endpoint must be present.
-            var url = otlpGrpcUri?.OriginalString ?? otlpHttpUri?.OriginalString;
+            var url = otlpGrpcUri?.ToString() ?? otlpHttpUri?.ToString();
             AddEndpointConfiguration(initialValues, "OtlpGrpc", url!, HttpProtocols.Http1AndHttp2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
         }
 
@@ -499,7 +499,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 values[$"Kestrel:Endpoints:{endpointName}:Protocols"] = protocols.ToString();
             }
 
-            if (requiredClientCertificate && IsHttpsOrNull(new Uri(url)))
+            if (requiredClientCertificate && IsHttpsOrNull(BindingAddress.Parse(url)))
             {
                 values[$"Kestrel:Endpoints:{endpointName}:ClientCertificateMode"] = ClientCertificateMode.RequireCertificate.ToString();
             }
@@ -601,15 +601,20 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             return () =>
             {
                 var endpoint = endpointConfiguration.ListenOptions.IPEndPoint!;
-                var resolvedAddress = address.Scheme.ToLowerInvariant() + Uri.SchemeDelimiter + address.Host.ToLowerInvariant() + ":" + endpoint.Port.ToString(CultureInfo.InvariantCulture);
+                var resolvedAddress = (address.Host is "+" or "*")
+                    // Use IP address.
+                    ? address.Scheme.ToLowerInvariant() + Uri.SchemeDelimiter + endpoint.ToString()
+                    // Use host name.
+                    : address.Scheme.ToLowerInvariant() + Uri.SchemeDelimiter + address.Host.ToLowerInvariant() + ":" + endpoint.Port.ToString(CultureInfo.InvariantCulture);
+
                 return new EndpointInfo(resolvedAddress, endpoint, endpointConfiguration.IsHttps);
             };
         }
     }
 
-    private static bool IsSameOrNull(Uri frontendUri, Uri? otlpUrl)
+    private static bool IsSameOrNull(BindingAddress frontendUri, BindingAddress? otlpUrl)
     {
-        return otlpUrl == null || (frontendUri == otlpUrl && otlpUrl.Port != 0);
+        return otlpUrl == null || (frontendUri.Equals(otlpUrl) && otlpUrl.Port != 0);
     }
 
     private static void ConfigureAuthentication(WebApplicationBuilder builder, DashboardOptions dashboardOptions)
@@ -817,7 +822,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         return _app.DisposeAsync();
     }
 
-    private static bool IsHttpsOrNull(Uri? uri) => uri == null || string.Equals(uri.Scheme, "https", StringComparison.Ordinal);
+    private static bool IsHttpsOrNull(BindingAddress? uri) => uri == null || string.Equals(uri.Scheme, "https", StringComparison.Ordinal);
 }
 
 public record EndpointInfo(string Address, IPEndPoint EndPoint, bool isHttps);

@@ -31,6 +31,29 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         // Assert
         AssertDynamicIPEndpoint(app.FrontendEndPointAccessor);
         AssertDynamicIPEndpoint(app.OtlpServiceGrpcEndPointAccessor);
+        AssertDynamicIPEndpoint(app.OtlpServiceHttpEndPointAccessor);
+    }
+
+    [Fact]
+    public async Task EndPointAccessors_AppStarted_IPv4OrIPv6()
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "http://+:0";
+                data[DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] = "http://+:0";
+                data[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://+:0";
+
+            });
+
+        // Act
+        await app.StartAsync();
+
+        // Assert
+        AssertDynamicIPEndpoint(app.FrontendEndPointAccessor);
+        AssertDynamicIPEndpoint(app.OtlpServiceGrpcEndPointAccessor);
+        AssertDynamicIPEndpoint(app.OtlpServiceHttpEndPointAccessor);
     }
 
     [Fact]
