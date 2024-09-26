@@ -52,7 +52,7 @@ public class KeycloakResourceBuilderTests
 
         var volumeAnnotation = keycloak.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
 
-        Assert.Equal($"Aspire.Hosting.Tests-{resourceName}-data", volumeAnnotation.Source);
+        Assert.Equal($"{builder.GetVolumePrefix()}-{resourceName}-data", volumeAnnotation.Source);
         Assert.Equal("/opt/keycloak/data", volumeAnnotation.Target);
         Assert.Equal(ContainerMountType.Volume, volumeAnnotation.Type);
         Assert.False(volumeAnnotation.IsReadOnly);

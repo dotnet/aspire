@@ -9,7 +9,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
-using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting;
 
@@ -24,6 +23,12 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
     /// Callback for configuring construct.
     /// </summary>
     public Action<ResourceModuleConstruct> ConfigureConstruct { get; internal set; } = configureConstruct;
+
+    /// <summary>
+    /// Gets or sets the <see cref="Azure.Provisioning.ProvisioningContext"/> which contains common settings and
+    /// functionality for building Azure resources.
+    /// </summary>
+    public ProvisioningContext? ProvisioningContext { get; set; }
 
     /// <inheritdoc/>
     public override BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
@@ -55,8 +60,7 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
         var generationPath = Directory.CreateTempSubdirectory("aspire").FullName;
         var moduleSourcePath = Path.Combine(generationPath, "main.bicep");
 
-        var provisioningContext = GetProvisioningContext();
-        var plan = resourceModuleConstruct.Build(provisioningContext);
+        var plan = resourceModuleConstruct.Build(ProvisioningContext);
         var compilation = plan.Compile();
         Debug.Assert(compilation.Count == 1);
         var compiledBicep = compilation.First();
@@ -81,50 +85,6 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
 
         return _generatedBicep;
     }
-
-    private static ProvisioningContext GetProvisioningContext()
-    {
-        var context = new ProvisioningContext();
-
-        // replace the built-in Name property resolver with our own
-        var defaultPropertyResolverIndex = -1;
-        for (var i = 0; i < context.PropertyResolvers.Count; i++)
-        {
-            if (context.PropertyResolvers[i] is ResourceNamePropertyResolver)
-            {
-                defaultPropertyResolverIndex = i;
-                break;
-            }
-        }
-
-        if (defaultPropertyResolverIndex != -1)
-        {
-            context.PropertyResolvers.RemoveAt(defaultPropertyResolverIndex);
-        }
-        else
-        {
-            // if a naming resolver wasn't found, insert ours at the beginning
-            defaultPropertyResolverIndex = 0;
-        }
-
-        context.PropertyResolvers.Insert(defaultPropertyResolverIndex, new AspireNamePropertyResolver());
-
-        return context;
-    }
-
-    private sealed class AspireNamePropertyResolver : DynamicResourceNamePropertyResolver
-    {
-        /// <summary>
-        /// Override the default Name property resolver and use a .NET Aspire 8.x compatible name scheme.
-        ///
-        /// This is to keep a consistent name with .NET Aspire 8.x so updating doesn't change resource names.
-        /// </summary>
-        public override BicepValue<string>? ResolveName(ProvisioningContext context, global::Azure.Provisioning.Primitives.Resource resource, ResourceNameRequirements requirements)
-        {
-            var suffix = GetUniqueSuffix(context, resource);
-            return BicepFunction.ToLower(BicepFunction.Take(BicepFunction.Interpolate($"{resource.ResourceName}{suffix}"), 24));
-        }
-    }
 }
 
 /// <summary>
@@ -139,7 +99,7 @@ public static class AzureConstructResourceExtensions
     /// <param name="name">The name of the resource being added.</param>
     /// <param name="configureConstruct">A callback used to configure the construct resource.</param>
     /// <returns></returns>
-    public static IResourceBuilder<AzureConstructResource> AddAzureConstruct(this IDistributedApplicationBuilder builder, string name, Action<ResourceModuleConstruct> configureConstruct)
+    public static IResourceBuilder<AzureConstructResource> AddAzureConstruct(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<ResourceModuleConstruct> configureConstruct)
     {
         builder.AddAzureProvisioning();
 

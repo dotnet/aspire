@@ -342,6 +342,21 @@
         <target state="translated">Horário de início &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
+      <trans-unit id="StructuredFilteringAddFilter">
+        <source>Add filter</source>
+        <target state="new">Add filter</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredFilteringFilters">
+        <source>Filters</source>
+        <target state="new">Filters</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredFilteringNoFilters">
+        <source>No filters</source>
+        <target state="new">No filters</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StructuredLogsDetailsContextHeader">
         <source>Context</source>
         <target state="translated">Contexto</target>

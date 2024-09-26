@@ -2,12 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-
 using Azure.Provisioning;
-using Azure.Provisioning.Authorization;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.WebPubSub;
 
@@ -26,7 +23,7 @@ public static class AzureWebPubSubExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureWebPubSubResource> AddAzureWebPubSub(this IDistributedApplicationBuilder builder, string name)
+    public static IResourceBuilder<AzureWebPubSubResource> AddAzureWebPubSub(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
 #pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return builder.AddAzureWebPubSub(name, null);
@@ -41,7 +38,7 @@ public static class AzureWebPubSubExtensions
     /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.WebPubSub.WebPubSubService"/> resource.</param>
     /// <returns></returns>
     [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureWebPubSubResource> AddAzureWebPubSub(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureWebPubSubResource>, ResourceModuleConstruct, WebPubSubService>? configureResource)
+    public static IResourceBuilder<AzureWebPubSubResource> AddAzureWebPubSub(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<IResourceBuilder<AzureWebPubSubResource>, ResourceModuleConstruct, WebPubSubService>? configureResource)
     {
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
@@ -72,15 +69,7 @@ public static class AzureWebPubSubExtensions
 
             construct.Add(new BicepOutput("endpoint", typeof(string)) { Value = BicepFunction.Interpolate($"https://{service.HostName}") });
 
-            // TODO: this should be defined in the CDK, but isn't currently
-            const string WebPubSubServiceOwnerRoleId = "12cf5a90-567b-43ae-8102-96cf46c7d9b4";
-            construct.Add(new RoleAssignment($"WebPubSubServiceOwner_{service.ResourceName}")
-            {
-                Scope = new IdentifierExpression(service.ResourceName),
-                PrincipalType = construct.PrincipalTypeParameter,
-                RoleDefinitionId = BicepFunction.GetSubscriptionResourceId("Microsoft.Authorization/roleDefinitions", WebPubSubServiceOwnerRoleId),
-                PrincipalId = construct.PrincipalIdParameter
-            });
+            construct.Add(service.AssignRole(WebPubSubBuiltInRole.WebPubSubServiceOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             var resource = (AzureWebPubSubResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);

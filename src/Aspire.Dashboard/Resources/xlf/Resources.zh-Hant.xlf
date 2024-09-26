@@ -122,6 +122,11 @@
         <target state="translated">狀態</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsStopTimeProperty">
+        <source>Stop time</source>
+        <target state="new">Stop time</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesEndpointsColumnHeader">
         <source>Endpoints</source>
         <target state="translated">端點</target>

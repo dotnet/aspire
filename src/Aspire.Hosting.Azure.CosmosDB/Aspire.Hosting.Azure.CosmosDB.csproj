@@ -15,6 +15,7 @@
   <ItemGroup>
     <Compile Include="..\Shared\Cosmos\CosmosConstants.cs" Link="Shared\CosmosConstants.cs" />
     <Compile Include="..\Shared\Cosmos\CosmosUtils.cs" Link="Shared\CosmosUtils.cs" />
+    <Compile Include="..\Shared\VolumeNameGenerator.cs" Link="Utils\VolumeNameGenerator.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,6 +24,10 @@
     <PackageReference Include="AspNetCore.HealthChecks.CosmosDb" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.CosmosDB" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.Tests" />
   </ItemGroup>
 
 </Project>

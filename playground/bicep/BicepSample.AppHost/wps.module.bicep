@@ -10,25 +10,25 @@ param principalId string
 param principalType string
 
 resource wps 'Microsoft.SignalRService/webPubSub@2021-10-01' = {
-    name: toLower(take('wps${uniqueString(resourceGroup().id)}', 24))
-    location: location
-    sku: {
-        name: sku
-        capacity: capacity
-    }
-    tags: {
-        'aspire-resource-name': 'wps'
-    }
+  name: take('wps-${uniqueString(resourceGroup().id)}', 63)
+  location: location
+  sku: {
+    name: sku
+    capacity: capacity
+  }
+  tags: {
+    'aspire-resource-name': 'wps'
+  }
 }
 
-resource WebPubSubServiceOwner_wps 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-    name: guid(resourceGroup().id, 'WebPubSubServiceOwner_wps')
-    properties: {
-        principalId: principalId
-        roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4')
-        principalType: principalType
-    }
-    scope: wps
+resource wps_WebPubSubServiceOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(wps.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4'))
+  properties: {
+    principalId: principalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '12cf5a90-567b-43ae-8102-96cf46c7d9b4')
+    principalType: principalType
+  }
+  scope: wps
 }
 
 output endpoint string = 'https://${wps.properties.hostName}'

@@ -61,7 +61,7 @@ internal static class ResourceViewModelExtensions
 
     private static bool TryGetCustomDataString(this ResourceViewModel resource, string key, [NotNullWhen(returnValue: true)] out string? s)
     {
-        if (resource.Properties.TryGetValue(key, out var value) && value.TryConvertToString(out var valueString))
+        if (resource.Properties.TryGetValue(key, out var property) && property.Value.TryConvertToString(out var valueString))
         {
             s = valueString;
             return true;
@@ -73,7 +73,7 @@ internal static class ResourceViewModelExtensions
 
     private static bool TryGetCustomDataStringArray(this ResourceViewModel resource, string key, out ImmutableArray<string> strings)
     {
-        if (resource.Properties.TryGetValue(key, out var value) && value.ListValue is not null)
+        if (resource.Properties.TryGetValue(key, out var property) && property is { Value: { ListValue: not null } value })
         {
             var builder = ImmutableArray.CreateBuilder<string>(value.ListValue.Values.Count);
 
@@ -98,7 +98,7 @@ internal static class ResourceViewModelExtensions
 
     private static bool TryGetCustomDataInt(this ResourceViewModel resource, string key, out int i)
     {
-        if (resource.Properties.TryGetValue(key, out var value) && value.TryConvertToInt(out i))
+        if (resource.Properties.TryGetValue(key, out var property) && property.Value.TryConvertToInt(out i))
         {
             return true;
         }

@@ -151,12 +151,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var appHostName = options.ProjectName ?? _innerBuilder.Environment.ApplicationName;
         AppHostPath = Path.Join(AppHostDirectory, appHostName);
 
-        var appHostSha = string.Empty;
-        using (var shaHash = SHA256.Create())
-        {
-            var appHostShaBytes = shaHash.ComputeHash(Encoding.UTF8.GetBytes(AppHostPath));
-            appHostSha = Convert.ToHexString(appHostShaBytes);
-        }
+        var appHostShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(AppHostPath));
+        var appHostSha = Convert.ToHexString(appHostShaBytes);
 
         // Set configuration
         ConfigurePublishingOptions(options);
@@ -175,6 +171,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         };
 
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
+
+        // 
+        Eventing.Subscribe<BeforeResourceStartedEvent>(async (@event, ct) =>
+        {
+            var rns = @event.Services.GetRequiredService<ResourceNotificationService>();
+            await rns.WaitForDependenciesAsync(@event.Resource, ct).ConfigureAwait(false);
+        });
 
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
@@ -275,6 +278,35 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     private void ConfigureHealthChecks()
     {
+        _innerBuilder.Services.AddSingleton<IValidateOptions<HealthCheckServiceOptions>>(sp =>
+        {
+            var appModel = sp.GetRequiredService<DistributedApplicationModel>();
+            var logger = sp.GetRequiredService<ILogger<DistributedApplicationBuilder>>();
+
+            // Generic message (we update it in the callback to make it more specific).
+            var failureMessage = "A health check registration is missing. Check logs for more details.";
+
+            return new ValidateOptions<HealthCheckServiceOptions>(null, (options) =>
+            {
+                var resourceHealthChecks = appModel.Resources.SelectMany(
+                    r => r.Annotations.OfType<HealthCheckAnnotation>().Select(hca => new { Resource = r, Annotation = hca })
+                    );
+
+                var healthCheckRegistrationKeys = options.Registrations.Select(hcr => hcr.Name).ToHashSet();
+                var missingResourceHealthChecks = resourceHealthChecks.Where(rhc => !healthCheckRegistrationKeys.Contains(rhc.Annotation.Key));
+
+                foreach (var missingResourceHealthCheck in missingResourceHealthChecks)
+                {
+                    sp.GetRequiredService<ILogger<DistributedApplicationBuilder>>().LogCritical(
+                        "The health check '{Key}' is not registered and is required for resource '{ResourceName}'.",
+                        missingResourceHealthCheck.Annotation.Key,
+                        missingResourceHealthCheck.Resource.Name);
+                }
+
+                return !missingResourceHealthChecks.Any();
+            }, failureMessage);
+        });
+
         _innerBuilder.Services.AddSingleton<IConfigureOptions<HealthCheckPublisherOptions>>(sp =>
         {
             return new ConfigureOptions<HealthCheckPublisherOptions>(options =>

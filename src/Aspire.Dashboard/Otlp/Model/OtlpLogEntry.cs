@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Model.Otlp;
 using OpenTelemetry.Proto.Logs.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
@@ -88,4 +89,18 @@ public class OtlpLogEntry
         SeverityNumber.Fatal4 => LogLevel.Critical,
         _ => LogLevel.None
     };
+
+    public static string? GetFieldValue(OtlpLogEntry log, string field)
+    {
+        return field switch
+        {
+            KnownStructuredLogFields.MessageField => log.Message,
+            KnownStructuredLogFields.ApplicationField => log.ApplicationView.Application.ApplicationName,
+            KnownStructuredLogFields.TraceIdField => log.TraceId,
+            KnownStructuredLogFields.SpanIdField => log.SpanId,
+            KnownStructuredLogFields.OriginalFormatField => log.OriginalFormat,
+            KnownStructuredLogFields.CategoryField => log.Scope.ScopeName,
+            _ => log.Attributes.GetValue(field)
+        };
+    }
 }
