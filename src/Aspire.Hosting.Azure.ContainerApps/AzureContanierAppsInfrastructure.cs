@@ -463,7 +463,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                             {
                                 var managedIdentityParameter = AllocateManagedIdentityIdParameter();
                                 secret.Identity = managedIdentityParameter;
-                                secret.Value = argValue;
+                                secret.KeyVaultUri = new BicepValue<Uri>(argValue.Expression!);
                             }
                             else
                             {

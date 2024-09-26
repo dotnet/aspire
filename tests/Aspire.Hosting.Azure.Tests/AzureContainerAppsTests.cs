@@ -364,8 +364,8 @@ public class AzureContainerAppsTests
               secrets: [
                 {
                   name: 'connectionstrings--mydb'
-                  value: mydb_secretoutputs_connectionstring
                   identity: outputs_azure_container_registry_managed_identity_id
+                  keyVaultUrl: mydb_secretoutputs_connectionstring
                 }
                 {
                   name: 'connectionstrings--blobs'
@@ -510,6 +510,7 @@ public class AzureContainerAppsTests
         Assert.Equal(expectedBicep, bicep);
     }
 
+#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     [Fact]
     public async Task PublishAsContainerAppInfluencesContainerAppDefinition()
     {
@@ -519,9 +520,7 @@ public class AzureContainerAppsTests
         builder.AddContainer("api", "myimage")
             .PublishAsAzureContainerApp((module, c) =>
             {
-#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                 c.Template.Value!.Scale.Value!.MinReplicas = 0;
-#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             });
 
         using var app = builder.Build();
@@ -605,6 +604,8 @@ public class AzureContainerAppsTests
 
         Assert.Equal(expectedBicep, bicep);
     }
+
+#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
     [Fact]
     public async Task VolumesAndBindMountsAreTranslation()
