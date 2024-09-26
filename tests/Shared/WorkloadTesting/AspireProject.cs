@@ -13,7 +13,7 @@ using Xunit.Sdk;
 
 namespace Aspire.Workload.Tests;
 
-public class AspireProject : IAsyncDisposable
+public partial class AspireProject : IAsyncDisposable
 {
     public const int DashboardAvailabilityTimeoutSecs = 60;
     private const int AppStartupWaitTimeoutSecs = 5 * 60;
@@ -110,8 +110,8 @@ public class AspireProject : IAsyncDisposable
 
         foreach (var csprojPath in Directory.EnumerateFiles(rootDir, "*.csproj", SearchOption.AllDirectories))
         {
-            string csprojContent = File.ReadAllText(csprojPath);
-            var matches = Regex.Matches(csprojContent, @"<TargetFramework>(?<tfm>[^<]*)</TargetFramework>");
+            var csprojContent = File.ReadAllText(csprojPath);
+            var matches = TargetFrameworkPropertyRegex().Matches(csprojContent);
             if (matches.Count == 0)
             {
                 throw new XunitException($"Expected to find a <TargetFramework> element in {csprojPath}: {csprojContent}");
@@ -123,7 +123,7 @@ public class AspireProject : IAsyncDisposable
 
             if (matches[0].Groups["tfm"].Value != tfmToUseString)
             {
-                throw new XunitException($"Expected to find {tfmToUseString} but found '{matches[0].Groups["tfm"].Value}' in {csprojPath}");
+                throw new XunitException($"Expected to find {tfmToUseString} but found '{matches[0].Groups["tfm"].Value}' in {csprojPath}: {csprojContent}");
             }
         }
 
@@ -509,4 +509,7 @@ public class AspireProject : IAsyncDisposable
         });
         app.Run();
         """;
+
+    [GeneratedRegex(@"<TargetFramework>(?<tfm>[^<]*)</TargetFramework>")]
+    private static partial Regex TargetFrameworkPropertyRegex();
 }
