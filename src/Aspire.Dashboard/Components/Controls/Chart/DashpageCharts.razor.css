@@ -9,3 +9,7 @@
     box-sizing: border-box;
     min-width: 400px;
 }
+
+.dashpage-chart-title {
+    margin-left: 5px;
+}

@@ -19,6 +19,8 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.MetricsViewModel, Metrics.MetricsPageState>
 {
+    public const string DashpagesHome = nameof(DashpagesHome);
+
     private SelectViewModel<ResourceTypeDetails> _selectApplication = null!;
     private List<SelectViewModel<TimeSpan>> _durations = null!;
     private static readonly TimeSpan s_defaultDuration = TimeSpan.FromMinutes(5);
@@ -133,7 +135,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             InstrumentName = PageViewModel.SelectedInstrument?.Name,
             DurationMinutes = (int)PageViewModel.SelectedDuration.Id.TotalMinutes,
             ViewKind = PageViewModel.SelectedViewKind?.ToString(),
-            DashpageName = PageViewModel.SelectedDashpage?.Name
+            DashpageName = PageViewModel.SelectedDashpage?.Name,
+            DashpageHomeSelected = PageViewModel.DashpagesHomeSelected
         };
     }
 
@@ -162,6 +165,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         {
             viewModel.SelectedDashpage = dashpage;
         }
+
+        viewModel.DashpagesHomeSelected = DashboardUrls.IsDashpagesUrl(NavigationManager, ApplicationName);
     }
 
     private void UpdateApplications()
@@ -233,6 +238,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         public OtlpMeter? SelectedMeter { get; set; }
         public OtlpInstrumentSummary? SelectedInstrument { get; set; }
         public DashpageDefinition? SelectedDashpage { get; set; }
+        public bool DashpagesHomeSelected { get; set; }
 
         public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }
         public required SelectViewModel<TimeSpan> SelectedDuration { get; set; }
@@ -330,24 +336,26 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         public int DurationMinutes { get; set; }
         public required string? ViewKind { get; set; }
         public string? DashpageName { get; set; }
+        public required bool DashpageHomeSelected { get; set; }
     }
 
     #endregion
 
     private Task HandleSelectedTreeItemChangedAsync()
     {
-        (OtlpMeter?, OtlpInstrumentSummary?, DashpageDefinition?) selections =
+        (OtlpMeter?, OtlpInstrumentSummary?, DashpageDefinition?, bool) selections =
             PageViewModel.SelectedTreeItem?.Data switch
             {
-                OtlpMeter meter => (meter, null, null),
-                OtlpInstrumentSummary instrument => (instrument.Parent, instrument, null),
-                DashpageDefinition dashpage => (null, null, dashpage),
-                _ => (null, null, null)
+                OtlpMeter meter => (meter, null, null, false),
+                OtlpInstrumentSummary instrument => (instrument.Parent, instrument, null, false),
+                DashpageDefinition dashpage => (null, null, dashpage, false),
+                DashpagesHome => (null, null, null, true),
+                _ => (null, null, null, false)
             };
 
         var vm = PageViewModel;
 
-        (vm.SelectedMeter, vm.SelectedInstrument, vm.SelectedDashpage) = selections;
+        (vm.SelectedMeter, vm.SelectedInstrument, vm.SelectedDashpage, vm.DashpagesHomeSelected) = selections;
 
         return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: !ViewportInformation.IsDesktop);
     }
@@ -360,7 +368,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             instrument: serializable.InstrumentName,
             duration: serializable.DurationMinutes,
             view: serializable.ViewKind,
-            dashpage: serializable.DashpageName);
+            dashpage: serializable.DashpageName,
+            isDashpagesHome: serializable.DashpageHomeSelected);
 
         return url;
     }

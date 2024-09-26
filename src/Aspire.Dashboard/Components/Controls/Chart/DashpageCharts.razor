@@ -5,10 +5,7 @@
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 
-@if (!ViewportInformation.IsDesktop)
-{
-    <h3 title="@SelectedDashpage.Name">@SelectedDashpage.Name</h3>
-}
+<h3 title="@SelectedDashpage.Name" class="dashpage-chart-title">@SelectedDashpage.Name</h3>
 
 <section class="dashpage-chart-grid">
     @foreach (var chart in SelectedDashpage.Charts)

@@ -2,14 +2,11 @@
 @page "/metrics/resource/{applicationName}"
 @page "/metrics/resource/{applicationName}/meter/{meterName}"
 @page "/metrics/resource/{applicationName}/meter/{meterName}/instrument/{instrumentName}"
+@page "/metrics/resource/{applicationName}/dashpages"
 
-@using Aspire.Dashboard.Components.Controls.Grid
-@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Model.Otlp
-@using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
-@using Aspire.Dashboard.Components.Controls.Chart
 @inject IStringLocalizer<Dashboard.Resources.Metrics> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
@@ -96,6 +93,17 @@
                                                         SelectedViewKind="@PageViewModel.SelectedViewKind"
                                                         OnViewChangedAsync="@OnViewChangedAsync"/>
                                     }
+                                    else if (PageViewModel.DashpagesHomeSelected)
+                                    {
+                                        var instrumentModels = PageViewModel.Dashpages
+                                            .Where(PageViewModel.IsDashpageAvailable)
+                                            .Select(i => new MetricInstrumentSelector.MetricInstrument(i.Name, DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedApplication.Name, duration: DurationMinutes, view: ViewKindName, dashpage: i.Name), null));
+
+                                        <MetricInstrumentSelector Title="@Loc[nameof(Dashboard.Resources.Metrics.DashpagesSectionName)]"
+                                                                  PageViewModel="@PageViewModel"
+                                                                  Instruments="@instrumentModels"
+                                                                  ShowDescriptionColumn="false" />
+                                    }
                                     else if (PageViewModel.SelectedApplication.Id?.ReplicaSetName != null && PageViewModel.SelectedMeter != null && PageViewModel.SelectedInstrument != null)
                                     {
                                         // We've got a selected instrument and application, so show the chart
@@ -110,21 +118,14 @@
                                     }
                                     else if (PageViewModel.SelectedMeter != null)
                                     {
-                                        <h3 class="meter-name-title">@PageViewModel.SelectedMeter.MeterName</h3>
-                                        <FluentDataGrid
-                                            Style="max-width:1100px;"
-                                            Items="@PageViewModel.Instruments.Where(i => i.Parent == PageViewModel.SelectedMeter).OrderBy(i => i.Name).AsQueryable()"
-                                            GridTemplateColumns="3fr 5fr"
-                                            TGridItem="OtlpInstrumentSummary">
-                                            <ChildContent>
-                                                <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader)]">
-                                                    <FluentAnchor Href="@DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedApplication.Name, meter: context.Parent.MeterName, instrument: context.Name, duration: DurationMinutes, view: ViewKindName)" Appearance="Appearance.Lightweight">
-                                                        @context.Name
-                                                    </FluentAnchor>
-                                                </TemplateColumn>
-                                                <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementDescriptionGridNameColumnHeader)]" Property="@(c => c.Description)" Class="multiline-text"/>
-                                            </ChildContent>
-                                        </FluentDataGrid>
+                                        var instrumentModels = PageViewModel.Instruments
+                                            .Where(i => i.Parent == PageViewModel.SelectedMeter)
+                                            .Select(i => new MetricInstrumentSelector.MetricInstrument(i.Name, DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedApplication.Name, meter: i.Parent.MeterName, instrument: i.Name, duration: DurationMinutes, view: ViewKindName), i.Description));
+
+                                        <MetricInstrumentSelector Title="@PageViewModel.SelectedMeter.MeterName"
+                                                                  PageViewModel="@PageViewModel"
+                                                                  Instruments="@instrumentModels"
+                                                                  ShowDescriptionColumn="true" />
                                     }
                                     else
                                     {
