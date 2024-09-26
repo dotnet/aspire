@@ -74,25 +74,7 @@ public static class AzureFunctionsProjectResourceExtensions
                 context.Args.Add(http.Property(EndpointProperty.TargetPort));
             })
             .WithOtlpExporter()
-            .WithFunctionsHttpEndpoint()
-            .WithManifestPublishingCallback(async (context) =>
-            {
-                context.Writer.WriteString("type", "function.v0");
-                context.Writer.WriteString("path", context.GetManifestRelativePath(new TProject().ProjectPath));
-                await context.WriteEnvironmentVariablesAsync(resource).ConfigureAwait(false);
-                context.Writer.WriteStartObject("bindings");
-                foreach (var s in new string[] { "http", "https" })
-                {
-                    context.Writer.WriteStartObject(s);
-                    context.Writer.WriteString("scheme", s);
-                    context.Writer.WriteString("protocol", "tcp");
-                    context.Writer.WriteString("transport", "http");
-                    context.Writer.WriteBoolean("external", true);
-                    context.Writer.WriteEndObject();
-                }
-
-                context.Writer.WriteEndObject();
-            });
+            .WithFunctionsHttpEndpoint();
     }
 
     /// <summary>
