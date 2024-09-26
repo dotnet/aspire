@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using Aspire.Components.Common.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
+using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
@@ -96,7 +97,8 @@ public class AspireProject : IAsyncDisposable
            .WithTimeout(TimeSpan.FromMinutes(5));
 
         var tfmToUse = targetFramework ?? BuildEnvironment.DefaultTargetFramework;
-        var cmdString = $"{template} {extraArgs} -o \"{id}\" -f {tfmToUse.ToTFMString()}";
+        var tfmToUseString = tfmToUse.ToTFMString();
+        var cmdString = $"{template} {extraArgs} -o \"{id}\" -f {tfmToUseString}";
 
         var res = await cmd.ExecuteAsync(cmdString).ConfigureAwait(false);
         res.EnsureSuccessful();
@@ -104,6 +106,25 @@ public class AspireProject : IAsyncDisposable
             res.Output.Contains("Post action failed", StringComparison.OrdinalIgnoreCase))
         {
             throw new XunitException($"`dotnet new {cmdString}` . Output: {res.Output}");
+        }
+
+        foreach (var csprojPath in Directory.EnumerateFiles(rootDir, "*.csproj", SearchOption.AllDirectories))
+        {
+            string csprojContent = File.ReadAllText(csprojPath);
+            var matches = Regex.Matches(csprojContent, @"<TargetFramework>(?<tfm>[^<]*)</TargetFramework>");
+            if (matches.Count == 0)
+            {
+                throw new XunitException($"Expected to find a <TargetFramework> element in {csprojPath}: {csprojContent}");
+            }
+            if (matches.Count > 1)
+            {
+                throw new XunitException($"Expected to find exactly one <TargetFramework> element in {csprojPath}: {csprojContent}");
+            }
+
+            if (matches[0].Groups["tfm"].Value != tfmToUseString)
+            {
+                throw new XunitException($"Expected to find {tfmToUseString} but found '{matches[0].Groups["tfm"].Value}' in {csprojPath}");
+            }
         }
 
         var project = new AspireProject(id, rootDir, testOutput, buildEnvironment);
