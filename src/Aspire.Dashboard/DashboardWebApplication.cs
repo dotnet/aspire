@@ -447,46 +447,46 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     private void ConfigureKestrelEndpoints(WebApplicationBuilder builder, DashboardOptions dashboardOptions)
     {
         // A single endpoint is configured if URLs are the same and the port isn't dynamic.
-        var frontendUris = dashboardOptions.Frontend.GetEndpointAddresses();
-        var otlpGrpcUri = dashboardOptions.Otlp.GetGrpcEndpointAddress();
-        var otlpHttpUri = dashboardOptions.Otlp.GetHttpEndpointAddress();
-        var hasSingleEndpoint = frontendUris.Count == 1 && IsSameOrNull(frontendUris[0], otlpGrpcUri) && IsSameOrNull(frontendUris[0], otlpHttpUri);
+        var frontendAddresses = dashboardOptions.Frontend.GetEndpointAddresses();
+        var otlpGrpcAddress = dashboardOptions.Otlp.GetGrpcEndpointAddress();
+        var otlpHttpAddress = dashboardOptions.Otlp.GetHttpEndpointAddress();
+        var hasSingleEndpoint = frontendAddresses.Count == 1 && IsSameOrNull(frontendAddresses[0], otlpGrpcAddress) && IsSameOrNull(frontendAddresses[0], otlpHttpAddress);
 
         var initialValues = new Dictionary<string, string?>();
-        var browserEndpointNames = new List<string>(capacity: frontendUris.Count);
+        var browserEndpointNames = new List<string>(capacity: frontendAddresses.Count);
 
         if (!hasSingleEndpoint)
         {
             // Translate high-level config settings such as DOTNET_DASHBOARD_OTLP_ENDPOINT_URL and ASPNETCORE_URLS
             // to Kestrel's schema for loading endpoints from configuration.
-            if (otlpGrpcUri != null)
+            if (otlpGrpcAddress != null)
             {
-                AddEndpointConfiguration(initialValues, "OtlpGrpc", otlpGrpcUri.ToString(), HttpProtocols.Http2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
+                AddEndpointConfiguration(initialValues, "OtlpGrpc", otlpGrpcAddress.ToString(), HttpProtocols.Http2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
             }
-            if (otlpHttpUri != null)
+            if (otlpHttpAddress != null)
             {
-                AddEndpointConfiguration(initialValues, "OtlpHttp", otlpHttpUri.ToString(), HttpProtocols.Http1AndHttp2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
+                AddEndpointConfiguration(initialValues, "OtlpHttp", otlpHttpAddress.ToString(), HttpProtocols.Http1AndHttp2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
             }
 
-            if (frontendUris.Count == 1)
+            if (frontendAddresses.Count == 1)
             {
                 browserEndpointNames.Add("Browser");
-                AddEndpointConfiguration(initialValues, "Browser", frontendUris[0].ToString());
+                AddEndpointConfiguration(initialValues, "Browser", frontendAddresses[0].ToString());
             }
             else
             {
-                for (var i = 0; i < frontendUris.Count; i++)
+                for (var i = 0; i < frontendAddresses.Count; i++)
                 {
                     var name = $"Browser{i}";
                     browserEndpointNames.Add(name);
-                    AddEndpointConfiguration(initialValues, name, frontendUris[i].ToString());
+                    AddEndpointConfiguration(initialValues, name, frontendAddresses[i].ToString());
                 }
             }
         }
         else
         {
             // At least one gRPC endpoint must be present.
-            var url = otlpGrpcUri?.ToString() ?? otlpHttpUri?.ToString();
+            var url = otlpGrpcAddress?.ToString() ?? otlpHttpAddress?.ToString();
             AddEndpointConfiguration(initialValues, "OtlpGrpc", url!, HttpProtocols.Http1AndHttp2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
         }
 
