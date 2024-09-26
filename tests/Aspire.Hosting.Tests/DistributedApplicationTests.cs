@@ -188,6 +188,8 @@ public class DistributedApplicationTests
 
         await using var app = testProgram.Build();
 
+        var logger = app.Services.GetRequiredService<ILogger<DistributedApplicationTests>>();
+
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
 
         await app.StartAsync(cts.Token);
@@ -208,13 +210,21 @@ public class DistributedApplicationTests
             while (true)
             {
                 using var clientB = new HttpClient();
-                var pid = await clientB.GetStringAsync($"{uri}pid", cts.Token);
-                if (!string.IsNullOrEmpty(pid))
+                var url = $"{uri}pid";
+                logger.LogInformation("Calling PID API at {Url}", url);
+                var pidText = await clientB.GetStringAsync(url, cts.Token);
+                if (!string.IsNullOrEmpty(pidText))
                 {
-                    pids[int.Parse(pid, CultureInfo.InvariantCulture)] = true;
-                    if (pids.Count == replicaCount)
+                    var pid = int.Parse(pidText, CultureInfo.InvariantCulture);
+                    if (pids.TryAdd(pid, true))
                     {
-                        break; // Success! We heard from all 3 replicas.
+                        logger.LogInformation("PID API returned new value: {PID}", pid);
+
+                        if (pids.Count == replicaCount)
+                        {
+                            logger.LogInformation("Success! We heard from all {ReplicaCount} replicas.", replicaCount);
+                            break;
+                        }
                     }
                 }
 

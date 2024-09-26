@@ -104,7 +104,7 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsHealthStateProperty">
         <source>Health State</source>
-        <target state="new">Health State</target>
+        <target state="translated">İşlevsel Durum</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
