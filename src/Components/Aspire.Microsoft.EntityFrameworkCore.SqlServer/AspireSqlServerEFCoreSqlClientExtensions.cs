@@ -182,6 +182,7 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
                         }
                     }
 #endif
+
                     if (settings.CommandTimeout.HasValue)
                     {
                         if (extension != null &&

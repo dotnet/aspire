@@ -67,6 +67,8 @@
     <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>8.0.8</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
     <MicrosoftEntityFrameworkCoreToolsPackageVersion>8.0.8</MicrosoftEntityFrameworkCoreToolsPackageVersion>
     <MicrosoftNETRuntimeWorkloadTestingInternalVersion>9.0.0-preview.5.24272.3</MicrosoftNETRuntimeWorkloadTestingInternalVersion>
+
+    <NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>8.0.4</NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0'">
@@ -82,6 +84,8 @@
     <MicrosoftEntityFrameworkCoreDesignPackageVersion>9.0.0-rc.1.24451.1</MicrosoftEntityFrameworkCoreDesignPackageVersion>
     <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>9.0.0-rc.1.24451.1</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
     <MicrosoftEntityFrameworkCoreToolsPackageVersion>9.0.0-rc.1.24451.1</MicrosoftEntityFrameworkCoreToolsPackageVersion>
+
+    <NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>9.0.0-rc.1</NpgsqlEntityFrameworkCorePostgreSQLPackageVersion>
   </PropertyGroup>
-  
+
 </Project>
