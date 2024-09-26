@@ -62,7 +62,7 @@ public class TestsWithBothTemplatePacksInstalled : WorkloadTestsBase
             templateName,
             _testOutput,
             buildEnvironment: buildEnvToUse,
-            extraArgs: $"-f {tfm.ToTFMString()}",
+            targetFramework: tfm,
             addEndpointsHook: templateName is "aspire" or "aspire-starter",
             customHiveForTemplates: _templateHive.CustomHiveDirectory);
 
