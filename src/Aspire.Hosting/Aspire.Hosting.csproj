@@ -33,13 +33,12 @@
     <Compile Include="$(SharedDir)LoggingHelpers.cs" Link="Utils\LoggingHelpers.cs" />
     <Compile Include="$(SharedDir)StringUtils.cs" Link="Utils\StringUtils.cs" />
     <Compile Include="$(SharedDir)SchemaUtils.cs" Link="Utils\SchemaUtils.cs" />
-    <Compile Include="$(SharedDir)LaunchSettings.cs" Link="LaunchSettings.cs" />
-    <Compile Include="$(SharedDir)LaunchProfile.cs" Link="LaunchProfile.cs" />
-    <Compile Include="$(SharedDir)LaunchSettingsSerializerContext.cs" Link="LaunchSettingsSerializerContext.cs" />
     <Compile Include="$(SharedDir)SecretsStore.cs" Link="Utils\SecretsStore.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\LogEntries.cs" Link="Utils\ConsoleLogs\LogEntries.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\LogEntry.cs" Link="Utils\ConsoleLogs\LogEntry.cs" />
     <Compile Include="$(SharedDir)ConsoleLogs\TimestampParser.cs" Link="Utils\ConsoleLogs\TimestampParser.cs" />
+    <Compile Include="$(SharedDir)CommandLineArgsParser.cs" Link="Utils\CommandLineArgsParser.cs" />
+    <Compile Include="$(SharedDir)LaunchProfiles\*.cs" />
   </ItemGroup>
 
   <ItemGroup>

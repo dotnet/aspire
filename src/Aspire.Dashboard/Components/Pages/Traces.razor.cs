@@ -333,6 +333,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             Filter = entry,
             PropertyKeys = TelemetryRepository.GetTracePropertyKeys(PageViewModel.SelectedApplication.Id?.GetApplicationKey()),
             KnownKeys = KnownTraceFields.AllFields,
+            GetFieldValues = TelemetryRepository.GetTraceFieldValues
         };
         await DialogService.ShowPanelAsync<FilterDialog>(data, parameters);
     }

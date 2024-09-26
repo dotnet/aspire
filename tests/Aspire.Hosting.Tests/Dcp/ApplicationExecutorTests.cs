@@ -461,7 +461,7 @@ public class ApplicationExecutorTests
         // State is clear when no longer watching.
         await AsyncTestHelpers.AssertIsTrueRetryAsync(
             () => loggerState.GetBacklogSnapshot().Length == 0,
-            "Backlog is asyncronously cleared after watch ends.");
+            "Backlog is asynchronously cleared after watch ends.");
     }
 
     [Fact]
