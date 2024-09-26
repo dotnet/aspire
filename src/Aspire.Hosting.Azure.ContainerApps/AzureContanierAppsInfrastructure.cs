@@ -217,9 +217,11 @@ internal sealed class AzureContainerAppsInfastructure(DistributedApplicationExec
                 }
 
                 // Only http, https, and tcp are supported
-                if (endpoints.Any(e => e.UriScheme is not ("tcp" or "http" or "https")))
+                var unsupportedEndpoints = endpoints.Where(e => e.UriScheme is not ("tcp" or "http" or "https")).ToArray();
+
+                if (unsupportedEndpoints.Length > 0)
                 {
-                    throw new NotSupportedException("Supported endpoints are http, https, and tcp");
+                    throw new NotSupportedException($"The endpoint(s) {string.Join(", ", unsupportedEndpoints.Select(e => $"'{e.Name}'"))} specify an unsupported scheme. The supported schemes are 'http', 'https', and 'tcp'.");
                 }
 
                 // We can allocate ports per endpoint
@@ -913,8 +915,10 @@ internal sealed class AzureContainerAppsInfastructure(DistributedApplicationExec
     /// These are referencing outputs from azd's main.bicep file. We represent the global namespace in the manifest
     /// by using {.outputs.property} expressions.
     /// </summary>
-    private sealed class AzureContainerAppsEnvironment
+    private sealed class AzureContainerAppsEnvironment(string outputName) : IManifestExpressionProvider
     {
+        public string ValueExpression => $"{{.outputs.{outputName}}}";
+
         public static IManifestExpressionProvider MANAGED_IDENTITY_CLIENT_ID => GetExpression("MANAGED_IDENTITY_CLIENT_ID");
         public static IManifestExpressionProvider MANAGED_IDENTITY_NAME => GetExpression("MANAGED_IDENTITY_NAME");
         public static IManifestExpressionProvider MANAGED_IDENTITY_PRINCIPAL_ID => GetExpression("MANAGED_IDENTITY_PRINCIPAL_ID");
@@ -923,13 +927,8 @@ internal sealed class AzureContainerAppsInfastructure(DistributedApplicationExec
         public static IManifestExpressionProvider AZURE_CONTAINER_APPS_ENVIRONMENT_ID => GetExpression("AZURE_CONTAINER_APPS_ENVIRONMENT_ID");
         public static IManifestExpressionProvider AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN => GetExpression("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN");
 
-        public static IManifestExpressionProvider GetExpression(string propertyExpression) =>
-            new ExpressionProvider(propertyExpression);
-
-        private sealed class ExpressionProvider(string propertyExpression) : IManifestExpressionProvider
-        {
-            public string ValueExpression => $"{{.outputs.{propertyExpression}}}";
-        }
+        private static IManifestExpressionProvider GetExpression(string propertyExpression) =>
+            new AzureContainerAppsEnvironment(propertyExpression);
     }
 
     private sealed class ProjectResourceExpression(ProjectResource projectResource, string propertyExpression) : IManifestExpressionProvider
