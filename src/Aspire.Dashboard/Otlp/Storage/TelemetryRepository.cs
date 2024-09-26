@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Text;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Model;
@@ -555,6 +556,61 @@ public sealed class TelemetryRepository
         {
             _tracesLock.ExitReadLock();
         }
+    }
+
+    public Dictionary<string, int> GetTraceFieldValues(string attributeName)
+    {
+        _tracesLock.EnterReadLock();
+
+        var attributesValues = new Dictionary<string, int>(StringComparers.OtlpAttribute);
+
+        try
+        {
+            foreach (var trace in _traces)
+            {
+                foreach (var span in trace.Spans)
+                {
+                    var value = OtlpSpan.GetFieldValue(span, attributeName);
+                    if (value != null)
+                    {
+                        ref var count = ref CollectionsMarshal.GetValueRefOrAddDefault(attributesValues, value, out _);
+                        count++;
+                    }
+                }
+            }
+        }
+        finally
+        {
+            _tracesLock.ExitReadLock();
+        }
+
+        return attributesValues;
+    }
+
+    public Dictionary<string, int> GetLogsFieldValues(string attributeName)
+    {
+        _logsLock.EnterReadLock();
+
+        var attributesValues = new Dictionary<string, int>(StringComparers.OtlpAttribute);
+
+        try
+        {
+            foreach (var log in _logs)
+            {
+                var value = OtlpLogEntry.GetFieldValue(log, attributeName);
+                if (value != null)
+                {
+                    ref var count = ref CollectionsMarshal.GetValueRefOrAddDefault(attributesValues, value, out _);
+                    count++;
+                }
+            }
+        }
+        finally
+        {
+            _logsLock.ExitReadLock();
+        }
+
+        return attributesValues;
     }
 
     public OtlpTrace? GetTrace(string traceId)
