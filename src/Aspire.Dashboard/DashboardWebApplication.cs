@@ -141,8 +141,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         ConfigureKestrelEndpoints(builder, dashboardOptions);
 
-        var browserHttpsPort = dashboardOptions.Frontend.GetEndpointUris().FirstOrDefault(IsHttpsOrNull)?.Port;
-        var isAllHttps = browserHttpsPort is not null && IsHttpsOrNull(dashboardOptions.Otlp.GetGrpcEndpointUri()) && IsHttpsOrNull(dashboardOptions.Otlp.GetHttpEndpointUri());
+        var browserHttpsPort = dashboardOptions.Frontend.GetEndpointAddresses().FirstOrDefault(IsHttpsOrNull)?.Port;
+        var isAllHttps = browserHttpsPort is not null && IsHttpsOrNull(dashboardOptions.Otlp.GetGrpcEndpointAddress()) && IsHttpsOrNull(dashboardOptions.Otlp.GetHttpEndpointAddress());
         if (isAllHttps)
         {
             // Explicitly configure the HTTPS redirect port as we're possibly listening on multiple HTTPS addresses
@@ -447,9 +447,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     private void ConfigureKestrelEndpoints(WebApplicationBuilder builder, DashboardOptions dashboardOptions)
     {
         // A single endpoint is configured if URLs are the same and the port isn't dynamic.
-        var frontendUris = dashboardOptions.Frontend.GetEndpointUris();
-        var otlpGrpcUri = dashboardOptions.Otlp.GetGrpcEndpointUri();
-        var otlpHttpUri = dashboardOptions.Otlp.GetHttpEndpointUri();
+        var frontendUris = dashboardOptions.Frontend.GetEndpointAddresses();
+        var otlpGrpcUri = dashboardOptions.Otlp.GetGrpcEndpointAddress();
+        var otlpHttpUri = dashboardOptions.Otlp.GetHttpEndpointAddress();
         var hasSingleEndpoint = frontendUris.Count == 1 && IsSameOrNull(frontendUris[0], otlpGrpcUri) && IsSameOrNull(frontendUris[0], otlpHttpUri);
 
         var initialValues = new Dictionary<string, string?>();
@@ -612,9 +612,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
     }
 
-    private static bool IsSameOrNull(BindingAddress frontendUri, BindingAddress? otlpUrl)
+    private static bool IsSameOrNull(BindingAddress frontendAddress, BindingAddress? otlpAddress)
     {
-        return otlpUrl == null || (frontendUri.Equals(otlpUrl) && otlpUrl.Port != 0);
+        return otlpAddress == null || (frontendAddress.Equals(otlpAddress) && otlpAddress.Port != 0);
     }
 
     private static void ConfigureAuthentication(WebApplicationBuilder builder, DashboardOptions dashboardOptions)
@@ -822,7 +822,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         return _app.DisposeAsync();
     }
 
-    private static bool IsHttpsOrNull(BindingAddress? uri) => uri == null || string.Equals(uri.Scheme, "https", StringComparison.Ordinal);
+    private static bool IsHttpsOrNull(BindingAddress? address) => address == null || string.Equals(address.Scheme, "https", StringComparison.Ordinal);
 }
 
 public record EndpointInfo(string Address, IPEndPoint EndPoint, bool isHttps);

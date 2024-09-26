@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Http;
 using Aspire.Hosting;
@@ -44,7 +45,6 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 data[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "http://+:0";
                 data[DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] = "http://+:0";
                 data[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://+:0";
-
             });
 
         // Act
@@ -52,8 +52,13 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         // Assert
         AssertDynamicIPEndpoint(app.FrontendEndPointAccessor);
+        AssertIPv4OrIPv6Endpoint(app.FrontendEndPointAccessor);
+
         AssertDynamicIPEndpoint(app.OtlpServiceGrpcEndPointAccessor);
+        AssertIPv4OrIPv6Endpoint(app.OtlpServiceGrpcEndPointAccessor);
+
         AssertDynamicIPEndpoint(app.OtlpServiceHttpEndPointAccessor);
+        AssertIPv4OrIPv6Endpoint(app.OtlpServiceGrpcEndPointAccessor);
     }
 
     [Fact]
@@ -600,6 +605,13 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         // Assert
         Assert.Collection(app.ValidationFailures,
             s => Assert.Contains(DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey, s));
+    }
+
+    private static void AssertIPv4OrIPv6Endpoint(Func<EndpointInfo> endPointAccessor)
+    {
+        // Check that the specified dynamic port of 0 is overridden with the actual port number.
+        var ipEndPoint = endPointAccessor().EndPoint;
+        Assert.True(ipEndPoint.Address.Equals(IPAddress.Any) || ipEndPoint.Address.Equals(IPAddress.IPv6Any), "Endpoint address should be IPv4 or IPv6.");
     }
 
     private static void AssertDynamicIPEndpoint(Func<EndpointInfo> endPointAccessor)
