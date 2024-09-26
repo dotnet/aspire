@@ -6,7 +6,11 @@ using System.Diagnostics;
 namespace Aspire.Hosting.ConsoleLogs;
 
 [DebuggerDisplay("LineNumber = {LineNumber}, Timestamp = {Timestamp}, Content = {Content}, Type = {Type}")]
+#if ASPIRE_DASHBOARD
+public sealed class LogEntry
+#else
 internal sealed class LogEntry
+#endif
 {
     public string? Content { get; set; }
     public DateTime? Timestamp { get; set; }
@@ -24,7 +28,11 @@ internal sealed class LogEntry
     }
 }
 
+#if ASPIRE_DASHBOARD
+public enum LogEntryType
+#else
 internal enum LogEntryType
+#endif
 {
     Default,
     Error
