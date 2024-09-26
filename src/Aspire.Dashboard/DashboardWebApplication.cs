@@ -26,6 +26,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -46,13 +47,38 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     private readonly ILogger<DashboardWebApplication> _logger;
     private readonly IOptionsMonitor<DashboardOptions> _dashboardOptionsMonitor;
     private readonly IReadOnlyList<string> _validationFailures;
-    private Func<EndpointInfo>? _frontendEndPointAccessor;
+    private readonly List<Func<EndpointInfo>> _frontendEndPointAccessor = new();
     private Func<EndpointInfo>? _otlpServiceGrpcEndPointAccessor;
     private Func<EndpointInfo>? _otlpServiceHttpEndPointAccessor;
 
-    public Func<EndpointInfo> FrontendEndPointAccessor
+    public List<Func<EndpointInfo>> FrontendEndPointsAccessor
     {
-        get => _frontendEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
+        get
+        {
+            if (_frontendEndPointAccessor.Count == 0)
+            {
+                throw new InvalidOperationException("WebApplication not started yet.");
+            }
+
+            return _frontendEndPointAccessor;
+        }
+    }
+
+    public Func<EndpointInfo> FrontendSingleEndPointAccessor
+    {
+        get
+        {
+            if (_frontendEndPointAccessor.Count == 0)
+            {
+                throw new InvalidOperationException("WebApplication not started yet.");
+            }
+            else if (_frontendEndPointAccessor.Count > 1)
+            {
+                throw new InvalidOperationException("Multiple frontend endpoints.");
+            }
+
+            return _frontendEndPointAccessor[0];
+        }
     }
 
     public Func<EndpointInfo> OtlpServiceGrpcEndPointAccessor
@@ -164,19 +190,10 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             // See https://learn.microsoft.com/aspnet/core/performance/response-compression#compression-with-https for more information
             options.MimeTypes = ["text/javascript", "application/javascript", "text/css", "image/svg+xml"];
         });
-        if (!string.IsNullOrEmpty(dashboardOptions.Otlp.Cors.AllowedOrigins))
+        if (dashboardOptions.Otlp.Cors.IsCorsEnabled)
         {
             builder.Services.AddCors(options =>
             {
-                // Default policy allows the dashboard's origins.
-                // This is added so CORS middleware doesn't report failure for dashboard browser requests that include an origin header.
-                options.AddDefaultPolicy(builder =>
-                {
-                    //builder.WithOrigins(dashboardOptions.Frontend.GetEndpointUris().Select(uri => uri.OriginalString).ToArray());
-                    builder.AllowAnyHeader();
-                    builder.AllowAnyMethod();
-                });
-
                 options.AddPolicy(OtlpHttpEndpointsBuilder.CorsPolicyName, builder =>
                 {
                     var corsOptions = dashboardOptions.Otlp.Cors;
@@ -256,9 +273,24 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _app.Lifetime.ApplicationStarted.Register(() =>
         {
-            if (_frontendEndPointAccessor != null)
+            if (_frontendEndPointAccessor.Count > 0)
             {
-                var url = _frontendEndPointAccessor().Address;
+                if (dashboardOptions.Otlp.Cors.IsCorsEnabled)
+                {
+                    var corsOptions = _app.Services.GetRequiredService<IOptions<CorsOptions>>().Value;
+
+                    // Default policy allows the dashboard's origins.
+                    // This is added so CORS middleware doesn't report failure for dashboard browser requests that include an origin header.
+                    // Needs to be added once app is started so the resolved frontend endpoint can be used.
+                    corsOptions.AddDefaultPolicy(builder =>
+                    {
+                        builder.WithOrigins(_frontendEndPointAccessor.Select(accessor => accessor().Address).ToArray());
+                        builder.AllowAnyHeader();
+                        builder.AllowAnyMethod();
+                    });
+                }
+
+                var url = _frontendEndPointAccessor[0]().Address;
                 _logger.LogInformation("Now listening on: {DashboardUri}", url);
 
                 var options = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>().CurrentValue;
@@ -524,7 +556,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
                     // Only the last endpoint is accessible. Tests should only need one but
                     // this will need to be improved if that changes.
-                    _frontendEndPointAccessor ??= CreateEndPointAccessor(endpointConfiguration);
+                    _frontendEndPointAccessor.Add(CreateEndPointAccessor(endpointConfiguration));
                 });
             }
 
@@ -545,7 +577,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     }
 
                     connectionTypes.Add(ConnectionType.Frontend);
-                    _frontendEndPointAccessor = _otlpServiceGrpcEndPointAccessor;
+                    _frontendEndPointAccessor.Add(_otlpServiceGrpcEndPointAccessor);
                 }
 
                 endpointConfiguration.ListenOptions.UseConnectionTypes(connectionTypes.ToArray());
@@ -577,7 +609,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     }
 
                     connectionTypes.Add(ConnectionType.Frontend);
-                    _frontendEndPointAccessor = _otlpServiceGrpcEndPointAccessor;
+                    _frontendEndPointAccessor.Add(_otlpServiceHttpEndPointAccessor);
                 }
 
                 endpointConfiguration.ListenOptions.UseConnectionTypes(connectionTypes.ToArray());
@@ -825,7 +857,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     private static bool IsHttpsOrNull(BindingAddress? address) => address == null || string.Equals(address.Scheme, "https", StringComparison.Ordinal);
 }
 
-public record EndpointInfo(string Address, IPEndPoint EndPoint, bool isHttps);
+public record EndpointInfo(string Address, IPEndPoint EndPoint, bool IsHttps);
 
 public static class FrontendAuthorizationDefaults
 {

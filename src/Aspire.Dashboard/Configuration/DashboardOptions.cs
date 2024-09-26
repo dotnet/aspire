@@ -141,6 +141,9 @@ public sealed class OtlpCors
 {
     public string? AllowedOrigins { get; set; }
     public string? AllowedHeaders { get; set; }
+
+    [MemberNotNullWhen(true, nameof(AllowedOrigins))]
+    public bool IsCorsEnabled => !string.IsNullOrEmpty(AllowedOrigins);
 }
 
 // Don't set values after validating/parsing options.

@@ -24,13 +24,30 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     public async Task EndPointAccessors_AppStarted_EndPointPortsAssigned()
     {
         // Arrange
-        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper);
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "https://127.0.0.1:0;http://127.0.0.1:0";
+                data[DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] = "http://127.0.0.1:0";
+                data[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://127.0.0.1:0";
+            });
 
         // Act
         await app.StartAsync();
 
         // Assert
-        AssertDynamicIPEndpoint(app.FrontendEndPointAccessor);
+        Assert.Collection(app.FrontendEndPointsAccessor,
+            a =>
+            {
+                Assert.True(a().IsHttps);
+                AssertDynamicIPEndpoint(a);
+            },
+            a =>
+            {
+                Assert.False(a().IsHttps);
+                AssertDynamicIPEndpoint(a);
+            });
+
         AssertDynamicIPEndpoint(app.OtlpServiceGrpcEndPointAccessor);
         AssertDynamicIPEndpoint(app.OtlpServiceHttpEndPointAccessor);
     }
@@ -42,7 +59,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
             additionalConfiguration: data =>
             {
-                data[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "http://+:0";
+                data[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "https://+:0;http://+:0";
                 data[DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] = "http://+:0";
                 data[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://+:0";
             });
@@ -50,9 +67,20 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         // Act
         await app.StartAsync();
 
-        // Assert
-        AssertDynamicIPEndpoint(app.FrontendEndPointAccessor);
-        AssertIPv4OrIPv6Endpoint(app.FrontendEndPointAccessor);
+        // Assert,
+        Assert.Collection(app.FrontendEndPointsAccessor,
+            a =>
+            {
+                Assert.True(a().IsHttps);
+                AssertDynamicIPEndpoint(a);
+                AssertIPv4OrIPv6Endpoint(a);
+            },
+            a =>
+            {
+                Assert.False(a().IsHttps);
+                AssertDynamicIPEndpoint(a);
+                AssertIPv4OrIPv6Endpoint(a);
+            });
 
         AssertDynamicIPEndpoint(app.OtlpServiceGrpcEndPointAccessor);
         AssertIPv4OrIPv6Endpoint(app.OtlpServiceGrpcEndPointAccessor);
@@ -243,7 +271,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
             // Assert
             Assert.NotNull(app);
-            Assert.Equal(app.FrontendEndPointAccessor().EndPoint.Port, app.OtlpServiceGrpcEndPointAccessor().EndPoint.Port);
+            Assert.Equal(app.FrontendSingleEndPointAccessor().EndPoint.Port, app.OtlpServiceGrpcEndPointAccessor().EndPoint.Port);
 
             // Check browser access
             using var httpClient = new HttpClient(new HttpClientHandler
@@ -254,14 +282,14 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 }
             })
             {
-                BaseAddress = new Uri($"https://{app.FrontendEndPointAccessor().EndPoint}")
+                BaseAddress = new Uri($"https://{app.FrontendSingleEndPointAccessor().EndPoint}")
             };
             var request = new HttpRequestMessage(HttpMethod.Get, "/");
             var response = await httpClient.SendAsync(request);
             response.EnsureSuccessStatusCode();
 
             // Check OTLP service
-            using var channel = IntegrationTestHelpers.CreateGrpcChannel($"https://{app.FrontendEndPointAccessor().EndPoint}", testOutputHelper);
+            using var channel = IntegrationTestHelpers.CreateGrpcChannel($"https://{app.FrontendSingleEndPointAccessor().EndPoint}", testOutputHelper);
             var client = new LogsService.LogsServiceClient(channel);
             var serviceResponse = await client.ExportAsync(new ExportLogsServiceRequest());
             Assert.Equal(0, serviceResponse.PartialSuccess.RejectedLogRecords);
@@ -350,12 +378,12 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
             // Assert
             Assert.NotNull(app);
-            Assert.Equal(app.FrontendEndPointAccessor().EndPoint.Port, app.OtlpServiceGrpcEndPointAccessor().EndPoint.Port);
+            Assert.Equal(app.FrontendSingleEndPointAccessor().EndPoint.Port, app.OtlpServiceGrpcEndPointAccessor().EndPoint.Port);
 
             // Check browser access
             using var httpClient = new HttpClient()
             {
-                BaseAddress = new Uri($"http://{app.FrontendEndPointAccessor().EndPoint}")
+                BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}")
             };
             var request = new HttpRequestMessage(HttpMethod.Get, "/");
             var responseMessage = await httpClient.SendAsync(request);
@@ -581,7 +609,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         // Act
         await app.StartAsync();
 
-        using var client = new HttpClient { BaseAddress = new Uri($"http://{app.FrontendEndPointAccessor().EndPoint}") };
+        using var client = new HttpClient { BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}") };
 
         // Act
         var response = await client.GetAsync("/");
