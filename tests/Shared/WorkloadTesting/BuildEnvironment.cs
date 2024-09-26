@@ -34,20 +34,20 @@ public class BuildEnvironment
 
     private static readonly Lazy<BuildEnvironment> s_instance_80 = new(() =>
         new BuildEnvironment(
-                targetFramework: TestTargetFramework.Net80,
+                targetFramework: TestTargetFramework.PreviousTFM,
                 templatesCustomHive: TemplatesCustomHive.Net9_0_Net8));
 
     private static readonly Lazy<BuildEnvironment> s_instance_90 = new(() =>
         new BuildEnvironment(
-                targetFramework: TestTargetFramework.Net90,
+                targetFramework: TestTargetFramework.CurrentTFM,
                 templatesCustomHive: TemplatesCustomHive.Net9_0_Net9));
 
-    public static BuildEnvironment ForNet80 => s_instance_80.Value;
-    public static BuildEnvironment ForNet90 => s_instance_90.Value;
-    public static BuildEnvironment ForDefaultFramework => DefaultTargetFramework switch
+    public static BuildEnvironment ForPreviousTFM => s_instance_80.Value;
+    public static BuildEnvironment ForCurrentTFM => s_instance_90.Value;
+    public static BuildEnvironment ForDefaultFramework { get; } = DefaultTargetFramework switch
     {
-        TestTargetFramework.Net80 => ForNet80,
-        TestTargetFramework.Net90 => ForNet90,
+        TestTargetFramework.PreviousTFM => ForPreviousTFM,
+        TestTargetFramework.CurrentTFM => ForCurrentTFM,
         _ => throw new ArgumentOutOfRangeException(nameof(DefaultTargetFramework))
     };
 
@@ -57,14 +57,15 @@ public class BuildEnvironment
         {
             return EnvironmentVariables.DefaultTFMForTesting switch
             {
-                "" or "net9.0" => TestTargetFramework.Net90,
-                "net8.0" => TestTargetFramework.Net80,
+                // FIXME: string tfm mapping here
+                "" or "net9.0" => TestTargetFramework.CurrentTFM,
+                "net8.0" => TestTargetFramework.PreviousTFM,
                 _ => throw new ArgumentOutOfRangeException(nameof(EnvironmentVariables.DefaultTFMForTesting), EnvironmentVariables.DefaultTFMForTesting, "Invalid value")
             };
         }
         else
         {
-            return TestTargetFramework.Net90;
+            return TestTargetFramework.CurrentTFM;
         }
     }
 
@@ -210,7 +211,7 @@ public class BuildEnvironment
         }
 
         TemplatesCustomHive = templatesCustomHive;
-        TemplatesCustomHive?.InstallAsync(GetNewTemplateCustomHiveDefaultDirectory(), BuiltNuGetsPath, DotNet).Wait();
+        TemplatesCustomHive?.InstallAsync(this).Wait();
 
         static void CleanupTestRootPath()
         {
@@ -266,16 +267,16 @@ public class BuildEnvironment
 
 public enum TestTargetFramework
 {
-    Net80,
-    Net90
+    PreviousTFM,
+    CurrentTFM
 }
 
 public static class TestTargetFrameworkExtensions
 {
     public static string ToTFMString(this TestTargetFramework tfm) => tfm switch
     {
-        TestTargetFramework.Net80 => "net8.0",
-        TestTargetFramework.Net90 => "net9.0",
+        TestTargetFramework.PreviousTFM => "net8.0",
+        TestTargetFramework.CurrentTFM => "net9.0",
         _ => throw new ArgumentOutOfRangeException(nameof(tfm))
     };
 }

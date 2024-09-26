@@ -14,58 +14,55 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase
     }
 
     [Theory]
-    [InlineData("aspire", TestTargetFramework.Net90)]
-    [InlineData("aspire", TestTargetFramework.Net80)]
-    [InlineData("aspire-starter", TestTargetFramework.Net90)]
-    [InlineData("aspire-starter", TestTargetFramework.Net80)]
+    [InlineData("aspire", TestTargetFramework.CurrentTFM)]
+    [InlineData("aspire", TestTargetFramework.PreviousTFM)]
+    [InlineData("aspire-starter", TestTargetFramework.CurrentTFM)]
+    [InlineData("aspire-starter", TestTargetFramework.PreviousTFM)]
     public async Task CanNewAndBuildWithMatchingTemplatePackInstalled(string templateName, TestTargetFramework tfm)
     {
         var id = GetNewProjectId(prefix: $"new_build_{tfm.ToTFMString()}_on_9+{tfm.ToTFMString()}");
 
-        var buildEnvToUse = tfm == TestTargetFramework.Net90 ? BuildEnvironment.ForNet90 : BuildEnvironment.ForNet80;
-        var templateHive = tfm == TestTargetFramework.Net90 ? TemplatesCustomHive.Net9_0_Net9 : TemplatesCustomHive.Net9_0_Net8;
-        await templateHive.InstallAsync(
-            BuildEnvironment.GetNewTemplateCustomHiveDefaultDirectory(),
-            buildEnvToUse.BuiltNuGetsPath,
-            buildEnvToUse.DotNet);
+        var buildEnvToUse = tfm == TestTargetFramework.CurrentTFM
+                                ? BuildEnvironment.ForCurrentTFM
+                                : BuildEnvironment.ForPreviousTFM;
+        var templateHive = tfm == TestTargetFramework.CurrentTFM
+                                ? TemplatesCustomHive.Net9_0_Net9
+                                : TemplatesCustomHive.Net9_0_Net8;
+        await templateHive.InstallAsync(buildEnvToUse);
         await using var project = await AspireProject.CreateNewTemplateProjectAsync(
             id,
             templateName,
             _testOutput,
             buildEnvironment: buildEnvToUse,
-            extraArgs: $"-f {tfm.ToTFMString()}",
+            targetFramework: tfm,
             customHiveForTemplates: templateHive.CustomHiveDirectory);
 
-        string config = "Debug";
+        var config = "Debug";
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
-        // await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
     }
 
     [Theory]
-    [InlineData("aspire", TestTargetFramework.Net90)]
-    [InlineData("aspire", TestTargetFramework.Net80)]
-    [InlineData("aspire-starter", TestTargetFramework.Net90)]
-    [InlineData("aspire-starter", TestTargetFramework.Net80)]
-    [InlineData("aspire-apphost", TestTargetFramework.Net90)]
-    [InlineData("aspire-apphost", TestTargetFramework.Net80)]
-    [InlineData("aspire-servicedefaults", TestTargetFramework.Net90)]
-    [InlineData("aspire-servicedefaults", TestTargetFramework.Net80)]
-    [InlineData("aspire-mstest", TestTargetFramework.Net90)]
-    [InlineData("aspire-mstest", TestTargetFramework.Net80)]
-    [InlineData("aspire-xunit", TestTargetFramework.Net90)]
-    [InlineData("aspire-xunit", TestTargetFramework.Net80)]
-    [InlineData("aspire-nunit", TestTargetFramework.Net90)]
-    [InlineData("aspire-nunit", TestTargetFramework.Net80)]
+    [InlineData("aspire", TestTargetFramework.CurrentTFM)]
+    [InlineData("aspire", TestTargetFramework.PreviousTFM)]
+    [InlineData("aspire-starter", TestTargetFramework.CurrentTFM)]
+    [InlineData("aspire-starter", TestTargetFramework.PreviousTFM)]
+    [InlineData("aspire-apphost", TestTargetFramework.CurrentTFM)]
+    [InlineData("aspire-apphost", TestTargetFramework.PreviousTFM)]
+    [InlineData("aspire-servicedefaults", TestTargetFramework.CurrentTFM)]
+    [InlineData("aspire-servicedefaults", TestTargetFramework.PreviousTFM)]
+    [InlineData("aspire-mstest", TestTargetFramework.CurrentTFM)]
+    [InlineData("aspire-mstest", TestTargetFramework.PreviousTFM)]
+    [InlineData("aspire-xunit", TestTargetFramework.CurrentTFM)]
+    [InlineData("aspire-xunit", TestTargetFramework.PreviousTFM)]
+    [InlineData("aspire-nunit", TestTargetFramework.CurrentTFM)]
+    [InlineData("aspire-nunit", TestTargetFramework.PreviousTFM)]
     public async Task CannotCreate(string templateName, TestTargetFramework tfm)
     {
-        string id = GetNewProjectId(prefix: $"new_fail_{templateName}_{tfm.ToTFMString()}");
+        var id = GetNewProjectId(prefix: $"new_fail_{templateName}_{tfm.ToTFMString()}");
 
-        var buildEnvToUse = tfm == TestTargetFramework.Net90 ? BuildEnvironment.ForNet90 : BuildEnvironment.ForNet80;
-        var templateHive = tfm == TestTargetFramework.Net90 ? TemplatesCustomHive.Net9_0_Net8 : TemplatesCustomHive.Net9_0_Net9;
-        await templateHive.InstallAsync(
-            BuildEnvironment.GetNewTemplateCustomHiveDefaultDirectory(),
-            buildEnvToUse.BuiltNuGetsPath,
-            buildEnvToUse.DotNet);
+        var buildEnvToUse = tfm == TestTargetFramework.CurrentTFM ? BuildEnvironment.ForCurrentTFM : BuildEnvironment.ForPreviousTFM;
+        var templateHive = tfm == TestTargetFramework.CurrentTFM ? TemplatesCustomHive.Net9_0_Net8 : TemplatesCustomHive.Net9_0_Net9;
+        await templateHive.InstallAsync(buildEnvToUse);
 
         try
         {
@@ -74,7 +71,7 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase
                 templateName,
                 _testOutput,
                 buildEnvironment: buildEnvToUse,
-                extraArgs: $"-f {tfm.ToTFMString()}",
+                targetFramework: tfm,
                 customHiveForTemplates: templateHive.CustomHiveDirectory);
         }
         catch (ToolCommandException tce)

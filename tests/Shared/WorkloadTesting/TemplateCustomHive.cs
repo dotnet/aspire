@@ -30,12 +30,15 @@ public class TemplatesCustomHive
         _customHiveDirName = customHiveDirName;
     }
 
-    public async Task InstallAsync(string customHiveBaseDirectory, string builtNuGetsPath, string dotnetPath)
+    public async Task InstallAsync(BuildEnvironment buildEnvironment)
     {
+        var customHiveBaseDirectory = BuildEnvironment.GetNewTemplateCustomHiveDefaultDirectory();
         _customHiveDirectory = Path.Combine(customHiveBaseDirectory, _customHiveDirName);
 
-        var packageIdAndPaths = TemplatePackageIds.Select(id => GetPackagePath(builtNuGetsPath, id))
-                                                    .Zip(TemplatePackageIds, (path, id) => (path, id));
+        var packageIdAndPaths =
+                TemplatePackageIds
+                    .Select(id => GetPackagePath(buildEnvironment.BuiltNuGetsPath, id))
+                    .Zip(TemplatePackageIds, (path, id) => (path, id));
 
         var installTemplates = true;
         if (!BuildEnvironment.IsRunningOnCI && Directory.Exists(CustomHiveDirectory))
@@ -60,7 +63,7 @@ public class TemplatesCustomHive
                 await InstallTemplatesAsync(
                         packagePath,
                         customHiveDirectory: _customHiveDirectory,
-                        dotnet: dotnetPath);
+                        dotnet: buildEnvironment.DotNet);
             }
         }
         else
