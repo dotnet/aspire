@@ -192,7 +192,7 @@ public static class CDKExtensions
     ///     .WithEnvironment("Service_ServiceUrl", service, s => s.ServiceUrl);
     /// </code>
     /// </example>
-    public static IResourceBuilder<TDestination> WithEnvironment<TDestination, TConstruct>(this IResourceBuilder<TDestination> builder, string name, IResourceBuilder<IConstructResource<TConstruct>> construct, ConstructOutputDelegate<TConstruct> outputDelegate, string? outputName = default)
+    public static IResourceBuilder<TDestination> WithEnvironment<TDestination, TConstruct>(this IResourceBuilder<TDestination> builder, string name, IResourceBuilder<IResourceWithConstruct<TConstruct>> construct, ConstructOutputDelegate<TConstruct> outputDelegate, string? outputName = default)
         where TConstruct : IConstruct
         where TDestination : IResourceWithEnvironment
     {
@@ -202,7 +202,7 @@ public static class CDKExtensions
             construct.WithAnnotation(new ConstructOutputAnnotation<TConstruct>(outputName, outputDelegate));
         }
         construct.WithAnnotation(new ConstructReferenceAnnotation(builder.Resource.Name, outputName));
-        return builder.WithEnvironment(name, new StackOutputReference(construct.Resource.Construct.GetStackUniqueId() + outputName, construct.Resource.Parent.SelectParentResource<IStackResource>()));
+        return builder.WithEnvironment(name, new StackOutputReference(construct.Resource.Construct.GetStackUniqueId() + outputName, construct.Resource.SelectParentResource<IStackResource>()));
     }
 
     private static string GetResourceType<T>(IResourceWithConstruct constructResource)
