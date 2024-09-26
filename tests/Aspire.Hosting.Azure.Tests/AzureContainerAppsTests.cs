@@ -387,7 +387,7 @@ public class AzureContainerAppsTests
                 additionalPortMappings: [
                   {
                     external: false
-                    targetPort: 10000
+                    targetPort: 8000
                   }
                 ]
               }
@@ -423,7 +423,7 @@ public class AzureContainerAppsTests
                     }
                     {
                       name: 'HTTP_PORTS'
-                      value: '${api_containerport};10000'
+                      value: '${api_containerport};8000'
                     }
                     {
                       name: 'HTTPS_PORTS'
@@ -459,7 +459,7 @@ public class AzureContainerAppsTests
                     }
                     {
                       name: 'INTERNAL_EP'
-                      value: 'http://api:10000'
+                      value: 'http://api:8000'
                     }
                     {
                       name: 'TARGET_PORT'
@@ -508,7 +508,7 @@ public class AzureContainerAppsTests
 
         builder.AddContainerAppsInfrastructure();
         builder.AddContainer("api", "myimage")
-            .PublishAsContainerApp((module, c) =>
+            .PublishAsAzureContainerApp((module, c) =>
             {
 #pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                 c.Template.Value!.Scale.Value!.MinReplicas = 0;
@@ -794,7 +794,7 @@ public class AzureContainerAppsTests
               activeRevisionsMode: 'Single'
               ingress: {
                 external: true
-                targetPort: 10000
+                targetPort: 8000
                 transport: 'http'
               }
             }
@@ -997,7 +997,7 @@ public class AzureContainerAppsTests
               activeRevisionsMode: 'Single'
               ingress: {
                 external: true
-                targetPort: 10000
+                targetPort: 8000
                 transport: 'http2'
               }
             }

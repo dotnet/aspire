@@ -29,7 +29,7 @@ builder.AddProject<Projects.AzureContainerApps_ApiService>("api")
        .WithReference(redis)
        .WithReference(cosmosDb)
        .WithEnvironment("VALUE", param)
-       .PublishAsContainerApp((module, app) =>
+       .PublishAsAzureContainerApp((module, app) =>
        {
            // Scale to 0
            app.Template.Value!.Scale.Value!.MinReplicas = 0;

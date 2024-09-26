@@ -6,7 +6,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents an annotation for a deployment target.
 /// </summary>
-public class DeploymentTargetAnnotation(IResource target) : IResourceAnnotation
+public sealed class DeploymentTargetAnnotation(IResource target) : IResourceAnnotation
 {
     /// <summary>
     /// The deployment target.

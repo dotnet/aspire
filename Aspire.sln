@@ -622,17 +622,17 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redis.ApiService", "playgro
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redis.AppHost", "playground\Redis\Redis.AppHost\Redis.AppHost.csproj", "{6249A193-3BF4-4FFB-AB81-6590A8318889}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Analyzers.Tests", "tests\Aspire.Hosting.Analyzers.Tests\Aspire.Hosting.Analyzers.Tests.csproj", "{F21F921E-1930-4BD5-B665-5EF1B82BD4D2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Analyzers.Tests", "tests\Aspire.Hosting.Analyzers.Tests\Aspire.Hosting.Analyzers.Tests.csproj", "{F21F921E-1930-4BD5-B665-5EF1B82BD4D2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Sdk.Tests", "tests\Aspire.Hosting.Sdk.Tests\Aspire.Hosting.Sdk.Tests.csproj", "{AEF07BC6-76D8-4A45-89D5-54FC4483863F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Sdk.Tests", "tests\Aspire.Hosting.Sdk.Tests\Aspire.Hosting.Sdk.Tests.csproj", "{AEF07BC6-76D8-4A45-89D5-54FC4483863F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Azure.ContainerApps", "src\Aspire.Hosting.Azure.ContainerApps\Aspire.Hosting.Azure.ContainerApps.csproj", "{21FBDB19-0B8B-4F0F-8ED6-98560AD5DDA7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.ContainerApps", "src\Aspire.Hosting.Azure.ContainerApps\Aspire.Hosting.Azure.ContainerApps.csproj", "{21FBDB19-0B8B-4F0F-8ED6-98560AD5DDA7}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AzureContainerApps", "AzureContainerApps", "{D47C77F3-49F4-4741-9786-6F68FC50587E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureContainerApps.AppHost", "playground\AzureContainerApps\AzureContainerApps.AppHost\AzureContainerApps.AppHost.csproj", "{96A5B854-2C72-49C8-A91B-2643B814DB2A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureContainerApps.AppHost", "playground\AzureContainerApps\AzureContainerApps.AppHost\AzureContainerApps.AppHost.csproj", "{96A5B854-2C72-49C8-A91B-2643B814DB2A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureContainerApps.ApiService", "playground\AzureContainerApps\AzureContainerApps.ApiService\AzureContainerApps.ApiService.csproj", "{683D8264-2755-4455-A6D4-14F7A6AC7B54}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureContainerApps.ApiService", "playground\AzureContainerApps\AzureContainerApps.ApiService\AzureContainerApps.ApiService.csproj", "{683D8264-2755-4455-A6D4-14F7A6AC7B54}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

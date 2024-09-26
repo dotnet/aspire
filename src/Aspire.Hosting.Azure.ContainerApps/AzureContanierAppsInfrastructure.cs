@@ -1,4 +1,4 @@
-#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable AZPROVISION001
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
@@ -11,6 +11,7 @@ using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Resources;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure;
 
@@ -18,8 +19,7 @@ namespace Aspire.Hosting.Azure;
 /// Represents the infrastructure for Azure Container Apps within the Aspire Hosting environment.
 /// Implements the <see cref="IDistributedApplicationLifecycleHook"/> interface to provide lifecycle hooks for distributed applications.
 /// </summary>
-/// <param name="executionContext">The execution context for the distributed application.</param>
-internal sealed class AzureContainerAppsInfastructure(DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
+internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerAppsInfastructure> logger, DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
 {
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
@@ -29,6 +29,7 @@ internal sealed class AzureContainerAppsInfastructure(DistributedApplicationExec
         }
 
         var containerAppEnviromentContext = new ContainerAppEnviromentContext(
+            logger,
             AzureContainerAppsEnvironment.AZURE_CONTAINER_APPS_ENVIRONMENT_ID,
             AzureContainerAppsEnvironment.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN,
             AzureContainerAppsEnvironment.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID,
@@ -55,6 +56,7 @@ internal sealed class AzureContainerAppsInfastructure(DistributedApplicationExec
     }
 
     private sealed class ContainerAppEnviromentContext(
+        ILogger logger,
         IManifestExpressionProvider containerAppEnvironmentId,
         IManifestExpressionProvider containerAppDomain,
         IManifestExpressionProvider managedIdentityId,
@@ -63,6 +65,7 @@ internal sealed class AzureContainerAppsInfastructure(DistributedApplicationExec
         IManifestExpressionProvider clientId
         )
     {
+        private ILogger Logger => logger;
         private IManifestExpressionProvider ContainerAppEnvironmentId => containerAppEnvironmentId;
         private IManifestExpressionProvider ContainerAppDomain => containerAppDomain;
         private IManifestExpressionProvider ManagedIdentityId => managedIdentityId;
@@ -225,7 +228,7 @@ internal sealed class AzureContainerAppsInfastructure(DistributedApplicationExec
                 }
 
                 // We can allocate ports per endpoint
-                var portAllocator = new PortAllocator(10000);
+                var portAllocator = new PortAllocator();
 
                 var endpointIndexMap = new Dictionary<string, int>();
 
@@ -389,8 +392,7 @@ internal sealed class AzureContainerAppsInfastructure(DistributedApplicationExec
 
                 if (endpointsByTargetPort.Count > 5)
                 {
-                    // TODO: Warn the user about the limitation
-                    // throw new NotSupportedException("More than 5 additional ports are not supported. See https://learn.microsoft.com/en-us/azure/container-apps/ingress-overview#tcp for more details.");
+                    _containerAppEnviromentContext.Logger.LogWarning("More than 5 additional ports are not supported. See https://learn.microsoft.com/en-us/azure/container-apps/ingress-overview#tcp for more details.");
                 }
 
                 foreach (var g in endpointsByTargetPort)
@@ -679,7 +681,7 @@ internal sealed class AzureContainerAppsInfastructure(DistributedApplicationExec
                 => AllocateParameter(ProjectResourceExpression.GetContainerImageExpression((ProjectResource)resource));
 
             private BicepValue<int> AllocateTargetPortParameter()
-                => AllocateParameter(ProjectResourceExpression.GetTargetPortExpression((ProjectResource)resource));
+                => AllocateParameter(ProjectResourceExpression.GetContainerPortExpression((ProjectResource)resource));
 
             private BicepParameter AllocateManagedIdentityIdParameter()
                 => _managedIdentityIdParameter ??= AllocateParameter(_containerAppEnviromentContext.ManagedIdentityId);
@@ -938,7 +940,7 @@ internal sealed class AzureContainerAppsInfastructure(DistributedApplicationExec
         public static IManifestExpressionProvider GetContainerImageExpression(ProjectResource p) =>
             new ProjectResourceExpression(p, "containerImage");
 
-        public static IManifestExpressionProvider GetTargetPortExpression(ProjectResource p) =>
+        public static IManifestExpressionProvider GetContainerPortExpression(ProjectResource p) =>
             new ProjectResourceExpression(p, "containerPort");
     }
 
@@ -965,15 +967,12 @@ internal sealed class AzureContainerAppsInfastructure(DistributedApplicationExec
 
         public int AllocatePort()
         {
-            while (true)
+            while (_usedPorts.Contains(_allocatedPortStart))
             {
-                if (!_usedPorts.Contains(_allocatedPortStart))
-                {
-                    return _allocatedPortStart;
-                }
-
                 _allocatedPortStart++;
             }
+
+            return _allocatedPortStart;
         }
 
         public void AddUsedPort(int port)
