@@ -14,7 +14,7 @@
     <ProjectReference Include="$(RepoRoot)src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(IsAspireHost)' == 'true' and '$(SkipAspireHostingAnalyzersReference)' != 'true'">
+  <ItemGroup Condition="'$(IsAspireHost)' == 'true' and '$(RepoRoot)' != '' and '$(SkipAspireHostingAnalyzersReference)' != 'true'">
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj" IsAspireProjectResource="false"
                       PrivateAssets="all"
                       ReferenceOutputAssembly="false"
