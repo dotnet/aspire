@@ -10,7 +10,7 @@
       CS1591: Missing XML comment for publicly visible type or member 'Type_or_Member'
       CS8002: Referenced assembly does not have a strong name
     -->
-    <NoWarn>$(NoWarn);CS1591;CS8002;NU3018;NU3027</NoWarn>
+    <NoWarn>$(NoWarn);CS1591;CS8002</NoWarn>
 
     <!-- This Application is a framework-dependent application that targets .NET 8.0. This means that the
     application is not able to run if the place where it is deployed does not have the .NET 8.0 runtime installed.
