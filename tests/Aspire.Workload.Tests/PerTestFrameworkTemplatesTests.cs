@@ -31,20 +31,22 @@ public abstract partial class PerTestFrameworkTemplatesTests : WorkloadTestsBase
         var id = $"{prefix}-{_testTemplateName}";
         var config = "Debug";
 
-        var (_, testProjectDir) = await CreateFromAspireTemplateWithTestAsync(id, config, _testTemplateName,
-        onBuildAspireProject: async (project) =>
+        await using var project = await AspireProject.CreateNewTemplateProjectAsync(
+            id,
+            "aspire",
+            _testOutput,
+            buildEnvironment: BuildEnvironment.ForDefaultFramework);
+
+        await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
+        if (PlaywrightProvider.HasPlaywrightSupport)
+        {
+            await using (var context = await CreateNewBrowserContextAsync())
             {
-                if (PlaywrightProvider.HasPlaywrightSupport)
-                {
-                    await using (var context = await CreateNewBrowserContextAsync())
-                    {
-                        await AssertBasicTemplateAsync(project, context);
-                    }
-                }
-            });
+                await AssertBasicTemplateAsync(context);
+            }
+        }
 
         using var cmd = new DotNetCommand(_testOutput, label: $"test-{_testTemplateName}")
-                        .WithWorkingDirectory(testProjectDir)
                         .WithTimeout(TimeSpan.FromMinutes(3));
 
         var res = await cmd.ExecuteAsync($"test -c {config}");
@@ -53,7 +55,7 @@ public abstract partial class PerTestFrameworkTemplatesTests : WorkloadTestsBase
         Assert.Matches("System.ArgumentException.*Resource 'webfrontend' not found.", res.Output);
         Assert.Matches("Failed! * - Failed: *1, Passed: *0, Skipped: *0, Total: *1", res.Output);
 
-        async Task AssertBasicTemplateAsync(AspireProject project, IBrowserContext context)
+        async Task AssertBasicTemplateAsync(IBrowserContext context)
         {
             await project.StartAppHostAsync(extraArgs: [$"-c {config}"]);
 

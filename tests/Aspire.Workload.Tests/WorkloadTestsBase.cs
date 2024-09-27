@@ -44,10 +44,10 @@ public partial class WorkloadTestsBase
         return t.Result;
     }
 
-    public async Task<(AspireProject, string)> CreateFromAspireTemplateWithTestAsync(
+    public async Task<string> CreateAndAddTestTemplateProjectAsync(
         string id,
-        string config,
         string testTemplateName,
+        AspireProject project,
         TestTargetFramework? tfm = null,
         BuildEnvironment? buildEnvironment = null,
         TemplatesCustomHive? templateHive = null,
@@ -55,19 +55,6 @@ public partial class WorkloadTestsBase
     {
         buildEnvironment ??= BuildEnvironment.ForDefaultFramework;
         var tmfArg = tfm is not null ? $"-f {tfm.Value.ToTFMString()}" : "";
-        await using var project = await AspireProject.CreateNewTemplateProjectAsync(
-            id,
-            "aspire",
-            _testOutput,
-            buildEnvironment,
-            targetFramework: tfm,
-            customHiveForTemplates: templateHive?.CustomHiveDirectory);
-
-        await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
-        if (onBuildAspireProject is not null)
-        {
-            await onBuildAspireProject(project);
-        }
 
         // Add test project
         var testProjectName = $"{id}.{testTemplateName}Tests";
@@ -89,7 +76,7 @@ public partial class WorkloadTestsBase
         PrepareTestCsFile(project.Id, testProjectDir, testTemplateName);
         PrepareTestProject(project, testProjectPath);
 
-        return (project, testProjectDir);
+        return testProjectDir;
 
         static void PrepareTestProject(AspireProject project, string projectPath)
         {

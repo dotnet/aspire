@@ -114,7 +114,21 @@ public class NewAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) : 
         await templateHive.InstallAsync(buildEnvToUse);
         try
         {
-            var (project, testProjectDir) = await CreateFromAspireTemplateWithTestAsync(id, config, templateName, tfm, buildEnvToUse, templateHive);
+            await using var project = await AspireProject.CreateNewTemplateProjectAsync(
+                id: id,
+                template: "aspire",
+                testOutput: _testOutput,
+                buildEnvironment: buildEnvToUse,
+                targetFramework: tfm,
+                customHiveForTemplates: templateHive.CustomHiveDirectory);
+
+            var testProjectDir = await CreateAndAddTestTemplateProjectAsync(
+                                        id: id,
+                                        testTemplateName: templateName,
+                                        project: project,
+                                        tfm: tfm,
+                                        buildEnvironment: buildEnvToUse,
+                                        templateHive: templateHive);
 
             await project.BuildAsync(extraBuildArgs: [$"-c {config}"], workingDirectory: testProjectDir);
         }
