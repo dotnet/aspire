@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Hosting.Dcp;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -8,9 +9,9 @@ namespace Aspire.Hosting.ApplicationModel;
 
 internal static class CommandsConfigurationExtensions
 {
-    internal const string StartType = "start";
-    internal const string StopType = "stop";
-    internal const string RestartType = "restart";
+    internal const string StartType = "resource-start";
+    internal const string StopType = "resource-stop";
+    internal const string RestartType = "resource-restart";
 
     internal static void AddLifeCycleCommands(this IResource resource)
     {
@@ -21,7 +22,7 @@ internal static class CommandsConfigurationExtensions
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
             type: StartType,
-            displayName: "Start",
+            displayName: GetDisplayName("Start {0}", resource),
             executeCommand: async context =>
             {
                 var executor = context.ServiceProvider.GetRequiredService<ApplicationExecutor>();
@@ -50,7 +51,7 @@ internal static class CommandsConfigurationExtensions
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
             type: StopType,
-            displayName: "Stop",
+            displayName: GetDisplayName("Stop {0}", resource),
             executeCommand: async context =>
             {
                 var executor = context.ServiceProvider.GetRequiredService<ApplicationExecutor>();
@@ -79,7 +80,7 @@ internal static class CommandsConfigurationExtensions
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
             type: RestartType,
-            displayName: "Restart",
+            displayName: GetDisplayName("Restart {0}", resource),
             executeCommand: async context =>
             {
                 var executor = context.ServiceProvider.GetRequiredService<ApplicationExecutor>();
@@ -107,5 +108,26 @@ internal static class CommandsConfigurationExtensions
         static bool IsStopping(string? state) => state is "Stopping";
         static bool IsStarting(string? state) => state is "Starting";
         static bool IsWaiting(string? state) => state is "Waiting";
+        static string GetDisplayName(string template, IResource resource)
+        {
+            string resourceType;
+            if (resource.IsContainer())
+            {
+                resourceType = "container";
+            }
+            else if (resource is ProjectResource)
+            {
+                resourceType = "project";
+            }
+            else if (resource is ExecutableResource)
+            {
+                resourceType = "executable";
+            }
+            else
+            {
+                resourceType = "resource";
+            }
+            return string.Format(CultureInfo.InvariantCulture, template, resourceType);
+        }
     }
 }
