@@ -30,8 +30,9 @@
                             @bind-SelectedResource:after="HandleSelectedApplicationChangedAsync"
                             CanSelectGrouping="true" />
             <FluentSearch @bind-Value="_filter"
-                          @oninput="HandleFilter"
                           @bind-Value:after="HandleAfterFilterBindAsync"
+                          Immediate="true"
+                          ImmediateDelay="@FluentUIExtensions.InputDelay"
                           Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
                           title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageFilter)]"
                           slot="end" />
@@ -63,13 +64,17 @@
             }
             else
             {
-                foreach (var filter in ViewModel.Filters)
+                for (var i = 0; i < ViewModel.Filters.Count; i++)
                 {
+                    var filter = ViewModel.Filters[i];
+                    if (i != 0)
+                    {
+                        <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+                    }
                     <FluentButton slot="end" Appearance="Appearance.Outline" OnClick="() => OpenFilterAsync(filter)">@filter.GetDisplayText(FilterLoc)</FluentButton>
-                    <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
                 }
             }
-
+            <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             @if (ViewportInformation.IsDesktop)
             {
                 <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="@FilterLoc[nameof(StructuredFiltering.AddFilter)]" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
@@ -77,7 +82,7 @@
             else
             {
                 <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="@FilterLoc[nameof(StructuredFiltering.AddFilter)]" OnClick="() => OpenFilterAsync(null)">
-                    <FluentIcon Class="align-text-bottom" Value="@(new Icons.Regular.Size16.Filter())" /> @Loc[nameof(StructuredFiltering.AddFilter)]
+                    <FluentIcon Class="align-text-bottom" Value="@(new Icons.Regular.Size16.Filter())" /> @FilterLoc[nameof(StructuredFiltering.AddFilter)]
                 </FluentButton>
             }
         </ToolbarSection>

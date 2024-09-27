@@ -37,12 +37,12 @@
                             @bind-Value="_formModel.Value"
                             @bind-Value:after="ValueChanged"
                             Items="@_filteredValues"
-                            Width="100%"
+                            Width="200%"
                             Height="400px"
                             OptionText="@(c => c.Name)"
                             OptionValue="@(c => c.Name)"
                             Immediate="true"
-                            ImmediateDelay="400"
+                            ImmediateDelay="@FluentUIExtensions.InputDelay"
                             Label="@Loc[nameof(Dialogs.FilterDialogTextValuePlaceholder)]">
                 <OptionTemplate Context="optionContext">
                     <FluentBadge Circular=true Appearance="Appearance.Neutral" Slot="end">

@@ -37,7 +37,6 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private Subscription? _applicationsSubscription;
     private Subscription? _logsSubscription;
     private bool _applicationChanged;
-    private CancellationTokenSource? _filterCts;
     private string? _elementIdBeforeDetailsViewOpened;
     private AspirePageContentLayout? _contentLayout;
     private string _filter = string.Empty;
@@ -305,50 +304,24 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             else if (filterResult.Add)
             {
                 ViewModel.AddFilter(filter);
+                await ClearSelectedLogEntryAsync();
             }
-
-            await ClearSelectedLogEntryAsync();
         }
 
         await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
-    private void HandleFilter(ChangeEventArgs args)
-    {
-        if (args.Value is string newFilter)
-        {
-            _filterCts?.Cancel();
-
-            // Debouncing logic. Apply the filter after a delay.
-            var cts = _filterCts = new CancellationTokenSource();
-            _ = Task.Run(async () =>
-            {
-                await ClearSelectedLogEntryAsync();
-
-                await Task.Delay(400, cts.Token);
-                ViewModel.FilterText = newFilter;
-                await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
-            });
-        }
-    }
-
     private async Task HandleAfterFilterBindAsync()
     {
-        if (!string.IsNullOrEmpty(_filter))
+        ViewModel.FilterText = _filter;
+        await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
+
+        if (string.IsNullOrEmpty(_filter))
         {
             return;
         }
 
-        if (_filterCts is not null)
-        {
-            await _filterCts.CancelAsync();
-        }
-
-        ViewModel.FilterText = string.Empty;
-
         await ClearSelectedLogEntryAsync();
-        await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
-        await this.AfterViewModelChangedAsync(_contentLayout, true);
     }
 
     private string GetResourceName(OtlpApplicationView app) => OtlpApplication.GetResourceName(app.Application, _applications);
@@ -392,7 +365,6 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         _applicationsSubscription?.Dispose();
         _logsSubscription?.Dispose();
-        _filterCts?.Dispose();
         DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
     }
 
