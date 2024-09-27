@@ -94,6 +94,14 @@ public static class AzureFunctionsProjectResourceExtensions
     /// the host should listen on from the launch profile. Instead, we'll use the default
     /// post (8080) used by the Azure Functions container image.
     /// </remarks>
+    /// <remarks>
+    /// /// We provide a custom overload of `WithReference` that allows for the injection of Azure
+    /// Functions-specific configuration. The default connection key name that Aspire uses for
+    /// resources (ConnectionStrings__{connectionName}) conflicts with Function's expectations
+    /// that single-valued config items under the ConnectionStrings prefix must be connection strings.
+    /// To work around this, we inject the connection string under the {connectionName} key and
+    /// use Aspire's configuration provider model to support the Aspire client integrations.
+    /// </remarks>
     /// <param name="builder">The resource builder for the Azure Functions project resource.</param>
     /// <returns>An <see cref="IResourceBuilder{AzureFunctionsProjectResource}"/> for the Azure Functions project resource with the endpoint configured.</returns>
     private static IResourceBuilder<AzureFunctionsProjectResource> WithFunctionsHttpEndpoint(this IResourceBuilder<AzureFunctionsProjectResource> builder)
@@ -138,7 +146,7 @@ public static class AzureFunctionsProjectResourceExtensions
     }
 
     /// <summary>
-    /// Injects Azure Functions specific connection information into the environment variables of the azure functions
+    /// Injects Azure Functions specific connection information into the environment variables of the Azure Functions
     /// project resource.
     /// </summary>
     /// <typeparam name="TSource">The resource that implements the <see cref="IResourceWithAzureFunctionsConfig"/>.</typeparam>
@@ -148,13 +156,9 @@ public static class AzureFunctionsProjectResourceExtensions
     public static IResourceBuilder<AzureFunctionsProjectResource> WithReference<TSource>(this IResourceBuilder<AzureFunctionsProjectResource> destination, IResourceBuilder<TSource> source, string? connectionName = null)
         where TSource : IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
     {
-        // REVIEW: There's a conflict with the connection strings formats and various azure functions extensions
-        // we want to keep injecting the normal connection strings as this will currently stop the aspire components from working in functions projects.
-
         return destination.WithEnvironment(context =>
         {
             connectionName ??= source.Resource.Name;
-
             source.Resource.ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, connectionName);
         });
     }
