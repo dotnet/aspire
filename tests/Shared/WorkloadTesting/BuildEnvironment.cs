@@ -17,7 +17,7 @@ public class BuildEnvironment
     public bool                             HasWorkloadFromArtifacts      { get; init; }
     public bool                             UsesSystemDotNet => !HasWorkloadFromArtifacts;
     public string?                          NuGetPackagesPath             { get; init; }
-    public TestTargetFramework              TargetFramework               { get; init; }
+    private TestTargetFramework              TargetFramework               { get; init; }
     public DirectoryInfo?                   RepoRoot                      { get; init; }
     public TemplatesCustomHive?             TemplatesCustomHive           { get; init; }
 
@@ -28,9 +28,6 @@ public class BuildEnvironment
     public static bool IsRunningOnHelix => Environment.GetEnvironmentVariable("HELIX_WORKITEM_ROOT") is not null;
     public static bool IsRunningOnCIBuildMachine => Environment.GetEnvironmentVariable("BUILD_BUILDID") is not null;
     public static bool IsRunningOnCI => IsRunningOnHelix || IsRunningOnCIBuildMachine;
-
-    public static string GetNewTemplateCustomHiveDefaultDirectory()
-        => IsRunningOnCI ? Path.GetTempPath() : Path.Combine(AppContext.BaseDirectory, "templates");
 
     private static readonly Lazy<BuildEnvironment> s_instance_80 = new(() =>
         new BuildEnvironment(

@@ -32,7 +32,10 @@ public class TemplatesCustomHive
 
     public async Task InstallAsync(BuildEnvironment buildEnvironment)
     {
-        var customHiveBaseDirectory = BuildEnvironment.GetNewTemplateCustomHiveDefaultDirectory();
+        var customHiveBaseDirectory = BuildEnvironment.IsRunningOnCI
+                                        ? Path.GetTempPath()
+                                        : Path.Combine(AppContext.BaseDirectory, "templates");
+
         _customHiveDirectory = Path.Combine(customHiveBaseDirectory, _customHiveDirName);
 
         var packageIdAndPaths =
