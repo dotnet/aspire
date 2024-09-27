@@ -13,81 +13,41 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase
     {
     }
 
-    /*
-     * ALSO: all with 9sdk+8runtime
-
-       Combinations:
-        - Build for tfm
-        - sdk to use
-        - hive to use
-
-            1. Also, working with both installed
-
-
-            - CNAB_WithMatchingSdkAndTemplate
-                working: net8.0, sdk: 8, hive: net8.0
-                working: net9.0, sdk: 8, hive: net9.0
-            - CNAB_WithMatchingSdkAndMismatchedTemplates
-                not working: net8.0, sdk: 8, hive: net9.0
-                not working: net9.0, sdk: 8, hive: net8.0
-            - CNAB_
-
-            2. TFM: net8
-                working: net8.0, hive: net9.0+net8.0
-
-                not working: tfm:net8.0
-                        sdk: net8
-                            hive: net9 - no -f?
-                            hive: net8 - works
-                        sdk: net9 - can't target 8?
-                            hive: ~
-            3. TFM: net9
-                working: net9.0, hive: net9.0+net8.0
-
-                not working: tfm: net9.0
-                        sdk: net8 - can't target 8?
-                            hive: ~
-                        sdk: net9
-                            hive: net9 - works
-                            hive: net8 - no -f n9
-    */
-
-    public static TheoryData<TestSdk, TestTargetFramework, TestTemplatesInstall, string?> TestData() => new()
+    public static TheoryData<string, TestSdk, TestTargetFramework, TestTemplatesInstall, string?> TestData(string templateName) => new()
         {
             // Previous Sdk
-            { TestSdk.Previous, TestTargetFramework.Previous, TestTemplatesInstall.Net8, null},
-            { TestSdk.Previous, TestTargetFramework.Previous, TestTemplatesInstall.Net9, "'net8.0' is not a valid value for -f"},
-            { TestSdk.Previous, TestTargetFramework.Previous, TestTemplatesInstall.Net9AndNet8, null},
+            { templateName, TestSdk.Previous, TestTargetFramework.Previous, TestTemplatesInstall.Net8, null },
+            { templateName, TestSdk.Previous, TestTargetFramework.Previous, TestTemplatesInstall.Net9, "'net8.0' is not a valid value for -f" },
+            { templateName, TestSdk.Previous, TestTargetFramework.Previous, TestTemplatesInstall.Net9AndNet8, null },
 
-            { TestSdk.Previous, TestTargetFramework.Current, TestTemplatesInstall.Net8, "'net9.0' is not a valid value for -f"},
-            { TestSdk.Previous, TestTargetFramework.Current, TestTemplatesInstall.Net9, "The current .NET SDK does not support targeting .NET 9.0"},
-            { TestSdk.Previous, TestTargetFramework.Current, TestTemplatesInstall.Net9AndNet8, "The current .NET SDK does not support targeting .NET 9.0"},
+            { templateName, TestSdk.Previous, TestTargetFramework.Current, TestTemplatesInstall.Net8, "'net9.0' is not a valid value for -f" },
+            { templateName, TestSdk.Previous, TestTargetFramework.Current, TestTemplatesInstall.Net9, "The current .NET SDK does not support targeting .NET 9.0" },
+            { templateName, TestSdk.Previous, TestTargetFramework.Current, TestTemplatesInstall.Net9AndNet8, "The current .NET SDK does not support targeting .NET 9.0" },
 
             // Current SDK
-            { TestSdk.Current, TestTargetFramework.Previous, TestTemplatesInstall.Net8, null},
-            { TestSdk.Current, TestTargetFramework.Previous, TestTemplatesInstall.Net9, "'net8.0' is not a valid value for -f"},
-            { TestSdk.Current, TestTargetFramework.Previous, TestTemplatesInstall.Net9AndNet8, null},
+            { templateName, TestSdk.Current, TestTargetFramework.Previous, TestTemplatesInstall.Net8, null },
+            { templateName, TestSdk.Current, TestTargetFramework.Previous, TestTemplatesInstall.Net9, "'net8.0' is not a valid value for -f" },
+            { templateName, TestSdk.Current, TestTargetFramework.Previous, TestTemplatesInstall.Net9AndNet8, null },
 
-            { TestSdk.Current, TestTargetFramework.Current, TestTemplatesInstall.Net8, "'net9.0' is not a valid value for -f"},
-            { TestSdk.Current, TestTargetFramework.Current, TestTemplatesInstall.Net9, null},
-            { TestSdk.Current, TestTargetFramework.Current, TestTemplatesInstall.Net9AndNet8, null},
+            { templateName, TestSdk.Current, TestTargetFramework.Current, TestTemplatesInstall.Net8, "'net9.0' is not a valid value for -f" },
+            { templateName, TestSdk.Current, TestTargetFramework.Current, TestTemplatesInstall.Net9, null },
+            { templateName, TestSdk.Current, TestTargetFramework.Current, TestTemplatesInstall.Net9AndNet8, null },
 
             // Current SDK + previous runtime
-            { TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Previous, TestTemplatesInstall.Net8, null},
-            { TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Previous, TestTemplatesInstall.Net9, "'net8.0' is not a valid value for -f"},
-            { TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Previous, TestTemplatesInstall.Net9AndNet8, null},
+            { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Previous, TestTemplatesInstall.Net8, null },
+            { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Previous, TestTemplatesInstall.Net9, "'net8.0' is not a valid value for -f" },
+            { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Previous, TestTemplatesInstall.Net9AndNet8, null },
 
-            { TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, TestTemplatesInstall.Net8, "'net9.0' is not a valid value for -f"},
-            { TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, TestTemplatesInstall.Net9, null},
-            { TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, TestTemplatesInstall.Net9AndNet8, null},
+            { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, TestTemplatesInstall.Net8, "'net9.0' is not a valid value for -f" },
+            { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, TestTemplatesInstall.Net9, null },
+            { templateName, TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, TestTemplatesInstall.Net9AndNet8, null },
         };
 
     [Theory]
-    [MemberData(nameof(TestData))]
-    public async Task NewAndBuildTemplate(TestSdk sdk, TestTargetFramework tfm, TestTemplatesInstall templates, string? error)
+    [MemberData(nameof(TestData), parameters: "aspire")]
+    [MemberData(nameof(TestData), parameters: "aspire-starter")]
+    public async Task NewAndBuildTemplate(string templateName, TestSdk sdk, TestTargetFramework tfm, TestTemplatesInstall templates, string? error)
     {
-        _ = error;
-        string templateName = "aspire";
         var id = GetNewProjectId(prefix: $"new_build_{templateName}_{tfm.ToTFMString()}");
 
         var buildEnvToUse = sdk switch
