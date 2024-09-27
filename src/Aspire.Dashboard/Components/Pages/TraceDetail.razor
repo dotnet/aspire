@@ -65,7 +65,8 @@
                     </DetailsTitleTemplate>
                     <Summary>
                         <GridColumnManager @ref="_manager" Columns="@_gridColumns">
-                            <FluentDataGrid Virtualize="true"
+                            <FluentDataGrid @ref="_dataGrid"
+                                            Virtualize="true"
                                             GenerateHeader="GenerateHeaderOption.Sticky"
                                             Class="trace-view-grid enable-row-click"
                                             ResizableColumns="true"
