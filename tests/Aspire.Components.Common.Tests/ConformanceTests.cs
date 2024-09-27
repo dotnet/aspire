@@ -380,7 +380,6 @@ public abstract class ConformanceTests<TService, TOptions>
 
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>($"{ConfigurationSectionName}:DisableTracing", "false"),
-            new KeyValuePair<string, string?>($"{ConfigurationSectionName}:{key}:ConnectionString", "unused"),
             new KeyValuePair<string, string?>($"{ConfigurationSectionName}:{key}:DisableTracing", "true"),
         ]);
 
