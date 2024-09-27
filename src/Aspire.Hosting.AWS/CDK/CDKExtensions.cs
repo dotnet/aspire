@@ -166,7 +166,16 @@ public static class CDKExtensions
     /// <param name="outputDelegate">The construct output delegate.</param>
     /// <param name="outputName">The name of the construct output</param>
     /// <param name="configSection">The optional config section in IConfiguration to add the output parameters.</param>
-    public static IResourceBuilder<TDestination> WithReference<TDestination, TConstruct>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IConstructResource<TConstruct>> construct, ConstructOutputDelegate<TConstruct> outputDelegate, string outputName, string? configSection = null)
+    /// <example>
+    /// The following example shows creating a custom stack and reference the exposed ServiceUrl property
+    /// in a project as configuration reference.
+    /// <code lang="C#">
+    /// var stack = builder.AddAWSCDKStack("stack", scope => new Stack(scope, "Stack");
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///     .WithReference(stack, s => s.ServiceUrl, "ServiceUrl");
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<TDestination> WithReference<TDestination, TConstruct>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithConstruct<TConstruct>> construct, ConstructOutputDelegate<TConstruct> outputDelegate, string outputName, string? configSection = null)
         where TConstruct : IConstruct
         where TDestination : IResourceWithEnvironment
     {
@@ -183,7 +192,7 @@ public static class CDKExtensions
     /// <param name="construct">The construct resource.</param>
     /// <param name="outputDelegate">The construct output delegate.</param>
     /// <param name="outputName">The name of the construct output</param>
-    /// /// <example>
+    /// <example>
     /// The following example shows creating a custom construct and reference the exposed ServiceUrl property
     /// in a project as environment variable.
     /// <code lang="C#">
@@ -192,7 +201,7 @@ public static class CDKExtensions
     ///     .WithEnvironment("Service_ServiceUrl", service, s => s.ServiceUrl);
     /// </code>
     /// </example>
-    public static IResourceBuilder<TDestination> WithEnvironment<TDestination, TConstruct>(this IResourceBuilder<TDestination> builder, string name, IResourceBuilder<IConstructResource<TConstruct>> construct, ConstructOutputDelegate<TConstruct> outputDelegate, string? outputName = default)
+    public static IResourceBuilder<TDestination> WithEnvironment<TDestination, TConstruct>(this IResourceBuilder<TDestination> builder, string name, IResourceBuilder<IResourceWithConstruct<TConstruct>> construct, ConstructOutputDelegate<TConstruct> outputDelegate, string? outputName = default)
         where TConstruct : IConstruct
         where TDestination : IResourceWithEnvironment
     {
@@ -202,7 +211,7 @@ public static class CDKExtensions
             construct.WithAnnotation(new ConstructOutputAnnotation<TConstruct>(outputName, outputDelegate));
         }
         construct.WithAnnotation(new ConstructReferenceAnnotation(builder.Resource.Name, outputName));
-        return builder.WithEnvironment(name, new StackOutputReference(construct.Resource.Construct.GetStackUniqueId() + outputName, construct.Resource.Parent.SelectParentResource<IStackResource>()));
+        return builder.WithEnvironment(name, new StackOutputReference(construct.Resource.Construct.GetStackUniqueId() + outputName, construct.Resource.SelectParentResource<IStackResource>()));
     }
 
     private static string GetResourceType<T>(IResourceWithConstruct constructResource)
