@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Azure;
 
@@ -10,6 +12,8 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 public static class AzureFunctionsProjectResourceExtensions
 {
+    internal const string DefaultAzureFunctionsHostStorageName = "azFuncHostStorage";
+
     /// <summary>
     /// Adds an Azure Functions project to the distributed application.
     /// </summary>
@@ -22,11 +26,11 @@ public static class AzureFunctionsProjectResourceExtensions
         var resource = new AzureFunctionsProjectResource(name);
 
         // Add the default storage resource if it doesn't already exist.
-        var storage = builder.Resources.OfType<AzureStorageResource>().FirstOrDefault(r => r.Name == "azure-functions-default-storage");
+        var storage = builder.Resources.OfType<AzureStorageResource>().FirstOrDefault(r => r.Name == DefaultAzureFunctionsHostStorageName);
 
         if (storage is null)
         {
-            storage = builder.AddAzureStorage("azure-functions-default-storage").RunAsEmulator().Resource;
+            storage = builder.AddAzureStorage("azFuncHostStorage").RunAsEmulator().Resource;
 
             builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
             {
@@ -67,30 +71,58 @@ public static class AzureFunctionsProjectResourceExtensions
             })
             .WithArgs(context =>
             {
+                // If we're running in publish mode, we don't need to map the port the host should listen on.
+                if (builder.ExecutionContext.IsPublishMode)
+                {
+                    return;
+                }
                 var http = resource.GetEndpoint("http");
                 context.Args.Add("--port");
                 context.Args.Add(http.Property(EndpointProperty.TargetPort));
             })
             .WithOtlpExporter()
-            .WithHttpEndpoint()
-            .WithManifestPublishingCallback(async (context) =>
-            {
-                context.Writer.WriteString("type", "function.v0");
-                context.Writer.WriteString("path", context.GetManifestRelativePath(new TProject().ProjectPath));
-                await context.WriteEnvironmentVariablesAsync(resource).ConfigureAwait(false);
-                context.Writer.WriteStartObject("bindings");
-                foreach (var s in new string[] { "http", "https" })
-                {
-                    context.Writer.WriteStartObject(s);
-                    context.Writer.WriteString("scheme", s);
-                    context.Writer.WriteString("protocol", "tcp");
-                    context.Writer.WriteString("transport", "http");
-                    context.Writer.WriteBoolean("external", true);
-                    context.Writer.WriteEndObject();
-                }
+            .WithFunctionsHttpEndpoint();
+    }
 
-                context.Writer.WriteEndObject();
-            });
+    /// <summary>
+    /// Configures the Azure Functions project resource to use the specified port as its HTTP endpoint.
+    /// This method queries the launch profile of the project to determine the port to
+    /// use based on the command line arguments configure in the launch profile,
+    /// </summary>
+    /// <remarks>
+    /// If the Azure Function is running under publish mode, we don't need to map the port
+    /// the host should listen on from the launch profile. Instead, we'll use the default
+    /// post (8080) used by the Azure Functions container image.
+    /// </remarks>
+    /// <param name="builder">The resource builder for the Azure Functions project resource.</param>
+    /// <returns>An <see cref="IResourceBuilder{AzureFunctionsProjectResource}"/> for the Azure Functions project resource with the endpoint configured.</returns>
+    private static IResourceBuilder<AzureFunctionsProjectResource> WithFunctionsHttpEndpoint(this IResourceBuilder<AzureFunctionsProjectResource> builder)
+    {
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder
+                .WithHttpEndpoint()
+                .WithHttpsEndpoint();
+        }
+        var launchProfile = builder.Resource.GetEffectiveLaunchProfile();
+        int? port = null;
+        if (launchProfile is not null)
+        {
+            var commandLineArgs = CommandLineArgsParser.Parse(launchProfile.LaunchProfile.CommandLineArgs ?? string.Empty);
+            if (commandLineArgs is { Count: > 0 } &&
+                commandLineArgs.IndexOf("--port") is var indexOfPort &&
+                indexOfPort > -1 &&
+                indexOfPort + 1 < commandLineArgs.Count &&
+                int.TryParse(commandLineArgs[indexOfPort + 1], CultureInfo.InvariantCulture, out var parsedPort))
+            {
+                port = parsedPort;
+            }
+        }
+        // When a port is defined in the launch profile, Azure Functions will favor that port over
+        // the port configured in the `WithArgs` callback when starting the project. To that end
+        // we register an endpoint where the target port matches the port the Azure Functions worker
+        // is actually configured to listen on and the endpoint is not proxied by DCP.
+        return builder.WithHttpEndpoint(port: port, targetPort: port, isProxied: port == null);
     }
 
     /// <summary>

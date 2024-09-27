@@ -89,7 +89,7 @@
       </trans-unit>
       <trans-unit id="MetricsViewAttributesToolbar">
         <source>View attributes</source>
-        <target state="new">View attributes</target>
+        <target state="translated">Zobrazit atributy</target>
         <note />
       </trans-unit>
     </body>

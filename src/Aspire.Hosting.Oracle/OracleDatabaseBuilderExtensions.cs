@@ -38,22 +38,6 @@ public static class OracleDatabaseBuilderExtensions
             {
                 throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{oracleDatabaseServer.Name}' resource but the connection string was null.");
             }
-
-            var lookup = builder.Resources.OfType<OracleDatabaseResource>().ToDictionary(d => d.Name);
-
-            foreach (var databaseName in oracleDatabaseServer.Databases)
-            {
-                if (!lookup.TryGetValue(databaseName.Key, out var databaseResource))
-                {
-                    throw new DistributedApplicationException($"Database resource '{databaseName}' under Oracle resource '{oracleDatabaseServer.Name}' was not found in the model.");
-                }
-
-                var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(databaseResource, @event.Services);
-                await builder.Eventing.PublishAsync<ConnectionStringAvailableEvent>(connectionStringAvailableEvent, ct).ConfigureAwait(false);
-
-                var beforeResourceStartedEvent = new BeforeResourceStartedEvent(databaseResource, @event.Services);
-                await builder.Eventing.PublishAsync(beforeResourceStartedEvent, ct).ConfigureAwait(false);
-            }
         });
 
         var healthCheckKey = $"{name}_check";
@@ -85,25 +69,7 @@ public static class OracleDatabaseBuilderExtensions
 
         builder.Resource.AddDatabase(name, databaseName);
         var oracleDatabase = new OracleDatabaseResource(name, databaseName, builder.Resource);
-
-        string? connectionString = null;
-
-        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(oracleDatabase, async (@event, ct) =>
-        {
-            connectionString = await oracleDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
-
-            if (connectionString == null)
-            {
-                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{oracleDatabase.Name}' resource but the connection string was null.");
-            }
-        });
-
-        var healthCheckKey = $"{name}_check";
-        builder.ApplicationBuilder.Services.AddHealthChecks()
-            .AddOracle(sp => connectionString ?? throw new InvalidOperationException("Connection string is unavailable"), name: healthCheckKey);
-
-        return builder.ApplicationBuilder.AddResource(oracleDatabase)
-                                         .WithHealthCheck(healthCheckKey);
+        return builder.ApplicationBuilder.AddResource(oracleDatabase);
     }
 
     /// <summary>

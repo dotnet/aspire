@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="EndpointsColumnDisplayOverflowTitle">
         <source>Endpoints</source>
-        <target state="new">Endpoints</target>
+        <target state="translated">Endpunkte</target>
         <note />
       </trans-unit>
       <trans-unit id="EndpointsColumnDisplayPlaceholder">
