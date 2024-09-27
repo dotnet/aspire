@@ -163,10 +163,11 @@ public static class AzureRedisExtensions
                 IsAadEnabled = "true"
             };
 
+            // TODO: This property should be available from the CDK in the latest version.
             var disableAccessKeys = BicepValue<string>.DefineProperty(redis, "DisableAccessKeyAuthentication", ["properties", "disableAccessKeyAuthentication"], isOutput: false, isRequired: false);
             disableAccessKeys.Assign("true");
 
-            construct.Add(new RedisCacheAccessPolicyAssignment($"{redis.ResourceName}_admin", redis.ResourceVersion)
+            construct.Add(new RedisCacheAccessPolicyAssignment($"{redis.ResourceName}_contributor", redis.ResourceVersion)
             {
                 Parent = redis,
                 AccessPolicyName = "Data Contributor",
@@ -275,6 +276,7 @@ public static class AzureRedisExtensions
 
                redis.RedisConfiguration.Value!.IsAadEnabled.Kind = BicepValueKind.Unset;
 
+               // TODO: This property should be available from the CDK in the latest version.
                var disableAccessKeys = BicepValue<string>.DefineProperty(redis, "DisableAccessKeyAuthentication", ["properties", "disableAccessKeyAuthentication"], isOutput: false, isRequired: false);
                disableAccessKeys.Kind = BicepValueKind.Unset;
 
@@ -324,7 +326,7 @@ public static class AzureRedisExtensions
         foreach (var resource in construct.GetResources())
         {
             if (resource is RedisCacheAccessPolicyAssignment accessPolicy &&
-                accessPolicy.ResourceName == $"{construct.Resource.Name}_admin")
+                accessPolicy.ResourceName == $"{construct.Resource.Name}_contributor")
             {
                 resourcesToRemove.Add(resource);
             }

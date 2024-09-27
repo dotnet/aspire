@@ -61,8 +61,8 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
               }
             }
 
-            resource cache_admin 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
-              name: take('cacheadmin${uniqueString(resourceGroup().id)}', 24)
+            resource cache_contributor 'Microsoft.Cache/redis/accessPolicyAssignments@2024-03-01' = {
+              name: take('cachecontributor${uniqueString(resourceGroup().id)}', 24)
               properties: {
                 accessPolicyName: 'Data Contributor'
                 objectId: principalId
