@@ -60,9 +60,7 @@ public static class AspireKeyVaultExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        string configurationSectionName = KeyVaultComponent.GetKeyedConfigurationSectionName(name, DefaultConfigSectionName);
-
-        new KeyVaultComponent().AddClient(builder, configurationSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
+        new KeyVaultComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
     }
 
     /// <summary>

@@ -40,6 +40,9 @@ public abstract class ConformanceTests<TService, TOptions>
 
     protected virtual bool CanConnectToServer => false;
 
+    protected virtual bool SupportsNamedConfig => false;
+    protected virtual string? ConfigurationSectionName => null;
+
     protected virtual bool SupportsKeyedRegistrations => false;
 
     protected bool MetricsAreSupported => CheckIfImplemented(SetMetrics);
@@ -367,6 +370,27 @@ public abstract class ConformanceTests<TService, TOptions>
                 : host.Services.GetRequiredKeyedService<TService>(key));
     }
 
+    [ConditionalFact]
+    public void FavorsNamedConfigurationOverTopLevelConfigurationWhenBothProvided()
+    {
+        SkipIfNamedConfigNotSupported();
+
+        var key = "target-service";
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>($"{ConfigurationSectionName}:DisableTracing", "false"),
+            new KeyValuePair<string, string?>($"{ConfigurationSectionName}:{key}:DisableTracing", "true"),
+        ]);
+
+        RegisterComponent(builder, key: key);
+
+        using var host = builder.Build();
+
+        // Trace provider is not configured because DisableTracing is set to true in the named configuration
+        Assert.Null(host.Services.GetService<TracerProvider>());
+    }
+
     protected virtual void SetupConnectionInformationIsDelayValidated() { }
 
     // This method can have side effects (setting AppContext switch, enabling activity source by name).
@@ -474,6 +498,14 @@ public abstract class ConformanceTests<TService, TOptions>
         if (!CanConnectToServer)
         {
             throw new SkipTestException("Unable to connect to the server.");
+        }
+    }
+
+    protected void SkipIfNamedConfigNotSupported()
+    {
+        if (!SupportsNamedConfig || ConfigurationSectionName is null)
+        {
+            throw new SkipTestException("Named configuration is not supported.");
         }
     }
 
