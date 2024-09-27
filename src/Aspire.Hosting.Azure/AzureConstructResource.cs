@@ -53,7 +53,8 @@ public class AzureConstructResource(string name, Action<ResourceModuleConstruct>
                 continue;
             }
 
-            var constructParameter = new BicepParameter(aspireParameter.Key, typeof(string));
+            var isSecure = aspireParameter.Value is ParameterResource { Secret: true } || aspireParameter.Value is BicepSecretOutputReference;
+            var constructParameter = new BicepParameter(aspireParameter.Key, typeof(string)) { IsSecure = isSecure };
             resourceModuleConstruct.Add(constructParameter);
         }
 
