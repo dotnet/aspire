@@ -41,6 +41,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private string? _elementIdBeforeDetailsViewOpened;
     private AspirePageContentLayout? _contentLayout;
     private string _filter = string.Empty;
+    private FluentDataGrid<OtlpLogEntry> _dataGrid = null!;
     private GridColumnManager _manager = null!;
     private IList<GridColumn> _gridColumns = null!;
 
@@ -230,7 +231,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             _logsSubscription = TelemetryRepository.OnNewLogs(PageViewModel.SelectedApplication.Id?.GetApplicationKey(), SubscriptionType.Read, async () =>
             {
                 ViewModel.ClearData();
-                await InvokeAsync(StateHasChanged);
+                await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             });
         }
     }
@@ -287,7 +288,8 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         {
             Filter = entry,
             PropertyKeys = TelemetryRepository.GetLogPropertyKeys(PageViewModel.SelectedApplication.Id?.GetApplicationKey()),
-            KnownKeys = KnownStructuredLogFields.AllFields
+            KnownKeys = KnownStructuredLogFields.AllFields,
+            GetFieldValues = TelemetryRepository.GetLogsFieldValues
         };
         await DialogService.ShowPanelAsync<FilterDialog>(data, parameters);
     }
@@ -325,7 +327,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
                 await Task.Delay(400, cts.Token);
                 ViewModel.FilterText = newFilter;
-                await InvokeAsync(StateHasChanged);
+                await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             });
         }
     }
@@ -345,7 +347,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         ViewModel.FilterText = string.Empty;
 
         await ClearSelectedLogEntryAsync();
-        await InvokeAsync(StateHasChanged);
+        await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
         await this.AfterViewModelChangedAsync(_contentLayout, true);
     }
 
@@ -416,7 +418,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         };
     }
 
-    public void UpdateViewModelFromQuery(StructuredLogsPageViewModel viewModel)
+    public async Task UpdateViewModelFromQueryAsync(StructuredLogsPageViewModel viewModel)
     {
         viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _allApplication);
         ViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
@@ -446,10 +448,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             }
         }
 
-        _ = Task.Run(async () =>
-        {
-            await InvokeAsync(StateHasChanged);
-        });
+        await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
     public class StructuredLogsPageViewModel

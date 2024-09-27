@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="All">
         <source>(All)</source>
-        <target state="needs-review-translation">모두</target>
+        <target state="translated">(모두)</target>
         <note />
       </trans-unit>
       <trans-unit id="ApplicationLower">
         <source>application</source>
-        <target state="new">application</target>
+        <target state="translated">애플리케이션</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerAllTags">
@@ -104,27 +104,27 @@
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellResizeButtonText">
         <source>Resize</source>
-        <target state="new">Resize</target>
+        <target state="translated">크기 조정</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellResizeLabel">
         <source>Column width (in pixels)</source>
-        <target state="new">Column width (in pixels)</target>
+        <target state="translated">열 너비(픽셀)</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellSortAscendingButtonText">
         <source>Sort (ascending)</source>
-        <target state="new">Sort (ascending)</target>
+        <target state="translated">정렬(오름차순)</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellSortButtonText">
         <source>Sort</source>
-        <target state="new">Sort</target>
+        <target state="translated">정렬</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellSortDescendingButtonText">
         <source>Sort (descending)</source>
-        <target state="new">Sort (descending)</target>
+        <target state="translated">정렬(내림차순)</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueCopied">
@@ -154,7 +154,7 @@
       </trans-unit>
       <trans-unit id="MetricTableExemplarsColumnHeader">
         <source>Exemplars</source>
-        <target state="new">Exemplars</target>
+        <target state="translated">예시</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableNoMetricsFound">
@@ -194,7 +194,7 @@
       </trans-unit>
       <trans-unit id="MetricTableViewExemplarsLabel">
         <source>View exemplars</source>
-        <target state="new">View exemplars</target>
+        <target state="translated">예시 보기</target>
         <note />
       </trans-unit>
       <trans-unit id="NameColumnHeader">
@@ -204,12 +204,12 @@
       </trans-unit>
       <trans-unit id="None">
         <source>(None)</source>
-        <target state="new">(None)</target>
+        <target state="translated">(없음)</target>
         <note />
       </trans-unit>
       <trans-unit id="PageToolbarLandmark">
         <source>Page toolbar</source>
-        <target state="new">Page toolbar</target>
+        <target state="translated">페이지 도구 모음</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -219,7 +219,7 @@
       </trans-unit>
       <trans-unit id="PlotlyChartExemplars">
         <source>Exemplars</source>
-        <target state="new">Exemplars</target>
+        <target state="translated">예시</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartLength">
@@ -229,12 +229,12 @@
       </trans-unit>
       <trans-unit id="PlotlyChartTime">
         <source>Time</source>
-        <target state="new">Time</target>
+        <target state="translated">시간</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartTrace">
         <source>Trace</source>
-        <target state="new">Trace</target>
+        <target state="translated">추적</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartValue">
@@ -264,7 +264,7 @@
       </trans-unit>
       <trans-unit id="ResourceDetailsVolumesHeader">
         <source>Volumes</source>
-        <target state="new">Volumes</target>
+        <target state="translated">볼륨</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDropdownReplicaAccessibleTitle">
@@ -274,7 +274,7 @@
       </trans-unit>
       <trans-unit id="ResourceLabel">
         <source>Resource</source>
-        <target state="new">Resource</target>
+        <target state="translated">리소스</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">
@@ -284,17 +284,17 @@
       </trans-unit>
       <trans-unit id="SpanDetailsBacklinksHeader">
         <source>Backlinks</source>
-        <target state="new">Backlinks</target>
+        <target state="translated">백링크</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsContextHeader">
         <source>Context</source>
-        <target state="new">Context</target>
+        <target state="translated">컨텍스트</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsDetailsColumnHeader">
         <source>Details</source>
-        <target state="new">Details</target>
+        <target state="translated">세부 정보</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsDuration">
@@ -309,7 +309,7 @@
       </trans-unit>
       <trans-unit id="SpanDetailsLinksHeader">
         <source>Links</source>
-        <target state="new">Links</target>
+        <target state="translated">링크</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsResource">
@@ -324,7 +324,7 @@
       </trans-unit>
       <trans-unit id="SpanDetailsSpanColumnHeader">
         <source>Span</source>
-        <target state="new">Span</target>
+        <target state="translated">범위</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsSpanHeader">
@@ -334,7 +334,7 @@
       </trans-unit>
       <trans-unit id="SpanDetailsSpanPrefix">
         <source>Span</source>
-        <target state="new">Span</target>
+        <target state="translated">범위</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsStartTime">

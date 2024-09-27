@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using Aspire.Dashboard.Components.Layout;
+using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
@@ -12,8 +13,10 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
+using Aspire.Hosting.ConsoleLogs;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -29,6 +32,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         public CancellationToken CancellationToken => _cts.Token;
         public void Cancel() => _cts.Cancel();
     }
+
+    [Inject]
+    public required IOptions<DashboardOptions> Options { get; init; }
 
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
@@ -57,15 +63,14 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     [Parameter]
     public string? ResourceName { get; set; }
 
-    private readonly TaskCompletionSource _logViewerReadyTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly CancellationTokenSource _resourceSubscriptionCancellation = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private ImmutableList<SelectViewModel<ResourceTypeDetails>>? _resources;
     private Task? _resourceSubscriptionTask;
     private ConsoleLogsSubscription? _consoleLogsSubscription;
+    internal LogEntries _logEntries = null!;
 
     // UI
-    public LogViewer LogViewer = null!;
     private SelectViewModel<ResourceTypeDetails> _noSelection = null!;
     private AspirePageContentLayout? _contentLayout;
 
@@ -77,6 +82,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     protected override async Task OnInitializedAsync()
     {
+        _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
         _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.None)] };
         PageViewModel = new ConsoleLogsViewModel { SelectedOption = _noSelection, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
 
@@ -206,28 +212,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 _consoleLogsSubscription = newConsoleLogsSubscription;
             }
 
-            // Wait for the first render to complete so that the log viewer is available.
-            if (!_logViewerReadyTcs.Task.IsCompletedSuccessfully)
-            {
-                Logger.LogDebug("Waiting for log viewer to be available.");
-                await _logViewerReadyTcs.Task;
-            }
-
-            LogViewer.ClearLogs();
+            Logger.LogDebug("Creating new log entries collection.");
+            _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
 
             if (newConsoleLogsSubscription is not null)
             {
                 LoadLogs(newConsoleLogsSubscription);
             }
-        }
-    }
-
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (firstRender)
-        {
-            Logger.LogDebug("Log viewer ready.");
-            _logViewerReadyTcs.SetResult();
         }
     }
 
@@ -329,16 +320,16 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                     foreach (var (lineNumber, content, isErrorOutput) in batch)
                     {
                         // Set the base line number using the reported line number of the first log line.
-                        if (LogViewer.LogEntries.EntriesCount == 0)
+                        if (_logEntries.EntriesCount == 0)
                         {
-                            LogViewer.LogEntries.BaseLineNumber = lineNumber;
+                            _logEntries.BaseLineNumber = lineNumber;
                         }
 
                         var logEntry = logParser.CreateLogEntry(content, isErrorOutput);
-                        LogViewer.LogEntries.InsertSorted(logEntry);
+                        _logEntries.InsertSorted(logEntry);
                     }
 
-                    await LogViewer.LogsAddedAsync();
+                    await InvokeAsync(StateHasChanged);
                 }
             }
             finally
@@ -412,11 +403,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         await TaskHelpers.WaitIgnoreCancelAsync(_resourceSubscriptionTask);
 
         await StopAndClearConsoleLogsSubscriptionAsync();
-
-        if (LogViewer is { } logViewer)
-        {
-            await logViewer.DisposeAsync();
-        }
     }
 
     public class ConsoleLogsViewModel
@@ -431,7 +417,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         public string? SelectedResource { get; set; }
     }
 
-    public void UpdateViewModelFromQuery(ConsoleLogsViewModel viewModel)
+    public Task UpdateViewModelFromQueryAsync(ConsoleLogsViewModel viewModel)
     {
         if (_resources is not null && ResourceName is not null)
         {
@@ -447,6 +433,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             viewModel.SelectedResource = null;
             viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
         }
+        return Task.CompletedTask;
     }
 
     public string GetUrlFromSerializableViewModel(ConsoleLogsPageState serializable)

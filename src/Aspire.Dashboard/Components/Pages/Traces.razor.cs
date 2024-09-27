@@ -38,6 +38,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     private CancellationTokenSource? _filterCts;
     private string _filter = string.Empty;
     private AspirePageContentLayout? _contentLayout;
+    private FluentDataGrid<OtlpTrace> _dataGrid = null!;
     private GridColumnManager _manager = null!;
 
     public string SessionStorageKey => BrowserStorageKeys.TracesPageState;
@@ -197,7 +198,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             _tracesSubscription = TelemetryRepository.OnNewTraces(selectedApplicationKey, SubscriptionType.Read, async () =>
             {
                 TracesViewModel.ClearData();
-                await InvokeAsync(StateHasChanged);
+                await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             });
         }
     }
@@ -214,7 +215,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             {
                 await Task.Delay(400, cts.Token);
                 TracesViewModel.FilterText = newFilter;
-                await InvokeAsync(StateHasChanged);
+                await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             });
         }
     }
@@ -232,7 +233,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         }
 
         TracesViewModel.FilterText = string.Empty;
-        await InvokeAsync(StateHasChanged);
+        await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
     private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
@@ -268,7 +269,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
     }
 
-    public void UpdateViewModelFromQuery(TracesPageViewModel viewModel)
+    public async Task UpdateViewModelFromQueryAsync(TracesPageViewModel viewModel)
     {
         viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _allApplication);
         TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
@@ -287,10 +288,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             }
         }
 
-        _ = Task.Run(async () =>
-        {
-            await InvokeAsync(StateHasChanged);
-        });
+        await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
     public string GetUrlFromSerializableViewModel(TracesPageState serializable)
@@ -333,6 +331,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             Filter = entry,
             PropertyKeys = TelemetryRepository.GetTracePropertyKeys(PageViewModel.SelectedApplication.Id?.GetApplicationKey()),
             KnownKeys = KnownTraceFields.AllFields,
+            GetFieldValues = TelemetryRepository.GetTraceFieldValues
         };
         await DialogService.ShowPanelAsync<FilterDialog>(data, parameters);
     }

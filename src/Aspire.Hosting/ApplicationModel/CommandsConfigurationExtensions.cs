@@ -8,9 +8,9 @@ namespace Aspire.Hosting.ApplicationModel;
 
 internal static class CommandsConfigurationExtensions
 {
-    internal const string StartType = "start";
-    internal const string StopType = "stop";
-    internal const string RestartType = "restart";
+    internal const string StartType = "resource-start";
+    internal const string StopType = "resource-stop";
+    internal const string RestartType = "resource-restart";
 
     internal static void AddLifeCycleCommands(this IResource resource)
     {
