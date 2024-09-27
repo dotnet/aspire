@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -14,11 +16,10 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
-using static Aspire.Dashboard.Components.Pages.Traces;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, TracesPageState>
+public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewModel, Traces.TracesPageState>
 {
     private const string TimestampColumn = nameof(TimestampColumn);
     private const string NameColumn = nameof(NameColumn);
@@ -37,6 +38,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
     private CancellationTokenSource? _filterCts;
     private string _filter = string.Empty;
     private AspirePageContentLayout? _contentLayout;
+    private FluentDataGrid<OtlpTrace> _dataGrid = null!;
     private GridColumnManager _manager = null!;
 
     public string SessionStorageKey => BrowserStorageKeys.TracesPageState;
@@ -78,6 +80,10 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
 
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "filters")]
+    public string? SerializedLogFilters { get; set; }
 
     private string GetNameTooltip(OtlpTrace trace)
     {
@@ -158,7 +164,10 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
 
     protected override async Task OnParametersSetAsync()
     {
-        await this.InitializeViewModelAsync();
+        if (await this.InitializeViewModelAsync())
+        {
+            return;
+        }
 
         TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
         UpdateSubscription();
@@ -189,7 +198,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
             _tracesSubscription = TelemetryRepository.OnNewTraces(selectedApplicationKey, SubscriptionType.Read, async () =>
             {
                 TracesViewModel.ClearData();
-                await InvokeAsync(StateHasChanged);
+                await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             });
         }
     }
@@ -206,7 +215,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
             {
                 await Task.Delay(400, cts.Token);
                 TracesViewModel.FilterText = newFilter;
-                await InvokeAsync(StateHasChanged);
+                await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             });
         }
     }
@@ -224,7 +233,7 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
         }
 
         TracesViewModel.FilterText = string.Empty;
-        await InvokeAsync(StateHasChanged);
+        await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
     private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
@@ -260,15 +269,35 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
         DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
     }
 
-    public void UpdateViewModelFromQuery(TracesPageViewModel viewModel)
+    public async Task UpdateViewModelFromQueryAsync(TracesPageViewModel viewModel)
     {
         viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _allApplication);
         TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
+
+        if (SerializedLogFilters is not null)
+        {
+            var filters = LogFilterFormatter.DeserializeLogFiltersFromString(SerializedLogFilters);
+
+            if (filters.Count > 0)
+            {
+                TracesViewModel.ClearFilters();
+                foreach (var filter in filters)
+                {
+                    TracesViewModel.AddFilter(filter);
+                }
+            }
+        }
+
+        await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
     public string GetUrlFromSerializableViewModel(TracesPageState serializable)
     {
-        return DashboardUrls.TracesUrl(serializable.SelectedApplication);
+        var filters = (serializable.Filters.Count > 0) ? LogFilterFormatter.SerializeLogFiltersToString(serializable.Filters) : null;
+
+        return DashboardUrls.TracesUrl(
+            resource: serializable.SelectedApplication,
+            filters: filters);
     }
 
     public TracesPageState ConvertViewModelToSerializable()
@@ -276,7 +305,52 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
         return new TracesPageState
         {
             SelectedApplication = PageViewModel.SelectedApplication.Id is not null ? PageViewModel.SelectedApplication.Name : null,
+            Filters = TracesViewModel.Filters
         };
+    }
+
+    private async Task OpenFilterAsync(TelemetryFilter? entry)
+    {
+        if (_contentLayout is not null)
+        {
+            await _contentLayout.CloseMobileToolbarAsync();
+        }
+
+        var title = entry is not null ? FilterLoc[nameof(StructuredFiltering.DialogTitleEditFilter)] : FilterLoc[nameof(StructuredFiltering.DialogTitleAddFilter)];
+        var parameters = new DialogParameters
+        {
+            OnDialogResult = DialogService.CreateDialogCallback(this, HandleFilterDialog),
+            Title = title,
+            Alignment = HorizontalAlignment.Right,
+            PrimaryAction = null,
+            SecondaryAction = null,
+            Width = "450px"
+        };
+        var data = new FilterDialogViewModel
+        {
+            Filter = entry,
+            PropertyKeys = TelemetryRepository.GetTracePropertyKeys(PageViewModel.SelectedApplication.Id?.GetApplicationKey()),
+            KnownKeys = KnownTraceFields.AllFields,
+            GetFieldValues = TelemetryRepository.GetTraceFieldValues
+        };
+        await DialogService.ShowPanelAsync<FilterDialog>(data, parameters);
+    }
+
+    private async Task HandleFilterDialog(DialogResult result)
+    {
+        if (result.Data is FilterDialogResult filterResult && filterResult.Filter is TelemetryFilter filter)
+        {
+            if (filterResult.Delete)
+            {
+                TracesViewModel.RemoveFilter(filter);
+            }
+            else if (filterResult.Add)
+            {
+                TracesViewModel.AddFilter(filter);
+            }
+        }
+
+        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: true);
     }
 
     public class TracesPageViewModel
@@ -287,5 +361,6 @@ public partial class Traces : IPageWithSessionAndUrlState<TracesPageViewModel, T
     public class TracesPageState
     {
         public string? SelectedApplication { get; set; }
+        public required IReadOnlyCollection<TelemetryFilter> Filters { get; set; }
     }
 }

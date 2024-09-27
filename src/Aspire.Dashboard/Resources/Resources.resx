@@ -232,4 +232,10 @@
   <data name="ResourceDetailsViewConsoleLogs" xml:space="preserve">
     <value>View console logs</value>
   </data>
+  <data name="ResourcesDetailsHealthStateProperty" xml:space="preserve">
+    <value>Health State</value>
+  </data>
+  <data name="ResourcesDetailsStopTimeProperty" xml:space="preserve">
+    <value>Stop time</value>
+  </data>
 </root>

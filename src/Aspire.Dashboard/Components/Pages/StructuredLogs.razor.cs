@@ -10,6 +10,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
@@ -40,6 +41,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private string? _elementIdBeforeDetailsViewOpened;
     private AspirePageContentLayout? _contentLayout;
     private string _filter = string.Empty;
+    private FluentDataGrid<OtlpLogEntry> _dataGrid = null!;
     private GridColumnManager _manager = null!;
     private IList<GridColumn> _gridColumns = null!;
 
@@ -143,16 +145,16 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
         if (!string.IsNullOrEmpty(TraceId))
         {
-            ViewModel.AddFilter(new LogFilter
+            ViewModel.AddFilter(new TelemetryFilter
             {
-                Field = LogFilter.KnownTraceIdField, Condition = FilterCondition.Equals, Value = TraceId
+                Field = KnownStructuredLogFields.TraceIdField, Condition = FilterCondition.Equals, Value = TraceId
             });
         }
         if (!string.IsNullOrEmpty(SpanId))
         {
-            ViewModel.AddFilter(new LogFilter
+            ViewModel.AddFilter(new TelemetryFilter
             {
-                Field = LogFilter.KnownSpanIdField, Condition = FilterCondition.Equals, Value = SpanId
+                Field = KnownStructuredLogFields.SpanIdField, Condition = FilterCondition.Equals, Value = SpanId
             });
         }
 
@@ -191,7 +193,10 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     protected override async Task OnParametersSetAsync()
     {
-        await this.InitializeViewModelAsync();
+        if (await this.InitializeViewModelAsync())
+        {
+            return;
+        }
         UpdateSubscription();
     }
 
@@ -226,7 +231,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             _logsSubscription = TelemetryRepository.OnNewLogs(PageViewModel.SelectedApplication.Id?.GetApplicationKey(), SubscriptionType.Read, async () =>
             {
                 ViewModel.ClearData();
-                await InvokeAsync(StateHasChanged);
+                await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             });
         }
     }
@@ -235,7 +240,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         _elementIdBeforeDetailsViewOpened = buttonId;
 
-        if (SelectedLogEntry?.LogEntry == entry)
+        if (SelectedLogEntry?.LogEntry.InternalId == entry.InternalId)
         {
             await ClearSelectedLogEntryAsync();
         }
@@ -262,16 +267,14 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         _elementIdBeforeDetailsViewOpened = null;
     }
 
-    private async Task OpenFilterAsync(LogFilter? entry)
+    private async Task OpenFilterAsync(TelemetryFilter? entry)
     {
         if (_contentLayout is not null)
         {
             await _contentLayout.CloseMobileToolbarAsync();
         }
 
-        var logPropertyKeys = TelemetryRepository.GetLogPropertyKeys(PageViewModel.SelectedApplication.Id?.GetApplicationKey());
-
-        var title = entry is not null ? Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEditFilter)] : Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter)];
+        var title = entry is not null ? FilterLoc[nameof(StructuredFiltering.DialogTitleEditFilter)] : FilterLoc[nameof(StructuredFiltering.DialogTitleAddFilter)];
         var parameters = new DialogParameters
         {
             OnDialogResult = DialogService.CreateDialogCallback(this, HandleFilterDialog),
@@ -279,17 +282,21 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             Alignment = HorizontalAlignment.Right,
             PrimaryAction = null,
             SecondaryAction = null,
+            Width = "450px"
         };
         var data = new FilterDialogViewModel
         {
-            Filter = entry, LogPropertyKeys = logPropertyKeys
+            Filter = entry,
+            PropertyKeys = TelemetryRepository.GetLogPropertyKeys(PageViewModel.SelectedApplication.Id?.GetApplicationKey()),
+            KnownKeys = KnownStructuredLogFields.AllFields,
+            GetFieldValues = TelemetryRepository.GetLogsFieldValues
         };
         await DialogService.ShowPanelAsync<FilterDialog>(data, parameters);
     }
 
     private async Task HandleFilterDialog(DialogResult result)
     {
-        if (result.Data is FilterDialogResult filterResult && filterResult.Filter is LogFilter filter)
+        if (result.Data is FilterDialogResult filterResult && filterResult.Filter is TelemetryFilter filter)
         {
             if (filterResult.Delete)
             {
@@ -320,7 +327,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
                 await Task.Delay(400, cts.Token);
                 ViewModel.FilterText = newFilter;
-                await InvokeAsync(StateHasChanged);
+                await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
             });
         }
     }
@@ -340,7 +347,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         ViewModel.FilterText = string.Empty;
 
         await ClearSelectedLogEntryAsync();
-        await InvokeAsync(StateHasChanged);
+        await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
         await this.AfterViewModelChangedAsync(_contentLayout, true);
     }
 
@@ -348,7 +355,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     private string GetRowClass(OtlpLogEntry entry)
     {
-        if (entry == SelectedLogEntry?.LogEntry)
+        if (entry.InternalId == SelectedLogEntry?.LogEntry.InternalId)
         {
             return "selected-row";
         }
@@ -411,7 +418,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         };
     }
 
-    public void UpdateViewModelFromQuery(StructuredLogsPageViewModel viewModel)
+    public async Task UpdateViewModelFromQueryAsync(StructuredLogsPageViewModel viewModel)
     {
         viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _allApplication);
         ViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
@@ -441,10 +448,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             }
         }
 
-        _ = Task.Run(async () =>
-        {
-            await InvokeAsync(StateHasChanged);
-        });
+        await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 
     public class StructuredLogsPageViewModel
@@ -457,6 +461,6 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         public string? SelectedApplication { get; set; }
         public string? LogLevelText { get; set; }
-        public required IReadOnlyCollection<LogFilter> Filters { get; set; }
+        public required IReadOnlyCollection<TelemetryFilter> Filters { get; set; }
     }
 }

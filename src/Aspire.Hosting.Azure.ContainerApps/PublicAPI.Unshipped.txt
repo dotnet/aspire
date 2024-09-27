@@ -1,0 +1,7 @@
+#nullable enable
+Aspire.Hosting.Azure.AzureContainerAppContainerExtensions
+Aspire.Hosting.Azure.AzureContainerAppExtensions
+Aspire.Hosting.Azure.AzureContainerAppProjectExtensions
+static Aspire.Hosting.Azure.AzureContainerAppContainerExtensions.PublishAsAzureContainerApp<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! container, System.Action<Aspire.Hosting.ResourceModuleConstruct!, Azure.Provisioning.AppContainers.ContainerApp!>! configure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+static Aspire.Hosting.Azure.AzureContainerAppExtensions.AddContainerAppsInfrastructure(this Aspire.Hosting.IDistributedApplicationBuilder! builder) -> Aspire.Hosting.IDistributedApplicationBuilder!
+static Aspire.Hosting.Azure.AzureContainerAppProjectExtensions.PublishAsAzureContainerApp<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! project, System.Action<Aspire.Hosting.ResourceModuleConstruct!, Azure.Provisioning.AppContainers.ContainerApp!>! configure) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!

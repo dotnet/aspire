@@ -1,11 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Frozen;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Aspire.Dashboard.Model;
-using Google.Protobuf.WellKnownTypes;
+using Aspire.Tests.Shared.DashboardModel;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests;
@@ -14,22 +13,10 @@ public class ResourceOutgoingPeerResolverTests
 {
     private static ResourceViewModel CreateResource(string name, string? serviceAddress = null, int? servicePort = null, string? displayName = null)
     {
-        return new ResourceViewModel
-        {
-            Name = name,
-            ResourceType = "Container",
-            DisplayName = displayName ?? name,
-            Uid = Guid.NewGuid().ToString(),
-            CreationTimeStamp = DateTime.UtcNow,
-            Environment = [],
-            Properties = FrozenDictionary<string, Value>.Empty,
-            Urls = servicePort is null || servicePort is null ? [] : [new UrlViewModel(name, new($"http://{serviceAddress}:{servicePort}"), isInternal: false)],
-            Volumes = [],
-            State = null,
-            KnownState = null,
-            StateStyle = null,
-            Commands = []
-        };
+        return ModelTestHelpers.CreateResource(
+            appName: name,
+            displayName: displayName,
+            urls: servicePort is null || servicePort is null ? [] : [new UrlViewModel(name, new($"http://{serviceAddress}:{servicePort}"), isInternal: false)]);
     }
 
     [Fact]
@@ -216,7 +203,7 @@ public class ResourceOutgoingPeerResolverTests
         public string ApplicationName => "ApplicationName";
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
         public Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>>? SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
         public Task<ResourceViewModelSubscription> SubscribeResourcesAsync(CancellationToken cancellationToken) => subscribeResult;
     }
 }

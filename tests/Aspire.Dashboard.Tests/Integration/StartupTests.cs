@@ -5,6 +5,8 @@ using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Otlp.Http;
 using Aspire.Hosting;
 using Google.Protobuf;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
@@ -79,6 +81,96 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         // Assert
         Assert.Contains(configFilePath, ex.Message);
+    }
+
+    [Fact]
+    public async Task Configuration_FileConfigDirectoryDoesExist_Success()
+    {
+        // Arrange
+        const string frontendBrowserToken = "SomeSecretContent";
+        var fileConfigDirectory = Directory.CreateTempSubdirectory();
+        var browserTokenConfigFile = await CreateBrowserTokenConfigFileAsync(fileConfigDirectory, frontendBrowserToken);
+        try
+        {
+            var config = new ConfigurationManager()
+                .AddInMemoryCollection(new Dictionary<string, string?> { [DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] = fileConfigDirectory.FullName })
+                .Build();
+            WebApplicationBuilder? localBuilder = null;
+            Action<WebApplicationBuilder> webApplicationBuilderConfigAction = builder =>
+            {
+                builder.Configuration.AddConfiguration(config);
+                localBuilder = builder;
+            };
+
+            // Act
+            await using var dashboardWebApplication = new DashboardWebApplication(webApplicationBuilderConfigAction);
+
+            // Assert
+            Assert.NotNull(localBuilder);
+            Assert.Equal(frontendBrowserToken, localBuilder.Configuration[DashboardConfigNames.DashboardFrontendBrowserTokenName.ConfigKey]);
+        }
+        finally
+        {
+            File.Delete(browserTokenConfigFile);
+        }
+    }
+
+    [Fact]
+    public async Task Configuration_FileConfigDirectoryReloadsChanges_Success()
+    {
+        // Arrange
+        const string initialFrontendBrowserToken = "InitialSecretContent";
+        const string changedFrontendBrowserToken = "NewSecretContent";
+        var fileConfigDirectory = Directory.CreateTempSubdirectory();
+        var browserTokenConfigFile = await CreateBrowserTokenConfigFileAsync(fileConfigDirectory, initialFrontendBrowserToken);
+        try
+        {
+            var config = new ConfigurationManager()
+                .AddInMemoryCollection(new Dictionary<string, string?> { [DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] = fileConfigDirectory.FullName })
+                .Build();
+            WebApplicationBuilder? localBuilder = null;
+            Action<WebApplicationBuilder> webApplicationBuilderConfigAction = builder =>
+            {
+                builder.Configuration.AddConfiguration(config);
+                localBuilder = builder;
+            };
+            await using var dashboardWebApplication = new DashboardWebApplication(webApplicationBuilderConfigAction);
+
+            // Act
+            // get the initial browser token to make sure nothing went wrong until here
+            var initialBrowserTokenProvidedByConfiguration = localBuilder?.Configuration[DashboardConfigNames.DashboardFrontendBrowserTokenName.ConfigKey];
+
+            // update the browser token's config file and get the new value
+            await File.WriteAllTextAsync(browserTokenConfigFile, changedFrontendBrowserToken);
+            await Task.Delay(TimeSpan.FromMilliseconds(500)); // it takes some time before the file change is detected and propagated
+            var updatedBrowserTokenProvidedByConfiguration = localBuilder?.Configuration[DashboardConfigNames.DashboardFrontendBrowserTokenName.ConfigKey];
+
+            // Assert
+            Assert.Equal(initialFrontendBrowserToken, initialBrowserTokenProvidedByConfiguration);
+            Assert.Equal(changedFrontendBrowserToken, updatedBrowserTokenProvidedByConfiguration);
+        }
+        finally
+        {
+            File.Delete(browserTokenConfigFile);
+        }
+    }
+
+    [Fact]
+    public async Task Configuration_FileConfigDirectoryDoesntExist_Error()
+    {
+        // Arrange & Act
+        var fileConfigDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        var ex = await Assert.ThrowsAsync<DirectoryNotFoundException>(async () =>
+        {
+            await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+                data =>
+                {
+                    data[DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] = fileConfigDirectory;
+                });
+        });
+
+        // Assert
+        Assert.Contains(fileConfigDirectory, ex.Message);
     }
 
     [Fact]
@@ -492,5 +584,13 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         // Check that the specified dynamic port of 0 is overridden with the actual port number.
         var ipEndPoint = endPointAccessor().EndPoint;
         Assert.NotEqual(0, ipEndPoint.Port);
+    }
+
+    private static async Task<string> CreateBrowserTokenConfigFileAsync(DirectoryInfo fileConfigDirectory, string browserToken)
+    {
+        var browserTokenConfigFile = Path.Combine(fileConfigDirectory.FullName, DashboardConfigNames.DashboardFrontendBrowserTokenName.EnvVarName);
+        await File.WriteAllTextAsync(browserTokenConfigFile, browserToken);
+
+        return browserTokenConfigFile;
     }
 }

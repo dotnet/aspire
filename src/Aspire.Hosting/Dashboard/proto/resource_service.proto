@@ -43,9 +43,19 @@ message ResourceCommand {
     // Optional icon name. This name should be a valid FluentUI icon name.
     // https://aka.ms/fluentui-system-icons
     optional string icon_name = 6;
+    // Optional icon variant.
+    optional IconVariant icon_variant = 7;
     // Optional description of the command, to be shown in the UI.
     // Could be used as a tooltip. May be localized.
-    optional string display_description = 7;
+    optional string display_description = 8;
+    // The state of the command. Controls whether the command is enabled, disabled,
+    // or hidden in the UI.
+    ResourceCommandState state = 9;
+}
+
+enum IconVariant {
+    REGULAR = 0;
+    FILLED = 1;
 }
 
 // Represents a request to execute a command.
@@ -64,6 +74,12 @@ message ResourceCommandRequest {
     // An optional parameter to accompany the command.
     // Copied from the ResourceCommand that this request object is initialized from.
     optional google.protobuf.Value parameter = 4;
+}
+
+enum ResourceCommandState {
+    ENABLED = 0;
+    DISABLED = 1;
+    HIDDEN = 2;
 }
 
 enum ResourceCommandResponseKind {
@@ -132,11 +148,15 @@ message Volume {
 message ResourceProperty {
     // Name of the data item, e.g. "container.id", "executable.pid", "project.path", ...
     string name = 1;
-    // TODO move display_name to reference data, sent once when the connection starts
+    // TODO move display_name to reference data, sent once when the connection starts (https://github.com/dotnet/aspire/issues/1644)
     // Optional display name, may be localized
     optional string display_name = 2;
     // The data value. May be null, a number, a string, a boolean, a dictionary of values (Struct), or a list of values (ValueList).
     google.protobuf.Value value = 3;
+    // TODO move is_sensitive to reference data, sent once when the connection starts (https://github.com/dotnet/aspire/issues/1644)
+    // Whether the value is sensitive and should be masked in the UI by default.
+    // Defaults to false. When true, the user must explicitly unmask the value to view it.
+    optional bool is_sensitive = 4;
 }
 
 // Models the full state of an resource (container, executable, project, etc) at a particular point in time.
@@ -170,6 +190,21 @@ message Resource {
 
     // The set of volumes mounted to the resource. Only applies to containers.
     repeated Volume volumes = 15;
+
+    // The aggregate health state of the resource
+    optional HealthStateKind HealthState = 16;
+
+    // The resource start time.
+    optional google.protobuf.Timestamp started_at = 17;
+    // The resource stop time.
+    optional google.protobuf.Timestamp stopped_at = 18;
+}
+
+enum HealthStateKind {
+    UNKNOWN = 0;
+    HEALTHY = 1;
+    UNHEALTHY = 2;
+    DEGRADED = 3;
 }
 
 ////////////////////////////////////////////

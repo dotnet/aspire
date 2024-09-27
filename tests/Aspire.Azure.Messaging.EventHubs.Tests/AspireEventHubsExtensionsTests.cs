@@ -15,7 +15,7 @@ using Xunit;
 namespace Aspire.Azure.Messaging.EventHubs.Tests;
 
 public class AspireEventHubsExtensionsTests
-{
+{    
     private const string AspireEventHubsSection = "Aspire:Azure:Messaging:EventHubs:";
     private const string EhConnectionString = "Endpoint=sb://aspireeventhubstests.servicebus.windows.net/;" +
                                               "SharedAccessKeyName=fake;SharedAccessKey=fake;EntityPath=MyHub";
@@ -105,6 +105,203 @@ public class AspireEventHubsExtensionsTests
         using var host = builder.Build();
 
         RetrieveAndAssert(useKeyed, clientIndex, host);
+    }
+
+    [Theory]
+    [InlineData(false, EventHubProducerClientIndex)]
+    [InlineData(true, EventHubProducerClientIndex)]
+    [InlineData(false, EventHubConsumerClientIndex)]
+    [InlineData(true, EventHubConsumerClientIndex)]
+    [InlineData(false, EventProcessorClientIndex)]
+    [InlineData(true, EventProcessorClientIndex)]
+    [InlineData(false, PartitionReceiverIndex)]
+    [InlineData(true, PartitionReceiverIndex)]
+    [InlineData(false, EventBufferedProducerClientIndex)]
+    [InlineData(true, EventBufferedProducerClientIndex)]
+    public void BindsClientOptionsFromConfigurationWithNamespace(bool useKeyed, int clientIndex)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        ConfigureBlobServiceClient(useKeyed, builder.Services);
+
+        var key = useKeyed ? "eh" : null;
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "ClientOptions:Identifier"), "customidentifier"),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "BlobContainerName"), "checkpoints"),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "BlobClientServiceKey"), useKeyed ? "blobs" : null),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    AspireEventHubsSection + s_clientTypes[clientIndex].Name, key, "PartitionId"), "foo"),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "FullyQualifiedNamespace"), FullyQualifiedNamespace),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "EventHubName"), "MyHub"),
+        ]);
+
+        if (useKeyed)
+        {
+            s_keyedClientAdders[clientIndex](builder, "eh", null);
+        }
+        else
+        {
+            s_clientAdders[clientIndex](builder, "eh", null);
+        }
+
+        using var host = builder.Build();
+
+        var assignedIdentifier = RetrieveClient(key, clientIndex, host) switch
+        {
+            EventProcessorClient processor => processor.Identifier,
+            EventHubConsumerClient consumer => consumer.Identifier,
+            EventHubProducerClient producer => producer.Identifier,
+            PartitionReceiver receiver => receiver.Identifier,
+            EventHubBufferedProducerClient producer => producer.Identifier,
+            _ => null
+        };
+
+        Assert.NotNull(assignedIdentifier);
+        Assert.Equal("customidentifier", assignedIdentifier);
+    }
+
+    [Theory]
+    [InlineData(false, EventHubProducerClientIndex)]
+    [InlineData(true, EventHubProducerClientIndex)]
+    [InlineData(false, EventHubConsumerClientIndex)]
+    [InlineData(true, EventHubConsumerClientIndex)]
+    [InlineData(false, EventProcessorClientIndex)]
+    [InlineData(true, EventProcessorClientIndex)]
+    [InlineData(false, PartitionReceiverIndex)]
+    [InlineData(true, PartitionReceiverIndex)]
+    [InlineData(false, EventBufferedProducerClientIndex)]
+    [InlineData(true, EventBufferedProducerClientIndex)]
+    public void BindsClientOptionsFromConfigurationWithConnectionString(bool useKeyed, int clientIndex)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        ConfigureBlobServiceClient(useKeyed, builder.Services);
+
+        var key = useKeyed ? "eh" : null;
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "ClientOptions:Identifier"), "customidentifier"),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "BlobContainerName"), "checkpoints"),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "BlobClientServiceKey"), useKeyed ? "blobs" : null),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    AspireEventHubsSection + s_clientTypes[clientIndex].Name, key, "PartitionId"), "foo"),
+            new KeyValuePair<string, string?>("ConnectionStrings:eh", EhConnectionString)
+        ]);
+
+        if (useKeyed)
+        {
+            s_keyedClientAdders[clientIndex](builder, "eh", null);
+        }
+        else
+        {
+            s_clientAdders[clientIndex](builder, "eh", null);
+        }
+
+        using var host = builder.Build();
+
+        var assignedIdentifier = RetrieveClient(key, clientIndex, host) switch
+        {
+            EventProcessorClient processor => processor.Identifier,
+            EventHubConsumerClient consumer => consumer.Identifier,
+            EventHubProducerClient producer => producer.Identifier,
+            PartitionReceiver receiver => receiver.Identifier,
+            EventHubBufferedProducerClient producer => producer.Identifier,
+            _ => null
+        };
+
+        Assert.NotNull(assignedIdentifier);
+        Assert.Equal("customidentifier", assignedIdentifier);
+    }
+
+    [Theory]
+    [InlineData(false, EventHubProducerClientIndex)]
+    [InlineData(true, EventHubProducerClientIndex)]
+    [InlineData(false, EventHubConsumerClientIndex)]
+    [InlineData(true, EventHubConsumerClientIndex)]
+    [InlineData(false, EventProcessorClientIndex)]
+    [InlineData(true, EventProcessorClientIndex)]
+    [InlineData(false, PartitionReceiverIndex)]
+    [InlineData(true, PartitionReceiverIndex)]
+    [InlineData(false, EventBufferedProducerClientIndex)]
+    [InlineData(true, EventBufferedProducerClientIndex)]
+    public void BindsClientOptionsFromConfigurationWithConnectionStringAndEventHubName(bool useKeyed, int clientIndex)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        ConfigureBlobServiceClient(useKeyed, builder.Services);
+
+        var key = useKeyed ? "eh" : null;
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "ClientOptions:Identifier"), "customidentifier"),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "BlobContainerName"), "checkpoints"),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "BlobClientServiceKey"), useKeyed ? "blobs" : null),
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    AspireEventHubsSection + s_clientTypes[clientIndex].Name, key, "PartitionId"), "foo"),            
+            new KeyValuePair<string, string?>(
+                CreateConfigKey(
+                    $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",
+                    key, "EventHubName"), "MyHub"),
+            new KeyValuePair<string, string?>("ConnectionStrings:eh", EhConnectionString),
+        ]);
+
+        if (useKeyed)
+        {
+            s_keyedClientAdders[clientIndex](builder, "eh", null);
+        }
+        else
+        {
+            s_clientAdders[clientIndex](builder, "eh", null);
+        }
+
+        using var host = builder.Build();
+
+        var assignedIdentifier = RetrieveClient(key, clientIndex, host) switch
+        {
+            EventProcessorClient processor => processor.Identifier,
+            EventHubConsumerClient consumer => consumer.Identifier,
+            EventHubProducerClient producer => producer.Identifier,
+            PartitionReceiver receiver => receiver.Identifier,
+            EventHubBufferedProducerClient producer => producer.Identifier,
+            _ => null
+        };
+
+        Assert.NotNull(assignedIdentifier);
+        Assert.Equal("customidentifier", assignedIdentifier);
     }
 
     [Theory]

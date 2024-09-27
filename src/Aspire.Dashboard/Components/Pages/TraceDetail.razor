@@ -65,7 +65,8 @@
                     </DetailsTitleTemplate>
                     <Summary>
                         <GridColumnManager @ref="_manager" Columns="@_gridColumns">
-                            <FluentDataGrid Virtualize="true"
+                            <FluentDataGrid @ref="_dataGrid"
+                                            Virtualize="true"
                                             GenerateHeader="GenerateHeaderOption.Sticky"
                                             Class="trace-view-grid enable-row-click"
                                             ResizableColumns="true"
@@ -74,6 +75,7 @@
                                             RowClass="@GetRowClass"
                                             GridTemplateColumns="@_manager.GetGridTemplateColumns()"
                                             ShowHover="true"
+                                            ItemKey="@(r => r.Span.SpanId)"
                                             OnRowClick="@(r => r.ExecuteOnDefault(d => OnShowPropertiesAsync(d, buttonId: null)))">
                                 <AspireTemplateColumn ColumnId="@NameColumn" ColumnManager="@_manager" UseCustomHeaderTemplate="false" Title="@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailNameHeader)]">
                                     <div class="col-long-content" title="@context.GetTooltip(_applications)">

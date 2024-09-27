@@ -87,11 +87,11 @@ public class AddMongoDBTests
         var connectionStringResource = dbResource as IResourceWithConnectionString;
         Assert.NotNull(connectionStringResource);
         var connectionString = await connectionStringResource.GetConnectionStringAsync();
-
-        Assert.Equal("mongodb://localhost:27017", await serverResource.GetConnectionStringAsync());
-        Assert.Equal("mongodb://{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}", serverResource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("mongodb://localhost:27017/mydatabase", connectionString);
-        Assert.Equal("{mongodb.connectionString}/mydatabase", connectionStringResource.ConnectionStringExpression.ValueExpression);
+        
+        Assert.Equal($"mongodb://admin:{dbResource.Parent.PasswordParameter?.Value}@localhost:27017?authSource=admin&authMechanism=SCRAM-SHA-256", await serverResource.GetConnectionStringAsync());
+        Assert.Equal("mongodb://admin:{mongodb-password.value}@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}?authSource=admin&authMechanism=SCRAM-SHA-256", serverResource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal($"mongodb://admin:{dbResource.Parent.PasswordParameter?.Value}@localhost:27017/mydatabase?authSource=admin&authMechanism=SCRAM-SHA-256", connectionString);
+        Assert.Equal("mongodb://admin:{mongodb-password.value}@{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}/mydatabase?authSource=admin&authMechanism=SCRAM-SHA-256", connectionStringResource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -151,13 +151,28 @@ public class AddMongoDBTests
         Assert.Collection(env,
             e =>
             {
-                Assert.Equal("ME_CONFIG_MONGODB_URL", e.Key);
-                Assert.Equal($"mongodb://mongo:27017/?directConnection=true", e.Value);
+                Assert.Equal("ME_CONFIG_MONGODB_SERVER", e.Key);
+                Assert.Equal("mongo", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal("ME_CONFIG_MONGODB_PORT", e.Key);
+                Assert.Equal("27017", e.Value);
             },
             e =>
             {
                 Assert.Equal("ME_CONFIG_BASICAUTH", e.Key);
                 Assert.Equal("false", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal("ME_CONFIG_MONGODB_ADMINUSERNAME", e.Key);
+                Assert.Equal("admin", e.Value);
+            },
+            e =>
+            {
+                Assert.Equal("ME_CONFIG_MONGODB_ADMINPASSWORD", e.Key);
+                Assert.NotEmpty(e.Value);
             });
     }
 
@@ -184,8 +199,12 @@ public class AddMongoDBTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "mongodb://{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}",
+              "connectionString": "mongodb://admin:{mongo-password.value}@{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}?authSource=admin\u0026authMechanism=SCRAM-SHA-256",
               "image": "{{MongoDBContainerImageTags.Registry}}/{{MongoDBContainerImageTags.Image}}:{{MongoDBContainerImageTags.Tag}}",
+              "env": {
+                "MONGO_INITDB_ROOT_USERNAME": "admin",
+                "MONGO_INITDB_ROOT_PASSWORD": "{mongo-password.value}"
+              },
               "bindings": {
                 "tcp": {
                   "scheme": "tcp",
@@ -201,7 +220,7 @@ public class AddMongoDBTests
         expectedManifest = """
             {
               "type": "value.v0",
-              "connectionString": "{mongo.connectionString}/mydb"
+              "connectionString": "mongodb://admin:{mongo-password.value}@{mongo.bindings.tcp.host}:{mongo.bindings.tcp.port}/mydb?authSource=admin\u0026authMechanism=SCRAM-SHA-256"
             }
             """;
         Assert.Equal(expectedManifest, dbManifest.ToString());
@@ -243,8 +262,8 @@ public class AddMongoDBTests
         Assert.Equal("customers1", db1.Resource.DatabaseName);
         Assert.Equal("customers2", db2.Resource.DatabaseName);
 
-        Assert.Equal("{mongo1.connectionString}/customers1", db1.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("{mongo1.connectionString}/customers2", db2.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("mongodb://admin:{mongo1-password.value}@{mongo1.bindings.tcp.host}:{mongo1.bindings.tcp.port}/customers1?authSource=admin&authMechanism=SCRAM-SHA-256", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("mongodb://admin:{mongo1-password.value}@{mongo1.bindings.tcp.host}:{mongo1.bindings.tcp.port}/customers2?authSource=admin&authMechanism=SCRAM-SHA-256", db2.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -261,7 +280,7 @@ public class AddMongoDBTests
         Assert.Equal("imports", db1.Resource.DatabaseName);
         Assert.Equal("imports", db2.Resource.DatabaseName);
 
-        Assert.Equal("{mongo1.connectionString}/imports", db1.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal("{mongo2.connectionString}/imports", db2.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("mongodb://admin:{mongo1-password.value}@{mongo1.bindings.tcp.host}:{mongo1.bindings.tcp.port}/imports?authSource=admin&authMechanism=SCRAM-SHA-256", db1.Resource.ConnectionStringExpression.ValueExpression);
+        Assert.Equal("mongodb://admin:{mongo2-password.value}@{mongo2.bindings.tcp.host}:{mongo2.bindings.tcp.port}/imports?authSource=admin&authMechanism=SCRAM-SHA-256", db2.Resource.ConnectionStringExpression.ValueExpression);
     }
 }

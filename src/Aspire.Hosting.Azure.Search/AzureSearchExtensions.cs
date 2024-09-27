@@ -5,8 +5,8 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Provisioning;
+using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Search;
-using Azure.ResourceManager.Search.Models;
 
 namespace Aspire.Hosting;
 
@@ -21,7 +21,7 @@ public static class AzureSearchExtensions
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the Azure AI Search resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureSearchConstructResource}"/>.</returns>
-    public static IResourceBuilder<AzureSearchResource> AddAzureSearch(this IDistributedApplicationBuilder builder, string name)
+    public static IResourceBuilder<AzureSearchResource> AddAzureSearch(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
 #pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return builder.AddAzureSearch(name, null);
@@ -50,31 +50,27 @@ public static class AzureSearchExtensions
 
         void ConfigureSearch(ResourceModuleConstruct construct)
         {
-            SearchService search =
-                new(construct, name: name, sku: SearchSkuName.Basic)
-                {
-                    Properties =
-                    {
-                        ReplicaCount = 1,
-                        PartitionCount = 1,
-                        HostingMode = SearchServiceHostingMode.Default,
-                        IsLocalAuthDisabled = true,
-                        Tags = { { "aspire-resource-name", name } }
-                    }
-                };
+            var search = new SearchService(name)
+            {
+                SearchSkuName = SearchServiceSkuName.Basic,
+                ReplicaCount = 1,
+                PartitionCount = 1,
+                HostingMode = SearchServiceHostingMode.Default,
+                IsLocalAuthDisabled = true,
+                Tags = { { "aspire-resource-name", name } }
+            };
+            construct.Add(search);
 
-            var searchIndexContributorRole = search.AssignRole(RoleDefinition.SearchIndexDataContributor);
-            searchIndexContributorRole.AssignProperty(role => role.PrincipalId, construct.PrincipalIdParameter);
-            searchIndexContributorRole.AssignProperty(role => role.PrincipalType, construct.PrincipalTypeParameter);
-
-            var searchServiceContributorRole = search.AssignRole(RoleDefinition.SearchServiceContributor);
-            searchServiceContributorRole.AssignProperty(role => role.PrincipalId, construct.PrincipalIdParameter);
-            searchServiceContributorRole.AssignProperty(role => role.PrincipalType, construct.PrincipalTypeParameter);
+            construct.Add(search.AssignRole(SearchBuiltInRole.SearchIndexDataContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+            construct.Add(search.AssignRole(SearchBuiltInRole.SearchServiceContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             // TODO: The endpoint format should move into the CDK so we can maintain this
             // logic in a single location and have a better chance at supporting more than
             // just public Azure in the future.  https://github.com/Azure/azure-sdk-for-net/issues/42640
-            search.AddOutput("connectionString", "'Endpoint=https://${{{0}}}.search.windows.net'", me => me.Name);
+            construct.Add(new BicepOutput("connectionString", typeof(string))
+            {
+                Value = BicepFunction.Interpolate($"Endpoint=https://{search.Name}.search.windows.net")
+            });
 
             var resource = (AzureSearchResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);

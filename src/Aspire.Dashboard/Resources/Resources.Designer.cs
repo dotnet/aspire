@@ -241,6 +241,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Health State.
+        /// </summary>
+        public static string ResourcesDetailsHealthStateProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsHealthStateProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Project path.
         /// </summary>
         public static string ResourcesDetailsProjectPathProperty {
@@ -264,6 +273,15 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourcesDetailsStateProperty {
             get {
                 return ResourceManager.GetString("ResourcesDetailsStateProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Stop time.
+        /// </summary>
+        public static string ResourcesDetailsStopTimeProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsStopTimeProperty", resourceCulture);
             }
         }
         

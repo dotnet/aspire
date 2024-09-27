@@ -55,12 +55,12 @@ public partial class StructuredLogsTests : TestContext
         Assert.Collection(viewModel.Filters,
             f =>
             {
-                Assert.Equal(LogFilter.KnownTraceIdField, f.Field);
+                Assert.Equal(KnownStructuredLogFields.TraceIdField, f.Field);
                 Assert.Equal("123", f.Value);
             },
             f =>
             {
-                Assert.Equal(LogFilter.KnownSpanIdField, f.Field);
+                Assert.Equal(KnownStructuredLogFields.SpanIdField, f.Field);
                 Assert.Equal("456", f.Value);
             });
     }
@@ -71,7 +71,7 @@ public partial class StructuredLogsTests : TestContext
         // Arrange
         SetupStructureLogsServices();
 
-        var logFilter = new LogFilter { Field = "TestField", Condition = FilterCondition.Contains, Value = "TestValue" };
+        var logFilter = new TelemetryFilter { Field = "TestField", Condition = FilterCondition.Contains, Value = "TestValue" };
         var serializedFilter = LogFilterFormatter.SerializeLogFiltersToString([logFilter]);
 
         var navigationManager = Services.GetRequiredService<NavigationManager>();

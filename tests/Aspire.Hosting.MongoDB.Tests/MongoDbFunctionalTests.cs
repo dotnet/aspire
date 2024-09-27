@@ -11,6 +11,8 @@ using MongoDB.Driver;
 using Xunit;
 using Xunit.Abstractions;
 using Polly;
+using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting.MongoDB.Tests;
 
@@ -25,6 +27,45 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             new() { Name = "The Dark Knight"},
             new() { Name = "Schindler's List"},
         ];
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyWaitForOnMongoBlocksDependentResources()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+
+        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
+        builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
+        {
+            return healthCheckTcs.Task;
+        });
+
+        var resource = builder.AddMongoDB("resource")
+                           .WithHealthCheck("blocking_check");
+
+        var dependentResource = builder.AddMongoDB("dependentresource")
+                                       .WaitFor(resource);
+
+        using var app = builder.Build();
+
+        var pendingStart = app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
+
+        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
+
+        await rns.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
+
+        await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        await pendingStart;
+        await app.StopAsync();
+    }
 
     [Fact]
     [RequiresDocker]
@@ -80,6 +121,7 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
         {
             using var builder1 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
             var mongodb1 = builder1.AddMongoDB("mongodb");
+            var password = mongodb1.Resource.PasswordParameter!.Value;
             var db1 = mongodb1.AddDatabase(dbName);
 
             if (useVolume)
@@ -127,7 +169,10 @@ public class MongoDbFunctionalTests(ITestOutputHelper testOutputHelper)
             }
 
             using var builder2 = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
-            var mongodb2 = builder2.AddMongoDB("mongodb");
+            var passwordParameter2 = builder2.AddParameter("pwd");
+            builder2.Configuration["Parameters:pwd"] = password;
+
+            var mongodb2 = builder2.AddMongoDB("mongodb", password: passwordParameter2);
             var db2 = mongodb2.AddDatabase(dbName);
 
             if (useVolume)

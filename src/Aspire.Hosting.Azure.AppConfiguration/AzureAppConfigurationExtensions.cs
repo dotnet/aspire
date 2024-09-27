@@ -20,7 +20,7 @@ public static class AzureAppConfigurationExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureAppConfigurationResource> AddAzureAppConfiguration(this IDistributedApplicationBuilder builder, string name)
+    public static IResourceBuilder<AzureAppConfigurationResource> AddAzureAppConfiguration(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
 #pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return builder.AddAzureAppConfiguration(name, null);
@@ -35,20 +35,23 @@ public static class AzureAppConfigurationExtensions
     /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.AppConfiguration.AppConfigurationStore"/> resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureAppConfigurationResource> AddAzureAppConfiguration(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureAppConfigurationResource>, ResourceModuleConstruct, AppConfigurationStore>? configureResource)
+    public static IResourceBuilder<AzureAppConfigurationResource> AddAzureAppConfiguration(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<IResourceBuilder<AzureAppConfigurationResource>, ResourceModuleConstruct, AppConfigurationStore>? configureResource)
     {
         builder.AddAzureProvisioning();
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var store = new AppConfigurationStore(construct, name: name, skuName: "standard");
-            store.AssignProperty(x => x.DisableLocalAuth, "true");
-            store.AddOutput("appConfigEndpoint", x => x.Endpoint);
-            var appConfigurationDataOwnerRoleAssignment = store.AssignRole(RoleDefinition.AppConfigurationDataOwner);
-            appConfigurationDataOwnerRoleAssignment.AssignProperty(x => x.PrincipalId, construct.PrincipalIdParameter);
-            appConfigurationDataOwnerRoleAssignment.AssignProperty(x => x.PrincipalType, construct.PrincipalTypeParameter);
+            var store = new AppConfigurationStore(name)
+            {
+                SkuName = "standard",
+                DisableLocalAuth = true,
+                Tags = { { "aspire-resource-name", construct.Resource.Name } }
+            };
+            construct.Add(store);
 
-            store.Properties.Tags["aspire-resource-name"] = construct.Resource.Name;
+            construct.Add(new BicepOutput("appConfigEndpoint", typeof(string)) { Value = store.Endpoint });
+
+            construct.Add(store.AssignRole(AppConfigurationBuiltInRole.AppConfigurationDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
             var resource = (AzureAppConfigurationResource)construct.Resource;
             var resourceBuilder = builder.CreateResourceBuilder(resource);

@@ -8,6 +8,8 @@
     <VSTestRunSettingsFile Condition="'$(VSTestRunSettingsFile)' == ''">$(RunSettingsFilePath)</VSTestRunSettingsFile>
 
     <DeployRunSettingsFile Condition="'$(DeployRunSettingsFile)' == ''">true</DeployRunSettingsFile>
+    <!-- Use a separate xunit.runner.json for helix that disables parallel test runs -->
+    <XunitRunnerJson Condition="'$(XunitRunnerJson)' == '' and '$(ArchiveTests)' == 'true'">$(RepoRoot)tests\helix\xunit.runner.json</XunitRunnerJson>
     <XunitRunnerJson Condition="'$(XunitRunnerJson)' == ''">$(RepositoryEngineeringDir)testing\xunit.runner.json</XunitRunnerJson>
 
     <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == '' and ('$(IsTestProject)' == 'true' and '$(IsTestSupportProject)' != 'true')">true</RunTestsOnHelix>
@@ -33,7 +35,7 @@
 
   <!-- Used for running one helix job per test class -->
   <Target Name="_ExtractTestClassNames"
-          Condition="'$(ExtractTestClassNamesForHelix)' == 'true'"
+          Condition="'$(ExtractTestClassNamesForHelix)' == 'true' and '$(ArchiveTests)' == 'true'"
           BeforeTargets="ZipTestArchive">
 
     <Error Condition="'$(ExtractTestClassNamesPrefix)' == ''"

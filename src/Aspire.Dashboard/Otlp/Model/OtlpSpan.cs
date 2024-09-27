@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Dashboard.Model.Otlp;
 
 namespace Aspire.Dashboard.Otlp.Model;
 
@@ -100,5 +101,20 @@ public class OtlpSpan
     private string DebuggerToString()
     {
         return $@"SpanId = {SpanId}, StartTime = {StartTime.ToLocalTime():h:mm:ss.fff tt}, ParentSpanId = {ParentSpanId}, TraceId = {Trace.TraceId}";
+    }
+
+    public static string? GetFieldValue(OtlpSpan span, string field)
+    {
+        return field switch
+        {
+            KnownTraceFields.ApplicationField => span.Source.Application.ApplicationName,
+            KnownTraceFields.TraceIdField => span.TraceId,
+            KnownTraceFields.SpanIdField => span.SpanId,
+            KnownTraceFields.KindField => span.Kind.ToString(),
+            KnownTraceFields.StatusField => span.Status.ToString(),
+            KnownTraceFields.SourceField => span.Scope.ScopeName,
+            KnownTraceFields.NameField => span.Name,
+            _ => span.Attributes.GetValue(field)
+        };
     }
 }

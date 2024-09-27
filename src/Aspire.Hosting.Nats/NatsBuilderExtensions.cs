@@ -4,6 +4,11 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Nats;
 using Aspire.Hosting.Utils;
+using Aspire.NATS.Net;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
+using NATS.Client.Core;
 
 namespace Aspire.Hosting;
 
@@ -19,16 +24,44 @@ public static class NatsBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port for NATS server.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<NatsServerResource> AddNats(this IDistributedApplicationBuilder builder, string name, int? port = null)
+    public static IResourceBuilder<NatsServerResource> AddNats(this IDistributedApplicationBuilder builder, [ResourceName] string name, int? port = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
 
         var nats = new NatsServerResource(name);
+
+        NatsConnection? natsConnection = null;
+
+        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(nats, async (@event, ct) =>
+        {
+            var connectionString = await nats.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false)
+            ?? throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{nats.Name}' resource but the connection string was null.");
+
+            var options = NatsOpts.Default with
+            {
+                LoggerFactory = @event.Services.GetRequiredService<ILoggerFactory>(),
+            };
+
+            options = options with { Url = connectionString };
+
+            natsConnection = new NatsConnection(options);
+        });
+
+        var healthCheckKey = $"{name}_check";
+        builder.Services.AddHealthChecks()
+          .Add(new HealthCheckRegistration(
+              healthCheckKey,
+              sp => new NatsHealthCheck(natsConnection!),
+              failureStatus: default,
+              tags: default,
+              timeout: default));
+
         return builder.AddResource(nats)
                       .WithEndpoint(targetPort: 4222, port: port, name: NatsServerResource.PrimaryEndpointName)
                       .WithImage(NatsContainerImageTags.Image, NatsContainerImageTags.Tag)
-                      .WithImageRegistry(NatsContainerImageTags.Registry);
+                      .WithImageRegistry(NatsContainerImageTags.Registry)
+                      .WithHealthCheck(healthCheckKey);
     }
 
     /// <summary>
