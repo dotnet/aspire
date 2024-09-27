@@ -7,8 +7,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 builder.AddRedisClient("redis");
-//builder.AddKeyedRedisClient("garnet");
-//builder.AddKeyedRedisClient("valkey");
+builder.AddKeyedRedisClient("garnet");
+builder.AddKeyedRedisClient("valkey");
 
 var app = builder.Build();
 

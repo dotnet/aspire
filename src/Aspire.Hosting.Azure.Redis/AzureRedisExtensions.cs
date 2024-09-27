@@ -26,6 +26,7 @@ public static class AzureRedisExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{RedisResource}"/> builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureRedis)} instead to add an Azure Cache for Redis resource.")]
     public static IResourceBuilder<RedisResource> PublishAsAzureRedis(this IResourceBuilder<RedisResource> builder)
     {
         return builder.PublishAsAzureRedis(null);
@@ -37,12 +38,14 @@ public static class AzureRedisExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{RedisResource}"/> builder.</param>
     /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.Redis.RedisResource"/> resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureRedis)} instead to add an Azure Cache for Redis resource.")]
     [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<RedisResource> PublishAsAzureRedis(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, CdkRedisResource>? configureResource)
     {
         return builder.PublishAsAzureRedisInternal(configureResource);
     }
 
+    [Obsolete]
     private static IResourceBuilder<RedisResource> PublishAsAzureRedisInternal(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, CdkRedisResource>? configureResource, bool useProvisioner = false)
     {
         builder.ApplicationBuilder.AddAzureProvisioning();
@@ -100,6 +103,7 @@ public static class AzureRedisExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{RedisResource}"/> builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureRedis)} instead to add an Azure Cache for Redis resource.")]
     public static IResourceBuilder<RedisResource> AsAzureRedis(this IResourceBuilder<RedisResource> builder)
     {
         return builder.AsAzureRedis(null);
@@ -111,6 +115,7 @@ public static class AzureRedisExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{RedisResource}"/> builder.</param>
     /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.Redis.RedisResource"/> resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzureRedis)} instead to add an Azure Cache for Redis resource.")]
     [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<RedisResource> AsAzureRedis(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>, ResourceModuleConstruct, CdkRedisResource>? configureResource)
     {
@@ -123,30 +128,55 @@ public static class AzureRedisExtensions
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureRedisCacheResource}"/> builder.</returns>
-    public static IResourceBuilder<AzureRedisCacheResource> AddAzureRedis(this IDistributedApplicationBuilder builder, string name)
+    /// <remarks>
+    /// By default, the Azure Cache for Redis resource is configured to use Microsoft Entra ID (Azure Active Directory) for authentication.
+    /// This requires changes to the application code to use an azure credential to authenticate with the resource. See
+    /// https://github.com/Azure/Microsoft.Azure.StackExchangeRedis for more information.
+    /// 
+    /// You can use the <see cref="WithAccessKeyAuth"/> method to configure the resource to use access key authentication.
+    /// </remarks>
+    /// <example>
+    /// The following example creates an Azure Cache for Redis resource and referencing that resource in a .NET project.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var cache = builder.AddAzureRedis("cache");
+    ///
+    /// builder.AddProject&lt;Projects.ProductService&gt;()
+    ///     .WithReference(cache);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<AzureRedisCacheResource> AddAzureRedis(
+        this IDistributedApplicationBuilder builder,
+        string name)
     {
         builder.AddAzureProvisioning();
 
-        var configureConstruct = (ResourceModuleConstruct construct) =>
+        var configureConstruct = static (ResourceModuleConstruct construct) =>
         {
-            var redisCache = CreateRedisResource(construct);
+            var redis = CreateRedisResource(construct);
 
-            redisCache.RedisConfiguration = new RedisCommonConfiguration()
+            redis.RedisConfiguration = new RedisCommonConfiguration()
             {
-                IsAadEnabled= "true"
+                IsAadEnabled = "true"
             };
 
-            construct.Add(new RedisCacheAccessPolicyAssignment($"{redisCache.ResourceName}_admin", redisCache.ResourceVersion)
+            var disableAccessKeys = BicepValue<string>.DefineProperty(redis, "DisableAccessKeyAuthentication", ["properties", "disableAccessKeyAuthentication"], isOutput: false, isRequired: false);
+            disableAccessKeys.Assign("true");
+
+            construct.Add(new RedisCacheAccessPolicyAssignment($"{redis.ResourceName}_admin", redis.ResourceVersion)
             {
-                Parent = redisCache,
-                AccessPolicyName = "Data Owner",
+                Parent = redis,
+                AccessPolicyName = "Data Contributor",
                 ObjectId = construct.PrincipalIdParameter,
                 ObjectIdAlias = construct.PrincipalNameParameter
             });
 
             construct.Add(new BicepOutput("connectionString", typeof(string))
             {
-                Value = BicepFunction.Interpolate($"{redisCache.HostName},ssl=true")
+                Value = BicepFunction.Interpolate($"{redis.HostName},ssl=true")
             });
         };
 
@@ -158,9 +188,29 @@ public static class AzureRedisExtensions
     }
 
     /// <summary>
-    /// TOOD
+    /// Configures an Azure Cache for Redis resource to run locally in a container.
     /// </summary>
-    public static IResourceBuilder<AzureRedisCacheResource> RunAsContainer(this IResourceBuilder<AzureRedisCacheResource> builder, Action<IResourceBuilder<RedisResource>>? configureContainer = null)
+    /// <param name="builder">The Azure Cache for Redis resource builder.</param>
+    /// <param name="configureContainer">Callback that exposes underlying container to allow for customization.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureRedisCacheResource}"/> builder.</returns>
+    /// <example>
+    /// The following example creates an Azure Cache for Redis resource that runs locally is a
+    /// Redis container and referencing that resource in a .NET project.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var cache = builder.AddAzureRedis("cache")
+    ///     .RunAsContainer();
+    ///
+    /// builder.AddProject&lt;Projects.ProductService&gt;()
+    ///     .WithReference(cache);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<AzureRedisCacheResource> RunAsContainer(
+        this IResourceBuilder<AzureRedisCacheResource> builder,
+        Action<IResourceBuilder<RedisResource>>? configureContainer = null)
     {
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
@@ -180,9 +230,26 @@ public static class AzureRedisExtensions
     }
 
     /// <summary>
-    /// TODO
+    /// Configures the resource to use access key authentication for Azure Cache for Redis.
     /// </summary>
-    public static IResourceBuilder<AzureRedisCacheResource> WithAccessKeyAuth(this IResourceBuilder<AzureRedisCacheResource> builder)
+    /// <param name="builder">The Azure Cache for Redis resource builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureRedisCacheResource}"/> builder.</returns>
+    /// <example>
+    /// The following example creates an Azure Cache for Redis resource that uses access key authentication.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var cache = builder.AddAzureRedis("cache")
+    ///     .WithAccessKeyAuth();
+    ///
+    /// builder.AddProject&lt;Projects.ProductService&gt;()
+    ///     .WithReference(cache);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<AzureRedisCacheResource> WithAccessKeyAuth(
+        this IResourceBuilder<AzureRedisCacheResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -206,7 +273,10 @@ public static class AzureRedisExtensions
                keyVault.Name = kvNameParam;
                construct.Add(keyVault);
 
-               redis.RedisConfiguration.Value!.IsAadEnabled = "false";
+               redis.RedisConfiguration.Value!.IsAadEnabled.Kind = BicepValueKind.Unset;
+
+               var disableAccessKeys = BicepValue<string>.DefineProperty(redis, "DisableAccessKeyAuthentication", ["properties", "disableAccessKeyAuthentication"], isOutput: false, isRequired: false);
+               disableAccessKeys.Kind = BicepValueKind.Unset;
 
                var secret = new KeyVaultSecret("connectionString")
                {
