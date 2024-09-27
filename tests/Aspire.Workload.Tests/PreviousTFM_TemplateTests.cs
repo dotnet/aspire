@@ -14,6 +14,7 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase
     }
 
     /*
+     * ALSO: all with 9sdk+8runtime
 
        Combinations:
         - Build for tfm
@@ -51,30 +52,39 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase
                             hive: net8 - no -f n9
     */
 
-    public static TheoryData<TestTargetFramework, TestSdk, TestTemplatesInstall, string?> TestData() => new()
+    public static TheoryData<TestSdk, TestTargetFramework, TestTemplatesInstall, string?> TestData() => new()
         {
-            // Previous TFM
-            { TestTargetFramework.Previous, TestSdk.Previous, TestTemplatesInstall.Net8, null},
-            { TestTargetFramework.Previous, TestSdk.Previous, TestTemplatesInstall.Net9, "'net8.0' is not a valid value for -f"},
-            { TestTargetFramework.Previous, TestSdk.Previous, TestTemplatesInstall.Net9AndNet8, null},
+            // Previous Sdk
+            { TestSdk.Previous, TestTargetFramework.Previous, TestTemplatesInstall.Net8, null},
+            { TestSdk.Previous, TestTargetFramework.Previous, TestTemplatesInstall.Net9, "'net8.0' is not a valid value for -f"},
+            { TestSdk.Previous, TestTargetFramework.Previous, TestTemplatesInstall.Net9AndNet8, null},
 
-            { TestTargetFramework.Previous, TestSdk.Current, TestTemplatesInstall.Net8, null},
-            { TestTargetFramework.Previous, TestSdk.Current, TestTemplatesInstall.Net9, "'net8.0' is not a valid value for -f"},
-            { TestTargetFramework.Previous, TestSdk.Current, TestTemplatesInstall.Net9AndNet8, null},
+            { TestSdk.Previous, TestTargetFramework.Current, TestTemplatesInstall.Net8, "'net9.0' is not a valid value for -f"},
+            { TestSdk.Previous, TestTargetFramework.Current, TestTemplatesInstall.Net9, "The current .NET SDK does not support targeting .NET 9.0"},
+            { TestSdk.Previous, TestTargetFramework.Current, TestTemplatesInstall.Net9AndNet8, "The current .NET SDK does not support targeting .NET 9.0"},
 
-            // Current TFM
-            { TestTargetFramework.Current, TestSdk.Previous, TestTemplatesInstall.Net8, "'net9.0' is not a valid value for -f"},
-            { TestTargetFramework.Current, TestSdk.Previous, TestTemplatesInstall.Net9, "The current .NET SDK does not support targeting .NET 9.0"},
-            { TestTargetFramework.Current, TestSdk.Previous, TestTemplatesInstall.Net9AndNet8, "The current .NET SDK does not support targeting .NET 9.0"},
+            // Current SDK
+            { TestSdk.Current, TestTargetFramework.Previous, TestTemplatesInstall.Net8, null},
+            { TestSdk.Current, TestTargetFramework.Previous, TestTemplatesInstall.Net9, "'net8.0' is not a valid value for -f"},
+            { TestSdk.Current, TestTargetFramework.Previous, TestTemplatesInstall.Net9AndNet8, null},
 
-            { TestTargetFramework.Current, TestSdk.Current, TestTemplatesInstall.Net8, "'net9.0' is not a valid value for -f"},
-            { TestTargetFramework.Current, TestSdk.Current, TestTemplatesInstall.Net9, null},
-            { TestTargetFramework.Current, TestSdk.Current, TestTemplatesInstall.Net9AndNet8, null},
+            { TestSdk.Current, TestTargetFramework.Current, TestTemplatesInstall.Net8, "'net9.0' is not a valid value for -f"},
+            { TestSdk.Current, TestTargetFramework.Current, TestTemplatesInstall.Net9, null},
+            { TestSdk.Current, TestTargetFramework.Current, TestTemplatesInstall.Net9AndNet8, null},
+
+            // Current SDK + previous runtime
+            { TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Previous, TestTemplatesInstall.Net8, null},
+            { TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Previous, TestTemplatesInstall.Net9, "'net8.0' is not a valid value for -f"},
+            { TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Previous, TestTemplatesInstall.Net9AndNet8, null},
+
+            { TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, TestTemplatesInstall.Net8, "'net9.0' is not a valid value for -f"},
+            { TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, TestTemplatesInstall.Net9, null},
+            { TestSdk.CurrentSdkAndPreviousRuntime, TestTargetFramework.Current, TestTemplatesInstall.Net9AndNet8, null},
         };
 
     [Theory]
     [MemberData(nameof(TestData))]
-    public async Task NewAndBuildTemplate(TestTargetFramework tfm, TestSdk sdk, TestTemplatesInstall templates, string? error)
+    public async Task NewAndBuildTemplate(TestSdk sdk, TestTargetFramework tfm, TestTemplatesInstall templates, string? error)
     {
         _ = error;
         string templateName = "aspire";
@@ -84,6 +94,7 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase
         {
             TestSdk.Current => BuildEnvironment.ForCurrentSdk,
             TestSdk.Previous => BuildEnvironment.ForPreviousSdk,
+            TestSdk.CurrentSdkAndPreviousRuntime => BuildEnvironment.ForCurrentSdkAndPreviousRuntime,
             _ => throw new ArgumentOutOfRangeException(nameof(sdk))
         };
 
@@ -214,7 +225,8 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase
     public enum TestSdk
     {
         Previous,
-        Current
+        Current,
+        CurrentSdkAndPreviousRuntime
     }
 
     public enum TestTemplatesInstall
