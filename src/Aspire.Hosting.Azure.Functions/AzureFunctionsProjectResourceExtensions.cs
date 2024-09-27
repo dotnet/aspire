@@ -71,6 +71,11 @@ public static class AzureFunctionsProjectResourceExtensions
             })
             .WithArgs(context =>
             {
+                // If we're running in publish mode, we don't need to map the port the host should listen on.
+                if (builder.ExecutionContext.IsPublishMode)
+                {
+                    return;
+                }
                 var http = resource.GetEndpoint("http");
                 context.Args.Add("--port");
                 context.Args.Add(http.Property(EndpointProperty.TargetPort));
@@ -84,10 +89,21 @@ public static class AzureFunctionsProjectResourceExtensions
     /// This method queries the launch profile of the project to determine the port to
     /// use based on the command line arguments configure in the launch profile,
     /// </summary>
+    /// <remarks>
+    /// If the Azure Function is running under publish mode, we don't need to map the port
+    /// the host should listen on from the launch profile. Instead, we'll use the default
+    /// post (8080) used by the Azure Functions container image.
+    /// </remarks>
     /// <param name="builder">The resource builder for the Azure Functions project resource.</param>
     /// <returns>An <see cref="IResourceBuilder{AzureFunctionsProjectResource}"/> for the Azure Functions project resource with the endpoint configured.</returns>
     private static IResourceBuilder<AzureFunctionsProjectResource> WithFunctionsHttpEndpoint(this IResourceBuilder<AzureFunctionsProjectResource> builder)
     {
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder
+                .WithHttpEndpoint()
+                .WithHttpsEndpoint();
+        }
         var launchProfile = builder.Resource.GetEffectiveLaunchProfile();
         int? port = null;
         if (launchProfile is not null)
