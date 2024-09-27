@@ -1,21 +1,23 @@
 <Project>
   <PropertyGroup>
-    <!--<GetNuGetsToBuildForWorkloadTestingDependsOn>_ValidateExpectedSetOfPackagesExist;_GetNuGetsToBuild;$(GetNuGetsToBuildForWorkloadTestingDependsOn)</GetNuGetsToBuildForWorkloadTestingDependsOn>-->
-    <NuGetConfigPackageSourceMappingsForWorkloadTesting>*Aspire*</NuGetConfigPackageSourceMappingsForWorkloadTesting>
-
     <_ShippingPackagesDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'packages', $(Configuration), 'Shipping'))</_ShippingPackagesDir>
 
     <_GlobalJsonContent>$([System.IO.File]::ReadAllText('$(RepoRoot)global.json'))</_GlobalJsonContent>
     <_DotNetCliVersionFromGlobalJson>$([System.Text.RegularExpressions.Regex]::Match($(_GlobalJsonContent), '(%3F&lt;="dotnet": ").*(%3F=")'))</_DotNetCliVersionFromGlobalJson>
-    <SdkVersionForWorkloadTesting Condition="'$(SdkVersionForWorkloadTesting)' == ''">$(_DotNetCliVersionFromGlobalJson)</SdkVersionForWorkloadTesting>
+    <SdkVersionForCurrentTFM Condition="'$(SdkVersionForCurrentTFM)' == ''">$(_DotNetCliVersionFromGlobalJson)</SdkVersionForCurrentTFM>
+    <SdkVersionForPreviousTFM>8.0.401</SdkVersionForPreviousTFM>
 
-    <SdkVersionForCurrentAndPreviousTFM>$(SdkVersionForWorkloadTesting)</SdkVersionForCurrentAndPreviousTFM>
-    <SdkDirForCurrentAndPreviousTFM>$(ArtifactsBinDir)dotnet-latest\</SdkDirForCurrentAndPreviousTFM>
-    <SdkStampPathForCurrentAndPreviousTFM>$(SdkDirForCurrentAndPreviousTFM).version-$(SdkVersionForCurrentAndPreviousTFM).stamp</SdkStampPathForCurrentAndPreviousTFM>
+    <SdkVersionForCurrentTFM>$(SdkVersionForCurrentTFM)</SdkVersionForCurrentTFM>
+    <SdkDirForCurrentTFM>$(ArtifactsBinDir)dotnet-latest\</SdkDirForCurrentTFM>
+    <!--<SdkStampPathForCurrentTFM>$(SdkDirForCurrentTFM).version-$(SdkVersionForCurrentTFM).stamp</SdkStampPathForCurrentTFM>-->
 
-    <SdkVersionForPreviousTFM>$(SdkVersionForWorkloadTesting)</SdkVersionForPreviousTFM>
-    <SdkDirForPreviousTFM>$(ArtifactsBinDir)dotnet-prev\</SdkDirForPreviousTFM>
-    <SdkStampPathForPreviousTFM>$(SdkDirForPreviousTFM).version-$(SdkVersionForPreviousTFM).stamp</SdkStampPathForPreviousTFM>
+    <SdkVersionForCurrentAndPreviousTFM>$(SdkVersionForCurrentTFM)</SdkVersionForCurrentAndPreviousTFM>
+    <SdkDirForCurrentAndPreviousTFM>$(ArtifactsBinDir)dotnet-9+8\</SdkDirForCurrentAndPreviousTFM>
+    <!--<SdkStampPathForCurrentAndPreviousTFM>$(SdkDirForCurrentAndPreviousTFM).version-$(SdkVersionForCurrentAndPreviousTFM).stamp</SdkStampPathForCurrentAndPreviousTFM>-->
+
+    <SdkVersionForPreviousTFM>$(SdkVersionForPreviousTFM)</SdkVersionForPreviousTFM>
+    <SdkDirForPreviousTFM>$(ArtifactsBinDir)dotnet-8\</SdkDirForPreviousTFM>
+    <!--<SdkStampPathForPreviousTFM>$(SdkDirForPreviousTFM).version-$(SdkVersionForPreviousTFM).stamp</SdkStampPathForPreviousTFM>-->
   </PropertyGroup>
 
   <PropertyGroup>
@@ -30,9 +32,33 @@
     <AdditionalSharedFrameworkToInstallArguments Include="-Runtime aspnetcore -Version $(DotNetRuntimeVersionForTesting)" />
   </ItemGroup>
 
+  <!--
+
+    1. download script
+    2. install current (a)
+    3. make copy of current (b)
+    4. install prev runtime to (b)
+    5. install prev sdk
+
+
+  -->
+
+  <!-- Install current -->
+  <Target Name="ProvisionSdkForCurrentTFM">
+
+    <MSBuild Projects="$(MSBuildThisFileDirectory)InstallSdk.targets"
+             Properties="SdkVersionToInstall=$(SdkVersionForCurrentTFM);SdkTargetDir=$(SdkDirForCurrentTFM);ArtifactsObjDir=$(ArtifactsObjDir)"
+             Targets="ProvisionSdk" />
+
+    <MSBuild Projects="$(MSBuildThisFileDirectory)InstallSdk.targets"
+             Properties="SdkVersionToInstall=$(SdkVersionForPreviousTFM);SdkTargetDir=$(SdkDirForPreviousTFM);ArtifactsObjDir=$(ArtifactsObjDir)"
+             Targets="ProvisionSdk" />
+  </Target>
+
   <Target Name="ProvisionSdkForCurrentAndPreviousTFM" Condition="!Exists($(SdkStampPathForCurrentAndPreviousTFM))">
     <Error Text="%24(SdkDirForCurrentAndPreviousTFM) is not set" Condition="'$(SdkDirForCurrentAndPreviousTFM)' == ''" />
     <Error Text="%24(SdkVersionForCurrentAndPreviousTFM) is not set" Condition="'$(SdkVersionForCurrentAndPreviousTFM)' == ''" />
+    <!--<Message Text="SdkVersionForCurrentTFM: $(SdkVersionForCurrentTFM)" Importance="High" />-->
 
     <PropertyGroup>
       <_SdkVersionToInstall>$(SdkVersionForCurrentAndPreviousTFM)</_SdkVersionToInstall>
@@ -51,13 +77,14 @@
              Condition="'$(_SdkVersionToInstall)' == ''"
              Importance="High" />
 
-    <RemoveDir Directories="$(_SdkDirToInstallTo)" />
-    <MakeDir Directories="$(_SdkDirToInstallTo)" />
-
     <DownloadFile SourceUrl="https://dot.net/v1/$(_DotNetInstallScriptName)"
                   DestinationFolder="$(ArtifactsObjDir)"
                   Retries="3"
                   Condition="!Exists($(_DotNetInstallScriptPath))"/>
+
+    <!-- Install current -->
+    <RemoveDir Directories="$(SdkDirForCurrentOnly)" />
+    <MakeDir Directories="$(SdkDirForCurrentOnly)" />
 
     <Exec Condition="!$([MSBuild]::IsOSPlatform('windows'))"
           IgnoreStandardErrorWarningFormat="true"
@@ -67,6 +94,10 @@
           IgnoreStandardErrorWarningFormat="true"
           Command='powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; $(_DotNetInstallCommand)"' />
 
+    <!-- Copy to current+prev -->
+
+    <!-- install prev runtime to current/ -->
+
     <Exec Condition="'%(AdditionalSharedFrameworkToInstallArguments.Identity)' != '' and !$([MSBuild]::IsOSPlatform('windows'))"
           IgnoreStandardErrorWarningFormat="true"
           Command="$(_DotNetInstallScriptPath) -InstallDir $(_SdkDirToInstallTo) -SkipNonVersionedFiles %(AdditionalSharedFrameworkToInstallArguments.Identity)" />
@@ -75,11 +106,16 @@
           IgnoreStandardErrorWarningFormat="true"
           Command='powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; $(_DotNetInstallScriptPath) -InstallDir $(_SdkDirToInstallTo) -SkipNonVersionedFiles %(AdditionalSharedFrameworkToInstallArguments.Identity)"' />
 
+    <!--install prev-->
+
     <Touch Files="$(SdkStampPathForCurrentAndPreviousTFM)" AlwaysCreate="true" />
   </Target>
 
-  <Target Name="InstallSdksForTemplateTesting" DependsOnTargets="ProvisionSdkForCurrentAndPreviousTFM" />
+  <!--<Target Name="InstallSdksForTemplateTesting" DependsOnTargets="ProvisionSdkForCurrentAndPreviousTFM" />-->
+  <Target Name="InstallSdksForTemplateTesting" DependsOnTargets="ProvisionSdkForCurrentTFM">
+  </Target>
 
+  <!-- FIXME: drop this ? Anything else to remove? -->
   <Target Name="_GetNuGetsToBuild" Returns="@(NuGetsToBuildForWorkloadTesting)">
     <Error Condition="'$(NETCoreSdkRuntimeIdentifier)' == ''" Text="%24(NETCoreSdkRuntimeIdentifier) is unset. This is needed to build the Aspire.Hosting.Orchestration nuget" />
 
