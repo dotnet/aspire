@@ -17,15 +17,15 @@ public class TestsWithBothTemplatePacksInstalled : WorkloadTestsBase
     }
 
     [Theory]
-    [InlineData("aspire", TestTargetFramework.CurrentTFM)]
-    [InlineData("aspire", TestTargetFramework.PreviousTFM)]
-    [InlineData("aspire-starter", TestTargetFramework.CurrentTFM)]
-    [InlineData("aspire-starter", TestTargetFramework.PreviousTFM)]
+    [InlineData("aspire", TestTargetFramework.Current)]
+    [InlineData("aspire", TestTargetFramework.Previous)]
+    [InlineData("aspire-starter", TestTargetFramework.Current)]
+    [InlineData("aspire-starter", TestTargetFramework.Previous)]
     public async Task CanNewAndBuildSolutionTemplates(string templateName, TestTargetFramework tfm)
     {
         var id = GetNewProjectId(prefix: $"new_{templateName}_{tfm}_on_9+8");
 
-        var buildEnvToUse = tfm == TestTargetFramework.CurrentTFM ? BuildEnvironment.ForCurrentSdk : BuildEnvironment.ForPreviousSdk;
+        var buildEnvToUse = tfm == TestTargetFramework.Current ? BuildEnvironment.ForCurrentSdk : BuildEnvironment.ForPreviousSdk;
         await _templateHive.InstallAsync(buildEnvToUse);
         await using var project = await AspireProject.CreateNewTemplateProjectAsync(
             id,
@@ -41,21 +41,21 @@ public class TestsWithBothTemplatePacksInstalled : WorkloadTestsBase
     }
 
     [Theory]
-    [InlineData("aspire-apphost", TestTargetFramework.CurrentTFM)]
-    [InlineData("aspire-apphost", TestTargetFramework.PreviousTFM)]
-    [InlineData("aspire-servicedefaults", TestTargetFramework.CurrentTFM)]
-    [InlineData("aspire-servicedefaults", TestTargetFramework.PreviousTFM)]
-    [InlineData("aspire-mstest", TestTargetFramework.CurrentTFM)]
-    [InlineData("aspire-mstest", TestTargetFramework.PreviousTFM)]
-    [InlineData("aspire-xunit", TestTargetFramework.CurrentTFM)]
-    [InlineData("aspire-xunit", TestTargetFramework.PreviousTFM)]
-    [InlineData("aspire-nunit", TestTargetFramework.CurrentTFM)]
-    [InlineData("aspire-nunit", TestTargetFramework.PreviousTFM)]
+    [InlineData("aspire-apphost", TestTargetFramework.Current)]
+    [InlineData("aspire-apphost", TestTargetFramework.Previous)]
+    [InlineData("aspire-servicedefaults", TestTargetFramework.Current)]
+    [InlineData("aspire-servicedefaults", TestTargetFramework.Previous)]
+    [InlineData("aspire-mstest", TestTargetFramework.Current)]
+    [InlineData("aspire-mstest", TestTargetFramework.Previous)]
+    [InlineData("aspire-xunit", TestTargetFramework.Current)]
+    [InlineData("aspire-xunit", TestTargetFramework.Previous)]
+    [InlineData("aspire-nunit", TestTargetFramework.Current)]
+    [InlineData("aspire-nunit", TestTargetFramework.Previous)]
     public async Task CanNewAndBuildStandaloneProjectTemplates(string templateName, TestTargetFramework tfm)
     {
         var id = GetNewProjectId(prefix: $"new_{templateName}_{tfm}_on_9+8");
 
-        var buildEnvToUse = tfm == TestTargetFramework.CurrentTFM ? BuildEnvironment.ForCurrentSdk : BuildEnvironment.ForPreviousSdk;
+        var buildEnvToUse = tfm == TestTargetFramework.Current ? BuildEnvironment.ForCurrentSdk : BuildEnvironment.ForPreviousSdk;
         await _templateHive.InstallAsync(buildEnvToUse);
         await using var project = await AspireProject.CreateNewTemplateProjectAsync(
             id,

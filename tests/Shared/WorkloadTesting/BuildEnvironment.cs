@@ -49,8 +49,8 @@ public class BuildEnvironment
 
     public static BuildEnvironment ForDefaultFramework { get; } = DefaultTargetFramework switch
     {
-        TestTargetFramework.PreviousTFM => ForPreviousSdk,
-        TestTargetFramework.CurrentTFM => ForCurrentSdk,
+        TestTargetFramework.Previous => ForPreviousSdk,
+        TestTargetFramework.Current => ForCurrentSdk,
         _ => throw new ArgumentOutOfRangeException(nameof(DefaultTargetFramework))
     };
 
@@ -261,14 +261,14 @@ public class BuildEnvironment
             return EnvironmentVariables.DefaultTFMForTesting switch
             {
                 // FIXME: string tfm mapping here
-                "" or "net9.0" => TestTargetFramework.CurrentTFM,
-                "net8.0" => TestTargetFramework.PreviousTFM,
+                "" or "net9.0" => TestTargetFramework.Current,
+                "net8.0" => TestTargetFramework.Previous,
                 _ => throw new ArgumentOutOfRangeException(nameof(EnvironmentVariables.DefaultTFMForTesting), EnvironmentVariables.DefaultTFMForTesting, "Invalid value")
             };
         }
         else
         {
-            return TestTargetFramework.CurrentTFM;
+            return TestTargetFramework.Current;
         }
     }
 
@@ -276,16 +276,16 @@ public class BuildEnvironment
 
 public enum TestTargetFramework
 {
-    PreviousTFM,
-    CurrentTFM
+    Previous,
+    Current
 }
 
 public static class TestTargetFrameworkExtensions
 {
     public static string ToTFMString(this TestTargetFramework tfm) => tfm switch
     {
-        TestTargetFramework.PreviousTFM => "net8.0",
-        TestTargetFramework.CurrentTFM => "net9.0",
+        TestTargetFramework.Previous => "net8.0",
+        TestTargetFramework.Current => "net9.0",
         _ => throw new ArgumentOutOfRangeException(nameof(tfm))
     };
 }
