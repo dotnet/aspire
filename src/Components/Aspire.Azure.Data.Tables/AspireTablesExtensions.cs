@@ -104,6 +104,9 @@ public static class AspireTablesExtensions
         protected override TokenCredential? GetTokenCredential(AzureDataTablesSettings settings)
             => settings.Credential;
 
+        protected override bool GetMetricsEnabled(AzureDataTablesSettings settings)
+            => false;
+
         protected override bool GetTracingEnabled(AzureDataTablesSettings settings)
             => !settings.DisableTracing;
     }

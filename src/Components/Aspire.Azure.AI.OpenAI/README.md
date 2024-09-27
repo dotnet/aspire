@@ -1,6 +1,6 @@
 # Aspire.Azure.AI.OpenAI library
 
-Registers [OpenAIClient](https://learn.microsoft.com/dotnet/api/azure.ai.openai.openaiclient) as a singleton in the DI container for connecting to Azure OpenAI or OpenAI. Enables corresponding logging and telemetry.
+Registers [OpenAIClient](https://learn.microsoft.com/dotnet/api/azure.ai.openai.openaiclient) as a singleton in the DI container for connecting to Azure OpenAI or OpenAI. Enables corresponding metrics, logging and telemetry.
 
 ## Getting started
 

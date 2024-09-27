@@ -13,11 +13,6 @@ namespace Aspire.OpenAI.Tests;
 
 public class ConformanceTests : ConformanceTests<OpenAIClient, OpenAISettings>
 {
-    static ConformanceTests()
-    {
-        AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);
-    }
-
     protected const string ConnectionString = "Endpoint=https://api.openai.com/;Key=fake";
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
