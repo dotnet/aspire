@@ -298,7 +298,7 @@ public partial class AspireProject : IAsyncDisposable
         _testOutput.WriteLine($"-- Ready to run tests --");
     }
 
-    public async Task BuildAsync(string[]? extraBuildArgs = default, CancellationToken token = default, string? workingDirectory = null)
+    public async Task<CommandResult> BuildAsync(string[]? extraBuildArgs = default, CancellationToken token = default, string? workingDirectory = null)
     {
         workingDirectory ??= Path.Combine(RootDir, $"{Id}.AppHost");
 
@@ -316,6 +316,7 @@ public partial class AspireProject : IAsyncDisposable
                                         .WithWorkingDirectory(workingDirectory);
         res = await buildCmd.ExecuteAsync(buildArgs);
         res.EnsureSuccessful();
+        return res;
     }
 
     public async Task<IPage> OpenDashboardPageAsync(IBrowserContext context, int timeoutSecs = DashboardAvailabilityTimeoutSecs)

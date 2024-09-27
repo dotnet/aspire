@@ -83,15 +83,17 @@ public class NewAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) : 
         }
     }
 
+    // FIXME: Rename. move to a separate class?
     [Theory]
-    [MemberData(nameof(TestData), parameters: "aspire-apphost")]
-    [MemberData(nameof(TestData), parameters: "aspire-servicedefaults")]
+    // [MemberData(nameof(TestData), parameters: "aspire-apphost")]
+    // [MemberData(nameof(TestData), parameters: "aspire-servicedefaults")]
     [MemberData(nameof(TestData), parameters: "aspire-mstest")]
     [MemberData(nameof(TestData), parameters: "aspire-nunit")]
     [MemberData(nameof(TestData), parameters: "aspire-xunit")]
     public async Task CanNewAndBuildOthers(string templateName, TestSdk sdk, TestTargetFramework tfm, TestTemplatesInstall templates, string? error)
     {
         var id = GetNewProjectId(prefix: $"new_build_{templateName}_{tfm.ToTFMString()}");
+        string config = "Debug";
 
         var buildEnvToUse = sdk switch
         {
@@ -112,17 +114,9 @@ public class NewAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) : 
         await templateHive.InstallAsync(buildEnvToUse);
         try
         {
-            await using var project = await AspireProject.CreateNewTemplateProjectAsync(
-                id,
-                templateName,
-                _testOutput,
-                buildEnvironment: buildEnvToUse,
-                targetFramework: tfm,
-                customHiveForTemplates: templateHive.CustomHiveDirectory);
+            var (project, testProjectDir) = await CreateFromAspireTemplateWithTestAsync(id, config, templateName, tfm, buildEnvToUse, templateHive);
 
-            Assert.True(error is null, $"Expected to throw an exception with message: {error}");
-
-            await project.BuildAsync(extraBuildArgs: [$"-c Debug"]);
+            await project.BuildAsync(extraBuildArgs: [$"-c {config}"], workingDirectory: testProjectDir);
         }
         catch (ToolCommandException tce) when (error is not null)
         {

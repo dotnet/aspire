@@ -31,7 +31,7 @@ public abstract partial class PerTestFrameworkTemplatesTests : WorkloadTestsBase
         var id = $"{prefix}-{_testTemplateName}";
         var config = "Debug";
 
-        var (_, testProjectDir) = await CreateAspireProjectWithTestAsync(id, config, _testTemplateName,
+        var (_, testProjectDir) = await CreateFromAspireTemplateWithTestAsync(id, config, _testTemplateName,
         onBuildAspireProject: async (project) =>
             {
                 if (PlaywrightProvider.HasPlaywrightSupport)
@@ -43,7 +43,6 @@ public abstract partial class PerTestFrameworkTemplatesTests : WorkloadTestsBase
                 }
             });
 
-        Assert.True(Directory.Exists(testProjectDir), $"Expected tests project at {testProjectDir}");
         using var cmd = new DotNetCommand(_testOutput, label: $"test-{_testTemplateName}")
                         .WithWorkingDirectory(testProjectDir)
                         .WithTimeout(TimeSpan.FromMinutes(3));

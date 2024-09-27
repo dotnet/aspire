@@ -44,17 +44,24 @@ public partial class WorkloadTestsBase
         return t.Result;
     }
 
-    public async Task<(AspireProject, string)> CreateAspireProjectWithTestAsync(
+    public async Task<(AspireProject, string)> CreateFromAspireTemplateWithTestAsync(
         string id,
         string config,
-        string _testTemplateName,
+        string testTemplateName,
+        TestTargetFramework? tfm = null,
+        BuildEnvironment? buildEnvironment = null,
+        TemplatesCustomHive? templateHive = null,
         Func<AspireProject, Task>? onBuildAspireProject = null)
     {
+        buildEnvironment ??= BuildEnvironment.ForDefaultFramework;
+        var tmfArg = tfm is not null ? $"-f {tfm.Value.ToTFMString()}" : "";
         await using var project = await AspireProject.CreateNewTemplateProjectAsync(
             id,
             "aspire",
             _testOutput,
-            buildEnvironment: BuildEnvironment.ForDefaultFramework);
+            buildEnvironment,
+            targetFramework: tfm,
+            customHiveForTemplates: templateHive?.CustomHiveDirectory);
 
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
         if (onBuildAspireProject is not null)
@@ -63,10 +70,14 @@ public partial class WorkloadTestsBase
         }
 
         // Add test project
-        var testProjectName = $"{id}.{_testTemplateName}Tests";
-        using var newTestCmd = new DotNetNewCommand(_testOutput, label: $"new-test-{_testTemplateName}")
-                        .WithWorkingDirectory(project.RootDir);
-        var res = await newTestCmd.ExecuteAsync($"{_testTemplateName} -o \"{testProjectName}\"");
+        var testProjectName = $"{id}.{testTemplateName}Tests";
+        using var newTestCmd = new DotNetNewCommand(
+                                    _testOutput,
+                                    label: $"new-test-{testTemplateName}",
+                                    buildEnv: buildEnvironment,
+                                    hiveDirectory: templateHive?.CustomHiveDirectory)
+                                .WithWorkingDirectory(project.RootDir);
+        var res = await newTestCmd.ExecuteAsync($"{testTemplateName} {tmfArg} -o \"{testProjectName}\"");
         res.EnsureSuccessful();
 
         var testProjectDir = Path.Combine(project.RootDir, testProjectName);
@@ -75,7 +86,7 @@ public partial class WorkloadTestsBase
         var testProjectPath = Path.Combine(testProjectDir, testProjectName + ".csproj");
         Assert.True(File.Exists(testProjectPath), $"Expected tests project file at {testProjectPath}");
 
-        PrepareTestCsFile(project.Id, testProjectDir, _testTemplateName);
+        PrepareTestCsFile(project.Id, testProjectDir, testTemplateName);
         PrepareTestProject(project, testProjectPath);
 
         return (project, testProjectDir);
