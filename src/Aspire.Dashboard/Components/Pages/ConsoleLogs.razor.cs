@@ -417,7 +417,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         public string? SelectedResource { get; set; }
     }
 
-    public void UpdateViewModelFromQuery(ConsoleLogsViewModel viewModel)
+    public Task UpdateViewModelFromQueryAsync(ConsoleLogsViewModel viewModel)
     {
         if (_resources is not null && ResourceName is not null)
         {
@@ -433,6 +433,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             viewModel.SelectedResource = null;
             viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
         }
+        return Task.CompletedTask;
     }
 
     public string GetUrlFromSerializableViewModel(ConsoleLogsPageState serializable)

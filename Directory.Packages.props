@@ -42,6 +42,7 @@
     <PackageVersion Include="Azure.Provisioning.AppConfiguration" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.ApplicationInsights" Version="1.0.0-alpha.20240918.1" />
     <PackageVersion Include="Azure.Provisioning.CognitiveServices" Version="$(AzureProvisiongVersion)" />
+    <PackageVersion Include="Azure.Provisioning.AppContainers" Version="1.0.0-alpha.20240912.5" />
     <PackageVersion Include="Azure.Provisioning.CosmosDB" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.EventHubs" Version="$(AzureProvisiongVersion)" />
     <PackageVersion Include="Azure.Provisioning.KeyVault" Version="$(AzureProvisiongVersion)" />
@@ -113,8 +114,8 @@
     <PackageVersion Include="KubernetesClient" Version="14.0.9" />
     <PackageVersion Include="JsonPatch.Net" Version="3.1.1" />
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="5.2.2" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.9.3" />
-    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.9.3" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.10.1" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.10.1" />
     <PackageVersion Include="Milvus.Client" Version="2.3.0-preview.1" />
     <PackageVersion Include="MongoDB.Driver" Version="2.28.0" />
     <PackageVersion Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" Version="1.5.0" />
