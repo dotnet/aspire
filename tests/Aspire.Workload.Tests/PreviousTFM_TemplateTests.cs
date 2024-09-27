@@ -13,6 +13,13 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase
     {
     }
 
+    /*
+
+       Combinations:
+        - Build for tfm
+        - sdk to use
+        - hive to use
+    */
     [Theory]
     [InlineData("aspire", TestTargetFramework.CurrentTFM)]
     [InlineData("aspire", TestTargetFramework.PreviousTFM)]
@@ -40,6 +47,8 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase
         var config = "Debug";
         await project.BuildAsync(extraBuildArgs: [$"-c {config}"]);
     }
+
+    // FIXME: tests for other templates like tests
 
     [Theory]
     [InlineData("aspire", TestTargetFramework.CurrentTFM)]

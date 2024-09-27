@@ -14,11 +14,9 @@ public class BuildEnvironment
     public string                           LogRootPath                   { get; init; }
 
     public string                           BuiltNuGetsPath               { get; init; }
-    public bool                             HasWorkloadFromArtifacts      { get; init; }
-    public bool                             UsesSystemDotNet => !HasWorkloadFromArtifacts;
+    public bool                             UsesCustomDotNet      { get; init; }
+    public bool                             UsesSystemDotNet => !UsesCustomDotNet;
     public string?                          NuGetPackagesPath             { get; init; }
-    // FIXME: drop this
-    // private TestTargetFramework              TargetFramework               { get; init; }
     public DirectoryInfo?                   RepoRoot                      { get; init; }
     public TemplatesCustomHive?             TemplatesCustomHive           { get; init; }
 
@@ -31,13 +29,19 @@ public class BuildEnvironment
     public static bool IsRunningOnCI => IsRunningOnHelix || IsRunningOnCIBuildMachine;
 
     private static readonly Lazy<BuildEnvironment> s_instance_80 = new(() =>
-        new BuildEnvironment(templatesCustomHive: TemplatesCustomHive.With9_0_Net8, sdkDirName: "dotnet-8"));
+        new BuildEnvironment(
+            templatesCustomHive: TemplatesCustomHive.With9_0_Net8,
+            sdkDirName: "dotnet-8"));
 
     private static readonly Lazy<BuildEnvironment> s_instance_90 = new(() =>
-        new BuildEnvironment(templatesCustomHive: TemplatesCustomHive.With9_0_Net9, sdkDirName: "dotnet-latest"));
+        new BuildEnvironment(
+            templatesCustomHive: TemplatesCustomHive.With9_0_Net9,
+            sdkDirName: "dotnet-latest"));
 
     private static readonly Lazy<BuildEnvironment> s_instance_90_80 = new(() =>
-        new BuildEnvironment(templatesCustomHive: TemplatesCustomHive.With9_0_Net9_And_Net8, sdkDirName: "dotnet-9+8"));
+        new BuildEnvironment(
+            templatesCustomHive: TemplatesCustomHive.With9_0_Net9_And_Net8,
+            sdkDirName: "dotnet-9+8"));
 
     public static BuildEnvironment ForPreviousTFM => s_instance_80.Value;
     public static BuildEnvironment ForCurrentTFM => s_instance_90.Value;
@@ -50,28 +54,9 @@ public class BuildEnvironment
         _ => throw new ArgumentOutOfRangeException(nameof(DefaultTargetFramework))
     };
 
-    private static TestTargetFramework ComputeDefaultTargetFramework()
-    {
-        if (EnvironmentVariables.DefaultTFMForTesting is not null)
-        {
-            return EnvironmentVariables.DefaultTFMForTesting switch
-            {
-                // FIXME: string tfm mapping here
-                "" or "net9.0" => TestTargetFramework.CurrentTFM,
-                "net8.0" => TestTargetFramework.PreviousTFM,
-                _ => throw new ArgumentOutOfRangeException(nameof(EnvironmentVariables.DefaultTFMForTesting), EnvironmentVariables.DefaultTFMForTesting, "Invalid value")
-            };
-        }
-        else
-        {
-            return TestTargetFramework.CurrentTFM;
-        }
-    }
-
     public BuildEnvironment(bool useSystemDotNet = false, TestTargetFramework? targetFramework = default, TemplatesCustomHive? templatesCustomHive = default, string sdkDirName = "dotnet-latest")
     {
-        HasWorkloadFromArtifacts = !useSystemDotNet;
-        // TargetFramework = targetFramework ?? DefaultTargetFramework;
+        UsesCustomDotNet = !useSystemDotNet;
         RepoRoot = TestUtils.FindRepoRoot();
 
         string sdkForWorkloadPath;
@@ -144,9 +129,9 @@ public class BuildEnvironment
 
         sdkForWorkloadPath = Path.GetFullPath(sdkForWorkloadPath);
         DefaultBuildArgs = string.Empty;
-        NuGetPackagesPath = HasWorkloadFromArtifacts ? Path.Combine(AppContext.BaseDirectory, $"nuget-cache-{Guid.NewGuid()}") : null;
+        NuGetPackagesPath = UsesCustomDotNet ? Path.Combine(AppContext.BaseDirectory, $"nuget-cache-{Guid.NewGuid()}") : null;
         EnvVars = new Dictionary<string, string>();
-        if (HasWorkloadFromArtifacts)
+        if (UsesCustomDotNet)
         {
             EnvVars["DOTNET_ROOT"] = sdkForWorkloadPath;
             EnvVars["DOTNET_INSTALL_DIR"] = sdkForWorkloadPath;
@@ -191,7 +176,7 @@ public class BuildEnvironment
         Directory.CreateDirectory(TestRootPath);
 
         // Console.WriteLine($"*** [{TargetFramework}] Using workload path: {sdkForWorkloadPath}");
-        if (HasWorkloadFromArtifacts)
+        if (UsesCustomDotNet)
         {
             if (EnvironmentVariables.IsRunningOnCI)
             {
@@ -214,6 +199,7 @@ public class BuildEnvironment
             }
         }
 
+        // FIXME: this will happen for E2E tests which don't need it
         TemplatesCustomHive = templatesCustomHive;
         TemplatesCustomHive?.InstallAsync(this).Wait();
 
@@ -261,12 +247,31 @@ public class BuildEnvironment
         EnvVars = new Dictionary<string, string>(otherBuildEnvironment.EnvVars);
         LogRootPath = otherBuildEnvironment.LogRootPath;
         BuiltNuGetsPath = otherBuildEnvironment.BuiltNuGetsPath;
-        HasWorkloadFromArtifacts = otherBuildEnvironment.HasWorkloadFromArtifacts;
+        UsesCustomDotNet = otherBuildEnvironment.UsesCustomDotNet;
         NuGetPackagesPath = otherBuildEnvironment.NuGetPackagesPath;
         // TargetFramework = otherBuildEnvironment.TargetFramework;
         RepoRoot = otherBuildEnvironment.RepoRoot;
         TemplatesCustomHive = otherBuildEnvironment.TemplatesCustomHive;
     }
+
+    private static TestTargetFramework ComputeDefaultTargetFramework()
+    {
+        if (EnvironmentVariables.DefaultTFMForTesting is not null)
+        {
+            return EnvironmentVariables.DefaultTFMForTesting switch
+            {
+                // FIXME: string tfm mapping here
+                "" or "net9.0" => TestTargetFramework.CurrentTFM,
+                "net8.0" => TestTargetFramework.PreviousTFM,
+                _ => throw new ArgumentOutOfRangeException(nameof(EnvironmentVariables.DefaultTFMForTesting), EnvironmentVariables.DefaultTFMForTesting, "Invalid value")
+            };
+        }
+        else
+        {
+            return TestTargetFramework.CurrentTFM;
+        }
+    }
+
 }
 
 public enum TestTargetFramework
