@@ -2,6 +2,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -130,6 +131,9 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
 
             public void WriteToManifest(ManifestPublishingContext context, AzureConstructResource construct)
             {
+                // Assert that the construct has no parameters
+                Debug.Assert(construct.Parameters.Count == 0);
+
                 construct.WriteToManifest(context);
 
                 // We're handling custom resource writing here instead of in the AzureConstructResource
