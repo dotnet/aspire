@@ -84,7 +84,8 @@ public static class AzureFunctionsProjectResourceExtensions
                 // Functions host is still initialized using the classic WebHostBuilder.
                 if (context.ExecutionContext.IsPublishMode)
                 {
-                    context.EnvironmentVariables["ASPNETCORE_URLS"] = "http://+:8080";
+                   var endpoint = resource.GetEndpoint("http");
+                    context.EnvironmentVariables["ASPNETCORE_URLS"] = ReferenceExpression.Create($"http://+:{endpoint.Property(EndpointProperty.TargetPort)}");
                 }
 
                 // Set the storage connection string.
