@@ -344,17 +344,17 @@
       </trans-unit>
       <trans-unit id="StructuredFilteringAddFilter">
         <source>Add filter</source>
-        <target state="new">Add filter</target>
+        <target state="translated">Adicionar filtro</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredFilteringFilters">
         <source>Filters</source>
-        <target state="new">Filters</target>
+        <target state="translated">Filtros</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredFilteringNoFilters">
         <source>No filters</source>
-        <target state="new">No filters</target>
+        <target state="translated">Sem filtros</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsDetailsContextHeader">

@@ -264,7 +264,7 @@
       </trans-unit>
       <trans-unit id="ResourceDetailsVolumesHeader">
         <source>Volumes</source>
-        <target state="new">Volumes</target>
+        <target state="translated">Volúmenes</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDropdownReplicaAccessibleTitle">
