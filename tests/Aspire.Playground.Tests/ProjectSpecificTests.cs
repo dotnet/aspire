@@ -55,7 +55,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
         await app.StopAsync();
     }
 
-    [Fact]
+    [Fact(Skip = "https://github.com/dotnet/aspire/issues/5973")]
     [RequiresDocker]
     [RequiresTools(["func"])]
     public async Task AzureFunctionsTest()
