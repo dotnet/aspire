@@ -64,11 +64,11 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, OpenAISettings>
 
     [Fact]
     public void TracingEnablesTheRightActivitySource()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
+        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null), EnableTelemetry()).Dispose();
 
     [Fact]
     public void TracingEnablesTheRightActivitySource_Keyed()
-        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
+        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key"), EnableTelemetry()).Dispose();
 
     protected override void SetHealthCheck(OpenAISettings options, bool enabled)
         => throw new NotImplementedException();
@@ -81,4 +81,11 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, OpenAISettings>
 
     protected override void TriggerActivity(OpenAIClient service)
         => service.GetChatClient("dummy").CompleteChat("dummy gpt");
+
+    private static RemoteInvokeOptions EnableTelemetry()
+    => new()
+    {
+        RuntimeConfigurationOptions = { { "OpenAI.Experimental.EnableOpenTelemetry", true } }
+    };
+
 }

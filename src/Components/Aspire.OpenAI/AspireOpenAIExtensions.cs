@@ -107,16 +107,12 @@ public static class AspireOpenAIExtensions
 
         if (!settings.DisableTracing)
         {
-            AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);
-
             builder.Services.AddOpenTelemetry()
                 .WithTracing(traceBuilder => traceBuilder.AddSource("OpenAI.*"));
         }
 
         if (!settings.DisableMetrics)
         {
-            AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);
-
             builder.Services.AddOpenTelemetry()
                 .WithMetrics(b => b.AddMeter("OpenAI.*"));
         }

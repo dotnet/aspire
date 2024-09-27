@@ -80,11 +80,6 @@ public static class AspireAzureOpenAIExtensions
             AzureClientFactoryBuilder azureFactoryBuilder, AzureOpenAISettings settings, string connectionName,
             string configurationSectionName)
         {
-            if (!settings.DisableTracing || !settings.DisableMetrics)
-            {
-                AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);
-            }
-
             return azureFactoryBuilder.AddClient<AzureOpenAIClient, AzureOpenAIClientOptions>((options, _, _) =>
             {
                 if (settings.Endpoint is null)

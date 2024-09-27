@@ -16,6 +16,9 @@ public sealed class AzureOpenAISettings : IConnectionStringSettings
     private const string ConnectionStringEndpoint = "Endpoint";
     private const string ConnectionStringKey = "Key";
 
+    private bool? _disableTracing;
+    private bool? _disableMetrics;
+
     /// <summary>
     /// Gets or sets a <see cref="Uri"/> referencing the Azure OpenAI endpoint.
     /// This is likely to be similar to "https://{account_name}.openai.azure.com".
@@ -42,18 +45,53 @@ public sealed class AzureOpenAISettings : IConnectionStringSettings
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
     /// </summary>
-    /// <value>
-    /// The default value is <see langword="false"/>.
+    /// <remarks>
+    /// Azure AI OpenAI telemetry support is experimental, the shape of traces may change in the future without notice.
+    /// It can be enabled by setting "OpenAI.Experimental.EnableOpenTelemetry" <see cref="AppContext"/> switch to true.
+    /// Or by setting "OPENAI_EXPERIMENTAL_ENABLE_OPEN_TELEMETRY" environment variable to "true".
+    /// </remarks>
+    /// <value>  
+    /// The default value is <see langword="false"/>.  
     /// </value>
-    public bool DisableMetrics { get; set; }
+    public bool DisableMetrics
+    {
+        get { return _disableMetrics ??= !GetTelemetryDefaultValue(); }
+        set { _disableMetrics = value; }
+    }
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
     /// </summary>
-    /// <value>
-    /// The default value is <see langword="false"/>.
+    /// <remarks>
+    /// Azure AI OpenAI telemetry support is experimental, the shape of traces may change in the future without notice.
+    /// It can be enabled by setting "OpenAI.Experimental.EnableOpenTelemetry" <see cref="AppContext"/> switch to true.
+    /// Or by setting "OPENAI_EXPERIMENTAL_ENABLE_OPEN_TELEMETRY" environment variable to "true".
+    /// </remarks>
+    /// <value>  
+    /// The default value is <see langword="false"/>.  
     /// </value>
-    public bool DisableTracing { get; set; }
+    public bool DisableTracing
+    {
+        get { return _disableTracing ??= !GetTelemetryDefaultValue(); }
+        set { _disableTracing = value; }
+    }
+
+    // TODO: remove this when telemetry support is no longer experimental
+    private static bool GetTelemetryDefaultValue()
+    {
+        if (AppContext.TryGetSwitch("OpenAI.Experimental.EnableOpenTelemetry", out var enabled))
+        {
+            return enabled;
+        }
+
+        var envVar = Environment.GetEnvironmentVariable("OPENAI_EXPERIMENTAL_ENABLE_OPEN_TELEMETRY");
+        if (envVar is not null && (envVar.Equals("true", StringComparison.OrdinalIgnoreCase) || envVar.Equals("1")))
+        {
+            return true;
+        }
+
+        return false;
+    }
 
     void IConnectionStringSettings.ParseConnectionString(string? connectionString)
     {

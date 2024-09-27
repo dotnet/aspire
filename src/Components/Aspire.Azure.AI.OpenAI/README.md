@@ -148,6 +148,17 @@ The `AddAzureOpenAI` method adds an Azure OpenAI resource to the builder. Or `Ad
 builder.AddAzureOpenAIClient("openai");
 ```
 
+## Experimental Telemetry
+
+Azure AI OpenAI telemetry support is experimental, the shape of traces may change in the future without notice.
+It can be enabled by invoking
+
+```c#
+AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);
+```
+
+or by setting the "OPENAI_EXPERIMENTAL_ENABLE_OPEN_TELEMETRY" environment variable to "true".
+
 ## Additional documentation
 
 * https://learn.microsoft.com/dotnet/api/overview/azure/ai.openai-readme
