@@ -6,13 +6,8 @@ using Xunit.Abstractions;
 
 namespace Aspire.Workload.Tests;
 
-public class PreviousTFM_TemplateTests : WorkloadTestsBase
+public class NewAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) : WorkloadTestsBase(testOutput)
 {
-    public PreviousTFM_TemplateTests(ITestOutputHelper testOutput)
-        : base(testOutput)
-    {
-    }
-
     public static TheoryData<string, TestSdk, TestTargetFramework, TestTemplatesInstall, string?> TestData(string templateName) => new()
         {
             // Previous Sdk
@@ -46,7 +41,7 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase
     [Theory]
     [MemberData(nameof(TestData), parameters: "aspire")]
     [MemberData(nameof(TestData), parameters: "aspire-starter")]
-    public async Task NewAndBuildTemplate(string templateName, TestSdk sdk, TestTargetFramework tfm, TestTemplatesInstall templates, string? error)
+    public async Task CanNewAndBuild(string templateName, TestSdk sdk, TestTargetFramework tfm, TestTemplatesInstall templates, string? error)
     {
         var id = GetNewProjectId(prefix: $"new_build_{templateName}_{tfm.ToTFMString()}");
 
@@ -88,55 +83,6 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase
         }
     }
 
-    [Theory]
-    [InlineData("aspire", TestTargetFramework.Previous)]
-    [InlineData("aspire-starter", TestTargetFramework.Previous)]
-    public async Task CanNewAndBuildWithMatchingSdkAndTemplate(string templateName, TestTargetFramework tfm)
-    {
-        var id = GetNewProjectId(prefix: $"new_build_{templateName}_{tfm.ToTFMString()}");
-        var (buildEnvToUse, templateHive) = tfm switch
-        {
-            TestTargetFramework.Current => (BuildEnvironment.ForCurrentSdk, TemplatesCustomHive.With9_0_Net9),
-            TestTargetFramework.Previous => (BuildEnvironment.ForPreviousSdk, TemplatesCustomHive.With9_0_Net8),
-            _ => throw new ArgumentOutOfRangeException(nameof(tfm))
-        };
-
-        await templateHive.InstallAsync(buildEnvToUse);
-        await using var project = await AspireProject.CreateNewTemplateProjectAsync(
-            id,
-            templateName,
-            _testOutput,
-            buildEnvironment: buildEnvToUse,
-            targetFramework: tfm,
-            customHiveForTemplates: templateHive.CustomHiveDirectory);
-
-        await project.BuildAsync(extraBuildArgs: [$"-c Debug"]);
-    }
-
-    [Theory]
-    [InlineData("aspire", TestTargetFramework.Previous)]
-    [InlineData("aspire-starter", TestTargetFramework.Previous)]
-    public async Task CanNewAndBuildWithMatchingSdkAndBothTemplates(string templateName, TestTargetFramework tfm)
-    {
-        var id = GetNewProjectId(prefix: $"new_build_{templateName}_{tfm.ToTFMString()}");
-        var (buildEnvToUse, templateHive) = tfm switch
-        {
-            TestTargetFramework.Current => (BuildEnvironment.ForCurrentSdk, TemplatesCustomHive.With9_0_Net9_And_Net8),
-            TestTargetFramework.Previous => (BuildEnvironment.ForPreviousSdk, TemplatesCustomHive.With9_0_Net9_And_Net8),
-            _ => throw new ArgumentOutOfRangeException(nameof(tfm))
-        };
-
-        await templateHive.InstallAsync(buildEnvToUse);
-        await using var project = await AspireProject.CreateNewTemplateProjectAsync(
-            id,
-            templateName,
-            _testOutput,
-            buildEnvironment: buildEnvToUse,
-            targetFramework: tfm,
-            customHiveForTemplates: templateHive.CustomHiveDirectory);
-
-        await project.BuildAsync(extraBuildArgs: [$"-c Debug"]);
-    }
     // FIXME: tests for other templates like tests
 
     [Theory]
@@ -180,19 +126,5 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase
             Assert.NotNull(tce.Result);
             Assert.Contains($"'{tfm.ToTFMString()}' is not a valid value for -f", tce.Result.Value.Output);
         }
-    }
-
-    public enum TestSdk
-    {
-        Previous,
-        Current,
-        CurrentSdkAndPreviousRuntime
-    }
-
-    public enum TestTemplatesInstall
-    {
-        Net9,
-        Net8,
-        Net9AndNet8
     }
 }
