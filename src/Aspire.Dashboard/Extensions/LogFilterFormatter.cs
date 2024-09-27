@@ -22,7 +22,7 @@ public static class LogFilterFormatter
             _ => null
         };
 
-        return $"{filter.Field}:{condition}:{Uri.EscapeDataString(filter.Value)}";
+        return $"{Escape(filter.Field)}:{condition}:{Escape(filter.Value)}";
     }
 
     public static string SerializeLogFiltersToString(IEnumerable<TelemetryFilter> filters)
@@ -39,7 +39,7 @@ public static class LogFilterFormatter
             return null;
         }
 
-        var field = parts[0];
+        var field = Unescape(parts[0]);
 
         FilterCondition? condition = parts[1] switch
         {
@@ -59,9 +59,26 @@ public static class LogFilterFormatter
             return null;
         }
 
-        var value = Uri.UnescapeDataString(parts[2]);
+        var value = Unescape(parts[2]);
 
-        return new TelemetryFilter { Condition = condition.Value, Field = field, Value = value };
+        return new TelemetryFilter
+        {
+            Condition = condition.Value,
+            Field = field,
+            Value = value
+        };
+    }
+
+    private static string Escape(string value)
+    {
+        // Blazor unescapes the querystring before giving it to the app. Double encode significant characters.
+        return Uri.EscapeDataString(value.Replace(":", "%3A").Replace("+", "%2B"));
+    }
+
+    private static string Unescape(string value)
+    {
+        // Blazor unescapes the querystring before giving it to the app. Double decode significant characters.
+        return Uri.UnescapeDataString(value).Replace("%3A", ":").Replace("%2B", "+");
     }
 
     public static List<TelemetryFilter> DeserializeLogFiltersFromString(string filtersString)
