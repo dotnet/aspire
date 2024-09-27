@@ -313,10 +313,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             {
                 if (ExecutionContext.IsRunMode)
                 {
-                    // In run mode we route requests to the health check scheduler.
-                    var hcs = sp.GetRequiredService<ResourceHealthCheckScheduler>();
-                    options.Predicate = hcs.Predicate;
-                    options.Period = TimeSpan.FromSeconds(5);
+                    options.Predicate = (check) => true;
                 }
                 else
                 {
@@ -328,9 +325,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         if (ExecutionContext.IsRunMode)
         {
-            _innerBuilder.Services.AddSingleton<IHealthCheckPublisher, ResourceNotificationHealthCheckPublisher>();
-            _innerBuilder.Services.AddSingleton<ResourceHealthCheckScheduler>();
-            _innerBuilder.Services.AddHostedService<ResourceHealthCheckScheduler>(sp => sp.GetRequiredService<ResourceHealthCheckScheduler>());
+            _innerBuilder.Services.AddSingleton<ResourceHealthCheckService>();
+            _innerBuilder.Services.AddHostedService<ResourceHealthCheckService>(sp => sp.GetRequiredService<ResourceHealthCheckService>());
         }
     }
 

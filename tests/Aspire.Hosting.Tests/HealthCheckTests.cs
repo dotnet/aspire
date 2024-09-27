@@ -43,7 +43,7 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
         var witness = builder.AddResource(new CustomResource("witness"))
                           .WithHealthCheck("witness_check");
 
-        builder.Eventing.Subscribe<ResourceHealthyEvent>(resource.Resource, (@event, ct) =>
+        builder.Eventing.Subscribe<ResourceReadyEvent>(resource.Resource, (@event, ct) =>
         {
             eventRaised = true;
             return Task.CompletedTask;
@@ -112,7 +112,73 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
             );
     }
 
-    public class CustomResource(string name) : Resource(name)
+    [Fact]
+    public async Task HealthCheckShouldNotRunUnlessResourceIsRunning()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+
+        var resetEvent = new AutoResetEvent(false);
+        var healthCheckStatus = HealthCheckResult.Unhealthy();
+        builder.Services.AddHealthChecks().AddCheck("test_check", () =>
+        {
+            resetEvent.Set();
+            return healthCheckStatus;
+        });
+
+        var testResource = builder.AddResource(new CustomResource("test"))
+                                  .WithHealthCheck("test_check");
+
+        var app = builder.Build();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+
+        var pendingStart = app.StartAsync(cts.Token);
+
+    }
+
+    [Fact]
+    public async Task ChildResourceGetsParentHealthChecks()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
+
+        var healthCheck = () => HealthCheckResult.Healthy();
+
+        builder.Services.AddHealthChecks().AddCheck("parent_check", healthCheck);
+
+        var parent = builder.AddResource(new CustomResource("parent"))
+                            .WithHealthCheck("parent_check");
+
+        var child = builder.AddResource(new CustomChildResource("child", parent.Resource));
+
+        var assertBlock = new TaskCompletionSource();
+
+        builder.Eventing.Subscribe<BeforeResourceStartedEvent>(child.Resource, (@event, ct) =>
+        {
+            // By the time this runs it means that the health check should have already
+            // been copied from the parent to the child. Doing this so we don't have to
+            // slap an sleep in the test to make execution as fast as possible.
+            assertBlock.SetResult();
+            return Task.CompletedTask;
+        });
+
+        using var app = builder.Build();
+
+        var pendingStart = app.StartAsync();
+
+        Assert.True(child.Resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var childHealthCheckAnnotations));
+        Assert.Collection(childHealthCheckAnnotations, a => Assert.Equal("parent_check", a.Key));
+
+        await pendingStart;
+        await app.StopAsync();
+    }
+
+    private sealed class CustomChildResource(string name, CustomResource parent) : Resource(name), IResourceWithParent<CustomResource>
+    {
+        public CustomResource Parent => parent;
+    }
+
+    private sealed class CustomResource(string name) : Resource(name)
     {
     }
 }

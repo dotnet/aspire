@@ -1,11 +1,17 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+
 var builder = DistributedApplication.CreateBuilder(args);
+
+builder.Services.AddHealthChecks().AddCheck("always_broken", () => HealthCheckResult.Unhealthy());
 
 var pg = builder.AddPostgres("pg")
                 .PublishAsAzurePostgresFlexibleServer()
-                .WithPgAdmin();
+                .WithPgAdmin()
+                .WithHealthCheck("always_broken");
 
 var db = pg.AddDatabase("db");
 
