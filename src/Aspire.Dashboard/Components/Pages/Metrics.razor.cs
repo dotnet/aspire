@@ -120,7 +120,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         };
     }
 
-    public void UpdateViewModelFromQuery(MetricsViewModel viewModel)
+    public Task UpdateViewModelFromQueryAsync(MetricsViewModel viewModel)
     {
         viewModel.SelectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration);
         viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _selectApplication);
@@ -139,6 +139,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
                 viewModel.SelectedInstrument = viewModel.Instruments.FirstOrDefault(i => i.Parent.MeterName == MeterName && i.Name == InstrumentName);
             }
         }
+        return Task.CompletedTask;
     }
 
     private void UpdateApplications()
