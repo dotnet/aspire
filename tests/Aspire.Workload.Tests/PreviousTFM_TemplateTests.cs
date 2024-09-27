@@ -138,49 +138,4 @@ public class NewAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) : 
             Assert.Contains(error, tce.Result.Value.Output);
         }
     }
-
-    // FIXME: tests for other templates like tests
-
-    [Theory]
-    [InlineData("aspire", TestTargetFramework.Current)]
-    [InlineData("aspire", TestTargetFramework.Previous)]
-    // [InlineData("aspire-starter", TestTargetFramework.CurrentTFM)]
-    // [InlineData("aspire-starter", TestTargetFramework.PreviousTFM)]
-    // [InlineData("aspire-apphost", TestTargetFramework.CurrentTFM)]
-    // [InlineData("aspire-apphost", TestTargetFramework.PreviousTFM)]
-    // [InlineData("aspire-servicedefaults", TestTargetFramework.CurrentTFM)]
-    // [InlineData("aspire-servicedefaults", TestTargetFramework.PreviousTFM)]
-    // [InlineData("aspire-mstest", TestTargetFramework.CurrentTFM)]
-    // [InlineData("aspire-mstest", TestTargetFramework.PreviousTFM)]
-    // [InlineData("aspire-xunit", TestTargetFramework.CurrentTFM)]
-    // [InlineData("aspire-xunit", TestTargetFramework.PreviousTFM)]
-    // [InlineData("aspire-nunit", TestTargetFramework.CurrentTFM)]
-    // [InlineData("aspire-nunit", TestTargetFramework.PreviousTFM)]
-    public async Task CannotNewWithMismatchedSdkAndTemplate(string templateName, TestTargetFramework tfm)
-    {
-        var id = GetNewProjectId(prefix: $"new_fail_{templateName}_{tfm.ToTFMString()}");
-        var (buildEnvToUse, templateHive) = tfm switch
-        {
-            TestTargetFramework.Current => (BuildEnvironment.ForPreviousSdk, TemplatesCustomHive.With9_0_Net9),
-            TestTargetFramework.Previous => (BuildEnvironment.ForCurrentSdk, TemplatesCustomHive.With9_0_Net8),
-            _ => throw new ArgumentOutOfRangeException(nameof(tfm))
-        };
-
-        await templateHive.InstallAsync(buildEnvToUse);
-        try
-        {
-            await using var project = await AspireProject.CreateNewTemplateProjectAsync(
-                id,
-                templateName,
-                _testOutput,
-                buildEnvironment: buildEnvToUse,
-                targetFramework: tfm,
-                customHiveForTemplates: templateHive.CustomHiveDirectory);
-        }
-        catch (ToolCommandException tce)
-        {
-            Assert.NotNull(tce.Result);
-            Assert.Contains($"'{tfm.ToTFMString()}' is not a valid value for -f", tce.Result.Value.Output);
-        }
-    }
 }

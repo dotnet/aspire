@@ -11,6 +11,8 @@ public class TemplatesCustomHive
     public string CustomHiveDirectory => _customHiveDirectory ?? throw new InvalidOperationException($"TemplatesCustomHive has not been installed yet for '{_customHiveDirName}'");
     private readonly string _customHiveDirName;
 
+    private static readonly string s_tmpDirSuffix = Guid.NewGuid().ToString()[..8];
+
     // FIXME: these are not doing the install, so no need to be lazy!
     public static TemplatesCustomHive With9_0_Net9_And_Net8 => new(
             [
@@ -33,7 +35,7 @@ public class TemplatesCustomHive
     public async Task InstallAsync(BuildEnvironment buildEnvironment)
     {
         var customHiveBaseDirectory = BuildEnvironment.IsRunningOnCI
-                                        ? Path.GetTempPath()
+                                        ? Path.Combine(Path.GetTempPath(), $"templates-${s_tmpDirSuffix}")
                                         : Path.Combine(AppContext.BaseDirectory, "templates");
 
         _customHiveDirectory = Path.Combine(customHiveBaseDirectory, _customHiveDirName);
@@ -44,34 +46,40 @@ public class TemplatesCustomHive
                     .Zip(TemplatePackageIds, (path, id) => (path, id));
 
         var installTemplates = true;
-        if (!BuildEnvironment.IsRunningOnCI && Directory.Exists(CustomHiveDirectory))
+        if (Directory.Exists(CustomHiveDirectory))
         {
-            // local run, we can skip the installation if nothing has changed
-            var dirWriteTime = Directory.GetLastWriteTimeUtc(CustomHiveDirectory);
-            installTemplates = packageIdAndPaths.Where(t => new FileInfo(t.id).LastWriteTimeUtc > dirWriteTime).Any();
-        }
-
-        if (installTemplates)
-        {
-            if (Directory.Exists(CustomHiveDirectory))
+            if (BuildEnvironment.IsRunningOnCI)
             {
-                Directory.Delete(CustomHiveDirectory, recursive: true);
+                installTemplates = false;
             }
-
-            Console.WriteLine($"*** Creating templates custom hive: {CustomHiveDirectory}");
-            Directory.CreateDirectory(CustomHiveDirectory);
-
-            foreach (var (packagePath, templatePackageId) in packageIdAndPaths)
+            else
             {
-                await InstallTemplatesAsync(
-                        packagePath,
-                        customHiveDirectory: _customHiveDirectory,
-                        dotnet: buildEnvironment.DotNet);
+                // local run, we can skip the installation if nothing has changed
+                var dirWriteTime = Directory.GetLastWriteTimeUtc(CustomHiveDirectory);
+                installTemplates = packageIdAndPaths.Where(t => new FileInfo(t.id).LastWriteTimeUtc > dirWriteTime).Any();
             }
         }
-        else
+
+        if (!installTemplates)
         {
             Console.WriteLine($"** Custom hive exists, skipping installation: {CustomHiveDirectory}");
+            return;
+        }
+
+        if (Directory.Exists(CustomHiveDirectory))
+        {
+            Directory.Delete(CustomHiveDirectory, recursive: true);
+        }
+
+        Console.WriteLine($"*** Creating templates custom hive: {CustomHiveDirectory}");
+        Directory.CreateDirectory(CustomHiveDirectory);
+
+        foreach (var (packagePath, templatePackageId) in packageIdAndPaths)
+        {
+            await InstallTemplatesAsync(
+                    packagePath,
+                    customHiveDirectory: _customHiveDirectory,
+                    dotnet: buildEnvironment.DotNet);
         }
     }
 
