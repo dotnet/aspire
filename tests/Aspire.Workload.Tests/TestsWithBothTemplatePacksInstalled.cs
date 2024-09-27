@@ -13,7 +13,7 @@ public class TestsWithBothTemplatePacksInstalled : WorkloadTestsBase
     public TestsWithBothTemplatePacksInstalled(ITestOutputHelper testOutput)
         : base(testOutput)
     {
-        _templateHive = TemplatesCustomHive.Net9_0_Net8_And_Net9;
+        _templateHive = TemplatesCustomHive.With9_0_Net9_And_Net8;
     }
 
     [Theory]

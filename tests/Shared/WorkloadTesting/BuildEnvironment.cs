@@ -17,7 +17,8 @@ public class BuildEnvironment
     public bool                             HasWorkloadFromArtifacts      { get; init; }
     public bool                             UsesSystemDotNet => !HasWorkloadFromArtifacts;
     public string?                          NuGetPackagesPath             { get; init; }
-    private TestTargetFramework              TargetFramework               { get; init; }
+    // FIXME: drop this
+    // private TestTargetFramework              TargetFramework               { get; init; }
     public DirectoryInfo?                   RepoRoot                      { get; init; }
     public TemplatesCustomHive?             TemplatesCustomHive           { get; init; }
 
@@ -30,17 +31,18 @@ public class BuildEnvironment
     public static bool IsRunningOnCI => IsRunningOnHelix || IsRunningOnCIBuildMachine;
 
     private static readonly Lazy<BuildEnvironment> s_instance_80 = new(() =>
-        new BuildEnvironment(
-                targetFramework: TestTargetFramework.PreviousTFM,
-                templatesCustomHive: TemplatesCustomHive.Net9_0_Net8));
+        new BuildEnvironment(templatesCustomHive: TemplatesCustomHive.With9_0_Net8, sdkDirName: "dotnet-8"));
 
     private static readonly Lazy<BuildEnvironment> s_instance_90 = new(() =>
-        new BuildEnvironment(
-                targetFramework: TestTargetFramework.CurrentTFM,
-                templatesCustomHive: TemplatesCustomHive.Net9_0_Net9));
+        new BuildEnvironment(templatesCustomHive: TemplatesCustomHive.With9_0_Net9, sdkDirName: "dotnet-latest"));
+
+    private static readonly Lazy<BuildEnvironment> s_instance_90_80 = new(() =>
+        new BuildEnvironment(templatesCustomHive: TemplatesCustomHive.With9_0_Net9_And_Net8, sdkDirName: "dotnet-9+8"));
 
     public static BuildEnvironment ForPreviousTFM => s_instance_80.Value;
     public static BuildEnvironment ForCurrentTFM => s_instance_90.Value;
+    public static BuildEnvironment ForCurrentAndPreviousTFM => s_instance_90_80.Value;
+
     public static BuildEnvironment ForDefaultFramework { get; } = DefaultTargetFramework switch
     {
         TestTargetFramework.PreviousTFM => ForPreviousTFM,
@@ -66,10 +68,10 @@ public class BuildEnvironment
         }
     }
 
-    public BuildEnvironment(bool useSystemDotNet = false, TestTargetFramework? targetFramework = default, TemplatesCustomHive? templatesCustomHive = default)
+    public BuildEnvironment(bool useSystemDotNet = false, TestTargetFramework? targetFramework = default, TemplatesCustomHive? templatesCustomHive = default, string sdkDirName = "dotnet-latest")
     {
         HasWorkloadFromArtifacts = !useSystemDotNet;
-        TargetFramework = targetFramework ?? DefaultTargetFramework;
+        // TargetFramework = targetFramework ?? DefaultTargetFramework;
         RepoRoot = TestUtils.FindRepoRoot();
 
         string sdkForWorkloadPath;
@@ -78,7 +80,7 @@ public class BuildEnvironment
             // Local run
             if (!useSystemDotNet)
             {
-                var sdkDirName = string.IsNullOrEmpty(EnvironmentVariables.SdkDirName) ? "dotnet-latest" : EnvironmentVariables.SdkDirName;
+                // var sdkDirName = string.IsNullOrEmpty(EnvironmentVariables.SdkDirName) ? "dotnet-latest" : EnvironmentVariables.SdkDirName;
                 var sdkFromArtifactsPath = Path.Combine(RepoRoot!.FullName, "artifacts", "bin", sdkDirName);
                 if (Directory.Exists(sdkFromArtifactsPath))
                 {
@@ -142,7 +144,7 @@ public class BuildEnvironment
 
         sdkForWorkloadPath = Path.GetFullPath(sdkForWorkloadPath);
         DefaultBuildArgs = string.Empty;
-        NuGetPackagesPath = HasWorkloadFromArtifacts ? Path.Combine(AppContext.BaseDirectory, $"nuget-cache-{TargetFramework}") : null;
+        NuGetPackagesPath = HasWorkloadFromArtifacts ? Path.Combine(AppContext.BaseDirectory, $"nuget-cache-{Guid.NewGuid()}") : null;
         EnvVars = new Dictionary<string, string>();
         if (HasWorkloadFromArtifacts)
         {
@@ -184,7 +186,7 @@ public class BuildEnvironment
             LogRootPath = Path.Combine(AppContext.BaseDirectory, "logs");
         }
 
-        Console.WriteLine($"*** [{TargetFramework}] Using path for projects: {TestRootPath}");
+        Console.WriteLine($"*** Using path for projects: {TestRootPath}");
         CleanupTestRootPath();
         Directory.CreateDirectory(TestRootPath);
 
@@ -193,7 +195,7 @@ public class BuildEnvironment
         {
             if (EnvironmentVariables.IsRunningOnCI)
             {
-                Console.WriteLine($"*** [{TargetFramework}] Using NuGet cache: {NuGetPackagesPath}");
+                Console.WriteLine($"*** Using NuGet cache: {NuGetPackagesPath}");
                 if (Directory.Exists(NuGetPackagesPath))
                 {
                     Directory.Delete(NuGetPackagesPath, recursive: true);
@@ -208,7 +210,7 @@ public class BuildEnvironment
                         Directory.Delete(dir, recursive: true);
                     }
                 }
-                Console.WriteLine($"*** [{TargetFramework}] Using NuGet cache (never deleted automatically): {NuGetPackagesPath}");
+                Console.WriteLine($"*** Using NuGet cache (never deleted automatically): {NuGetPackagesPath}");
             }
         }
 
@@ -261,7 +263,7 @@ public class BuildEnvironment
         BuiltNuGetsPath = otherBuildEnvironment.BuiltNuGetsPath;
         HasWorkloadFromArtifacts = otherBuildEnvironment.HasWorkloadFromArtifacts;
         NuGetPackagesPath = otherBuildEnvironment.NuGetPackagesPath;
-        TargetFramework = otherBuildEnvironment.TargetFramework;
+        // TargetFramework = otherBuildEnvironment.TargetFramework;
         RepoRoot = otherBuildEnvironment.RepoRoot;
         TemplatesCustomHive = otherBuildEnvironment.TemplatesCustomHive;
     }

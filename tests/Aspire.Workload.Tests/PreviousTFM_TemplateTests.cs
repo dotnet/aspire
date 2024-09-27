@@ -26,8 +26,8 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase
                                 ? BuildEnvironment.ForCurrentTFM
                                 : BuildEnvironment.ForPreviousTFM;
         var templateHive = tfm == TestTargetFramework.CurrentTFM
-                                ? TemplatesCustomHive.Net9_0_Net9
-                                : TemplatesCustomHive.Net9_0_Net8;
+                                ? TemplatesCustomHive.With9_0_Net9
+                                : TemplatesCustomHive.With9_0_Net8;
         await templateHive.InstallAsync(buildEnvToUse);
         await using var project = await AspireProject.CreateNewTemplateProjectAsync(
             id,
@@ -61,7 +61,7 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase
         var id = GetNewProjectId(prefix: $"new_fail_{templateName}_{tfm.ToTFMString()}");
 
         var buildEnvToUse = tfm == TestTargetFramework.CurrentTFM ? BuildEnvironment.ForCurrentTFM : BuildEnvironment.ForPreviousTFM;
-        var templateHive = tfm == TestTargetFramework.CurrentTFM ? TemplatesCustomHive.Net9_0_Net8 : TemplatesCustomHive.Net9_0_Net9;
+        var templateHive = tfm == TestTargetFramework.CurrentTFM ? TemplatesCustomHive.With9_0_Net8 : TemplatesCustomHive.With9_0_Net9;
         await templateHive.InstallAsync(buildEnvToUse);
 
         try
