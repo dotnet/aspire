@@ -43,14 +43,14 @@ public class BuildEnvironment
             templatesCustomHive: TemplatesCustomHive.With9_0_Net9_And_Net8,
             sdkDirName: "dotnet-9+8"));
 
-    public static BuildEnvironment ForPreviousTFM => s_instance_80.Value;
-    public static BuildEnvironment ForCurrentTFM => s_instance_90.Value;
-    public static BuildEnvironment ForCurrentAndPreviousTFM => s_instance_90_80.Value;
+    public static BuildEnvironment ForPreviousSdk => s_instance_80.Value;
+    public static BuildEnvironment ForCurrentSdk => s_instance_90.Value;
+    public static BuildEnvironment ForCurrentSdkAndPreviousRuntime => s_instance_90_80.Value;
 
     public static BuildEnvironment ForDefaultFramework { get; } = DefaultTargetFramework switch
     {
-        TestTargetFramework.PreviousTFM => ForPreviousTFM,
-        TestTargetFramework.CurrentTFM => ForCurrentTFM,
+        TestTargetFramework.PreviousTFM => ForPreviousSdk,
+        TestTargetFramework.CurrentTFM => ForCurrentSdk,
         _ => throw new ArgumentOutOfRangeException(nameof(DefaultTargetFramework))
     };
 

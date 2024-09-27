@@ -25,7 +25,7 @@ public class TestsWithBothTemplatePacksInstalled : WorkloadTestsBase
     {
         var id = GetNewProjectId(prefix: $"new_{templateName}_{tfm}_on_9+8");
 
-        var buildEnvToUse = tfm == TestTargetFramework.CurrentTFM ? BuildEnvironment.ForCurrentTFM : BuildEnvironment.ForPreviousTFM;
+        var buildEnvToUse = tfm == TestTargetFramework.CurrentTFM ? BuildEnvironment.ForCurrentSdk : BuildEnvironment.ForPreviousSdk;
         await _templateHive.InstallAsync(buildEnvToUse);
         await using var project = await AspireProject.CreateNewTemplateProjectAsync(
             id,
@@ -55,7 +55,7 @@ public class TestsWithBothTemplatePacksInstalled : WorkloadTestsBase
     {
         var id = GetNewProjectId(prefix: $"new_{templateName}_{tfm}_on_9+8");
 
-        var buildEnvToUse = tfm == TestTargetFramework.CurrentTFM ? BuildEnvironment.ForCurrentTFM : BuildEnvironment.ForPreviousTFM;
+        var buildEnvToUse = tfm == TestTargetFramework.CurrentTFM ? BuildEnvironment.ForCurrentSdk : BuildEnvironment.ForPreviousSdk;
         await _templateHive.InstallAsync(buildEnvToUse);
         await using var project = await AspireProject.CreateNewTemplateProjectAsync(
             id,

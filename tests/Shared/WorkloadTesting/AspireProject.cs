@@ -104,7 +104,7 @@ public partial class AspireProject : IAsyncDisposable
         if (res.Output.Contains("Restore failed", StringComparison.OrdinalIgnoreCase) ||
             res.Output.Contains("Post action failed", StringComparison.OrdinalIgnoreCase))
         {
-            throw new XunitException($"`dotnet new {cmdString}` . Output: {res.Output}");
+            throw new ToolCommandException($"`dotnet new {cmdString}` . Output: {res.Output}", res);
         }
 
         foreach (var csprojPath in Directory.EnumerateFiles(rootDir, "*.csproj", SearchOption.AllDirectories))
