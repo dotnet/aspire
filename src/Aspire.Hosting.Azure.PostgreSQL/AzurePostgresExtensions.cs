@@ -31,67 +31,7 @@ public static class AzurePostgresExtensions
         return builder;
     }
 
-    private static PostgreSqlFlexibleServer CreatePostgreSqlFlexibleServer(ResourceModuleConstruct construct, IDistributedApplicationBuilder distributedApplicationBuilder, IReadOnlyDictionary<string, string> databases)
-    {
-        var postgres = new PostgreSqlFlexibleServer(construct.Resource.Name)
-        {
-            StorageSizeInGB = 32,
-            Sku = new PostgreSqlFlexibleServerSku()
-            {
-                Name = "Standard_B1ms",
-                Tier = PostgreSqlFlexibleServerSkuTier.Burstable
-            },
-            Version = new StringLiteral("16"),
-            HighAvailability = new PostgreSqlFlexibleServerHighAvailability()
-            {
-                Mode = PostgreSqlFlexibleServerHighAvailabilityMode.Disabled
-            },
-            Backup = new PostgreSqlFlexibleServerBackupProperties()
-            {
-                BackupRetentionDays = 7,
-                GeoRedundantBackup = PostgreSqlFlexibleServerGeoRedundantBackupEnum.Disabled
-            },
-            AvailabilityZone = "1",
-            Tags = { { "aspire-resource-name", construct.Resource.Name } }
-        };
-        construct.Add(postgres);
-
-        // Opens access to all Azure services.
-        construct.Add(new PostgreSqlFlexibleServerFirewallRule("postgreSqlFirewallRule_AllowAllAzureIps", postgres.ResourceVersion)
-        {
-            Parent = postgres,
-            Name = "AllowAllAzureIps",
-            StartIPAddress = new IPAddress([0, 0, 0, 0]),
-            EndIPAddress = new IPAddress([0, 0, 0, 0])
-        });
-
-        if (distributedApplicationBuilder.ExecutionContext.IsRunMode)
-        {
-            // Opens access to the Internet.
-            construct.Add(new PostgreSqlFlexibleServerFirewallRule("postgreSqlFirewallRule_AllowAllIps", postgres.ResourceVersion)
-            {
-                Parent = postgres,
-                Name = "AllowAllIps",
-                StartIPAddress = new IPAddress([0, 0, 0, 0]),
-                EndIPAddress = new IPAddress([255, 255, 255, 255])
-            });
-        }
-
-        foreach (var databaseNames in databases)
-        {
-            var resourceName = databaseNames.Key;
-            var databaseName = databaseNames.Value;
-            var pgsqlDatabase = new PostgreSqlFlexibleServerDatabase(resourceName, postgres.ResourceVersion)
-            {
-                Parent = postgres,
-                Name = databaseName
-            };
-            construct.Add(pgsqlDatabase);
-        }
-
-        return postgres;
-    }
-
+    [Obsolete]
     private static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServerInternal(
         this IResourceBuilder<PostgresServerResource> builder,
         Action<IResourceBuilder<AzurePostgresResource>, ResourceModuleConstruct, PostgreSqlFlexibleServer>? configureResource,
@@ -162,6 +102,7 @@ public static class AzurePostgresExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
     /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.PostgreSql.PostgreSqlFlexibleServer"/> resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzurePostgresFlexibleServer)} instead to add an Azure Postgres Flexible Server resource.")]
     [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServer(
         this IResourceBuilder<PostgresServerResource> builder,
@@ -177,6 +118,7 @@ public static class AzurePostgresExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzurePostgresFlexibleServer)} instead to add an Azure Postgres Flexible Server resource.")]
     public static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServer(
         this IResourceBuilder<PostgresServerResource> builder)
     {
@@ -188,6 +130,7 @@ public static class AzurePostgresExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzurePostgresFlexibleServer)} instead to add an Azure Postgres Flexible Server resource.")]
     public static IResourceBuilder<PostgresServerResource> AsAzurePostgresFlexibleServer(
         this IResourceBuilder<PostgresServerResource> builder)
     {
@@ -200,6 +143,7 @@ public static class AzurePostgresExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
     /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.PostgreSql.PostgreSqlFlexibleServer"/> resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzurePostgresFlexibleServer)} instead to add an Azure Postgres Flexible Server resource.")]
     [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<PostgresServerResource> AsAzurePostgresFlexibleServer(
         this IResourceBuilder<PostgresServerResource> builder,
@@ -417,6 +361,67 @@ public static class AzurePostgresExtensions
                 };
                 construct.Add(secret);
             });
+    }
+
+    private static PostgreSqlFlexibleServer CreatePostgreSqlFlexibleServer(ResourceModuleConstruct construct, IDistributedApplicationBuilder distributedApplicationBuilder, IReadOnlyDictionary<string, string> databases)
+    {
+        var postgres = new PostgreSqlFlexibleServer(construct.Resource.Name)
+        {
+            StorageSizeInGB = 32,
+            Sku = new PostgreSqlFlexibleServerSku()
+            {
+                Name = "Standard_B1ms",
+                Tier = PostgreSqlFlexibleServerSkuTier.Burstable
+            },
+            Version = new StringLiteral("16"),
+            HighAvailability = new PostgreSqlFlexibleServerHighAvailability()
+            {
+                Mode = PostgreSqlFlexibleServerHighAvailabilityMode.Disabled
+            },
+            Backup = new PostgreSqlFlexibleServerBackupProperties()
+            {
+                BackupRetentionDays = 7,
+                GeoRedundantBackup = PostgreSqlFlexibleServerGeoRedundantBackupEnum.Disabled
+            },
+            AvailabilityZone = "1",
+            Tags = { { "aspire-resource-name", construct.Resource.Name } }
+        };
+        construct.Add(postgres);
+
+        // Opens access to all Azure services.
+        construct.Add(new PostgreSqlFlexibleServerFirewallRule("postgreSqlFirewallRule_AllowAllAzureIps", postgres.ResourceVersion)
+        {
+            Parent = postgres,
+            Name = "AllowAllAzureIps",
+            StartIPAddress = new IPAddress([0, 0, 0, 0]),
+            EndIPAddress = new IPAddress([0, 0, 0, 0])
+        });
+
+        if (distributedApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            // Opens access to the Internet.
+            construct.Add(new PostgreSqlFlexibleServerFirewallRule("postgreSqlFirewallRule_AllowAllIps", postgres.ResourceVersion)
+            {
+                Parent = postgres,
+                Name = "AllowAllIps",
+                StartIPAddress = new IPAddress([0, 0, 0, 0]),
+                EndIPAddress = new IPAddress([255, 255, 255, 255])
+            });
+        }
+
+        foreach (var databaseNames in databases)
+        {
+            var resourceName = databaseNames.Key;
+            var databaseName = databaseNames.Value;
+            var pgsqlDatabase = new PostgreSqlFlexibleServerDatabase(resourceName, postgres.ResourceVersion)
+            {
+                Parent = postgres,
+                Name = databaseName
+            };
+            construct.Add(pgsqlDatabase);
+        }
+
+        return postgres;
     }
 
     private static IResourceBuilder<AzurePostgresFlexibleServerResource> RemoveActiveDirectoryParameters(

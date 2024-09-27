@@ -45,7 +45,7 @@ var pgsqldb = builder.AddAzurePostgresFlexibleServer("pgsql")
                    .WithPasswordAuth(pgsqlAdministratorLogin, pgsqlAdministratorLoginPassword)
                    .AddDatabase("pgsqldb");
 
-var pgsql2 = builder.AddPostgres("pgsql2").AsAzurePostgresFlexibleServer();
+var pgsql2 = builder.AddAzurePostgresFlexibleServer("pgsql2");
 
 var sb = builder.AddAzureServiceBus("servicebus")
     .AddQueue("queue1",

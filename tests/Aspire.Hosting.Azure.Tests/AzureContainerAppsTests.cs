@@ -6,10 +6,11 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureContainerAppsTests
+public class AzureContainerAppsTests(ITestOutputHelper output)
 {
     [Fact]
     public async Task AddContainerAppsInfrastructureAddsDeploymentTargetWithContainerAppToContainerResources()
@@ -98,7 +99,7 @@ public class AzureContainerAppsTests
           }
         }
         """;
-
+        output.WriteLine(bicep);
         Assert.Equal(expectedBicep, bicep);
     }
 
@@ -230,7 +231,7 @@ public class AzureContainerAppsTests
           }
         }
         """;
-
+        output.WriteLine(bicep);
         Assert.Equal(expectedBicep, bicep);
     }
 
@@ -245,7 +246,7 @@ public class AzureContainerAppsTests
         var db = builder.AddAzureCosmosDB("mydb").AddDatabase("db");
 
         // Postgres uses secret outputs + a literal connection string
-        var pgdb = builder.AddPostgres("pg").AsAzurePostgresFlexibleServer().AddDatabase("db");
+        var pgdb = builder.AddAzurePostgresFlexibleServer("pg").WithPasswordAuth().AddDatabase("db");
 
         // Connection string (should be considered a secret)
         var blob = builder.AddAzureStorage("storage").AddBlobs("blobs");
@@ -515,7 +516,7 @@ public class AzureContainerAppsTests
           }
         }
         """;
-
+        output.WriteLine(bicep);
         Assert.Equal(expectedBicep, bicep);
     }
 
@@ -612,7 +613,7 @@ public class AzureContainerAppsTests
           }
         }
         """;
-
+        output.WriteLine(bicep);
         Assert.Equal(expectedBicep, bicep);
     }
 
@@ -925,7 +926,7 @@ public class AzureContainerAppsTests
           }
         }
         """;
-
+        output.WriteLine(bicep);
         Assert.Equal(expectedBicep, bicep);
     }
 
@@ -1023,7 +1024,7 @@ public class AzureContainerAppsTests
           }
         }
         """;
-
+        output.WriteLine(bicep);
         Assert.Equal(expectedBicep, bicep);
     }
 
@@ -1127,7 +1128,7 @@ public class AzureContainerAppsTests
           }
         }
         """;
-
+        output.WriteLine(bicep);
         Assert.Equal(expectedBicep, bicep);
     }
 
@@ -1226,7 +1227,7 @@ public class AzureContainerAppsTests
           }
         }
         """;
-
+        output.WriteLine(bicep);
         Assert.Equal(expectedBicep, bicep);
     }
 
@@ -1363,7 +1364,7 @@ public class AzureContainerAppsTests
           }
         }
         """;
-
+        output.WriteLine(bicep);
         Assert.Equal(expectedBicep, bicep);
     }
 
