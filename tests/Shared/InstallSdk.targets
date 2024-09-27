@@ -1,13 +1,5 @@
 <Project InitialTargets="ValidateInputs">
-
-  <PropertyGroup>
-    <_DotNetInstallScriptName Condition="!$([MSBuild]::IsOSPlatform('windows'))">dotnet-install.sh</_DotNetInstallScriptName>
-    <_DotNetInstallScriptName Condition=" $([MSBuild]::IsOSPlatform('windows'))">dotnet-install.ps1</_DotNetInstallScriptName>
-
-    <_DotNetInstallScriptPath>$(ArtifactsObjDir)$(_DotNetInstallScriptName)</_DotNetInstallScriptPath>
-
-    <SdkStampPath>$(SdkTargetDir)\.version-$(SdkVersionToInstall).stamp</SdkStampPath>
-  </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)InstallSdk.props" />
 
   <!--
     Inputs:
@@ -21,13 +13,12 @@
   <Target Name="ValidateInputs">
     <Error Text="%24(SdkTargetDir) is not set" Condition="'$(SdkTargetDir)' == ''" />
     <Error Text="%24(SdkVersionToInstall) is not set" Condition="'$(SdkVersionToInstall)' == ''" />
+    <Error Text="%24(SdkStampPath) is not set" Condition="'$(SdkStampPath)' == ''" />
     <Error Text="%24(ArtifactsObjDir) is not set" Condition="'$(ArtifactsObjDir)' == ''" />
   </Target>
 
   <!-- FIXME: null check for stamp path-->
   <Target Name="ProvisionSdk" Condition="!Exists($(SdkStampPath))">
-    <!--<Message Text="SdkVersionForWorkloadTesting: $(SdkVersionForWorkloadTesting)" Importance="High" />-->
-
     <PropertyGroup>
       <_DotNetInstallCommand Condition="!$([MSBuild]::IsOSPlatform('windows'))"
               >$(_DotNetInstallScriptPath) -i $(SdkTargetDir) -v $(SdkVersionToInstall)</_DotNetInstallCommand>
@@ -57,7 +48,5 @@
     <Exec Condition="$([MSBuild]::IsOSPlatform('windows'))"
           IgnoreStandardErrorWarningFormat="true"
           Command='powershell -ExecutionPolicy ByPass -NoProfile -command "&amp; $(_DotNetInstallCommand)"' />
-
-    <Touch Files="$(SdkStampPath)" AlwaysCreate="true" />
   </Target>
 </Project>
