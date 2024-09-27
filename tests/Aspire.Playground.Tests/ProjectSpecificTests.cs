@@ -56,7 +56,6 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/5960")]
     [RequiresDocker]
     [RequiresTools(["func"])]
     public async Task AzureFunctionsTest()
@@ -78,7 +77,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             timeoutSecs: 160);
 
         // Assert that HTTP triggers work correctly
-        await app.CreateHttpClient("funcapp").GetAsync("/api/weatherforecast");
+        await AppHostTests.CreateHttpClientWithResilience(app, "funcapp").GetAsync("/api/weatherforecast");
         await WaitForAllTextAsync(app,
             [
                 "Executing HTTP request:",
@@ -87,8 +86,9 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             resourceName: "funcapp",
             timeoutSecs: 160);
 
+        using var apiServiceClient = AppHostTests.CreateHttpClientWithResilience(app, "apiservice");
         // Assert that Azure Storage Queue triggers work correctly
-        await app.CreateHttpClient("apiservice").GetAsync("/publish/asq");
+        await apiServiceClient.GetAsync("/publish/asq");
         await WaitForAllTextAsync(app,
             [
                 "Executed 'Functions.MyAzureQueueTrigger'"
@@ -97,7 +97,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             timeoutSecs: 160);
 
         // Assert that Azure Storage Blob triggers work correctly
-        await app.CreateHttpClient("apiservice").GetAsync("/publish/blob");
+        await apiServiceClient.GetAsync("/publish/blob");
         await WaitForAllTextAsync(app,
             [
                 "Executed 'Functions.MyAzureBlobTrigger'"
@@ -107,7 +107,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
 
 #if !SKIP_EVENTHUBS_EMULATION
         // Assert that EventHubs triggers work correctly
-        await app.CreateHttpClient("apiservice").GetAsync("/publish/eventhubs");
+        await apiServiceClient.GetAsync("/publish/eventhubs");
         await WaitForAllTextAsync(app,
             [
                 "Executed 'Functions.MyEventHubTrigger'"
@@ -116,7 +116,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             timeoutSecs: 160);
 
         // Assert that ServiceBus triggers work correctly
-        await app.CreateHttpClient("apiservice").GetAsync("/publish/asb");
+        await apiServiceClient.GetAsync("/publish/asb");
         await WaitForAllTextAsync(app,
             [
                 "Executed 'Functions.MyServiceBusTrigger'"
