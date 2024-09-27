@@ -1,23 +1,24 @@
-<Project InitialTargets="ValidateInputs">
-  <Import Project="$(MSBuildThisFileDirectory)InstallSdk.props" />
-
+<Project InitialTargets="_ValidateInputs">
   <!--
-    Inputs:
-      $(SdkVersionToInstall)
-      $(SdkTargetDir)
-      $(SdkStampPath)
+    Meant to be run independently to provision a sdk.
 
-      $(ArtifactsObjDir)
+    Inputs:
+    $(SdkVersionToInstall)
+    $(SdkTargetDir)
+    $(SdkStampPath)
+
+    $(ArtifactsObjDir)
   -->
 
-  <Target Name="ValidateInputs">
+  <Import Project="$(MSBuildThisFileDirectory)InstallSdk.props" />
+
+  <Target Name="_ValidateInputs">
     <Error Text="%24(SdkTargetDir) is not set" Condition="'$(SdkTargetDir)' == ''" />
     <Error Text="%24(SdkVersionToInstall) is not set" Condition="'$(SdkVersionToInstall)' == ''" />
     <Error Text="%24(SdkStampPath) is not set" Condition="'$(SdkStampPath)' == ''" />
     <Error Text="%24(ArtifactsObjDir) is not set" Condition="'$(ArtifactsObjDir)' == ''" />
   </Target>
 
-  <!-- FIXME: null check for stamp path-->
   <Target Name="ProvisionSdk" Condition="!Exists($(SdkStampPath))">
     <PropertyGroup>
       <_DotNetInstallCommand Condition="!$([MSBuild]::IsOSPlatform('windows'))"

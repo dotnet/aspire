@@ -14,9 +14,9 @@
     <BaselineVersionForPackageValidation>8.0.1</BaselineVersionForPackageValidation>
     <DefaultTargetFramework>net8.0</DefaultTargetFramework>
     <!-- dotnet 8.0 versions for running tests -->
-    <DotNetRuntimeVersionForTesting>8.0.8</DotNetRuntimeVersionForTesting>
+    <DotNetRuntimePreviousVersionForTesting>8.0.8</DotNetRuntimePreviousVersionForTesting>
     <!-- dotnet 8.0 versions for running tests - used for workload tests -->
-    <DotNetSdkVersionForTesting>8.0.401</DotNetSdkVersionForTesting>
+    <DotNetSdkPreviousVersionForTesting>8.0.401</DotNetSdkPreviousVersionForTesting>
     <UseVSTestRunner>true</UseVSTestRunner>
     <!-- Enable to remove prerelease label. -->
     <StabilizePackageVersion Condition="'$(StabilizePackageVersion)' == ''">false</StabilizePackageVersion>
