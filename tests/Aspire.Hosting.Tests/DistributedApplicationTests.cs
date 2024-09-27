@@ -375,7 +375,7 @@ public class DistributedApplicationTests
         var redisContainer = await KubernetesHelper.GetResourceByNameMatchAsync<Container>(kubernetes, $"redis0-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null, token);
         Assert.NotNull(redisContainer);
 
-        var serviceA = await KubernetesHelper.GetResourceByNameAsync<Executable>(kubernetes, $"servicea-{suffix}", r => r.Status?.EffectiveEnv is not null, token);
+        var serviceA = await KubernetesHelper.GetResourceByNameAsync<Executable>(kubernetes, "servicea", suffix!, r => r.Status?.EffectiveEnv is not null, token);
         Assert.NotNull(serviceA);
 
         var nodeApp = await KubernetesHelper.GetResourceByNameMatchAsync<Executable>(kubernetes, $"nodeapp-{ReplicaIdRegex}-{suffix}", r => r.Status?.EffectiveEnv is not null, token);
