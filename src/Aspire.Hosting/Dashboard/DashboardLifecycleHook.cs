@@ -250,7 +250,7 @@ internal sealed class DashboardLifecycleHook(IConfiguration configuration,
 
             if (!string.IsNullOrEmpty(browserToken))
             {
-                LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrls, browserToken);
+                LoggingHelpers.WriteDashboardUrl(distributedApplicationLogger, dashboardUrls, browserToken, isContainer: false);
             }
         }));
     }
