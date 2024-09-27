@@ -36,7 +36,7 @@ public interface IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel>
     /// <summary>
     /// Computes the initial view model state based on query param values
     /// </summary>
-    public void UpdateViewModelFromQuery(TViewModel viewModel);
+    public Task UpdateViewModelFromQueryAsync(TViewModel viewModel);
 
     /// <summary>
     /// Translates the <param name="serializable">serializable form of the view model</param> to a relative URL associated
@@ -105,7 +105,7 @@ public static class PageExtensions
         }
 
         ArgumentNullException.ThrowIfNull(page.PageViewModel, nameof(page.PageViewModel));
-        page.UpdateViewModelFromQuery(page.PageViewModel);
+        await page.UpdateViewModelFromQueryAsync(page.PageViewModel);
         return false;
     }
 }
