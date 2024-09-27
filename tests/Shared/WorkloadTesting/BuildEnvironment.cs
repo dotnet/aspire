@@ -103,11 +103,18 @@ public class BuildEnvironment
         else
         {
             // CI - helix
-            if (string.IsNullOrEmpty(EnvironmentVariables.SdkForWorkloadTestingPath) || !Directory.Exists(EnvironmentVariables.SdkForWorkloadTestingPath))
+            if (string.IsNullOrEmpty(EnvironmentVariables.SdkForWorkloadTestingPath))
             {
-                throw new ArgumentException($"Cannot find 'SDK_FOR_WORKLOAD_TESTING_PATH={EnvironmentVariables.SdkForWorkloadTestingPath}'");
+                throw new ArgumentException($"Environment variable SDK_FOR_WORKLOAD_TESTING_PATH is unset");
             }
-            sdkForWorkloadPath = EnvironmentVariables.SdkForWorkloadTestingPath;
+
+            string? baseDir = Path.GetDirectoryName(EnvironmentVariables.SdkForWorkloadTestingPath);
+            if (baseDir is null)
+            {
+                throw new ArgumentException($"Cannot find base directory for SDK_FOR_WORKLOAD_TESTING_PATH - {baseDir}");
+            }
+
+            sdkForWorkloadPath = Path.Combine(baseDir, sdkDirName);
 
             if (string.IsNullOrEmpty(EnvironmentVariables.BuiltNuGetsPath) || !Directory.Exists(EnvironmentVariables.BuiltNuGetsPath))
             {
@@ -121,11 +128,11 @@ public class BuildEnvironment
             throw new ArgumentException($"Cannot find TestAssetsPath={TestAssetsPath}");
         }
 
-        if (!string.IsNullOrEmpty(EnvironmentVariables.SdkForWorkloadTestingPath))
-        {
-            // always allow overridding the dotnet used for testing
-            sdkForWorkloadPath = EnvironmentVariables.SdkForWorkloadTestingPath;
-        }
+        // if (!string.IsNullOrEmpty(EnvironmentVariables.SdkForWorkloadTestingPath))
+        // {
+        //     // always allow overridding the dotnet used for testing
+        //     sdkForWorkloadPath = EnvironmentVariables.SdkForWorkloadTestingPath;
+        // }
 
         sdkForWorkloadPath = Path.GetFullPath(sdkForWorkloadPath);
         DefaultBuildArgs = string.Empty;
