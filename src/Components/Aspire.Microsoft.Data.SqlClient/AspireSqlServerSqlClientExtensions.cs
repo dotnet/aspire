@@ -42,15 +42,20 @@ public static class AspireSqlServerSqlClientExtensions
     /// <exception cref="InvalidOperationException">If required <see cref="MicrosoftDataSqlClientSettings.ConnectionString"/> is not provided in configuration section.</exception>
     public static void AddKeyedSqlServerClient(this IHostApplicationBuilder builder, string name, Action<MicrosoftDataSqlClientSettings>? configureSettings = null)
     {
-        ArgumentNullException.ThrowIfNull(name);
+        ArgumentException.ThrowIfNullOrEmpty(name);
 
         AddSqlClient(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, connectionName: name, serviceKey: name);
     }
 
-    private static void AddSqlClient(IHostApplicationBuilder builder, string configurationSectionName,
-        Action<MicrosoftDataSqlClientSettings>? configure, string connectionName, object? serviceKey)
+    private static void AddSqlClient(
+        IHostApplicationBuilder builder,
+        string configurationSectionName,
+        Action<MicrosoftDataSqlClientSettings>? configure,
+        string connectionName,
+        object? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         MicrosoftDataSqlClientSettings settings = new();
         builder.Configuration.GetSection(configurationSectionName).Bind(settings);

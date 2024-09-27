@@ -37,7 +37,13 @@ public static class AspireBlobStorageExtensions
         Action<AzureStorageBlobsSettings>? configureSettings = null,
         Action<IAzureClientBuilder<BlobServiceClient, BlobClientOptions>>? configureClientBuilder = null)
     {
-        new BlobStorageComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
+        AddAzureBlobClientInternal(
+            builder,
+            DefaultConfigSectionName,
+            connectionName,
+            serviceKey: null,
+            configureSettings,
+            configureClientBuilder);
     }
 
     /// <summary>
@@ -60,7 +66,27 @@ public static class AspireBlobStorageExtensions
 
         string configurationSectionName = BlobStorageComponent.GetKeyedConfigurationSectionName(name, DefaultConfigSectionName);
 
-        new BlobStorageComponent().AddClient(builder, configurationSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
+        AddAzureBlobClientInternal(
+            builder,
+            configurationSectionName,
+            connectionName: name,
+            serviceKey: name,
+            configureSettings,
+            configureClientBuilder);
+    }
+
+    private static void AddAzureBlobClientInternal(
+        IHostApplicationBuilder builder,
+        string configurationSectionName,
+        string connectionName,
+        string? serviceKey,
+        Action<AzureStorageBlobsSettings>? configureSettings = null,
+        Action<IAzureClientBuilder<BlobServiceClient, BlobClientOptions>>? configureClientBuilder = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
+
+        new BlobStorageComponent().AddClient(builder, configurationSectionName, configureSettings, configureClientBuilder, connectionName: connectionName, serviceKey: serviceKey);
     }
 
     private sealed class BlobStorageComponent : AzureComponent<AzureStorageBlobsSettings, BlobServiceClient, BlobClientOptions>
