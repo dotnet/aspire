@@ -56,7 +56,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/5973")]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/5960")]
     [RequiresDocker]
     [RequiresTools(["func"])]
     public async Task AzureFunctionsTest()
