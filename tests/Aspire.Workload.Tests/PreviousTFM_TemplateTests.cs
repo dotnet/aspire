@@ -20,27 +20,28 @@ public class PreviousTFM_TemplateTests : WorkloadTestsBase
         - sdk to use
         - hive to use
 
-            working: net9.0, hive: net9.0
-            working: net8.0, hive: net8.0
+            1. Also, working with both installed
 
-            working: net9.0, hive: net9.0+net8.0
-            working: net8.0, hive: net9.0+net8.0
+            2. TFM: net8
+                working: net8.0, hive: net8.0
+                working: net8.0, hive: net9.0+net8.0
 
-            Also, working with both installed
+                not working: tfm:net8.0
+                        sdk: net8
+                            hive: net9 - no -f?
+                            hive: net8 - works
+                        sdk: net9 - can't target 8?
+                            hive: ~
+            3. TFM: net9
+                working: net9.0, hive: net9.0
+                working: net9.0, hive: net9.0+net8.0
 
-            not working: tfm:net8.0
-                    sdk: net8
-                        hive: net9 - no -f?
-                        hive: net8 - works
-                    sdk: net9 - can't target 8?
-                        hive: ~
-
-            not working: tfm: net9.0
-                    sdk: net8 - can't target 8?
-                        hive: ~
-                    sdk: net9
-                        hive: net9 - works
-                        hive: net8 - no -f n9
+                not working: tfm: net9.0
+                        sdk: net8 - can't target 8?
+                            hive: ~
+                        sdk: net9
+                            hive: net9 - works
+                            hive: net8 - no -f n9
     */
 
     [Theory]
