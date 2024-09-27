@@ -79,6 +79,13 @@ public static class AzureFunctionsProjectResourceExtensions
                 context.EnvironmentVariables["OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY"] = "in_memory";
                 context.EnvironmentVariables["ASPNETCORE_FORWARDEDHEADERS_ENABLED"] = "true";
                 context.EnvironmentVariables["FUNCTIONS_WORKER_RUNTIME"] = "dotnet-isolated";
+                // Set ASPNETCORE_URLS to use the non-privileged port 8080 when running in publish mode.
+                // We can't use the newer ASPNETCORE_HTTP_PORTS environment variables here since the Azure
+                // Functions host is still initialized using the classic WebHostBuilder.
+                if (context.ExecutionContext.IsPublishMode)
+                {
+                    context.EnvironmentVariables["ASPNETCORE_URLS"] = "http://+:8080";
+                }
 
                 // Set the storage connection string.
                 ((IResourceWithAzureFunctionsConfig)resource.HostStorage).ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, "Storage");
@@ -106,7 +113,10 @@ public static class AzureFunctionsProjectResourceExtensions
     /// <remarks>
     /// If the Azure Function is running under publish mode, we don't need to map the port
     /// the host should listen on from the launch profile. Instead, we'll use the default
-    /// post (8080) used by the Azure Functions container image.
+    /// post (8080) used by the .NET container image. The Azure Functions container images
+    /// extend the .NET container image and override the default port to 80 for back-compat
+    /// purposes. We use the default port (8080) to avoid using privileged ports in the
+    /// container image.
     /// </remarks>
     /// <remarks>
     /// /// We provide a custom overload of `WithReference` that allows for the injection of Azure
@@ -123,8 +133,8 @@ public static class AzureFunctionsProjectResourceExtensions
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             return builder
-                .WithHttpEndpoint()
-                .WithHttpsEndpoint();
+                .WithHttpEndpoint(targetPort: 8080)
+                .WithHttpsEndpoint(targetPort: 8080);
         }
         var launchProfile = builder.Resource.GetEffectiveLaunchProfile();
         int? port = null;
