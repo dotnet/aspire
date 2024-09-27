@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Publishing;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Expressions;
@@ -81,7 +82,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
 
             var construct = new AzureConstructResource(resource.Name, context.BuildContainerApp);
 
-            construct.Annotations.Add(new ManifestPublishingCallbackAnnotation(construct.WriteToManifest));
+            construct.Annotations.Add(new ManifestPublishingCallbackAnnotation(c => context.WriteToManifest(c, construct)));
 
             return construct;
         }
@@ -127,6 +128,26 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
 
             public List<(ContainerAppVolume, ContainerAppVolumeMount)> Volumes { get; } = [];
 
+            public void WriteToManifest(ManifestPublishingContext context, AzureConstructResource construct)
+            {
+                construct.WriteToManifest(context);
+
+                // We're handling custom resource writing here instead of in the AzureConstructResource
+                // this is because we're tracking the BicepParameter instances as we process the resource
+                if (Parameters.Count > 0)
+                {
+                    context.Writer.WriteStartObject("params");
+                    foreach (var (key, value) in Parameters)
+                    {
+                        context.Writer.WriteString(key, value.ValueExpression);
+
+                        context.TryAddDependentResources(value);
+                    }
+
+                    context.Writer.WriteEndObject();
+                }
+            }
+
             public void BuildContainerApp(ResourceModuleConstruct c)
             {
                 var containerAppIdParam = AllocateParameter(_containerAppEnviromentContext.ContainerAppEnvironmentId);
@@ -144,8 +165,6 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                 {
                     Name = resource.Name.ToLowerInvariant()
                 };
-
-                c.Add(containerAppResource);
 
                 // TODO: Add managed identities only when required
                 AddManagedIdentites(containerAppResource);
@@ -189,10 +208,13 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                     containerAppContainer.VolumeMounts.Add(mountedVolume);
                 }
 
-                foreach (var (key, value) in Parameters)
+                // Add parameters to the construct
+                foreach (var (_, parameter) in _bicepParameters)
                 {
-                    c.Resource.Parameters[key] = value;
+                    c.Add(parameter);
                 }
+
+                c.Add(containerAppResource);
 
                 if (resource.TryGetAnnotationsOfType<ContainerAppCustomizationAnnotation>(out var annotations))
                 {
@@ -569,7 +591,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                     EndpointProperty.Url => GetHostValue($"{scheme}://", suffix: isHttpIngress ? null : $":{port}"),
                     EndpointProperty.Host or EndpointProperty.IPV4Host => GetHostValue(),
                     EndpointProperty.Port => port.ToString(CultureInfo.InvariantCulture),
-                    EndpointProperty.TargetPort => targetPort is null ? AllocateTargetPortParameter() : targetPort,
+                    EndpointProperty.TargetPort => targetPort is null ? AllocateContainerPortParameter() : targetPort,
                     EndpointProperty.Scheme => scheme,
                     _ => throw new NotSupportedException(),
                 };
@@ -680,7 +702,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
             private BicepParameter AllocateContainerImageParameter()
                 => AllocateParameter(ProjectResourceExpression.GetContainerImageExpression((ProjectResource)resource));
 
-            private BicepValue<int> AllocateTargetPortParameter()
+            private BicepValue<int> AllocateContainerPortParameter()
                 => AllocateParameter(ProjectResourceExpression.GetContainerPortExpression((ProjectResource)resource));
 
             private BicepParameter AllocateManagedIdentityIdParameter()
@@ -732,7 +754,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                 if (_httpIngress is { } ingress)
                 {
                     caIngress.External = ingress.External;
-                    caIngress.TargetPort = ingress.Port ?? AllocateTargetPortParameter();
+                    caIngress.TargetPort = ingress.Port ?? AllocateContainerPortParameter();
                     caIngress.Transport = ingress.Http2 ? ContainerAppIngressTransportMethod.Http2 : ContainerAppIngressTransportMethod.Http;
                 }
                 else if (_additionalPorts.Count > 0)

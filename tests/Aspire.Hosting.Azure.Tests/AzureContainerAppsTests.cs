@@ -520,6 +520,8 @@ public class AzureContainerAppsTests
         builder.AddContainer("api", "myimage")
             .PublishAsAzureContainerApp((module, c) =>
             {
+                Assert.Contains(c, module.GetResources());
+
                 c.Template.Value!.Scale.Value!.MinReplicas = 0;
             });
 
