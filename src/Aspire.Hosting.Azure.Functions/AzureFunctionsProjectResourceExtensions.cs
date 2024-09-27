@@ -4,6 +4,7 @@
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Azure.Provisioning.Storage;
 
 namespace Aspire.Hosting.Azure;
 
@@ -30,8 +31,21 @@ public static class AzureFunctionsProjectResourceExtensions
 
         if (storage is null)
         {
-            storage = builder.AddAzureStorage("azFuncHostStorage").RunAsEmulator().Resource;
-
+            // Azure Functions blob triggers require StorageAccountContributor access to the host storage
+            // account when deployed. We assign this role to the host storage resource when running in publish mode.
+            if (builder.ExecutionContext.IsPublishMode)
+            {
+#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+                storage = builder.AddAzureStorage(DefaultAzureFunctionsHostStorageName, (builder, construct, storageAccount) =>
+                {
+                    construct.Add(storageAccount.AssignRole(StorageBuiltInRole.StorageAccountContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+                }).RunAsEmulator().Resource;
+#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            }
+            else
+            {
+                storage = builder.AddAzureStorage(DefaultAzureFunctionsHostStorageName).RunAsEmulator().Resource;
+            }
             builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
             {
                 var removeStorage = true;
