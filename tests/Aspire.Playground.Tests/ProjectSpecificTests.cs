@@ -55,6 +55,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
         await app.StopAsync();
     }
 
+    [Fact]
     [ActiveIssue("https://github.com/dotnet/aspire/issues/5973")]
     [RequiresDocker]
     [RequiresTools(["func"])]
