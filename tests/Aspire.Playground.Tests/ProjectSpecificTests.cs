@@ -68,11 +68,11 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
         await app.StartAsync();
         await app.WaitForResources().WaitAsync(TimeSpan.FromMinutes(2));
 
-        // Wait for the blobTrigger to be discovered as an indication that the host and worker
-        // has been successfully launched
+        // Wait for the 'Job host started' message as an indication
+        // that the Functions host has initialized correctly
         await WaitForAllTextAsync(app,
             [
-                "MyAzureBlobTrigger: blobTrigger"
+                "Job host started"
             ],
             resourceName: "funcapp",
             timeoutSecs: 160);
