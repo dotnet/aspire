@@ -38,6 +38,9 @@
            Text="No workload test class names found" />
 
     <ItemGroup>
+      <HelixCorrelationPayload Include="$(ArtifactsBinDir)dotnet-8" Destination="dotnet-8" />
+      <HelixCorrelationPayload Include="$(ArtifactsBinDir)dotnet-9+8" Destination="dotnet-9+8" />
+
       <!-- PreCommands="" needed for batching below -->
       <_WorkloadTestsClassNames TestNameSuffix="$([System.String]::Copy('%(Identity)').Replace('Aspire.Workload.Tests.', ''))" PreCommands="" />
 
