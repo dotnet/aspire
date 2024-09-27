@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
 using Aspire.Hosting.Dcp;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,7 +21,7 @@ internal static class CommandsConfigurationExtensions
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
             type: StartType,
-            displayName: GetDisplayName("Start {0}", resource),
+            displayName: "Start",
             executeCommand: async context =>
             {
                 var executor = context.ServiceProvider.GetRequiredService<ApplicationExecutor>();
@@ -51,7 +50,7 @@ internal static class CommandsConfigurationExtensions
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
             type: StopType,
-            displayName: GetDisplayName("Stop {0}", resource),
+            displayName: "Stop",
             executeCommand: async context =>
             {
                 var executor = context.ServiceProvider.GetRequiredService<ApplicationExecutor>();
@@ -80,7 +79,7 @@ internal static class CommandsConfigurationExtensions
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
             type: RestartType,
-            displayName: GetDisplayName("Restart {0}", resource),
+            displayName: "Restart",
             executeCommand: async context =>
             {
                 var executor = context.ServiceProvider.GetRequiredService<ApplicationExecutor>();
@@ -108,26 +107,5 @@ internal static class CommandsConfigurationExtensions
         static bool IsStopping(string? state) => state is "Stopping";
         static bool IsStarting(string? state) => state is "Starting";
         static bool IsWaiting(string? state) => state is "Waiting";
-        static string GetDisplayName(string template, IResource resource)
-        {
-            string resourceType;
-            if (resource.IsContainer())
-            {
-                resourceType = "container";
-            }
-            else if (resource is ProjectResource)
-            {
-                resourceType = "project";
-            }
-            else if (resource is ExecutableResource)
-            {
-                resourceType = "executable";
-            }
-            else
-            {
-                resourceType = "resource";
-            }
-            return string.Format(CultureInfo.InvariantCulture, template, resourceType);
-        }
     }
 }
