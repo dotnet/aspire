@@ -84,7 +84,7 @@ public static class AzureFunctionsProjectResourceExtensions
                 // Functions host is still initialized using the classic WebHostBuilder.
                 if (context.ExecutionContext.IsPublishMode)
                 {
-                   var endpoint = resource.GetEndpoint("http");
+                    var endpoint = resource.GetEndpoint("http");
                     context.EnvironmentVariables["ASPNETCORE_URLS"] = ReferenceExpression.Create($"http://+:{endpoint.Property(EndpointProperty.TargetPort)}");
                 }
 
