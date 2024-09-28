@@ -35,12 +35,15 @@ public static class AzureFunctionsProjectResourceExtensions
             // account when deployed. We assign this role to the host storage resource when running in publish mode.
             if (builder.ExecutionContext.IsPublishMode)
             {
-#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-                storage = builder.AddAzureStorage(DefaultAzureFunctionsHostStorageName, (builder, construct, storageAccount) =>
+                var configureConstruct = (ResourceModuleConstruct construct) =>
                 {
+#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+                    var storageAccount = construct.GetResources().OfType<StorageAccount>().FirstOrDefault(r => r.ResourceName == DefaultAzureFunctionsHostStorageName)
+                        ?? throw new InvalidOperationException($"Could not find storage account with '{DefaultAzureFunctionsHostStorageName}' name.");
                     construct.Add(storageAccount.AssignRole(StorageBuiltInRole.StorageAccountContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
-                }).RunAsEmulator().Resource;
 #pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+                };
+                storage = builder.AddAzureStorage(DefaultAzureFunctionsHostStorageName).ConfigureConstruct(configureConstruct).RunAsEmulator().Resource;
             }
             else
             {
