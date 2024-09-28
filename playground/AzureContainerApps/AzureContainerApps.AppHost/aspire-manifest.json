@@ -75,7 +75,7 @@
         "params": {
           "api_containerport": "{api.containerPort}",
           "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
-          "account_secretoutputs_connectionstring": "{account.secretOutputs.connectionString}",
+          "account_secretoutputs": "{account.secretOutputs}",
           "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
           "secretparam_value": "{secretparam.value}",
           "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
