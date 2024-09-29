@@ -68,9 +68,7 @@ public static class AspireAzureOpenAIExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        var configurationSectionName = OpenAIComponent.GetKeyedConfigurationSectionName(name, DefaultConfigSectionName);
-
-        new OpenAIComponent().AddClient(builder, configurationSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
+        new OpenAIComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
 
         // Add the AzureOpenAIClient service as OpenAIClient. That way the service can be resolved by both service Types.
         builder.Services.TryAddKeyedSingleton(typeof(OpenAIClient), serviceKey: name, static (provider, key) => provider.GetRequiredKeyedService<AzureOpenAIClient>(key));

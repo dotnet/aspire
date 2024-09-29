@@ -63,9 +63,7 @@ public static class AspireQueueStorageExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        string configurationSectionName = StorageQueueComponent.GetKeyedConfigurationSectionName(name, DefaultConfigSectionName);
-
-        new StorageQueueComponent().AddClient(builder, configurationSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
+        new StorageQueueComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
     }
 
     private sealed class StorageQueueComponent : AzureComponent<AzureStorageQueuesSettings, QueueServiceClient, QueueClientOptions>

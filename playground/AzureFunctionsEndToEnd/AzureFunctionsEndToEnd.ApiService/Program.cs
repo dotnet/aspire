@@ -1,8 +1,8 @@
 using System.Security.Cryptography;
 using System.Text;
-#if !SKIP_EVENTHUBS_EMULATION
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
+#if !SKIP_PROVISIONED_AZURE_RESOURCE
 using Azure.Messaging.ServiceBus;
 #endif
 using Azure.Storage.Blobs;
@@ -14,8 +14,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.AddAzureQueueClient("queue");
 builder.AddAzureBlobClient("blob");
-#if !SKIP_EVENTHUBS_EMULATION
 builder.AddAzureEventHubProducerClient("eventhubs", static settings => settings.EventHubName = "myhub");
+#if !SKIP_PROVISIONED_AZURE_RESOURCE
 builder.AddAzureServiceBusClient("messaging");
 #endif
 
@@ -49,13 +49,14 @@ app.MapGet("/publish/blob", async (BlobServiceClient client, CancellationToken c
     return Results.Ok("String uploaded to Azure Storage Blobs.");
 });
 
-#if !SKIP_EVENTHUBS_EMULATION
 app.MapGet("/publish/eventhubs", async (EventHubProducerClient client, CancellationToken cancellationToken, int length = 20) =>
 {
     var data = new BinaryData(Encoding.UTF8.GetBytes(RandomString(length)));
     await client.SendAsync([new EventData(data)]);
     return Results.Ok("Message sent to Azure EventHubs.");
 });
+
+#if !SKIP_PROVISIONED_AZURE_RESOURCE
 app.MapGet("/publish/asb", async (ServiceBusClient client, CancellationToken cancellationToken, int length = 20) =>
 {
     var sender = client.CreateSender("myqueue");
@@ -67,7 +68,7 @@ app.MapGet("/publish/asb", async (ServiceBusClient client, CancellationToken can
 
 app.MapGet("/", async (HttpClient client) =>
 {
-    var stream = await client.GetStreamAsync("http://funcapp/api/weatherforecast");
+    var stream = await client.GetStreamAsync("http://funcapp/api/injected-resources");
     return Results.Stream(stream, "application/json");
 });
 
