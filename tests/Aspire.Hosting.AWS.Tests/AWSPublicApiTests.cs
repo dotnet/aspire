@@ -3,6 +3,7 @@
 
 using Amazon;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.AWS.Provisioning;
 using Aspire.Hosting.Utils;
 using Xunit;
 
