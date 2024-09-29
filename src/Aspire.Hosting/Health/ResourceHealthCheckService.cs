@@ -42,51 +42,58 @@ internal class ResourceHealthCheckService(ResourceNotificationService resourceNo
 
         while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
         {
-            var registrationKeysToCheck = new HashSet<string>();
-
-            if (resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var annotations))
+            try
             {
-                foreach (var annotation in annotations)
-                {
-                    registrationKeysToCheck.Add(annotation.Key);
-                }
-            }
+                var registrationKeysToCheck = new HashSet<string>();
 
-            if (resource is IResourceWithParent resourceWithParent)
-            {
-                if (resourceWithParent.Parent.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var parentAnnotations))
+                if (resource.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var annotations))
                 {
-                    foreach (var annotation in parentAnnotations)
+                    foreach (var annotation in annotations)
                     {
                         registrationKeysToCheck.Add(annotation.Key);
                     }
                 }
-            }
 
-            if (registrationKeysToCheck.Count == 0)
-            {
-                continue;
-            }
-
-            var report = await healthCheckService.CheckHealthAsync(
-                r => registrationKeysToCheck.Contains(r.Name),
-                cancellationToken
-                ).ConfigureAwait(false);
-
-            await resourceNotificationService.PublishUpdateAsync(resource, s => s with
-            {
-                HealthStatus = report.Status
-            }).ConfigureAwait(false);
-
-            if (resource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
-            {
-                foreach (var (id, _) in replicaAnnotation.Instances)
+                if (resource is IResourceWithParent resourceWithParent)
                 {
-                    await resourceNotificationService.PublishUpdateAsync(resource, id, s => s with
+                    if (resourceWithParent.Parent.TryGetAnnotationsOfType<HealthCheckAnnotation>(out var parentAnnotations))
                     {
-                        HealthStatus = report.Status
-                    }).ConfigureAwait(false);
+                        foreach (var annotation in parentAnnotations)
+                        {
+                            registrationKeysToCheck.Add(annotation.Key);
+                        }
+                    }
                 }
+
+                if (registrationKeysToCheck.Count == 0)
+                {
+                    continue;
+                }
+
+                var report = await healthCheckService.CheckHealthAsync(
+                    r => registrationKeysToCheck.Contains(r.Name),
+                    cancellationToken
+                    ).ConfigureAwait(false);
+
+                await resourceNotificationService.PublishUpdateAsync(resource, s => s with
+                {
+                    HealthStatus = report.Status
+                }).ConfigureAwait(false);
+
+                if (resource.TryGetLastAnnotation<ReplicaInstancesAnnotation>(out var replicaAnnotation))
+                {
+                    foreach (var (id, _) in replicaAnnotation.Instances)
+                    {
+                        await resourceNotificationService.PublishUpdateAsync(resource, id, s => s with
+                        {
+                            HealthStatus = report.Status
+                        }).ConfigureAwait(false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _ = ex;
             }
         }
     }
