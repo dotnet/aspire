@@ -4,6 +4,7 @@
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Azure.Provisioning.Storage;
 
 namespace Aspire.Hosting.Azure;
 
@@ -30,8 +31,24 @@ public static class AzureFunctionsProjectResourceExtensions
 
         if (storage is null)
         {
-            storage = builder.AddAzureStorage("azFuncHostStorage").RunAsEmulator().Resource;
-
+            // Azure Functions blob triggers require StorageAccountContributor access to the host storage
+            // account when deployed. We assign this role to the host storage resource when running in publish mode.
+            if (builder.ExecutionContext.IsPublishMode)
+            {
+                var configureConstruct = (ResourceModuleConstruct construct) =>
+                {
+#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+                    var storageAccount = construct.GetResources().OfType<StorageAccount>().FirstOrDefault(r => r.ResourceName == DefaultAzureFunctionsHostStorageName)
+                        ?? throw new InvalidOperationException($"Could not find storage account with '{DefaultAzureFunctionsHostStorageName}' name.");
+                    construct.Add(storageAccount.AssignRole(StorageBuiltInRole.StorageAccountContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+                };
+                storage = builder.AddAzureStorage(DefaultAzureFunctionsHostStorageName).ConfigureConstruct(configureConstruct).RunAsEmulator().Resource;
+            }
+            else
+            {
+                storage = builder.AddAzureStorage(DefaultAzureFunctionsHostStorageName).RunAsEmulator().Resource;
+            }
             builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
             {
                 var removeStorage = true;
@@ -65,6 +82,14 @@ public static class AzureFunctionsProjectResourceExtensions
                 context.EnvironmentVariables["OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY"] = "in_memory";
                 context.EnvironmentVariables["ASPNETCORE_FORWARDEDHEADERS_ENABLED"] = "true";
                 context.EnvironmentVariables["FUNCTIONS_WORKER_RUNTIME"] = "dotnet-isolated";
+                // Set ASPNETCORE_URLS to use the non-privileged port 8080 when running in publish mode.
+                // We can't use the newer ASPNETCORE_HTTP_PORTS environment variables here since the Azure
+                // Functions host is still initialized using the classic WebHostBuilder.
+                if (context.ExecutionContext.IsPublishMode)
+                {
+                    var endpoint = resource.GetEndpoint("http");
+                    context.EnvironmentVariables["ASPNETCORE_URLS"] = ReferenceExpression.Create($"http://+:{endpoint.Property(EndpointProperty.TargetPort)}");
+                }
 
                 // Set the storage connection string.
                 ((IResourceWithAzureFunctionsConfig)resource.HostStorage).ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, "Storage");
@@ -92,7 +117,10 @@ public static class AzureFunctionsProjectResourceExtensions
     /// <remarks>
     /// If the Azure Function is running under publish mode, we don't need to map the port
     /// the host should listen on from the launch profile. Instead, we'll use the default
-    /// post (8080) used by the Azure Functions container image.
+    /// post (8080) used by the .NET container image. The Azure Functions container images
+    /// extend the .NET container image and override the default port to 80 for back-compat
+    /// purposes. We use the default port (8080) to avoid using privileged ports in the
+    /// container image.
     /// </remarks>
     /// <remarks>
     /// /// We provide a custom overload of `WithReference` that allows for the injection of Azure
@@ -109,8 +137,8 @@ public static class AzureFunctionsProjectResourceExtensions
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             return builder
-                .WithHttpEndpoint()
-                .WithHttpsEndpoint();
+                .WithHttpEndpoint(targetPort: 8080)
+                .WithHttpsEndpoint(targetPort: 8080);
         }
         var launchProfile = builder.Resource.GetEffectiveLaunchProfile();
         int? port = null;
