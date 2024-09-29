@@ -6,6 +6,7 @@ using Aspire.Dashboard.Otlp.Http;
 using Aspire.Hosting;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -96,14 +97,14 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 .AddInMemoryCollection(new Dictionary<string, string?> { [DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] = fileConfigDirectory.FullName })
                 .Build();
             WebApplicationBuilder? localBuilder = null;
-            Action<WebApplicationBuilder> webApplicationBuilderConfigAction = builder =>
-            {
-                builder.Configuration.AddConfiguration(config);
-                localBuilder = builder;
-            };
 
             // Act
-            await using var dashboardWebApplication = new DashboardWebApplication(webApplicationBuilderConfigAction);
+            await using var dashboardWebApplication = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+                preConfigureBuilder: builder =>
+                {
+                    builder.Configuration.AddConfiguration(config);
+                    localBuilder = builder;
+                });
 
             // Assert
             Assert.NotNull(localBuilder);
@@ -125,16 +126,18 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         var browserTokenConfigFile = await CreateBrowserTokenConfigFileAsync(fileConfigDirectory, initialFrontendBrowserToken);
         try
         {
+            var loggerFactory = IntegrationTestHelpers.CreateLoggerFactory(testOutputHelper);
+            var logger = loggerFactory.CreateLogger<StartupTests>();
             var config = new ConfigurationManager()
                 .AddInMemoryCollection(new Dictionary<string, string?> { [DashboardConfigNames.DashboardFileConfigDirectoryName.ConfigKey] = fileConfigDirectory.FullName })
                 .Build();
             WebApplicationBuilder? localBuilder = null;
-            Action<WebApplicationBuilder> webApplicationBuilderConfigAction = builder =>
-            {
-                builder.Configuration.AddConfiguration(config);
-                localBuilder = builder;
-            };
-            await using var dashboardWebApplication = new DashboardWebApplication(webApplicationBuilderConfigAction);
+            await using var dashboardWebApplication = IntegrationTestHelpers.CreateDashboardWebApplication(loggerFactory,
+                preConfigureBuilder: builder =>
+                {
+                    builder.Configuration.AddConfiguration(config);
+                    localBuilder = builder;
+                });
 
             // Act
             // get the initial browser token to make sure nothing went wrong until here
@@ -142,12 +145,17 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
             // update the browser token's config file and get the new value
             await File.WriteAllTextAsync(browserTokenConfigFile, changedFrontendBrowserToken);
-            await Task.Delay(TimeSpan.FromMilliseconds(500)); // it takes some time before the file change is detected and propagated
-            var updatedBrowserTokenProvidedByConfiguration = localBuilder?.Configuration[DashboardConfigNames.DashboardFrontendBrowserTokenName.ConfigKey];
 
             // Assert
             Assert.Equal(initialFrontendBrowserToken, initialBrowserTokenProvidedByConfiguration);
-            Assert.Equal(changedFrontendBrowserToken, updatedBrowserTokenProvidedByConfiguration);
+
+            await AsyncTestHelpers.AssertIsTrueRetryAsync(
+                () =>
+                {
+                    var updatedBrowserTokenProvidedByConfiguration = localBuilder?.Configuration[DashboardConfigNames.DashboardFrontendBrowserTokenName.ConfigKey];
+                    return changedFrontendBrowserToken == updatedBrowserTokenProvidedByConfiguration;
+                },
+                "Wait for file change to be detected and propagated.", logger);
         }
         finally
         {

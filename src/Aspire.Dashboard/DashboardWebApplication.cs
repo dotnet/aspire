@@ -79,11 +79,9 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     /// Create a new instance of the <see cref="DashboardWebApplication"/> class.
     /// </summary>
     /// <param name="preConfigureBuilder">Configuration for the internal app builder *before* normal dashboard configuration is done. This is for unit testing.</param>
-    /// <param name="postConfigureBuilder">Configuration for the internal app builder *after* normal dashboard configuration is done. This is for unit testing.</param>
     /// <param name="options">Environment configuration for the internal app builder. This is for unit testing</param>
     public DashboardWebApplication(
         Action<WebApplicationBuilder>? preConfigureBuilder = null,
-        Action<WebApplicationBuilder>? postConfigureBuilder = null,
         WebApplicationOptions? options = null)
     {
         var builder = options is not null ? WebApplication.CreateBuilder(options) : WebApplication.CreateBuilder();
@@ -199,7 +197,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
 
         // Data from the server.
-        builder.Services.AddScoped<IDashboardClient, DashboardClient>();
+        builder.Services.TryAddScoped<IDashboardClient, DashboardClient>();
 
         // OTLP services.
         builder.Services.AddGrpc();
@@ -237,8 +235,6 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         {
             options.Cookie.Name = DashboardAntiForgeryCookieName;
         });
-
-        postConfigureBuilder?.Invoke(builder);
 
         _app = builder.Build();
 
