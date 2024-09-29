@@ -78,11 +78,10 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             timeoutSecs: 160);
 
         // Assert that HTTP triggers work correctly
-        await app.CreateHttpClient("funcapp").GetAsync("/api/weatherforecast");
+        await app.CreateHttpClient("funcapp").GetAsync("/api/injected-resources");
         await WaitForAllTextAsync(app,
             [
-                "Executing HTTP request:",
-                "api/weatherforecast"
+                "Executed 'Functions.injected-resources'"
             ],
             resourceName: "funcapp",
             timeoutSecs: 160);
@@ -105,7 +104,6 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             resourceName: "funcapp",
             timeoutSecs: 160);
 
-#if !SKIP_EVENTHUBS_EMULATION
         // Assert that EventHubs triggers work correctly
         await app.CreateHttpClient("apiservice").GetAsync("/publish/eventhubs");
         await WaitForAllTextAsync(app,
@@ -115,6 +113,7 @@ public class ProjectSpecificTests(ITestOutputHelper _testOutput)
             resourceName: "funcapp",
             timeoutSecs: 160);
 
+#if !SKIP_PROVISIONED_AZURE_RESOURCE
         // Assert that ServiceBus triggers work correctly
         await app.CreateHttpClient("apiservice").GetAsync("/publish/asb");
         await WaitForAllTextAsync(app,

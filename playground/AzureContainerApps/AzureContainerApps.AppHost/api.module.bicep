@@ -37,8 +37,8 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
         }
         {
           name: 'connectionstrings--account'
-          value: account_secretoutputs_connectionstring
           identity: outputs_azure_container_registry_managed_identity_id
+          keyVaultUrl: account_secretoutputs_connectionstring
         }
         {
           name: 'value'
