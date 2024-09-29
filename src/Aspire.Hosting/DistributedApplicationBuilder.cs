@@ -311,11 +311,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         {
             return new ConfigureOptions<HealthCheckPublisherOptions>(options =>
             {
-                if (ExecutionContext.IsRunMode)
-                {
-                    options.Predicate = (check) => true;
-                }
-                else
+                if (ExecutionContext.IsPublishMode)
                 {
                     // In publish mode we don't run any checks.
                     options.Predicate = (check) => false;
