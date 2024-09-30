@@ -23,58 +23,69 @@ public class AzureResourceOptionsTests(ITestOutputHelper output)
         var tempDir = Directory.CreateTempSubdirectory();
         var outputPath = Path.Combine(tempDir.FullName, "aspire-manifest.json");
 
-        using var builder = TestDistributedApplicationBuilder.Create("Publishing:Publisher=manifest", "--output-path", outputPath);
-        builder.Services.Configure<AzureResourceOptions>(options =>
+        using (var builder = TestDistributedApplicationBuilder.Create("Publishing:Publisher=manifest", "--output-path", outputPath))
         {
-            options.ProvisioningContext.PropertyResolvers.Insert(0, new AspireV8ResourceNamePropertyResolver());
-        });
+            builder.Services.Configure<AzureResourceOptions>(options =>
+            {
+                options.ProvisioningContext.PropertyResolvers.Insert(0, new AspireV8ResourceNamePropertyResolver());
+            });
 
-        var serviceBus = builder.AddAzureServiceBus("sb");
+            var serviceBus = builder.AddAzureServiceBus("sb");
 
-        using var app = builder.Build();
-        await app.StartAsync();
+            using var app = builder.Build();
+            await app.StartAsync();
 
-        var actualBicep = await File.ReadAllTextAsync(Path.Combine(tempDir.FullName, "sb.module.bicep"));
+            var actualBicep = await File.ReadAllTextAsync(Path.Combine(tempDir.FullName, "sb.module.bicep"));
 
-        var expectedBicep = """
-            @description('The location for the resource(s) to be deployed.')
-            param location string = resourceGroup().location
+            var expectedBicep = """
+                @description('The location for the resource(s) to be deployed.')
+                param location string = resourceGroup().location
 
-            param sku string = 'Standard'
+                param sku string = 'Standard'
 
-            param principalId string
+                param principalId string
 
-            param principalType string
+                param principalType string
 
-            resource sb 'Microsoft.ServiceBus/namespaces@2017-04-01' = {
-              name: toLower(take('sb${uniqueString(resourceGroup().id)}', 24))
-              location: location
-              properties: {
-                disableLocalAuth: true
-              }
-              sku: {
-                name: sku
-              }
-              tags: {
-                'aspire-resource-name': 'sb'
-              }
-            }
+                resource sb 'Microsoft.ServiceBus/namespaces@2017-04-01' = {
+                  name: toLower(take('sb${uniqueString(resourceGroup().id)}', 24))
+                  location: location
+                  properties: {
+                    disableLocalAuth: true
+                  }
+                  sku: {
+                    name: sku
+                  }
+                  tags: {
+                    'aspire-resource-name': 'sb'
+                  }
+                }
 
-            resource sb_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-              name: guid(sb.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
-              properties: {
-                principalId: principalId
-                roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')
-                principalType: principalType
-              }
-              scope: sb
-            }
+                resource sb_AzureServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+                  name: guid(sb.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419'))
+                  properties: {
+                    principalId: principalId
+                    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')
+                    principalType: principalType
+                  }
+                  scope: sb
+                }
 
-            output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
-            """;
-        output.WriteLine(actualBicep);
-        Assert.Equal(expectedBicep, actualBicep);
+                output serviceBusEndpoint string = sb.properties.serviceBusEndpoint
+                """;
+            output.WriteLine(actualBicep);
+            Assert.Equal(expectedBicep, actualBicep);
 
-        tempDir.Delete(recursive: true);
+            await app.StopAsync();
+        }
+
+        try
+        {
+            tempDir.Delete(recursive: true);
+        }
+        catch (IOException ex)
+        {
+            output.WriteLine($"Failed to delete {tempDir.FullName} : {ex.Message}. Ignoring.");
+        }
     }
 }

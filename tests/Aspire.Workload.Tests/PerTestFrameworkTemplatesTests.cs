@@ -60,9 +60,9 @@ public abstract partial class PerTestFrameworkTemplatesTests : WorkloadTestsBase
 
         // Add test project
         var testProjectName = $"{id}.{_testTemplateName}Tests";
-        using var newTestCmd = new DotNetCommand(_testOutput, label: $"new-test-{_testTemplateName}")
+        using var newTestCmd = new DotNetNewCommand(_testOutput, label: $"new-test-{_testTemplateName}")
                         .WithWorkingDirectory(project.RootDir);
-        var res = await newTestCmd.ExecuteAsync($"new {_testTemplateName} -o \"{testProjectName}\"");
+        var res = await newTestCmd.ExecuteAsync($"{_testTemplateName} -o \"{testProjectName}\"");
         res.EnsureSuccessful();
 
         var testProjectDir = Path.Combine(project.RootDir, testProjectName);

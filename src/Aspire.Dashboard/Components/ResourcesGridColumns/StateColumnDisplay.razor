@@ -34,7 +34,7 @@
                     Class="severity-icon" />
     }
 }
-else if (Resource.IsUnusableTransitoryState())
+else if (Resource.IsUnusableTransitoryState() || Resource.IsUnknownState())
 {
     <FluentIcon Icon="Icons.Regular.Size16.CircleHint"
                 Color="Color.Info"

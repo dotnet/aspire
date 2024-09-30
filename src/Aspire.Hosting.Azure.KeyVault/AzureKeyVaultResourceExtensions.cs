@@ -21,7 +21,7 @@ public static class AzureKeyVaultResourceExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, string name)
+    public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, [ResourceName] string name)
     {
 #pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         return builder.AddAzureKeyVault(name, null);
@@ -36,7 +36,7 @@ public static class AzureKeyVaultResourceExtensions
     /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.KeyVault.KeyVaultService"/> resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, string name, Action<IResourceBuilder<AzureKeyVaultResource>, ResourceModuleConstruct, KeyVaultService>? configureResource)
+    public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, [ResourceName] string name, Action<IResourceBuilder<AzureKeyVaultResource>, ResourceModuleConstruct, KeyVaultService>? configureResource)
     {
         builder.AddAzureProvisioning();
 

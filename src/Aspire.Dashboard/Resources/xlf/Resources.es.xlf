@@ -124,7 +124,7 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsStopTimeProperty">
         <source>Stop time</source>
-        <target state="new">Stop time</target>
+        <target state="translated">Hora de detención</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesEndpointsColumnHeader">

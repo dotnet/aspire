@@ -4,7 +4,10 @@
       <TestCategory Include="basictests" />
       <!-- no docker on windows -->
       <TestCategory Condition="'$(OS)' != 'Windows_NT'" Include="endtoendtests" />
-      <TestCategory Include="workloadtests" />
+      <!-- https://github.com/dotnet/aspire/issues/5926
+     The template tests are unreliable ever since we merged the workload removal PR.
+     Temporarily skipping them while we work on making them reliable -->
+      <TestCategory Condition="'$(OS)' != 'Windows_NT'" Include="workloadtests" />
       <!-- no docker on windows -->
       <TestCategory Condition="'$(OS)' != 'Windows_NT'" Include="buildonhelixtests" />
 

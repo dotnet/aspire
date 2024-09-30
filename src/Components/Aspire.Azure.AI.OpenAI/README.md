@@ -36,9 +36,20 @@ public CognitiveController(AzureOpenAIClient client)
 }
 ```
 
-Additionally, you can retrieve the `AzureOpenAIClient` object using the base `OpenAIClient` service type. This allows for code that is not dependent on Azure OpenAI-specific features to not depend directly on Azure types.
-
 See the [Azure OpenAI Service quickstarts](https://learn.microsoft.com/azure/ai-services/openai/quickstart) for examples on using the `AzureOpenAIClient`.
+
+## Azure-agnostic client resolution
+
+You can retrieve the `AzureOpenAIClient` object using the base `OpenAIClient` service type. This allows for code that is not dependent on Azure OpenAI-specific features to not depend directly on Azure types.
+
+Additionally this package provides the `AddOpenAIClientFromConfiguration` extension method to register an `OpenAIClient` instance based on the connection string that is provided. This allows your application
+to register the best implementation for the OpenAI Rest API it connects. The following rules are followed:
+
+- If the `Endpoint` attribute is empty or missing, the OpenAI service is used and an `OpenAIClient` instance is registered, e.g., `Key={key};`.
+- If the attribute `IsAzure` is provided and `true` then `AzureOpenAIClient` is registered, `OpenAIClient` otherwise, e.g., `Endpoint={azure_endpoint};Key={key};IsAzure=true` would register an `AzureOpenAIClient`, while `Endpoint=https://localhost:18889;Key={key}` would register an `OpenAIClient`.
+- If the `Endpoint` attribute contains `".azure."` then `AzureOpenAIClient` is registered, `OpenAIClient` otherwise, e.g., `Endpoint=https://{account}.azure.com;Key={key};`.
+
+In any case a valid connection string must contain at least either an `Endpoint` or a `Key`.
 
 ## Configuration
 

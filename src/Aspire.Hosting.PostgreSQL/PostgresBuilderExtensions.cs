@@ -36,7 +36,7 @@ public static class PostgresBuilderExtensions
     /// </para>
     /// </remarks>
     public static IResourceBuilder<PostgresServerResource> AddPostgres(this IDistributedApplicationBuilder builder,
-        string name,
+        [ResourceName] string name,
         IResourceBuilder<ParameterResource>? userName = null,
         IResourceBuilder<ParameterResource>? password = null,
         int? port = null)
@@ -106,7 +106,7 @@ public static class PostgresBuilderExtensions
     /// is used with this resource it will wait indefinitely until the database exists.
     /// </para>
     /// </remarks>
-    public static IResourceBuilder<PostgresDatabaseResource> AddDatabase(this IResourceBuilder<PostgresServerResource> builder, string name, string? databaseName = null)
+    public static IResourceBuilder<PostgresDatabaseResource> AddDatabase(this IResourceBuilder<PostgresServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
@@ -116,24 +116,7 @@ public static class PostgresBuilderExtensions
 
         builder.Resource.AddDatabase(name, databaseName);
         var postgresDatabase = new PostgresDatabaseResource(name, databaseName, builder.Resource);
-
-        string? connectionString = null;
-
-        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(postgresDatabase, async (@event, ct) =>
-        {
-            connectionString = await postgresDatabase.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
-
-            if (connectionString == null)
-            {
-                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{postgresDatabase}' resource but the connection string was null.");
-            }
-        });
-
-        var healthCheckKey = $"{name}_check";
-        builder.ApplicationBuilder.Services.AddHealthChecks().AddNpgSql(sp => connectionString!, name: healthCheckKey);
-
-        return builder.ApplicationBuilder.AddResource(postgresDatabase)
-                                         .WithHealthCheck(healthCheckKey);
+        return builder.ApplicationBuilder.AddResource(postgresDatabase);
     }
 
     /// <summary>

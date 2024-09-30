@@ -63,7 +63,6 @@ public static class MilvusBuilderExtensions
         {
             var connectionString = await milvus.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false)
             ?? throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{milvus.Name}' resource but the connection string was null.");
-
             milvusClient = CreateMilvusClient(@event.Services, connectionString);
         });
 
@@ -120,7 +119,7 @@ public static class MilvusBuilderExtensions
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <remarks>This method does not actually create the database in Milvus, rather helps complete a connection string that is used by the client component.</remarks>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<MilvusDatabaseResource> AddDatabase(this IResourceBuilder<MilvusServerResource> builder, string name, string? databaseName = null)
+    public static IResourceBuilder<MilvusDatabaseResource> AddDatabase(this IResourceBuilder<MilvusServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
@@ -130,34 +129,7 @@ public static class MilvusBuilderExtensions
 
         builder.Resource.AddDatabase(name, databaseName);
         var milvusDatabaseResource = new MilvusDatabaseResource(name, databaseName, builder.Resource);
-
-        MilvusClient? milvusClient = null;
-
-        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(milvusDatabaseResource, async (@event, ct) =>
-        {
-            var connectionString = await milvusDatabaseResource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
-
-            if (connectionString == null)
-            {
-                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{milvusDatabaseResource.Name}' resource but the connection string was null.");
-            }
-
-            milvusClient = CreateMilvusClient(@event.Services, connectionString);
-        });
-
-        var healthCheckKey = $"{name}_check";
-        // TODO: Use health check from AspNetCore.Diagnostics.HealthChecks once it's implemented via this issue:
-        // https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks/issues/2214
-        builder.ApplicationBuilder.Services.AddHealthChecks()
-            .Add(new HealthCheckRegistration(
-                healthCheckKey,
-                sp => new MilvusHealthCheck(milvusClient!),
-                failureStatus: default,
-                tags: default,
-                timeout: default));
-
-        return builder.ApplicationBuilder.AddResource(milvusDatabaseResource)
-                                         .WithHealthCheck(healthCheckKey);
+        return builder.ApplicationBuilder.AddResource(milvusDatabaseResource);
     }
 
     /// <summary>

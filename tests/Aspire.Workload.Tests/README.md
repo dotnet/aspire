@@ -55,7 +55,7 @@ The sdk in `artifacts/bin/dotnet-latest` is usable outside the repo at this poin
 
 There are three categories of nugets used by the workload:
 
-1. `Aspire.Dashboard.Sdk.osx-arm64`, `Aspire.Hosting.Orchestration.osx-arm64`, and `Aspire.Hosting.Sdk`
+1. `Aspire.Dashboard.Sdk.osx-arm64`, `Aspire.Hosting.Orchestration.osx-arm64`, and `Aspire.AppHost.Sdk`
     - these are installed in `artifacts/bin/dotnet-latest/packs/`
     - Once the workload is installed, these are never updated automatically, so any changes made locally won't show up in the tests
 
