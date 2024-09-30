@@ -4,11 +4,10 @@
 using System.Text;
 using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Rendering;
 
 namespace Aspire.Dashboard.Components.Resize;
 
-public class GridColumnManager : ComponentBase, IDisposable
+public partial class GridColumnManager : ComponentBase, IDisposable
 {
     private Dictionary<string, GridColumn> _columnById = null!;
     private float _availableFraction = 1;
@@ -29,14 +28,6 @@ public class GridColumnManager : ComponentBase, IDisposable
     {
         DimensionManager.OnViewportSizeChanged += OnViewportSizeChanged;
         _columnById = Columns.ToDictionary(c => c.Name, StringComparers.GridColumn);
-    }
-
-    protected override void BuildRenderTree(RenderTreeBuilder builder)
-    {
-        if (ChildContent is { } c)
-        {
-            c(builder);
-        }
     }
 
     private void OnViewportSizeChanged(object sender, ViewportSizeChangedEventArgs e)
@@ -121,3 +112,4 @@ public class GridColumnManager : ComponentBase, IDisposable
         DimensionManager.OnViewportSizeChanged -= OnViewportSizeChanged;
     }
 }
+
