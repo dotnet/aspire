@@ -54,7 +54,7 @@ public class BuildEnvironment
         _ => throw new ArgumentOutOfRangeException(nameof(DefaultTargetFramework))
     };
 
-    public BuildEnvironment(bool useSystemDotNet = false, TestTargetFramework? targetFramework = default, TemplatesCustomHive? templatesCustomHive = default, string sdkDirName = "dotnet-latest")
+    public BuildEnvironment(bool useSystemDotNet = false, TestTargetFramework? targetFramework = default, TemplatesCustomHive? templatesCustomHive = default, string sdkDirName = "dotnet-9+8")
     {
         UsesCustomDotNet = !useSystemDotNet;
         RepoRoot = TestUtils.FindRepoRoot();
