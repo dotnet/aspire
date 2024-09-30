@@ -631,6 +631,6 @@ fluent-data-grid-cell.no-ellipsis {
 }
 
 .action-divider {
-    display: unset;
+    display: inline;
     vertical-align: sub;
 }
