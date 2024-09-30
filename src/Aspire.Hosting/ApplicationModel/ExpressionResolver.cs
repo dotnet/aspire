@@ -1,0 +1,61 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Globalization;
+
+namespace Aspire.Hosting.ApplicationModel;
+
+internal class ExpressionResolver
+{
+    // Resolve an expression when it is being used from inside a container
+    // This means that if the target is also a container, we're dealing with container-to-container communication
+    static async ValueTask<string?> ResolveWithContainerSource(object? value, CancellationToken cancellationToken)
+    {
+        async Task<string?> EvalEndpoint(EndpointReference endpointReference, EndpointProperty property)
+        {
+            // We need to use the top resource, e.g. AzureStorageResource instead of AzureBlobResource
+            // Otherwise, we get the wrong values for IsContainer and Name
+            var target = endpointReference.Resource.GetTopResource();
+
+            return (property, target.IsContainer()) switch
+            {
+                (EndpointProperty.Host or EndpointProperty.IPV4Host, true) => target.Name,
+                (EndpointProperty.Port, true) => await endpointReference.Property(EndpointProperty.TargetPort).GetValueAsync(cancellationToken).ConfigureAwait(false),
+                (EndpointProperty.Url, true) => $"{endpointReference.Scheme}://{target.Name}:{endpointReference.TargetPort}",
+                _ => await endpointReference.Property(property).GetValueAsync(cancellationToken).ConfigureAwait(false)
+            };
+        }
+
+        async Task<string?> EvalExpression(ReferenceExpression expr)
+        {
+            var args = new object?[expr.ValueProviders.Count];
+
+            for (var i = 0; i < expr.ValueProviders.Count; i++)
+            {
+                args[i] = await ResolveWithContainerSource(expr.ValueProviders[i], cancellationToken).ConfigureAwait(false);
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, expr.Format, args);
+        }
+
+        return value switch
+        {
+            ConnectionStringReference cs => await ResolveWithContainerSource(cs.Resource.ConnectionStringExpression, cancellationToken).ConfigureAwait(false),
+            IResourceWithConnectionString cs => await ResolveWithContainerSource(cs.ConnectionStringExpression, cancellationToken).ConfigureAwait(false),
+            ReferenceExpression ex => await EvalExpression(ex).ConfigureAwait(false),
+            EndpointReference endpointReference => await EvalEndpoint(endpointReference, EndpointProperty.Url).ConfigureAwait(false),
+            EndpointReferenceExpression ep => await EvalEndpoint(ep.Endpoint, ep.Property).ConfigureAwait(false),
+            IValueProvider vp => await vp.GetValueAsync(cancellationToken).ConfigureAwait(false),
+            _ => throw new NotImplementedException()
+        };
+    }
+
+    internal static async ValueTask<string?> Resolve(bool sourceIsContainer, IValueProvider valueProvider, CancellationToken cancellationToken)
+    {
+        return sourceIsContainer switch
+        {
+            true => await ResolveWithContainerSource(valueProvider, cancellationToken).ConfigureAwait(false),
+            false => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false)
+        };
+    }
+}

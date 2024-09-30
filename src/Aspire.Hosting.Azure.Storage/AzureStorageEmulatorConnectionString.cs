@@ -10,7 +10,7 @@ internal static class AzureStorageEmulatorConnectionString
     // Use defaults from https://learn.microsoft.com/azure/storage/common/storage-configure-connection-string#connect-to-the-emulator-account-using-the-shortcut
     private const string ConnectionStringHeader = "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;";
 
-    static void AppendEndpointExpression(ReferenceExpressionBuilder builder, string key, EndpointReference endpoint)
+    private static void AppendEndpointExpression(ReferenceExpressionBuilder builder, string key, EndpointReference endpoint)
     {
         builder.Append($"{key}=http://{endpoint.Property(EndpointProperty.IPV4Host)}:{endpoint.Property(EndpointProperty.Port)}/devstoreaccount1;");
     }
