@@ -1022,6 +1022,7 @@ public sealed class TelemetryRepository
         {
             events.Add(new OtlpSpanEvent(newSpan)
             {
+                InternalId = Guid.NewGuid(),
                 Name = e.Name,
                 Time = OtlpHelpers.UnixNanoSecondsToDateTime(e.TimeUnixNano),
                 Attributes = e.Attributes.ToKeyValuePairs(options)
