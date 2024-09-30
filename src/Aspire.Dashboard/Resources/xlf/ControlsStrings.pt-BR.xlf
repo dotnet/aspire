@@ -2,11 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="pt-BR" original="../ControlsStrings.resx">
     <body>
-      <trans-unit id="All">
-        <source>(All)</source>
-        <target state="translated">(Tudo)</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ApplicationLower">
         <source>application</source>
         <target state="translated">aplicativo</target>
@@ -147,6 +142,26 @@
         <target state="translated">Exibir valor</target>
         <note />
       </trans-unit>
+      <trans-unit id="LabelAll">
+        <source>(All)</source>
+        <target state="new">(All)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LabelEmpty">
+        <source>(Empty)</source>
+        <target state="new">(Empty)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LabelNone">
+        <source>(None)</source>
+        <target state="new">(None)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LabelUnset">
+        <source>(Unset)</source>
+        <target state="new">(Unset)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Loading">
         <source>Loading...</source>
         <target state="translated">Carregando...</target>
@@ -200,11 +215,6 @@
       <trans-unit id="NameColumnHeader">
         <source>Name</source>
         <target state="translated">Nome</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="None">
-        <source>(None)</source>
-        <target state="translated">(Nenhum)</target>
         <note />
       </trans-unit>
       <trans-unit id="PageToolbarLandmark">
