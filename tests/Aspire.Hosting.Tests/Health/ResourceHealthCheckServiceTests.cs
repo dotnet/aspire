@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -13,7 +12,74 @@ namespace Aspire.Hosting.Tests.Health;
 public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
-    [RequiresDocker]
+    public async Task ResourcesWithoutHealthCheckAnnotationsGetReadyEventFired()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var resource = builder.AddResource(new ParentResource("resource"));
+
+        var blockAssert = new TaskCompletionSource<ResourceReadyEvent>();
+        builder.Eventing.Subscribe<ResourceReadyEvent>(resource.Resource, (@event, ct) =>
+        {
+            blockAssert.SetResult(@event);
+            return Task.CompletedTask;
+        });
+
+        using var app = builder.Build();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        var pendingStart = app.StartAsync();
+
+        await rns.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
+        });
+
+        var @event = await blockAssert.Task;
+        Assert.Equal(resource.Resource, @event.Resource);
+
+        await pendingStart;
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task PoorlyImplementedHealthChecksDontCauseMonitoringLoopToCrashout()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+
+        var hitCount = 0;
+        builder.Services.AddHealthChecks().AddCheck("resource_check", (check) =>
+        {
+            hitCount++;
+            throw new InvalidOperationException("Random failure instead of result!");
+        });
+
+        var resource = builder.AddResource(new ParentResource("resource"))
+                              .WithHealthCheck("resource_check");
+
+        using var app = builder.Build();
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        var abortTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(120));
+        var pendingStart = app.StartAsync(abortTokenSource.Token);
+
+        await rns.PublishUpdateAsync(resource.Resource, s => s with
+        {
+            State = new ResourceStateSnapshot(KnownResourceStates.Running, null)
+        });
+
+        while (!abortTokenSource.Token.IsCancellationRequested)
+        {
+            if (hitCount > 2)
+            {
+                break;
+            }
+            await Task.Delay(100);
+        }
+
+        await pendingStart;
+        await app.StopAsync();
+    }
+
+    [Fact]
     public async Task ResourceHealthCheckServiceDoesNotRunHealthChecksUnlessResourceIsRunning()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);

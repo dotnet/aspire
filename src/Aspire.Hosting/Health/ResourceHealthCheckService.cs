@@ -6,10 +6,11 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Health;
 
-internal class ResourceHealthCheckService(ResourceNotificationService resourceNotificationService, HealthCheckService healthCheckService, IServiceProvider services, IDistributedApplicationEventing eventing) : BackgroundService
+internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> logger, ResourceNotificationService resourceNotificationService, HealthCheckService healthCheckService, IServiceProvider services, IDistributedApplicationEventing eventing) : BackgroundService
 {
     private readonly Dictionary<string, ResourceEvent> _latestEvents = new();
 
@@ -50,6 +51,11 @@ internal class ResourceHealthCheckService(ResourceNotificationService resourceNo
             //       dynamically add health checks at runtime. If this changes then we
             //       would need to revisit this and scan for transitive health checks
             //       on a periodic basis (you wouldn't want to do it on every pass.
+            var resourceReadyEvent = new ResourceReadyEvent(resource, services);
+            await eventing.PublishAsync(
+                resourceReadyEvent,
+                EventDispatchBehavior.NonBlockingSequential,
+                cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -103,11 +109,16 @@ internal class ResourceHealthCheckService(ResourceNotificationService resourceNo
                 await SlowDownMonitoringAsync(lastEvent, cancellationToken).ConfigureAwait(false);
 
             }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 // When debugging sometimes we'll get cancelled here but we don't want
                 // to tear down the loop. We only want to crash out when the service's
                 // cancellation token is signaled.
+                logger.LogTrace(
+                    ex,
+                    "Health check monitoring loop for resource '{Resource}' observed exception but was ignored.",
+                    resource.Name
+                    );
             }
         } while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false));
 
