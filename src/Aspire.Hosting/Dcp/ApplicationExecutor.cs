@@ -1367,9 +1367,50 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         await createResource().ConfigureAwait(false);
     }
 
-    private async Task<string?> GetValue(string? key, IValueProvider valueProvider, ILogger logger, bool isContainer, CancellationToken cancellationToken)
+    static async ValueTask<string?> Resolve(bool sourceIsContainer, object? value, CancellationToken cancellationToken)
     {
-        var task = valueProvider.GetValueAsync(cancellationToken);
+        async Task<string?> EvalEndpoint(EndpointReference endpointReference, EndpointProperty property)
+        {
+            // We need to use the top resource, e.g. AzureStorageResource instead of AzureBlobResource
+            // Otherwise, we get the wrong values for IsContainer and Name
+            IResource target = endpointReference.Resource.GetTopResource();
+
+            return (property, sourceIsContainer && target.IsContainer()) switch
+            {
+                (EndpointProperty.Host or EndpointProperty.IPV4Host, true) => target.Name,
+                (EndpointProperty.Port, true) => await endpointReference.Property(EndpointProperty.TargetPort).GetValueAsync(cancellationToken).ConfigureAwait(false),
+                (EndpointProperty.Url, true) => $"{endpointReference.Scheme}://{target.Name}:{endpointReference.TargetPort}",
+                _ => await endpointReference.Property(property).GetValueAsync(cancellationToken).ConfigureAwait(false)
+            };
+        }
+
+        async Task<string?> EvalExpression(ReferenceExpression expr)
+        {
+            var args = new object?[expr.ValueProviders.Count];
+
+            for (var i = 0; i < expr.ValueProviders.Count; i++)
+            {
+                args[i] = await Resolve(sourceIsContainer, expr.ValueProviders[i], cancellationToken).ConfigureAwait(false);
+            }
+
+            return string.Format(CultureInfo.InvariantCulture, expr.Format, args);
+        }
+
+        return value switch
+        {
+            ConnectionStringReference cs => await Resolve(sourceIsContainer, cs.Resource.ConnectionStringExpression, cancellationToken).ConfigureAwait(false),
+            IResourceWithConnectionString cs => await Resolve(sourceIsContainer, cs.ConnectionStringExpression, cancellationToken).ConfigureAwait(false),
+            ReferenceExpression ex => await EvalExpression(ex).ConfigureAwait(false),
+            EndpointReference endpointReference => await EvalEndpoint(endpointReference, EndpointProperty.Url).ConfigureAwait(false),
+            EndpointReferenceExpression ep => await EvalEndpoint(ep.Endpoint, ep.Property).ConfigureAwait(false),
+            IValueProvider vp => await vp.GetValueAsync(cancellationToken).ConfigureAwait(false),
+            _ => throw new NotImplementedException()
+        };
+    }
+
+    private static async Task<string?> GetValue(string? key, IValueProvider valueProvider, ILogger logger, bool isContainer, CancellationToken cancellationToken)
+    {
+        var task = Resolve(isContainer, valueProvider, cancellationToken);
 
         if (!task.IsCompleted)
         {
@@ -1401,15 +1442,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
         }
 
-        var value = await task.ConfigureAwait(false);
-
-        if (value is not null && isContainer && valueProvider is ConnectionStringReference or EndpointReference or HostUrl)
-        {
-            // If the value is a connection string or endpoint reference, we need to replace localhost with the container host.
-            return ReplaceLocalhostWithContainerHost(value);
-        }
-
-        return value;
+        return await task.ConfigureAwait(false);
     }
 
     private void PrepareContainers()
@@ -1975,18 +2008,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 _logger.LogInformation(ex, "Could not stop {ResourceType} '{ResourceName}'.", resourceType, res.Metadata.Name);
             }
         }
-    }
-
-    private string ReplaceLocalhostWithContainerHost(string value)
-    {
-        // https://stackoverflow.com/a/43541732/45091
-
-        // This configuration value is a workaround for the fact that host.docker.internal is not available on Linux by default.
-        var hostName = DefaultContainerHostName;
-
-        return value.Replace("localhost", hostName, StringComparison.OrdinalIgnoreCase)
-                    .Replace("127.0.0.1", hostName)
-                    .Replace("[::1]", hostName);
     }
 
     /// <summary>
