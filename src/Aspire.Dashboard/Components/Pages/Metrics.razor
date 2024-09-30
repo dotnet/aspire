@@ -29,15 +29,17 @@
                             CanSelectGrouping="true" />
             @if (PageViewModel.SelectedDashpage is not null)
             {
-            <div slot="end">
-                <FluentMenuButton ButtonAppearance="Appearance.Stealth"
-                                  Text="@(ControlsStringsLoc[PageViewModel.SelectedViewKind is MetricViewKind.Table ? nameof(ControlsStrings.ChartContainerTableTab) : nameof(ControlsStrings.ChartContainerGraphTab)])"
-                                  OnMenuChanged="@HandleDashpageMetricViewKindChangedAsync"
-                                  slot="end">
-                    <FluentMenuItem Id="@MetricViewKind.Graph.ToString()">@ControlsStringsLoc[nameof(ControlsStrings.ChartContainerGraphTab)]</FluentMenuItem>
-                    <FluentMenuItem Id="@MetricViewKind.Table.ToString()">@ControlsStringsLoc[nameof(ControlsStrings.ChartContainerTableTab)]</FluentMenuItem>
-                </FluentMenuButton>
-            </div>
+                <div slot="end">
+                    <FluentMenuButton ButtonAppearance="Appearance.Stealth"
+                                      Text="@(ControlsStringsLoc[PageViewModel.SelectedViewKind is MetricViewKind.Table ? nameof(ControlsStrings.ChartContainerTableTab) : nameof(ControlsStrings.ChartContainerGraphTab)])"
+                                      OnMenuChanged="@HandleDashpageMetricViewKindChangedAsync"
+                                      slot="end">
+                        <FluentMenuItem Id="@MetricViewKind.Graph.ToString()">@ControlsStringsLoc[nameof(ControlsStrings.ChartContainerGraphTab)]</FluentMenuItem>
+                        <FluentMenuItem Id="@MetricViewKind.Table.ToString()">@ControlsStringsLoc[nameof(ControlsStrings.ChartContainerTableTab)]</FluentMenuItem>
+                    </FluentMenuButton>
+                </div>
+
+                <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             }
 
             @if (!ViewportInformation.IsDesktop)
