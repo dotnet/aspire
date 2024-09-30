@@ -28,14 +28,19 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
             return healthCheckTcs.Task;
         });
 
-        var resource = builder.AddAzureStorage("resource")
+        var storage = builder.AddAzureStorage("resource")
                               .RunAsEmulator()
-                              .WithHealthCheck("blocking_check")
-                              .AddBlobs("blobs");
+                              .WithHealthCheck("blocking_check");
+
+        var blobs = storage.AddBlobs("blobs");
+        var queues = storage.AddQueues("queues");
+        var tables = storage.AddTables("tables");
 
         var dependentResource = builder.AddAzureCosmosDB("dependentresource")
                                        .RunAsEmulator()
-                                       .WaitFor(resource);
+                                       .WaitFor(blobs)
+                                       .WaitFor(queues)
+                                       .WaitFor(tables);
 
         using var app = builder.Build();
 
@@ -43,13 +48,15 @@ public class AzureStorageEmulatorFunctionalTests(ITestOutputHelper testOutputHel
 
         var rns = app.Services.GetRequiredService<ResourceNotificationService>();
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
+        await rns.WaitForResourceAsync(storage.Resource.Name, KnownResourceStates.Running, cts.Token);
 
         await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
         healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
-        await rns.WaitForResourceAsync(resource.Resource.Name, (re => re.Snapshot.HealthStatus == HealthStatus.Healthy), cts.Token);
+        await rns.WaitForResourceHealthyAsync(blobs.Resource.Name, cts.Token);
+        await rns.WaitForResourceHealthyAsync(queues.Resource.Name, cts.Token);
+        await rns.WaitForResourceHealthyAsync(tables.Resource.Name, cts.Token);
 
         await rns.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
