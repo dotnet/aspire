@@ -59,7 +59,8 @@ public partial class MetricsTests : TestContext
                         MeterName = "test-meter",
                         InstrumentName = "test-instrument",
                         DurationMinutes = 720,
-                        ViewKind = MetricViewKind.Table.ToString()
+                        ViewKind = MetricViewKind.Table.ToString(),
+                        DashpageHomeSelected = false
                     };
                     return (true, state);
                 }
