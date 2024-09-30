@@ -261,7 +261,7 @@ Aspire.OpenAI:
 - Log categories:
   - none  
 - Activity source names:
-  - "OpenAI.*":
+  - "OpenAI.*"
 - Metric names:
   - "OpenAI.*"
 
