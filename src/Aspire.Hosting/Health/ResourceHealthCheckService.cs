@@ -58,7 +58,7 @@ internal class ResourceHealthCheckService(ResourceNotificationService resourceNo
 
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
 
-        while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
+        do
         {
             try
             {
@@ -110,7 +110,7 @@ internal class ResourceHealthCheckService(ResourceNotificationService resourceNo
                 // to tear down the loop. We only want to crash out when the service's
                 // cancellation token is signaled.
             }
-        }
+        } while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false));
 
         async Task SlowDownMonitoringAsync(ResourceEvent lastEvent, CancellationToken cancellationToken)
         {
