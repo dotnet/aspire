@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Diagnostics.Latency;
 using Xunit.Sdk;
 
 namespace Aspire.Workload.Tests;
@@ -252,22 +253,12 @@ public class BuildEnvironment
     }
 
     private static TestTargetFramework ComputeDefaultTargetFramework()
-    {
-        if (EnvironmentVariables.DefaultTFMForTesting is not null)
+        => EnvironmentVariables.DefaultTFMForTesting?.ToLowerInvariant() switch
         {
-            return EnvironmentVariables.DefaultTFMForTesting switch
-            {
-                // FIXME: string tfm mapping here
-                "" or "net9.0" => TestTargetFramework.Current,
-                "net8.0" => TestTargetFramework.Previous,
-                _ => throw new ArgumentOutOfRangeException(nameof(EnvironmentVariables.DefaultTFMForTesting), EnvironmentVariables.DefaultTFMForTesting, "Invalid value")
-            };
-        }
-        else
-        {
-            return TestTargetFramework.Current;
-        }
-    }
+            null or "" or "net9.0" => TestTargetFramework.Current,
+            "net8.0" => TestTargetFramework.Previous,
+            _ => throw new ArgumentOutOfRangeException(nameof(EnvironmentVariables.DefaultTFMForTesting), EnvironmentVariables.DefaultTFMForTesting, "Invalid value")
+        };
 
 }
 
