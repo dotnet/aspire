@@ -46,7 +46,10 @@ public abstract partial class PerTestFrameworkTemplatesTests : WorkloadTestsBase
             }
         }
 
+        var testProjectDir = await CreateAndAddTestTemplateProjectAsync(id, _testTemplateName, project);
+
         using var cmd = new DotNetCommand(_testOutput, label: $"test-{_testTemplateName}")
+                        .WithWorkingDirectory(testProjectDir)
                         .WithTimeout(TimeSpan.FromMinutes(3));
 
         var res = await cmd.ExecuteAsync($"test -c {config}");
