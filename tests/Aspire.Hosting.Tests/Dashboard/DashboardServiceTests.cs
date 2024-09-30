@@ -20,6 +20,7 @@ public class DashboardServiceTests
     [Fact]
     public async Task WatchResourceConsoleLogs_LargePendingData_BatchResults()
     {
+        // Arrange
         var resourceLoggerService = new ResourceLoggerService();
         var resourceNotificationService = new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, new TestHostApplicationLifetime(), new ServiceCollection().BuildServiceProvider(), resourceLoggerService);
         var dashboardServiceData = new DashboardServiceData(resourceNotificationService, resourceLoggerService, NullLogger<DashboardServiceData>.Instance, new DashboardCommandExecutor(new ServiceCollection().BuildServiceProvider()));
@@ -35,11 +36,13 @@ public class DashboardServiceTests
         var context = TestServerCallContext.Create();
         var writer = new TestServerStreamWriter<WatchResourceConsoleLogsUpdate>(context);
 
+        // Act
         var task = dashboardService.WatchResourceConsoleLogs(
             new WatchResourceConsoleLogsRequest { ResourceName = "test-resource" },
             writer,
             context);
 
+        // Assert
         var logsCollection = new List<WatchResourceConsoleLogsUpdate>();
         for (var i = 0; i < 5; i++)
         {
@@ -48,7 +51,6 @@ public class DashboardServiceTests
         }
 
         resourceLoggerService.Complete("test-resource");
-
         await task;
     }
 

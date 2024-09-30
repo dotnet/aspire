@@ -120,14 +120,16 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
         builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
 #else
-        // Don't log routine dashboard HTTP request info or static file access
-        // These logs generate a lot of noise when locally debugging.
+        // Log more when running the dashboard as debug.
         builder.Logging.SetMinimumLevel(LogLevel.Debug);
         builder.Logging.AddFilter("Aspire.Dashboard", LogLevel.Debug);
+
+        // Don't log routine dashboard HTTP request info or static file access
+        // These logs generate a lot of noise when locally debugging.
+        builder.Logging.AddFilter("Grpc", LogLevel.Information);
         builder.Logging.AddFilter("Aspire.Dashboard.Authentication", LogLevel.Information);
         builder.Logging.AddFilter("Aspire.Dashboard.Otlp", LogLevel.Information);
         builder.Logging.AddFilter("Microsoft", LogLevel.Information);
-        builder.Logging.AddFilter("Grpc", LogLevel.Information);
         builder.Logging.AddFilter("Microsoft.AspNetCore.Cors", LogLevel.Warning);
         builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning);
         builder.Logging.AddFilter("Microsoft.AspNetCore.Routing.EndpointMiddleware", LogLevel.Warning);
