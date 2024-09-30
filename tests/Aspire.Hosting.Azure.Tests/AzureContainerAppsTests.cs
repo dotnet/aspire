@@ -335,7 +335,6 @@ public class AzureContainerAppsTests
 
         param outputs_azure_container_registry_managed_identity_id string
 
-        @secure()
         param storage_outputs_blobendpoint string
 
         @secure()
@@ -375,10 +374,6 @@ public class AzureContainerAppsTests
                   name: 'connectionstrings--mydb'
                   identity: outputs_azure_container_registry_managed_identity_id
                   keyVaultUrl: mydb_secretoutputs_kv_connectionString.properties.secretUri
-                }
-                {
-                  name: 'connectionstrings--blobs'
-                  value: storage_outputs_blobendpoint
                 }
                 {
                   name: 'connectionstrings--db'
@@ -449,7 +444,7 @@ public class AzureContainerAppsTests
                     }
                     {
                       name: 'ConnectionStrings__blobs'
-                      secretRef: 'connectionstrings--blobs'
+                      value: storage_outputs_blobendpoint
                     }
                     {
                       name: 'ConnectionStrings__db'

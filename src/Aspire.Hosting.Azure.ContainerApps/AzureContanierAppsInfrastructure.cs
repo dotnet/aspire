@@ -638,12 +638,12 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
 
                 if (value is ConnectionStringReference cs)
                 {
-                    return await ProcessValueAsync(cs.Resource.ConnectionStringExpression, executionContext, cancellationToken, secretType: SecretType.Normal, parent: parent).ConfigureAwait(false);
+                    return await ProcessValueAsync(cs.Resource.ConnectionStringExpression, executionContext, cancellationToken, secretType: secretType, parent: parent).ConfigureAwait(false);
                 }
 
                 if (value is IResourceWithConnectionString csrs)
                 {
-                    return await ProcessValueAsync(csrs.ConnectionStringExpression, executionContext, cancellationToken, secretType: SecretType.Normal, parent: parent).ConfigureAwait(false);
+                    return await ProcessValueAsync(csrs.ConnectionStringExpression, executionContext, cancellationToken, secretType: secretType, parent: parent).ConfigureAwait(false);
                 }
 
                 if (value is ParameterResource param)
