@@ -280,31 +280,34 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     // Needs to be added once app is started so the resolved frontend endpoint can be used.
                     corsOptions.AddDefaultPolicy(builder =>
                     {
-                        builder.WithOrigins(_frontendEndPointAccessor.Select(accessor => accessor().Address).ToArray());
+                        builder.WithOrigins(_frontendEndPointAccessor.Select(accessor => accessor().GetResolvedAddress()).ToArray());
                         builder.AllowAnyHeader();
                         builder.AllowAnyMethod();
                     });
                 }
 
-                var url = _frontendEndPointAccessor[0]().Address;
-                _logger.LogInformation("Now listening on: {DashboardUri}", url);
+                var frontendEndpointInfo = _frontendEndPointAccessor[0]();
+                _logger.LogInformation("Now listening on: {DashboardUri}", frontendEndpointInfo.GetResolvedAddress());
 
                 var options = _app.Services.GetRequiredService<IOptionsMonitor<DashboardOptions>>().CurrentValue;
                 if (options.Frontend.AuthMode == FrontendAuthMode.BrowserToken)
                 {
-                    LoggingHelpers.WriteDashboardUrl(_logger, url, options.Frontend.BrowserToken);
+                    // DOTNET_RUNNING_IN_CONTAINER is a well-known environment variable added by official .NET images.
+                    // https://learn.microsoft.com/dotnet/core/tools/dotnet-environment-variables#dotnet_running_in_container-and-dotnet_running_in_containers
+                    var isContainer = _app.Configuration.GetBool("DOTNET_RUNNING_IN_CONTAINER") ?? false;
+                    LoggingHelpers.WriteDashboardUrl(_logger, frontendEndpointInfo.GetResolvedAddress(replaceIPAnyWithLocalhost: true), options.Frontend.BrowserToken, isContainer);
                 }
             }
 
             if (_otlpServiceGrpcEndPointAccessor != null)
             {
                 // This isn't used by dotnet watch but still useful to have for debugging
-                _logger.LogInformation("OTLP/gRPC listening on: {OtlpEndpointUri}", _otlpServiceGrpcEndPointAccessor().Address);
+                _logger.LogInformation("OTLP/gRPC listening on: {OtlpEndpointUri}", _otlpServiceGrpcEndPointAccessor().GetResolvedAddress());
             }
             if (_otlpServiceHttpEndPointAccessor != null)
             {
                 // This isn't used by dotnet watch but still useful to have for debugging
-                _logger.LogInformation("OTLP/HTTP listening on: {OtlpEndpointUri}", _otlpServiceHttpEndPointAccessor().Address);
+                _logger.LogInformation("OTLP/HTTP listening on: {OtlpEndpointUri}", _otlpServiceHttpEndPointAccessor().GetResolvedAddress());
             }
 
             if (_dashboardOptionsMonitor.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
@@ -629,13 +632,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             return () =>
             {
                 var endpoint = endpointConfiguration.ListenOptions.IPEndPoint!;
-                var resolvedAddress = (address.Host is "+" or "*")
-                    // Use IP address.
-                    ? address.Scheme.ToLowerInvariant() + Uri.SchemeDelimiter + endpoint.ToString()
-                    // Use host name.
-                    : address.Scheme.ToLowerInvariant() + Uri.SchemeDelimiter + address.Host.ToLowerInvariant() + ":" + endpoint.Port.ToString(CultureInfo.InvariantCulture);
 
-                return new EndpointInfo(resolvedAddress, endpoint, endpointConfiguration.IsHttps);
+                return new EndpointInfo(address, endpoint, endpointConfiguration.IsHttps);
             };
         }
     }
@@ -853,7 +851,31 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     private static bool IsHttpsOrNull(BindingAddress? address) => address == null || string.Equals(address.Scheme, "https", StringComparison.Ordinal);
 }
 
-public record EndpointInfo(string Address, IPEndPoint EndPoint, bool IsHttps);
+public record EndpointInfo(BindingAddress BindingAddress, IPEndPoint EndPoint, bool IsHttps)
+{
+    public string GetResolvedAddress(bool replaceIPAnyWithLocalhost = false)
+    {
+        if (!IsAnyIPHost(BindingAddress.Host))
+        {
+            return BindingAddress.Scheme.ToLowerInvariant() + Uri.SchemeDelimiter + BindingAddress.Host.ToLowerInvariant() + ":" + EndPoint.Port.ToString(CultureInfo.InvariantCulture);
+        }
+
+        if (replaceIPAnyWithLocalhost)
+        {
+            // Clicking on an any IP host link, e.g. http://0.0.0.0:1234, doesn't work.
+            // Instead, write localhost so the link at least has a chance to work when the container and browser are on the same machine.
+            return BindingAddress.Scheme.ToLowerInvariant() + Uri.SchemeDelimiter + "localhost:" + EndPoint.Port.ToString(CultureInfo.InvariantCulture);
+        }
+
+        return BindingAddress.Scheme.ToLowerInvariant() + Uri.SchemeDelimiter + EndPoint.ToString();
+
+        static bool IsAnyIPHost(string host)
+        {
+            // It's ok to use IPAddress.ToString here because the string is cached inside IPAddress.
+            return host == "*" || host == "+" || host == IPAddress.Any.ToString() || host == IPAddress.IPv6Any.ToString();
+        }
+    }
+}
 
 public static class FrontendAuthorizationDefaults
 {
