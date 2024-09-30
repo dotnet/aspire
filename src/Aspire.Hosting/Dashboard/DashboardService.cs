@@ -22,7 +22,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
     : Aspire.ResourceService.Proto.V1.DashboardService.DashboardServiceBase
 {
     // gRPC has a maximum receive size. Force logs into batches to avoid exceeding receive size.
-    public const int LogMaxBatchSize = 200;
+    public const int LogMaxBatchSize = 500;
 
     // Calls that consume or produce streams must create a linked cancellation token
     // with IHostApplicationLifetime.ApplicationStopping to ensure eager cancellation
