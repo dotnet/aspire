@@ -53,12 +53,10 @@ internal class ExpressionResolver
         };
     }
 
-    internal static async ValueTask<string?> Resolve(bool sourceIsContainer, IValueProvider valueProvider, CancellationToken cancellationToken)
-    {
-        return sourceIsContainer switch
+    internal static async ValueTask<string?> Resolve(bool sourceIsContainer, IValueProvider valueProvider, CancellationToken cancellationToken) =>
+        sourceIsContainer switch
         {
             true => await ResolveWithContainerSource(valueProvider, cancellationToken).ConfigureAwait(false),
             false => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false)
         };
-    }
 }
