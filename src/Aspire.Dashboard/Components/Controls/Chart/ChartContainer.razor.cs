@@ -208,8 +208,8 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                 {
                     var text = v switch
                     {
-                        null => Loc[ControlsStrings.Unset],
-                        { Length: 0 } => Loc[ControlsStrings.Empty],
+                        null => Loc[ControlsStrings.LabelUnset],
+                        { Length: 0 } => Loc[ControlsStrings.LabelEmpty],
                         _ => v
                     };
                     return new DimensionValueViewModel

@@ -144,7 +144,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             new GridColumn(Name: DetailsColumn, DesktopWidth: "0.5fr", MobileWidth: "1fr")
         ];
 
-        _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = ControlsStringsLoc[name: nameof(ControlsStrings.All)] };
+        _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = ControlsStringsLoc[name: nameof(ControlsStrings.LabelAll)] };
         PageViewModel = new TracesPageViewModel { SelectedApplication = _allApplication };
 
         UpdateApplications();
