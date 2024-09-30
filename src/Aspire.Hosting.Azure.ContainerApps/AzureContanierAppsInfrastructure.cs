@@ -737,7 +737,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                     KeyVaultSecretRefs[secretOutputReference.ValueExpression] = secret;
                 }
 
-                // REVIEW: Is there a better way to do this?
+                // TODO: There should be a better way to do this?
                 return new MemberExpression(
                             new MemberExpression(
                                new IdentifierExpression(secret.ResourceName), "properties"),
