@@ -11,11 +11,12 @@ namespace Aspire.Hosting.Health;
 
 internal class ResourceHealthCheckService(ResourceNotificationService resourceNotificationService, HealthCheckService healthCheckService, IServiceProvider services, IDistributedApplicationEventing eventing) : BackgroundService
 {
-    private readonly HashSet<string> _resourcesStartedMonitoring = new();
     private readonly Dictionary<string, ResourceEvent> _latestEvents = new();
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        var resourcesStartedMonitoring = new HashSet<string>();
+
         try
         {
             var resourceEvents = resourceNotificationService.WatchAsync(stoppingToken);
@@ -24,10 +25,10 @@ internal class ResourceHealthCheckService(ResourceNotificationService resourceNo
             {
                 _latestEvents[resourceEvent.Resource.Name] = resourceEvent;
 
-                if (!_resourcesStartedMonitoring.Contains(resourceEvent.Resource.Name) && resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running)
+                if (!resourcesStartedMonitoring.Contains(resourceEvent.Resource.Name) && resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running)
                 {
                     _ = Task.Run(() => MonitorResourceHealthAsync(resourceEvent, stoppingToken), stoppingToken);
-                    _resourcesStartedMonitoring.Add(resourceEvent.Resource.Name);
+                    resourcesStartedMonitoring.Add(resourceEvent.Resource.Name);
                 }
             }
         }
