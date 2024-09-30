@@ -63,7 +63,10 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 { builder => builder.AddAzureKeyVault("x") },
                 { builder => builder.AddAzureLogAnalyticsWorkspace("x") },
                 { builder => builder.AddPostgres("x").AsAzurePostgresFlexibleServer() },
+#pragma warning disable CS0618 // Type or member is obsolete
                 { builder => builder.AddRedis("x").AsAzureRedis() },
+#pragma warning restore CS0618 // Type or member is obsolete
+                { builder => builder.AddAzureRedis("x") },
                 { builder => builder.AddAzureSearch("x") },
                 { builder => builder.AddAzureServiceBus("x") },
                 { builder => builder.AddAzureSignalR("x") },
@@ -804,9 +807,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var redis = builder.AddRedis("cache")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455))
             .PublishAsAzureRedis();
+#pragma warning restore CS0618 // Type or member is obsolete
 
         Assert.True(redis.Resource.IsContainer());
 
@@ -836,7 +841,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               name: keyVaultName
             }
 
-            resource cache 'Microsoft.Cache/redis@2020-06-01' = {
+            resource cache 'Microsoft.Cache/redis@2024-03-01' = {
               name: take('cache-${uniqueString(resourceGroup().id)}', 63)
               location: location
               properties: {

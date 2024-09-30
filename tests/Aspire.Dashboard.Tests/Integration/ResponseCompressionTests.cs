@@ -19,7 +19,7 @@ public class ResponseCompressionTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
 
         using var httpClientHandler = new HttpClientHandler { AutomaticDecompression = DecompressionMethods.None };
-        using var client = new HttpClient(httpClientHandler) { BaseAddress = new Uri($"http://{app.FrontendEndPointAccessor().EndPoint}") };
+        using var client = new HttpClient(httpClientHandler) { BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}") };
 
         // Act 1
         var request = new HttpRequestMessage(HttpMethod.Get, DashboardUrls.StructuredLogsBasePath);
@@ -41,7 +41,7 @@ public class ResponseCompressionTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync();
 
         using var httpClientHandler = new HttpClientHandler { AutomaticDecompression = DecompressionMethods.None };
-        using var client = new HttpClient(httpClientHandler) { BaseAddress = new Uri($"http://{app.FrontendEndPointAccessor().EndPoint}") };
+        using var client = new HttpClient(httpClientHandler) { BaseAddress = new Uri($"http://{app.FrontendSingleEndPointAccessor().EndPoint}") };
 
         // Act 1
         var request = new HttpRequestMessage(HttpMethod.Get, path);

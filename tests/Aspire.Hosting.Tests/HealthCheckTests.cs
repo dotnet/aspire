@@ -42,8 +42,12 @@ public class HealthCheckTests(ITestOutputHelper testOutputHelper)
             );
     }
 
-    public class CustomResource(string name) : Resource(name)
+    private sealed class CustomChildResource(string name, CustomResource parent) : Resource(name), IResourceWithParent<CustomResource>
     {
+        public CustomResource Parent => parent;
+    }
 
+    private sealed class CustomResource(string name) : Resource(name)
+    {
     }
 }

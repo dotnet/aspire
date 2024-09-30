@@ -83,7 +83,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     protected override async Task OnInitializedAsync()
     {
         _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
-        _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.None)] };
+        _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelNone)] };
         PageViewModel = new ConsoleLogsViewModel { SelectedOption = _noSelection, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
 
         var loadingTcs = new TaskCompletionSource();
