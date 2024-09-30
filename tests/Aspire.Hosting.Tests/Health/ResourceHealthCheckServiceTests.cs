@@ -41,7 +41,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
 
         // Make sure that this test doesn't run longer than a minute (should finish in a second or two)
         // but allow enough time to debug things without having to adjust timings.
-        var abortTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var abortTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(120));
 
         using var app = builder.Build();
         var pendingStart = app.StartAsync(abortTokenSource.Token);
@@ -106,7 +106,7 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
 
         // Make sure that this test doesn't run longer than a minute (should finish in a second or two)
         // but allow enough time to debug things without having to adjust timings.
-        var abortTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        var abortTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(120));
 
         using var app = builder.Build();
         var pendingStart = app.StartAsync(abortTokenSource.Token);

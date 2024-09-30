@@ -98,12 +98,28 @@ internal class ResourceHealthCheckService(ResourceNotificationService resourceNo
                         }).ConfigureAwait(false);
                     }
                 }
+
+                var lastEvent = _latestEvents[resource.Name];
+                await SlowDownMonitoringAsync(lastEvent, cancellationToken).ConfigureAwait(false);
+
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
                 // When debugging sometimes we'll get cancelled here but we don't want
                 // to tear down the loop. We only want to crash out when the service's
                 // cancellation token is signaled.
+            }
+        }
+
+        async Task SlowDownMonitoringAsync(ResourceEvent lastEvent, CancellationToken cancellationToken)
+        {
+            var releaseAfter = DateTime.Now.AddSeconds(30);
+
+            // If we've waited for 30 seconds, or we received an updated event, or the health status is no longer
+            // healthy then we stop slowing down the monitoring loop.
+            while (DateTime.Now < releaseAfter && _latestEvents[lastEvent.Resource.Name] == lastEvent && lastEvent.Snapshot.HealthStatus == HealthStatus.Healthy)
+            {
+                await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
             }
         }
     }
