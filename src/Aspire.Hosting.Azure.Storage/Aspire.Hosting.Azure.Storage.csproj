@@ -18,7 +18,6 @@
 
   <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.Azure.Storage.Blobs" />
-    <PackageReference Include="AspNetCore.HealthChecks.Azure.Storage.Queues" />
   </ItemGroup>
   
   <ItemGroup>
