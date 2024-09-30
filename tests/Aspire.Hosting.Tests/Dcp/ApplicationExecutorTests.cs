@@ -11,6 +11,7 @@ using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Tests.Utils;
 using k8s.Models;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -461,7 +462,7 @@ public class ApplicationExecutorTests
         // State is clear when no longer watching.
         await AsyncTestHelpers.AssertIsTrueRetryAsync(
             () => loggerState.GetBacklogSnapshot().Length == 0,
-            "Backlog is asyncronously cleared after watch ends.");
+            "Backlog is asynchronously cleared after watch ends.");
     }
 
     [Fact]
@@ -962,6 +963,8 @@ public class ApplicationExecutorTests
             configuration = builder.Build();
         }
 
+        var eventing = new DistributedApplicationEventing();
+
         return new ApplicationExecutor(
             NullLogger<ApplicationExecutor>.Instance,
             NullLogger<DistributedApplication>.Instance,
@@ -978,7 +981,7 @@ public class ApplicationExecutorTests
             ResourceNotificationServiceTestHelpers.Create(),
             resourceLoggerService ?? new ResourceLoggerService(),
             new TestDcpDependencyCheckService(),
-            new DistributedApplicationEventing(),
+            eventing,
             serviceProvider
         );
     }

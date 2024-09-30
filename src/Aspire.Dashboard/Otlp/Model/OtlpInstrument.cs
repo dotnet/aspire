@@ -27,7 +27,7 @@ public class OtlpInstrumentData
 {
     public required OtlpInstrumentSummary Summary { get; init; }
     public required List<DimensionScope> Dimensions { get; init; }
-    public required Dictionary<string, List<string>> KnownAttributeValues { get; init; }
+    public required Dictionary<string, List<string?>> KnownAttributeValues { get; init; }
 }
 
 [DebuggerDisplay("Name = {Summary.Name}, Unit = {Summary.Unit}, Type = {Summary.Type}")]
@@ -37,7 +37,7 @@ public class OtlpInstrument
     public required TelemetryLimitOptions Options { get; init; }
 
     public Dictionary<ReadOnlyMemory<KeyValuePair<string, string>>, DimensionScope> Dimensions { get; } = new(ScopeAttributesComparer.Instance);
-    public Dictionary<string, List<string>> KnownAttributeValues { get; } = new();
+    public Dictionary<string, List<string?>> KnownAttributeValues { get; } = new();
 
     public void AddMetrics(Metric metric, ref KeyValuePair<string, string>[]? tempAttributes)
     {
@@ -94,22 +94,22 @@ public class OtlpInstrument
         {
             if (!KnownAttributeValues.TryGetValue(key, out var values))
             {
-                KnownAttributeValues.Add(key, values = new List<string>());
+                KnownAttributeValues.Add(key, values = new List<string?>());
 
                 // If the key is new and there are already dimensions, add an empty value because there are dimensions without this key.
                 if (!isFirst)
                 {
-                    TryAddValue(values, string.Empty);
+                    TryAddValue(values, null);
                 }
             }
 
             var currentDimensionValue = OtlpHelpers.GetValue(durableAttributes, key);
-            TryAddValue(values, currentDimensionValue ?? string.Empty);
+            TryAddValue(values, currentDimensionValue);
         }
 
         return dimension;
 
-        static void TryAddValue(List<string> values, string value)
+        static void TryAddValue(List<string?> values, string? value)
         {
             if (!values.Contains(value))
             {

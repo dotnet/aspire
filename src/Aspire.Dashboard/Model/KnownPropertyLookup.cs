@@ -24,7 +24,8 @@ public sealed class KnownPropertyLookup : IKnownPropertyLookup
         [
             new(KnownProperties.Resource.DisplayName, loc[ResourcesDetailsDisplayNameProperty]),
             new(KnownProperties.Resource.State, loc[ResourcesDetailsStateProperty]),
-            new(KnownProperties.Resource.CreateTime, loc[ResourcesDetailsStartTimeProperty]),
+            new(KnownProperties.Resource.StartTime, loc[ResourcesDetailsStartTimeProperty]),
+            new(KnownProperties.Resource.StopTime, loc[ResourcesDetailsStopTimeProperty]),
             new(KnownProperties.Resource.ExitCode, loc[ResourcesDetailsExitCodeProperty]),
             new(KnownProperties.Resource.HealthState, loc[ResourcesDetailsHealthStateProperty])
         ];

@@ -63,7 +63,10 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 { builder => builder.AddAzureKeyVault("x") },
                 { builder => builder.AddAzureLogAnalyticsWorkspace("x") },
                 { builder => builder.AddPostgres("x").AsAzurePostgresFlexibleServer() },
+#pragma warning disable CS0618 // Type or member is obsolete
                 { builder => builder.AddRedis("x").AsAzureRedis() },
+#pragma warning restore CS0618 // Type or member is obsolete
+                { builder => builder.AddAzureRedis("x") },
                 { builder => builder.AddAzureSearch("x") },
                 { builder => builder.AddAzureServiceBus("x") },
                 { builder => builder.AddAzureSignalR("x") },
@@ -248,7 +251,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-05-15-preview' = {
-              name: toLower(take('cosmos${uniqueString(resourceGroup().id)}', 24))
+              name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
               location: location
               properties: {
                 locations: [
@@ -341,7 +344,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2024-05-15-preview' = {
-              name: toLower(take('cosmos${uniqueString(resourceGroup().id)}', 24))
+              name: take('cosmos-${uniqueString(resourceGroup().id)}', 44)
               location: location
               properties: {
                 locations: [
@@ -432,7 +435,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param principalType string
 
             resource appConfig 'Microsoft.AppConfiguration/configurationStores@2019-10-01' = {
-              name: toLower(take('appConfig${uniqueString(resourceGroup().id)}', 24))
+              name: take('appConfig-${uniqueString(resourceGroup().id)}', 50)
               location: location
               properties: {
                 disableLocalAuth: true
@@ -500,7 +503,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param logAnalyticsWorkspaceId string
 
             resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-              name: toLower(take('appInsights${uniqueString(resourceGroup().id)}', 24))
+              name: take('appInsights-${uniqueString(resourceGroup().id)}', 260)
               kind: kind
               location: location
               properties: {
@@ -552,7 +555,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param kind string = 'web'
 
             resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-              name: toLower(take('appInsights${uniqueString(resourceGroup().id)}', 24))
+              name: take('appInsights-${uniqueString(resourceGroup().id)}', 260)
               kind: kind
               location: location
               properties: {
@@ -565,7 +568,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             resource law-appInsights 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
-              name: toLower(take('law-appInsights${uniqueString(resourceGroup().id)}', 24))
+              name: take('law-appInsights-${uniqueString(resourceGroup().id)}', 63)
               location: location
               properties: {
                 sku: {
@@ -623,7 +626,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param logAnalyticsWorkspaceId string
 
             resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-              name: toLower(take('appInsights${uniqueString(resourceGroup().id)}', 24))
+              name: take('appInsights-${uniqueString(resourceGroup().id)}', 260)
               kind: kind
               location: location
               properties: {
@@ -665,7 +668,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param location string = resourceGroup().location
 
             resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
-              name: toLower(take('logAnalyticsWorkspace${uniqueString(resourceGroup().id)}', 24))
+              name: take('logAnalyticsWorkspace-${uniqueString(resourceGroup().id)}', 63)
               location: location
               properties: {
                 sku: {
@@ -804,9 +807,11 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
+#pragma warning disable CS0618 // Type or member is obsolete
         var redis = builder.AddRedis("cache")
             .WithEndpoint("tcp", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 12455))
             .PublishAsAzureRedis();
+#pragma warning restore CS0618 // Type or member is obsolete
 
         Assert.True(redis.Resource.IsContainer());
 
@@ -836,8 +841,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
               name: keyVaultName
             }
 
-            resource cache 'Microsoft.Cache/redis@2020-06-01' = {
-              name: toLower(take('cache${uniqueString(resourceGroup().id)}', 24))
+            resource cache 'Microsoft.Cache/redis@2024-03-01' = {
+              name: take('cache-${uniqueString(resourceGroup().id)}', 63)
               location: location
               properties: {
                 sku: {
@@ -896,7 +901,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param principalType string
 
             resource mykv 'Microsoft.KeyVault/vaults@2019-09-01' = {
-              name: toLower(take('mykv${uniqueString(resourceGroup().id)}', 24))
+              name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
               location: location
               properties: {
                 tenantId: tenant().tenantId
@@ -958,7 +963,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param principalType string
 
             resource mykv 'Microsoft.KeyVault/vaults@2019-09-01' = {
-              name: toLower(take('mykv${uniqueString(resourceGroup().id)}', 24))
+              name: take('mykv-${uniqueString(resourceGroup().id)}', 24)
               location: location
               properties: {
                 tenantId: tenant().tenantId
@@ -1020,7 +1025,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param principalType string
 
             resource signalr 'Microsoft.SignalRService/signalR@2022-02-01' = {
-              name: toLower(take('signalr${uniqueString(resourceGroup().id)}', 24))
+              name: take('signalr-${uniqueString(resourceGroup().id)}', 63)
               location: location
               properties: {
                 cors: {
@@ -1109,7 +1114,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param principalType string
 
             resource sql 'Microsoft.Sql/servers@2021-11-01' = {
-              name: toLower(take('sql${uniqueString(resourceGroup().id)}', 24))
+              name: take('sql-${uniqueString(resourceGroup().id)}', 63)
               location: location
               properties: {
                 administrators: {
@@ -1204,7 +1209,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param principalName string
 
             resource sql 'Microsoft.Sql/servers@2021-11-01' = {
-              name: toLower(take('sql${uniqueString(resourceGroup().id)}', 24))
+              name: take('sql-${uniqueString(resourceGroup().id)}', 63)
               location: location
               properties: {
                 administrators: {
@@ -1300,7 +1305,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
-              name: toLower(take('postgres${uniqueString(resourceGroup().id)}', 24))
+              name: take('postgres${uniqueString(resourceGroup().id)}', 24)
               location: location
               properties: {
                 administratorLogin: administratorLogin
@@ -1418,7 +1423,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             }
 
             resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
-              name: toLower(take('postgres${uniqueString(resourceGroup().id)}', 24))
+              name: take('postgres${uniqueString(resourceGroup().id)}', 24)
               location: location
               properties: {
                 administratorLogin: administratorLogin
@@ -1616,7 +1621,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param principalType string
 
             resource sb 'Microsoft.ServiceBus/namespaces@2017-04-01' = {
-              name: toLower(take('sb${uniqueString(resourceGroup().id)}', 24))
+              name: take('sb-${uniqueString(resourceGroup().id)}', 50)
               location: location
               properties: {
                 disableLocalAuth: true
@@ -1711,7 +1716,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param principalType string
 
             resource wps1 'Microsoft.SignalRService/webPubSub@2021-10-01' = {
-              name: toLower(take('wps1${uniqueString(resourceGroup().id)}', 24))
+              name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
               location: location
               sku: {
                 name: sku
@@ -1778,7 +1783,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param principalType string
 
             resource wps1 'Microsoft.SignalRService/webPubSub@2021-10-01' = {
-              name: toLower(take('wps1${uniqueString(resourceGroup().id)}', 24))
+              name: take('wps1-${uniqueString(resourceGroup().id)}', 63)
               location: location
               sku: {
                 name: sku
@@ -1882,7 +1887,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param principalType string
 
             resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
-              name: toLower(take('storage${uniqueString(resourceGroup().id)}', 24))
+              name: take('storage${uniqueString(resourceGroup().id)}', 24)
               kind: 'StorageV2'
               location: location
               sku: {
@@ -2039,7 +2044,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param principalType string
 
             resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
-              name: toLower(take('storage${uniqueString(resourceGroup().id)}', 24))
+              name: take('storage${uniqueString(resourceGroup().id)}', 24)
               kind: 'StorageV2'
               location: location
               sku: {
@@ -2195,7 +2200,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param principalType string
 
             resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
-              name: toLower(take('storage${uniqueString(resourceGroup().id)}', 24))
+              name: take('storage${uniqueString(resourceGroup().id)}', 24)
               kind: 'StorageV2'
               location: location
               sku: {
@@ -2352,7 +2357,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param principalType string
 
             resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
-              name: toLower(take('storage${uniqueString(resourceGroup().id)}', 24))
+              name: take('storage${uniqueString(resourceGroup().id)}', 24)
               kind: 'StorageV2'
               location: location
               sku: {
@@ -2511,7 +2516,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param principalType string
 
             resource search 'Microsoft.Search/searchServices@2023-11-01' = {
-              name: toLower(take('search${uniqueString(resourceGroup().id)}', 24))
+              name: take('search-${uniqueString(resourceGroup().id)}', 60)
               location: location
               properties: {
                 hostingMode: 'default'
@@ -2628,7 +2633,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param principalType string
 
             resource openai 'Microsoft.CognitiveServices/accounts@2022-12-01' = {
-              name: toLower(take('openai${uniqueString(resourceGroup().id)}', 24))
+              name: take('openai-${uniqueString(resourceGroup().id)}', 64)
               location: location
               kind: 'OpenAI'
               properties: {
@@ -2774,7 +2779,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
             param location string = resourceGroup().location
 
             resource kv 'Microsoft.KeyVault/vaults@2019-09-01' = {
-              name: toLower(take('kv${uniqueString(resourceGroup().id)}', 24))
+              name: take('kv-${uniqueString(resourceGroup().id)}', 24)
               location: location
               properties: {
                 tenantId: tenant().tenantId

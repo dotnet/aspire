@@ -1,4 +1,7 @@
 #nullable enable
+Aspire.Hosting.ApplicationModel.EndpointNameAttribute
+Aspire.Hosting.ApplicationModel.EndpointNameAttribute.EndpointNameAttribute() -> void
+Aspire.Hosting.ApplicationModel.IModelNameParameter
 Aspire.Hosting.ApplicationModel.AfterEndpointsAllocatedEvent
 Aspire.Hosting.ApplicationModel.AfterEndpointsAllocatedEvent.AfterEndpointsAllocatedEvent(System.IServiceProvider! services, Aspire.Hosting.ApplicationModel.DistributedApplicationModel! model) -> void
 Aspire.Hosting.ApplicationModel.AfterEndpointsAllocatedEvent.Model.get -> Aspire.Hosting.ApplicationModel.DistributedApplicationModel!
@@ -37,6 +40,13 @@ Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Commands.get -> System.Co
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Commands.init -> void
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.get -> Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus?
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.HealthStatus.init -> void
+Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.StartTimeStamp.get -> System.DateTime?
+Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.StartTimeStamp.init -> void
+Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.StopTimeStamp.get -> System.DateTime?
+Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.StopTimeStamp.init -> void
+Aspire.Hosting.ApplicationModel.DeploymentTargetAnnotation
+Aspire.Hosting.ApplicationModel.DeploymentTargetAnnotation.DeploymentTarget.get -> Aspire.Hosting.ApplicationModel.IResource!
+Aspire.Hosting.ApplicationModel.DeploymentTargetAnnotation.DeploymentTargetAnnotation(Aspire.Hosting.ApplicationModel.IResource! target) -> void
 Aspire.Hosting.ApplicationModel.EndpointAnnotation.TargetHost.get -> string!
 Aspire.Hosting.ApplicationModel.EndpointAnnotation.TargetHost.set -> void
 Aspire.Hosting.ApplicationModel.CustomResourceSnapshot.Volumes.get -> System.Collections.Immutable.ImmutableArray<Aspire.Hosting.ApplicationModel.VolumeSnapshot!>
@@ -58,6 +68,8 @@ Aspire.Hosting.ApplicationModel.ExecuteCommandResult.Success.init -> void
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation.HealthCheckAnnotation(string! key) -> void
 Aspire.Hosting.ApplicationModel.HealthCheckAnnotation.Key.get -> string!
+Aspire.Hosting.ApplicationModel.ResourceNameAttribute
+Aspire.Hosting.ApplicationModel.ResourceNameAttribute.ResourceNameAttribute() -> void
 Aspire.Hosting.ApplicationModel.IconVariant
 Aspire.Hosting.ApplicationModel.IconVariant.Filled = 1 -> Aspire.Hosting.ApplicationModel.IconVariant
 Aspire.Hosting.ApplicationModel.IconVariant.Regular = 0 -> Aspire.Hosting.ApplicationModel.IconVariant
@@ -89,10 +101,16 @@ Aspire.Hosting.ApplicationModel.ResourceCommandState.Disabled = 1 -> Aspire.Host
 Aspire.Hosting.ApplicationModel.ResourceCommandState.Enabled = 0 -> Aspire.Hosting.ApplicationModel.ResourceCommandState
 Aspire.Hosting.ApplicationModel.ResourceCommandState.Hidden = 2 -> Aspire.Hosting.ApplicationModel.ResourceCommandState
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime) -> void
-Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime, System.IServiceProvider! serviceProvider) -> void
+Aspire.Hosting.ApplicationModel.ResourceNotificationService.ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.ApplicationModel.ResourceNotificationService!>! logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime! hostApplicationLifetime, System.IServiceProvider! serviceProvider, Aspire.Hosting.ApplicationModel.ResourceLoggerService! resourceLoggerService) -> void
+Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForDependenciesAsync(Aspire.Hosting.ApplicationModel.IResource! resource, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, System.Func<Aspire.Hosting.ApplicationModel.ResourceEvent!, bool>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ResourceEvent!>!
+Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceHealthyAsync(string! resourceName, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Aspire.Hosting.ApplicationModel.ResourceEvent!>!
 Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot.IsSensitive.get -> bool
 Aspire.Hosting.ApplicationModel.ResourcePropertySnapshot.IsSensitive.init -> void
+Aspire.Hosting.ApplicationModel.ResourceReadyEvent
+Aspire.Hosting.ApplicationModel.ResourceReadyEvent.Resource.get -> Aspire.Hosting.ApplicationModel.IResource!
+Aspire.Hosting.ApplicationModel.ResourceReadyEvent.ResourceReadyEvent(Aspire.Hosting.ApplicationModel.IResource! resource, System.IServiceProvider! services) -> void
+Aspire.Hosting.ApplicationModel.ResourceReadyEvent.Services.get -> System.IServiceProvider!
 Aspire.Hosting.ApplicationModel.UpdateCommandStateContext
 Aspire.Hosting.ApplicationModel.UpdateCommandStateContext.ResourceSnapshot.get -> Aspire.Hosting.ApplicationModel.CustomResourceSnapshot!
 Aspire.Hosting.ApplicationModel.UpdateCommandStateContext.ResourceSnapshot.init -> void
@@ -109,10 +127,19 @@ Aspire.Hosting.ApplicationModel.VolumeSnapshot.Source.init -> void
 Aspire.Hosting.ApplicationModel.VolumeSnapshot.Target.get -> string!
 Aspire.Hosting.ApplicationModel.VolumeSnapshot.Target.init -> void
 Aspire.Hosting.ApplicationModel.VolumeSnapshot.VolumeSnapshot(string? Source, string! Target, string! MountType, bool IsReadOnly) -> void
+Aspire.Hosting.ApplicationModel.WaitAnnotation
+Aspire.Hosting.ApplicationModel.WaitAnnotation.ExitCode.get -> int
+Aspire.Hosting.ApplicationModel.WaitAnnotation.Resource.get -> Aspire.Hosting.ApplicationModel.IResource!
+Aspire.Hosting.ApplicationModel.WaitAnnotation.WaitAnnotation(Aspire.Hosting.ApplicationModel.IResource! resource, Aspire.Hosting.ApplicationModel.WaitType waitType, int exitCode = 0) -> void
+Aspire.Hosting.ApplicationModel.WaitAnnotation.WaitType.get -> Aspire.Hosting.ApplicationModel.WaitType
+Aspire.Hosting.ApplicationModel.WaitType
+Aspire.Hosting.ApplicationModel.WaitType.WaitForCompletion = 1 -> Aspire.Hosting.ApplicationModel.WaitType
+Aspire.Hosting.ApplicationModel.WaitType.WaitUntilHealthy = 0 -> Aspire.Hosting.ApplicationModel.WaitType
 Aspire.Hosting.DistributedApplicationBuilder.AppHostPath.get -> string!
 Aspire.Hosting.DistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!
 Aspire.Hosting.Eventing.DistributedApplicationEventing
 Aspire.Hosting.Eventing.DistributedApplicationEventing.DistributedApplicationEventing() -> void
+Aspire.Hosting.Eventing.DistributedApplicationEventing.PublishAsync<T>(T event, Aspire.Hosting.Eventing.EventDispatchBehavior dispatchBehavior, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Aspire.Hosting.Eventing.DistributedApplicationEventing.PublishAsync<T>(T event, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Aspire.Hosting.Eventing.DistributedApplicationEventing.Subscribe<T>(Aspire.Hosting.ApplicationModel.IResource! resource, System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.Eventing.DistributedApplicationEventSubscription!
 Aspire.Hosting.Eventing.DistributedApplicationEventing.Subscribe<T>(System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.Eventing.DistributedApplicationEventSubscription!
@@ -123,8 +150,14 @@ Aspire.Hosting.Eventing.DistributedApplicationEventSubscription.DistributedAppli
 Aspire.Hosting.Eventing.DistributedApplicationResourceEventSubscription
 Aspire.Hosting.Eventing.DistributedApplicationResourceEventSubscription.DistributedApplicationResourceEventSubscription(Aspire.Hosting.ApplicationModel.IResource? resource, System.Func<Aspire.Hosting.Eventing.IDistributedApplicationResourceEvent!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> void
 Aspire.Hosting.Eventing.DistributedApplicationResourceEventSubscription.Resource.get -> Aspire.Hosting.ApplicationModel.IResource?
+Aspire.Hosting.Eventing.EventDispatchBehavior
+Aspire.Hosting.Eventing.EventDispatchBehavior.BlockingConcurrent = 1 -> Aspire.Hosting.Eventing.EventDispatchBehavior
+Aspire.Hosting.Eventing.EventDispatchBehavior.BlockingSequential = 0 -> Aspire.Hosting.Eventing.EventDispatchBehavior
+Aspire.Hosting.Eventing.EventDispatchBehavior.NonBlockingConcurrent = 3 -> Aspire.Hosting.Eventing.EventDispatchBehavior
+Aspire.Hosting.Eventing.EventDispatchBehavior.NonBlockingSequential = 2 -> Aspire.Hosting.Eventing.EventDispatchBehavior
 Aspire.Hosting.Eventing.IDistributedApplicationEvent
 Aspire.Hosting.Eventing.IDistributedApplicationEventing
+Aspire.Hosting.Eventing.IDistributedApplicationEventing.PublishAsync<T>(T event, Aspire.Hosting.Eventing.EventDispatchBehavior dispatchBehavior, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Aspire.Hosting.Eventing.IDistributedApplicationEventing.PublishAsync<T>(T event, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Aspire.Hosting.Eventing.IDistributedApplicationEventing.Subscribe<T>(Aspire.Hosting.ApplicationModel.IResource! resource, System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.Eventing.DistributedApplicationEventSubscription!
 Aspire.Hosting.Eventing.IDistributedApplicationEventing.Subscribe<T>(System.Func<T, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! callback) -> Aspire.Hosting.Eventing.DistributedApplicationEventSubscription!
@@ -132,10 +165,32 @@ Aspire.Hosting.Eventing.IDistributedApplicationEventing.Unsubscribe(Aspire.Hosti
 Aspire.Hosting.Eventing.IDistributedApplicationResourceEvent
 Aspire.Hosting.Eventing.IDistributedApplicationResourceEvent.Resource.get -> Aspire.Hosting.ApplicationModel.IResource!
 Aspire.Hosting.IDistributedApplicationBuilder.Eventing.get -> Aspire.Hosting.Eventing.IDistributedApplicationEventing!
+Aspire.Hosting.IProjectMetadata.LaunchSettings.get -> Aspire.Hosting.LaunchSettings?
+Aspire.Hosting.LaunchProfile
+Aspire.Hosting.LaunchProfile.ApplicationUrl.get -> string?
+Aspire.Hosting.LaunchProfile.ApplicationUrl.set -> void
+Aspire.Hosting.LaunchProfile.CommandLineArgs.get -> string?
+Aspire.Hosting.LaunchProfile.CommandLineArgs.set -> void
+Aspire.Hosting.LaunchProfile.CommandName.get -> string?
+Aspire.Hosting.LaunchProfile.CommandName.set -> void
+Aspire.Hosting.LaunchProfile.DotnetRunMessages.get -> bool?
+Aspire.Hosting.LaunchProfile.DotnetRunMessages.set -> void
+Aspire.Hosting.LaunchProfile.EnvironmentVariables.get -> System.Collections.Generic.Dictionary<string!, string!>!
+Aspire.Hosting.LaunchProfile.EnvironmentVariables.set -> void
+Aspire.Hosting.LaunchProfile.LaunchBrowser.get -> bool?
+Aspire.Hosting.LaunchProfile.LaunchBrowser.set -> void
+Aspire.Hosting.LaunchProfile.LaunchProfile() -> void
+Aspire.Hosting.LaunchProfile.LaunchUrl.get -> string?
+Aspire.Hosting.LaunchProfile.LaunchUrl.set -> void
+Aspire.Hosting.LaunchSettings
+Aspire.Hosting.LaunchSettings.LaunchSettings() -> void
+Aspire.Hosting.LaunchSettings.Profiles.get -> System.Collections.Generic.Dictionary<string!, Aspire.Hosting.LaunchProfile!>!
+Aspire.Hosting.LaunchSettings.Profiles.set -> void
 static Aspire.Hosting.ApplicationModel.CommandResults.Success() -> Aspire.Hosting.ApplicationModel.ExecuteCommandResult!
 static Aspire.Hosting.ApplicationModel.ResourceExtensions.GetEnvironmentVariableValuesAsync(this Aspire.Hosting.ApplicationModel.IResourceWithEnvironment! resource, Aspire.Hosting.DistributedApplicationOperation applicationOperation = Aspire.Hosting.DistributedApplicationOperation.Run) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.Dictionary<string!, string!>!>
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, string? targetState = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Aspire.Hosting.ApplicationModel.ResourceNotificationService.WaitForResourceAsync(string! resourceName, System.Collections.Generic.IEnumerable<string!>! targetStates, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetAnnotationsIncludingAncestorsOfType<T>(this Aspire.Hosting.ApplicationModel.IResource! resource, out System.Collections.Generic.IEnumerable<T>? result) -> bool
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithContainerName<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ContainerResourceBuilderExtensions.WithLifetime<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, Aspire.Hosting.ApplicationModel.ContainerLifetime lifetime) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
 static Aspire.Hosting.ParameterResourceBuilderExtensions.AddParameter(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, Aspire.Hosting.ApplicationModel.ParameterDefault! value, bool secret = false, bool persist = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ParameterResource!>!

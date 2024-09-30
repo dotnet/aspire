@@ -281,11 +281,11 @@ internal sealed class ContainerStatus : V1Status
 
     // Timestamp of the Container start attempt
     [JsonPropertyName("startupTimestamp")]
-    public DateTimeOffset? StartupTimestamp { get; set; }
+    public DateTime? StartupTimestamp { get; set; }
 
     // Timestamp when the Container was terminated last
     [JsonPropertyName("finishTimestamp")]
-    public DateTimeOffset? FinishTimestamp { get; set; }
+    public DateTime? FinishTimestamp { get; set; }
 
     // Exit code of the Container.
     // Default is -1, meaning the exit code is not known, or the container is still running.

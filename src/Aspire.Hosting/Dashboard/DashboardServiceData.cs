@@ -40,6 +40,8 @@ internal sealed class DashboardServiceData : IAsyncDisposable
                 {
                     Uid = resourceId,
                     CreationTimeStamp = snapshot.CreationTimeStamp ?? creationTimestamp,
+                    StartTimeStamp = snapshot.StartTimeStamp,
+                    StopTimeStamp = snapshot.StopTimeStamp,
                     Name = resourceId,
                     DisplayName = resource.Name,
                     Urls = snapshot.Urls,
@@ -48,7 +50,7 @@ internal sealed class DashboardServiceData : IAsyncDisposable
                     ExitCode = snapshot.ExitCode,
                     State = snapshot.State?.Text,
                     StateStyle = snapshot.State?.Style,
-                    HealthState = resource.TryGetLastAnnotation<HealthCheckAnnotation>(out _) ? snapshot.HealthStatus switch
+                    HealthState = resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out _) ? snapshot.HealthStatus switch
                     {
                         HealthStatus.Healthy => HealthStateKind.Healthy,
                         HealthStatus.Unhealthy => HealthStateKind.Unhealthy,

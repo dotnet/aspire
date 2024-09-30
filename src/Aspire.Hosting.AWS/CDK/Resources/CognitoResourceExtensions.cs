@@ -22,7 +22,7 @@ public static class CognitoResourceExtensions
     /// <param name="builder">The builder for the AWS CDK stack.</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="props">The properties of the userpool.</param>
-    public static IResourceBuilder<IConstructResource<UserPool>> AddCognitoUserPool(this IResourceBuilder<IStackResource> builder, string name, IUserPoolProps? props = null)
+    public static IResourceBuilder<IConstructResource<UserPool>> AddCognitoUserPool(this IResourceBuilder<IStackResource> builder, [ResourceName] string name, IUserPoolProps? props = null)
     {
         return builder.AddConstruct(name, scope => new UserPool(scope, name, props));
     }
@@ -33,7 +33,7 @@ public static class CognitoResourceExtensions
     /// <param name="builder">The builder for the user pool.</param>
     /// <param name="name">the name of the resource.</param>
     /// <param name="options">The options of the client.</param>
-    public static IResourceBuilder<IConstructResource<UserPoolClient>> AddClient(this IResourceBuilder<IConstructResource<UserPool>> builder, string name, IUserPoolClientOptions? options = null)
+    public static IResourceBuilder<IConstructResource<UserPoolClient>> AddClient(this IResourceBuilder<IConstructResource<UserPool>> builder, [ResourceName] string name, IUserPoolClientOptions? options = null)
     {
         return builder.AddConstruct(name, _ => builder.Resource.Construct.AddClient(name, options));
     }

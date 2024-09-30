@@ -207,6 +207,10 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                         if (changeType == ResourceViewModelChangeType.Upsert)
                         {
                             _resourceByName[resource.Name] = resource;
+                            if (string.Equals(SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
+                            {
+                                SelectedResource = resource;
+                            }
 
                             _allResourceTypes[resource.ResourceType] = true;
                             _visibleResourceTypes[resource.ResourceType] = true;
@@ -246,7 +250,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     {
         _elementIdBeforeDetailsViewOpened = buttonId;
 
-        if (SelectedResource == resource)
+        if (string.Equals(SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
         {
             await ClearSelectedResourceAsync();
         }
@@ -296,7 +300,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     }
 
     private string GetRowClass(ResourceViewModel resource)
-        => resource == SelectedResource ? "selected-row resource-row" : "resource-row";
+        => string.Equals(resource.Name, SelectedResource?.Name, StringComparisons.ResourceName) ? "selected-row resource-row" : "resource-row";
 
     private async Task ExecuteResourceCommandAsync(ResourceViewModel resource, CommandViewModel command)
     {

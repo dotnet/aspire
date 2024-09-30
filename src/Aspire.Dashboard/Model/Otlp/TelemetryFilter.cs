@@ -58,14 +58,14 @@ public class TelemetryFilter : IEquatable<TelemetryFilter>
     private static Func<string?, string, bool> ConditionToFuncString(FilterCondition c) =>
         c switch
         {
-            FilterCondition.Equals => (a, b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase),
-            FilterCondition.Contains => (a, b) => a != null && a.Contains(b, StringComparison.OrdinalIgnoreCase),
+            FilterCondition.Equals => (a, b) => string.Equals(a, b, StringComparisons.OtlpFieldValue),
+            FilterCondition.Contains => (a, b) => a != null && a.Contains(b, StringComparisons.OtlpFieldValue),
             // Condition.GreaterThan => (a, b) => a > b,
             // Condition.LessThan => (a, b) => a < b,
             // Condition.GreaterThanOrEqual => (a, b) => a >= b,
             // Condition.LessThanOrEqual => (a, b) => a <= b,
-            FilterCondition.NotEqual => (a, b) => !string.Equals(a, b, StringComparison.OrdinalIgnoreCase),
-            FilterCondition.NotContains => (a, b) => a != null && !a.Contains(b, StringComparison.OrdinalIgnoreCase),
+            FilterCondition.NotEqual => (a, b) => !string.Equals(a, b, StringComparisons.OtlpFieldValue),
+            FilterCondition.NotContains => (a, b) => a != null && !a.Contains(b, StringComparisons.OtlpFieldValue),
             _ => throw new ArgumentOutOfRangeException(nameof(c), c, null)
         };
 
@@ -97,35 +97,6 @@ public class TelemetryFilter : IEquatable<TelemetryFilter>
             _ => throw new ArgumentOutOfRangeException(nameof(c), c, null)
         };
 
-    private string? GetFieldValue(OtlpLogEntry x)
-    {
-        return Field switch
-        {
-            KnownStructuredLogFields.MessageField => x.Message,
-            KnownStructuredLogFields.ApplicationField => x.ApplicationView.Application.ApplicationName,
-            KnownStructuredLogFields.TraceIdField => x.TraceId,
-            KnownStructuredLogFields.SpanIdField => x.SpanId,
-            KnownStructuredLogFields.OriginalFormatField => x.OriginalFormat,
-            KnownStructuredLogFields.CategoryField => x.Scope.ScopeName,
-            _ => x.Attributes.GetValue(Field)
-        };
-    }
-
-    private string? GetFieldValue(OtlpSpan x)
-    {
-        return Field switch
-        {
-            KnownTraceFields.ApplicationField => x.Source.Application.ApplicationName,
-            KnownTraceFields.TraceIdField => x.TraceId,
-            KnownTraceFields.SpanIdField => x.SpanId,
-            KnownTraceFields.KindField => x.Kind.ToString(),
-            KnownTraceFields.StatusField => x.Status.ToString(),
-            KnownTraceFields.SourceField => x.Scope.ScopeName,
-            KnownTraceFields.NameField => x.Name,
-            _ => x.Attributes.GetValue(Field)
-        };
-    }
-
     public IEnumerable<OtlpLogEntry> Apply(IEnumerable<OtlpLogEntry> input)
     {
         switch (Field)
@@ -153,14 +124,14 @@ public class TelemetryFilter : IEquatable<TelemetryFilter>
             default:
                 {
                     var func = ConditionToFuncString(Condition);
-                    return input.Where(x => func(GetFieldValue(x), Value));
+                    return input.Where(x => func(OtlpLogEntry.GetFieldValue(x, Field), Value));
                 }
         }
     }
 
     public bool Apply(OtlpSpan span)
     {
-        var fieldValue = GetFieldValue(span);
+        var fieldValue = OtlpSpan.GetFieldValue(span, Field);
         var func = ConditionToFuncString(Condition);
         return func(fieldValue, Value);
     }

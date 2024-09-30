@@ -43,7 +43,7 @@
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
 
-      <_TestRunCommand>dotnet build -bl:$(_HelixLogsPath)/build.binlog $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
+      <_TestRunCommand>dotnet build -bl:$(_HelixLogsPath)/build.binlog /p:TreatWarningsAsErrors=true $(_ShellCommandSeparator) $(_TestRunCommand)</_TestRunCommand>
 
       <_SetPathEnvVar Condition="'$(OS)' != 'Windows_NT'">PATH=${SDK_FOR_WORKLOAD_TESTING_PATH}:$PATH</_SetPathEnvVar>
       <_SetPathEnvVar Condition="'$(OS)' == 'Windows_NT'">PATH=%SDK_FOR_WORKLOAD_TESTING_PATH%%3B%PATH%</_SetPathEnvVar>

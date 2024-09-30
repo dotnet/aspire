@@ -30,8 +30,8 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
     public async Task ExecuteDoesNotThrowOperationCanceledWhenAppStoppingTokenSignaled()
     {
         var hostApplicationLifetime = new TestHostApplicationLifetime();
-        var resourceNotificationService = CreateResourceNotificationService(hostApplicationLifetime);
         var resourceLoggerService = new ResourceLoggerService();
+        var resourceNotificationService = CreateResourceNotificationService(hostApplicationLifetime, resourceLoggerService);
         var hostEnvironment = new HostingEnvironment();
         var loggerFactory = new NullLoggerFactory();
         var resourceLogForwarder = new ResourceLoggerForwarderService(resourceNotificationService, resourceLoggerService, hostEnvironment, loggerFactory);
@@ -51,8 +51,8 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
     public async Task ResourceLogsAreForwardedToHostLogging()
     {
         var hostApplicationLifetime = new TestHostApplicationLifetime();
-        var resourceNotificationService = CreateResourceNotificationService(hostApplicationLifetime);
         var resourceLoggerService = ConsoleLoggingTestHelpers.GetResourceLoggerService();
+        var resourceNotificationService = CreateResourceNotificationService(hostApplicationLifetime, resourceLoggerService);
         var hostEnvironment = new HostingEnvironment { ApplicationName = "TestApp.AppHost" };
         var fakeLoggerProvider = new FakeLoggerProvider();
         var fakeLoggerFactory = new LoggerFactory([fakeLoggerProvider, new XunitLoggerProvider(output)]);
@@ -124,9 +124,9 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
             log => { Assert.Equal(LogLevel.Error, log.Level); Assert.Equal("6: 2000-12-29T20:59:59.0000000Z Test critical message", log.Message); Assert.Equal("TestApp.AppHost.Resources.myresource", log.Category); });
     }
 
-    private static ResourceNotificationService CreateResourceNotificationService(TestHostApplicationLifetime hostApplicationLifetime)
+    private static ResourceNotificationService CreateResourceNotificationService(TestHostApplicationLifetime hostApplicationLifetime, ResourceLoggerService resourceLoggerService)
     {
-        return new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, hostApplicationLifetime, new ServiceCollection().BuildServiceProvider());
+        return new ResourceNotificationService(NullLogger<ResourceNotificationService>.Instance, hostApplicationLifetime, new ServiceCollection().BuildServiceProvider(), resourceLoggerService);
     }
 
     private sealed class CustomResource(string name) : Resource(name)

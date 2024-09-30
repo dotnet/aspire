@@ -96,13 +96,13 @@ internal sealed class ExecutableStatus : V1Status
     /// Start (attempt) timestamp.
     /// </summary>
     [JsonPropertyName("startupTimestamp")]
-    public DateTimeOffset? StartupTimestamp { get; set; }
+    public DateTime? StartupTimestamp { get; set; }
 
     /// <summary>
     /// The time when the replica finished execution
     /// </summary>
     [JsonPropertyName("finishTimestamp")]
-    public DateTimeOffset? FinishTimestamp { get; set; }
+    public DateTime? FinishTimestamp { get; set; }
 
     /// <summary>
     /// Exit code of the process associated with the Executable.
