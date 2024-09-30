@@ -16,7 +16,7 @@ using Azure.Provisioning.Primitives;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Provides extension methods for adding the Azure Postgres resources to the application model.
+/// Provides extension methods for adding the Azure PostgreSQL resources to the application model.
 /// </summary>
 public static class AzurePostgresExtensions
 {
@@ -97,12 +97,12 @@ public static class AzurePostgresExtensions
     }
 
     /// <summary>
-    /// Configures Postgres Server resource to be deployed as Azure Postgres Flexible Server.
+    /// Configures Postgres Server resource to be deployed as Azure PostgreSQL Flexible Server.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
     /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.PostgreSql.PostgreSqlFlexibleServer"/> resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzurePostgresFlexibleServer)} instead to add an Azure Postgres Flexible Server resource.")]
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzurePostgresFlexibleServer)} instead to add an Azure PostgreSQL Flexible Server resource.")]
     [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServer(
         this IResourceBuilder<PostgresServerResource> builder,
@@ -114,11 +114,11 @@ public static class AzurePostgresExtensions
     }
 
     /// <summary>
-    /// Configures Postgres Server resource to be deployed as Azure Postgres Flexible Server.
+    /// Configures Postgres Server resource to be deployed as Azure PostgreSQL Flexible Server.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzurePostgresFlexibleServer)} instead to add an Azure Postgres Flexible Server resource.")]
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzurePostgresFlexibleServer)} instead to add an Azure PostgreSQL Flexible Server resource.")]
     public static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServer(
         this IResourceBuilder<PostgresServerResource> builder)
     {
@@ -130,7 +130,7 @@ public static class AzurePostgresExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzurePostgresFlexibleServer)} instead to add an Azure Postgres Flexible Server resource.")]
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzurePostgresFlexibleServer)} instead to add an Azure PostgreSQL Flexible Server resource.")]
     public static IResourceBuilder<PostgresServerResource> AsAzurePostgresFlexibleServer(
         this IResourceBuilder<PostgresServerResource> builder)
     {
@@ -143,7 +143,7 @@ public static class AzurePostgresExtensions
     /// <param name="builder">The <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</param>
     /// <param name="configureResource">Callback to configure the underlying <see cref="global::Azure.Provisioning.PostgreSql.PostgreSqlFlexibleServer"/> resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresServerResource}"/> builder.</returns>
-    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzurePostgresFlexibleServer)} instead to add an Azure Postgres Flexible Server resource.")]
+    [Obsolete($"This method is obsolete and will be removed in a future version. Use {nameof(AddAzurePostgresFlexibleServer)} instead to add an Azure PostgreSQL Flexible Server resource.")]
     [Experimental("AZPROVISION001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
     public static IResourceBuilder<PostgresServerResource> AsAzurePostgresFlexibleServer(
         this IResourceBuilder<PostgresServerResource> builder,
@@ -155,11 +155,31 @@ public static class AzurePostgresExtensions
     }
 
     /// <summary>
-    /// Adds an Azure Postgres Flexible Server resource to the application model.
+    /// Adds an Azure PostgreSQL Flexible Server resource to the application model.
     /// </summary>
     /// <param name="builder">The builder for the distributed application.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzurePostgresFlexibleServerResource}"/> builder.</returns>
+    /// <remarks>
+    /// By default, the Azure PostgreSQL Flexible Server resource is configured to use Microsoft Entra ID (Azure Active Directory) for authentication.
+    /// This requires changes to the application code to use an azure credential to authenticate with the resource. See
+    /// https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-connect-with-managed-identity#connect-using-managed-identity-in-c for more information.
+    /// 
+    /// You can use the <see cref="WithPasswordAuth"/> method to configure the resource to use password authentication.
+    /// </remarks>
+    /// <example>
+    /// The following example creates an Azure PostgreSQL Flexible Server resource and referencing that resource in a .NET project.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var data = builder.AddAzurePostgresFlexibleServer("data");
+    ///
+    /// builder.AddProject&lt;Projects.ProductService&gt;()
+    ///     .WithReference(data);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
     public static IResourceBuilder<AzurePostgresFlexibleServerResource> AddAzurePostgresFlexibleServer(this IDistributedApplicationBuilder builder, string name)
     {
         builder.AddAzureProvisioning();
@@ -206,9 +226,9 @@ public static class AzurePostgresExtensions
     }
 
     /// <summary>
-    /// Adds a Azure PostgreSQL database to the application model.
+    /// Adds an Azure PostgreSQLQL database to the application model.
     /// </summary>
-    /// <param name="builder">The Azure PostgreSQL server resource builder.</param>
+    /// <param name="builder">The Azure PostgreSQLQL server resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
@@ -235,14 +255,32 @@ public static class AzurePostgresExtensions
             var innerBuilder = builder.ApplicationBuilder.CreateResourceBuilder(azureResource.InnerResource);
             innerBuilder.AddDatabase(name, databaseName);
 
-            // create a builder, but don't add the Azure database to the model
+            // create a builder, but don't add the Azure database to the model because the InnerResource already has it
             return builder.ApplicationBuilder.CreateResourceBuilder(azurePostgresDatabase);
         }
     }
 
     /// <summary>
-    /// TOOD
+    /// Configures an Azure PostgreSQL Flexible Server resource to run locally in a container.
     /// </summary>
+    /// <param name="builder">The Azure PostgreSQLQL server resource builder.</param>
+    /// <param name="configureContainer">Callback that exposes underlying container to allow for customization.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzurePostgresFlexibleServerResource}"/> builder.</returns>
+    /// <example>
+    /// The following example creates an Azure PostgreSQL Flexible Server resource that runs locally is a
+    /// PostgreSQL container and referencing that resource in a .NET project.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var data = builder.AddAzurePostgresFlexibleServer("data")
+    ///     .RunAsContainer();
+    ///
+    /// builder.AddProject&lt;Projects.ProductService&gt;()
+    ///     .WithReference(data);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
     public static IResourceBuilder<AzurePostgresFlexibleServerResource> RunAsContainer(this IResourceBuilder<AzurePostgresFlexibleServerResource> builder, Action<IResourceBuilder<PostgresServerResource>>? configureContainer = null)
     {
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
@@ -291,12 +329,26 @@ public static class AzurePostgresExtensions
     }
 
     /// <summary>
-    /// TODO
+    /// Configures the resource to use password authentication for Azure PostgreSQL Flexible Server.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="userName"></param>
-    /// <param name="password"></param>
-    /// <returns></returns>
+    /// <param name="builder">The Azure PostgreSQLQL server resource builder.</param>
+    /// <param name="userName">The parameter used to provide the user name for the PostgreSQL resource. If <see langword="null"/> a default value will be used.</param>
+    /// <param name="password">The parameter used to provide the administrator password for the PostgreSQL resource. If <see langword="null"/> a random password will be generated.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzurePostgresFlexibleServerResource}"/> builder.</returns>
+    /// <example>
+    /// The following example creates an Azure PostgreSQL Flexible Server resource that uses password authentication.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var data = builder.AddAzurePostgresFlexibleServer("data")
+    ///     .WithPasswordAuth();
+    ///
+    /// builder.AddProject&lt;Projects.ProductService&gt;()
+    ///     .WithReference(data);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
     public static IResourceBuilder<AzurePostgresFlexibleServerResource> WithPasswordAuth(
         this IResourceBuilder<AzurePostgresFlexibleServerResource> builder,
         IResourceBuilder<ParameterResource>? userName = null,
@@ -316,7 +368,13 @@ public static class AzurePostgresExtensions
 
         azureResource.ConnectionStringSecretOutput = new BicepSecretOutputReference("connectionString", azureResource);
 
-        // TODO: If someone already called RunAsContainer - do we need to reset the username/password parameters on the InnerResource?
+        // If someone already called RunAsContainer - we need to reset the username/password parameters on the InnerResource
+        var containerResource = azureResource.InnerResource;
+        if (containerResource is not null)
+        {
+            containerResource.UserNameParameter = azureResource.UserNameParameter;
+            containerResource.PasswordParameter = azureResource.PasswordParameter;
+        }
 
         return builder
             .RemoveActiveDirectoryParameters()

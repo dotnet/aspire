@@ -76,10 +76,11 @@
     },
     "cache": {
       "type": "azure.bicep.v0",
-      "connectionString": "{cache.secretOutputs.connectionString}",
+      "connectionString": "{cache.outputs.connectionString}",
       "path": "cache.module.bicep",
       "params": {
-        "keyVaultName": ""
+        "principalId": "",
+        "principalName": ""
       }
     },
     "pgsqlAdministratorLogin": {
