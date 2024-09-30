@@ -43,6 +43,8 @@ public partial class ChartFilters
             ShowCounts = InstrumentViewModel.ShowCount;
             return Task.CompletedTask;
         });
+
+        ShowCounts = InstrumentViewModel.ShowCount;
     }
 
     private void ShowCountChanged()
