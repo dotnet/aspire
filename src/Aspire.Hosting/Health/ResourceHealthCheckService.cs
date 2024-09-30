@@ -40,13 +40,12 @@ internal class ResourceHealthCheckService(ResourceNotificationService resourceNo
 
     private async Task MonitorResourceHealthAsync(ResourceEvent initialEvent, CancellationToken cancellationToken)
     {
-
         var resource = initialEvent.Resource;
         var resourceReadyEventFired = false;
 
         if (!resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out var annotations))
         {
-            // NOTE: If there are no transitive health check annotations then there
+            // NOTE: If there are no health check annotations then there
             //       is currently nothing to monitor. At this point in time we don't
             //       dynamically add health checks at runtime. If this changes then we
             //       would need to revisit this and scan for transitive health checks
