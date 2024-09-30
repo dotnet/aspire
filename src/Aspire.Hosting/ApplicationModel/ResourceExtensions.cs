@@ -55,21 +55,21 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Attempts to retrieve all annotations of the specified type from the given resource including transitively from parents.
+    /// Attempts to retrieve all annotations of the specified type from the given resource including from parents.
     /// </summary>
     /// <typeparam name="T">The type of annotation to retrieve.</typeparam>
     /// <param name="resource">The resource to retrieve annotations from.</param>
     /// <param name="result">When this method returns, contains the annotations of the specified type, if found; otherwise, null.</param>
     /// <returns>true if annotations of the specified type were found; otherwise, false.</returns>
-    public static bool TryGetTransitiveAnnotationsOfType<T>(this IResource resource, [NotNullWhen(true)] out IEnumerable<T>? result) where T : IResourceAnnotation
+    public static bool TryGetAnnotationsIncludingAncestorsOfType<T>(this IResource resource, [NotNullWhen(true)] out IEnumerable<T>? result) where T : IResourceAnnotation
     {
         var matchingTypeAnnotations = resource.Annotations.OfType<T>();
 
         if (resource is IResourceWithParent resourceWithParent)
         {
-            if (resourceWithParent.Parent.TryGetTransitiveAnnotationsOfType<T>(out var transitiveMatchingTypeAnnotations))
+            if (resourceWithParent.Parent.TryGetAnnotationsIncludingAncestorsOfType<T>(out var ancestorMatchingTypeAnnotations))
             {
-                result = matchingTypeAnnotations.Concat(transitiveMatchingTypeAnnotations);
+                result = matchingTypeAnnotations.Concat(ancestorMatchingTypeAnnotations);
                 return true;
             }
             else if (matchingTypeAnnotations.Any())

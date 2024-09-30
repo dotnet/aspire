@@ -29,18 +29,18 @@ public class ResourceExtensionsTests
     }
 
     [Fact]
-    public void TryGetTransitiveAnnotationOfTypeReturnsAnnotationFromParentDirectly()
+    public void TryGetAnnotationsIncludingAncestorsOfTypeReturnsAnnotationFromParentDirectly()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var parent = builder.AddResource(new ParentResource("parent"))
                             .WithAnnotation(new DummyAnnotation());
 
-        Assert.True(parent.Resource.TryGetTransitiveAnnotationsOfType<DummyAnnotation>(out var annotations));
+        Assert.True(parent.Resource.TryGetAnnotationsIncludingAncestorsOfType<DummyAnnotation>(out var annotations));
         Assert.Single(annotations);
     }
 
     [Fact]
-    public void TryGetTransitiveAnnotationOfTypeReturnsAnnotationFromParentTransitively()
+    public void TryGetAnnotationsIncludingAncestorsOfTypeReturnsAnnotationFromParent()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var parent = builder.AddResource(new ParentResource("parent"))
@@ -48,12 +48,12 @@ public class ResourceExtensionsTests
 
         var child = builder.AddResource(new ChildResource("child", parent.Resource));
 
-        Assert.True(child.Resource.TryGetTransitiveAnnotationsOfType<DummyAnnotation>(out var annotations));
+        Assert.True(child.Resource.TryGetAnnotationsIncludingAncestorsOfType<DummyAnnotation>(out var annotations));
         Assert.Single(annotations);
     }
 
     [Fact]
-    public void TryGetTransitiveAnnotationOfTypeCombinesAnnotationsFromParentAndChild()
+    public void TryGetAnnotationsIncludingAncestorsOfTypeCombinesAnnotationsFromParentAndChild()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var parent = builder.AddResource(new ParentResource("parent"))
@@ -62,7 +62,7 @@ public class ResourceExtensionsTests
         var child = builder.AddResource(new ChildResource("child", parent.Resource))
                            .WithAnnotation(new DummyAnnotation());
 
-        Assert.True(child.Resource.TryGetTransitiveAnnotationsOfType<DummyAnnotation>(out var annotations));
+        Assert.True(child.Resource.TryGetAnnotationsIncludingAncestorsOfType<DummyAnnotation>(out var annotations));
         Assert.Equal(2, annotations.Count());
     }
 

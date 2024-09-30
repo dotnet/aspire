@@ -3,14 +3,15 @@
 
 using System.Collections.Frozen;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting.Health;
 
-internal class ResourceHealthCheckService(ResourceNotificationService resourceNotificationService, HealthCheckService healthCheckService) : BackgroundService
+internal class ResourceHealthCheckService(ResourceNotificationService resourceNotificationService, HealthCheckService healthCheckService, IServiceProvider services, IDistributedApplicationEventing eventing) : BackgroundService
 {
-    private readonly Dictionary<string, Task> _resourceTasks = new();
+    private readonly HashSet<string> _resourcesStartedMonitoring = new();
     private readonly Dictionary<string, ResourceEvent> _latestEvents = new();
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -23,10 +24,10 @@ internal class ResourceHealthCheckService(ResourceNotificationService resourceNo
             {
                 _latestEvents[resourceEvent.Resource.Name] = resourceEvent;
 
-                if (!_resourceTasks.ContainsKey(resourceEvent.Resource.Name) && resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running)
+                if (!_resourcesStartedMonitoring.Contains(resourceEvent.Resource.Name) && resourceEvent.Snapshot.State?.Text == KnownResourceStates.Running)
                 {
-                    var pendingResourceTask = Task.Run(() => MonitorResourceHealthAsync(resourceEvent, stoppingToken), stoppingToken);
-                    _resourceTasks.Add(resourceEvent.Resource.Name, pendingResourceTask);
+                    _ = Task.Run(() => MonitorResourceHealthAsync(resourceEvent, stoppingToken), stoppingToken);
+                    _resourcesStartedMonitoring.Add(resourceEvent.Resource.Name);
                 }
             }
         }
@@ -40,8 +41,9 @@ internal class ResourceHealthCheckService(ResourceNotificationService resourceNo
     {
 
         var resource = initialEvent.Resource;
+        var resourceReadyEventFired = false;
 
-        if (!resource.TryGetTransitiveAnnotationsOfType<HealthCheckAnnotation>(out var annotations))
+        if (!resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out var annotations))
         {
             // NOTE: If there are no transitive health check annotations then there
             //       is currently nothing to monitor. At this point in time we don't
@@ -63,6 +65,16 @@ internal class ResourceHealthCheckService(ResourceNotificationService resourceNo
                     r => registrationKeysToCheck.Contains(r.Name),
                     cancellationToken
                     ).ConfigureAwait(false);
+
+                if (!resourceReadyEventFired && report.Status == HealthStatus.Healthy)
+                {
+                    resourceReadyEventFired = true;
+                    var resourceReadyEvent = new ResourceReadyEvent(resource, services);
+                    await eventing.PublishAsync(
+                        resourceReadyEvent,
+                        EventDispatchBehavior.NonBlockingSequential,
+                        cancellationToken).ConfigureAwait(false);
+                }
 
                 if (_latestEvents[resource.Name].Snapshot.HealthStatus == report.Status)
                 {
@@ -87,9 +99,11 @@ internal class ResourceHealthCheckService(ResourceNotificationService resourceNo
                     }
                 }
             }
-            catch (Exception ex)
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
-                _ = ex;
+                // When debugging sometimes we'll get cancelled here but we don't want
+                // to tear down the loop. We only want to crash out when the service's
+                // cancellation token is signaled.
             }
         }
     }
