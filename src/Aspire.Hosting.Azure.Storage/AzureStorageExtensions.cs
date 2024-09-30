@@ -91,22 +91,16 @@ public static class AzureStorageExtensions
 
         var lockObject = new object();
         BlobServiceClient? blobServiceClient = null;
+        var blobServiceClientLock = new object();
 
         builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(resource, async (@event, ct) =>
         {
             // HACK: AzureStorageResource does not implement IResourceWithConnectionString which means that
             //       we don't fire off a ConnectionStringAvailableEvent for it. To work around this the blob,
-            //       table, and queue resources each propogate the event to the parent (the eventing system
+            //       table, and queue resources each propagate the event to the parent (the eventing system
             //       doesn't care about connection strings. For the actual health check we just use the
             //       blob service client in the parent rather than each of the child resources and rely
-            //       on the resource health check service to propogate the health checks.
-            //
-            // TODO: There is potential race condition here to solve.
-            if (blobServiceClient != null)
-            {
-                return;
-            }
-
+            //       on the resource health check service to propagate the health checks.
             var connectionString = await resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false);
 
             if (connectionString == null)
@@ -114,7 +108,19 @@ public static class AzureStorageExtensions
                 throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{resource.Name}' resource but the connection string was null.");
             }
 
-            blobServiceClient = CreateBlobServiceClient(connectionString);
+            // This handles a possible race condition where each storage service type propagates the
+            // ConnectionStringAvailableEvent to the parent resource - but we only want to instantiate
+            // the blob service client once.
+            if (blobServiceClient == null)
+            {
+                lock (blobServiceClientLock)
+                {
+                    if (blobServiceClient == null)
+                    {
+                        blobServiceClient = CreateBlobServiceClient(connectionString);
+                    }
+                }
+            }
         });
 
         var healthCheckKey = $"{name}_check";
