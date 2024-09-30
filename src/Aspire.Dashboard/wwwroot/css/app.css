@@ -629,3 +629,8 @@ fluent-data-grid-cell.no-ellipsis {
 .layout fluent-toolbar > .fluent-input-label {
     margin-bottom: 0;
 }
+
+.action-divider {
+    display: unset;
+    vertical-align: sub;
+}

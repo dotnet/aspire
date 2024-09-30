@@ -27,6 +27,9 @@ public partial class AspireMenuButton : FluentComponentBase
     [Parameter]
     public Appearance? ButtonAppearance { get; set; }
 
+    [Parameter]
+    public string? Title { get; set; }
+
     public string MenuButtonId { get; } = Identifier.NewId();
 
     protected override void OnParametersSet()
