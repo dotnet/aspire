@@ -13,8 +13,7 @@
         if (Instruments.FirstOrDefault(i => StringComparers.OtlpInstrumentName.Equals(i.Name, chart.InstrumentName)) is { } instrument)
         {
             <article class="dashpage-chart-tile">
-                @*AreaRestricted="false"*@
-                <FluentCard>
+                <FluentCard AreaRestricted="false">
                     <DashpageChartContainer
                         ApplicationKey="@SelectedApplication.Id!.GetApplicationKey()"
                         MeterName="@instrument.Parent.MeterName"
