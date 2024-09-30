@@ -341,7 +341,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     #endregion
 
-    private Task HandleSelectedTreeItemChangedAsync()
+    private async Task HandleSelectedTreeItemChangedAsync()
     {
         (OtlpMeter?, OtlpInstrumentSummary?, DashpageDefinition?, bool) selections =
             PageViewModel.SelectedTreeItem?.Data switch
@@ -357,7 +357,11 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
         (vm.SelectedMeter, vm.SelectedInstrument, vm.SelectedDashpage, vm.DashpagesHomeSelected) = selections;
 
-        return this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: !ViewportInformation.IsDesktop);
+        await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: !ViewportInformation.IsDesktop);
+
+        // if the data is changed to null, there won't be a state change. we should prompt one ourselves to
+        // ensure UI update
+        await InvokeAsync(StateHasChanged);
     }
 
     public string GetUrlFromSerializableViewModel(MetricsPageState serializable)
