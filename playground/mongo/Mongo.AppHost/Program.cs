@@ -5,7 +5,6 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var db = builder.AddMongoDB("mongo")
     .WithMongoExpress(c => c.WithHostPort(3022))
-    .PublishAsContainer()
     .AddDatabase("db");
 
 builder.AddProject<Projects.Mongo_ApiService>("api")
