@@ -18,7 +18,6 @@ public class ExpressionResolverTests
         var test = builder.AddResource(new TestContainerResource("mytest"))
             .WithEndpoint("endpoint", e =>
             {
-                e.UriScheme = "http";
                 e.AllocatedEndpoint = new(e, "localhost", 12345, containerHostAddress: "ContainerHostName", targetPortExpression: "1000");
             });
 
