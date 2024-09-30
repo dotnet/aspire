@@ -5,7 +5,7 @@ Aspire.Azure.AI.OpenAI:
   - "Azure.Core"
   - "Azure.Identity"
 - Activity source names:
-  - "OpenAI.*":
+  - "OpenAI.*"
 - Metric names:
   - "OpenAI.*"
 
