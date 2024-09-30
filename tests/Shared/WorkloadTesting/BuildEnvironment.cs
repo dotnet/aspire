@@ -36,12 +36,12 @@ public class BuildEnvironment
     private static readonly Lazy<BuildEnvironment> s_instance_90 = new(() =>
         new BuildEnvironment(
             templatesCustomHive: TemplatesCustomHive.With9_0_Net9,
-            sdkDirName: "dotnet-latest"));
+            sdkDirName: "dotnet-9"));
 
     private static readonly Lazy<BuildEnvironment> s_instance_90_80 = new(() =>
         new BuildEnvironment(
             templatesCustomHive: TemplatesCustomHive.With9_0_Net9_And_Net8,
-            sdkDirName: "dotnet-9+8"));
+            sdkDirName: "dotnet-tests"));
 
     public static BuildEnvironment ForPreviousSdk => s_instance_80.Value;
     public static BuildEnvironment ForCurrentSdk => s_instance_90.Value;
@@ -54,7 +54,7 @@ public class BuildEnvironment
         _ => throw new ArgumentOutOfRangeException(nameof(DefaultTargetFramework))
     };
 
-    public BuildEnvironment(bool useSystemDotNet = false, TestTargetFramework? targetFramework = default, TemplatesCustomHive? templatesCustomHive = default, string sdkDirName = "dotnet-9+8")
+    public BuildEnvironment(bool useSystemDotNet = false, TemplatesCustomHive? templatesCustomHive = default, string sdkDirName = "dotnet-tests")
     {
         UsesCustomDotNet = !useSystemDotNet;
         RepoRoot = TestUtils.FindRepoRoot();
@@ -65,7 +65,6 @@ public class BuildEnvironment
             // Local run
             if (!useSystemDotNet)
             {
-                // var sdkDirName = string.IsNullOrEmpty(EnvironmentVariables.SdkDirName) ? "dotnet-latest" : EnvironmentVariables.SdkDirName;
                 var sdkFromArtifactsPath = Path.Combine(RepoRoot!.FullName, "artifacts", "bin", sdkDirName);
                 if (Directory.Exists(sdkFromArtifactsPath))
                 {
@@ -175,7 +174,7 @@ public class BuildEnvironment
         CleanupTestRootPath();
         Directory.CreateDirectory(TestRootPath);
 
-        // Console.WriteLine($"*** [{TargetFramework}] Using workload path: {sdkForWorkloadPath}");
+        Console.WriteLine($"*** Using Sdk path: {sdkForWorkloadPath}");
         if (UsesCustomDotNet)
         {
             if (EnvironmentVariables.IsRunningOnCI)
@@ -199,7 +198,6 @@ public class BuildEnvironment
             }
         }
 
-        // FIXME: this will happen for E2E tests which don't need it
         TemplatesCustomHive = templatesCustomHive;
         TemplatesCustomHive?.InstallAsync(this).Wait();
 
@@ -249,7 +247,6 @@ public class BuildEnvironment
         BuiltNuGetsPath = otherBuildEnvironment.BuiltNuGetsPath;
         UsesCustomDotNet = otherBuildEnvironment.UsesCustomDotNet;
         NuGetPackagesPath = otherBuildEnvironment.NuGetPackagesPath;
-        // TargetFramework = otherBuildEnvironment.TargetFramework;
         RepoRoot = otherBuildEnvironment.RepoRoot;
         TemplatesCustomHive = otherBuildEnvironment.TemplatesCustomHive;
     }

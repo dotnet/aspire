@@ -8,10 +8,10 @@
 
     <SdkVersionForPreviousTFM>$(DotNetSdkPreviousVersionForTesting)</SdkVersionForPreviousTFM>
 
-    <SdkDirForCurrentTFM>$(ArtifactsBinDir)dotnet-latest\</SdkDirForCurrentTFM>
+    <SdkDirForCurrentTFM>$(ArtifactsBinDir)dotnet-9\</SdkDirForCurrentTFM>
     <SdkStampPathForCurrentTFM>$(SdkDirForCurrentTFM).version-$(SdkVersionForCurrentTFM).stamp</SdkStampPathForCurrentTFM>
 
-    <SdkDirForCurrentAndPreviousTFM>$(ArtifactsBinDir)dotnet-9+8\</SdkDirForCurrentAndPreviousTFM>
+    <SdkDirForCurrentAndPreviousTFM>$(ArtifactsBinDir)dotnet-tests\</SdkDirForCurrentAndPreviousTFM>
     <SdkStampPathForCurrentAndPreviousTFM>$(SdkDirForCurrentAndPreviousTFM).version-$(SdkVersionForCurrentTFM)-$(SdkVersionForPreviousTFM).stamp</SdkStampPathForCurrentAndPreviousTFM>
 
     <SdkDirForPreviousTFM>$(ArtifactsBinDir)dotnet-8\</SdkDirForPreviousTFM>

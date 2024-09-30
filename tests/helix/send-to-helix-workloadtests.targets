@@ -38,9 +38,9 @@
            Text="No workload test class names found" />
 
     <ItemGroup>
-      <!-- the default dotnet-9+8 sdk is added by inner.proj . Add the rest here -->
+      <!-- the default dotnet-tests sdk is added by inner.proj . Add the rest here -->
       <HelixCorrelationPayload Include="$(ArtifactsBinDir)dotnet-8" Destination="dotnet-8" />
-      <HelixCorrelationPayload Include="$(ArtifactsBinDir)dotnet-latest" Destination="dotnet-latest" />
+      <HelixCorrelationPayload Include="$(ArtifactsBinDir)dotent-9" Destination="dotnet-9" />
 
       <!-- PreCommands="" needed for batching below -->
       <_WorkloadTestsClassNames TestNameSuffix="$([System.String]::Copy('%(Identity)').Replace('Aspire.Workload.Tests.', ''))" PreCommands="" />
