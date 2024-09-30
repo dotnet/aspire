@@ -1367,9 +1367,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         await createResource().ConfigureAwait(false);
     }
 
-    private async Task<string?> GetValue(string? key, IValueProvider valueProvider, ILogger logger, bool isContainer, CancellationToken cancellationToken)
+    private static async Task<string?> GetValue(string? key, IValueProvider valueProvider, ILogger logger, bool isContainer, CancellationToken cancellationToken)
     {
-        var task = ExpressionResolver.Resolve(isContainer, valueProvider, DefaultContainerHostName, cancellationToken);
+        var task = ExpressionResolver.Resolve(isContainer, valueProvider, cancellationToken);
 
         if (!task.IsCompleted)
         {

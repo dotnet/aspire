@@ -9,7 +9,7 @@ internal class ExpressionResolver
 {
     // Resolve an expression when it is being used from inside a container
     // This means that if the target is also a container, we're dealing with container-to-container communication
-    static async ValueTask<string?> ResolveWithContainerSource(object? value, string defaultContainerHostName, CancellationToken cancellationToken)
+    static async ValueTask<string?> ResolveWithContainerSource(object? value, CancellationToken cancellationToken)
     {
         async Task<string?> EvalEndpoint(EndpointReference endpointReference, EndpointProperty property)
         {
@@ -20,7 +20,7 @@ internal class ExpressionResolver
             return (property, target.IsContainer()) switch
             {
                 (EndpointProperty.Host or EndpointProperty.IPV4Host, true) => target.Name,
-                (EndpointProperty.Host or EndpointProperty.IPV4Host, false) => defaultContainerHostName,
+                (EndpointProperty.Host or EndpointProperty.IPV4Host, false) => endpointReference.ContainerHost,
                 (EndpointProperty.Port, true) => await endpointReference.Property(EndpointProperty.TargetPort).GetValueAsync(cancellationToken).ConfigureAwait(false),
                 (EndpointProperty.Url, true) => $"{endpointReference.Scheme}://{target.Name}:{endpointReference.TargetPort}",
                 _ => await endpointReference.Property(property).GetValueAsync(cancellationToken).ConfigureAwait(false)
@@ -35,7 +35,7 @@ internal class ExpressionResolver
 
             for (var i = 0; i < expr.ValueProviders.Count; i++)
             {
-                args[i] = await ResolveWithContainerSource(expr.ValueProviders[i], defaultContainerHostName, cancellationToken).ConfigureAwait(false);
+                args[i] = await ResolveWithContainerSource(expr.ValueProviders[i], cancellationToken).ConfigureAwait(false);
             }
 
             return string.Format(CultureInfo.InvariantCulture, expr.Format, args);
@@ -43,8 +43,8 @@ internal class ExpressionResolver
 
         return value switch
         {
-            ConnectionStringReference cs => await ResolveWithContainerSource(cs.Resource.ConnectionStringExpression, defaultContainerHostName, cancellationToken).ConfigureAwait(false),
-            IResourceWithConnectionString cs => await ResolveWithContainerSource(cs.ConnectionStringExpression, defaultContainerHostName, cancellationToken).ConfigureAwait(false),
+            ConnectionStringReference cs => await ResolveWithContainerSource(cs.Resource.ConnectionStringExpression, cancellationToken).ConfigureAwait(false),
+            IResourceWithConnectionString cs => await ResolveWithContainerSource(cs.ConnectionStringExpression, cancellationToken).ConfigureAwait(false),
             ReferenceExpression ex => await EvalExpression(ex).ConfigureAwait(false),
             EndpointReference endpointReference => await EvalEndpoint(endpointReference, EndpointProperty.Url).ConfigureAwait(false),
             EndpointReferenceExpression ep => await EvalEndpoint(ep.Endpoint, ep.Property).ConfigureAwait(false),
@@ -53,11 +53,11 @@ internal class ExpressionResolver
         };
     }
 
-    internal static async ValueTask<string?> Resolve(bool sourceIsContainer, IValueProvider valueProvider, string defaultContainerHostName, CancellationToken cancellationToken)
+    internal static async ValueTask<string?> Resolve(bool sourceIsContainer, IValueProvider valueProvider, CancellationToken cancellationToken)
     {
         return sourceIsContainer switch
         {
-            true => await ResolveWithContainerSource(valueProvider, defaultContainerHostName, cancellationToken).ConfigureAwait(false),
+            true => await ResolveWithContainerSource(valueProvider, cancellationToken).ConfigureAwait(false),
             false => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false)
         };
     }
