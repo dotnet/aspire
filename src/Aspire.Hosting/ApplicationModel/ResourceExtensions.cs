@@ -254,11 +254,11 @@ public static class ResourceExtensions
     /// Get the top resource in the resource hierarchy.
     /// e.g. for a AzureBlobStorageResource, the top resource is the AzureStorageResource.
     /// </summary>
-    internal static IResource GetTopResource(this IResource resource)
+    internal static IResource GetRootResource(this IResource resource)
     {
         return resource switch
         {
-            IResourceWithParent resWithParent => resWithParent.Parent.GetTopResource(),
+            IResourceWithParent resWithParent => resWithParent.Parent.GetRootResource(),
             _ => resource
         };
     }

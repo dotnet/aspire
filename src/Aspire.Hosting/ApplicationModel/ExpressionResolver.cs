@@ -15,7 +15,7 @@ internal class ExpressionResolver
         {
             // We need to use the top resource, e.g. AzureStorageResource instead of AzureBlobResource
             // Otherwise, we get the wrong values for IsContainer and Name
-            var target = endpointReference.Resource.GetTopResource();
+            var target = endpointReference.Resource.GetRootResource();
 
             return (property, target.IsContainer()) switch
             {
@@ -28,6 +28,8 @@ internal class ExpressionResolver
 
         async Task<string?> EvalExpression(ReferenceExpression expr)
         {
+            // This logic is similar to ReferenceExpression.GetValueAsync, except that we recurse on
+            // our own resolver method
             var args = new object?[expr.ValueProviders.Count];
 
             for (var i = 0; i < expr.ValueProviders.Count; i++)
