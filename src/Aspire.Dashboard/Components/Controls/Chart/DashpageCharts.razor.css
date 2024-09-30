@@ -10,6 +10,12 @@
     min-width: 400px;
 }
 
+@media (max-width: 768px) {
+    .dashpage-chart-grid .dashpage-chart-tile {
+        min-width: 280px; /* We need to properly support widths down to 320px. For this to properly display, we need a width <320 */
+    }
+}
+
 .dashpage-chart-grid {
     margin-bottom: 10px;
 }
