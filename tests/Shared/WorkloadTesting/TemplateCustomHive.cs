@@ -13,7 +13,6 @@ public class TemplatesCustomHive
 
     private static readonly string s_tmpDirSuffix = Guid.NewGuid().ToString()[..8];
 
-    // FIXME: these are not doing the install, so no need to be lazy!
     public static TemplatesCustomHive With9_0_Net9_And_Net8 => new(
             [
                 TemplatePackageIdNames.AspireProjectTemplates_9_0_net9,
@@ -32,7 +31,7 @@ public class TemplatesCustomHive
         _customHiveDirName = customHiveDirName;
     }
 
-    public async Task InstallAsync(BuildEnvironment buildEnvironment)
+    public async Task EnsureInstalledAsync(BuildEnvironment buildEnvironment)
     {
         var customHiveBaseDirectory = BuildEnvironment.IsRunningOnCI
                                         ? Path.Combine(Path.GetTempPath(), $"templates-${s_tmpDirSuffix}")
@@ -85,7 +84,6 @@ public class TemplatesCustomHive
 
     public static string GetPackagePath(string builtNuGetsPath, string templatePackageId)
     {
-        System.Console.WriteLine($"Looking for {templatePackageId}*.nupkg in {builtNuGetsPath}");
         var packages = Directory.EnumerateFiles(builtNuGetsPath, $"{templatePackageId}*.nupkg");
         if (!packages.Any())
         {
@@ -112,11 +110,5 @@ public class TemplatesCustomHive
 
     public void Cleanup()
     {
-        // no cleanup on local
-        // cleanup might.. um interfere with other uses??!@#
-        // if (BuildEnvironment.IsRunningOnCI && Directory.Exists(CustomHiveDirectory))
-        // {
-        //     Directory.Delete(CustomHiveDirectory, recursive: true);
-        // }
     }
 }

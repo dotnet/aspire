@@ -47,8 +47,8 @@ public class NewAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) : 
 
         var buildEnvToUse = sdk switch
         {
-            TestSdk.Current => BuildEnvironment.ForCurrentSdk,
-            TestSdk.Previous => BuildEnvironment.ForPreviousSdk,
+            TestSdk.Current => BuildEnvironment.ForCurrentSdkOnly,
+            TestSdk.Previous => BuildEnvironment.ForPreviousSdkOnly,
             TestSdk.CurrentSdkAndPreviousRuntime => BuildEnvironment.ForCurrentSdkAndPreviousRuntime,
             _ => throw new ArgumentOutOfRangeException(nameof(sdk))
         };
@@ -61,7 +61,7 @@ public class NewAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) : 
             _ => throw new ArgumentOutOfRangeException(nameof(templates))
         };
 
-        await templateHive.InstallAsync(buildEnvToUse);
+        await templateHive.EnsureInstalledAsync(buildEnvToUse);
         try
         {
             await using var project = await AspireProject.CreateNewTemplateProjectAsync(
@@ -97,8 +97,8 @@ public class NewAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) : 
 
         var buildEnvToUse = sdk switch
         {
-            TestSdk.Current => BuildEnvironment.ForCurrentSdk,
-            TestSdk.Previous => BuildEnvironment.ForPreviousSdk,
+            TestSdk.Current => BuildEnvironment.ForCurrentSdkOnly,
+            TestSdk.Previous => BuildEnvironment.ForPreviousSdkOnly,
             TestSdk.CurrentSdkAndPreviousRuntime => BuildEnvironment.ForCurrentSdkAndPreviousRuntime,
             _ => throw new ArgumentOutOfRangeException(nameof(sdk))
         };
@@ -111,7 +111,7 @@ public class NewAndBuildStandaloneTemplateTests(ITestOutputHelper testOutput) : 
             _ => throw new ArgumentOutOfRangeException(nameof(templates))
         };
 
-        await templateHive.InstallAsync(buildEnvToUse);
+        await templateHive.EnsureInstalledAsync(buildEnvToUse);
         try
         {
             await using var project = await AspireProject.CreateNewTemplateProjectAsync(

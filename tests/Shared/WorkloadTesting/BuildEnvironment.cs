@@ -15,7 +15,7 @@ public class BuildEnvironment
     public string                           LogRootPath                   { get; init; }
 
     public string                           BuiltNuGetsPath               { get; init; }
-    public bool                             UsesCustomDotNet      { get; init; }
+    public bool                             UsesCustomDotNet              { get; init; }
     public bool                             UsesSystemDotNet => !UsesCustomDotNet;
     public string?                          NuGetPackagesPath             { get; init; }
     public DirectoryInfo?                   RepoRoot                      { get; init; }
@@ -44,14 +44,18 @@ public class BuildEnvironment
             templatesCustomHive: TemplatesCustomHive.With9_0_Net9_And_Net8,
             sdkDirName: "dotnet-tests"));
 
-    public static BuildEnvironment ForPreviousSdk => s_instance_80.Value;
-    public static BuildEnvironment ForCurrentSdk => s_instance_90.Value;
+    public static BuildEnvironment ForPreviousSdkOnly => s_instance_80.Value;
+    public static BuildEnvironment ForCurrentSdkOnly => s_instance_90.Value;
     public static BuildEnvironment ForCurrentSdkAndPreviousRuntime => s_instance_90_80.Value;
 
     public static BuildEnvironment ForDefaultFramework { get; } = DefaultTargetFramework switch
     {
-        TestTargetFramework.Previous => ForPreviousSdk,
-        TestTargetFramework.Current => ForCurrentSdk,
+        TestTargetFramework.Previous => ForPreviousSdkOnly,
+
+        // Use current+previous to allow running tests on helix built with 9.0 sdk
+        // but targeting 8.0 tfm
+        TestTargetFramework.Current => ForCurrentSdkAndPreviousRuntime,
+
         _ => throw new ArgumentOutOfRangeException(nameof(DefaultTargetFramework))
     };
 
@@ -200,7 +204,7 @@ public class BuildEnvironment
         }
 
         TemplatesCustomHive = templatesCustomHive;
-        TemplatesCustomHive?.InstallAsync(this).Wait();
+        // TemplatesCustomHive?.InstallAsync(this).Wait();
 
         static void CleanupTestRootPath()
         {
