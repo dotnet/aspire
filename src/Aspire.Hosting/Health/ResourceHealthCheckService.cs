@@ -40,7 +40,6 @@ internal class ResourceHealthCheckService(ResourceNotificationService resourceNo
 
     private async Task MonitorResourceHealthAsync(ResourceEvent initialEvent, CancellationToken cancellationToken)
     {
-
         var resource = initialEvent.Resource;
         var resourceReadyEventFired = false;
 
