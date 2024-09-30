@@ -16,12 +16,13 @@
     </FluentButton>
 }
 
+<AspireMenuButton ButtonAppearance="Appearance.Lightweight"
+                  Icon="@(new Icons.Regular.Size20.MoreHorizontal())"
+                  Items="@_menuItems"
+                  @ref="_menuButton" />
+
+<FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+
 <FluentButton Appearance="Appearance.Lightweight" Title="@Loc[nameof(Resources.Resources.ResourceActionConsoleLogsText)]" OnClick="@(() => OnConsoleLogs.InvokeAsync())">
     <FluentIcon Value="@s_consoleLogsIcon" />
 </FluentButton>
-
-<AspireMenuButton
-    ButtonAppearance="Appearance.Lightweight"
-    Icon="@(new Icons.Regular.Size20.MoreHorizontal())"
-    Items="@_menuItems"
-    @ref="_menuButton" />
