@@ -3,11 +3,15 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureFunctionsTests
+public class AzureFunctionsTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public void AddAzureFunctionsProject_Works()
@@ -92,6 +96,52 @@ public class AzureFunctionsTests
         Assert.Null(endpointAnnotation.Port);
         Assert.Null(endpointAnnotation.TargetPort);
         Assert.True(endpointAnnotation.IsProxied);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AddAzureFunctionsProject_LogsWhenUsingPreExistingDefaultStorage(bool defaultHostStorageAlreadyExists)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
+        var testSink = new TestSink();
+        var loggerFactory = CreateLoggerFactory(testOutputHelper, testSink);
+        builder.Services.AddSingleton(loggerFactory);
+
+        if (defaultHostStorageAlreadyExists)
+        {
+            builder.AddAzureStorage(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName);
+        }
+        builder.AddAzureFunctionsProject<TestProjectWithPartialPort>("funcapp");
+
+        var host = builder.Build();
+        await host.StartAsync();
+
+        Assert.Equal(defaultHostStorageAlreadyExists, testSink.Writes.Any(write =>
+            write.LogLevel == LogLevel.Warning &&
+            write.LoggerName == AzureFunctionsProjectResourceExtensions.LogCategoryName &&
+            write.Message is { } message &&
+            message.Contains("Found existing default Storage resource 'azFuncHostStorage' for Azure Functions project 'funcapp'.")));
+    }
+
+    public static ILoggerFactory CreateLoggerFactory(ITestOutputHelper testOutputHelper, ITestSink? testSink = null)
+    {
+        return LoggerFactory.Create(builder =>
+        {
+            builder.AddXunit(testOutputHelper, LogLevel.Trace, DateTimeOffset.UtcNow);
+            builder.SetMinimumLevel(LogLevel.Trace);
+            if (testSink is not null)
+            {
+                builder.AddProvider(new TestLoggerProvider(testSink));
+            }
+        });
+    }
+
+    private sealed class TestProjectNoStart : IProjectMetadata
+    {
+        public string ProjectPath => "some-path";
+        public LaunchSettings LaunchSettings => new();
+
     }
 
     private sealed class TestProject : IProjectMetadata

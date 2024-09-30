@@ -2,9 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Microsoft.Extensions.DependencyInjection;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.Storage;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure;
 
@@ -14,6 +16,7 @@ namespace Aspire.Hosting.Azure;
 public static class AzureFunctionsProjectResourceExtensions
 {
     internal const string DefaultAzureFunctionsHostStorageName = "azFuncHostStorage";
+    internal const string LogCategoryName = "Aspire.Hosting.Azure.AzureFunctionsProjectResource";
 
     /// <summary>
     /// Adds an Azure Functions project to the distributed application.
@@ -69,6 +72,18 @@ public static class AzureFunctionsProjectResourceExtensions
 
                 return Task.CompletedTask;
             });
+        }
+        else
+        {
+            builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
+            {
+                var logger = data.Services.GetRequiredService<ILoggerFactory>().CreateLogger(LogCategoryName);
+                logger.LogWarning(
+                    "Found existing default Storage resource '{StorageName}' for Azure Functions project '{ProjectName}'. " +
+                    $"To define the default Storage resource for Azure Functions, use the {nameof(WithHostStorage)} extension method.", storage.Name, resource.Name);
+                return Task.CompletedTask;
+            });
+
         }
 
         resource.HostStorage = storage;
