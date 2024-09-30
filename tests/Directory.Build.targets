@@ -29,7 +29,8 @@
       <ZipTestArchiveTfm Condition="'$(TargetFramework)' != '$(DefaultTargetFramework)'">-$(TargetFramework)</ZipTestArchiveTfm>
     </PropertyGroup>
 
-    <MakeDir Directories="$(TestArchiveTestsDir)" />
+    <!-- TestsArchiveSourceDir is empty (OutDir) for multi-target build step -->
+    <MakeDir Condition="$(TestsArchiveSourceDir) != ''" Directories="$(TestArchiveTestsDir)" />
     <ZipDirectory Condition="$(TestsArchiveSourceDir) != ''"
                   SourceDirectory="$(TestsArchiveSourceDir)"
                   DestinationFile="$([MSBuild]::NormalizePath('$(TestArchiveTestsDir)', '$(MSBuildProjectName)$(ZipTestArchiveTfm).zip'))"
