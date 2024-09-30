@@ -240,6 +240,6 @@ public partial class PlotlyChart : ChartBase
 
     private string GetChartDivClass()
     {
-        return IsDashpageChart ? "" : "plotly-chart-container-single-metric-view";
+        return IsDashpageChart ? "plotly-chart-container" : "plotly-chart-container plotly-chart-container-single-metric-view";
     }
 }

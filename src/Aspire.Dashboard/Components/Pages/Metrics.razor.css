@@ -91,23 +91,17 @@
 ::deep .plotly-chart-container-single-metric-view {
     margin-left: -10px;
     margin-bottom: 10px;
+    max-width: 650px;
+    aspect-ratio: 13 / 9;
 }
 
 ::deep .plotly-chart-container {
     width: 100%;
-    max-width: 650px;
-    aspect-ratio: 13 / 9;
 }
 
 ::deep .metrics-content {
     margin-left: 10px;
     margin-right: 10px;
-}
-
-::deep .plotly-chart-container {
-    width: 100%;
-    max-width: 650px;
-    aspect-ratio: 13 / 9;
 }
 
 ::deep .metric-info-icon {

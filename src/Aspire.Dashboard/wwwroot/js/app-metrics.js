@@ -20,7 +20,7 @@ export function initializeChart(id, traces, exemplarTrace, rangeStartTime, range
         }
     });
 
-    resizeObserver.observe(chartContainerDiv.parentElement);
+    resizeObserver.observe(chartContainerDiv);
 
     var themeColors = getThemeColors();
 
