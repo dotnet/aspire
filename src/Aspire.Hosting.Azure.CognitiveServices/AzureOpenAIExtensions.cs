@@ -87,7 +87,7 @@ public static class AzureOpenAIExtensions
             {
                 var cdkDeployment = new CognitiveServicesAccountDeployment(deployment.Name, cogServicesAccount.ResourceVersion)
                 {
-                    Name = deployment.Name,     
+                    Name = deployment.Name,
                     Parent = cogServicesAccount,
                     Properties = new CognitiveServicesAccountDeploymentProperties()
                     {
