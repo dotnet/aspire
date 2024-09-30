@@ -53,7 +53,14 @@ public partial class ResourceActions : ComponentBase
             OnClick = OnConsoleLogs.InvokeAsync
         });
 
-        _highlightedCommand = Commands.FirstOrDefault(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden);
+        if (ViewportInformation.IsDesktop)
+        {
+            _highlightedCommand = Commands.FirstOrDefault(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden);
+        }
+        else
+        {
+            _highlightedCommand = null;
+        }
 
         var menuCommands = Commands.Where(c => c != _highlightedCommand && c.State != CommandViewModelState.Hidden).ToList();
         if (menuCommands.Count > 0)

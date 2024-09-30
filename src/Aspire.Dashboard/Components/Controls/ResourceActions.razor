@@ -2,23 +2,26 @@
 @using Aspire.Dashboard.Model
 @using Microsoft.FluentUI.AspNetCore.Components
 
-@if (_highlightedCommand is { } highlightedCommand)
+@if (ViewportInformation.IsDesktop)
 {
-    <FluentButton Appearance="Appearance.Lightweight" Title="@(!string.IsNullOrEmpty(highlightedCommand.DisplayDescription) ? highlightedCommand.DisplayDescription : highlightedCommand.DisplayName)" OnClick="@(() => CommandSelected.InvokeAsync(highlightedCommand))" Disabled="@(highlightedCommand.State == CommandViewModelState.Disabled)">
-        @if (!string.IsNullOrEmpty(highlightedCommand.IconName) && CommandViewModel.ResolveIconName(highlightedCommand.IconName, highlightedCommand.IconVariant) is { } icon)
-        {
-            <FluentIcon Value="@icon" />
-        }
-        else
-        {
-            @highlightedCommand.DisplayName
-        }
-    </FluentButton>
-}
-else
-{
-    @* Spacer to keep consistent placing of following buttons if there is no highlighted command *@
-    <div style="display:inline-block; width:32px;"></div>
+    @if (_highlightedCommand is { } highlightedCommand)
+    {
+        <FluentButton Appearance="Appearance.Lightweight" Title="@(!string.IsNullOrEmpty(highlightedCommand.DisplayDescription) ? highlightedCommand.DisplayDescription : highlightedCommand.DisplayName)" OnClick="@(() => CommandSelected.InvokeAsync(highlightedCommand))" Disabled="@(highlightedCommand.State == CommandViewModelState.Disabled)">
+            @if (!string.IsNullOrEmpty(highlightedCommand.IconName) && CommandViewModel.ResolveIconName(highlightedCommand.IconName, highlightedCommand.IconVariant) is { } icon)
+            {
+                <FluentIcon Value="@icon" />
+            }
+            else
+            {
+                @highlightedCommand.DisplayName
+            }
+        </FluentButton>
+    }
+    else
+    {
+        @* Spacer to keep consistent placing of following buttons if there is no highlighted command *@
+        <div style="display:inline-block; width:32px;"></div>
+    }
 }
 
 <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
