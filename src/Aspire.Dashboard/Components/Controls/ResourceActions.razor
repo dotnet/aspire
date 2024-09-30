@@ -16,6 +16,10 @@
     </FluentButton>
 }
 
+<FluentButton Appearance="Appearance.Lightweight" Title="@Loc[nameof(Resources.Resources.ResourceActionConsoleLogsText)]" OnClick="@(() => OnConsoleLogs.InvokeAsync())">
+    <FluentIcon Value="@s_consoleLogsIcon" />
+</FluentButton>
+
 <AspireMenuButton
     ButtonAppearance="Appearance.Lightweight"
     Icon="@(new Icons.Regular.Size20.MoreHorizontal())"
