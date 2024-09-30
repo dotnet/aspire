@@ -73,7 +73,6 @@ public class BuildEnvironment
                 }
                 else
                 {
-                    // FIXME: update
                     string buildCmd = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".\\build.cmd" : "./build.sh";
                     string workloadsProjString = Path.Combine("tests", "workloads.proj");
                     throw new XunitException(
@@ -127,12 +126,6 @@ public class BuildEnvironment
         {
             throw new ArgumentException($"Cannot find TestAssetsPath={TestAssetsPath}");
         }
-
-        // if (!string.IsNullOrEmpty(EnvironmentVariables.SdkForWorkloadTestingPath))
-        // {
-        //     // always allow overridding the dotnet used for testing
-        //     sdkForWorkloadPath = EnvironmentVariables.SdkForWorkloadTestingPath;
-        // }
 
         sdkForWorkloadPath = Path.GetFullPath(sdkForWorkloadPath);
         DefaultBuildArgs = string.Empty;
