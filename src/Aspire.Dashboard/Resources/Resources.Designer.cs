@@ -70,6 +70,33 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Metrics.
+        /// </summary>
+        public static string ResourceActionMetricsText {
+            get {
+                return ResourceManager.GetString("ResourceActionMetricsText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Structured logs.
+        /// </summary>
+        public static string ResourceActionStructuredLogsText {
+            get {
+                return ResourceManager.GetString("ResourceActionStructuredLogsText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Traces.
+        /// </summary>
+        public static string ResourceActionTracesText {
+            get {
+                return ResourceManager.GetString("ResourceActionTracesText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {0} &quot;{1}&quot; failed.
         /// </summary>
         public static string ResourceCommandFailed {
