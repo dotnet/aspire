@@ -83,9 +83,8 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, OpenAISettings>
         => service.GetChatClient("dummy").CompleteChat("dummy gpt");
 
     private static RemoteInvokeOptions EnableTelemetry()
-    => new()
-    {
-        RuntimeConfigurationOptions = { { "OpenAI.Experimental.EnableOpenTelemetry", true } }
-    };
-
+        => new()
+        {
+            RuntimeConfigurationOptions = { { "OpenAI.Experimental.EnableOpenTelemetry", true } }
+        };
 }

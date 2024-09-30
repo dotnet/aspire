@@ -101,8 +101,8 @@ public class ConformanceTests : ConformanceTests<AzureOpenAIClient, AzureOpenAIS
         => service.GetChatClient("dummy").CompleteChat("dummy gpt");
 
     private static RemoteInvokeOptions EnableTelemetry()
-    => new()
-    {
-        RuntimeConfigurationOptions = { { "OpenAI.Experimental.EnableOpenTelemetry", true } }
-    };
+        => new()
+        {
+            RuntimeConfigurationOptions = { { "OpenAI.Experimental.EnableOpenTelemetry", true } }
+        };
 }

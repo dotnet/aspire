@@ -50,9 +50,6 @@ public sealed class AzureOpenAISettings : IConnectionStringSettings
     /// It can be enabled by setting "OpenAI.Experimental.EnableOpenTelemetry" <see cref="AppContext"/> switch to true.
     /// Or by setting "OPENAI_EXPERIMENTAL_ENABLE_OPEN_TELEMETRY" environment variable to "true".
     /// </remarks>
-    /// <value>  
-    /// The default value is <see langword="false"/>.  
-    /// </value>
     public bool DisableMetrics
     {
         get { return _disableMetrics ??= !GetTelemetryDefaultValue(); }
@@ -67,9 +64,6 @@ public sealed class AzureOpenAISettings : IConnectionStringSettings
     /// It can be enabled by setting "OpenAI.Experimental.EnableOpenTelemetry" <see cref="AppContext"/> switch to true.
     /// Or by setting "OPENAI_EXPERIMENTAL_ENABLE_OPEN_TELEMETRY" environment variable to "true".
     /// </remarks>
-    /// <value>  
-    /// The default value is <see langword="false"/>.  
-    /// </value>
     public bool DisableTracing
     {
         get { return _disableTracing ??= !GetTelemetryDefaultValue(); }
