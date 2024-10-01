@@ -144,22 +144,22 @@
       </trans-unit>
       <trans-unit id="LabelAll">
         <source>(All)</source>
-        <target state="new">(All)</target>
+        <target state="translated">(Tout)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelEmpty">
         <source>(Empty)</source>
-        <target state="new">(Empty)</target>
+        <target state="translated">(Vide)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelNone">
         <source>(None)</source>
-        <target state="new">(None)</target>
+        <target state="translated">(Aucun)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelUnset">
         <source>(Unset)</source>
-        <target state="new">(Unset)</target>
+        <target state="translated">(Annuler)</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
