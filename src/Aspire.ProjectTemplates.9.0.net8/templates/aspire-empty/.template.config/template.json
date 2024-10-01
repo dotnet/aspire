@@ -22,9 +22,9 @@
     "editorTreatAs": "solution"
   },
   "precedence": "8000",
-  "identity": "Aspire.Empty.CSharp.8.0",
+  "identity": "Aspire.Empty.CSharp.9.net8",
   "thirdPartyNotices": "https://aka.ms/dotnet/aspire/8.0-third-party-notices",
-  "groupIdentity": "Aspire.Empty",
+  "groupIdentity": "Aspire.Empty.9",
   "guids": [
     "F98A6C4E-E01C-44BB-BCC9-4C23F1CD09CD",
     "8CD1957F-C0E5-454E-8BDC-88F84DD58303",

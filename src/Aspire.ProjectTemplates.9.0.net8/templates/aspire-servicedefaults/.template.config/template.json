@@ -8,23 +8,22 @@
     "Web",
     "Web API",
     "API",
-    "Service",
-    "Test"
+    "Service"
   ],
-  "name": ".NET Aspire Test Project (MSTest)",
-  "defaultName": "Tests",
-  "description": "A project that contains MSTest integration tests of a .NET Aspire AppHost project.",
-  "shortName": "aspire-mstest",
-  "sourceName": "Aspire.Tests.1",
+  "name": ".NET Aspire Service Defaults",
+  "defaultName": "ServiceDefaults",
+  "description": "A project template for creating a .NET Aspire service defaults project.",
+  "shortName": "aspire-servicedefaults",
+  "sourceName": "Aspire.ServiceDefaults1",
   "preferNameDirectory": true,
   "tags": {
     "language": "C#",
     "type": "project"
   },
   "precedence": "8000",
-  "identity": "Aspire.Tests.MSTest.CSharp.8.0",
+  "identity": "Aspire.ServiceDefaults.CSharp.9.net8",
   "thirdPartyNotices": "https://aka.ms/dotnet/aspire/8.0-third-party-notices",
-  "groupIdentity": "Aspire.Tests.MSTest",
+  "groupIdentity": "Aspire.ServiceDefaults.9",
   "symbols": {
     "Framework": {
       "type": "parameter",
@@ -52,7 +51,7 @@
   },
   "primaryOutputs": [
     {
-      "path": "Aspire.Tests.1.csproj"
+      "path": "Aspire.ServiceDefaults1.csproj"
     }
   ],
   "postActions": [
