@@ -13,11 +13,16 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.Internal;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
 using Xunit;
 using Aspire.Npgsql.Tests;
+using OpenTelemetry.Trace;
 
 namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
 public class EnrichNpgsqlTests : ConformanceTests
 {
+    // Disable the common named config test so we can author one
+    // that uses the typeof(TContext).Name as the key for the configuration
+    protected override bool SupportsNamedConfig => true;
+
     public EnrichNpgsqlTests(PostgreSQLContainerFixture containerFixture) : base(containerFixture)
     {
     }
@@ -342,5 +347,28 @@ public class EnrichNpgsqlTests : ConformanceTests
         Assert.IsType<CustomRetryExecutionStrategy>(executionStrategy);
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
+    }
+
+    [Fact]
+    public void EnrichWithNamedAndNonNamedUsesBoth()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:DisableTracing", "false"),
+            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:TestDbContext:DisableTracing", "true")
+        ]);
+
+        builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
+        {
+            AspireEFPostgreSqlExtensionsTests.ConfigureDbContextOptionsBuilderForTesting(optionsBuilder);
+            optionsBuilder.UseNpgsql(ConnectionString);
+        });
+
+        builder.EnrichNpgsqlDbContext<TestDbContext>();
+
+        using var host = builder.Build();
+
+        var tracerProvider = host.Services.GetService<TracerProvider>();
+        Assert.Null(tracerProvider);
     }
 }

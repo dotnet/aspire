@@ -18,16 +18,12 @@ internal static class EntityFrameworkUtils
         where TSettings : new()
     {
         TSettings settings = new();
-        var typeSpecificSectionName = $"{defaultConfigSectionName}:{typeof(TContext).Name}";
-        var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
+        var configurationSection = builder.Configuration.GetSection(defaultConfigSectionName);
+        bindSettings(settings, configurationSection);
+        var typeSpecificConfigurationSection = configurationSection.GetSection(typeof(TContext).Name);
         if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
         {
             bindSettings(settings, typeSpecificConfigurationSection);
-        }
-        else
-        {
-            var section = builder.Configuration.GetSection(defaultConfigSectionName);
-            bindSettings(settings, section);
         }
 
         return settings;
