@@ -116,7 +116,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     protected override async Task OnParametersSetAsync()
     {
         var dashpages = await DashpagePersistence.GetDashpagesAsync(CancellationToken.None);
-        PageViewModel.Dashpages = dashpages;
+        PageViewModel.Dashpages = dashpages.Sort(DashpageDefinition.DisplayNameComparer);
 
         if (await this.InitializeViewModelAsync())
         {

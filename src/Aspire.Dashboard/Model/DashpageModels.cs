@@ -15,6 +15,8 @@ namespace Aspire.Dashboard.Model;
 /// </summary>
 public sealed class DashpageDefinition
 {
+    public static readonly DashpageJsonFilePersistence.DashpageDisplayNameComparer DisplayNameComparer = new();
+
     /// <summary>
     /// Gets the unique name of this dashpage.
     /// </summary>
@@ -106,5 +108,28 @@ public sealed class DashpageJsonFilePersistence(IFileProvider fileProvider) : ID
     internal static ImmutableArray<DashpageDefinition> Deserialize(string json)
     {
         return JsonSerializer.Deserialize<ImmutableArray<DashpageDefinition>>(json, s_options);
+    }
+
+    public sealed class DashpageDisplayNameComparer : IComparer<DashpageDefinition>
+    {
+        public int Compare(DashpageDefinition? x, DashpageDefinition? y)
+        {
+            if (ReferenceEquals(x, y))
+            {
+                return 0;
+            }
+
+            if (y is null)
+            {
+                return 1;
+            }
+
+            if (x is null)
+            {
+                return -1;
+            }
+
+            return string.Compare(x.DisplayName, y.DisplayName, StringComparison.Ordinal);
+        }
     }
 }
