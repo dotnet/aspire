@@ -1,6 +1,7 @@
 [
   {
-    "name": "ASP.NET",
+    "displayName": "ASP.NET",
+    "id": "aspnet",
     "charts": [
       {
         "title": "Request duration",
@@ -23,7 +24,8 @@
     ]
   },
   {
-    "name": "Runtime (Instrumentation Library)",
+    "displayName": "Runtime (Instrumentation Library)",
+    "id": "runtime_instrumentation",
     "charts": [
       {
         "title": "GC Heap Size",
@@ -53,7 +55,8 @@
     ]
   },
   {
-    "name": "HttpClient",
+    "displayName": "HttpClient",
+    "id": "http_client",
     "charts": [
       {
         "title": "Request duration",
@@ -76,7 +79,8 @@
     ]
   },
   {
-    "name": "NgpSQL",
+    "displayName": "Npgsql",
+    "id": "npgsql",
     "charts": [
       {
         "title": "Command duration",

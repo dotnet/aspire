@@ -18,11 +18,14 @@ public sealed class DashpageDefinition
     /// <summary>
     /// Gets the unique name of this dashpage.
     /// </summary>
-    /// <remarks>
-    /// Also used as a display name.
-    /// </remarks>
-    [JsonPropertyName("name")]
-    public required string Name { get; init; }
+    [JsonPropertyName("id")]
+    public required string Id { get; init; }
+
+    /// <summary>
+    /// Gets the display name of this dashpage. Not guaranteed to be unique.
+    /// </summary>
+    [JsonPropertyName("displayName")]
+    public required string DisplayName { get; init; }
 
     /// <summary>
     /// Gets the relative priority of this dashpage, controlling ordering of dashpages in UI.

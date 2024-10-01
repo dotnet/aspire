@@ -99,7 +99,7 @@
                                     {
                                         var instrumentModels = PageViewModel.Dashpages
                                             .Where(PageViewModel.IsDashpageAvailable)
-                                            .Select(i => new MetricInstrumentSelector.MetricInstrument(i.Name, DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedApplication.Name, duration: DurationMinutes, view: ViewKindName, dashpage: i.Name), null));
+                                            .Select(i => new MetricInstrumentSelector.MetricInstrument(i.DisplayName, DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedApplication.Name, duration: DurationMinutes, view: ViewKindName, dashpage: i.Id), null));
 
                                         <MetricInstrumentSelector Title="@Loc[nameof(Dashboard.Resources.Metrics.DashpagesSectionName)]"
                                                                   PageViewModel="@PageViewModel"

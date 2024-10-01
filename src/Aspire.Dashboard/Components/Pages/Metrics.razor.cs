@@ -48,7 +48,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "dashpage")]
-    public string? DashpageName { get; set; }
+    public string? DashpageId { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "duration")]
@@ -135,7 +135,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             InstrumentName = PageViewModel.SelectedInstrument?.Name,
             DurationMinutes = (int)PageViewModel.SelectedDuration.Id.TotalMinutes,
             ViewKind = PageViewModel.SelectedViewKind?.ToString(),
-            DashpageName = PageViewModel.SelectedDashpage?.Name,
+            DashpageId = PageViewModel.SelectedDashpage?.Id,
             DashpageHomeSelected = PageViewModel.DashpagesHomeSelected
         };
     }
@@ -160,8 +160,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             }
         }
 
-        if (!string.IsNullOrEmpty(DashpageName) &&
-            viewModel.Dashpages.FirstOrDefault(page => page.Name.Equals(DashpageName, StringComparisons.OtlpInstrumentName)) is { } dashpage)
+        if (!string.IsNullOrEmpty(DashpageId) &&
+            viewModel.Dashpages.FirstOrDefault(page => page.Id.Equals(DashpageId, StringComparisons.OtlpInstrumentName)) is { } dashpage)
         {
             viewModel.SelectedDashpage = dashpage;
         }
@@ -335,7 +335,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         public string? InstrumentName { get; set; }
         public int DurationMinutes { get; set; }
         public required string? ViewKind { get; set; }
-        public string? DashpageName { get; set; }
+        public string? DashpageId { get; set; }
         public required bool DashpageHomeSelected { get; set; }
     }
 
@@ -372,7 +372,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             instrument: serializable.InstrumentName,
             duration: serializable.DurationMinutes,
             view: serializable.ViewKind,
-            dashpage: serializable.DashpageName,
+            dashpage: serializable.DashpageId,
             isDashpagesHome: serializable.DashpageHomeSelected);
 
         return url;
