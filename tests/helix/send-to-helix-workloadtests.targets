@@ -61,24 +61,6 @@
         <!-- Download results file so coverage files can be extracted -->
         <DownloadFilesFromResults>logs/$(TestProjectName)-%(TestNameSuffix).cobertura.xml;logs/$(TestProjectName)-%(TestNameSuffix).trx</DownloadFilesFromResults>
       </HelixWorkItem>
-
-      <HelixWorkItem Include="@(_WorkloadTestsClassNames->'%(Identity)-net8')">
-        <PayloadArchive>$(TestArchiveTestsDirForWorkloadTests)\$(TestProjectName).zip</PayloadArchive>
-
-        <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
-        <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=-%(TestNameSuffix)&quot;</PreCommands>
-        <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;TEST_NAME_SUFFIX=%(TestNameSuffix)&quot;</PreCommands>
-        <PreCommands>%(PreCommands) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;DEFAULT_TFM_FOR_TESTING=net8.0&quot;</PreCommands>
-
-        <PreCommands Condition="'$(OS)' == 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) set &quot;TEST_ARGS=--filter category^^!=failing^&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
-        <PreCommands Condition="'$(OS)' != 'Windows_NT'">%(PreCommands) $(_ShellCommandSeparator) export &quot;TEST_ARGS=--filter category!=failing&amp;FullyQualifiedName~%(Identity)&quot;</PreCommands>
-
-        <Command>$(_TestRunCommand)</Command>
-        <Timeout>$(_workItemTimeout)</Timeout>
-
-        <!-- Download results file so coverage files can be extracted -->
-        <DownloadFilesFromResults>logs/$(TestProjectName)-%(TestNameSuffix).cobertura.xml;logs/$(TestProjectName)-%(TestNameSuffix).trx</DownloadFilesFromResults>
-      </HelixWorkItem>
     </ItemGroup>
   </Target>
 </Project>
