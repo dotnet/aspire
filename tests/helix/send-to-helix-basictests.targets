@@ -43,7 +43,7 @@
 
       <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
         <PayloadArchive>%(Identity)</PayloadArchive>
-        <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(TestName)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) TEST_TIMEOUT=%(TimeoutMs) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;TEST_NAME_SUFFIX=%(TestNameSuffix)&quot;</PreCommands>
+        <PreCommands>$(_EnvVarSetKeyword) &quot;TEST_NAME=%(TestName)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) TEST_TIMEOUT=%(TimeoutMs) $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;TEST_NAME_SUFFIX=%(TestNameSuffix)&quot; $(_ShellCommandSeparator) $(_EnvVarSetKeyword) &quot;CODE_COV_FILE_SUFFIX=%(TestNameSuffix)&quot;</PreCommands>
 
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>
