@@ -13,4 +13,8 @@ internal static class NatsContainerImageTags
 
     /// <remarks>2.10</remarks>
     public const string Tag = "2.10";
+
+    public const string NuiRegistry = "ghcr.io";
+    public const string NuiImage = "nats-nui/nui";
+    public const string NuiTag = "0.4.4";
 }

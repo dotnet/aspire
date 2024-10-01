@@ -1,7 +1,8 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var nats = builder.AddNats("nats")
-    .WithJetStream();
+    .WithJetStream()
+    .WithNui();
 
 builder.AddProject<Projects.Nats_ApiService>("api")
     .WithExternalHttpEndpoints()

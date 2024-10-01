@@ -302,4 +302,46 @@ public class AddNatsTests
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
     }
+
+    [Fact]
+    public void WithNuiAddsNuiResource()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddNats("nats1").WithNui();
+        builder.AddNats("nats2").WithNui();
+
+        Assert.Single(builder.Resources.OfType<NuiContainerResource>());
+    }
+
+    [Fact]
+    public void WithNuiSupportsChangingContainerImageValues()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddNats("nats").WithNui(c =>
+        {
+            c.WithImageRegistry("example.mycompany.com");
+            c.WithImage("customnui");
+            c.WithImageTag("someothertag");
+        });
+
+        var resource = Assert.Single(builder.Resources.OfType<NuiContainerResource>());
+        var containerAnnotation = Assert.Single(resource.Annotations.OfType<ContainerImageAnnotation>());
+        Assert.Equal("example.mycompany.com", containerAnnotation.Registry);
+        Assert.Equal("customnui", containerAnnotation.Image);
+        Assert.Equal("someothertag", containerAnnotation.Tag);
+    }
+
+    [Fact]
+    public void WithRedisInsightSupportsChangingHostPort()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddNats("nats").WithNui(c =>
+        {
+            c.WithHostPort(1000);
+        });
+
+        var resource = Assert.Single(builder.Resources.OfType<NuiContainerResource>());
+        var endpoint = Assert.Single(resource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(1000, endpoint.Port);
+    }
 }

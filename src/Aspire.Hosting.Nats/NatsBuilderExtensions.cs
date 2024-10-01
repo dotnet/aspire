@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net.Http.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Nats;
 using Aspire.NATS.Net;
@@ -8,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using NATS.Client.Core;
+using Polly;
 
 namespace Aspire.Hosting;
 
@@ -135,6 +137,109 @@ public static class NatsBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         return builder.WithArgs("-js");
+    }
+
+    /// <summary>
+    /// Configures a container resource for Nui (a web UI for NATS) which is pre-configured to connect to the <see cref="NatsServerResource"/> that this method is used on.
+    /// </summary>
+    /// <param name="builder">The NATS server resource builder.</param>
+    /// <param name="configureContainer">Configuration callback for Nui container resource.</param>
+    /// <param name="containerName">The name of the container (Optional).</param>
+    /// <returns></returns>
+    public static IResourceBuilder<NatsServerResource> WithNui(this IResourceBuilder<NatsServerResource> builder,
+        Action<IResourceBuilder<NuiContainerResource>>? configureContainer = null,
+        string? containerName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        if (builder.ApplicationBuilder!.Resources.OfType<NuiContainerResource>().SingleOrDefault() is { } existingNuiResource)
+        {
+            var builderForExistingResource = builder.ApplicationBuilder.CreateResourceBuilder(existingNuiResource);
+            configureContainer?.Invoke(builderForExistingResource);
+            return builder;
+        }
+        else
+        {
+            containerName ??= $"{builder.Resource.Name}-nui";
+
+            builder.ApplicationBuilder.Services.AddHttpClient();
+
+            var nuiContainer = new NuiContainerResource(containerName);
+            var nuiContainerBuilder = builder.ApplicationBuilder.AddResource(nuiContainer)
+                                                 .WithImage(NatsContainerImageTags.NuiImage, NatsContainerImageTags.NuiTag)
+                                                 .WithImageRegistry(NatsContainerImageTags.NuiRegistry)
+                                                 .WithHttpEndpoint(targetPort: 31311, name: "http")
+                                                 .ExcludeFromManifest();
+
+            builder.ApplicationBuilder.Eventing.Subscribe<AfterResourcesCreatedEvent>(async (e, ct) =>
+            {
+                var natsInstances = builder.ApplicationBuilder.Resources.OfType<NatsServerResource>();
+
+                if (!natsInstances.Any())
+                {
+                    // No-op if there are no NATS resources present.
+                    return;
+                }
+
+                var nuiInstance = builder.ApplicationBuilder.Resources.OfType<NuiContainerResource>().Single();
+                var nuiEnpoint = nuiInstance.PrimaryEndpoint;
+
+                var httpClientFactory = e.Services.GetRequiredService<IHttpClientFactory>();
+
+                foreach (var natsInstance in natsInstances)
+                {
+                    if (natsInstance.PrimaryEndpoint.IsAllocated)
+                    {
+                        var natsEndpoint = natsInstance.PrimaryEndpoint;
+
+                        var nuiConnectionConfig = new NuiConnectionConfig(natsInstance.Name)
+                        {
+                            Hosts = [$"{natsEndpoint.Resource.Name}:{natsEndpoint.TargetPort}"]
+                        };
+
+                        var client = httpClientFactory.CreateClient();
+                        client.BaseAddress = new Uri($"{nuiEnpoint.Scheme}://{nuiEnpoint.Host}:{nuiEnpoint.Port}");
+
+                        var pipeline = new ResiliencePipelineBuilder().AddRetry(new Polly.Retry.RetryStrategyOptions
+                        {
+                            Delay = TimeSpan.FromSeconds(2),
+                            MaxRetryAttempts = 5,
+                        }).Build();
+
+                        await pipeline.ExecuteAsync(async (ctx) =>
+                        {
+                            var response = await client.PostAsJsonAsync("/api/connection", nuiConnectionConfig, ctx)
+                                .ConfigureAwait(false);
+
+                            response.EnsureSuccessStatusCode();
+
+                            var d = await response.Content.ReadFromJsonAsync<NuiConnectionConfig>(ctx).ConfigureAwait(false);
+
+                        }, ct).ConfigureAwait(false);
+                    }
+                }
+            });
+
+            configureContainer?.Invoke(nuiContainerBuilder);
+
+            return builder;
+        }
+    }
+
+    /// <summary>
+    /// Configures the host port that the Nui resource is exposed on instead of using randomly assigned port.
+    /// </summary>
+    /// <param name="builder">The resource builder for Nui.</param>
+    /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
+    /// <returns>The resource builder for Nui.</returns>
+    public static IResourceBuilder<NuiContainerResource> WithHostPort(this IResourceBuilder<NuiContainerResource> builder, int? port)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithEndpoint("http", endpoint =>
+        {
+            endpoint.Port = port;
+        });
     }
 
     /// <summary>

@@ -183,4 +183,43 @@ public class NatsPublicApiTests
             : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(name), exception.ParamName);
     }
+
+    [Fact]
+    public void CtorNatsServerResourceWithParametersShouldAcceptNullParameters()
+    {
+        new NatsServerResource("nats", userName: null, password: null);
+    }
+
+    [Fact]
+    public void CtorNuiContainerResourceShouldThrowWhenNameIsNull()
+    {
+        string name = null!;
+
+        var action = () => new NuiContainerResource(name);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(name), exception.ParamName);
+    }
+
+    [Fact]
+    public void WithNuiShouldThrowWhenBuilderIsNull()
+    {
+        IResourceBuilder<NatsServerResource> builder = null!;
+
+        var action = () => builder.WithNui();
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Fact]
+    public void WithHostPortShouldThrowWhenBuilderIsNull()
+    {
+        IResourceBuilder<NuiContainerResource> builder = null!;
+
+        var action = () => builder.WithHostPort(default(int?));
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
 }

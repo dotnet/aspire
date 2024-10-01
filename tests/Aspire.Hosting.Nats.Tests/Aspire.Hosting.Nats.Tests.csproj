@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Nats\NatsContainerImageTags.cs" />
+    <Compile Include="$(RepoRoot)src\Aspire.Hosting.Nats\NuiConnectionConfig.cs" />
   </ItemGroup>
 
 </Project>

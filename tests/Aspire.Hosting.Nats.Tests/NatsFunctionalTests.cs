@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net;
+using System.Net.Http.Json;
 using Aspire.Components.Common.Tests;
 using Aspire.Hosting.Utils;
 using Xunit;
@@ -13,6 +15,7 @@ using NATS.Client.JetStream.Models;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Aspire.Hosting.Tests.Utils;
+using Aspire.Hosting.Testing;
 
 namespace Aspire.Hosting.Nats.Tests;
 
@@ -354,5 +357,50 @@ public class NatsFunctionalTests(ITestOutputHelper testOutputHelper)
         await pendingStart;
 
         await app.StopAsync();
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyNuiResource()
+    {
+        var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        //using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(testOutputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        IResourceBuilder<NuiContainerResource>? nuiBuilder = null;
+        var nats = builder.AddNats("nats");
+        nats.WithNui(c =>
+        {
+            c.WaitFor(nats);
+            nuiBuilder = c;
+        });
+
+        var nats2 = builder.AddNats("nats2")
+            .WithNui();
+
+        Assert.NotNull(nuiBuilder);
+
+        using var app = builder.Build();
+        await app.StartAsync(cts.Token);
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+
+        await rns.WaitForResourceAsync(nuiBuilder.Resource.Name, KnownResourceStates.Running, cts.Token);
+
+        var client = app.CreateHttpClient(nuiBuilder.Resource.Name, "http");
+
+        var response = await client.GetAsync("/");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var connectionResponse = await client.GetAsync("/api/connection");
+        Assert.Equal(HttpStatusCode.OK, connectionResponse.StatusCode);
+        var connectionConfigs = await connectionResponse.Content.ReadFromJsonAsync<NuiConnectionConfig[]>();
+        Assert.NotNull(connectionConfigs);
+        Assert.Equal(2, connectionConfigs.Length);
+        Array.Sort(connectionConfigs, (a, b) => a.Name.CompareTo(b.Name));
+        Assert.Single(connectionConfigs[0].Hosts);
+        Assert.Equal($"{nats.Resource.Name}:{nats.Resource.PrimaryEndpoint.TargetPort}", connectionConfigs[0].Hosts[0]);
+        Assert.Single(connectionConfigs[1].Hosts);
+        Assert.Equal($"{nats2.Resource.Name}:{nats2.Resource.PrimaryEndpoint.TargetPort}", connectionConfigs[1].Hosts[0]);
     }
 }
