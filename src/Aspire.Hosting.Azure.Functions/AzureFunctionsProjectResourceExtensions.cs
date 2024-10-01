@@ -4,9 +4,10 @@
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.Azure;
 using Azure.Provisioning.Storage;
 
-namespace Aspire.Hosting.Azure;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Extension methods for <see cref="AzureFunctionsProjectResource"/>.

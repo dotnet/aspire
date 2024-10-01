@@ -12,6 +12,7 @@ using Aspire.Hosting.Publishing;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Expressions;
+using Azure.Provisioning.KeyVault;
 using Azure.Provisioning.Resources;
 using Microsoft.Extensions.Logging;
 
@@ -129,6 +130,9 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
 
             public List<(ContainerAppVolume, ContainerAppVolumeMount)> Volumes { get; } = [];
 
+            public Dictionary<string, KeyVaultService> KeyVaultRefs { get; } = [];
+            public Dictionary<string, KeyVaultSecret> KeyVaultSecretRefs { get; } = [];
+
             public void WriteToManifest(ManifestPublishingContext context, AzureConstructResource construct)
             {
                 // Assert that the construct has no parameters
@@ -216,6 +220,17 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                 foreach (var (_, parameter) in _bicepParameters)
                 {
                     c.Add(parameter);
+                }
+
+                // Keyvault
+                foreach (var (_, v) in KeyVaultRefs)
+                {
+                    c.Add(v);
+                }
+
+                foreach (var (_, v) in KeyVaultSecretRefs)
+                {
+                    c.Add(v);
                 }
 
                 c.Add(containerAppResource);
@@ -601,7 +616,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                 };
             }
 
-            private async Task<(object, SecretType)> ProcessValueAsync(object value, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken, SecretType secretType = SecretType.None)
+            private async Task<(object, SecretType)> ProcessValueAsync(object value, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken, SecretType secretType = SecretType.None, object? parent = null)
             {
                 if (value is string s)
                 {
@@ -623,35 +638,34 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
 
                 if (value is ConnectionStringReference cs)
                 {
-                    return await ProcessValueAsync(cs.Resource.ConnectionStringExpression, executionContext, cancellationToken, secretType: SecretType.Normal).ConfigureAwait(false);
+                    return await ProcessValueAsync(cs.Resource.ConnectionStringExpression, executionContext, cancellationToken, secretType: secretType, parent: parent).ConfigureAwait(false);
                 }
 
                 if (value is IResourceWithConnectionString csrs)
                 {
-                    return await ProcessValueAsync(csrs.ConnectionStringExpression, executionContext, cancellationToken, secretType: SecretType.Normal).ConfigureAwait(false);
+                    return await ProcessValueAsync(csrs.ConnectionStringExpression, executionContext, cancellationToken, secretType: secretType, parent: parent).ConfigureAwait(false);
                 }
 
                 if (value is ParameterResource param)
                 {
-                    // This gets translated to a parameter 
-                    var parameterName = AllocateParameter(param);
+                    var st = param.Secret ? SecretType.Normal : secretType;
 
-                    return (parameterName, param.Secret ? SecretType.Normal : secretType);
+                    return (AllocateParameter(param, secretType: st), st);
                 }
 
                 if (value is BicepOutputReference output)
                 {
-                    var parameterName = AllocateParameter(output);
-
-                    return (parameterName, secretType);
+                    return (AllocateParameter(output, secretType: secretType), secretType);
                 }
 
                 if (value is BicepSecretOutputReference secretOutputReference)
                 {
-                    // Externalize secret outputs so azd can fill them in
-                    var parameterName = AllocateParameter(secretOutputReference);
+                    if (parent is null)
+                    {
+                        return (AllocateKeyVaultSecretUriReference(secretOutputReference), SecretType.KeyVault);
+                    }
 
-                    return (parameterName, SecretType.KeyVault);
+                    return (AllocateParameter(secretOutputReference, secretType: SecretType.KeyVault), SecretType.KeyVault);
                 }
 
                 if (value is EndpointReferenceExpression epExpr)
@@ -669,19 +683,19 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
 
                 if (value is ReferenceExpression expr)
                 {
+                    // Special case simple expressions
+                    if (expr.Format == "{0}" && expr.ValueProviders.Count == 1)
+                    {
+                        return await ProcessValueAsync(expr.ValueProviders[0], executionContext, cancellationToken, secretType, parent: parent).ConfigureAwait(false);
+                    }
+
                     var args = new object[expr.ValueProviders.Count];
                     var index = 0;
                     var finalSecretType = SecretType.None;
 
                     foreach (var vp in expr.ValueProviders)
                     {
-                        var (val, secret) = await ProcessValueAsync(vp, executionContext, cancellationToken, secretType).ConfigureAwait(false);
-
-                        // Special case references to keyvault secrets
-                        if (expr.Format == "{0}" && expr.ValueProviders.Count == 1 && secret == SecretType.KeyVault)
-                        {
-                            return (val, secret);
-                        }
+                        var (val, secret) = await ProcessValueAsync(vp, executionContext, cancellationToken, secretType, parent: expr).ConfigureAwait(false);
 
                         if (secret != SecretType.None)
                         {
@@ -698,9 +712,36 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                 throw new NotSupportedException("Unsupported value type " + value.GetType());
             }
 
-            private BicepParameter AllocateVolumeStorageAccount(ContainerMountType type, string volumeIndex)
+            private BicepParameter AllocateVolumeStorageAccount(ContainerMountType type, string volumeIndex) =>
+                AllocateParameter(VolumeStorageExpression.GetVolumeStorage(resource, type, volumeIndex));
+
+            private BicepValue<string> AllocateKeyVaultSecretUriReference(BicepSecretOutputReference secretOutputReference)
             {
-                return AllocateParameter(VolumeStorageExpression.GetVolumeStorage(resource, type, volumeIndex));
+                if (!KeyVaultRefs.TryGetValue(secretOutputReference.Resource.Name, out var kv))
+                {
+                    // We resolve the keyvault that represents the storage for secret outputs
+                    var parameter = AllocateParameter(SecretOutputExpression.GetSecretOuputKeyVault(secretOutputReference.Resource));
+                    kv = KeyVaultService.FromExisting($"{parameter.ResourceName}_kv");
+                    kv.Name = parameter;
+
+                    KeyVaultRefs[secretOutputReference.Resource.Name] = kv;
+                }
+
+                if (!KeyVaultSecretRefs.TryGetValue(secretOutputReference.ValueExpression, out var secret))
+                {
+                    // Now we resolve the secret
+                    secret = KeyVaultSecret.FromExisting($"{kv.ResourceName}_{secretOutputReference.Name}");
+                    secret.Name = secretOutputReference.Name;
+                    secret.Parent = kv;
+
+                    KeyVaultSecretRefs[secretOutputReference.ValueExpression] = secret;
+                }
+
+                // TODO: There should be a better way to do this?
+                return new MemberExpression(
+                            new MemberExpression(
+                               new IdentifierExpression(secret.ResourceName), "properties"),
+                            "secretUri");
             }
 
             private BicepParameter AllocateContainerImageParameter()
@@ -718,7 +759,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                 _containerRegistryManagedIdentityIdParameter ??= AllocateParameter(_containerAppEnviromentContext.ContainerRegistryManagedIdentityId);
             }
 
-            private BicepParameter AllocateParameter(IManifestExpressionProvider parameter, Type? type = null)
+            private BicepParameter AllocateParameter(IManifestExpressionProvider parameter, Type? type = null, SecretType secretType = SecretType.None)
             {
                 if (!_allocatedParameters.TryGetValue(parameter, out var parameterName))
                 {
@@ -734,9 +775,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
 
                 if (!_bicepParameters.TryGetValue(parameterName, out var bicepParameter))
                 {
-                    var isSecure = parameter is BicepSecretOutputReference || parameter is ParameterResource { Secret: true };
-
-                    _bicepParameters[parameterName] = bicepParameter = new BicepParameter(parameterName, type ?? typeof(string)) { IsSecure = isSecure };
+                    _bicepParameters[parameterName] = bicepParameter = new BicepParameter(parameterName, type ?? typeof(string)) { IsSecure = secretType != SecretType.None };
                 }
 
                 Parameters[parameterName] = parameter;
@@ -957,6 +996,13 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
 
         private static IManifestExpressionProvider GetExpression(string propertyExpression) =>
             new AzureContainerAppsEnvironment(propertyExpression);
+    }
+
+    private sealed class SecretOutputExpression(AzureBicepResource resource) : IManifestExpressionProvider
+    {
+        public string ValueExpression => $"{{{resource.Name}.secretOutputs}}";
+        public static IManifestExpressionProvider GetSecretOuputKeyVault(AzureBicepResource resource) =>
+            new SecretOutputExpression(resource);
     }
 
     private sealed class ProjectResourceExpression(ProjectResource projectResource, string propertyExpression) : IManifestExpressionProvider

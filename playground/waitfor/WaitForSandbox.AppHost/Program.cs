@@ -3,9 +3,12 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var db = builder.AddPostgres("pg")
-                .PublishAsAzurePostgresFlexibleServer()
-                .WithPgAdmin()
+var db = builder.AddAzurePostgresFlexibleServer("pg")
+                .WithPasswordAuthentication()
+                .RunAsContainer(c =>
+                {
+                    c.WithPgAdmin();
+                })
                 .AddDatabase("db");
 
 var dbsetup = builder.AddProject<Projects.WaitForSandbox_DbSetup>("dbsetup")

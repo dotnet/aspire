@@ -44,6 +44,9 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Hidden;
                 }
             },
+            displayDescription: null,
+            parameter: null,
+            confirmationMessage: null,
             iconName: "Play",
             iconVariant: IconVariant.Filled,
             isHighlighted: true));
@@ -73,6 +76,9 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Hidden;
                 }
             },
+            displayDescription: null,
+            parameter: null,
+            confirmationMessage: null,
             iconName: "Stop",
             iconVariant: IconVariant.Filled,
             isHighlighted: true));
@@ -99,6 +105,9 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Enabled;
                 }
             },
+            displayDescription: null,
+            parameter: null,
+            confirmationMessage: null,
             iconName: "ArrowCounterclockwise",
             iconVariant: IconVariant.Regular,
             isHighlighted: false));
