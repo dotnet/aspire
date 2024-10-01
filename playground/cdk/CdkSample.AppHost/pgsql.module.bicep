@@ -8,16 +8,16 @@ param administratorLoginPassword string
 
 param keyVaultName string
 
-resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
-  name: keyVaultName
-}
-
 resource pgsql 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
   name: take('pgsql${uniqueString(resourceGroup().id)}', 24)
   location: location
   properties: {
     administratorLogin: administratorLogin
     administratorLoginPassword: administratorLoginPassword
+    authConfig: {
+      activeDirectoryAuth: 'Disabled'
+      passwordAuth: 'Enabled'
+    }
     availabilityZone: '1'
     backup: {
       backupRetentionDays: 7
@@ -52,6 +52,10 @@ resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flex
 resource pgsqldb 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2022-12-01' = {
   name: 'pgsqldb'
   parent: pgsql
+}
+
+resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
+  name: keyVaultName
 }
 
 resource connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {

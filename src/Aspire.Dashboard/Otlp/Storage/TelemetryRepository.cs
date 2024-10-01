@@ -1022,6 +1022,7 @@ public sealed class TelemetryRepository
         {
             events.Add(new OtlpSpanEvent(newSpan)
             {
+                InternalId = Guid.NewGuid(),
                 Name = e.Name,
                 Time = OtlpHelpers.UnixNanoSecondsToDateTime(e.TimeUnixNano),
                 Attributes = e.Attributes.ToKeyValuePairs(options)
@@ -1083,7 +1084,7 @@ public sealed class TelemetryRepository
         else
         {
             var allDimensions = new List<DimensionScope>();
-            var allKnownAttributes = new Dictionary<string, List<string>>();
+            var allKnownAttributes = new Dictionary<string, List<string?>>();
 
             foreach (var instrument in instruments)
             {

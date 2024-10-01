@@ -38,7 +38,7 @@ public class PlaywrightTestsBase<TDashboardServerFixture> : IClassFixture<TDashb
         _context ??= await PlaywrightFixture.Browser.NewContextAsync(new BrowserNewContextOptions
         {
             IgnoreHTTPSErrors = true,
-            BaseURL = DashboardServerFixture.DashboardApp.FrontendEndPointAccessor().Address
+            BaseURL = DashboardServerFixture.DashboardApp.FrontendSingleEndPointAccessor().GetResolvedAddress()
         });
 
         return await _context.NewPageAsync();

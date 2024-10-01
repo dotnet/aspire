@@ -50,7 +50,7 @@ internal sealed class DashboardServiceData : IAsyncDisposable
                     ExitCode = snapshot.ExitCode,
                     State = snapshot.State?.Text,
                     StateStyle = snapshot.State?.Style,
-                    HealthState = resource.TryGetLastAnnotation<HealthCheckAnnotation>(out _) ? snapshot.HealthStatus switch
+                    HealthState = resource.TryGetAnnotationsIncludingAncestorsOfType<HealthCheckAnnotation>(out _) ? snapshot.HealthStatus switch
                     {
                         HealthStatus.Healthy => HealthStateKind.Healthy,
                         HealthStatus.Unhealthy => HealthStateKind.Unhealthy,
@@ -120,7 +120,7 @@ internal sealed class DashboardServiceData : IAsyncDisposable
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Error executing command '{Type}'.", type);
-                    return (ExecuteCommandResult.Failure, "Command throw an unhandled exception.");
+                    return (ExecuteCommandResult.Failure, "Unhandled exception thrown.");
                 }
             }
         }

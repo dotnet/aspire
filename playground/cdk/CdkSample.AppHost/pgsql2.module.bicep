@@ -1,23 +1,20 @@
 @description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
-param administratorLogin string
+param principalId string
 
-@secure()
-param administratorLoginPassword string
+param principalType string
 
-param keyVaultName string
-
-resource keyVault 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
-  name: keyVaultName
-}
+param principalName string
 
 resource pgsql2 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
   name: take('pgsql${uniqueString(resourceGroup().id)}', 24)
   location: location
   properties: {
-    administratorLogin: administratorLogin
-    administratorLoginPassword: administratorLoginPassword
+    authConfig: {
+      activeDirectoryAuth: 'Enabled'
+      passwordAuth: 'Disabled'
+    }
     availabilityZone: '1'
     backup: {
       backupRetentionDays: 7
@@ -49,10 +46,17 @@ resource postgreSqlFirewallRule_AllowAllAzureIps 'Microsoft.DBforPostgreSQL/flex
   parent: pgsql2
 }
 
-resource connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' = {
-  name: 'connectionString'
+resource pgsql2_admin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2022-12-01' = {
+  name: principalId
   properties: {
-    value: 'Host=${pgsql2.properties.fullyQualifiedDomainName};Username=${administratorLogin};Password=${administratorLoginPassword}'
+    principalName: principalName
+    principalType: principalType
   }
-  parent: keyVault
+  parent: pgsql2
+  dependsOn: [
+    pgsql2
+    postgreSqlFirewallRule_AllowAllAzureIps
+  ]
 }
+
+output connectionString string = 'Host=${pgsql2.properties.fullyQualifiedDomainName};Username=${principalName}'

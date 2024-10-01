@@ -4,8 +4,10 @@
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Aspire.Hosting.Azure;
+using Azure.Provisioning.Storage;
 
-namespace Aspire.Hosting.Azure;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Extension methods for <see cref="AzureFunctionsProjectResource"/>.
@@ -30,8 +32,24 @@ public static class AzureFunctionsProjectResourceExtensions
 
         if (storage is null)
         {
-            storage = builder.AddAzureStorage("azFuncHostStorage").RunAsEmulator().Resource;
-
+            // Azure Functions blob triggers require StorageAccountContributor access to the host storage
+            // account when deployed. We assign this role to the host storage resource when running in publish mode.
+            if (builder.ExecutionContext.IsPublishMode)
+            {
+                var configureConstruct = (ResourceModuleConstruct construct) =>
+                {
+#pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+                    var storageAccount = construct.GetResources().OfType<StorageAccount>().FirstOrDefault(r => r.ResourceName == DefaultAzureFunctionsHostStorageName)
+                        ?? throw new InvalidOperationException($"Could not find storage account with '{DefaultAzureFunctionsHostStorageName}' name.");
+                    construct.Add(storageAccount.AssignRole(StorageBuiltInRole.StorageAccountContributor, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
+#pragma warning restore AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+                };
+                storage = builder.AddAzureStorage(DefaultAzureFunctionsHostStorageName).ConfigureConstruct(configureConstruct).RunAsEmulator().Resource;
+            }
+            else
+            {
+                storage = builder.AddAzureStorage(DefaultAzureFunctionsHostStorageName).RunAsEmulator().Resource;
+            }
             builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
             {
                 var removeStorage = true;
@@ -65,6 +83,14 @@ public static class AzureFunctionsProjectResourceExtensions
                 context.EnvironmentVariables["OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY"] = "in_memory";
                 context.EnvironmentVariables["ASPNETCORE_FORWARDEDHEADERS_ENABLED"] = "true";
                 context.EnvironmentVariables["FUNCTIONS_WORKER_RUNTIME"] = "dotnet-isolated";
+                // Set ASPNETCORE_URLS to use the non-privileged port 8080 when running in publish mode.
+                // We can't use the newer ASPNETCORE_HTTP_PORTS environment variables here since the Azure
+                // Functions host is still initialized using the classic WebHostBuilder.
+                if (context.ExecutionContext.IsPublishMode)
+                {
+                    var endpoint = resource.GetEndpoint("http");
+                    context.EnvironmentVariables["ASPNETCORE_URLS"] = ReferenceExpression.Create($"http://+:{endpoint.Property(EndpointProperty.TargetPort)}");
+                }
 
                 // Set the storage connection string.
                 ((IResourceWithAzureFunctionsConfig)resource.HostStorage).ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, "Storage");
@@ -92,7 +118,18 @@ public static class AzureFunctionsProjectResourceExtensions
     /// <remarks>
     /// If the Azure Function is running under publish mode, we don't need to map the port
     /// the host should listen on from the launch profile. Instead, we'll use the default
-    /// post (8080) used by the Azure Functions container image.
+    /// post (8080) used by the .NET container image. The Azure Functions container images
+    /// extend the .NET container image and override the default port to 80 for back-compat
+    /// purposes. We use the default port (8080) to avoid using privileged ports in the
+    /// container image.
+    /// </remarks>
+    /// <remarks>
+    /// /// We provide a custom overload of `WithReference` that allows for the injection of Azure
+    /// Functions-specific configuration. The default connection key name that Aspire uses for
+    /// resources (ConnectionStrings__{connectionName}) conflicts with Function's expectations
+    /// that single-valued config items under the ConnectionStrings prefix must be connection strings.
+    /// To work around this, we inject the connection string under the {connectionName} key and
+    /// use Aspire's configuration provider model to support the Aspire client integrations.
     /// </remarks>
     /// <param name="builder">The resource builder for the Azure Functions project resource.</param>
     /// <returns>An <see cref="IResourceBuilder{AzureFunctionsProjectResource}"/> for the Azure Functions project resource with the endpoint configured.</returns>
@@ -101,8 +138,8 @@ public static class AzureFunctionsProjectResourceExtensions
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             return builder
-                .WithHttpEndpoint()
-                .WithHttpsEndpoint();
+                .WithHttpEndpoint(targetPort: 8080)
+                .WithHttpsEndpoint(targetPort: 8080);
         }
         var launchProfile = builder.Resource.GetEffectiveLaunchProfile();
         int? port = null;
@@ -138,7 +175,7 @@ public static class AzureFunctionsProjectResourceExtensions
     }
 
     /// <summary>
-    /// Injects Azure Functions specific connection information into the environment variables of the azure functions
+    /// Injects Azure Functions specific connection information into the environment variables of the Azure Functions
     /// project resource.
     /// </summary>
     /// <typeparam name="TSource">The resource that implements the <see cref="IResourceWithAzureFunctionsConfig"/>.</typeparam>
@@ -148,13 +185,9 @@ public static class AzureFunctionsProjectResourceExtensions
     public static IResourceBuilder<AzureFunctionsProjectResource> WithReference<TSource>(this IResourceBuilder<AzureFunctionsProjectResource> destination, IResourceBuilder<TSource> source, string? connectionName = null)
         where TSource : IResourceWithConnectionString, IResourceWithAzureFunctionsConfig
     {
-        // REVIEW: There's a conflict with the connection strings formats and various azure functions extensions
-        // we want to keep injecting the normal connection strings as this will currently stop the aspire components from working in functions projects.
-
         return destination.WithEnvironment(context =>
         {
             connectionName ??= source.Resource.Name;
-
             source.Resource.ApplyAzureFunctionsConfiguration(context.EnvironmentVariables, connectionName);
         });
     }

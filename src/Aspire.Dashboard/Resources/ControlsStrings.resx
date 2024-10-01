@@ -215,7 +215,7 @@
   <data name="ViewAction" xml:space="preserve">
     <value>View</value>
   </data>
-  <data name="All" xml:space="preserve">
+  <data name="LabelAll" xml:space="preserve">
     <value>(All)</value>
   </data>
   <data name="ChartContainerAllTags" xml:space="preserve">
@@ -230,7 +230,7 @@
   <data name="ChartContainerShowCountLabel" xml:space="preserve">
     <value>Show count</value>
   </data>
-  <data name="None" xml:space="preserve">
+  <data name="LabelNone" xml:space="preserve">
     <value>(None)</value>
   </data>
   <data name="MetricTableStartColumnHeader" xml:space="preserve">
@@ -385,5 +385,11 @@
   </data>
   <data name="StructuredFilteringAddFilter" xml:space="preserve">
     <value>Add filter</value>
+  </data>
+  <data name="LabelEmpty" xml:space="preserve">
+    <value>(Empty)</value>
+  </data>
+  <data name="LabelUnset" xml:space="preserve">
+    <value>(Unset)</value>
   </data>
 </root>
