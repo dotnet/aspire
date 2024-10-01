@@ -23,9 +23,8 @@ public partial class AppHostTemplateTests : WorkloadTestsBase
             "aspire-apphost",
             _testOutput,
             BuildEnvironment.ForDefaultFramework,
-            string.Empty,
-            false);
-        
+            addEndpointsHook: false);
+
         var projectPath = Path.Combine(project.RootDir, $"{projectId}.csproj");
 
         // Replace the reference to Aspire.Hosting.AppHost with version 8.1.0
