@@ -93,6 +93,7 @@ public static class AspireRedisExtensions
             configurationOptions =>
             {
                 BindToConfiguration(configurationOptions, configSection);
+                BindToConfiguration(configurationOptions, namedConfigSection);
 
                 configureOptions?.Invoke(configurationOptions);
             });
