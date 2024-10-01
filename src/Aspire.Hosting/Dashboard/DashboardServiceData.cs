@@ -120,7 +120,7 @@ internal sealed class DashboardServiceData : IAsyncDisposable
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Error executing command '{Type}'.", type);
-                    return (ExecuteCommandResult.Failure, "Command threw an unhandled exception.");
+                    return (ExecuteCommandResult.Failure, "Unhandled exception thrown.");
                 }
             }
         }
