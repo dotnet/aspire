@@ -145,7 +145,25 @@ public static class NatsBuilderExtensions
     /// <param name="builder">The NATS server resource builder.</param>
     /// <param name="configureContainer">Configuration callback for Nui container resource.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
-    /// <returns></returns>
+    /// <example>
+    /// Use in application host with a NATS resource
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var nats = builder.AddNats("nats")
+    ///    .WithJetStream()
+    ///    .WithNui();
+    ///
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithReference(nats);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="NatsContainerImageTags.NuiTag"/> tag of the <inheritdoc cref="NatsContainerImageTags.NuiImage"/> container image.
+    /// </remarks>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<NatsServerResource> WithNui(this IResourceBuilder<NatsServerResource> builder,
         Action<IResourceBuilder<NuiContainerResource>>? configureContainer = null,
         string? containerName = null)
@@ -232,6 +250,20 @@ public static class NatsBuilderExtensions
     /// <param name="builder">The resource builder for Nui.</param>
     /// <param name="port">The port to bind on the host. If <see langword="null"/> is used random port will be assigned.</param>
     /// <returns>The resource builder for Nui.</returns>
+    /// <example>
+    /// Use in application host with a Nui resource
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var nats = builder.AddNats("nats")
+    ///    .WithNui(c => c.WithHostPort(1000));
+    ///
+    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    ///   .WithReference(nats);
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
     public static IResourceBuilder<NuiContainerResource> WithHostPort(this IResourceBuilder<NuiContainerResource> builder, int? port)
     {
         ArgumentNullException.ThrowIfNull(builder);
