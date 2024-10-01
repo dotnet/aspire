@@ -25,13 +25,14 @@
     <Error Condition="'$(TestArchiveTestsDir)' == ''" Text="TestArchiveTestsDir property to archive the test folder must be set." />
     <PropertyGroup>
       <TestsArchiveSourceDir Condition="'$(TestsArchiveSourceDir)' == ''">$(OutDir)</TestsArchiveSourceDir>
-      <ZipTestArchiveTfm></ZipTestArchiveTfm>
-      <ZipTestArchiveTfm Condition="'$(TargetFramework)' != '$(DefaultTargetFramework)'">-$(TargetFramework)</ZipTestArchiveTfm>
+
+      <_TestArchiveOutputDir>$(TestArchiveTestsDir)\</_TestArchiveOutputDir>
+      <_TestArchiveOutputDir Condition="'$(TargetFramework)' != '$(DefaultTargetFramework)'">$(_TestArchiveOutputDir)\$(TargetFramework)\</_TestArchiveOutputDir>
     </PropertyGroup>
 
-    <MakeDir Directories="$(TestArchiveTestsDir)" />
+    <MakeDir Directories="$(_TestArchiveOutputDir)" />
     <ZipDirectory SourceDirectory="$(TestsArchiveSourceDir)"
-                  DestinationFile="$([MSBuild]::NormalizePath('$(TestArchiveTestsDir)', '$(MSBuildProjectName)$(ZipTestArchiveTfm).zip'))"
+                  DestinationFile="$([MSBuild]::NormalizePath($(_TestArchiveOutputDir), '$(MSBuildProjectName).zip'))"
                   Overwrite="true" />
   </Target>
 
