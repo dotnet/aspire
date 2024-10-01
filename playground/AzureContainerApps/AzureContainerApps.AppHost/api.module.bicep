@@ -3,7 +3,6 @@ param location string = resourceGroup().location
 
 param api_containerport string
 
-@secure()
 param storage_outputs_blobendpoint string
 
 param account_secretoutputs string
@@ -36,14 +35,6 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
   properties: {
     configuration: {
       secrets: [
-        {
-          name: 'connectionstrings--blobs'
-          value: storage_outputs_blobendpoint
-        }
-        {
-          name: 'connectionstrings--cache'
-          value: 'cache:6379'
-        }
         {
           name: 'connectionstrings--account'
           identity: outputs_azure_container_registry_managed_identity_id
@@ -96,11 +87,11 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = {
             }
             {
               name: 'ConnectionStrings__blobs'
-              secretRef: 'connectionstrings--blobs'
+              value: storage_outputs_blobendpoint
             }
             {
               name: 'ConnectionStrings__cache'
-              secretRef: 'connectionstrings--cache'
+              value: 'cache:6379'
             }
             {
               name: 'ConnectionStrings__account'
