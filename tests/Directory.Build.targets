@@ -21,7 +21,7 @@
     <None Include="$(XunitRunnerJson)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <Target Name="ZipTestArchive" AfterTargets="Build" Condition="'$(ArchiveTests)' == 'true' and '$(IsInnerBuild)' == 'true' and '$(RunTestsOnHelix)' == 'true'">
+  <Target Name="ZipTestArchive" AfterTargets="Build" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true' and '$(IsCrossTargetingBuild)' != 'true'">
     <Error Condition="'$(TestArchiveTestsDir)' == ''" Text="TestArchiveTestsDir property to archive the test folder must be set." />
     <PropertyGroup>
       <TestsArchiveSourceDir Condition="'$(TestsArchiveSourceDir)' == ''">$(OutDir)</TestsArchiveSourceDir>
@@ -30,8 +30,7 @@
     </PropertyGroup>
 
     <MakeDir Directories="$(TestArchiveTestsDir)" />
-    <ZipDirectory Condition="$(TestsArchiveSourceDir) != '' and '$(TargetFramework)' == '$(DefaultTargetFramework)'"
-                  SourceDirectory="$(TestsArchiveSourceDir)"
+    <ZipDirectory SourceDirectory="$(TestsArchiveSourceDir)"
                   DestinationFile="$([MSBuild]::NormalizePath('$(TestArchiveTestsDir)', '$(MSBuildProjectName)$(ZipTestArchiveTfm).zip'))"
                   Overwrite="true" />
   </Target>
