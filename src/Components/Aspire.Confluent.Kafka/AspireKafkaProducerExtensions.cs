@@ -128,9 +128,13 @@ public static class AspireKafkaProducerExtensions
 
         if (!settings.DisableMetrics)
         {
-            builder.Services.TryAddSingleton<MetricsChannel>();
-            builder.Services.AddHostedService<MetricsService>();
-            builder.Services.TryAddSingleton<ConfluentKafkaMetrics>();
+            if (ConfluentKafkaCommon.s_isAspire8ConfluentKafkaMetricsEnabled)
+            {
+                builder.Services.TryAddSingleton<MetricsChannel>();
+                builder.Services.AddHostedService<MetricsService>();
+                builder.Services.TryAddSingleton<ConfluentKafkaMetrics>();
+            }
+
             builder.Services.AddOpenTelemetry().WithMetrics(metricBuilderProvider =>
             {
                 metricBuilderProvider.AddMeter(ConfluentKafkaCommon.MeterName);
@@ -194,7 +198,7 @@ public static class AspireKafkaProducerExtensions
             logger.LogWarning("LogHandler is already set. Skipping... No logs will be written.");
         }
 
-        if (!settings.DisableMetrics)
+        if (!settings.DisableMetrics && ConfluentKafkaCommon.s_isAspire8ConfluentKafkaMetricsEnabled)
         {
             MetricsChannel channel = serviceProvider.GetRequiredService<MetricsChannel>();
             void OnStatistics(IProducer<TKey, TValue> _, string json)
