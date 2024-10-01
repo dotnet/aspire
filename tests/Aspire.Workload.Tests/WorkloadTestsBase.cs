@@ -44,7 +44,6 @@ public partial class WorkloadTestsBase
         return t.Result;
     }
 
-    // returns the testProjectDir
     public async Task<string> CreateAndAddTestTemplateProjectAsync(
         string id,
         string testTemplateName,

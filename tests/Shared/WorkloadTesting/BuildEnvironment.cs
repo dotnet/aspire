@@ -204,7 +204,7 @@ public class BuildEnvironment
         }
 
         TemplatesCustomHive = templatesCustomHive;
-        // TemplatesCustomHive?.InstallAsync(this).Wait();
+        TemplatesCustomHive?.EnsureInstalledAsync(this).Wait();
 
         static void CleanupTestRootPath()
         {

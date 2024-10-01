@@ -5,23 +5,22 @@ namespace Aspire.Workload.Tests;
 
 public class TemplatesCustomHive
 {
-    public string[] TemplatePackageIds { get; init; }
-
-    private string? _customHiveDirectory;
-    public string CustomHiveDirectory => _customHiveDirectory ?? throw new InvalidOperationException($"TemplatesCustomHive has not been installed yet for '{_customHiveDirName}'");
-    private readonly string _customHiveDirName;
-
     private static readonly string s_tmpDirSuffix = Guid.NewGuid().ToString()[..8];
 
+    private readonly string _customHiveDirectory;
+    private readonly string _customHiveDirName;
+
+    public static TemplatesCustomHive With9_0_Net8 { get; } = new([TemplatePackageIdNames.AspireProjectTemplates_9_0_net8], "templates-with-9-net8");
+
+    public static TemplatesCustomHive With9_0_Net9 { get; } = new([TemplatePackageIdNames.AspireProjectTemplates_9_0_net9], "templates-with-9-net9");
     public static TemplatesCustomHive With9_0_Net9_And_Net8 => new(
             [
                 TemplatePackageIdNames.AspireProjectTemplates_9_0_net9,
                 TemplatePackageIdNames.AspireProjectTemplates_9_0_net8
             ], "templates-with-9-net8-net9");
 
-    public static TemplatesCustomHive With9_0_Net8 { get; } = new([TemplatePackageIdNames.AspireProjectTemplates_9_0_net8], "templates-with-9-net8");
-
-    public static TemplatesCustomHive With9_0_Net9 { get; } = new([TemplatePackageIdNames.AspireProjectTemplates_9_0_net9], "templates-with-9-net9");
+    public string[] TemplatePackageIds { get; init; }
+    public string CustomHiveDirectory => _customHiveDirectory ?? throw new InvalidOperationException($"TemplatesCustomHive has not been installed yet for '{_customHiveDirName}'");
 
     public TemplatesCustomHive(string[] templatePackageIds, string customHiveDirName)
     {
@@ -29,16 +28,22 @@ public class TemplatesCustomHive
 
         ArgumentException.ThrowIfNullOrEmpty(customHiveDirName, nameof(customHiveDirName));
         _customHiveDirName = customHiveDirName;
+        var customHiveBaseDirectory = BuildEnvironment.IsRunningOnCI
+                                        ? Path.Combine(Path.GetTempPath(), $"templates-${s_tmpDirSuffix}")
+                                        : Path.Combine(AppContext.BaseDirectory, "templates");
+        _customHiveDirectory = Path.Combine(customHiveBaseDirectory, _customHiveDirName);
     }
 
     public async Task EnsureInstalledAsync(BuildEnvironment buildEnvironment)
     {
-        var customHiveBaseDirectory = BuildEnvironment.IsRunningOnCI
-                                        ? Path.Combine(Path.GetTempPath(), $"templates-${s_tmpDirSuffix}")
-                                        : Path.Combine(AppContext.BaseDirectory, "templates");
+        if (BuildEnvironment.IsRunningOnCI && Directory.Exists(_customHiveDirectory))
+        {
+            // nothing to do
+            Console.WriteLine($"** Custom hive exists, skipping installation: {_customHiveDirectory}");
+            return;
+        }
 
-        _customHiveDirectory = Path.Combine(customHiveBaseDirectory, _customHiveDirName);
-
+        // For local runs, we can skip the installation if nothing has changed
         var packageIdAndPaths =
                 TemplatePackageIds
                     .Select(id => GetPackagePath(buildEnvironment.BuiltNuGetsPath, id))
@@ -47,16 +52,9 @@ public class TemplatesCustomHive
         var installTemplates = true;
         if (Directory.Exists(CustomHiveDirectory))
         {
-            if (BuildEnvironment.IsRunningOnCI)
-            {
-                installTemplates = false;
-            }
-            else
-            {
-                // local run, we can skip the installation if nothing has changed
-                var dirWriteTime = Directory.GetLastWriteTimeUtc(CustomHiveDirectory);
-                installTemplates = packageIdAndPaths.Where(t => new FileInfo(t.id).LastWriteTimeUtc > dirWriteTime).Any();
-            }
+            // local run, we can skip the installation if nothing has changed
+            var dirWriteTime = Directory.GetLastWriteTimeUtc(CustomHiveDirectory);
+            installTemplates = packageIdAndPaths.Where(t => new FileInfo(t.id).LastWriteTimeUtc > dirWriteTime).Any();
         }
 
         if (!installTemplates)
