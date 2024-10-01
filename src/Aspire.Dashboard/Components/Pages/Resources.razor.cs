@@ -349,6 +349,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
         ToastService.UpdateToast(toastParameters.Id, toastParameters);
     }
 
+    // Copied from FluentUI.
     private static (Icon Icon, Color Color)? GetIntentIcon(ToastIntent intent)
     {
         return intent switch
@@ -366,6 +367,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             _ => throw new InvalidOperationException()
         };
     }
+
     private static string GetResourceStateTooltip(ResourceViewModel resource) =>
         resource.ShowReadinessState() ?
         $"{resource.State.Humanize()} ({resource.ReadinessState.Humanize()})"
