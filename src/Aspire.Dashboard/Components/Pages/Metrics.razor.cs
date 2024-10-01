@@ -47,7 +47,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public string? InstrumentName { get; set; }
 
     [Parameter]
-    [SupplyParameterFromQuery(Name = "dashpage")]
+    [SupplyParameterFromQuery(Name = "highlight")]
     public string? DashpageId { get; set; }
 
     [Parameter]

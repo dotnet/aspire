@@ -39,7 +39,7 @@ internal static class DashboardUrls
         }
         if (isDashpagesHome is true)
         {
-            url += "/dashpages";
+            url += "/highlights";
         }
 
         if (meter is not null)
@@ -54,7 +54,7 @@ internal static class DashboardUrls
         if (dashpage is not null)
         {
             // dashpage must be querystring parameters because it's valid for the name to contain forward slashes.
-            url = QueryHelpers.AddQueryString(url, "dashpage", dashpage);
+            url = QueryHelpers.AddQueryString(url, "highlight", dashpage);
         }
         if (duration != null)
         {

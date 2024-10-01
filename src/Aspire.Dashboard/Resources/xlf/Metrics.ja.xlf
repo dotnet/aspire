@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="ja" original="../Metrics.resx">
     <body>
       <trans-unit id="DashpagesSectionName">
-        <source>Dashpages</source>
-        <target state="new">Dashpages</target>
+        <source>Highlights</source>
+        <target state="new">Highlights</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsHeader">
