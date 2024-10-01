@@ -47,6 +47,11 @@
         <target state="translated">Ver registros de consola</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceResourceActions">
+        <source>Resource actions</source>
+        <target state="new">Resource actions</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesActionsColumnHeader">
         <source>Actions</source>
         <target state="translated">Acciones</target>
