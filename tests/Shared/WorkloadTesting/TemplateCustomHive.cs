@@ -105,14 +105,11 @@ public class TemplatesCustomHive
         var installCmd = $"new install --debug:custom-hive {customHiveDirectory} {packagePath}";
         using var cmd = new ToolCommand(dotnet,
                                         new TestOutputWrapper(forceShowBuildOutput: true),
-                                        label: "template install");
+                                        label: "template install")
+                            .WithWorkingDirectory(Path.GetTempPath()); // avoid running from the repo
 
         var res = await cmd.ExecuteAsync(installCmd);
         res.EnsureSuccessful();
         return res;
-    }
-
-    public void Cleanup()
-    {
     }
 }
