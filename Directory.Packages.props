@@ -134,7 +134,6 @@
     <PackageVersion Include="RabbitMQ.Client" Version="[6.8.1,7.0.0)" />
     <PackageVersion Include="StackExchange.Redis" Version="2.8.12" />
     <PackageVersion Include="System.IO.Hashing" Version="8.0.0" />
-    <PackageVersion Include="Testcontainers" Version="3.10.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.2.0" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.3" />
@@ -173,6 +172,7 @@
     <PackageVersion Include="Testcontainers.Milvus" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.Oracle" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.Elasticsearch" Version="$(TestcontainersPackageVersion)" />
+    <PackageVersion Include="Testcontainers" Version="$(TestcontainersPackageVersion)" />
     <!-- playground apps dependencies -->
     <PackageVersion Include="Dapr.AspNetCore" Version="1.14.0" />
     <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="8.2.0" />
