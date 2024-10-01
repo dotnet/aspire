@@ -28,7 +28,8 @@ public class ExpressionResolverTests
         }
 
         var csRef = new ConnectionStringReference(test.Resource, false);
-        Assert.Equal(expectedConnectionString, await ExpressionResolver.Resolve(sourceIsContainer, csRef, CancellationToken.None));
+        var connectionString = await ExpressionResolver.Resolve(sourceIsContainer, csRef, CancellationToken.None);
+        Assert.Equal(expectedConnectionString, connectionString);
     }
 
     [Theory]
@@ -58,14 +59,24 @@ public class ExpressionResolverTests
     }
 }
 
-sealed class TestContainerResource(string name) : ContainerResource(name), IResourceWithConnectionString, IResourceWithEndpoints
+sealed class TestContainerResource : ContainerResource, IResourceWithConnectionString, IResourceWithEndpoints
 {
-    public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"TestEndpoint=http://{MyEndpoint.Property(EndpointProperty.IPV4Host)}:{MyEndpoint.Property(EndpointProperty.Port)}/stuff;");
-    public EndpointReference MyEndpoint => new(this, "endpoint");
+    private readonly EndpointReference _myEndpoint;
+    public TestContainerResource(string name) : base(name)
+    {
+        _myEndpoint = new(this, "endpoint");
+    }
+
+    public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"TestEndpoint=http://{_myEndpoint.Property(EndpointProperty.IPV4Host)}:{_myEndpoint.Property(EndpointProperty.Port)}/stuff;");
 }
 
-sealed class TestContainerResourceWithUrlExpression(string name) : ContainerResource(name), IResourceWithConnectionString, IResourceWithEndpoints
+sealed class TestContainerResourceWithUrlExpression : ContainerResource, IResourceWithConnectionString, IResourceWithEndpoints
 {
-    public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"Url={MyEndpoint.Property(EndpointProperty.Url)};");
-    public EndpointReference MyEndpoint => new(this, "endpoint");
+    private readonly EndpointReference _myEndpoint;
+    public TestContainerResourceWithUrlExpression(string name) : base(name)
+    {
+        _myEndpoint = new(this, "endpoint");
+    }
+
+    public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"Url={_myEndpoint.Property(EndpointProperty.Url)};");
 }
