@@ -17,6 +17,8 @@
     Given we want to be able to support people running on environments where they only have the 9.0 SDK/runtime installed,
     we allow roll-forward to the next major in order to support these customers.-->
     <RollForward>Major</RollForward>
+
+    <DefineConstants>$(DefineConstants);ASPIRE_DASHBOARD</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup>

@@ -605,6 +605,15 @@ public static class ResourceBuilderExtensions
             throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for its parent '{dependency.Resource.Name}'.");
         }
 
+        if (dependency.Resource is IResourceWithParent dependencyResourceWithParent)
+        {
+            // If the dependency resource is a child resource we automatically apply
+            // the WaitFor to the parent resource. This caters for situations where
+            // the child resource itself does not have any health checks setup.
+            var parentBuilder = builder.ApplicationBuilder.CreateResourceBuilder(dependencyResourceWithParent.Parent);
+            builder.WaitFor(parentBuilder);
+        }
+
         return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitUntilHealthy));
     }
 
@@ -712,6 +721,18 @@ public static class ResourceBuilderExtensions
     /// <para>A callback that is used to update the command state. The callback is executed when the command's resource snapshot is updated.</para>
     /// <para>If a callback isn't specified, the command is always enabled.</para>
     /// </param>
+    /// <param name="displayDescription">
+    /// Optional description of the command, to be shown in the UI.
+    /// Could be used as a tooltip. May be localized.
+    /// </param>
+    /// <param name="parameter">
+    /// Optional parameter that configures the command in some way.
+    /// Clients must return any value provided by the server when invoking the command.
+    /// </param>
+    /// <param name="confirmationMessage">
+    /// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
+    /// and the confirmation message before starting the command.
+    /// </param>
     /// <param name="iconName">The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons</param>
     /// <param name="iconVariant">The icon variant.</param>
     /// <param name="isHighlighted">A flag indicating whether the command is highlighted in the UI.</param>
@@ -727,6 +748,9 @@ public static class ResourceBuilderExtensions
         string displayName,
         Func<ExecuteCommandContext, Task<ExecuteCommandResult>> executeCommand,
         Func<UpdateCommandStateContext, ResourceCommandState>? updateState = null,
+        string? displayDescription = null,
+        object? parameter = null,
+        string? confirmationMessage = null,
         string? iconName = null,
         IconVariant? iconVariant = null,
         bool isHighlighted = false) where T : IResource
@@ -738,6 +762,6 @@ public static class ResourceBuilderExtensions
             builder.Resource.Annotations.Remove(existingAnnotation);
         }
 
-        return builder.WithAnnotation(new ResourceCommandAnnotation(type, displayName, updateState ?? (c => ResourceCommandState.Enabled), executeCommand, iconName, iconVariant, isHighlighted));
+        return builder.WithAnnotation(new ResourceCommandAnnotation(type, displayName, updateState ?? (c => ResourceCommandState.Enabled), executeCommand, displayDescription, parameter, confirmationMessage, iconName, iconVariant, isHighlighted));
     }
 }

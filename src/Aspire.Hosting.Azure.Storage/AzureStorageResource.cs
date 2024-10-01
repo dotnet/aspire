@@ -19,6 +19,9 @@ public class AzureStorageResource(string name, Action<ResourceModuleConstruct> c
     private EndpointReference EmulatorQueueEndpoint => new(this, "queue");
     private EndpointReference EmulatorTableEndpoint => new(this, "table");
 
+    internal const string BlobsConnectionKeyPrefix = "Aspire__Azure__Storage__Blobs";
+    internal const string QueuesConnectionKeyPrefix = "Aspire__Azure__Storage__Queues";
+
     /// <summary>
     /// Gets the "blobEndpoint" output reference from the bicep template for the Azure Storage resource.
     /// </summary>
@@ -63,12 +66,21 @@ public class AzureStorageResource(string name, Action<ResourceModuleConstruct> c
     {
         if (IsEmulator)
         {
-            target[connectionName] = GetEmulatorConnectionString();
+            // Injected to support Azure Functions listener initialization.
+            var connectionString = GetEmulatorConnectionString();
+            target[connectionName] = connectionString;
+            // Injected to support Aspire client integration for Azure Storage.
+            target[$"{BlobsConnectionKeyPrefix}__{connectionName}__ConnectionString"] = connectionString;
+            target[$"{QueuesConnectionKeyPrefix}__{connectionName}__ConnectionString"] = connectionString;
         }
         else
         {
+            // Injected to support Azure Functions listener initialization.
             target[$"{connectionName}__blobServiceUri"] = BlobEndpoint;
             target[$"{connectionName}__queueServiceUri"] = QueueEndpoint;
+            // Injected to support Aspire client integration for Azure Storage.
+            target[$"{BlobsConnectionKeyPrefix}__{connectionName}__ServiceUri"] = BlobEndpoint;
+            target[$"{QueuesConnectionKeyPrefix}__{connectionName}__ServiceUri"] = QueueEndpoint;
         }
     }
 }

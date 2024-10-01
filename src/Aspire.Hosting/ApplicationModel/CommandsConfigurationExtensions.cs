@@ -8,9 +8,9 @@ namespace Aspire.Hosting.ApplicationModel;
 
 internal static class CommandsConfigurationExtensions
 {
-    internal const string StartType = "start";
-    internal const string StopType = "stop";
-    internal const string RestartType = "restart";
+    internal const string StartType = "resource-start";
+    internal const string StopType = "resource-stop";
+    internal const string RestartType = "resource-restart";
 
     internal static void AddLifeCycleCommands(this IResource resource)
     {
@@ -44,6 +44,9 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Hidden;
                 }
             },
+            displayDescription: null,
+            parameter: null,
+            confirmationMessage: null,
             iconName: "Play",
             iconVariant: IconVariant.Filled,
             isHighlighted: true));
@@ -73,6 +76,9 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Hidden;
                 }
             },
+            displayDescription: null,
+            parameter: null,
+            confirmationMessage: null,
             iconName: "Stop",
             iconVariant: IconVariant.Filled,
             isHighlighted: true));
@@ -99,6 +105,9 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Enabled;
                 }
             },
+            displayDescription: null,
+            parameter: null,
+            confirmationMessage: null,
             iconName: "ArrowCounterclockwise",
             iconVariant: IconVariant.Regular,
             isHighlighted: false));

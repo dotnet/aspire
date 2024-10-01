@@ -30,11 +30,19 @@ public partial class ResourceActions : ComponentBase
     [Parameter]
     public required EventCallback OnConsoleLogs { get; set; }
 
+    [Parameter]
+    public required int MaxHighlightedCount { get; set; }
+
+    [CascadingParameter]
+    public required ViewportInformation ViewportInformation { get; set; }
+
+    private readonly List<CommandViewModel> _highlightedCommands = new();
     private readonly List<MenuButtonItem> _menuItems = new();
 
     protected override void OnParametersSet()
     {
         _menuItems.Clear();
+        _highlightedCommands.Clear();
 
         _menuItems.Add(new MenuButtonItem
         {
@@ -49,7 +57,12 @@ public partial class ResourceActions : ComponentBase
             OnClick = OnConsoleLogs.InvokeAsync
         });
 
-        var menuCommands = Commands.Where(c => !c.IsHighlighted && c.State != CommandViewModelState.Hidden).ToList();
+        if (ViewportInformation.IsDesktop)
+        {
+            _highlightedCommands.AddRange(Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden).Take(MaxHighlightedCount));
+        }
+
+        var menuCommands = Commands.Where(c => !_highlightedCommands.Contains(c) && c.State != CommandViewModelState.Hidden).ToList();
         if (menuCommands.Count > 0)
         {
             _menuItems.Add(new MenuButtonItem { IsDivider = true });

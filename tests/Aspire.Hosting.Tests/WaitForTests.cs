@@ -315,6 +315,24 @@ public class WaitForTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync();
     }
 
+    [Fact]
+    public void WaitForOnChildResourceAddsWaitAnnotationPointingToParent()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var parentResource = builder.AddResource(new CustomResource("parent"));
+        var childResource = builder.AddResource(new CustomChildResource("child", parentResource.Resource));
+        var containerResource = builder.AddContainer("container", "image", "tag")
+                                       .WaitFor(childResource);
+
+        Assert.True(containerResource.Resource.TryGetAnnotationsOfType<WaitAnnotation>(out var waitAnnotations));
+
+        Assert.Collection(
+            waitAnnotations,
+            a => Assert.Equal(a.Resource, parentResource.Resource),
+            a => Assert.Equal(a.Resource, childResource.Resource)
+            );
+    }
+
     private sealed class CustomChildResource(string name, CustomResource parent) : Resource(name), IResourceWithParent<CustomResource>
     {
         public CustomResource Parent => parent;

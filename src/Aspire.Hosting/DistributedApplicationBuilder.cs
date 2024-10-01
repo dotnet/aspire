@@ -278,18 +278,40 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     private void ConfigureHealthChecks()
     {
+        _innerBuilder.Services.AddSingleton<IValidateOptions<HealthCheckServiceOptions>>(sp =>
+        {
+            var appModel = sp.GetRequiredService<DistributedApplicationModel>();
+            var logger = sp.GetRequiredService<ILogger<DistributedApplicationBuilder>>();
+
+            // Generic message (we update it in the callback to make it more specific).
+            var failureMessage = "A health check registration is missing. Check logs for more details.";
+
+            return new ValidateOptions<HealthCheckServiceOptions>(null, (options) =>
+            {
+                var resourceHealthChecks = appModel.Resources.SelectMany(
+                    r => r.Annotations.OfType<HealthCheckAnnotation>().Select(hca => new { Resource = r, Annotation = hca })
+                    );
+
+                var healthCheckRegistrationKeys = options.Registrations.Select(hcr => hcr.Name).ToHashSet();
+                var missingResourceHealthChecks = resourceHealthChecks.Where(rhc => !healthCheckRegistrationKeys.Contains(rhc.Annotation.Key));
+
+                foreach (var missingResourceHealthCheck in missingResourceHealthChecks)
+                {
+                    sp.GetRequiredService<ILogger<DistributedApplicationBuilder>>().LogCritical(
+                        "The health check '{Key}' is not registered and is required for resource '{ResourceName}'.",
+                        missingResourceHealthCheck.Annotation.Key,
+                        missingResourceHealthCheck.Resource.Name);
+                }
+
+                return !missingResourceHealthChecks.Any();
+            }, failureMessage);
+        });
+
         _innerBuilder.Services.AddSingleton<IConfigureOptions<HealthCheckPublisherOptions>>(sp =>
         {
             return new ConfigureOptions<HealthCheckPublisherOptions>(options =>
             {
-                if (ExecutionContext.IsRunMode)
-                {
-                    // In run mode we route requests to the health check scheduler.
-                    var hcs = sp.GetRequiredService<ResourceHealthCheckScheduler>();
-                    options.Predicate = hcs.Predicate;
-                    options.Period = TimeSpan.FromSeconds(5);
-                }
-                else
+                if (ExecutionContext.IsPublishMode)
                 {
                     // In publish mode we don't run any checks.
                     options.Predicate = (check) => false;
@@ -299,9 +321,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         if (ExecutionContext.IsRunMode)
         {
-            _innerBuilder.Services.AddSingleton<IHealthCheckPublisher, ResourceNotificationHealthCheckPublisher>();
-            _innerBuilder.Services.AddSingleton<ResourceHealthCheckScheduler>();
-            _innerBuilder.Services.AddHostedService<ResourceHealthCheckScheduler>(sp => sp.GetRequiredService<ResourceHealthCheckScheduler>());
+            _innerBuilder.Services.AddSingleton<ResourceHealthCheckService>();
+            _innerBuilder.Services.AddHostedService<ResourceHealthCheckService>(sp => sp.GetRequiredService<ResourceHealthCheckService>());
         }
     }
 

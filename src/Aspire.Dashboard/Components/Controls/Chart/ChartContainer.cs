@@ -1,11 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components;
@@ -136,11 +136,7 @@ public abstract class ChartContainer : ComponentBase, IAsyncDisposable
         var value = OtlpHelpers.GetValue(attributes, filter.Name);
         foreach (var item in filter.SelectedValues)
         {
-            if (item.Empty && string.IsNullOrEmpty(value))
-            {
-                return true;
-            }
-            if (item.Name == value)
+            if (item.Value == value)
             {
                 return true;
             }
@@ -210,15 +206,20 @@ public abstract class ChartContainer : ComponentBase, IAsyncDisposable
                     Name = item.Key
                 };
 
-                dimensionModel.Values.AddRange(item.Value.OrderBy(v => v).Select(v =>
+                dimensionModel.Values.AddRange(item.Value.Select(v =>
                 {
-                    var empty = string.IsNullOrEmpty(v);
+                    var text = v switch
+                    {
+                        null => Loc[ControlsStrings.LabelUnset],
+                        { Length: 0 } => Loc[ControlsStrings.LabelEmpty],
+                        _ => v
+                    };
                     return new DimensionValueViewModel
                     {
-                        Name = empty ? "(Empty)" : v,
-                        Empty = empty
+                        Text = text,
+                        Value = v
                     };
-                }));
+                }).OrderBy(v => v.Text));
 
                 filters.Add(dimensionModel);
             }
@@ -244,7 +245,7 @@ public abstract class ChartContainer : ComponentBase, IAsyncDisposable
                         // Automatically select new incoming values if existing values are all selected.
                         var newSelectedValues = (existing.AreAllValuesSelected ?? false)
                             ? item.Values
-                            : item.Values.Where(newValue => existing.SelectedValues.Any(existingValue => existingValue.Name == newValue.Name));
+                            : item.Values.Where(newValue => existing.SelectedValues.Any(existingValue => existingValue.Value == newValue.Value));
 
                         foreach (var v in newSelectedValues)
                         {
@@ -264,5 +265,19 @@ public abstract class ChartContainer : ComponentBase, IAsyncDisposable
         }
 
         return filters;
+    }
+
+    private Task OnTabChangeAsync(FluentTab newTab)
+    {
+        var id = newTab.Id?.Substring("tab-".Length);
+
+        if (id is null
+            || !Enum.TryParse(typeof(Pages.Metrics.MetricViewKind), id, out var o)
+            || o is not Pages.Metrics.MetricViewKind viewKind)
+        {
+            return Task.CompletedTask;
+        }
+
+        return OnViewChangedAsync(viewKind);
     }
 }

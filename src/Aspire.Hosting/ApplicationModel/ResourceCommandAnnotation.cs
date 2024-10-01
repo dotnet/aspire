@@ -19,6 +19,9 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
         string displayName,
         Func<UpdateCommandStateContext, ResourceCommandState> updateState,
         Func<ExecuteCommandContext, Task<ExecuteCommandResult>> executeCommand,
+        string? displayDescription,
+        object? parameter,
+        string? confirmationMessage,
         string? iconName,
         IconVariant? iconVariant,
         bool isHighlighted)
@@ -32,6 +35,9 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
         DisplayName = displayName;
         UpdateState = updateState;
         ExecuteCommand = executeCommand;
+        DisplayDescription = displayDescription;
+        Parameter = parameter;
+        ConfirmationMessage = confirmationMessage;
         IconName = iconName;
         IconVariant = iconVariant;
         IsHighlighted = isHighlighted;
@@ -58,6 +64,24 @@ public sealed class ResourceCommandAnnotation : IResourceAnnotation
     /// The result is used to indicate success or failure in the UI.
     /// </summary>
     public Func<ExecuteCommandContext, Task<ExecuteCommandResult>> ExecuteCommand { get; }
+
+    /// <summary>
+    /// Optional description of the command, to be shown in the UI.
+    /// Could be used as a tooltip. May be localized.
+    /// </summary>
+    public string? DisplayDescription { get; }
+
+    /// <summary>
+    /// Optional parameter that configures the command in some way.
+    /// Clients must return any value provided by the server when invoking the command.
+    /// </summary>
+    public object? Parameter { get; }
+
+    /// <summary>
+    /// When a confirmation message is specified, the UI will prompt with an OK/Cancel dialog
+    /// and the confirmation message before starting the command.
+    /// </summary>
+    public string? ConfirmationMessage { get; }
 
     /// <summary>
     /// The icon name for the command. The name should be a valid FluentUI icon name. https://aka.ms/fluentui-system-icons

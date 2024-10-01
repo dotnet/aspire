@@ -153,8 +153,6 @@ public class SchemaTests
     [MemberData(nameof(ApplicationSamples))]
     public void ValidateApplicationSamples(string testCaseName, Action<IDistributedApplicationBuilder> configurator)
     {
-        _ = testCaseName;
-
         string manifestDir = Directory.CreateTempSubdirectory(testCaseName).FullName;
         var builder = TestDistributedApplicationBuilder.Create(["--publisher", "manifest", "--output-path", Path.Combine(manifestDir, "not-used.json")]);
         builder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");

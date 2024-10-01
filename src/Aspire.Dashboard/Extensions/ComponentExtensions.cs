@@ -7,6 +7,14 @@ namespace Aspire.Dashboard.Extensions;
 
 internal static class ComponentExtensions
 {
+    public static async Task SafeRefreshDataAsync<T>(this FluentDataGrid<T>? dataGrid)
+    {
+        if (dataGrid != null)
+        {
+            await dataGrid.RefreshDataAsync().ConfigureAwait(false);
+        }
+    }
+
     public static async Task ExecuteOnDefault<T>(this FluentDataGridRow<T> row, Func<T, Task> call)
     {
         // Don't trigger on header rows.

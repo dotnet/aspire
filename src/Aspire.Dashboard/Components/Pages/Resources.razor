@@ -114,11 +114,12 @@
                                                             AdditionalMessage="@additionalMessage" />
                                 </AspireTemplateColumn>
                                 <AspireTemplateColumn ColumnId="@ActionsColumn" ColumnManager="@_manager" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesActionsColumnHeader)]">
-                                    <div style="display: inline-block;" @onclick:stopPropagation="true">
+                                    <div class="resource-action-container" @onclick:stopPropagation="true">
                                         <ResourceActions Commands="@context.Commands"
                                                          CommandSelected="async (command) => await ExecuteResourceCommandAsync(context, command)"
                                                          OnViewDetails="@((buttonId) => ShowResourceDetailsAsync(context, buttonId))"
-                                                         OnConsoleLogs="@(() => NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: context.Name)))" />
+                                                         OnConsoleLogs="@(() => NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: context.Name)))"
+                                                         MaxHighlightedCount="_maxHighlightedCount" />
                                     </div>
                                 </AspireTemplateColumn>
                             </ChildContent>

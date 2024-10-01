@@ -26,6 +26,7 @@ internal static class StringComparers
     public static StringComparer GridColumn => StringComparer.Ordinal;
     public static StringComparer DashpageName => StringComparer.OrdinalIgnoreCase;
     public static StringComparer OtlpAttribute => StringComparer.Ordinal;
+    public static StringComparer OtlpFieldValue => StringComparer.OrdinalIgnoreCase;
 }
 
 internal static class StringComparisons
@@ -49,4 +50,5 @@ internal static class StringComparisons
     public static StringComparison GridColumn => StringComparison.Ordinal;
     public static StringComparison DashpageName => StringComparison.OrdinalIgnoreCase;
     public static StringComparison OtlpAttribute => StringComparison.Ordinal;
+    public static StringComparison OtlpFieldValue => StringComparison.OrdinalIgnoreCase;
 }
