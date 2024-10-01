@@ -245,7 +245,7 @@ public class AzureContainerAppsTests
         var db = builder.AddAzureCosmosDB("mydb").AddDatabase("db");
 
         // Postgres uses secret outputs + a literal connection string
-        var pgdb = builder.AddPostgres("pg").PublishAsAzurePostgresFlexibleServer().AddDatabase("db");
+        var pgdb = builder.AddPostgres("pg").AsAzurePostgresFlexibleServer().AddDatabase("db");
 
         // Connection string (should be considered a secret)
         var blob = builder.AddAzureStorage("storage").AddBlobs("blobs");
@@ -307,10 +307,10 @@ public class AzureContainerAppsTests
           "path": "api.module.bicep",
           "params": {
             "api_containerport": "{api.containerPort}",
-            "mydb_secretoutputs_connectionstring": "{mydb.secretOutputs.connectionString}",
+            "mydb_secretoutputs": "{mydb.secretOutputs}",
             "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
             "storage_outputs_blobendpoint": "{storage.outputs.blobEndpoint}",
-            "pg_password_value": "{pg-password.value}",
+            "pg_secretoutputs_connectionstring": "{pg.secretOutputs.connectionString}",
             "value0_value": "{value0.value}",
             "value1_value": "{value1.value}",
             "outputs_azure_container_apps_environment_default_domain": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
@@ -331,15 +331,14 @@ public class AzureContainerAppsTests
 
         param api_containerport string
 
-        @secure()
-        param mydb_secretoutputs_connectionstring string
+        param mydb_secretoutputs string
 
         param outputs_azure_container_registry_managed_identity_id string
 
         param storage_outputs_blobendpoint string
 
         @secure()
-        param pg_password_value string
+        param pg_secretoutputs_connectionstring string
 
         @secure()
         param value0_value string
@@ -356,6 +355,15 @@ public class AzureContainerAppsTests
 
         param api_containerimage string
 
+        resource mydb_secretoutputs_kv 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
+          name: mydb_secretoutputs
+        }
+
+        resource mydb_secretoutputs_kv_connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' existing = {
+          name: 'connectionString'
+          parent: mydb_secretoutputs_kv
+        }
+
         resource api 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'api'
           location: location
@@ -365,15 +373,11 @@ public class AzureContainerAppsTests
                 {
                   name: 'connectionstrings--mydb'
                   identity: outputs_azure_container_registry_managed_identity_id
-                  keyVaultUrl: mydb_secretoutputs_connectionstring
-                }
-                {
-                  name: 'connectionstrings--blobs'
-                  value: storage_outputs_blobendpoint
+                  keyVaultUrl: mydb_secretoutputs_kv_connectionString.properties.secretUri
                 }
                 {
                   name: 'connectionstrings--db'
-                  value: 'Host=pg;Port=5432;Username=postgres;Password=${pg_password_value};Database=db'
+                  value: '${pg_secretoutputs_connectionstring};Database=db'
                 }
                 {
                   name: 'secretval'
@@ -440,7 +444,7 @@ public class AzureContainerAppsTests
                     }
                     {
                       name: 'ConnectionStrings__blobs'
-                      secretRef: 'connectionstrings--blobs'
+                      value: storage_outputs_blobendpoint
                     }
                     {
                       name: 'ConnectionStrings__db'
@@ -729,6 +733,183 @@ public class AzureContainerAppsTests
                   storageName: api_bindmounts_0_storage
                 }
               ]
+            }
+          }
+          identity: {
+            type: 'UserAssigned'
+            userAssignedIdentities: {
+              '${outputs_azure_container_registry_managed_identity_id}': { }
+            }
+          }
+        }
+        """;
+
+        Assert.Equal(expectedBicep, bicep);
+    }
+
+    [Fact]
+    public async Task SecretOutputHandling()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddContainerAppsInfrastructure();
+
+        var db = builder.AddAzureCosmosDB("mydb").AddDatabase("db");
+
+        builder.AddContainer("api", "image")
+            .WithReference(db)
+            .WithEnvironment(context =>
+            {
+                // Any value that resolves to the secret output can be a direct keyvault reference.
+                // This includes nested expressions.
+                var connectionString = db.GetSecretOutput("connectionString");
+                var secret0 = ReferenceExpression.Create($"{connectionString}");
+                var secret1 = ReferenceExpression.Create($"{secret0}");
+
+                context.EnvironmentVariables["connectionString"] = connectionString;
+                context.EnvironmentVariables["secret0"] = secret0;
+                context.EnvironmentVariables["secret1"] = secret1;
+
+                var connectionString1 = db.GetSecretOutput("connectionString1");
+                // Complex expressions that contain a secret output
+                var complex = ReferenceExpression.Create($"a/{connectionString}/{secret0}/{connectionString1}");
+                context.EnvironmentVariables["complex"] = complex;
+            });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = Assert.Single(model.GetContainerResources());
+
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureConstructResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await ManifestUtils.GetManifestWithBicep(resource);
+
+        var m = manifest.ToString();
+
+        var expectedManifest =
+        """
+        {
+          "type": "azure.bicep.v0",
+          "path": "api.module.bicep",
+          "params": {
+            "mydb_secretoutputs": "{mydb.secretOutputs}",
+            "outputs_azure_container_registry_managed_identity_id": "{.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+            "mydb_secretoutputs_connectionstring": "{mydb.secretOutputs.connectionString}",
+            "mydb_secretoutputs_connectionstring1": "{mydb.secretOutputs.connectionString1}",
+            "outputs_managed_identity_client_id": "{.outputs.MANAGED_IDENTITY_CLIENT_ID}",
+            "outputs_azure_container_apps_environment_id": "{.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}"
+          }
+        }
+        """;
+
+        Assert.Equal(expectedManifest, m);
+
+        var expectedBicep =
+        """
+        @description('The location for the resource(s) to be deployed.')
+        param location string = resourceGroup().location
+
+        param mydb_secretoutputs string
+
+        param outputs_azure_container_registry_managed_identity_id string
+
+        @secure()
+        param mydb_secretoutputs_connectionstring string
+
+        @secure()
+        param mydb_secretoutputs_connectionstring1 string
+
+        param outputs_managed_identity_client_id string
+
+        param outputs_azure_container_apps_environment_id string
+
+        resource mydb_secretoutputs_kv 'Microsoft.KeyVault/vaults@2019-09-01' existing = {
+          name: mydb_secretoutputs
+        }
+
+        resource mydb_secretoutputs_kv_connectionString 'Microsoft.KeyVault/vaults/secrets@2019-09-01' existing = {
+          name: 'connectionString'
+          parent: mydb_secretoutputs_kv
+        }
+
+        resource api 'Microsoft.App/containerApps@2024-03-01' = {
+          name: 'api'
+          location: location
+          properties: {
+            configuration: {
+              secrets: [
+                {
+                  name: 'connectionstrings--mydb'
+                  identity: outputs_azure_container_registry_managed_identity_id
+                  keyVaultUrl: mydb_secretoutputs_kv_connectionString.properties.secretUri
+                }
+                {
+                  name: 'connectionstring'
+                  identity: outputs_azure_container_registry_managed_identity_id
+                  keyVaultUrl: mydb_secretoutputs_kv_connectionString.properties.secretUri
+                }
+                {
+                  name: 'secret0'
+                  identity: outputs_azure_container_registry_managed_identity_id
+                  keyVaultUrl: mydb_secretoutputs_kv_connectionString.properties.secretUri
+                }
+                {
+                  name: 'secret1'
+                  identity: outputs_azure_container_registry_managed_identity_id
+                  keyVaultUrl: mydb_secretoutputs_kv_connectionString.properties.secretUri
+                }
+                {
+                  name: 'complex'
+                  value: 'a/${mydb_secretoutputs_connectionstring}/${mydb_secretoutputs_connectionstring}/${mydb_secretoutputs_connectionstring1}'
+                }
+              ]
+              activeRevisionsMode: 'Single'
+            }
+            environmentId: outputs_azure_container_apps_environment_id
+            template: {
+              containers: [
+                {
+                  image: 'image:latest'
+                  name: 'api'
+                  env: [
+                    {
+                      name: 'ConnectionStrings__mydb'
+                      secretRef: 'connectionstrings--mydb'
+                    }
+                    {
+                      name: 'connectionString'
+                      secretRef: 'connectionstring'
+                    }
+                    {
+                      name: 'secret0'
+                      secretRef: 'secret0'
+                    }
+                    {
+                      name: 'secret1'
+                      secretRef: 'secret1'
+                    }
+                    {
+                      name: 'complex'
+                      secretRef: 'complex'
+                    }
+                    {
+                      name: 'AZURE_CLIENT_ID'
+                      value: outputs_managed_identity_client_id
+                    }
+                  ]
+                }
+              ]
+              scale: {
+                minReplicas: 1
+              }
             }
           }
           identity: {

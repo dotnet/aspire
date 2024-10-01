@@ -21,6 +21,9 @@ namespace Aspire.Hosting.Dashboard;
 internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime, ILogger<DashboardService> logger)
     : Aspire.ResourceService.Proto.V1.DashboardService.DashboardServiceBase
 {
+    // gRPC has a maximum receive size. Force logs into batches to avoid exceeding receive size.
+    public const int LogMaxBatchSize = 500;
+
     // Calls that consume or produce streams must create a linked cancellation token
     // with IHostApplicationLifetime.ApplicationStopping to ensure eager cancellation
     // of pending connections during shutdown.
@@ -71,7 +74,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
 
             await foreach (var batch in updates.WithCancellation(cancellationToken).ConfigureAwait(false))
             {
-                WatchResourcesChanges changes = new();
+                var changes = new WatchResourcesChanges();
 
                 foreach (var update in batch)
                 {
@@ -118,14 +121,20 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
 
             await foreach (var group in subscription.WithCancellation(cancellationToken).ConfigureAwait(false))
             {
-                var update = new WatchResourceConsoleLogsUpdate();
+                var sent = 0;
 
-                foreach (var (lineNumber, content, isErrorMessage) in group)
+                while (sent < group.Count)
                 {
-                    update.LogLines.Add(new ConsoleLogLine() { LineNumber = lineNumber, Text = content, IsStdErr = isErrorMessage });
-                }
+                    var update = new WatchResourceConsoleLogsUpdate();
 
-                await responseStream.WriteAsync(update, cancellationToken).ConfigureAwait(false);
+                    foreach (var (lineNumber, content, isErrorMessage) in group.Skip(sent).Take(LogMaxBatchSize))
+                    {
+                        update.LogLines.Add(new ConsoleLogLine() { LineNumber = lineNumber, Text = content, IsStdErr = isErrorMessage });
+                        sent++;
+                    }
+
+                    await responseStream.WriteAsync(update, cancellationToken).ConfigureAwait(false);
+                }
             }
         }
     }
