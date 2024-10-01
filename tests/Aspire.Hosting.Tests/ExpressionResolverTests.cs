@@ -26,10 +26,8 @@ public class ExpressionResolverTests
             test = test.WithImage("someimage");
         }
 
-        var connRef = new ConnectionStringReference(test.Resource, false);
-        var task = ExpressionResolver.Resolve(sourceIsContainer, connRef, CancellationToken.None);
-
-        Assert.Equal(expectedConnectionString, await task);
+        var csRef = new ConnectionStringReference(test.Resource, false);
+        Assert.Equal(expectedConnectionString, await ExpressionResolver.Resolve(sourceIsContainer, csRef, CancellationToken.None));
     }
 }
 
