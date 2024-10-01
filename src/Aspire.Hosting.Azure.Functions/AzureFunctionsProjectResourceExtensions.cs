@@ -18,6 +18,12 @@ public static class AzureFunctionsProjectResourceExtensions
     internal const string DefaultAzureFunctionsHostStorageName = "azFuncHostStorage";
     internal const string LogCategoryName = "Aspire.Hosting.Azure.AzureFunctionsProjectResource";
 
+    // Internal for testing. Use to track if this is the first call to
+    // AddAzureFunctionsProject in an AppHost to determine if we should
+    // log a warning about the default storage resource being pre-configured
+    // already.
+    internal static bool s_isFirstInvocation = true;
+
     /// <summary>
     /// Adds an Azure Functions project to the distributed application.
     /// </summary>
@@ -34,6 +40,7 @@ public static class AzureFunctionsProjectResourceExtensions
 
         if (storage is null)
         {
+            s_isFirstInvocation = false;
             // Azure Functions blob triggers require StorageAccountContributor access to the host storage
             // account when deployed. We assign this role to the host storage resource when running in publish mode.
             if (builder.ExecutionContext.IsPublishMode)
@@ -75,15 +82,18 @@ public static class AzureFunctionsProjectResourceExtensions
         }
         else
         {
-            builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
+            if (s_isFirstInvocation)
             {
-                var logger = data.Services.GetRequiredService<ILoggerFactory>().CreateLogger(LogCategoryName);
-                logger.LogWarning(
-                    "Found existing default Storage resource '{StorageName}' for Azure Functions project '{ProjectName}'. " +
-                    $"To define the default Storage resource for Azure Functions, use the {nameof(WithHostStorage)} extension method.", storage.Name, resource.Name);
-                return Task.CompletedTask;
-            });
-
+                s_isFirstInvocation = false;
+                builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
+                {
+                    var logger = data.Services.GetRequiredService<ILoggerFactory>().CreateLogger(LogCategoryName);
+                    logger.LogWarning(
+                        "Found existing default Storage resource '{StorageName}' for Azure Functions projects. " +
+                        $"To define the default Storage resource for Azure Functions, use the {nameof(WithHostStorage)} extension method.", storage.Name);
+                    return Task.CompletedTask;
+                });
+            }
         }
 
         resource.HostStorage = storage;
