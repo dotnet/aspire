@@ -51,8 +51,7 @@ var appInsights = builder.AddAzureApplicationInsights("ai", logAnalytics);
 builder.AddAzureApplicationInsights("aiwithoutlaw");
 
 // Redis takes forever to spin up...
-var redis = builder.AddRedis("redis")
-                   .AsAzureRedis();
+var redis = builder.AddAzureRedis("redis");
 
 var serviceBus = builder.AddAzureServiceBus("sb")
                         .AddQueue("queue1")

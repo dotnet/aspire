@@ -3,21 +3,18 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var pg = builder.AddPostgres("pg")
+var db = builder.AddPostgres("pg")
                 .PublishAsAzurePostgresFlexibleServer()
-                .WithPgAdmin();
-
-var db = pg.AddDatabase("db");
+                .WithPgAdmin()
+                .AddDatabase("db");
 
 var dbsetup = builder.AddProject<Projects.WaitForSandbox_DbSetup>("dbsetup")
-                     .WithReference(db)
-                     .WaitFor(pg);
+                     .WithReference(db).WaitFor(db);
 
 builder.AddProject<Projects.WaitForSandbox_ApiService>("api")
        .WithExternalHttpEndpoints()
-       .WaitForCompletion(dbsetup)
-       .WaitFor(db)
-       .WithReference(db);
+       .WithReference(db).WaitFor(db)
+       .WaitForCompletion(dbsetup);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

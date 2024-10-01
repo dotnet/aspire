@@ -3,7 +3,7 @@
 
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.Tests.Utils;
+namespace Microsoft.AspNetCore.InternalTesting;
 
 internal static class AsyncTestHelpers
 {

@@ -5,8 +5,15 @@ using System.Diagnostics;
 
 namespace Aspire.Hosting.ConsoleLogs;
 
+// Type is shared by dashboard and hosting.
+// It needs to be public in dashboard so it can be bound to a parameter.
+// It needs to be internal in hosting because we don't want to expose it as public API.
 [DebuggerDisplay("Count = {EntriesCount}")]
+#if ASPIRE_DASHBOARD
+public sealed class LogEntries(int maximumEntryCount)
+#else
 internal sealed class LogEntries(int maximumEntryCount)
+#endif
 {
     private readonly CircularBuffer<LogEntry> _logEntries = new(maximumEntryCount);
 

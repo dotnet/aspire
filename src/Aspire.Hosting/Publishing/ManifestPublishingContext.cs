@@ -146,8 +146,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
     private async Task WriteProjectAsync(ProjectResource project)
     {
-        Writer.WriteString("type", "project.v0");
-
         if (!project.TryGetLastAnnotation<IProjectMetadata>(out var metadata))
         {
             throw new DistributedApplicationException("Project metadata not found.");
@@ -155,12 +153,38 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         var relativePathToProjectFile = GetManifestRelativePath(metadata.ProjectPath);
 
+        if (project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var deploymentTarget))
+        {
+            Writer.WriteString("type", "project.v1");
+        }
+        else
+        {
+            Writer.WriteString("type", "project.v0");
+        }
+
         Writer.WriteString("path", relativePathToProjectFile);
+
+        if (deploymentTarget is not null)
+        {
+            await WriteDeploymentTarget(deploymentTarget).ConfigureAwait(false);
+        }
 
         await WriteCommandLineArgumentsAsync(project).ConfigureAwait(false);
 
         await WriteEnvironmentVariablesAsync(project).ConfigureAwait(false);
+
         WriteBindings(project);
+    }
+
+    private async Task WriteDeploymentTarget(DeploymentTargetAnnotation deploymentTarget)
+    {
+        if (deploymentTarget.DeploymentTarget.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var manifestPublishingCallbackAnnotation) &&
+            manifestPublishingCallbackAnnotation.Callback is not null)
+        {
+            Writer.WriteStartObject("deployment");
+            await manifestPublishingCallbackAnnotation.Callback(this).ConfigureAwait(false);
+            Writer.WriteEndObject();
+        }
     }
 
     private async Task WriteExecutableAsync(ExecutableResource executable)
@@ -224,6 +248,8 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// <exception cref="DistributedApplicationException">Thrown if the container resource does not contain a <see cref="ContainerImageAnnotation"/>.</exception>
     public async Task WriteContainerAsync(ContainerResource container)
     {
+        container.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var deploymentTarget);
+
         if (container.Annotations.OfType<DockerfileBuildAnnotation>().Any())
         {
             Writer.WriteString("type", "container.v1");
@@ -232,13 +258,27 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         }
         else
         {
-            Writer.WriteString("type", "container.v0");
             if (!container.TryGetContainerImageName(out var image))
             {
                 throw new DistributedApplicationException("Could not get container image name.");
             }
+
+            if (deploymentTarget is not null)
+            {
+                Writer.WriteString("type", "container.v1");
+            }
+            else
+            {
+                Writer.WriteString("type", "container.v0");
+            }
+
             WriteConnectionString(container);
             Writer.WriteString("image", image);
+        }
+
+        if (deploymentTarget is not null)
+        {
+            await WriteDeploymentTarget(deploymentTarget).ConfigureAwait(false);
         }
 
         if (container.Entrypoint is not null)

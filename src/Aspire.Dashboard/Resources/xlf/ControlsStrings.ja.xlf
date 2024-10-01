@@ -2,14 +2,9 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ja" original="../ControlsStrings.resx">
     <body>
-      <trans-unit id="All">
-        <source>(All)</source>
-        <target state="needs-review-translation">すべて</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ApplicationLower">
         <source>application</source>
-        <target state="new">application</target>
+        <target state="translated">アプリケーション</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerAllTags">
@@ -104,27 +99,27 @@
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellResizeButtonText">
         <source>Resize</source>
-        <target state="new">Resize</target>
+        <target state="translated">サイズ変更</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellResizeLabel">
         <source>Column width (in pixels)</source>
-        <target state="new">Column width (in pixels)</target>
+        <target state="translated">列の幅 (ピクセル単位)</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellSortAscendingButtonText">
         <source>Sort (ascending)</source>
-        <target state="new">Sort (ascending)</target>
+        <target state="translated">並べ替え (昇順)</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellSortButtonText">
         <source>Sort</source>
-        <target state="new">Sort</target>
+        <target state="translated">並べ替え</target>
         <note />
       </trans-unit>
       <trans-unit id="FluentDataGridHeaderCellSortDescendingButtonText">
         <source>Sort (descending)</source>
-        <target state="new">Sort (descending)</target>
+        <target state="translated">並べ替え (降順)</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueCopied">
@@ -147,6 +142,26 @@
         <target state="translated">値の表示</target>
         <note />
       </trans-unit>
+      <trans-unit id="LabelAll">
+        <source>(All)</source>
+        <target state="new">(All)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LabelEmpty">
+        <source>(Empty)</source>
+        <target state="new">(Empty)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LabelNone">
+        <source>(None)</source>
+        <target state="new">(None)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LabelUnset">
+        <source>(Unset)</source>
+        <target state="new">(Unset)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Loading">
         <source>Loading...</source>
         <target state="translated">読み込み中...</target>
@@ -154,7 +169,7 @@
       </trans-unit>
       <trans-unit id="MetricTableExemplarsColumnHeader">
         <source>Exemplars</source>
-        <target state="new">Exemplars</target>
+        <target state="translated">手本</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableNoMetricsFound">
@@ -194,7 +209,7 @@
       </trans-unit>
       <trans-unit id="MetricTableViewExemplarsLabel">
         <source>View exemplars</source>
-        <target state="new">View exemplars</target>
+        <target state="translated">手本の表示</target>
         <note />
       </trans-unit>
       <trans-unit id="NameColumnHeader">
@@ -202,14 +217,9 @@
         <target state="translated">名前</target>
         <note />
       </trans-unit>
-      <trans-unit id="None">
-        <source>(None)</source>
-        <target state="new">(None)</target>
-        <note />
-      </trans-unit>
       <trans-unit id="PageToolbarLandmark">
         <source>Page toolbar</source>
-        <target state="new">Page toolbar</target>
+        <target state="translated">ページ ツール バー</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -219,7 +229,7 @@
       </trans-unit>
       <trans-unit id="PlotlyChartExemplars">
         <source>Exemplars</source>
-        <target state="new">Exemplars</target>
+        <target state="translated">手本</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartLength">
@@ -229,12 +239,12 @@
       </trans-unit>
       <trans-unit id="PlotlyChartTime">
         <source>Time</source>
-        <target state="new">Time</target>
+        <target state="translated">時間</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartTrace">
         <source>Trace</source>
-        <target state="new">Trace</target>
+        <target state="translated">トレース</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartValue">
@@ -274,7 +284,7 @@
       </trans-unit>
       <trans-unit id="ResourceLabel">
         <source>Resource</source>
-        <target state="new">Resource</target>
+        <target state="translated">リソース</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAnApplication">
@@ -284,17 +294,17 @@
       </trans-unit>
       <trans-unit id="SpanDetailsBacklinksHeader">
         <source>Backlinks</source>
-        <target state="new">Backlinks</target>
+        <target state="translated">バックリンク</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsContextHeader">
         <source>Context</source>
-        <target state="new">Context</target>
+        <target state="translated">コンテキスト</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsDetailsColumnHeader">
         <source>Details</source>
-        <target state="new">Details</target>
+        <target state="translated">詳細</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsDuration">
@@ -309,7 +319,7 @@
       </trans-unit>
       <trans-unit id="SpanDetailsLinksHeader">
         <source>Links</source>
-        <target state="new">Links</target>
+        <target state="translated">リンク</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsResource">
@@ -324,7 +334,7 @@
       </trans-unit>
       <trans-unit id="SpanDetailsSpanColumnHeader">
         <source>Span</source>
-        <target state="new">Span</target>
+        <target state="translated">スパン</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsSpanHeader">
@@ -334,7 +344,7 @@
       </trans-unit>
       <trans-unit id="SpanDetailsSpanPrefix">
         <source>Span</source>
-        <target state="new">Span</target>
+        <target state="translated">スパン</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsStartTime">
@@ -344,17 +354,17 @@
       </trans-unit>
       <trans-unit id="StructuredFilteringAddFilter">
         <source>Add filter</source>
-        <target state="new">Add filter</target>
+        <target state="translated">フィルターの追加</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredFilteringFilters">
         <source>Filters</source>
-        <target state="new">Filters</target>
+        <target state="translated">フィルター</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredFilteringNoFilters">
         <source>No filters</source>
-        <target state="new">No filters</target>
+        <target state="translated">フィルターなし</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsDetailsContextHeader">

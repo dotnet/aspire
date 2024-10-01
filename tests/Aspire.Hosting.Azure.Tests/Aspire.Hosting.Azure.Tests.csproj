@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.ContainerApps\Aspire.Hosting.Azure.ContainerApps.csproj" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.Redis\Aspire.Hosting.Azure.Redis.csproj" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.KeyVault\Aspire.Hosting.Azure.KeyVault.csproj" />
@@ -12,6 +13,7 @@
     <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.PostgreSQL\Aspire.Hosting.Azure.PostgreSQL.csproj" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.CosmosDB\Aspire.Hosting.Azure.CosmosDB.csproj" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.EventHubs\Aspire.Hosting.Azure.EventHubs.csproj" />
+    <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.Functions\Aspire.Hosting.Azure.Functions.csproj" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.Storage\Aspire.Hosting.Azure.Storage.csproj" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.ServiceBus\Aspire.Hosting.Azure.ServiceBus.csproj" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Azure.WebPubSub\Aspire.Hosting.Azure.WebPubSub.csproj" />
