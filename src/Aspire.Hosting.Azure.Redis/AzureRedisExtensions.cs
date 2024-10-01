@@ -133,7 +133,7 @@ public static class AzureRedisExtensions
     /// This requires changes to the application code to use an azure credential to authenticate with the resource. See
     /// https://github.com/Azure/Microsoft.Azure.StackExchangeRedis for more information.
     /// 
-    /// You can use the <see cref="WithAccessKeyAuth"/> method to configure the resource to use access key authentication.
+    /// You can use the <see cref="WithAccessKeyAuthentication"/> method to configure the resource to use access key authentication.
     /// </remarks>
     /// <example>
     /// The following example creates an Azure Cache for Redis resource and referencing that resource in a .NET project.
@@ -241,7 +241,7 @@ public static class AzureRedisExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var cache = builder.AddAzureRedis("cache")
-    ///     .WithAccessKeyAuth();
+    ///     .WithAccessKeyAuthentication();
     ///
     /// builder.AddProject&lt;Projects.ProductService&gt;()
     ///     .WithReference(cache);
@@ -249,7 +249,7 @@ public static class AzureRedisExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<AzureRedisCacheResource> WithAccessKeyAuth(
+    public static IResourceBuilder<AzureRedisCacheResource> WithAccessKeyAuthentication(
         this IResourceBuilder<AzureRedisCacheResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);

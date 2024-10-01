@@ -165,7 +165,7 @@ public static class AzurePostgresExtensions
     /// This requires changes to the application code to use an azure credential to authenticate with the resource. See
     /// https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-connect-with-managed-identity#connect-using-managed-identity-in-c for more information.
     /// 
-    /// You can use the <see cref="WithPasswordAuth"/> method to configure the resource to use password authentication.
+    /// You can use the <see cref="WithPasswordAuthentication"/> method to configure the resource to use password authentication.
     /// </remarks>
     /// <example>
     /// The following example creates an Azure PostgreSQL Flexible Server resource and referencing that resource in a .NET project.
@@ -341,7 +341,7 @@ public static class AzurePostgresExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// var data = builder.AddAzurePostgresFlexibleServer("data")
-    ///     .WithPasswordAuth();
+    ///     .WithPasswordAuthentication();
     ///
     /// builder.AddProject&lt;Projects.ProductService&gt;()
     ///     .WithReference(data);
@@ -349,7 +349,7 @@ public static class AzurePostgresExtensions
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    public static IResourceBuilder<AzurePostgresFlexibleServerResource> WithPasswordAuth(
+    public static IResourceBuilder<AzurePostgresFlexibleServerResource> WithPasswordAuthentication(
         this IResourceBuilder<AzurePostgresFlexibleServerResource> builder,
         IResourceBuilder<ParameterResource>? userName = null,
         IResourceBuilder<ParameterResource>? password = null)

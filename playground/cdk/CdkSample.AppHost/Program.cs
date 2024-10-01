@@ -42,7 +42,7 @@ var cache = builder.AddAzureRedis("cache");
 var pgsqlAdministratorLogin = builder.AddParameter("pgsqlAdministratorLogin");
 var pgsqlAdministratorLoginPassword = builder.AddParameter("pgsqlAdministratorLoginPassword", secret: true);
 var pgsqldb = builder.AddAzurePostgresFlexibleServer("pgsql")
-                   .WithPasswordAuth(pgsqlAdministratorLogin, pgsqlAdministratorLoginPassword)
+                   .WithPasswordAuthentication(pgsqlAdministratorLogin, pgsqlAdministratorLoginPassword)
                    .AddDatabase("pgsqldb");
 
 var pgsql2 = builder.AddAzurePostgresFlexibleServer("pgsql2");

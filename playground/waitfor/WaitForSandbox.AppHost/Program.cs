@@ -4,7 +4,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var db = builder.AddAzurePostgresFlexibleServer("pg")
-                .WithPasswordAuth()
+                .WithPasswordAuthentication()
                 .RunAsContainer(c =>
                 {
                     c.WithPgAdmin();

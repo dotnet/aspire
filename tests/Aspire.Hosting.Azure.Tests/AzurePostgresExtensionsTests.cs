@@ -139,7 +139,7 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
         var password = specifyPassword ? builder.AddParameter("password") : null;
 
         var postgres = builder.AddAzurePostgresFlexibleServer("postgres")
-            .WithPasswordAuth(userName, password);
+            .WithPasswordAuthentication(userName, password);
 
         var manifest = await ManifestUtils.GetManifestWithBicep(postgres.Resource);
 
@@ -277,21 +277,18 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task WithPasswordAuthBeforeAfterRunAsContainer(bool before)
+    public async Task WithPasswordAuthenticationBeforeAfterRunAsContainer(bool before)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
-        builder.Configuration["Parameters:usr"] = "user";
-        builder.Configuration["Parameters:pwd"] = "password";
-
-        var usr = builder.AddParameter("usr");
-        var pwd = builder.AddParameter("pwd", secret: true);
+        var usr = builder.AddParameter("usr", "user");
+        var pwd = builder.AddParameter("pwd", "p@ssw0rd1", secret: true);
 
         var postgres = builder.AddAzurePostgresFlexibleServer("postgres");
 
         if (before)
         {
-            postgres.WithPasswordAuth(usr, pwd);
+            postgres.WithPasswordAuthentication(usr, pwd);
         }
 
         postgres.RunAsContainer(c =>
@@ -301,12 +298,12 @@ public class AzurePostgresExtensionsTests(ITestOutputHelper output)
 
         if (!before)
         {
-            postgres.WithPasswordAuth(usr, pwd);
+            postgres.WithPasswordAuthentication(usr, pwd);
         }
 
         var db1 = postgres.AddDatabase("db1");
         var db2 = postgres.AddDatabase("db2", "db2Name");
 
-        Assert.Equal("Host=localhost;Port=12455;Username=user;Password=password", await postgres.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
+        Assert.Equal("Host=localhost;Port=12455;Username=user;Password=p@ssw0rd1", await postgres.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None));
     }
 }

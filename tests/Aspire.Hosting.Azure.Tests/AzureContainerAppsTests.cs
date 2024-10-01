@@ -246,7 +246,7 @@ public class AzureContainerAppsTests(ITestOutputHelper output)
         var db = builder.AddAzureCosmosDB("mydb").AddDatabase("db");
 
         // Postgres uses secret outputs + a literal connection string
-        var pgdb = builder.AddAzurePostgresFlexibleServer("pg").WithPasswordAuth().AddDatabase("db");
+        var pgdb = builder.AddAzurePostgresFlexibleServer("pg").WithPasswordAuthentication().AddDatabase("db");
 
         // Connection string (should be considered a secret)
         var blob = builder.AddAzureStorage("storage").AddBlobs("blobs");
