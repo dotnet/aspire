@@ -8,9 +8,9 @@ using Xunit.Abstractions;
 namespace Aspire.Workload.Tests;
 
 // This class has tests that start projects on their own
-public partial class TemplateTests : WorkloadTestsBase
+public partial class BuildAndRunTemplateTests : WorkloadTestsBase
 {
-    public TemplateTests(ITestOutputHelper testOutput)
+    public BuildAndRunTemplateTests(ITestOutputHelper testOutput)
         : base(testOutput)
     {}
 
