@@ -216,6 +216,7 @@ public static class AspireKafkaConsumerExtensions
 
         // Manually bind the ConsumerConfig until https://github.com/dotnet/runtime/issues/96652 is fixed
         configSection.GetSection(nameof(KafkaConsumerSettings.Config)).Bind(settings.Config);
+        namedConfigSection.GetSection(nameof(KafkaConsumerSettings.Config)).Bind(settings.Config);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {

@@ -216,6 +216,7 @@ public static class AspireKafkaProducerExtensions
 
         // Manually bind the ProducerConfig until https://github.com/dotnet/runtime/issues/96652 is fixed
         configSection.GetSection(nameof(KafkaProducerSettings.Config)).Bind(settings.Config);
+        namedConfigSection.GetSection(nameof(KafkaProducerSettings.Config)).Bind(settings.Config);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
