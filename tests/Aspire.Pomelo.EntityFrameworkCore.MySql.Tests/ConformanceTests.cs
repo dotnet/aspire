@@ -47,6 +47,9 @@ public class ConformanceTests : ConformanceTests<TestDbContext, PomeloEntityFram
 
     protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
 
+    protected override bool SupportsNamedConfig => true;
+    protected override string? ConfigurationSectionName => "Aspire:Pomelo:EntityFrameworkCore:MySql";
+
     protected override string ValidJsonConfig => """
         {
           "Aspire": {

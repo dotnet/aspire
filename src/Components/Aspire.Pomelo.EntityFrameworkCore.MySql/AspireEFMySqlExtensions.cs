@@ -58,7 +58,12 @@ public static partial class AspireEFMySqlExtensions
 
         var settings = builder.GetDbContextSettings<TContext, PomeloEntityFrameworkCoreMySqlSettings>(
             DefaultConfigSectionName,
-            (settings, section) => section.Bind(settings)
+            (settings, section) =>
+            {
+                var namedConfigSection = section.GetSection(connectionName);
+                section.Bind(settings);
+                namedConfigSection.Bind(settings);
+            }
         );
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)

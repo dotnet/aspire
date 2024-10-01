@@ -50,7 +50,7 @@ public static class AspirePostgreSqlNpgsqlExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        AddNpgsqlDataSource(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, connectionName: name, serviceKey: name, configureDataSourceBuilder: configureDataSourceBuilder);
+        AddNpgsqlDataSource(builder, DefaultConfigSectionName, configureSettings, connectionName: name, serviceKey: name, configureDataSourceBuilder: configureDataSourceBuilder);
     }
 
     private static void AddNpgsqlDataSource(IHostApplicationBuilder builder, string configurationSectionName,
@@ -59,7 +59,10 @@ public static class AspirePostgreSqlNpgsqlExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         NpgsqlSettings settings = new();
-        builder.Configuration.GetSection(configurationSectionName).Bind(settings);
+        var configSection = builder.Configuration.GetSection(configurationSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
+        configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -70,7 +73,7 @@ public static class AspirePostgreSqlNpgsqlExtensions
 
         builder.RegisterNpgsqlServices(settings, configurationSectionName, connectionName, serviceKey, configureDataSourceBuilder);
 
-        // Same as SqlClient connection pooling is on by default and can be handled with connection string 
+        // Same as SqlClient connection pooling is on by default and can be handled with connection string
         // https://www.npgsql.org/doc/connection-string-parameters.html#pooling
         if (!settings.DisableHealthChecks)
         {

@@ -27,6 +27,9 @@ public class ConformanceTests : ConformanceTests<SqlConnection, MicrosoftDataSql
 
     protected override bool SupportsKeyedRegistrations => true;
 
+    protected override bool SupportsNamedConfig => true;
+    protected override string? ConfigurationSectionName => "Aspire:Microsoft:Data:SqlClient";
+
     protected override string ValidJsonConfig => """
         {
           "Aspire": {

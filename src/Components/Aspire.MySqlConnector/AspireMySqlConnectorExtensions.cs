@@ -47,7 +47,7 @@ public static class AspireMySqlConnectorExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        AddMySqlDataSource(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, connectionName: name, serviceKey: name);
+        AddMySqlDataSource(builder, DefaultConfigSectionName, configureSettings, connectionName: name, serviceKey: name);
     }
 
     private static void AddMySqlDataSource(IHostApplicationBuilder builder, string configurationSectionName,
@@ -56,7 +56,10 @@ public static class AspireMySqlConnectorExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         MySqlConnectorSettings settings = new();
-        builder.Configuration.GetSection(configurationSectionName).Bind(settings);
+        var configSection = builder.Configuration.GetSection(configurationSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
+        configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {

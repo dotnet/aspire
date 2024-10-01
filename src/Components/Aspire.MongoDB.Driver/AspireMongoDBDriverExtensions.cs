@@ -61,7 +61,7 @@ public static class AspireMongoDBDriverExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         builder.AddMongoDBClient(
-            $"{DefaultConfigSectionName}:{name}",
+            DefaultConfigSectionName,
             configureSettings,
             configureClientSettings,
             connectionName: name,
@@ -212,9 +212,10 @@ public static class AspireMongoDBDriverExtensions
     {
         var settings = new MongoDBSettings();
 
-        builder.Configuration
-            .GetSection(configurationSectionName)
-            .Bind(settings);
+        var configSection = builder.Configuration.GetSection(configurationSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
+        configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {

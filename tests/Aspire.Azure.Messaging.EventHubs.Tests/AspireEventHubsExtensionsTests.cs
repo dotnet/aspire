@@ -15,7 +15,7 @@ using Xunit;
 namespace Aspire.Azure.Messaging.EventHubs.Tests;
 
 public class AspireEventHubsExtensionsTests
-{    
+{
     private const string AspireEventHubsSection = "Aspire:Azure:Messaging:EventHubs:";
     private const string EhConnectionString = "Endpoint=sb://aspireeventhubstests.servicebus.windows.net/;" +
                                               "SharedAccessKeyName=fake;SharedAccessKey=fake;EntityPath=MyHub";
@@ -271,7 +271,7 @@ public class AspireEventHubsExtensionsTests
                     key, "BlobClientServiceKey"), useKeyed ? "blobs" : null),
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
-                    AspireEventHubsSection + s_clientTypes[clientIndex].Name, key, "PartitionId"), "foo"),            
+                    AspireEventHubsSection + s_clientTypes[clientIndex].Name, key, "PartitionId"), "foo"),
             new KeyValuePair<string, string?>(
                 CreateConfigKey(
                     $"Aspire:Azure:Messaging:EventHubs:{s_clientTypes[clientIndex].Name}",

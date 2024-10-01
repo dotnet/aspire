@@ -47,7 +47,7 @@ public static class AspireQdrantExtensions
         string name,
         Action<QdrantClientSettings>? configureSettings = null)
     {
-        AddQdrant(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, connectionName: name, serviceKey: name);
+        AddQdrant(builder, DefaultConfigSectionName, configureSettings, connectionName: name, serviceKey: name);
     }
 
     private static void AddQdrant(
@@ -60,7 +60,10 @@ public static class AspireQdrantExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         var settings = new QdrantClientSettings();
-        builder.Configuration.GetSection(configurationSectionName).Bind(settings);
+        var configSection = builder.Configuration.GetSection(configurationSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
+        configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {

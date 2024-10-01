@@ -20,6 +20,9 @@ public class ProducerConformanceTests : ConformanceTests<IProducer<string, strin
         "Aspire.Confluent.Kafka"
         ];
 
+    protected override bool SupportsNamedConfig => true;
+    protected override string? ConfigurationSectionName => "Aspire:Confluent:Kafka:Producer";
+
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
     {
         configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]

@@ -15,7 +15,7 @@ using OpenTelemetry.Trace;
 namespace Microsoft.Extensions.Hosting;
 
 /// <summary>
-/// Extension methods for configuring EntityFrameworkCore DbContext to Azure SQL, MS SQL server 
+/// Extension methods for configuring EntityFrameworkCore DbContext to Azure SQL, MS SQL server
 /// </summary>
 public static class AspireSqlServerEFCoreSqlClientExtensions
 {
@@ -46,7 +46,11 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
 
         var settings = builder.GetDbContextSettings<TContext, MicrosoftEntityFrameworkCoreSqlServerSettings>(
             DefaultConfigSectionName,
-            (settings, section) => section.Bind(settings)
+            (settings, section) =>
+            {
+                var namedConfigSection = section.GetSection(connectionName);
+                section.Bind(settings);
+            }
         );
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)

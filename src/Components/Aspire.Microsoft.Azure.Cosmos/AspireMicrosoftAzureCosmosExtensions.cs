@@ -52,7 +52,7 @@ public static class AspireMicrosoftAzureCosmosExtensions
         Action<MicrosoftAzureCosmosSettings>? configureSettings = null,
         Action<CosmosClientOptions>? configureClientOptions = null)
     {
-        AddAzureCosmosClient(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureClientOptions, connectionName: name, serviceKey: name);
+        AddAzureCosmosClient(builder, DefaultConfigSectionName, configureSettings, configureClientOptions, connectionName: name, serviceKey: name);
     }
 
     private static void AddAzureCosmosClient(
@@ -66,7 +66,11 @@ public static class AspireMicrosoftAzureCosmosExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         var settings = new MicrosoftAzureCosmosSettings();
-        builder.Configuration.GetSection(configurationSectionName).Bind(settings);
+        var configSection = builder.Configuration.GetSection(configurationSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
+
+        configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {

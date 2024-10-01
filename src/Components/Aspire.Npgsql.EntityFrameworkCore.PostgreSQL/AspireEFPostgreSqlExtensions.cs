@@ -54,7 +54,12 @@ public static partial class AspireEFPostgreSqlExtensions
 
         var settings = builder.GetDbContextSettings<TContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>(
             DefaultConfigSectionName,
-            (settings, section) => section.Bind(settings)
+            (settings, section) =>
+            {
+                var namedConfigSection = section.GetSection(connectionName);
+                section.Bind(settings);
+                namedConfigSection.Bind(settings);
+            }
         );
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)

@@ -55,7 +55,7 @@ public static class AspireRedisExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        AddRedisClient(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureOptions, connectionName: name, serviceKey: name);
+        AddRedisClient(builder, DefaultConfigSectionName, configureSettings, configureOptions, connectionName: name, serviceKey: name);
     }
 
     private static void AddRedisClient(
@@ -69,9 +69,11 @@ public static class AspireRedisExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         var configSection = builder.Configuration.GetSection(configurationSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
 
         StackExchangeRedisSettings settings = new();
         configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {

@@ -59,7 +59,7 @@ public static class AspireRabbitMQExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        AddRabbitMQClient(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureConnectionFactory, connectionName: name, serviceKey: name);
+        AddRabbitMQClient(builder, DefaultConfigSectionName, configureSettings, configureConnectionFactory, connectionName: name, serviceKey: name);
     }
 
     private static void AddRabbitMQClient(
@@ -73,9 +73,11 @@ public static class AspireRabbitMQExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         var configSection = builder.Configuration.GetSection(configurationSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
 
         var settings = new RabbitMQClientSettings();
         configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {

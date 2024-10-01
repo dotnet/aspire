@@ -57,7 +57,7 @@ public static class AspireElasticClientsElasticsearchExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         builder.AddElasticsearchClient(
-            $"{DefaultConfigSectionName}:{name}",
+            DefaultConfigSectionName,
             configureSettings,
             configureClientSettings,
             connectionName: name,
@@ -75,9 +75,11 @@ public static class AspireElasticClientsElasticsearchExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         var configSection = builder.Configuration.GetSection(configurationSectionName);
+        var namedConfigSection = configSection.GetSection(connectionName);
 
         ElasticClientsElasticsearchSettings settings = new();
         configSection.Bind(settings);
+        namedConfigSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {

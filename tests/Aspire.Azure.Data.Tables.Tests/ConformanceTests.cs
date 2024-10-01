@@ -23,6 +23,8 @@ public class ConformanceTests : ConformanceTests<TableServiceClient, AzureDataTa
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
     protected override string ActivitySourceName => "Azure.Data.Tables.TableServiceClient";
+    protected override bool SupportsNamedConfig => true;
+    protected override string? ConfigurationSectionName => "Aspire:Azure:Data:Tables";
 
     protected override string ValidJsonConfig => """
         {
