@@ -68,47 +68,7 @@
     <Touch Files="$(SdkStampPathForCurrentAndPreviousTFM)" AlwaysCreate="true" />
   </Target>
 
-  <Target Name="InstallSdksForTemplateTesting" DependsOnTargets="ProvisionSdksForTesting" />
-
-  <!-- FIXME: drop this ? Anything else to remove? -->
-  <Target Name="_GetNuGetsToBuild" Returns="@(NuGetsToBuildForWorkloadTesting)">
-    <Error Condition="'$(NETCoreSdkRuntimeIdentifier)' == ''" Text="%24(NETCoreSdkRuntimeIdentifier) is unset. This is needed to build the Aspire.Hosting.Orchestration nuget" />
-
-    <ItemGroup>
-      <_PropertiesForNuGetBuilds Include="DashboardRuntime=$(NETCoreSdkRuntimeIdentifier)" />
-      <_PropertiesForNuGetBuilds Include="DcpRuntime=$(NETCoreSdkRuntimeIdentifier)" />
-      <_PropertiesForNuGetBuilds Include="PackageOutputPath=$(WorkloadsPackageSource)" />
-
-      <NuGetsToBuildForWorkloadTesting
-                      Include="$(_ShippingPackagesDir)Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier).nupkg"
-                      Project="$(RepoRoot)eng/dashboardpack/Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier).csproj"
-                      Properties="@(DefaultPropertiesForNuGetBuild, ';');@(_PropertiesForNuGetBuilds, ';')"
-                      Descriptor="Dashboard pack"/>
-
-      <NuGetsToBuildForWorkloadTesting
-                      Include="$(_ShippingPackagesDir)Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier).nupkg"
-                      Project="$(RepoRoot)eng/dcppack/Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier).csproj"
-                      Properties="@(DefaultPropertiesForNuGetBuild, ';');@(_PropertiesForNuGetBuilds, ';')"
-                      Descriptor="Dcp pack"/>
-    </ItemGroup>
-
-    <PropertyGroup>
-      <_CombinedProps>@(DefaultPropertiesForNuGetBuild, ';');@(_PropertiesForNuGetBuilds, ';')</_CombinedProps>
-    </PropertyGroup>
-    <!-- FIXME:
-      Explicitly invoke Build on these two projects so the GenerateTextReplacementFiles target gets triggered.
-      This can be removed once the workloadtesting targets support a custom list of targets to invoke
-    -->
-    <MSBuild Projects="$(RepoRoot)eng/dcppack/Aspire.Hosting.Orchestration.$(NETCoreSdkRuntimeIdentifier).csproj"
-              Properties="$(_CombinedProps)"
-              Targets="Restore;Build" />
-    <MSBuild Projects="$(RepoRoot)eng/dashboardpack/Aspire.Dashboard.Sdk.$(NETCoreSdkRuntimeIdentifier).csproj"
-              Properties="$(_CombinedProps)"
-              Targets="Restore;Build" />
-  </Target>
-
-  <Target Name="_InstallSharedFrameworksForWorkloadTesting" AfterTargets="ProvisionDotNetForWorkloadTesting">
-  </Target>
+  <Target Name="InstallSdksForTemplateTesting" DependsOnTargets="ProvisionSdksForTesting;_ValidateExpectedSetOfPackagesExist" />
 
   <Target Name="_ValidateExpectedSetOfPackagesExist" Condition="'$(SkipPackageCheckForWorkloadTesting)' != 'true'">
     <ItemGroup>
