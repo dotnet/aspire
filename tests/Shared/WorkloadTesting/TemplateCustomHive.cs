@@ -7,9 +7,6 @@ public class TemplatesCustomHive
 {
     private static readonly string s_tmpDirSuffix = Guid.NewGuid().ToString()[..8];
 
-    private readonly string _customHiveDirectory;
-    private readonly string _customHiveDirName;
-
     public static TemplatesCustomHive With9_0_Net8 { get; } = new([TemplatePackageIdNames.AspireProjectTemplates_9_0_net8], "templates-with-9-net8");
 
     public static TemplatesCustomHive With9_0_Net9 { get; } = new([TemplatePackageIdNames.AspireProjectTemplates_9_0_net9], "templates-with-9-net9");
@@ -19,26 +16,33 @@ public class TemplatesCustomHive
                 TemplatePackageIdNames.AspireProjectTemplates_9_0_net8
             ], "templates-with-9-net8-net9");
 
+    private readonly string _stampFilePath;
+    private readonly string _customHiveDirectory;
+
     public string[] TemplatePackageIds { get; init; }
-    public string CustomHiveDirectory => _customHiveDirectory ?? throw new InvalidOperationException($"TemplatesCustomHive has not been installed yet for '{_customHiveDirName}'");
+    public string CustomHiveDirectory => File.Exists(_stampFilePath)
+                                            ? _customHiveDirectory
+                                            : throw new InvalidOperationException($"TemplatesCustomHive has not been installed yet in {_customHiveDirectory}");
 
     public TemplatesCustomHive(string[] templatePackageIds, string customHiveDirName)
     {
         TemplatePackageIds = templatePackageIds ?? throw new ArgumentNullException(nameof(templatePackageIds));
 
         ArgumentException.ThrowIfNullOrEmpty(customHiveDirName, nameof(customHiveDirName));
-        _customHiveDirName = customHiveDirName;
+
         var customHiveBaseDirectory = BuildEnvironment.IsRunningOnCI
                                         ? Path.Combine(Path.GetTempPath(), $"templates-${s_tmpDirSuffix}")
                                         : Path.Combine(AppContext.BaseDirectory, "templates");
-        _customHiveDirectory = Path.Combine(customHiveBaseDirectory, _customHiveDirName);
+        _customHiveDirectory = Path.Combine(customHiveBaseDirectory, customHiveDirName);
+        _stampFilePath = Path.Combine(_customHiveDirectory, ".stamp-installed");
+
     }
 
     public async Task EnsureInstalledAsync(BuildEnvironment buildEnvironment)
     {
-        if (BuildEnvironment.IsRunningOnCI && Directory.Exists(_customHiveDirectory))
+        if (BuildEnvironment.IsRunningOnCI && File.Exists(_stampFilePath))
         {
-            // nothing to do
+            // On CI, don't check if the packages need to be updated
             Console.WriteLine($"** Custom hive exists, skipping installation: {_customHiveDirectory}");
             return;
         }
@@ -50,26 +54,26 @@ public class TemplatesCustomHive
                     .Zip(TemplatePackageIds, (path, id) => (path, id));
 
         var installTemplates = true;
-        if (Directory.Exists(CustomHiveDirectory))
+        if (File.Exists(_stampFilePath))
         {
-            // local run, we can skip the installation if nothing has changed
-            var dirWriteTime = Directory.GetLastWriteTimeUtc(CustomHiveDirectory);
+            // Installation exists, but check if any of the packages have been updated since
+            var dirWriteTime = Directory.GetLastWriteTimeUtc(_customHiveDirectory);
             installTemplates = packageIdAndPaths.Where(t => new FileInfo(t.id).LastWriteTimeUtc > dirWriteTime).Any();
         }
 
         if (!installTemplates)
         {
-            Console.WriteLine($"** Custom hive exists, skipping installation: {CustomHiveDirectory}");
+            Console.WriteLine($"** Custom hive exists, skipping installation: {_customHiveDirectory}");
             return;
         }
 
-        if (Directory.Exists(CustomHiveDirectory))
+        if (Directory.Exists(_customHiveDirectory))
         {
-            Directory.Delete(CustomHiveDirectory, recursive: true);
+            Directory.Delete(_customHiveDirectory, recursive: true);
         }
 
-        Console.WriteLine($"*** Creating templates custom hive: {CustomHiveDirectory}");
-        Directory.CreateDirectory(CustomHiveDirectory);
+        Console.WriteLine($"*** Creating templates custom hive: {_customHiveDirectory}");
+        Directory.CreateDirectory(_customHiveDirectory);
 
         foreach (var (packagePath, templatePackageId) in packageIdAndPaths)
         {
@@ -78,6 +82,8 @@ public class TemplatesCustomHive
                     customHiveDirectory: _customHiveDirectory,
                     dotnet: buildEnvironment.DotNet);
         }
+
+        File.WriteAllText(_stampFilePath, "");
     }
 
     public static string GetPackagePath(string builtNuGetsPath, string templatePackageId)
