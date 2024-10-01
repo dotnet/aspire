@@ -42,6 +42,7 @@ public partial class ResourceActions : ComponentBase
     protected override void OnParametersSet()
     {
         _menuItems.Clear();
+        _highlightedCommands.Clear();
 
         _menuItems.Add(new MenuButtonItem
         {
@@ -59,10 +60,6 @@ public partial class ResourceActions : ComponentBase
         if (ViewportInformation.IsDesktop)
         {
             _highlightedCommands.AddRange(Commands.Where(c => c.IsHighlighted && c.State != CommandViewModelState.Hidden).Take(MaxHighlightedCount));
-        }
-        else
-        {
-            _highlightedCommands.Clear();
         }
 
         var menuCommands = Commands.Where(c => !_highlightedCommands.Contains(c) && c.State != CommandViewModelState.Hidden).ToList();
