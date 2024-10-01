@@ -71,6 +71,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private bool _isLoading = true;
     private string? _elementIdBeforeDetailsViewOpened;
     private GridColumnManager _manager = null!;
+    private int _maxHighlightedCount;
 
     private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter)) && !resource.IsHiddenState();
 
@@ -153,7 +154,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             new GridColumn(Name: StartTimeColumn, DesktopWidth: "1.5fr"),
             new GridColumn(Name: SourceColumn, DesktopWidth: "2.5fr"),
             new GridColumn(Name: EndpointsColumn, DesktopWidth: "2.5fr", MobileWidth: "2fr"),
-            new GridColumn(Name: ActionsColumn, DesktopWidth: "1.5fr", MobileWidth: "1fr")
+            new GridColumn(Name: ActionsColumn, DesktopWidth: "minmax(125px, 1.5fr)", MobileWidth: "1fr")
         ];
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
@@ -194,6 +195,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                     _visibleResourceTypes.TryAdd(resource.ResourceType, true);
                 }
 
+                UpdateMaxHighlightedCount();
                 Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
             }
 
@@ -222,10 +224,32 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                         }
                     }
 
+                    UpdateMaxHighlightedCount();
                     await InvokeAsync(StateHasChanged);
                 }
             });
         }
+    }
+
+    private void UpdateMaxHighlightedCount()
+    {
+        var maxHighlightedCount = 0;
+        foreach (var kvp in _resourceByName)
+        {
+            var resourceHighlightedCount = 0;
+            foreach (var command in kvp.Value.Commands)
+            {
+                if (command.IsHighlighted && command.State != CommandViewModelState.Hidden)
+                {
+                    resourceHighlightedCount++;
+                }
+            }
+            maxHighlightedCount = Math.Max(maxHighlightedCount, resourceHighlightedCount);
+        }
+
+        // Don't attempt to display more than 2 highlighted commands. Many commands will take up too much space.
+        // Extra highlighted commands are still available in the menu.
+        _maxHighlightedCount = Math.Min(maxHighlightedCount, 2);
     }
 
     private bool ApplicationErrorCountsChanged(Dictionary<ApplicationKey, int> newApplicationUnviewedErrorCounts)
