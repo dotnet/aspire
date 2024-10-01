@@ -7,8 +7,6 @@
 @using Metrics = Aspire.Dashboard.Components.Pages.Metrics
 @using Aspire.Dashboard.Components.Controls.Chart
 
-@inject IStringLocalizer<ControlsStrings> Loc
-
 @if (InstrumentData is null)
 {
     <div>@Loc[nameof(ControlsStrings.ChartContainerUnableToDisplay)]</div>

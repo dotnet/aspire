@@ -7,6 +7,8 @@ using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Localization;
+using Metrics = Aspire.Dashboard.Components.Pages.Metrics;
 
 namespace Aspire.Dashboard.Components;
 
@@ -40,6 +42,9 @@ public abstract class ChartContainer : ComponentBase, IAsyncDisposable
 
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<ControlsStrings> Loc { get; init; }
 
     public List<DimensionFilterViewModel> DimensionFilters { get; } = [];
     public string? PreviousMeterName { get; set; }
@@ -265,19 +270,5 @@ public abstract class ChartContainer : ComponentBase, IAsyncDisposable
         }
 
         return filters;
-    }
-
-    private Task OnTabChangeAsync(FluentTab newTab)
-    {
-        var id = newTab.Id?.Substring("tab-".Length);
-
-        if (id is null
-            || !Enum.TryParse(typeof(Pages.Metrics.MetricViewKind), id, out var o)
-            || o is not Pages.Metrics.MetricViewKind viewKind)
-        {
-            return Task.CompletedTask;
-        }
-
-        return OnViewChangedAsync(viewKind);
     }
 }
