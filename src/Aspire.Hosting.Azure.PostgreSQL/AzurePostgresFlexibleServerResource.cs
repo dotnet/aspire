@@ -18,11 +18,15 @@ public class AzurePostgresFlexibleServerResource(string name, Action<ResourceMod
 
     /// <summary>
     /// Gets the "connectionString" output reference from the bicep template for the Azure Postgres Flexible Server.
+    /// 
+    /// This is used when Entra ID authentication is used. The connection string is an output of the bicep template.
     /// </summary>
     private BicepOutputReference ConnectionStringOutput => new("connectionString", this);
 
     /// <summary>
     /// Gets the "connectionString" secret output reference from the bicep template for the Azure Postgres Flexible Server.
+    ///
+    /// This is set when password authentication is used. The connection string is stored in a secret in the Azure Key Vault.
     /// </summary>
     internal BicepSecretOutputReference? ConnectionStringSecretOutput { get; set; }
 
@@ -54,5 +58,10 @@ public class AzurePostgresFlexibleServerResource(string name, Action<ResourceMod
         _databases.TryAdd(name, databaseName);
     }
 
+    /// <summary>
+    /// Gets the inner PostgresServerResource resource.
+    /// 
+    /// This is set when RunAsContainer is called on the AzurePostgresFlexibleServerResource resource to create a local PostgreSQL container.
+    /// </summary>
     internal PostgresServerResource? InnerResource { get; set; }
 }
