@@ -13,7 +13,7 @@ internal class ExpressionResolver
     {
         async Task<string?> EvalEndpoint(EndpointReference endpointReference, EndpointProperty property)
         {
-            // We need to use the top resource, e.g. AzureStorageResource instead of AzureBlobResource
+            // We need to use the root resource, e.g. AzureStorageResource instead of AzureBlobResource
             // Otherwise, we get the wrong values for IsContainer and Name
             var target = endpointReference.Resource.GetRootResource();
 
@@ -25,7 +25,10 @@ internal class ExpressionResolver
                 (EndpointProperty.Host or EndpointProperty.IPV4Host, false) => endpointReference.ContainerHost,
                 // If Container -> Container, we use the target port, since we're not going through the host
                 (EndpointProperty.Port, true) => await endpointReference.Property(EndpointProperty.TargetPort).GetValueAsync(cancellationToken).ConfigureAwait(false),
-                (EndpointProperty.Url, true) => $"{endpointReference.Scheme}://{target.Name}:{endpointReference.TargetPort}",
+                (EndpointProperty.Url, _) => string.Format(CultureInfo.InvariantCulture, "{0}://{1}:{2}",
+                                                endpointReference.Scheme,
+                                                await EvalEndpoint(endpointReference, EndpointProperty.Host).ConfigureAwait(false),
+                                                await EvalEndpoint(endpointReference, EndpointProperty.Port).ConfigureAwait(false)),
                 _ => await endpointReference.Property(property).GetValueAsync(cancellationToken).ConfigureAwait(false)
             };
         }
