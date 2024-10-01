@@ -78,12 +78,12 @@ public class AzureRedisExtensionsTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task AddAzureRedisWithAccessKeyAuth()
+    public async Task AddAzureRedisWithAccessKeyAuthentication()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var redis = builder.AddAzureRedis("cache")
-            .WithAccessKeyAuth();
+            .WithAccessKeyAuthentication();
 
         var manifest = await ManifestUtils.GetManifestWithBicep(redis.Resource);
 
