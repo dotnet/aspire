@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -99,6 +100,7 @@ public class AzureFunctionsTests(ITestOutputHelper testOutputHelper)
     }
 
     [Theory]
+    [RequiresDocker]
     [InlineData(true)]
     [InlineData(false)]
     public async Task AddAzureFunctionsProject_LogsWhenUsingPreExistingDefaultStorage(bool defaultHostStorageAlreadyExists)
@@ -123,9 +125,12 @@ public class AzureFunctionsTests(ITestOutputHelper testOutputHelper)
             write.LoggerName == AzureFunctionsProjectResourceExtensions.LogCategoryName &&
             write.Message is { } message &&
             message.Contains("Found existing default Storage resource 'azFuncHostStorage' for Azure Functions project")) != null);
+
+        await host.StopAsync();
     }
 
     [Fact]
+    [RequiresDocker]
     public async Task AddAzureFunctionsProject_DoesNotLogWhenMultipleProjectsRegistered()
     {
         AzureFunctionsProjectResourceExtensions.s_isFirstInvocation = true;
@@ -146,9 +151,12 @@ public class AzureFunctionsTests(ITestOutputHelper testOutputHelper)
             write.LoggerName == AzureFunctionsProjectResourceExtensions.LogCategoryName &&
             write.Message is { } message &&
             message.Contains("Found existing default Storage resource 'azFuncHostStorage' for Azure Functions projects"));
+
+        await host.StopAsync();
     }
 
     [Fact]
+    [RequiresDocker]
     public async Task AddAzureFunctionsProject_LogsWhenHostStorageConfiguredWithMultipleProjects()
     {
         AzureFunctionsProjectResourceExtensions.s_isFirstInvocation = true;
@@ -170,6 +178,8 @@ public class AzureFunctionsTests(ITestOutputHelper testOutputHelper)
             write.LoggerName == AzureFunctionsProjectResourceExtensions.LogCategoryName &&
             write.Message is { } message &&
             message.Contains("Found existing default Storage resource 'azFuncHostStorage' for Azure Functions projects"));
+
+        await host.StopAsync();
     }
 
     public static ILoggerFactory CreateLoggerFactory(ITestOutputHelper testOutputHelper, ITestSink? testSink = null)
