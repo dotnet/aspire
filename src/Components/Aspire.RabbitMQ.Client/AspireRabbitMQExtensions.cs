@@ -94,7 +94,9 @@ public static class AspireRabbitMQExtensions
             var factory = new ConnectionFactory();
 
             var configurationOptionsSection = configSection.GetSection("ConnectionFactory");
+            var namedConfigurationOptionsSection = namedConfigSection.GetSection("ConnectionFactory");
             configurationOptionsSection.Bind(factory);
+            namedConfigurationOptionsSection.Bind(factory);
 
             // the connection string from settings should win over the one from the ConnectionFactory section
             var connectionString = settings.ConnectionString;
