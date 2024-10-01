@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Storage;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Utils;
 using Azure.Identity;
 using Azure.Provisioning;
@@ -93,14 +94,8 @@ public static class AzureStorageExtensions
         BlobServiceClient? blobServiceClient = null;
         var blobServiceClientLock = new object();
 
-        builder.Eventing.Subscribe<ConnectionStringAvailableEvent>(resource, async (@event, ct) =>
+        builder.Eventing.Subscribe<AzureStorageSubResourceConnectionStringAvailableEvent>(resource, async (@event, ct) =>
         {
-            // HACK: AzureStorageResource does not implement IResourceWithConnectionString which means that
-            //       we don't fire off a ConnectionStringAvailableEvent for it. To work around this the blob,
-            //       table, and queue resources each propagate the event to the parent (the eventing system
-            //       doesn't care about connection strings. For the actual health check we just use the
-            //       blob service client in the parent rather than each of the child resources and rely
-            //       on the resource health check service to propagate the health checks.
             var connectionString = await resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false);
 
             if (connectionString == null)
@@ -108,9 +103,8 @@ public static class AzureStorageExtensions
                 throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{resource.Name}' resource but the connection string was null.");
             }
 
-            // This handles a possible race condition where each storage service type propagates the
-            // ConnectionStringAvailableEvent to the parent resource - but we only want to instantiate
-            // the blob service client once.
+            // We only need to process one of the events from the sub-resource so we skip
+            // over the rest of the events if more than one sub-resource is being used.
             if (blobServiceClient == null)
             {
                 lock (blobServiceClientLock)
@@ -256,7 +250,7 @@ public static class AzureStorageExtensions
 
         builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(resource, async (@event, ct) =>
         {
-            var propogatedEvent = new ConnectionStringAvailableEvent(resource.Parent, @event.Services);
+            var propogatedEvent = new AzureStorageSubResourceConnectionStringAvailableEvent(resource.Parent, resource);
             await builder.ApplicationBuilder.Eventing.PublishAsync(propogatedEvent, ct).ConfigureAwait(false);
         });
 
@@ -275,7 +269,7 @@ public static class AzureStorageExtensions
 
         builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(resource, async (@event, ct) =>
         {
-            var propogatedEvent = new ConnectionStringAvailableEvent(resource.Parent, @event.Services);
+            var propogatedEvent = new AzureStorageSubResourceConnectionStringAvailableEvent(resource.Parent, resource);
             await builder.ApplicationBuilder.Eventing.PublishAsync(propogatedEvent, ct).ConfigureAwait(false);
         });
 
@@ -294,10 +288,16 @@ public static class AzureStorageExtensions
 
         builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(resource, async (@event, ct) =>
         {
-            var propogatedEvent = new ConnectionStringAvailableEvent(resource.Parent, @event.Services);
+            var propogatedEvent = new AzureStorageSubResourceConnectionStringAvailableEvent(resource.Parent, resource);
             await builder.ApplicationBuilder.Eventing.PublishAsync(propogatedEvent, ct).ConfigureAwait(false);
         });
 
         return builder.ApplicationBuilder.AddResource(resource);
+    }
+
+    private sealed class AzureStorageSubResourceConnectionStringAvailableEvent(AzureStorageResource parent, IResourceWithParent<AzureStorageResource> childResource) : IDistributedApplicationResourceEvent
+    {
+        public IResource Resource => parent;
+        public IResourceWithParent<AzureStorageResource> ChildResource => childResource;
     }
 }
