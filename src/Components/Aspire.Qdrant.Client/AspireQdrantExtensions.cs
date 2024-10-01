@@ -1,9 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire;
 using Aspire.Qdrant.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Qdrant.Client;
 
@@ -76,6 +78,41 @@ public static class AspireQdrantExtensions
         else
         {
             builder.Services.AddKeyedSingleton(serviceKey, (sp, key) => ConfigureQdrant(sp));
+        }
+
+        if (!settings.DisableHealthChecks)
+        {
+            // use http client for register health check
+            var httpClientName = serviceKey is null ? "qdrant-healthchecks" : $"qdrant-healthchecks_{connectionName}";
+            builder.Services.AddHttpClient(
+                 httpClientName,
+                 client =>
+                 {
+                     if (settings.Endpoint is null)
+                     {
+                         throw new InvalidOperationException(
+                                 $"A QdrantClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or either " +
+                                 $"{nameof(settings.Endpoint)} must be provided " +
+                                 $"in the '{configurationSectionName}' configuration section.");
+                     }
+
+                     client.BaseAddress = settings.Endpoint;
+
+                     if (settings.Key is not null)
+                     {
+                         client.DefaultRequestHeaders.Add("Api-Key", settings.Key);
+                     }
+                 });
+
+            var healthCheckName = serviceKey is null ? "Qdrant.Client" : $"Qdrant.Client_{connectionName}";
+
+            builder.TryAddHealthCheck(new HealthCheckRegistration(
+                healthCheckName,
+                sp => new QdrantHealthCheck(sp.GetRequiredService<IHttpClientFactory>().CreateClient(httpClientName)),
+                failureStatus: null,
+                tags: null,
+                timeout: settings.HealthCheckTimeout > 0 ? TimeSpan.FromMilliseconds(settings.HealthCheckTimeout.Value) : null
+                ));
         }
 
         QdrantClient ConfigureQdrant(IServiceProvider serviceProvider)

@@ -134,6 +134,7 @@
     <PackageVersion Include="RabbitMQ.Client" Version="[6.8.1,7.0.0)" />
     <PackageVersion Include="StackExchange.Redis" Version="2.8.12" />
     <PackageVersion Include="System.IO.Hashing" Version="8.0.0" />
+    <PackageVersion Include="Testcontainers" Version="3.10.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.2.0" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.3" />
@@ -185,11 +186,10 @@
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Blobs" Version="6.6.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues" Version="5.5.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" Version="5.22.0" />
-    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.EventHubs" Version="6.3.6"/>
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.EventHubs" Version="6.3.6" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.OpenTelemetry" Version="1.0.0-preview1" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="1.17.4" />
     <PackageVersion Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" />
-
     <!-- Pinned versions for Component Governance - Remove when root dependencies are updated -->
     <PackageVersion Include="System.Text.Json" Version="8.0.4" />
     <PackageVersion Include="Azure.Core" Version="1.43.0" />
