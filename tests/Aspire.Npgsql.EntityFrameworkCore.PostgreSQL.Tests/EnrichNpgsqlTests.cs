@@ -19,10 +19,6 @@ namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
 public class EnrichNpgsqlTests : ConformanceTests
 {
-    // Disable the common named config test so we can author one
-    // that uses the typeof(TContext).Name as the key for the configuration
-    protected override bool SupportsNamedConfig => true;
-
     public EnrichNpgsqlTests(PostgreSQLContainerFixture containerFixture) : base(containerFixture)
     {
     }

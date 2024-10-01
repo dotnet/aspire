@@ -45,9 +45,6 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
 
     protected override bool CanConnectToServer => RequiresDockerAttribute.IsSupported;
 
-    protected override bool SupportsNamedConfig => true;
-    protected override string? ConfigurationSectionName => "Aspire:Oracle:EntityFrameworkCore";
-
     protected override string ValidJsonConfig => """
         {
           "Aspire": {

@@ -45,10 +45,6 @@ public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkC
     protected override void SetMetrics(EntityFrameworkCoreCosmosSettings options, bool enabled)
         => throw new NotImplementedException();
 
-    protected override bool SupportsNamedConfig => true;
-
-    protected override string? ConfigurationSectionName => "Aspire:Microsoft:EntityFrameworkCore:Cosmos";
-
     protected override string ValidJsonConfig => """
         {
           "Aspire": {

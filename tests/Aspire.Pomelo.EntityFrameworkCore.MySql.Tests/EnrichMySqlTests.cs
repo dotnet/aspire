@@ -27,10 +27,6 @@ public class EnrichMySqlTests : ConformanceTests
     {
     }
 
-    // Disable the common named config test so we can author one
-    // that uses the typeof(TContext).Name as the key for the configuration
-    protected override bool SupportsNamedConfig => true;
-
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<PomeloEntityFrameworkCoreMySqlSettings>? configure = null, string? key = null)
     {
         builder.Services.AddDbContextPool<TestDbContext>((serviceProvider, options) =>
