@@ -19,8 +19,11 @@ internal class ExpressionResolver
 
             return (property, target.IsContainer()) switch
             {
+                // If Container -> Container, we go directly to the container name, bypassing the host
                 (EndpointProperty.Host or EndpointProperty.IPV4Host, true) => target.Name,
+                // If Container -> Exe, we need to go through the container host
                 (EndpointProperty.Host or EndpointProperty.IPV4Host, false) => endpointReference.ContainerHost,
+                // If Container -> Container, we use the target port, since we're not going through the host
                 (EndpointProperty.Port, true) => await endpointReference.Property(EndpointProperty.TargetPort).GetValueAsync(cancellationToken).ConfigureAwait(false),
                 (EndpointProperty.Url, true) => $"{endpointReference.Scheme}://{target.Name}:{endpointReference.TargetPort}",
                 _ => await endpointReference.Property(property).GetValueAsync(cancellationToken).ConfigureAwait(false)
@@ -56,7 +59,9 @@ internal class ExpressionResolver
     internal static async ValueTask<string?> Resolve(bool sourceIsContainer, IValueProvider valueProvider, CancellationToken cancellationToken) =>
         sourceIsContainer switch
         {
-            true => await ResolveWithContainerSource(valueProvider, cancellationToken).ConfigureAwait(false),
-            false => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false)
+            // Exe -> Exe and Exe -> Container cases
+            false => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
+            // Container -> Exe and Container -> Container cases
+            true => await ResolveWithContainerSource(valueProvider, cancellationToken).ConfigureAwait(false)
         };
 }
