@@ -53,7 +53,7 @@ public static class QdrantBuilderExtensions
         {
             var connectionString = await qdrant.HttpConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false)
             ?? throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{qdrant.Name}' resource but the connection string was null.");
-            httpClient = CreateQdrantHttpClient(@event.Services, connectionString, qdrant.Name);
+            httpClient = CreateQdrantHttpClient(connectionString);
         });
 
         var healthCheckKey = $"{name}_check";
@@ -142,7 +142,7 @@ public static class QdrantBuilderExtensions
         return builder;
     }
 
-    private static HttpClient CreateQdrantHttpClient(IServiceProvider sp, string? connectionString, string resourceName)
+    private static HttpClient CreateQdrantHttpClient(string? connectionString)
     {
         if (connectionString is null)
         {
@@ -174,8 +174,7 @@ public static class QdrantBuilderExtensions
             }
         }
 
-        var factory = sp.GetRequiredService<IHttpClientFactory>();
-        var client = factory.CreateClient($"{resourceName}-healthchecks");
+        var client = new HttpClient();
         client.BaseAddress = endpoint;
         if (key is not null)
         {
