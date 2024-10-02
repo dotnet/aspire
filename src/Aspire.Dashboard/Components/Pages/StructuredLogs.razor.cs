@@ -26,7 +26,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private const string TimestampColumn = nameof(TimestampColumn);
     private const string MessageColumn = nameof(MessageColumn);
     private const string TraceColumn = nameof(TraceColumn);
-    private const string DetailsColumn = nameof(DetailsColumn);
+    private const string ActionsColumn = nameof(ActionsColumn);
 
     private SelectViewModel<ResourceTypeDetails> _allApplication = default!;
 
@@ -139,7 +139,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             new GridColumn(Name: TimestampColumn, DesktopWidth: "1.5fr"),
             new GridColumn(Name: MessageColumn, DesktopWidth: "5fr", "2.5fr"),
             new GridColumn(Name: TraceColumn, DesktopWidth: "1fr"),
-            new GridColumn(Name: DetailsColumn, DesktopWidth: "1fr", MobileWidth: "0.8fr")
+            new GridColumn(Name: ActionsColumn, DesktopWidth: "1fr", MobileWidth: "0.8fr")
         ];
 
         if (!string.IsNullOrEmpty(TraceId))
