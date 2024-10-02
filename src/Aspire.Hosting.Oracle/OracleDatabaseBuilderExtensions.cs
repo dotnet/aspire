@@ -24,6 +24,9 @@ public static class OracleDatabaseBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<OracleDatabaseServerResource> AddOracle(this IDistributedApplicationBuilder builder, [ResourceName] string name, IResourceBuilder<ParameterResource>? password = null, int? port = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         var passwordParameter = password?.Resource ?? ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, $"{name}-password");
 
         var oracleDatabaseServer = new OracleDatabaseServerResource(name, passwordParameter);
@@ -64,6 +67,9 @@ public static class OracleDatabaseBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<OracleDatabaseResource> AddDatabase(this IResourceBuilder<OracleDatabaseServerResource> builder, [ResourceName] string name, string? databaseName = null)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
         // Use the resource name as the database name if it's not provided
         databaseName ??= name;
 
@@ -79,7 +85,12 @@ public static class OracleDatabaseBuilderExtensions
     /// <param name="name">The name of the volume. Defaults to an auto-generated name based on the application and resource names.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<OracleDatabaseServerResource> WithDataVolume(this IResourceBuilder<OracleDatabaseServerResource> builder, string? name = null)
-        => builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/opt/oracle/oradata", false);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithVolume(name ?? VolumeNameGenerator.CreateVolumeName(builder, "data"), "/opt/oracle/oradata",
+            false);
+    }
 
     /// <summary>
     /// Adds a bind mount for the data folder to a Oracle Database server container resource.
@@ -88,7 +99,12 @@ public static class OracleDatabaseBuilderExtensions
     /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<OracleDatabaseServerResource> WithDataBindMount(this IResourceBuilder<OracleDatabaseServerResource> builder, string source)
-        => builder.WithBindMount(source, "/opt/oracle/oradata", false);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(source);
+
+        return builder.WithBindMount(source, "/opt/oracle/oradata", false);
+    }
 
     /// <summary>
     /// Adds a bind mount for the init folder to a Oracle Database server container resource.
@@ -97,7 +113,12 @@ public static class OracleDatabaseBuilderExtensions
     /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<OracleDatabaseServerResource> WithInitBindMount(this IResourceBuilder<OracleDatabaseServerResource> builder, string source)
-        => builder.WithBindMount(source, "/opt/oracle/scripts/startup", false);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(source);
+
+        return builder.WithBindMount(source, "/opt/oracle/scripts/startup", false);
+    }
 
     /// <summary>
     /// Adds a bind mount for the database setup folder to a Oracle Database server container resource.
@@ -106,5 +127,10 @@ public static class OracleDatabaseBuilderExtensions
     /// <param name="source">The source directory on the host to mount into the container.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<OracleDatabaseServerResource> WithDbSetupBindMount(this IResourceBuilder<OracleDatabaseServerResource> builder, string source)
-        => builder.WithBindMount(source, "/opt/oracle/scripts/setup", false);
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(source);
+
+        return builder.WithBindMount(source, "/opt/oracle/scripts/setup", false);
+    }
 }

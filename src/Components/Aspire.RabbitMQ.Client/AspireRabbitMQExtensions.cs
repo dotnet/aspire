@@ -40,7 +40,7 @@ public static class AspireRabbitMQExtensions
         string connectionName,
         Action<RabbitMQClientSettings>? configureSettings = null,
         Action<ConnectionFactory>? configureConnectionFactory = null)
-        => AddRabbitMQClient(builder, DefaultConfigSectionName, configureSettings, configureConnectionFactory, connectionName, serviceKey: null);
+        => AddRabbitMQClientInternal(builder, DefaultConfigSectionName, configureSettings, configureConnectionFactory, connectionName, serviceKey: null);
 
     /// <summary>
     /// Registers <see cref="IConnection"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
@@ -59,10 +59,10 @@ public static class AspireRabbitMQExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        AddRabbitMQClient(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureConnectionFactory, connectionName: name, serviceKey: name);
+        AddRabbitMQClientInternal(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureConnectionFactory, connectionName: name, serviceKey: name);
     }
 
-    private static void AddRabbitMQClient(
+    private static void AddRabbitMQClientInternal(
         IHostApplicationBuilder builder,
         string configurationSectionName,
         Action<RabbitMQClientSettings>? configureSettings,
@@ -71,6 +71,7 @@ public static class AspireRabbitMQExtensions
         object? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(connectionName);
 
         var configSection = builder.Configuration.GetSection(configurationSectionName);
 
