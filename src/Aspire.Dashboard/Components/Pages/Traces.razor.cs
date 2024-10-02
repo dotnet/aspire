@@ -35,7 +35,6 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     private Subscription? _applicationsSubscription;
     private Subscription? _tracesSubscription;
     private bool _applicationChanged;
-    private CancellationTokenSource? _filterCts;
     private string _filter = string.Empty;
     private AspirePageContentLayout? _contentLayout;
     private FluentDataGrid<OtlpTrace> _dataGrid = null!;
@@ -203,36 +202,9 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         }
     }
 
-    private void HandleFilter(ChangeEventArgs args)
-    {
-        if (args.Value is string newFilter)
-        {
-            _filterCts?.Cancel();
-
-            // Debouncing logic. Apply the filter after a delay.
-            var cts = _filterCts = new CancellationTokenSource();
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(400, cts.Token);
-                TracesViewModel.FilterText = newFilter;
-                await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
-            });
-        }
-    }
-
     private async Task HandleAfterFilterBindAsync()
     {
-        if (!string.IsNullOrEmpty(_filter))
-        {
-            return;
-        }
-
-        if (_filterCts is not null)
-        {
-            await _filterCts.CancelAsync();
-        }
-
-        TracesViewModel.FilterText = string.Empty;
+        TracesViewModel.FilterText = _filter;
         await InvokeAsync(_dataGrid.SafeRefreshDataAsync);
     }
 

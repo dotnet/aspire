@@ -124,9 +124,9 @@ public partial class FilterDialog
         if (_allValues != null)
         {
             IEnumerable<SelectViewModel<FieldValue>> newValues = _allValues;
-            if (!string.IsNullOrEmpty(_formModel.Value))
+            if (_formModel.Value is { Length: > 0 } value)
             {
-                newValues = newValues.Where(vm => vm.Name.Contains(_formModel.Value!));
+                newValues = newValues.Where(vm => vm.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
             }
 
             // Limit to 1000 items to avoid the combo box have too many items and impacting UI perf.
