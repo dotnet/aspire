@@ -5,7 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Storage;
-using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Utils;
 using Azure.Identity;
 using Azure.Provisioning;
@@ -90,57 +89,11 @@ public static class AzureStorageExtensions
         };
         var resource = new AzureStorageResource(name, configureConstruct);
 
-        var lockObject = new object();
-        BlobServiceClient? blobServiceClient = null;
-        var blobServiceClientLock = new object();
-
-        builder.Eventing.Subscribe<AzureStorageSubResourceConnectionStringAvailableEvent>(resource, async (@event, ct) =>
-        {
-            var connectionString = await resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false);
-
-            if (connectionString == null)
-            {
-                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{resource.Name}' resource but the connection string was null.");
-            }
-
-            // We only need to process one of the events from the sub-resource so we skip
-            // over the rest of the events if more than one sub-resource is being used.
-            if (blobServiceClient == null)
-            {
-                lock (blobServiceClientLock)
-                {
-                    if (blobServiceClient == null)
-                    {
-                        blobServiceClient = CreateBlobServiceClient(connectionString);
-                    }
-                }
-            }
-        });
-
-        var healthCheckKey = $"{name}_check";
-        builder.Services.AddHealthChecks().AddAzureBlobStorage(sp =>
-        {
-            return blobServiceClient ?? throw new InvalidOperationException("BlobServiceClient is not initialized.");
-        }, name: healthCheckKey);
-
         return builder.AddResource(resource)
                       // These ambient parameters are only available in development time.
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
-                      .WithManifestPublishingCallback(resource.WriteToManifest)
-                      .WithHealthCheck(healthCheckKey);
-
-        static BlobServiceClient CreateBlobServiceClient(string connectionString)
-        {
-            if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
-            {
-                return new BlobServiceClient(uri, new DefaultAzureCredential());
-            }
-            else
-            {
-                return new BlobServiceClient(connectionString);
-            }
-        }
+                      .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
     /// <summary>
@@ -166,6 +119,42 @@ public static class AzureStorageExtensions
                    Tag = StorageEmulatorContainerImageTags.Tag
                });
 
+        var lockObject = new object();
+        BlobServiceClient? blobServiceClient = null;
+        var blobServiceClientLock = new object();
+
+        builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (@event, ct) =>
+        {
+            var connectionString = await builder.Resource.GetBlobConnectionString().GetValueAsync(ct).ConfigureAwait(false);
+
+            if (connectionString == null)
+            {
+                throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
+            }
+
+            // We only need to process one of the events from the sub-resource so we skip
+            // over the rest of the events if more than one sub-resource is being used.
+            if (blobServiceClient == null)
+            {
+                lock (blobServiceClientLock)
+                {
+                    if (blobServiceClient == null)
+                    {
+                        blobServiceClient = CreateBlobServiceClient(connectionString);
+                    }
+                }
+            }
+        });
+
+        var healthCheckKey = $"{builder.Resource.Name}_check";
+
+        builder.ApplicationBuilder.Services.AddHealthChecks().AddAzureBlobStorage(sp =>
+        {
+            return blobServiceClient ?? throw new InvalidOperationException("BlobServiceClient is not initialized.");
+        }, name: healthCheckKey);
+
+        builder.WithHealthCheck(healthCheckKey);
+
         if (configureContainer != null)
         {
             var surrogate = new AzureStorageEmulatorResource(builder.Resource);
@@ -174,6 +163,18 @@ public static class AzureStorageExtensions
         }
 
         return builder;
+
+        static BlobServiceClient CreateBlobServiceClient(string connectionString)
+        {
+            if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+            {
+                return new BlobServiceClient(uri, new DefaultAzureCredential());
+            }
+            else
+            {
+                return new BlobServiceClient(connectionString);
+            }
+        }
     }
 
     /// <summary>
@@ -247,13 +248,6 @@ public static class AzureStorageExtensions
     public static IResourceBuilder<AzureBlobStorageResource> AddBlobs(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
         var resource = new AzureBlobStorageResource(name, builder.Resource);
-
-        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(resource, async (@event, ct) =>
-        {
-            var propogatedEvent = new AzureStorageSubResourceConnectionStringAvailableEvent(resource.Parent, resource);
-            await builder.ApplicationBuilder.Eventing.PublishAsync(propogatedEvent, ct).ConfigureAwait(false);
-        });
-
         return builder.ApplicationBuilder.AddResource(resource);
     }
 
@@ -266,13 +260,6 @@ public static class AzureStorageExtensions
     public static IResourceBuilder<AzureTableStorageResource> AddTables(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
         var resource = new AzureTableStorageResource(name, builder.Resource);
-
-        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(resource, async (@event, ct) =>
-        {
-            var propogatedEvent = new AzureStorageSubResourceConnectionStringAvailableEvent(resource.Parent, resource);
-            await builder.ApplicationBuilder.Eventing.PublishAsync(propogatedEvent, ct).ConfigureAwait(false);
-        });
-
         return builder.ApplicationBuilder.AddResource(resource);
     }
 
@@ -285,19 +272,6 @@ public static class AzureStorageExtensions
     public static IResourceBuilder<AzureQueueStorageResource> AddQueues(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
     {
         var resource = new AzureQueueStorageResource(name, builder.Resource);
-
-        builder.ApplicationBuilder.Eventing.Subscribe<ConnectionStringAvailableEvent>(resource, async (@event, ct) =>
-        {
-            var propogatedEvent = new AzureStorageSubResourceConnectionStringAvailableEvent(resource.Parent, resource);
-            await builder.ApplicationBuilder.Eventing.PublishAsync(propogatedEvent, ct).ConfigureAwait(false);
-        });
-
         return builder.ApplicationBuilder.AddResource(resource);
-    }
-
-    private sealed class AzureStorageSubResourceConnectionStringAvailableEvent(AzureStorageResource parent, IResourceWithParent<AzureStorageResource> childResource) : IDistributedApplicationResourceEvent
-    {
-        public IResource Resource => parent;
-        public IResourceWithParent<AzureStorageResource> ChildResource => childResource;
     }
 }
