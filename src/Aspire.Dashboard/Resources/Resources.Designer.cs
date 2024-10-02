@@ -142,15 +142,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Resource actions.
-        /// </summary>
-        public static string ResourceResourceActions {
-            get {
-                return ResourceManager.GetString("ResourceResourceActions", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Actions.
         /// </summary>
         public static string ResourcesActionsColumnHeader {

@@ -392,4 +392,16 @@
   <data name="LabelUnset" xml:space="preserve">
     <value>(Unset)</value>
   </data>
+  <data name="ActionsColumnHeader" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="ActionViewDetailsText" xml:space="preserve">
+    <value>View details</value>
+  </data>
+  <data name="ActionsButtonText" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="ActionStructuredLogsText" xml:space="preserve">
+    <value>Structured logs</value>
+  </data>
 </root>

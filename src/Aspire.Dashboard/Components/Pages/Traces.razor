@@ -144,8 +144,10 @@
                                     }
                                 </div>
                             </AspireTemplateColumn>
-                            <AspireTemplateColumn ColumnId="@DetailsColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
-                                <FluentAnchor Appearance="Appearance.Lightweight" Href="@DashboardUrls.TraceDetailUrl(context.TraceId)" @onclick:stopPropagation="true">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentAnchor>
+                            <AspireTemplateColumn ColumnId="@ActionsColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.ActionsColumnHeader)]" Class="no-ellipsis">
+                                <div class="resource-action-container" @onclick:stopPropagation="true">
+                                    <TraceActions Trace="@context" />
+                                </div>
                             </AspireTemplateColumn>
                         </ChildContent>
                         <EmptyContent>

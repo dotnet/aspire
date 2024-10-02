@@ -61,6 +61,42 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Actions.
+        /// </summary>
+        public static string ActionsButtonText {
+            get {
+                return ResourceManager.GetString("ActionsButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Actions.
+        /// </summary>
+        public static string ActionsColumnHeader {
+            get {
+                return ResourceManager.GetString("ActionsColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Structured logs.
+        /// </summary>
+        public static string ActionStructuredLogsText {
+            get {
+                return ResourceManager.GetString("ActionStructuredLogsText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to View details.
+        /// </summary>
+        public static string ActionViewDetailsText {
+            get {
+                return ResourceManager.GetString("ActionViewDetailsText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to application.
         /// </summary>
         public static string ApplicationLower {
