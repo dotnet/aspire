@@ -7,12 +7,12 @@ using Xunit;
 
 namespace Aspire.Dashboard.Tests;
 
-public class LogFilterFormatterTests
+public class TelemetryFilterFormatterTests
 {
     [Fact]
     public void RoundTripFilterWithColon()
     {
-        var serializedFilters = LogFilterFormatter.SerializeLogFiltersToString([
+        var serializedFilters = TelemetryFilterFormatter.SerializeFiltersToString([
             new TelemetryFilter
             {
                 Field = "test:name",
@@ -21,7 +21,7 @@ public class LogFilterFormatterTests
             }
         ]);
 
-        var filters = LogFilterFormatter.DeserializeLogFiltersFromString(serializedFilters);
+        var filters = TelemetryFilterFormatter.DeserializeFiltersFromString(serializedFilters);
 
         var filter = Assert.Single(filters);
 
@@ -32,7 +32,7 @@ public class LogFilterFormatterTests
     [Fact]
     public void RoundTripFiltersWithPluses()
     {
-        var serializedFilters = LogFilterFormatter.SerializeLogFiltersToString([
+        var serializedFilters = TelemetryFilterFormatter.SerializeFiltersToString([
             new TelemetryFilter
             {
                 Field = "test+name",
@@ -41,7 +41,7 @@ public class LogFilterFormatterTests
             }
         ]);
 
-        var filters = LogFilterFormatter.DeserializeLogFiltersFromString(serializedFilters);
+        var filters = TelemetryFilterFormatter.DeserializeFiltersFromString(serializedFilters);
 
         var filter = Assert.Single(filters);
 
