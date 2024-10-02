@@ -317,15 +317,24 @@ public partial class WorkloadTestsBase
         else
         {
             Assert.True(Directory.Exists(testProjectDirectory), $"Expected tests project at {testProjectDirectory}");
-            using var cmd = new DotNetCommand(testOutput, label: $"test-{testType}")
+
+            // Build first, because `dotnet test` does not show test results if all the tests pass
+            using var buildCmd = new DotNetCommand(testOutput, label: $"test-{testType}")
                                     .WithWorkingDirectory(testProjectDirectory)
                                     .WithTimeout(TimeSpan.FromSeconds(testRunTimeoutSecs));
 
-            var res = (await cmd.ExecuteAsync($"test -c {config}"))
+            (await buildCmd.ExecuteAsync($"test -c {config}")).EnsureSuccessful();
+
+            // .. then test with --no-build
+            using var testCmd = new DotNetCommand(testOutput, label: $"test-{testType}")
+                                    .WithWorkingDirectory(testProjectDirectory)
+                                    .WithTimeout(TimeSpan.FromSeconds(testRunTimeoutSecs));
+
+            var testRes = (await testCmd.ExecuteAsync($"test -c {config} --no-build"))
                                 .EnsureSuccessful();
 
-            Assert.Matches("Passed! * - Failed: *0, Passed: *1, Skipped: *0, Total: *1", res.Output);
-            return res;
+            Assert.Matches("Passed! * - Failed: *0, Passed: *1, Skipped: *0, Total: *1", testRes.Output);
+            return testRes;
         }
     }
 
