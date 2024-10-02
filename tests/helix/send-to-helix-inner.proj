@@ -73,7 +73,7 @@
     <_TestBlameArguments Include="--blame-crash" />
     <_TestBlameArguments Include="--blame-crash-dump-type full" />
 
-    <_TestRunCommandArguments Include="dotnet test -s .runsettings $(_TestNameEnvVar).dll --ResultsDirectory:$(_HelixLogsPath)" />
+    <_TestRunCommandArguments Include="dotnet test -s .runsettings $(_TestNameEnvVar).dll --ResultsDirectory:$(_HelixLogsPath) -v:n" />
     <_TestRunCommandArguments Include="@(_TestBlameArguments, ' ')" />
   </ItemGroup>
 
