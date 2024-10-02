@@ -18,6 +18,9 @@ public partial class ResourceActions : ComponentBase
     [Inject]
     public required IStringLocalizer<Resources.Resources> Loc { get; set; }
 
+    [Inject]
+    public required IStringLocalizer<Resources.ControlsStrings> ControlLoc { get; set; }
+
     [Parameter]
     public required IList<CommandViewModel> Commands { get; set; }
 
@@ -46,7 +49,7 @@ public partial class ResourceActions : ComponentBase
 
         _menuItems.Add(new MenuButtonItem
         {
-            Text = Loc[nameof(Resources.Resources.ResourceActionViewDetailsText)],
+            Text = ControlLoc[nameof(Resources.ControlsStrings.ActionViewDetailsText)],
             Icon = s_viewDetailsIcon,
             OnClick = () => OnViewDetails.InvokeAsync(_menuButton?.MenuButtonId)
         });

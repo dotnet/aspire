@@ -25,7 +25,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
     private const string NameColumn = nameof(NameColumn);
     private const string SpansColumn = nameof(SpansColumn);
     private const string DurationColumn = nameof(DurationColumn);
-    private const string DetailsColumn = nameof(DetailsColumn);
+    private const string ActionsColumn = nameof(ActionsColumn);
     private IList<GridColumn> _gridColumns = null!;
     private SelectViewModel<ResourceTypeDetails> _allApplication = null!;
 
@@ -140,7 +140,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
             new GridColumn(Name: NameColumn, DesktopWidth: "2fr", MobileWidth: "2fr"),
             new GridColumn(Name: SpansColumn, DesktopWidth: "3fr"),
             new GridColumn(Name: DurationColumn, DesktopWidth: "0.8fr"),
-            new GridColumn(Name: DetailsColumn, DesktopWidth: "0.5fr", MobileWidth: "1fr")
+            new GridColumn(Name: ActionsColumn, DesktopWidth: "0.5fr", MobileWidth: "1fr")
         ];
 
         _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = ControlsStringsLoc[name: nameof(ControlsStrings.LabelAll)] };
