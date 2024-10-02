@@ -164,22 +164,22 @@
       </trans-unit>
       <trans-unit id="LabelAll">
         <source>(All)</source>
-        <target state="new">(All)</target>
+        <target state="translated">(Tudo)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelEmpty">
         <source>(Empty)</source>
-        <target state="new">(Empty)</target>
+        <target state="translated">(Vazio)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelNone">
         <source>(None)</source>
-        <target state="new">(None)</target>
+        <target state="translated">(Nenhum)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelUnset">
         <source>(Unset)</source>
-        <target state="new">(Unset)</target>
+        <target state="translated">(Remover definição)</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -374,17 +374,17 @@
       </trans-unit>
       <trans-unit id="StructuredFilteringAddFilter">
         <source>Add filter</source>
-        <target state="new">Add filter</target>
+        <target state="translated">Adicionar filtro</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredFilteringFilters">
         <source>Filters</source>
-        <target state="new">Filters</target>
+        <target state="translated">Filtros</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredFilteringNoFilters">
         <source>No filters</source>
-        <target state="new">No filters</target>
+        <target state="translated">Sem filtros</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsDetailsContextHeader">

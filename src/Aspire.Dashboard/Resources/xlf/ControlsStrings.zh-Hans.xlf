@@ -164,22 +164,22 @@
       </trans-unit>
       <trans-unit id="LabelAll">
         <source>(All)</source>
-        <target state="new">(All)</target>
+        <target state="translated">(全部)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelEmpty">
         <source>(Empty)</source>
-        <target state="new">(Empty)</target>
+        <target state="translated">(空)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelNone">
         <source>(None)</source>
-        <target state="new">(None)</target>
+        <target state="translated">(无)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelUnset">
         <source>(Unset)</source>
-        <target state="new">(Unset)</target>
+        <target state="translated">(取消设置)</target>
         <note />
       </trans-unit>
       <trans-unit id="Loading">
@@ -294,7 +294,7 @@
       </trans-unit>
       <trans-unit id="ResourceDetailsVolumesHeader">
         <source>Volumes</source>
-        <target state="new">Volumes</target>
+        <target state="translated">卷</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDropdownReplicaAccessibleTitle">
@@ -374,17 +374,17 @@
       </trans-unit>
       <trans-unit id="StructuredFilteringAddFilter">
         <source>Add filter</source>
-        <target state="new">Add filter</target>
+        <target state="translated">添加筛选器</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredFilteringFilters">
         <source>Filters</source>
-        <target state="new">Filters</target>
+        <target state="translated">筛选器</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredFilteringNoFilters">
         <source>No filters</source>
-        <target state="new">No filters</target>
+        <target state="translated">无筛选器</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsDetailsContextHeader">
