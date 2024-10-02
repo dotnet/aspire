@@ -6,7 +6,7 @@
       <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
     </PropertyGroup>
 
-    <MSBuild Projects="Aspire.Workload.Tests\Aspire.Workload.Tests.csproj"
+    <MSBuild Projects="Aspire.EndToEnd.Tests\Aspire.EndToEnd.Tests.csproj"
              Targets="InstallSdksForTemplateTesting"
              Properties="Configuration=$(Configuration)" />
   </Target>
