@@ -103,7 +103,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
         private sealed class ContainerAppContext(IResource resource, ContainerAppEnviromentContext containerAppEnviromentContext)
         {
             private readonly Dictionary<object, string> _allocatedParameters = [];
-            private readonly Dictionary<string, BicepParameter> _bicepParameters = [];
+            private readonly Dictionary<string, ProvisioningParameter> _provisioningParameters = [];
             private readonly ContainerAppEnviromentContext _containerAppEnviromentContext = containerAppEnviromentContext;
 
             record struct EndpointMapping(string Scheme, string Host, int Port, int? TargetPort, bool IsHttpIngress, bool External);
@@ -113,9 +113,9 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
             private (int? Port, bool Http2, bool External)? _httpIngress;
             private readonly List<int> _additionalPorts = [];
 
-            private BicepParameter? _managedIdentityIdParameter;
-            private BicepParameter? _containerRegistryUrlParameter;
-            private BicepParameter? _containerRegistryManagedIdentityIdParameter;
+            private ProvisioningParameter? _managedIdentityIdParameter;
+            private ProvisioningParameter? _containerRegistryUrlParameter;
+            private ProvisioningParameter? _containerRegistryManagedIdentityIdParameter;
 
             public IResource Resource => resource;
 
@@ -141,7 +141,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                 construct.WriteToManifest(context);
 
                 // We're handling custom resource writing here instead of in the AzureConstructResource
-                // this is because we're tracking the BicepParameter instances as we process the resource
+                // this is because we're tracking the ProvisioningParameter instances as we process the resource
                 if (Parameters.Count > 0)
                 {
                     context.Writer.WriteStartObject("params");
@@ -160,7 +160,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
             {
                 var containerAppIdParam = AllocateParameter(_containerAppEnviromentContext.ContainerAppEnvironmentId);
 
-                BicepParameter? containerImageParam = null;
+                ProvisioningParameter? containerImageParam = null;
 
                 if (!resource.TryGetContainerImageName(out var containerImageName))
                 {
@@ -217,7 +217,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                 }
 
                 // Add parameters to the construct
-                foreach (var (_, parameter) in _bicepParameters)
+                foreach (var (_, parameter) in _provisioningParameters)
                 {
                     c.Add(parameter);
                 }
@@ -539,7 +539,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                     BicepValue<string> s => s,
                     string s => s,
                     BicepValueFormattableString fs => Interpolate(fs),
-                    BicepParameter p => p,
+                    ProvisioningParameter p => p,
                     _ => throw new NotSupportedException("Unsupported value type " + val.GetType())
                 };
             }
@@ -712,7 +712,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                 throw new NotSupportedException("Unsupported value type " + value.GetType());
             }
 
-            private BicepParameter AllocateVolumeStorageAccount(ContainerMountType type, string volumeIndex) =>
+            private ProvisioningParameter AllocateVolumeStorageAccount(ContainerMountType type, string volumeIndex) =>
                 AllocateParameter(VolumeStorageExpression.GetVolumeStorage(resource, type, volumeIndex));
 
             private BicepValue<string> AllocateKeyVaultSecretUriReference(BicepSecretOutputReference secretOutputReference)
@@ -744,13 +744,13 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                             "secretUri");
             }
 
-            private BicepParameter AllocateContainerImageParameter()
+            private ProvisioningParameter AllocateContainerImageParameter()
                 => AllocateParameter(ProjectResourceExpression.GetContainerImageExpression((ProjectResource)resource));
 
             private BicepValue<int> AllocateContainerPortParameter()
                 => AllocateParameter(ProjectResourceExpression.GetContainerPortExpression((ProjectResource)resource));
 
-            private BicepParameter AllocateManagedIdentityIdParameter()
+            private ProvisioningParameter AllocateManagedIdentityIdParameter()
                 => _managedIdentityIdParameter ??= AllocateParameter(_containerAppEnviromentContext.ManagedIdentityId);
 
             private void AllocateContainerRegistryParameters()
@@ -759,7 +759,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                 _containerRegistryManagedIdentityIdParameter ??= AllocateParameter(_containerAppEnviromentContext.ContainerRegistryManagedIdentityId);
             }
 
-            private BicepParameter AllocateParameter(IManifestExpressionProvider parameter, Type? type = null, SecretType secretType = SecretType.None)
+            private ProvisioningParameter AllocateParameter(IManifestExpressionProvider parameter, Type? type = null, SecretType secretType = SecretType.None)
             {
                 if (!_allocatedParameters.TryGetValue(parameter, out var parameterName))
                 {
@@ -773,13 +773,13 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                     _allocatedParameters[parameter] = parameterName;
                 }
 
-                if (!_bicepParameters.TryGetValue(parameterName, out var bicepParameter))
+                if (!_provisioningParameters.TryGetValue(parameterName, out var provisioningParameter))
                 {
-                    _bicepParameters[parameterName] = bicepParameter = new BicepParameter(parameterName, type ?? typeof(string)) { IsSecure = secretType != SecretType.None };
+                    _provisioningParameters[parameterName] = provisioningParameter = new ProvisioningParameter(parameterName, type ?? typeof(string)) { IsSecure = secretType != SecretType.None };
                 }
 
                 Parameters[parameterName] = parameter;
-                return bicepParameter;
+                return provisioningParameter;
             }
 
             private void AddIngress(ContainerAppConfiguration config)
@@ -935,9 +935,9 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                     {
                         arguments.Add(s);
                     }
-                    else if (argument is BicepParameter bicepParameter)
+                    else if (argument is ProvisioningParameter provisioningParameter)
                     {
-                        arguments.Add(bicepParameter);
+                        arguments.Add(provisioningParameter);
                     }
                     else
                     {
