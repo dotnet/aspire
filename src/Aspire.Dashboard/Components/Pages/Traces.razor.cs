@@ -83,7 +83,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "filters")]
-    public string? SerializedLogFilters { get; set; }
+    public string? SerializedFilters { get; set; }
 
     private string GetNameTooltip(OtlpTrace trace)
     {
@@ -274,9 +274,9 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
         viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _allApplication);
         TracesViewModel.ApplicationKey = PageViewModel.SelectedApplication.Id?.GetApplicationKey();
 
-        if (SerializedLogFilters is not null)
+        if (SerializedFilters is not null)
         {
-            var filters = LogFilterFormatter.DeserializeLogFiltersFromString(SerializedLogFilters);
+            var filters = TelemetryFilterFormatter.DeserializeFiltersFromString(SerializedFilters);
 
             if (filters.Count > 0)
             {
@@ -293,7 +293,7 @@ public partial class Traces : IPageWithSessionAndUrlState<Traces.TracesPageViewM
 
     public string GetUrlFromSerializableViewModel(TracesPageState serializable)
     {
-        var filters = (serializable.Filters.Count > 0) ? LogFilterFormatter.SerializeLogFiltersToString(serializable.Filters) : null;
+        var filters = (serializable.Filters.Count > 0) ? TelemetryFilterFormatter.SerializeFiltersToString(serializable.Filters) : null;
 
         return DashboardUrls.TracesUrl(
             resource: serializable.SelectedApplication,

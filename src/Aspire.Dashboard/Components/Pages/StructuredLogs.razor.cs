@@ -99,7 +99,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "filters")]
-    public string? SerializedLogFilters { get; set; }
+    public string? SerializedFilters { get; set; }
 
     public StructureLogsDetailsViewModel? SelectedLogEntry { get; set; }
 
@@ -398,7 +398,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     public string GetUrlFromSerializableViewModel(StructuredLogsPageState serializable)
     {
-        var filters = (serializable.Filters.Count > 0) ? LogFilterFormatter.SerializeLogFiltersToString(serializable.Filters) : null;
+        var filters = (serializable.Filters.Count > 0) ? TelemetryFilterFormatter.SerializeFiltersToString(serializable.Filters) : null;
 
         var url = DashboardUrls.StructuredLogsUrl(
             resource: serializable.SelectedApplication,
@@ -434,9 +434,9 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
         ViewModel.LogLevel = PageViewModel.SelectedLogLevel.Id;
 
-        if (SerializedLogFilters is not null)
+        if (SerializedFilters is not null)
         {
-            var filters = LogFilterFormatter.DeserializeLogFiltersFromString(SerializedLogFilters);
+            var filters = TelemetryFilterFormatter.DeserializeFiltersFromString(SerializedFilters);
 
             if (filters.Count > 0)
             {
