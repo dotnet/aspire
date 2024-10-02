@@ -141,7 +141,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                 construct.WriteToManifest(context);
 
                 // We're handling custom resource writing here instead of in the AzureConstructResource
-                // this is because we're tracking the provisioningParameter instances as we process the resource
+                // this is because we're tracking the ProvisioningParameter instances as we process the resource
                 if (Parameters.Count > 0)
                 {
                     context.Writer.WriteStartObject("params");
