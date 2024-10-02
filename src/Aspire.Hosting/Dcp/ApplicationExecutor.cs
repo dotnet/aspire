@@ -1369,7 +1369,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private static async Task<string?> GetValue(string? key, IValueProvider valueProvider, ILogger logger, bool isContainer, CancellationToken cancellationToken)
     {
-        var task = ExpressionResolver.Resolve(isContainer, valueProvider, cancellationToken);
+        var task = ExpressionResolver.ResolveAsync(isContainer, valueProvider, cancellationToken);
 
         if (!task.IsCompleted)
         {

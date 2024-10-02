@@ -16,11 +16,13 @@ public class ExpressionResolverTests
     [InlineData("Url", true, false, "Url=http://ContainerHostName:12345;")]
     [InlineData("Url", true, true, "Url=http://testresource:10000;")]
     [InlineData("OnlyHost", true, false, "Host=ContainerHostName;")]
-    [InlineData("OnlyHost", true, true, "Host=testresource;")]
+    [InlineData("OnlyHost", true, true, "Host=localhost;")] // host not replaced since no port
     [InlineData("OnlyPort", true, false, "Port=12345;")]
-    [InlineData("OnlyPort", true, true, "Port=12345;")]
+    [InlineData("OnlyPort", true, true, "Port=12345;")] // port not replaced since no host
     [InlineData("PortBeforeHost", true, false, "Port=12345;Host=ContainerHostName;")]
-    //[InlineData("PortBeforeHost", true, true, "Port=10000;Host=testresource;")]
+    [InlineData("PortBeforeHost", true, true, "Port=10000;Host=testresource;")]
+    [InlineData("FullAndPartial", true, false, "Test1=http://ContainerHostName:12345/;Test2=https://localhost:12346/;")]
+    [InlineData("FullAndPartial", true, true, "Test1=http://testresource:10000/;Test2=https://localhost:12346/;")] // Second port not replaced since host is hard coded
     public async Task ExpressionResolverGeneratesCorrectStrings(string exprName, bool sourceIsContainer, bool targetIsContainer, string expectedConnectionString)
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -43,7 +45,7 @@ public class ExpressionResolverTests
         }
 
         var csRef = new ConnectionStringReference(test.Resource, false);
-        var connectionString = await ExpressionResolver.Resolve(sourceIsContainer, csRef, CancellationToken.None);
+        var connectionString = await ExpressionResolver.ResolveAsync(sourceIsContainer, csRef, CancellationToken.None);
         Assert.Equal(expectedConnectionString, connectionString);
     }
 }
@@ -66,7 +68,8 @@ sealed class TestExpressionResolverResource : ContainerResource, IResourceWithEn
             { "Url", ReferenceExpression.Create($"Url={Endpoint1.Property(EndpointProperty.Url)};") },
             { "OnlyHost", ReferenceExpression.Create($"Host={Endpoint1.Property(EndpointProperty.Host)};") },
             { "OnlyPort", ReferenceExpression.Create($"Port={Endpoint1.Property(EndpointProperty.Port)};") },
-            { "PortBeforeHost", ReferenceExpression.Create($"Port={Endpoint1.Property(EndpointProperty.Port)};Host={Endpoint1.Property(EndpointProperty.Host)};") }
+            { "PortBeforeHost", ReferenceExpression.Create($"Port={Endpoint1.Property(EndpointProperty.Port)};Host={Endpoint1.Property(EndpointProperty.Host)};") },
+            { "FullAndPartial", ReferenceExpression.Create($"Test1={Endpoint1.Property(EndpointProperty.Scheme)}://{Endpoint1.Property(EndpointProperty.IPV4Host)}:{Endpoint1.Property(EndpointProperty.Port)}/;Test2={Endpoint2.Property(EndpointProperty.Scheme)}://localhost:{Endpoint2.Property(EndpointProperty.Port)}/;") }
         };
     }
 
