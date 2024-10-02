@@ -7,6 +7,7 @@ using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
+using Metrics = Aspire.Dashboard.Components.Pages.Metrics;
 
 namespace Aspire.Dashboard.Components;
 
@@ -40,6 +41,9 @@ public abstract class ChartContainer : ComponentBase, IAsyncDisposable
 
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<ControlsStrings> Loc { get; init; }
 
     public List<DimensionFilterViewModel> DimensionFilters { get; } = [];
     public string? PreviousMeterName { get; set; }
