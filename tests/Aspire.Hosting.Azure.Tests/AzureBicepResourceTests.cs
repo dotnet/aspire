@@ -2600,8 +2600,8 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
                 account.Properties.Value!.DisableLocalAuth = false;
             }
         })
-            .AddDeployment(new("mymodel", "gpt-35-turbo", "0613") { SkuName = "Basic", SkuCapacity = 4 })
-            .AddDeployment(new("embedding-model", "text-embedding-ada-002", "2") { SkuName = "Basic", SkuCapacity = 2 });
+            .AddDeployment(new("mymodel", "gpt-35-turbo", "0613", "Basic", 4))
+            .AddDeployment(new("embedding-model", "text-embedding-ada-002", "2", "Basic", 4));
 
         var manifest = await ManifestUtils.GetManifestWithBicep(openai.Resource);
 

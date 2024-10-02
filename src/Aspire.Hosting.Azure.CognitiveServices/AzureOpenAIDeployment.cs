@@ -9,7 +9,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the deployment</param>
 /// <param name="modelName">The name of the model.</param>
 /// <param name="modelVersion">The version of the model.</param>
-public class AzureOpenAIDeployment(string name, string modelName, string modelVersion)
+/// <param name="skuName">The name of the SKU.</param>
+/// <param name="skuCapacity">The capacity of the SKU.</param>
+public class AzureOpenAIDeployment(string name, string modelName, string modelVersion, string? skuName = null, int? skuCapacity = null)
 {
     /// <value>"Standard"</value>>
     private const string DefaultSkuName = "Standard";
@@ -38,7 +40,7 @@ public class AzureOpenAIDeployment(string name, string modelName, string modelVe
     /// <value>
     /// The default value is <inheritdoc cref="DefaultSkuName"/>.
     /// </value>
-    public string SkuName { get; set; } = DefaultSkuName;
+    public string SkuName { get; set; } = skuName ?? DefaultSkuName;
 
     /// <summary>
     /// Gets the capacity of the SKU.
@@ -46,5 +48,5 @@ public class AzureOpenAIDeployment(string name, string modelName, string modelVe
     /// <value>
     /// The default value is <inheritdoc cref="DefaultSkuCapacity"/>.
     /// </value>
-    public int SkuCapacity { get; set; } = DefaultSkuCapacity;
+    public int SkuCapacity { get; set; } = skuCapacity ?? DefaultSkuCapacity;
 }
