@@ -148,12 +148,13 @@
                                                 </a>
                                             }
                                         </AspireTemplateColumn>
-                                        <AspireTemplateColumn ColumnId="@DetailsColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]" Class="no-ellipsis">
+                                        <AspireTemplateColumn ColumnId="@ActionsColumn" ColumnManager="@_manager" Title="@ControlsStringsLoc[nameof(ControlsStrings.ActionsColumnHeader)]" Class="no-ellipsis">
                                             @{
                                                 var id = $"details-button-{context.InternalId}";
                                             }
-                                            <div @onclick:stopPropagation="true">
-                                                <FluentButton Id="@id" Appearance="Appearance.Lightweight" OnClick="@(() => OnShowPropertiesAsync(context, id))">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
+                                            <div class="grid-action-container" @onclick:stopPropagation="true">
+                                                <StructuredLogActions LogEntry="@context"
+                                                                      OnViewDetails="@((buttonId) => OnShowPropertiesAsync(context, buttonId))" />
                                             </div>
                                         </AspireTemplateColumn>
                                     </ChildContent>
