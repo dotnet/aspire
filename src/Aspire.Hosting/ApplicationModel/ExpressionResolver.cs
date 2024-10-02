@@ -11,29 +11,35 @@ internal class ExpressionResolver
     /// Resolve an expression when it is being used from inside a container.
     /// So it's either a container-to-container or container-to-exe communication.
     /// </summary>
-    static async ValueTask<string?> ResolveWithContainerSourceAsync(object? value, Dictionary<EndpointReference, bool[]> processedEndpoints, bool preprocessMode, CancellationToken cancellationToken)
+    /// <param name="value">The current object to be processed (or preprocessed)</param>
+    /// <param name="endpointUsage">For each endpoint, store two bools, to track if the host and port are in use</param>
+    /// <param name="preprocess">When true, we just prescan to determine if the host and port properties are both used</param>
+    /// <param name="cancellationToken"></param>
+    static async ValueTask<string?> ResolveWithContainerSourceAsync(object? value, Dictionary<EndpointReference, bool[]> endpointUsage, bool preprocess, CancellationToken cancellationToken)
     {
         async Task<string?> EvalEndpointAsync(EndpointReference endpointReference, EndpointProperty property)
         {
-            if (preprocessMode)
+            // In the preprocess phase, our only goal is to determine if the host and port properties are both used
+            // for each endpoint.
+            if (preprocess)
             {
-                if (!processedEndpoints.TryGetValue(endpointReference, out var hostAndPortFound))
+                if (!endpointUsage.TryGetValue(endpointReference, out var hostAndPortPresence))
                 {
-                    hostAndPortFound = new bool[2];
-                    processedEndpoints[endpointReference] = hostAndPortFound;
+                    hostAndPortPresence = new bool[2];
+                    endpointUsage[endpointReference] = hostAndPortPresence;
                 }
 
                 if (property is EndpointProperty.Host or EndpointProperty.IPV4Host)
                 {
-                    hostAndPortFound[0] = true;
+                    hostAndPortPresence[0] = true;
                 }
                 else if (property == EndpointProperty.Port)
                 {
-                    hostAndPortFound[1] = true;
+                    hostAndPortPresence[1] = true;
                 }
                 else if (property == EndpointProperty.Url)
                 {
-                    hostAndPortFound[0] = hostAndPortFound[1] = true;
+                    hostAndPortPresence[0] = hostAndPortPresence[1] = true;
                 }
 
                 return string.Empty;
@@ -43,15 +49,14 @@ internal class ExpressionResolver
             // Otherwise, we get the wrong values for IsContainer and Name
             var target = endpointReference.Resource.GetRootResource();
 
-            bool HasBothHostAndPort() => processedEndpoints[endpointReference][0] && processedEndpoints[endpointReference][1];
+            bool HasBothHostAndPort() => endpointUsage[endpointReference][0] && endpointUsage[endpointReference][1];
 
             return (property, target.IsContainer()) switch
             {
-                // If Container -> Container, we go directly to the container name, bypassing the host
-                (EndpointProperty.Host or EndpointProperty.IPV4Host, true) when HasBothHostAndPort() => target.Name,
-                // If Container -> Container, we use the target port, since we're not going through the host.
-                // But only do this if we have also processed the host property for that same endpoint.
+                // If Container -> Container, we go directly to the container name and target port, bypassing the host
+                // But only do this if we have processed both the host and port properties for that same endpoint.
                 // This allows the host and port to be handled in a unified way.
+                (EndpointProperty.Host or EndpointProperty.IPV4Host, true) when HasBothHostAndPort() => target.Name,
                 (EndpointProperty.Port, true) when HasBothHostAndPort() => await endpointReference.Property(EndpointProperty.TargetPort).GetValueAsync(cancellationToken).ConfigureAwait(false),
                 // If Container -> Exe, we need to go through the container host
                 (EndpointProperty.Host or EndpointProperty.IPV4Host, false) => endpointReference.ContainerHost,
@@ -71,7 +76,7 @@ internal class ExpressionResolver
 
             for (var i = 0; i < expr.ValueProviders.Count; i++)
             {
-                args[i] = await ResolveWithContainerSourceAsync(expr.ValueProviders[i], processedEndpoints, preprocessMode, cancellationToken).ConfigureAwait(false);
+                args[i] = await ResolveWithContainerSourceAsync(expr.ValueProviders[i], endpointUsage, preprocess, cancellationToken).ConfigureAwait(false);
             }
 
             return string.Format(CultureInfo.InvariantCulture, expr.Format, args);
@@ -79,8 +84,8 @@ internal class ExpressionResolver
 
         return value switch
         {
-            ConnectionStringReference cs => await ResolveWithContainerSourceAsync(cs.Resource.ConnectionStringExpression, processedEndpoints, preprocessMode, cancellationToken).ConfigureAwait(false),
-            IResourceWithConnectionString cs => await ResolveWithContainerSourceAsync(cs.ConnectionStringExpression, processedEndpoints, preprocessMode, cancellationToken).ConfigureAwait(false),
+            ConnectionStringReference cs => await ResolveWithContainerSourceAsync(cs.Resource.ConnectionStringExpression, endpointUsage, preprocess, cancellationToken).ConfigureAwait(false),
+            IResourceWithConnectionString cs => await ResolveWithContainerSourceAsync(cs.ConnectionStringExpression, endpointUsage, preprocess, cancellationToken).ConfigureAwait(false),
             ReferenceExpression ex => await EvalExpressionAsync(ex).ConfigureAwait(false),
             EndpointReference endpointReference => await EvalEndpointAsync(endpointReference, EndpointProperty.Url).ConfigureAwait(false),
             EndpointReferenceExpression ep => await EvalEndpointAsync(ep.Endpoint, ep.Property).ConfigureAwait(false),
@@ -91,16 +96,18 @@ internal class ExpressionResolver
 
     internal static async ValueTask<string?> ResolveAsync(bool sourceIsContainer, IValueProvider valueProvider, CancellationToken cancellationToken)
     {
-        var processedEndpoints = new Dictionary<EndpointReference, bool[]>();
+        // For each endpoint, store two bools, to track if the host and port are in use
+        var endpointUsage = new Dictionary<EndpointReference, bool[]>();
 
-        await ResolveWithContainerSourceAsync(valueProvider, processedEndpoints, preprocessMode: true, cancellationToken).ConfigureAwait(false);
+        // Run the processing phase to know if the host and port properties are both used for each endpoint.
+        await ResolveWithContainerSourceAsync(valueProvider, endpointUsage, preprocess: true, cancellationToken).ConfigureAwait(false);
 
         return sourceIsContainer switch
         {
             // Exe -> Exe and Exe -> Container cases
             false => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
             // Container -> Exe and Container -> Container cases
-            true => await ResolveWithContainerSourceAsync(valueProvider, processedEndpoints, preprocessMode: false, cancellationToken).ConfigureAwait(false)
+            true => await ResolveWithContainerSourceAsync(valueProvider, endpointUsage, preprocess: false, cancellationToken).ConfigureAwait(false)
         };
     }
 }
