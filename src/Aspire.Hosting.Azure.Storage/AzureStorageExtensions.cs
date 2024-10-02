@@ -118,9 +118,7 @@ public static class AzureStorageExtensions
                    Tag = StorageEmulatorContainerImageTags.Tag
                });
 
-        var lockObject = new object();
         BlobServiceClient? blobServiceClient = null;
-        var blobServiceClientLock = new object();
 
         builder.ApplicationBuilder.Eventing.Subscribe<BeforeResourceStartedEvent>(builder.Resource, async (@event, ct) =>
         {
@@ -131,18 +129,7 @@ public static class AzureStorageExtensions
                 throw new DistributedApplicationException($"ConnectionStringAvailableEvent was published for the '{builder.Resource.Name}' resource but the connection string was null.");
             }
 
-            // We only need to process one of the events from the sub-resource so we skip
-            // over the rest of the events if more than one sub-resource is being used.
-            if (blobServiceClient == null)
-            {
-                lock (blobServiceClientLock)
-                {
-                    if (blobServiceClient == null)
-                    {
-                        blobServiceClient = CreateBlobServiceClient(connectionString);
-                    }
-                }
-            }
+            blobServiceClient = CreateBlobServiceClient(connectionString);
         });
 
         var healthCheckKey = $"{builder.Resource.Name}_check";
