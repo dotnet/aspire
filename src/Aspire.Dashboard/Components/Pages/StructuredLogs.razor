@@ -71,7 +71,7 @@
                     {
                         <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
                     }
-                    <FluentButton slot="end" Appearance="Appearance.Outline" OnClick="() => OpenFilterAsync(filter)">@filter.GetDisplayText(FilterLoc)</FluentButton>
+                    <FluentButton slot="end" Appearance="Appearance.Outline" OnClick="() => OpenFilterAsync(filter)" class="telemetry-filter-button" title="@filter.GetDisplayText(FilterLoc)">@filter.GetDisplayText(FilterLoc)</FluentButton>
                 }
             }
             <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
