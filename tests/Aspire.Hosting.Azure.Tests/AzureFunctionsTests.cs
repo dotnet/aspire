@@ -5,14 +5,11 @@ using Aspire.Components.Common.Tests;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Testing;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class AzureFunctionsTests(ITestOutputHelper testOutputHelper)
+public class AzureFunctionsTests
 {
     [Fact]
     public void AddAzureFunctionsProject_Works()
@@ -22,7 +19,7 @@ public class AzureFunctionsTests(ITestOutputHelper testOutputHelper)
 
         // Assert that default storage resource is configured
         Assert.Contains(builder.Resources, resource =>
-            resource is AzureStorageResource && resource.Name == AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName);
+            resource is AzureStorageResource && resource.Name.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName));
         // Assert that custom project resource type is configured
         Assert.Contains(builder.Resources, resource =>
             resource is AzureFunctionsProjectResource && resource.Name == "funcapp");
@@ -99,116 +96,37 @@ public class AzureFunctionsTests(ITestOutputHelper testOutputHelper)
         Assert.True(endpointAnnotation.IsProxied);
     }
 
-    [Theory]
-    [RequiresDocker]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task AddAzureFunctionsProject_LogsWhenUsingPreExistingDefaultStorage(bool defaultHostStorageAlreadyExists)
+    [Fact]
+    public void AddAzureFunctionsProject_GeneratesUniqueDefaultHostStorageResourceName()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
-        var testSink = new TestSink();
-        var loggerFactory = CreateLoggerFactory(testOutputHelper, testSink);
-        builder.Services.AddSingleton(loggerFactory);
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.AddAzureFunctionsProject<TestProjectWithMalformedPort>("funcapp");
 
-        if (defaultHostStorageAlreadyExists)
-        {
-            builder.AddAzureStorage(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName);
-        }
-        builder.AddAzureFunctionsProject<TestProjectWithPartialPort>("funcapp");
-
-        var host = builder.Build();
-        await host.StartAsync();
-
-        Assert.Equal(defaultHostStorageAlreadyExists, testSink.Writes.SingleOrDefault(write =>
-            write.LogLevel == LogLevel.Warning &&
-            write.LoggerName == AzureFunctionsProjectResourceExtensions.LogCategoryName &&
-            write.Message is { } message &&
-            message.Contains("Found existing default Storage resource 'azFuncHostStorage' for Azure Functions project")) != null);
-
-        await host.StopAsync();
+        // Assert that the default storage resource is unique
+        var storageResources = Assert.Single(builder.Resources.OfType<AzureStorageResource>());
+        Assert.NotEqual(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName, storageResources.Name);
+        Assert.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName, storageResources.Name);
     }
 
     [Fact]
     [RequiresDocker]
-    public async Task AddAzureFunctionsProject_DoesNotLogWhenMultipleProjectsRegistered()
+    public async Task AddAzureFunctionsProject_RemoveDefaultHostStorageWhenUseHostStorageIsUsed()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
-        var testSink = new TestSink();
-        var loggerFactory = CreateLoggerFactory(testOutputHelper, testSink);
-        builder.Services.AddSingleton(loggerFactory);
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var storage = builder.AddAzureStorage("my-own-storage").RunAsEmulator();
+        builder.AddAzureFunctionsProject<TestProjectWithMalformedPort>("funcapp")
+            .WithHostStorage(storage);
 
-        builder.AddAzureFunctionsProject<TestProjectWithPartialPort>("funcapp");
-        builder.AddAzureFunctionsProject<TestProjectWithPartialPort>("funcapp2");
-        builder.AddAzureFunctionsProject<TestProjectWithPartialPort>("funcapp3");
-
-        var host = builder.Build();
+        using var host = builder.Build();
         await host.StartAsync();
 
-        Assert.DoesNotContain(testSink.Writes, write =>
-            write.LogLevel == LogLevel.Warning &&
-            write.LoggerName == AzureFunctionsProjectResourceExtensions.LogCategoryName &&
-            write.Message is { } message &&
-            message.Contains("Found existing default Storage resource 'azFuncHostStorage' for Azure Functions projects"));
+        // Assert that the default storage resource is not present
+        var model = host.Services.GetRequiredService<DistributedApplicationModel>();
+        Assert.DoesNotContain(model.Resources.OfType<AzureStorageResource>(),
+            r => r.Name.StartsWith(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName));
+        Assert.Contains(model.Resources.OfType<AzureStorageResource>(), r => r.Name == "my-own-storage");
 
         await host.StopAsync();
-    }
-
-    [Fact]
-    [RequiresDocker]
-    public async Task AddAzureFunctionsProject_LogsWhenHostStorageConfiguredWithMultipleProjects()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
-        var testSink = new TestSink();
-        var loggerFactory = CreateLoggerFactory(testOutputHelper, testSink);
-        builder.Services.AddSingleton(loggerFactory);
-
-        builder.AddAzureStorage(AzureFunctionsProjectResourceExtensions.DefaultAzureFunctionsHostStorageName);
-        builder.AddAzureFunctionsProject<TestProjectWithPartialPort>("funcapp");
-        builder.AddAzureFunctionsProject<TestProjectWithPartialPort>("funcapp2");
-        builder.AddAzureFunctionsProject<TestProjectWithPartialPort>("funcapp3");
-
-        var host = builder.Build();
-        await host.StartAsync();
-
-        Assert.Contains(testSink.Writes, write =>
-            write.LogLevel == LogLevel.Warning &&
-            write.LoggerName == AzureFunctionsProjectResourceExtensions.LogCategoryName &&
-            write.Message is { } message &&
-            message.Contains("Found existing default Storage resource 'azFuncHostStorage' for Azure Functions project 'funcapp'."));
-
-        Assert.Contains(testSink.Writes, write =>
-            write.LogLevel == LogLevel.Warning &&
-            write.LoggerName == AzureFunctionsProjectResourceExtensions.LogCategoryName &&
-            write.Message is { } message &&
-            message.Contains("Found existing default Storage resource 'azFuncHostStorage' for Azure Functions project 'funcapp2'."));
-
-        Assert.Contains(testSink.Writes, write =>
-            write.LogLevel == LogLevel.Warning &&
-            write.LoggerName == AzureFunctionsProjectResourceExtensions.LogCategoryName &&
-            write.Message is { } message &&
-            message.Contains("Found existing default Storage resource 'azFuncHostStorage' for Azure Functions project 'funcapp3'."));
-
-        await host.StopAsync();
-    }
-
-    public static ILoggerFactory CreateLoggerFactory(ITestOutputHelper testOutputHelper, ITestSink? testSink = null)
-    {
-        return LoggerFactory.Create(builder =>
-        {
-            builder.AddXunit(testOutputHelper, LogLevel.Trace, DateTimeOffset.UtcNow);
-            builder.SetMinimumLevel(LogLevel.Trace);
-            if (testSink is not null)
-            {
-                builder.AddProvider(new TestLoggerProvider(testSink));
-            }
-        });
-    }
-
-    private sealed class TestProjectNoStart : IProjectMetadata
-    {
-        public string ProjectPath => "some-path";
-        public LaunchSettings LaunchSettings => new();
-
     }
 
     private sealed class TestProject : IProjectMetadata
