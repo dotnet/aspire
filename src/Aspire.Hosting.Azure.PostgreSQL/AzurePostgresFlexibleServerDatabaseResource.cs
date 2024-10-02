@@ -24,14 +24,7 @@ public class AzurePostgresFlexibleServerDatabaseResource(string name, string dat
     /// <summary>
     /// Gets the connection string expression for the Postgres database.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression =>
-        ConnectionStringSecretOutput ?? ReferenceExpression.Create($"{Parent};Database={DatabaseName}");
-
-    private ReferenceExpression? ConnectionStringSecretOutput =>
-        // if the parent is using a secret output, then we should also use a secret output
-        Parent.ConnectionStringSecretOutput is not null ?
-            ReferenceExpression.Create($"{new BicepSecretOutputReference($"{Name}_connectionString", Parent)}") :
-            null;
+    public ReferenceExpression ConnectionStringExpression => Parent.GetDatabaseConnectionString(Name, databaseName);
 
     /// <summary>
     /// Gets the database name.
