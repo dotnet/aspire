@@ -56,7 +56,7 @@
     <WriteLinesToFile File="%(TemplateProjectFiles.DestinationFile)"
                       Lines="$([System.IO.File]::ReadAllText('%(TemplateProjectFiles.FullPath)')
                                                  .Replace('!!REPLACE_WITH_LATEST_VERSION!!', '$(PackageVersion)')
-                                                 .Replace('!!REPLACE_WITH_EXTENSIONS_VERSION!!', '$(MicrosoftExtensionsHttpResiliencePackageVersion)'))"
+                                                 .Replace('!!REPLACE_WITH_EXTENSIONS_9_VERSION!!', '$(MicrosoftExtensionsHttpResiliencePackageVersionForNet9)'))"
                       Overwrite="true" />
   </Target>
 
