@@ -114,7 +114,7 @@
     },
     "pgsqldb": {
       "type": "value.v0",
-      "connectionString": "{pgsql.secretOutputs.pgsqldb_connectionString}"
+      "connectionString": "{pgsql.secretOutputs.pgsqldb-connectionString}"
     },
     "pgsql2": {
       "type": "azure.bicep.v0",

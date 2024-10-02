@@ -7,6 +7,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Utils;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Azure.Provisioning;
@@ -730,7 +731,8 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                 if (!KeyVaultSecretRefs.TryGetValue(secretOutputReference.ValueExpression, out var secret))
                 {
                     // Now we resolve the secret
-                    secret = KeyVaultSecret.FromExisting($"{kv.ResourceName}_{secretOutputReference.Name}");
+                    var secretIdentifierName = BicepIdentifierHelpers.Normalize($"{kv.ResourceName}_{secretOutputReference.Name}");
+                    secret = KeyVaultSecret.FromExisting(secretIdentifierName);
                     secret.Name = secretOutputReference.Name;
                     secret.Parent = kv;
 
