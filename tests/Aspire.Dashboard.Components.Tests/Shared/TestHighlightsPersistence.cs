@@ -6,10 +6,10 @@ using Aspire.Dashboard.Model;
 
 namespace Aspire.Dashboard.Components.Tests.Shared;
 
-public sealed class TestDashpagePersistence : IDashpagePersistence
+public sealed class TestHighlightsPersistence : IHighlightPersistence
 {
-    public Task<ImmutableArray<DashpageDefinition>> GetDashpagesAsync(CancellationToken token)
+    public Task<ImmutableArray<HighlightDefinition>> GetHighlightsAsync(CancellationToken token)
     {
-        return Task.FromResult<ImmutableArray<DashpageDefinition>>([]);
+        return Task.FromResult<ImmutableArray<HighlightDefinition>>([]);
     }
 }

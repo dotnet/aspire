@@ -1,8 +1,8 @@
-::deep .dashpage-chart-header {
+::deep .highlight-chart-header {
     padding-left: 0;
     margin-bottom: 5px;
 }
 
-::deep .dashpage-chart-body {
+::deep .highlight-chart-body {
     padding-top: 10px;
 }

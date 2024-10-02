@@ -5,16 +5,16 @@
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 
-<h3 title="@SelectedDashpage.DisplayName" class="dashpage-chart-title">@SelectedDashpage.DisplayName</h3>
+<h3 title="@SelectedHighlight.DisplayName" class="highlight-chart-title">@SelectedHighlight.DisplayName</h3>
 
-<section class="dashpage-chart-grid">
-    @foreach (var chart in SelectedDashpage.Charts)
+<section class="highlight-chart-grid">
+    @foreach (var chart in SelectedHighlight.Charts)
     {
         if (Instruments.FirstOrDefault(i => StringComparers.OtlpInstrumentName.Equals(i.Name, chart.InstrumentName)) is { } instrument)
         {
-            <article class="dashpage-chart-tile">
+            <article class="highlight-chart-tile">
                 <FluentCard AreaRestricted="false">
-                    <DashpageChartContainer
+                    <HighlightChartContainer
                         ApplicationKey="@SelectedApplication.Id!.GetApplicationKey()"
                         MeterName="@instrument.Parent.MeterName"
                         InstrumentName="@instrument.Name"
@@ -39,7 +39,7 @@
     public required OtlpMeter SelectedMeter { get; init; }
 
     [Parameter, EditorRequired]
-    public required DashpageDefinition SelectedDashpage { get; init; }
+    public required HighlightDefinition SelectedHighlight { get; init; }
 
     [Parameter, EditorRequired]
     public required List<OtlpInstrumentSummary> Instruments { get; init; }

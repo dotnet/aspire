@@ -30,14 +30,14 @@ internal static class DashboardUrls
         return url;
     }
 
-    public static string MetricsUrl(string? resource = null, string? meter = null, string? instrument = null, int? duration = null, string? view = null, string? dashpage = null, bool? isDashpagesHome = false)
+    public static string MetricsUrl(string? resource = null, string? meter = null, string? instrument = null, int? duration = null, string? view = null, string? highlight = null, bool? isHighlightsHome = false)
     {
         var url = $"/{MetricsBasePath}";
         if (resource != null)
         {
             url += $"/resource/{Uri.EscapeDataString(resource)}";
         }
-        if (isDashpagesHome is true)
+        if (isHighlightsHome is true)
         {
             url += "/highlights";
         }
@@ -51,10 +51,10 @@ internal static class DashboardUrls
                 url = QueryHelpers.AddQueryString(url, "instrument", instrument);
             }
         }
-        if (dashpage is not null)
+        if (highlight is not null)
         {
-            // dashpage must be querystring parameters because it's valid for the name to contain forward slashes.
-            url = QueryHelpers.AddQueryString(url, "highlight", dashpage);
+            // highlight must be querystring parameters because it's valid for the name to contain forward slashes.
+            url = QueryHelpers.AddQueryString(url, "highlight", highlight);
         }
         if (duration != null)
         {
@@ -68,9 +68,9 @@ internal static class DashboardUrls
         return url;
     }
 
-    public static bool IsDashpagesUrl(NavigationManager navigationManager, string? resource)
+    public static bool IsHighlightsUrl(NavigationManager navigationManager, string? resource)
     {
-        return StringComparers.UrlPath.Equals(MetricsUrl(resource: resource, isDashpagesHome: true), "/" + navigationManager.ToBaseRelativePath(navigationManager.Uri).Split("?").First());
+        return StringComparers.UrlPath.Equals(MetricsUrl(resource: resource, isHighlightsHome: true), "/" + navigationManager.ToBaseRelativePath(navigationManager.Uri).Split("?").First());
     }
 
     public static string StructuredLogsUrl(string? resource = null, string? logLevel = null, string? filters = null, string? traceId = null, string? spanId = null)

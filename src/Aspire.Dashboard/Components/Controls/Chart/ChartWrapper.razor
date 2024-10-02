@@ -2,7 +2,7 @@
 @using Aspire.Dashboard.Otlp.Model
 
 <div class="metric-tab">
-    <PlotlyChart InstrumentViewModel="@InstrumentViewModel" Duration="Duration" Applications="Applications" IsDashpageChart="@IsRenderedInsideModal"/>
+    <PlotlyChart InstrumentViewModel="@InstrumentViewModel" Duration="Duration" Applications="Applications" IsHighlight="@IsRenderedInsideModal"/>
 
     @if (!IsRenderedInsideModal)
     {

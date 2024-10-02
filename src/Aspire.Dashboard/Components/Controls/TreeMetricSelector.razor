@@ -5,16 +5,16 @@
 
 <FluentTreeView Id="metric-selector" Class="metrics-tree" @bind-CurrentSelected="@PageViewModel.SelectedTreeItem" @bind-CurrentSelected:after="HandleSelectedTreeItemChangedAsync">
     <ChildContent>
-        @if (PageViewModel.Dashpages.Length is not 0)
+        @if (PageViewModel.Highlights.Length is not 0)
         {
-            var filteredDashpages = PageViewModel.Dashpages.Where(PageViewModel.IsDashpageAvailable).ToList();
+            var filteredHighlights = PageViewModel.Highlights.Where(PageViewModel.IsHighlightAvailable).ToList();
 
-            if (filteredDashpages.Count is not 0)
+            if (filteredHighlights.Count is not 0)
             {
-                <FluentTreeItem Text="@Loc[Aspire.Dashboard.Resources.Metrics.DashpagesSectionName]" Data="@(PageViewModel.DashpagesHomeSelected ? null : Metrics.DashpagesHome)" title="@Loc[Aspire.Dashboard.Resources.Metrics.DashpagesSectionName]" InitiallyExpanded="true">
-                    @foreach (var dashpage in filteredDashpages)
+                <FluentTreeItem Text="@Loc[Aspire.Dashboard.Resources.Metrics.HighlightsSectionName]" Data="@(PageViewModel.HighlightsHomeSelected ? null : Metrics.HighlightsHome)" title="@Loc[Aspire.Dashboard.Resources.Metrics.HighlightsSectionName]" InitiallyExpanded="true">
+                    @foreach (var highlight in filteredHighlights)
                     {
-                        <FluentTreeItem @key="dashpage" Class="nested" Text="@dashpage.DisplayName" Data="@dashpage" title="@dashpage.DisplayName" InitiallySelected="@(dashpage.Id == PageViewModel.SelectedDashpage?.Id)"/>
+                        <FluentTreeItem @key="highlight" Class="nested" Text="@highlight.DisplayName" Data="@highlight" title="@highlight.DisplayName" InitiallySelected="@(highlight.Id == PageViewModel.SelectedHighlight?.Id)"/>
                     }
                 </FluentTreeItem>
             }

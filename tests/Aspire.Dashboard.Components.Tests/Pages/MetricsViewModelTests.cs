@@ -24,7 +24,7 @@ public sealed class MetricsViewModelTests
 
         MetricsViewModel vm = new()
         {
-            Dashpages = [],
+            Highlights = [],
             SelectedDuration = null!,
             SelectedViewKind = MetricViewKind.Graph,
             SelectedApplication = new() { Id = ResourceTypeDetails.CreateSingleton("my-instance", "my-replica-set"), Name = "" },
@@ -32,12 +32,12 @@ public sealed class MetricsViewModelTests
             ApplicationNames = ["present-application"],
         };
 
-        Assert.True(vm.IsDashpageAvailable(new() { DisplayName = "", Id = "", Charts = [new() { InstrumentName = "present-instrument", Title = "" }] }));
-        Assert.True(vm.IsDashpageAvailable(new() { DisplayName = "", Id = "", Charts = [new() { InstrumentName = "present-instrument", Title = "", ResourceName = "present-application" }] }));
-        Assert.False(vm.IsDashpageAvailable(new() { DisplayName = "", Id = "", Charts = [new() { InstrumentName = "present-instrument", Title = "", ResourceName = "absent-application" }] }));
-        Assert.True(vm.IsDashpageAvailable(new() { DisplayName = "", Id = "", Charts = [new() { InstrumentName = "present-instrument", Title = "" }, new() { InstrumentName = "absent-instrument", Title = "" }] }));
-        Assert.False(vm.IsDashpageAvailable(new() { DisplayName = "", Id = "", Charts = [new() { InstrumentName = "absent-instrument", Title = "" }] }));
-        Assert.False(vm.IsDashpageAvailable(new() { DisplayName = "", Id = "", Charts = [new() { InstrumentName = "absent-instrument", Title = "" }, new() { InstrumentName = "absent-instrument", Title = "" }] }));
-        Assert.False(vm.IsDashpageAvailable(new() { DisplayName = "", Id = "", Charts = [new() { InstrumentName = "present-instrument", Title = "" }, new() { InstrumentName = "absent-instrument", Title = "", IsRequired = true }] }));
+        Assert.True(vm.IsHighlightAvailable(new() { DisplayName = "", Id = "", Charts = [new() { InstrumentName = "present-instrument", Title = "" }] }));
+        Assert.True(vm.IsHighlightAvailable(new() { DisplayName = "", Id = "", Charts = [new() { InstrumentName = "present-instrument", Title = "", ResourceName = "present-application" }] }));
+        Assert.False(vm.IsHighlightAvailable(new() { DisplayName = "", Id = "", Charts = [new() { InstrumentName = "present-instrument", Title = "", ResourceName = "absent-application" }] }));
+        Assert.True(vm.IsHighlightAvailable(new() { DisplayName = "", Id = "", Charts = [new() { InstrumentName = "present-instrument", Title = "" }, new() { InstrumentName = "absent-instrument", Title = "" }] }));
+        Assert.False(vm.IsHighlightAvailable(new() { DisplayName = "", Id = "", Charts = [new() { InstrumentName = "absent-instrument", Title = "" }] }));
+        Assert.False(vm.IsHighlightAvailable(new() { DisplayName = "", Id = "", Charts = [new() { InstrumentName = "absent-instrument", Title = "" }, new() { InstrumentName = "absent-instrument", Title = "" }] }));
+        Assert.False(vm.IsHighlightAvailable(new() { DisplayName = "", Id = "", Charts = [new() { InstrumentName = "present-instrument", Title = "" }, new() { InstrumentName = "absent-instrument", Title = "", IsRequired = true }] }));
     }
 }

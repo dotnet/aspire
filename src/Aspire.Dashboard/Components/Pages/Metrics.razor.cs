@@ -19,7 +19,7 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.MetricsViewModel, Metrics.MetricsPageState>
 {
-    public const string DashpagesHome = nameof(DashpagesHome);
+    public const string HighlightsHome = nameof(HighlightsHome);
 
     private SelectViewModel<ResourceTypeDetails> _selectApplication = null!;
     private List<SelectViewModel<TimeSpan>> _durations = null!;
@@ -48,7 +48,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "highlight")]
-    public string? DashpageId { get; set; }
+    public string? HighlightId { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "duration")]
@@ -68,7 +68,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public required TelemetryRepository TelemetryRepository { get; init; }
 
     [Inject]
-    public required IDashpagePersistence DashpagePersistence { get; init; }
+    public required IHighlightPersistence HighlightPersistence { get; init; }
 
     [Inject]
     public required ILogger<Metrics> Logger { get; init; }
@@ -101,7 +101,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             SelectedApplication = _selectApplication,
             SelectedDuration = _durations.Single(d => d.Id == s_defaultDuration),
             SelectedViewKind = null,
-            Dashpages = []
+            Highlights = []
         };
 
         UpdateApplications();
@@ -115,8 +115,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     protected override async Task OnParametersSetAsync()
     {
-        var dashpages = await DashpagePersistence.GetDashpagesAsync(CancellationToken.None);
-        PageViewModel.Dashpages = [..dashpages.OrderBy(dashpage => dashpage.DisplayName, StringComparers.DashpageName)];
+        var highlights = await HighlightPersistence.GetHighlightsAsync(CancellationToken.None);
+        PageViewModel.Highlights = [..highlights.OrderBy(highlight => highlight.DisplayName, StringComparers.HighlightName)];
 
         if (await this.InitializeViewModelAsync())
         {
@@ -135,8 +135,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             InstrumentName = PageViewModel.SelectedInstrument?.Name,
             DurationMinutes = (int)PageViewModel.SelectedDuration.Id.TotalMinutes,
             ViewKind = PageViewModel.SelectedViewKind?.ToString(),
-            DashpageId = PageViewModel.SelectedDashpage?.Id,
-            DashpageHomeSelected = PageViewModel.DashpagesHomeSelected
+            HighlightId = PageViewModel.SelectedHighlight?.Id,
+            HighlightsHomeSelected = PageViewModel.HighlightsHomeSelected
         };
     }
 
@@ -160,13 +160,13 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             }
         }
 
-        if (!string.IsNullOrEmpty(DashpageId) &&
-            viewModel.Dashpages.FirstOrDefault(page => page.Id.Equals(DashpageId, StringComparisons.OtlpInstrumentName)) is { } dashpage)
+        if (!string.IsNullOrEmpty(HighlightId) &&
+            viewModel.Highlights.FirstOrDefault(page => page.Id.Equals(HighlightId, StringComparisons.OtlpInstrumentName)) is { } highlight)
         {
-            viewModel.SelectedDashpage = dashpage;
+            viewModel.SelectedHighlight = highlight;
         }
 
-        viewModel.DashpagesHomeSelected = DashboardUrls.IsDashpagesUrl(NavigationManager, ApplicationName);
+        viewModel.HighlightsHomeSelected = DashboardUrls.IsHighlightsUrl(NavigationManager, ApplicationName);
 
         return Task.CompletedTask;
     }
@@ -182,7 +182,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         UpdateSubscription();
     }
 
-    private Task HandleDashpageMetricViewKindChangedAsync(MenuChangeEventArgs e)
+    private Task HandleHighlightMetricViewKindChangedAsync(MenuChangeEventArgs e)
     {
         Debug.Assert(e.Id is not null);
         var metricKind = Enum.Parse<MetricViewKind>(e.Id);
@@ -239,8 +239,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         public FluentTreeItem? SelectedTreeItem { get; set; }
         public OtlpMeter? SelectedMeter { get; set; }
         public OtlpInstrumentSummary? SelectedInstrument { get; set; }
-        public DashpageDefinition? SelectedDashpage { get; set; }
-        public bool DashpagesHomeSelected { get; set; }
+        public HighlightDefinition? SelectedHighlight { get; set; }
+        public bool HighlightsHomeSelected { get; set; }
 
         public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }
         public required SelectViewModel<TimeSpan> SelectedDuration { get; set; }
@@ -255,13 +255,13 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
         public required MetricViewKind? SelectedViewKind { get; set; }
 
-        public required ImmutableArray<DashpageDefinition> Dashpages { get; set; }
+        public required ImmutableArray<HighlightDefinition> Highlights { get; set; }
 
         public ImmutableHashSet<string> ApplicationNames { get; set; } = [];
 
-        internal bool IsDashpageAvailable(DashpageDefinition dashpage)
+        internal bool IsHighlightAvailable(HighlightDefinition highlight)
         {
-            if (dashpage.Charts.Count == 0)
+            if (highlight.Charts.Count == 0)
             {
                 return false;
             }
@@ -269,7 +269,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             bool foundOne = false;
             bool allExplicitResources = true;
 
-            foreach (var chart in dashpage.Charts)
+            foreach (var chart in highlight.Charts)
             {
                 bool isInstrumentAvailable = IsInstrumentAvailable(chart.InstrumentName);
 
@@ -337,27 +337,27 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         public string? InstrumentName { get; set; }
         public int DurationMinutes { get; set; }
         public required string? ViewKind { get; set; }
-        public string? DashpageId { get; set; }
-        public required bool DashpageHomeSelected { get; set; }
+        public string? HighlightId { get; set; }
+        public required bool HighlightsHomeSelected { get; set; }
     }
 
     #endregion
 
     private async Task HandleSelectedTreeItemChangedAsync()
     {
-        (OtlpMeter?, OtlpInstrumentSummary?, DashpageDefinition?, bool) selections =
+        (OtlpMeter?, OtlpInstrumentSummary?, HighlightDefinition?, bool) selections =
             PageViewModel.SelectedTreeItem?.Data switch
             {
                 OtlpMeter meter => (meter, null, null, false),
                 OtlpInstrumentSummary instrument => (instrument.Parent, instrument, null, false),
-                DashpageDefinition dashpage => (null, null, dashpage, false),
-                DashpagesHome => (null, null, null, true),
+                HighlightDefinition highlight => (null, null, highlight, false),
+                HighlightsHome => (null, null, null, true),
                 _ => (null, null, null, false)
             };
 
         var vm = PageViewModel;
 
-        (vm.SelectedMeter, vm.SelectedInstrument, vm.SelectedDashpage, vm.DashpagesHomeSelected) = selections;
+        (vm.SelectedMeter, vm.SelectedInstrument, vm.SelectedHighlight, vm.HighlightsHomeSelected) = selections;
 
         await this.AfterViewModelChangedAsync(_contentLayout, isChangeInToolbar: !ViewportInformation.IsDesktop);
 
@@ -374,8 +374,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             instrument: serializable.InstrumentName,
             duration: serializable.DurationMinutes,
             view: serializable.ViewKind,
-            dashpage: serializable.DashpageId,
-            isDashpagesHome: serializable.DashpageHomeSelected);
+            highlight: serializable.HighlightId,
+            isHighlightsHome: serializable.HighlightsHomeSelected);
 
         return url;
     }

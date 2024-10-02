@@ -31,15 +31,15 @@ public partial class PlotlyChart : ChartBase
     public required IDialogService DialogService { get; init; }
 
     /// <summary>
-    /// Whether this chart is rendered within a dashpage.
+    /// Whether this chart is rendered within a highlight.
     /// </summary>
     /// <remarks>
-    /// This value will alter the chart's presentation in the UI. Dashpage charts display
+    /// This value will alter the chart's presentation in the UI. Highlight charts display
     /// as "tiles" rather than taking the full screen. They have a more minimal presentation,
     /// and their "filters" view is displayed in a popup, rather than below the chart.
     /// </remarks>
     [Parameter]
-    public bool IsDashpageChart { get; set; }
+    public bool IsHighlight { get; set; }
 
     public string ChartDivId { get; } = $"plotly-chart-container-{Interlocked.Increment(ref s_nextChartId)}";
 
@@ -240,6 +240,6 @@ public partial class PlotlyChart : ChartBase
 
     private string GetChartDivClass()
     {
-        return IsDashpageChart ? "plotly-chart-container" : "plotly-chart-container plotly-chart-container-single-metric-view";
+        return IsHighlight ? "plotly-chart-container" : "plotly-chart-container plotly-chart-container-single-metric-view";
     }
 }

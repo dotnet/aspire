@@ -11,40 +11,40 @@ using static Aspire.Dashboard.Components.Pages.Metrics;
 namespace Aspire.Dashboard.Model;
 
 /// <summary>
-/// Data about a dashpage.
+/// Data about a highlight.
 /// </summary>
-public sealed class DashpageDefinition
+public sealed class HighlightDefinition
 {
     /// <summary>
-    /// Gets the unique name of this dashpage.
+    /// Gets the unique name of this highlight.
     /// </summary>
     [JsonPropertyName("id")]
     public required string Id { get; init; }
 
     /// <summary>
-    /// Gets the display name of this dashpage. Not guaranteed to be unique.
+    /// Gets the display name of this highlight. Not guaranteed to be unique.
     /// </summary>
     [JsonPropertyName("displayName")]
     public required string DisplayName { get; init; }
 
     /// <summary>
-    /// Gets the relative priority of this dashpage, controlling ordering of dashpages in UI.
+    /// Gets the relative priority of this highlight, controlling ordering of highlights in UI.
     /// </summary>
     /// <remarks>
     /// Higher priorities appear higher in lists.
-    /// When priorities are equal, dashpages are ordered by name.
+    /// When priorities are equal, highlights are ordered by name.
     /// </remarks>
     [JsonPropertyName("priority")]
     public int Priority { get; init; }
 
     [JsonPropertyName("charts")]
-    public required List<DashpageChartDefinition> Charts { get; init; }
+    public required List<HighlightChartDefinition> Charts { get; init; }
 }
 
 /// <summary>
-/// Data about a chart on a dashpage.
+/// Data about a chart on a highlight.
 /// </summary>
-public sealed class DashpageChartDefinition
+public sealed class HighlightChartDefinition
 {
     [JsonPropertyName("title")]
     public required string Title { get; init; }
@@ -65,28 +65,28 @@ public sealed class DashpageChartDefinition
     public MetricViewKind DefaultViewKind { get; init; } = MetricViewKind.Graph;
 }
 
-public interface IDashpagePersistence
+public interface IHighlightPersistence
 {
-    Task<ImmutableArray<DashpageDefinition>> GetDashpagesAsync(CancellationToken token);
+    Task<ImmutableArray<HighlightDefinition>> GetHighlightsAsync(CancellationToken token);
 }
 
-public sealed class DashpageJsonFilePersistence(IFileProvider fileProvider) : IDashpagePersistence
+public sealed class HighlightJsonFilePersistence(IFileProvider fileProvider) : IHighlightPersistence
 {
     private static readonly JsonSerializerOptions s_options = new() { ReadCommentHandling = JsonCommentHandling.Skip };
 
     // Cache file to prevent re-reading on every request.
     // In case of an exception, no caching is done.
-    private ImmutableArray<DashpageDefinition> _dashpages;
+    private ImmutableArray<HighlightDefinition> _highlights;
 
-    public async Task<ImmutableArray<DashpageDefinition>> GetDashpagesAsync(CancellationToken token)
+    public async Task<ImmutableArray<HighlightDefinition>> GetHighlightsAsync(CancellationToken token)
     {
-        if (_dashpages.IsDefault)
+        if (_highlights.IsDefault)
         {
-            var fileInfo = fileProvider.GetFileInfo("dashpages.json");
+            var fileInfo = fileProvider.GetFileInfo("highlights.json");
 
             if (fileInfo.Exists == false)
             {
-                _dashpages = [];
+                _highlights = [];
             }
             else
             {
@@ -96,15 +96,15 @@ public sealed class DashpageJsonFilePersistence(IFileProvider fileProvider) : ID
 
                 var json = await reader.ReadToEndAsync(token).ConfigureAwait(false);
 
-                _dashpages = Deserialize(json);
+                _highlights = Deserialize(json);
             }
         }
 
-        return _dashpages;
+        return _highlights;
     }
 
-    internal static ImmutableArray<DashpageDefinition> Deserialize(string json)
+    internal static ImmutableArray<HighlightDefinition> Deserialize(string json)
     {
-        return JsonSerializer.Deserialize<ImmutableArray<DashpageDefinition>>(json, s_options);
+        return JsonSerializer.Deserialize<ImmutableArray<HighlightDefinition>>(json, s_options);
     }
 }

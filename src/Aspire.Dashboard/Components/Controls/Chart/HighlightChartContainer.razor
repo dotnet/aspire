@@ -16,7 +16,7 @@
 else
 {
     <div>
-        <div class="dashpage-chart-header">
+        <div class="highlight-chart-header">
             <h5 title="@InstrumentData.Summary.Name"
                 style="margin-bottom: 0; overflow: hidden; text-overflow: ellipsis; display: inline-block; max-width: 90%">@InstrumentData.Summary.Name</h5>
 
@@ -42,7 +42,7 @@ else
             }
         </div>
 
-        <div class="dashpage-chart-body">
+        <div class="highlight-chart-body">
             @if (ActiveView is Metrics.MetricViewKind.Graph)
             {
                 <ChartWrapper Applications="@Applications"

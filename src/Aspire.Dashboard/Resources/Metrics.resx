@@ -169,7 +169,7 @@
   <data name="MetricsInsturementNameGridNameColumnHeader" xml:space="preserve">
     <value>Instrument</value>
   </data>
-  <data name="DashpagesSectionName" xml:space="preserve">
+  <data name="HighlightsSectionName" xml:space="preserve">
     <value>Highlights</value>
   </data>
   <data name="MetricsViewAttributesToolbar" xml:space="preserve">

@@ -257,7 +257,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddScoped<DimensionManager>();
 
         builder.Services.AddSingleton<IFileProvider>(new PhysicalFileProvider(Directory.GetCurrentDirectory()));
-        builder.Services.AddSingleton<IDashpagePersistence, DashpageJsonFilePersistence>();
+        builder.Services.AddSingleton<IHighlightPersistence, HighlightJsonFilePersistence>();
 
         builder.Services.AddLocalization();
 

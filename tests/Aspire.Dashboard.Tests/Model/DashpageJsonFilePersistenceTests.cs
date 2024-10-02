@@ -7,7 +7,7 @@ using static Aspire.Dashboard.Components.Pages.Metrics;
 
 namespace Aspire.Dashboard.Tests.Model;
 
-public sealed class DashpageJsonFilePersistenceTests
+public sealed class HighlightJsonFilePersistenceTests
 {
     [Fact]
     public void Deserialize()
@@ -55,7 +55,7 @@ public sealed class DashpageJsonFilePersistenceTests
             ]
             """;
 
-        var dashpages = DashpageJsonFilePersistence.Deserialize(json);
+        var dashpages = HighlightJsonFilePersistence.Deserialize(json);
 
         Assert.Collection(dashpages,
             dashpage =>

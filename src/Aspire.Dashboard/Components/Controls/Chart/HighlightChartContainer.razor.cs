@@ -3,7 +3,7 @@
 
 namespace Aspire.Dashboard.Components;
 
-public partial class DashpageChartContainer
+public partial class HighlightChartContainer
 {
     private static int s_nextFilterButtonId;
     private readonly string _filterButtonId = $"filter-button-{Interlocked.Increment(ref s_nextFilterButtonId)}";
