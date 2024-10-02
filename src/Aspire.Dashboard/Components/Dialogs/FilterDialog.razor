@@ -42,6 +42,7 @@
                             OptionText="@(c => c.Name)"
                             OptionValue="@(c => c.Name)"
                             Immediate="true"
+                            ImmediateDelay="@FluentUIExtensions.InputDelay"
                             Label="@Loc[nameof(Dialogs.FilterDialogTextValuePlaceholder)]">
                 <OptionTemplate Context="optionContext">
                     <FluentBadge Circular=true Appearance="Appearance.Neutral" Slot="end">
@@ -50,7 +51,7 @@
                         @* Workaround this issue by inserting extra text using CSS. *@
                         <span data-filtercount="@optionContext.Id!.Count"></span>
                     </FluentBadge>
-                    @optionContext.Name
+                    <FluentHighlighter Text="@optionContext.Name" HighlightedText="@_formModel.Value" />
                 </OptionTemplate>
             </FluentCombobox>
             <ValidationMessage For="() => _formModel.Value" />

@@ -70,8 +70,10 @@ internal static class DashboardUrls
         }
         if (filters != null)
         {
-            // Filters should already be escaped.
-            url += (!url.Contains('?')) ? $"?filters={filters}" : $"&filters={filters}";
+            // Filters contains : and + characters. These are escaped when they're not needed to,
+            // which makes the URL harder to read. Consider having a custom method for appending
+            // query string here that uses an encoder that doesn't encode those characters.
+            url = QueryHelpers.AddQueryString(url, "filters", filters);
         }
         if (traceId != null)
         {
@@ -94,8 +96,10 @@ internal static class DashboardUrls
         }
         if (filters != null)
         {
-            // Filters should already be escaped.
-            url += (!url.Contains('?')) ? $"?filters={filters}" : $"&filters={filters}";
+            // Filters contains : and + characters. These are escaped when they're not needed to,
+            // which makes the URL harder to read. Consider having a custom method for appending
+            // query string here that uses an encoder that doesn't encode those characters.
+            url = QueryHelpers.AddQueryString(url, "filters", filters);
         }
 
         return url;

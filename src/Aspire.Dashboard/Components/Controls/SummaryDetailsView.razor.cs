@@ -77,6 +77,11 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
     private bool _internalShowDetails;
     private FluentSplitter? _splitterRef;
 
+    public string EffectivePanel1Size => ViewportInformation.IsDesktop ? _panel1Size : "0fr";
+    public string EffectivePanel2Size => ViewportInformation.IsDesktop ? _panel2Size : "1fr";
+
+    public string PanelMinimumSize => ViewportInformation.IsDesktop ? "150px" : "0";
+
     protected override void OnInitialized()
     {
         ResetPanelSizes();
@@ -125,7 +130,6 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
         // This is required because we only want to show details after resolving size and orientation
         // to avoid a flash of content in the wrong location.
         _internalShowDetails = ShowDetails;
-        SetPanelToFullScreenOnMobile();
     }
 
     private async Task RaiseOnResizeAsync()
@@ -214,15 +218,6 @@ public partial class SummaryDetailsView<T> : IGlobalKeydownListener, IDisposable
         // These need to not use culture-specific formatting because it needs to be a valid CSS value
         _panel1Size = string.Create(CultureInfo.InvariantCulture, $"{panel1Fraction:F3}fr");
         _panel2Size = string.Create(CultureInfo.InvariantCulture, $"{(1 - panel1Fraction):F3}fr");
-    }
-
-    private void SetPanelToFullScreenOnMobile()
-    {
-        if (!ViewportInformation.IsDesktop)
-        {
-            // panel 1 will have a height of 0, so its fraction of 1 is also 0
-            SetPanelSizes(panel1Fraction: 0);
-        }
     }
 
     public IReadOnlySet<AspireKeyboardShortcut> SubscribedShortcuts { get; } = new HashSet<AspireKeyboardShortcut>

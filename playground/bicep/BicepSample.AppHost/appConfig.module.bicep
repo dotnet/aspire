@@ -7,7 +7,7 @@ param principalType string
 
 param sku string
 
-resource appConfig 'Microsoft.AppConfiguration/configurationStores@2019-10-01' = {
+resource appConfig 'Microsoft.AppConfiguration/configurationStores@2024-05-01' = {
   name: take('appConfig-${uniqueString(resourceGroup().id)}', 50)
   location: location
   properties: {

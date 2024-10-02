@@ -47,7 +47,7 @@ public static class AzureEventHubsExtensions
 
         var configureConstruct = (ResourceModuleConstruct construct) =>
         {
-            var skuParameter = new BicepParameter("sku", typeof(string))
+            var skuParameter = new ProvisioningParameter("sku", typeof(string))
             {
                 Value = new StringLiteral("Standard")
             };
@@ -65,7 +65,7 @@ public static class AzureEventHubsExtensions
 
             construct.Add(eventHubsNamespace.AssignRole(EventHubsBuiltInRole.AzureEventHubsDataOwner, construct.PrincipalTypeParameter, construct.PrincipalIdParameter));
 
-            construct.Add(new BicepOutput("eventHubsEndpoint", typeof(string)) { Value = eventHubsNamespace.ServiceBusEndpoint });
+            construct.Add(new ProvisioningOutput("eventHubsEndpoint", typeof(string)) { Value = eventHubsNamespace.ServiceBusEndpoint });
 
             var azureResource = (AzureEventHubsResource)construct.Resource;
             var azureResourceBuilder = builder.CreateResourceBuilder(azureResource);
