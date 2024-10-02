@@ -93,7 +93,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         _selectApplication = new SelectViewModel<ResourceTypeDetails>
         {
             Id = null,
-            Name = ControlsStringsLoc[ControlsStrings.None]
+            Name = ControlsStringsLoc[ControlsStrings.LabelNone]
         };
 
         PageViewModel = new MetricsViewModel
@@ -140,7 +140,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         };
     }
 
-    public void UpdateViewModelFromQuery(MetricsViewModel viewModel)
+    public Task UpdateViewModelFromQueryAsync(MetricsViewModel viewModel)
     {
         viewModel.SelectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration);
         viewModel.SelectedApplication = _applicationViewModels.GetApplication(Logger, ApplicationName, canSelectGrouping: true, _selectApplication);
@@ -167,6 +167,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         }
 
         viewModel.DashpagesHomeSelected = DashboardUrls.IsDashpagesUrl(NavigationManager, ApplicationName);
+
+        return Task.CompletedTask;
     }
 
     private void UpdateApplications()

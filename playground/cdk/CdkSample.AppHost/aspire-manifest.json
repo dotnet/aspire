@@ -76,10 +76,11 @@
     },
     "cache": {
       "type": "azure.bicep.v0",
-      "connectionString": "{cache.secretOutputs.connectionString}",
+      "connectionString": "{cache.outputs.connectionString}",
       "path": "cache.module.bicep",
       "params": {
-        "keyVaultName": ""
+        "principalId": "",
+        "principalName": ""
       }
     },
     "pgsqlAdministratorLogin": {
@@ -117,12 +118,12 @@
     },
     "pgsql2": {
       "type": "azure.bicep.v0",
-      "connectionString": "{pgsql2.secretOutputs.connectionString}",
+      "connectionString": "{pgsql2.outputs.connectionString}",
       "path": "pgsql2.module.bicep",
       "params": {
-        "keyVaultName": "",
-        "administratorLogin": "{pgsql2-username.value}",
-        "administratorLoginPassword": "{pgsql2-password.value}"
+        "principalId": "",
+        "principalType": "",
+        "principalName": ""
       }
     },
     "servicebus": {
@@ -206,37 +207,6 @@
           "protocol": "tcp",
           "transport": "http",
           "external": true
-        }
-      }
-    },
-    "pgsql2-username": {
-      "type": "parameter.v0",
-      "value": "{pgsql2-username.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string",
-          "default": {
-            "generate": {
-              "minLength": 10,
-              "numeric": false,
-              "special": false
-            }
-          }
-        }
-      }
-    },
-    "pgsql2-password": {
-      "type": "parameter.v0",
-      "value": "{pgsql2-password.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 22
-            }
-          }
         }
       }
     }

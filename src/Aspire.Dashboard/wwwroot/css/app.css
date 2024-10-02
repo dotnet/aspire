@@ -623,9 +623,14 @@ fluent-data-grid-cell.no-ellipsis {
 }
 
 .filter-input-container {
-    width: 75%;
+    width: 85%;
 }
 
 .layout fluent-toolbar > .fluent-input-label {
     margin-bottom: 0;
+}
+
+.action-divider {
+    display: inline;
+    vertical-align: sub;
 }

@@ -132,7 +132,7 @@ public partial class ConsoleLogsTests : TestContext
 
         logger.LogInformation("Log results are added to log viewer.");
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, "Hello world", IsErrorMessage: false)]);
-        cut.WaitForState(() => instance.LogViewer.LogEntries.EntriesCount > 0);
+        cut.WaitForState(() => instance._logEntries.EntriesCount > 0);
     }
 
     private void SetupConsoleLogsServices(TestDashboardClient? dashboardClient = null)

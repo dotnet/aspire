@@ -71,6 +71,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
     private bool _isLoading = true;
     private string? _elementIdBeforeDetailsViewOpened;
     private GridColumnManager _manager = null!;
+    private int _maxHighlightedCount;
 
     private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.ContainsKey(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter)) && !resource.IsHiddenState();
 
@@ -153,7 +154,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             new GridColumn(Name: StartTimeColumn, DesktopWidth: "1.5fr"),
             new GridColumn(Name: SourceColumn, DesktopWidth: "2.5fr"),
             new GridColumn(Name: EndpointsColumn, DesktopWidth: "2.5fr", MobileWidth: "2fr"),
-            new GridColumn(Name: ActionsColumn, DesktopWidth: "1.5fr", MobileWidth: "1fr")
+            new GridColumn(Name: ActionsColumn, DesktopWidth: "minmax(125px, 1.5fr)", MobileWidth: "1fr")
         ];
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
@@ -194,6 +195,7 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                     _visibleResourceTypes.TryAdd(resource.ResourceType, true);
                 }
 
+                UpdateMaxHighlightedCount();
                 Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
             }
 
@@ -207,6 +209,10 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                         if (changeType == ResourceViewModelChangeType.Upsert)
                         {
                             _resourceByName[resource.Name] = resource;
+                            if (string.Equals(SelectedResource?.Name, resource.Name, StringComparisons.ResourceName))
+                            {
+                                SelectedResource = resource;
+                            }
 
                             _allResourceTypes[resource.ResourceType] = true;
                             _visibleResourceTypes[resource.ResourceType] = true;
@@ -218,10 +224,32 @@ public partial class Resources : ComponentBase, IAsyncDisposable
                         }
                     }
 
+                    UpdateMaxHighlightedCount();
                     await InvokeAsync(StateHasChanged);
                 }
             });
         }
+    }
+
+    private void UpdateMaxHighlightedCount()
+    {
+        var maxHighlightedCount = 0;
+        foreach (var kvp in _resourceByName)
+        {
+            var resourceHighlightedCount = 0;
+            foreach (var command in kvp.Value.Commands)
+            {
+                if (command.IsHighlighted && command.State != CommandViewModelState.Hidden)
+                {
+                    resourceHighlightedCount++;
+                }
+            }
+            maxHighlightedCount = Math.Max(maxHighlightedCount, resourceHighlightedCount);
+        }
+
+        // Don't attempt to display more than 2 highlighted commands. Many commands will take up too much space.
+        // Extra highlighted commands are still available in the menu.
+        _maxHighlightedCount = Math.Min(maxHighlightedCount, 2);
     }
 
     private bool ApplicationErrorCountsChanged(Dictionary<ApplicationKey, int> newApplicationUnviewedErrorCounts)
@@ -310,28 +338,58 @@ public partial class Resources : ComponentBase, IAsyncDisposable
             }
         }
 
-        var response = await DashboardClient.ExecuteResourceCommandAsync(resource.Name, resource.ResourceType, command, CancellationToken.None);
-
         var messageResourceName = GetResourceName(resource);
 
+        var toastParameters = new ToastParameters<CommunicationToastContent>()
+        {
+            Id = Guid.NewGuid().ToString(),
+            Intent = ToastIntent.Progress,
+            Title = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandStarting)], messageResourceName, command.DisplayName),
+            Content = new CommunicationToastContent()
+        };
+
+        // Show a toast immediately to indicate the command is starting.
+        ToastService.ShowCommunicationToast(toastParameters);
+
+        var response = await DashboardClient.ExecuteResourceCommandAsync(resource.Name, resource.ResourceType, command, CancellationToken.None);
+
+        // Update toast with the result;
         if (response.Kind == ResourceCommandResponseKind.Succeeded)
         {
-            ToastService.ShowSuccess(string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandSuccess)], command.DisplayName + " " + messageResourceName));
+            toastParameters.Title = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandSuccess)], messageResourceName, command.DisplayName);
+            toastParameters.Intent = ToastIntent.Success;
+            toastParameters.Icon = GetIntentIcon(ToastIntent.Success);
         }
         else
         {
-            ToastService.ShowCommunicationToast(new ToastParameters<CommunicationToastContent>()
-            {
-                Intent = ToastIntent.Error,
-                Title = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandFailed)], command.DisplayName + " " + messageResourceName),
-                PrimaryAction = Loc[nameof(Dashboard.Resources.Resources.ResourceCommandToastViewLogs)],
-                OnPrimaryAction = EventCallback.Factory.Create<ToastResult>(this, () => NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: resource.Name))),
-                Content = new CommunicationToastContent()
-                {
-                    Details = response.ErrorMessage
-                }
-            });
+            toastParameters.Title = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Resources.ResourceCommandFailed)], messageResourceName, command.DisplayName);
+            toastParameters.Intent = ToastIntent.Error;
+            toastParameters.Icon = GetIntentIcon(ToastIntent.Error);
+            toastParameters.Content.Details = response.ErrorMessage;
+            toastParameters.PrimaryAction = Loc[nameof(Dashboard.Resources.Resources.ResourceCommandToastViewLogs)];
+            toastParameters.OnPrimaryAction = EventCallback.Factory.Create<ToastResult>(this, () => NavigationManager.NavigateTo(DashboardUrls.ConsoleLogsUrl(resource: resource.Name)));
         }
+
+        ToastService.UpdateToast(toastParameters.Id, toastParameters);
+    }
+
+    // Copied from FluentUI.
+    private static (Icon Icon, Color Color)? GetIntentIcon(ToastIntent intent)
+    {
+        return intent switch
+        {
+            ToastIntent.Success => (new Icons.Filled.Size24.CheckmarkCircle(), Color.Success),
+            ToastIntent.Warning => (new Icons.Filled.Size24.Warning(), Color.Warning),
+            ToastIntent.Error => (new Icons.Filled.Size24.DismissCircle(), Color.Error),
+            ToastIntent.Info => (new Icons.Filled.Size24.Info(), Color.Info),
+            ToastIntent.Progress => (new Icons.Regular.Size24.Flash(), Color.Neutral),
+            ToastIntent.Upload => (new Icons.Regular.Size24.ArrowUpload(), Color.Neutral),
+            ToastIntent.Download => (new Icons.Regular.Size24.ArrowDownload(), Color.Neutral),
+            ToastIntent.Event => (new Icons.Regular.Size24.CalendarLtr(), Color.Neutral),
+            ToastIntent.Mention => (new Icons.Regular.Size24.Person(), Color.Neutral),
+            ToastIntent.Custom => null,
+            _ => throw new InvalidOperationException()
+        };
     }
 
     private static string GetResourceStateTooltip(ResourceViewModel resource) =>

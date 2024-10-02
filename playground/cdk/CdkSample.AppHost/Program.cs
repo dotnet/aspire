@@ -37,15 +37,15 @@ var keyvault = builder.AddAzureKeyVault("mykv", (_, construct, keyVault) =>
     construct.Add(secret);
 });
 
-var cache = builder.AddRedis("cache").AsAzureRedis();
+var cache = builder.AddAzureRedis("cache");
 
 var pgsqlAdministratorLogin = builder.AddParameter("pgsqlAdministratorLogin");
 var pgsqlAdministratorLoginPassword = builder.AddParameter("pgsqlAdministratorLoginPassword", secret: true);
-var pgsqldb = builder.AddPostgres("pgsql", pgsqlAdministratorLogin, pgsqlAdministratorLoginPassword)
-                   .AsAzurePostgresFlexibleServer()
+var pgsqldb = builder.AddAzurePostgresFlexibleServer("pgsql")
+                   .WithPasswordAuthentication(pgsqlAdministratorLogin, pgsqlAdministratorLoginPassword)
                    .AddDatabase("pgsqldb");
 
-var pgsql2 = builder.AddPostgres("pgsql2").AsAzurePostgresFlexibleServer();
+var pgsql2 = builder.AddAzurePostgresFlexibleServer("pgsql2");
 
 var sb = builder.AddAzureServiceBus("servicebus")
     .AddQueue("queue1",

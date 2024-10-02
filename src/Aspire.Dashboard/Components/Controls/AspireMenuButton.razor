@@ -3,7 +3,7 @@
 @using Microsoft.FluentUI.AspNetCore.Components.DesignTokens
 @inherits FluentComponentBase
 
-<FluentButton Id="@MenuButtonId" Appearance="@ButtonAppearance" aria-haspopup="true" aria-expanded="@_visible" @onclick="ToggleMenu" @onkeydown="OnKeyDown" Disabled="@(!Items.Where(i => !i.IsDivider).Any())">
+<FluentButton Id="@MenuButtonId" Title="@Title" Appearance="@ButtonAppearance" aria-haspopup="true" aria-expanded="@_visible" @onclick="ToggleMenu" @onkeydown="OnKeyDown" Disabled="@(!Items.Where(i => !i.IsDivider).Any())">
     @if (string.IsNullOrWhiteSpace(Text))
     {
         <FluentIcon Value="@_icon" />
