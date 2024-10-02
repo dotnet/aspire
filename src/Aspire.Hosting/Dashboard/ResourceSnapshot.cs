@@ -52,4 +52,17 @@ internal abstract class ResourceSnapshot
             }
         }
     }
+
+    public static Value ConvertToValue(object? value)
+    {
+        return value switch
+        {
+            string s => Value.ForString(s),
+            int i => Value.ForNumber(i),
+            IEnumerable<string> list => Value.ForList(list.Select(Value.ForString).ToArray()),
+            IEnumerable<int> list => Value.ForList(list.Select(i => Value.ForNumber(i)).ToArray()),
+            null => Value.ForNull(),
+            _ => Value.ForString(value.ToString())
+        };
+    }
 }
