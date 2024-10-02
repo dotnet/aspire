@@ -141,7 +141,7 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                 construct.WriteToManifest(context);
 
                 // We're handling custom resource writing here instead of in the AzureConstructResource
-                // this is because we're tracking the ProvisioningParameter instances as we process the resource
+                // this is because we're tracking the provisioningParameter instances as we process the resource
                 if (Parameters.Count > 0)
                 {
                     context.Writer.WriteStartObject("params");
@@ -773,13 +773,13 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                     _allocatedParameters[parameter] = parameterName;
                 }
 
-                if (!_provisioningParameters.TryGetValue(parameterName, out var ProvisioningParameter))
+                if (!_provisioningParameters.TryGetValue(parameterName, out var provisioningParameter))
                 {
-                    _provisioningParameters[parameterName] = ProvisioningParameter = new ProvisioningParameter(parameterName, type ?? typeof(string)) { IsSecure = secretType != SecretType.None };
+                    _provisioningParameters[parameterName] = provisioningParameter = new ProvisioningParameter(parameterName, type ?? typeof(string)) { IsSecure = secretType != SecretType.None };
                 }
 
                 Parameters[parameterName] = parameter;
-                return ProvisioningParameter;
+                return provisioningParameter;
             }
 
             private void AddIngress(ContainerAppConfiguration config)
@@ -935,9 +935,9 @@ internal sealed class AzureContainerAppsInfastructure(ILogger<AzureContainerApps
                     {
                         arguments.Add(s);
                     }
-                    else if (argument is ProvisioningParameter ProvisioningParameter)
+                    else if (argument is ProvisioningParameter provisioningParameter)
                     {
-                        arguments.Add(ProvisioningParameter);
+                        arguments.Add(provisioningParameter);
                     }
                     else
                     {
