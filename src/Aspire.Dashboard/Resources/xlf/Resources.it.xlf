@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="ResourceActionConsoleLogsText">
         <source>Console logs</source>
-        <target state="new">Console logs</target>
+        <target state="translated">Log della console</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceCommandFailed">
@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="ResourceCommandToastViewLogs">
         <source>View console logs</source>
-        <target state="needs-review-translation">Visualizzare i log</target>
+        <target state="new">View console logs</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointUrl">
@@ -39,12 +39,12 @@
       </trans-unit>
       <trans-unit id="ResourceDetailsViewConsoleLogs">
         <source>View console logs</source>
-        <target state="new">View console logs</target>
+        <target state="translated">Visualizza log della console</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesActionsColumnHeader">
         <source>Actions</source>
-        <target state="new">Actions</target>
+        <target state="translated">Azioni</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsContainerArgumentsProperty">
@@ -104,7 +104,7 @@
       </trans-unit>
       <trans-unit id="ResourcesDetailsHealthStateProperty">
         <source>Health State</source>
-        <target state="new">Health State</target>
+        <target state="translated">Stato di integrità</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">

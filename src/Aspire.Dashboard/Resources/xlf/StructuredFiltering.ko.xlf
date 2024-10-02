@@ -4,37 +4,37 @@
     <body>
       <trans-unit id="AddFilter">
         <source>Add filter</source>
-        <target state="new">Add filter</target>
+        <target state="translated">필터 추가</target>
         <note />
       </trans-unit>
       <trans-unit id="ConditionContains">
         <source>contains</source>
-        <target state="new">contains</target>
+        <target state="translated">포함</target>
         <note />
       </trans-unit>
       <trans-unit id="ConditionNotContains">
         <source>not contains</source>
-        <target state="new">not contains</target>
+        <target state="translated">포함 안 함</target>
         <note>corresponds to A !contains B</note>
       </trans-unit>
       <trans-unit id="DialogTitleAddFilter">
         <source>Add filter</source>
-        <target state="new">Add filter</target>
+        <target state="translated">필터 추가</target>
         <note />
       </trans-unit>
       <trans-unit id="DialogTitleEditFilter">
         <source>Edit filter</source>
-        <target state="new">Edit filter</target>
+        <target state="translated">필터 편집</target>
         <note />
       </trans-unit>
       <trans-unit id="Filters">
         <source>Filters</source>
-        <target state="new">Filters</target>
+        <target state="translated">필터</target>
         <note />
       </trans-unit>
       <trans-unit id="NoFilters">
         <source>No filters</source>
-        <target state="new">No filters</target>
+        <target state="translated">필터 없음</target>
         <note />
       </trans-unit>
     </body>

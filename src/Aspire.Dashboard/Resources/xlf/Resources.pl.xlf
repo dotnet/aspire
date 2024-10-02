@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="ResourceCommandToastViewLogs">
         <source>View console logs</source>
-        <target state="needs-review-translation">Wyświetl dzienniki</target>
+        <target state="new">View console logs</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceDetailsEndpointUrl">
