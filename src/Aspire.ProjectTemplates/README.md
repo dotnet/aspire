@@ -11,8 +11,8 @@ Example:
 
 __templatestrings.en.json__
 
-```
- "symbols/Framework/description": "The target framework for the project."
+```json
+ "symbols/Framework/description": "The target framework for the project.",
 ```
 
 Will map to this content in the file __template.json__
