@@ -40,7 +40,6 @@ public static class AzureFunctionsProjectResourceExtensions
 
         if (storage is null)
         {
-            s_isFirstInvocation = false;
             // Azure Functions blob triggers require StorageAccountContributor access to the host storage
             // account when deployed. We assign this role to the host storage resource when running in publish mode.
             if (builder.ExecutionContext.IsPublishMode)
@@ -84,7 +83,6 @@ public static class AzureFunctionsProjectResourceExtensions
         {
             if (s_isFirstInvocation)
             {
-                s_isFirstInvocation = false;
                 builder.Eventing.Subscribe<BeforeStartEvent>((data, token) =>
                 {
                     var logger = data.Services.GetRequiredService<ILoggerFactory>().CreateLogger(LogCategoryName);
@@ -96,6 +94,7 @@ public static class AzureFunctionsProjectResourceExtensions
             }
         }
 
+        s_isFirstInvocation = false;
         resource.HostStorage = storage;
 
         return builder.AddResource(resource)
