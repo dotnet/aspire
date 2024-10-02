@@ -34,7 +34,7 @@
           "description": "Target net9.0"
         }
       ],
-      "replaces": "net8.0",
+      "replaces": "net9.0",
       "defaultValue": "net9.0"
     },
     "hostIdentifier": {
