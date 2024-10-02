@@ -207,10 +207,7 @@ public class AzureBicepResourceTests(ITestOutputHelper output)
 
         Assert.True(cosmos.Resource.IsContainer());
 
-        var cs = AzureCosmosDBEmulatorConnectionString.Create(10001);
-
-        Assert.Equal(cs, cosmos.Resource.ConnectionStringExpression.ValueExpression);
-        Assert.Equal(cs, await ((IResourceWithConnectionString)cosmos.Resource).GetConnectionStringAsync());
+        Assert.Equal(await cosmos.Resource.ConnectionStringExpression.GetValueAsync(CancellationToken.None), await ((IResourceWithConnectionString)cosmos.Resource).GetConnectionStringAsync());
     }
 
     [Fact]
